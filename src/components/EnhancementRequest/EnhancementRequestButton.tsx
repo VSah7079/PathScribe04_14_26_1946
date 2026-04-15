@@ -24,19 +24,13 @@ export type EnhancementButtonMode = 'enhancement' | 'qa';
 
 interface Props {
   mode?:        EnhancementButtonMode;
-  showInProd?:  boolean;  // QA button only — show in production (default: false)
+  showInProd?:  boolean;
 }
-
-const ENV = import.meta.env.MODE ?? 'development';  // 'development' | 'staging' | 'production'
 
 export const EnhancementRequestButton: React.FC<Props> = ({
   mode = 'enhancement',
-  showInProd = false,
 }) => {
   const [open, setOpen] = useState(false);
-
-  // QA button hides in production unless explicitly enabled
-  if (mode === 'qa' && ENV === 'production' && !showInProd) return null;
 
   const isQA    = mode === 'qa';
   const icon    = isQA ? '🐛' : '💡';
