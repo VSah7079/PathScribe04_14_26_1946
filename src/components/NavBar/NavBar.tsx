@@ -4,7 +4,6 @@ import '../../pathscribe.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { EnhancementRequestButton } from '../EnhancementRequest/EnhancementRequestButton';
-import { loadEnhancementConfig } from '../../services/enhancementRequestService';
 import { VoiceToggleButton } from '../Voice/VoiceToggleButton';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
@@ -234,7 +233,6 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
   const { unreadCount, hasUrgent, setPortalOpen } = useMessaging();
   const [linksOpen, setLinksOpen]         = useState(false);
   const [sysInfoOpen, setSysInfoOpen]     = useState(false);
-  const qaEnabled = loadEnhancementConfig().qaEnabled;
   const logoSrc = `${import.meta.env.BASE_URL}pathscribe-logo-dark.svg`;
 
   const userInitials = user?.name
@@ -261,7 +259,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
             style={{ height: logoHeight, cursor: 'pointer' }} onClick={onLogoClick} />
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>
-          {qaEnabled && <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" showInProd /></span>}
+          <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" showInProd /></span>
         </div>
 
         {/* Right */}
