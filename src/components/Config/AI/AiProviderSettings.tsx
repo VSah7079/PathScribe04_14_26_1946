@@ -71,7 +71,6 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   const [saved,         setSaved]         = useState(false);
   const [testResult,    setTestResult]    = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
   const [testError,     setTestError]     = useState('');
-  const aiProviderData = PROVIDER_MODELS[providerId];
 
   // When provider changes, reset model to first available
   useEffect(() => {
@@ -174,9 +173,9 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       <div style={{ marginBottom: 20 }}>
         <label style={labelStyle}>Model</label>
         <select value={modelId} onChange={e => setModelId(e.target.value)} style={inputStyle}>
-          {aiProviderData?.map(m => (
+          {PROVIDER_MODELS[providerId].map(m => (
             <option key={m.id} value={m.id}>{m.label}</option>
-          )) ?? []}
+          ))}
         </select>
       </div>
 

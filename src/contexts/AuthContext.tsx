@@ -6,11 +6,9 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "pathologist" | "admin" | "SystemAdmin";
+  role: "pathologist" | "admin";
   initials: string;
   voiceProfile: VoiceProfileId; // Required to ensure the VoiceProvider always has a value
-  roles?: string[];
-  locale?: string;
 }
 
 interface AuthContextType {
@@ -24,26 +22,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const FALLBACK_DEMO_EMAIL = "demo@pathscribe.ai";
-const FALLBACK_DEMO_PASS = "xyxRnJrIu64nsi0KqPn-";
-const FALLBACK_ADMIN_EMAIL = "admin@pathscribe.ai";
-const FALLBACK_ADMIN_PASS = "ZBs=inBiC6^N*XYwH3v^";
-const FALLBACK_UK_DEMO_EMAIL = "paul.carter@mft.nhs.uk";
-const FALLBACK_UK_DEMO_PASS = "Pathscribe_TempPass2026!";
-
-const resolveCredential = (value: string | undefined, fallback: string) => (value?.trim() || fallback);
-
-const normalizeUser = (userData: User): User => ({
-  ...userData,
-  roles:
-    userData.roles ??
-    (userData.role === "admin" || userData.role === "SystemAdmin"
-      ? ["SystemAdmin"]
-      : userData.role === "pathologist"
-      ? ["Pathologist"]
-      : []),
-});
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,61 +31,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Helper to sync state and storage
   const saveUser = (userData: User | null) => {
     if (userData) {
-      const normalized = normalizeUser(userData);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-      setUser(normalized);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
     } else {
       localStorage.removeItem(STORAGE_KEY);
-      setUser(null);
     }
+    setUser(userData);
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     return new Promise((resolve) => {
       setTimeout(() => {
         let authenticatedUser: User | null = null;
-        const enteredEmail = email.trim();
-        const enteredPassword = password.trim();
-        const demoEmail = resolveCredential(import.meta.env.VITE_DEMO_EMAIL, FALLBACK_DEMO_EMAIL);
-        const demoPass = resolveCredential(import.meta.env.VITE_DEMO_PASS, FALLBACK_DEMO_PASS);
-        const adminEmail = resolveCredential(import.meta.env.VITE_ADMIN_EMAIL, FALLBACK_ADMIN_EMAIL);
-        const adminPass = resolveCredential(import.meta.env.VITE_ADMIN_PASS, FALLBACK_ADMIN_PASS);
-        const ukDemoEmail = resolveCredential(import.meta.env.VITE_UK_DEMO_EMAIL, FALLBACK_UK_DEMO_EMAIL);
-        const ukDemoPass = resolveCredential(import.meta.env.VITE_UK_DEMO_PASS, FALLBACK_UK_DEMO_PASS);
 
         // Mock Login Data with Voice Profiles
-        if (enteredEmail === demoEmail && enteredPassword === demoPass) {
+        if (email === import.meta.env.VITE_DEMO_EMAIL && password === import.meta.env.VITE_DEMO_PASS) {
           authenticatedUser = {
             id: "PATH-001",
             name: "Dr. Sarah Johnson",
-            email: demoEmail,
+            email: import.meta.env.VITE_DEMO_EMAIL,
             role: "pathologist",
             initials: "SJ",
             voiceProfile: "EN-US",
-            roles: ["Pathologist"],
           };
-        } else if (enteredEmail === adminEmail && enteredPassword === adminPass) {
+        } else if (email === import.meta.env.VITE_ADMIN_EMAIL && password === import.meta.env.VITE_ADMIN_PASS) {
           authenticatedUser = {
             id: "u3",
             name: "System Admin",
-            email: adminEmail,
+            email: import.meta.env.VITE_ADMIN_EMAIL,
             role: "admin",
             initials: "SA",
             voiceProfile: "EN-US",
-            roles: ["SystemAdmin"],
           };
-        } else if (enteredEmail === ukDemoEmail && enteredPassword === ukDemoPass) {
+        } else if (email === import.meta.env.VITE_UK_DEMO_EMAIL && password === import.meta.env.VITE_UK_DEMO_PASS) {
           authenticatedUser = {
             id: "PATH-UK-001",
             name: "Paul Carter",
-            email: ukDemoEmail,
+            email: import.meta.env.VITE_UK_DEMO_EMAIL,
             role: "pathologist",
             initials: "PC",
             voiceProfile: "EN-GB",
             locale: "en-GB",
-            roles: ["Pathologist"],
           } as any;
-        } else if (enteredEmail === "oliver.pemberton@mft.nhs.uk" && enteredPassword === demoPass) {
+        } else if (email === "oliver.pemberton@mft.nhs.uk" && password === import.meta.env.VITE_DEMO_PASS) {
           // UK Demo — Dr. Oliver Pemberton, no role assigned (security testing)
           authenticatedUser = {
             id: "PATH-UK-002",
@@ -117,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             initials: "OP",
             voiceProfile: "EN-GB",
             locale: "en-GB",
-            roles: [],
           } as any;
         }
 
@@ -150,15 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsed && !parsed.voiceProfile) {
           parsed.voiceProfile = "EN-US";
         }
-        if (parsed && !parsed.roles && parsed.role) {
-          parsed.roles =
-            parsed.role === "admin" || parsed.role === "SystemAdmin"
-              ? ["SystemAdmin"]
-              : parsed.role === "pathologist"
-              ? ["Pathologist"]
-              : [];
-        }
-        setUser(normalizeUser(parsed));
+        setUser(parsed);
       } catch (e) {
         console.error("Failed to parse stored user", e);
       }

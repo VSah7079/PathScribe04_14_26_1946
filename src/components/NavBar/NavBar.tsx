@@ -4,6 +4,7 @@ import '../../pathscribe.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { EnhancementRequestButton } from '../EnhancementRequest/EnhancementRequestButton';
+import { loadEnhancementConfig } from '../../services/enhancementRequestService';
 import { VoiceToggleButton } from '../Voice/VoiceToggleButton';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
@@ -233,7 +234,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
   const { unreadCount, hasUrgent, setPortalOpen } = useMessaging();
   const [linksOpen, setLinksOpen]         = useState(false);
   const [sysInfoOpen, setSysInfoOpen]     = useState(false);
-  const logoSrc = `${import.meta.env.BASE_URL}pathscribe-logo-dark.svg`;
+  const qaEnabled = loadEnhancementConfig().qaEnabled;
 
   const userInitials = user?.name
     ? user.name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('')
@@ -255,11 +256,11 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
       <nav className="ps-nav">
         {/* Left */}
         <div className="ps-nav-left">
-          <img src={logoSrc} alt="PathScribe AI"
+          <img src="/pathscribe-logo-dark.svg" alt="PathScribe AI"
             style={{ height: logoHeight, cursor: 'pointer' }} onClick={onLogoClick} />
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>
-          <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" showInProd /></span>
+          {qaEnabled && <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" /></span>}
         </div>
 
         {/* Right */}
