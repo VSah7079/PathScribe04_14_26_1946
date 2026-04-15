@@ -261,7 +261,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
             style={{ height: logoHeight, cursor: 'pointer' }} onClick={onLogoClick} />
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>
-          {qaEnabled && <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" /></span>}
+          {qaEnabled && <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" showInProd /></span>}
         </div>
 
         {/* Right */}
