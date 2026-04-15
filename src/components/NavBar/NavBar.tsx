@@ -235,6 +235,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
   const [linksOpen, setLinksOpen]         = useState(false);
   const [sysInfoOpen, setSysInfoOpen]     = useState(false);
   const qaEnabled = loadEnhancementConfig().qaEnabled;
+  const logoSrc = `${import.meta.env.BASE_URL}pathscribe-logo-dark.svg`;
 
   const userInitials = user?.name
     ? user.name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('')
@@ -256,7 +257,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
       <nav className="ps-nav">
         {/* Left */}
         <div className="ps-nav-left">
-          <img src="/pathscribe-logo-dark.svg" alt="PathScribe AI"
+          <img src={logoSrc} alt="PathScribe AI"
             style={{ height: logoHeight, cursor: 'pointer' }} onClick={onLogoClick} />
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>

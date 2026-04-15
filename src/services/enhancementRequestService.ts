@@ -74,6 +74,7 @@ export function loadEnhancementConfig(): EnhancementRequestConfig {
     const raw = localStorage.getItem(CONFIG_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
+  const envQaEnabled = import.meta.env.VITE_QA_ENABLED;
   return {
     mode:              'email',
     // Enhancement requests — product team
@@ -87,7 +88,8 @@ export function loadEnhancementConfig(): EnhancementRequestConfig {
     qaAdminCc:         import.meta.env.VITE_QA_ADMIN_CC
                          ? [import.meta.env.VITE_QA_ADMIN_CC as string]
                          : [],
-    qaEnabled:         import.meta.env.VITE_QA_ENABLED === 'true',
+    // Default to enabled when env is not set, so navbar behavior stays consistent across envs.
+    qaEnabled:         envQaEnabled == null ? true : envQaEnabled === 'true',
     emailConfirmation: true,
     portalUrl:         '',
     portalApiKey:      '',
