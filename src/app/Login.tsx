@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import SunCalc from "suncalc";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 type ThemeMode = "light" | "dark" | "auto" | "scheduled";
 

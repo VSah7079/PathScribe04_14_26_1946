@@ -31,6 +31,7 @@ export default function Login() {
   const [cardVisible, setCardVisible] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,7 +83,13 @@ export default function Login() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     const success = await login(email, password);
-    if (success) navigate("/");
+    if (success) {
+      setLoginError("");
+      navigate("/");
+      return;
+    }
+
+    setLoginError("Invalid credentials. Check the demo login details for this deployment.");
   }
 
   return (
@@ -122,12 +129,12 @@ export default function Login() {
 
         <form onSubmit={handleLogin}>
           <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 500, color: isDark ? "#cbd5e1" : "#475569" }}>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => setPauseAnimation(true)} onBlur={() => setPauseAnimation(false)}
+          <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setLoginError(""); }} onFocus={() => { setPauseAnimation(true); setLoginError(""); }} onBlur={() => setPauseAnimation(false)}
             style={{ width: "100%", padding: "12px", borderRadius: "8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)", background: isDark ? "rgba(15,23,42,0.5)" : "rgba(255,255,255,0.5)", color: isDark ? "#fff" : "#000", marginBottom: "16px", outline: "none", boxSizing: "border-box" }} />
 
           <label style={{ display: "block", marginBottom: "6px", fontSize: "14px", fontWeight: 500, color: isDark ? "#cbd5e1" : "#475569" }}>Password</label>
           <div style={{ position: "relative", marginBottom: "20px" }}>
-            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => setPauseAnimation(true)} onBlur={() => setPauseAnimation(false)}
+            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(""); }} onFocus={() => { setPauseAnimation(true); setLoginError(""); }} onBlur={() => setPauseAnimation(false)}
               style={{ width: "100%", padding: "12px", paddingRight: "45px", borderRadius: "8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)", background: isDark ? "rgba(15,23,42,0.5)" : "rgba(255,255,255,0.5)", color: isDark ? "#fff" : "#000", outline: "none", boxSizing: "border-box" }} />
             <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: isDark ? "#94a3b8" : "#64748b" }}>
               {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -135,6 +142,12 @@ export default function Login() {
           </div>
 
           <button type="submit" style={{ width: "100%", padding: "14px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", fontWeight: 600, cursor: "pointer", marginBottom: "16px" }}>Sign In</button>
+
+          {loginError && (
+            <div style={{ marginBottom: "16px", padding: "10px 12px", borderRadius: "8px", background: isDark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.35)", color: isDark ? "#fecaca" : "#b91c1c", fontSize: "13px" }}>
+              {loginError}
+            </div>
+          )}
           
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
             <a href="#" style={{ fontSize: "13px", color: isDark ? "#60a5fa" : "#2563eb", textDecoration: "none" }}>Forgot password?</a>

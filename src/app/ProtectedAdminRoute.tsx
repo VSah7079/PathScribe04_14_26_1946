@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function ProtectedAdminRoute({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
@@ -10,7 +10,13 @@ export default function ProtectedAdminRoute({ children }: { children: JSX.Elemen
   }
 
   // Logged in but NOT an admin → redirect
-  if (!user.roles.includes("SystemAdmin")) {
+  const isAdmin =
+    user.role === "admin" ||
+    user.role === "SystemAdmin" ||
+    user.roles?.includes("SystemAdmin") ||
+    user.roles?.includes("admin");
+
+  if (!isAdmin) {
     return <Navigate to="/login" replace />;
   }
 
