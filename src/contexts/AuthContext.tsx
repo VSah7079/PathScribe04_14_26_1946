@@ -42,37 +42,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return new Promise((resolve) => {
       setTimeout(() => {
         let authenticatedUser: User | null = null;
+        const enteredEmail = email.trim();
+        const enteredPassword = password.trim();
+        const demoEmail = (import.meta.env.VITE_DEMO_EMAIL ?? "").trim();
+        const demoPass = (import.meta.env.VITE_DEMO_PASS ?? "").trim();
+        const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim();
+        const adminPass = (import.meta.env.VITE_ADMIN_PASS ?? "").trim();
+        const ukDemoEmail = (import.meta.env.VITE_UK_DEMO_EMAIL ?? "").trim();
+        const ukDemoPass = (import.meta.env.VITE_UK_DEMO_PASS ?? "").trim();
 
         // Mock Login Data with Voice Profiles
-        if (email === import.meta.env.VITE_DEMO_EMAIL && password === import.meta.env.VITE_DEMO_PASS) {
+        if (enteredEmail === demoEmail && enteredPassword === demoPass) {
           authenticatedUser = {
             id: "PATH-001",
             name: "Dr. Sarah Johnson",
-            email: import.meta.env.VITE_DEMO_EMAIL,
+            email: demoEmail,
             role: "pathologist",
             initials: "SJ",
             voiceProfile: "EN-US",
           };
-        } else if (email === import.meta.env.VITE_ADMIN_EMAIL && password === import.meta.env.VITE_ADMIN_PASS) {
+        } else if (enteredEmail === adminEmail && enteredPassword === adminPass) {
           authenticatedUser = {
             id: "u3",
             name: "System Admin",
-            email: import.meta.env.VITE_ADMIN_EMAIL,
+            email: adminEmail,
             role: "admin",
             initials: "SA",
             voiceProfile: "EN-US",
           };
-        } else if (email === import.meta.env.VITE_UK_DEMO_EMAIL && password === import.meta.env.VITE_UK_DEMO_PASS) {
+        } else if (enteredEmail === ukDemoEmail && enteredPassword === ukDemoPass) {
           authenticatedUser = {
             id: "PATH-UK-001",
             name: "Paul Carter",
-            email: import.meta.env.VITE_UK_DEMO_EMAIL,
+            email: ukDemoEmail,
             role: "pathologist",
             initials: "PC",
             voiceProfile: "EN-GB",
             locale: "en-GB",
           } as any;
-        } else if (email === "oliver.pemberton@mft.nhs.uk" && password === import.meta.env.VITE_DEMO_PASS) {
+        } else if (enteredEmail === "oliver.pemberton@mft.nhs.uk" && enteredPassword === demoPass) {
           // UK Demo — Dr. Oliver Pemberton, no role assigned (security testing)
           authenticatedUser = {
             id: "PATH-UK-002",
