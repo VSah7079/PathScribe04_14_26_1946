@@ -133,6 +133,18 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   };
 
   const devOnly = !isAdmin;
+  const aiProviderData = PROVIDER_MODELS[providerId];
+
+  // Temporary debug aid for host-to-host config shape differences.
+  console.log('AI provider data:', {
+    providerId,
+    models: aiProviderData,
+    currentConfig: current,
+  });
+
+  if (!Array.isArray(aiProviderData)) {
+    console.warn('AI provider models is not an array for provider:', providerId, aiProviderData);
+  }
 
   return (
     <div style={{ maxWidth: 560, padding: '24px 0' }}>
@@ -173,7 +185,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       <div style={{ marginBottom: 20 }}>
         <label style={labelStyle}>Model</label>
         <select value={modelId} onChange={e => setModelId(e.target.value)} style={inputStyle}>
-          {PROVIDER_MODELS[providerId].map(m => (
+          {(Array.isArray(aiProviderData) ? aiProviderData : []).map(m => (
             <option key={m.id} value={m.id}>{m.label}</option>
           ))}
         </select>
