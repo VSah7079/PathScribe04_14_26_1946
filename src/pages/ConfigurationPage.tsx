@@ -20,20 +20,18 @@ import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab } from '../components/Config/Actions/ActionsTab';
 
-const VALID_TABS = ['ai', 'models', 'protocols', 'staff', 'voice', 'system', 'narrative', 'actions', 'macros'] as const;
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'narrative', 'actions', 'macros'] as const;
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
-  { id: 'ai',        label: 'AI Behavior'      },
-  { id: 'models',    label: 'Models'            },
-  { id: 'protocols', label: 'Synoptic Library'  },
-  { id: 'staff',     label: 'Staff'             },
-  { id: 'voice',     label: 'Voice'             },
-  { id: 'system',    label: 'System'            },
-  { id: 'actions',   label: 'Action Registry'   },
-  { id: 'macros',    label: 'Macros'            },
+  { id: 'ai',        label: 'AI Behavior'        },
+  { id: 'protocols', label: 'Synoptic Library'   },
+  { id: 'staff',     label: 'Staff'              },
+  { id: 'voice',     label: 'Voice'              },
+  { id: 'system',    label: 'System'             },
+  { id: 'actions',   label: 'Action Registry'    },
+  { id: 'macros',    label: 'Macros'             },
   { id: 'narrative', label: 'Narrative Templates' },
-
 ];
 
 function getTabFromSearch(search: string): TabId {
@@ -98,8 +96,7 @@ const ConfigurationPage: React.FC = () => {
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case 'ai':        return <AITab />;
-      case 'models':    return <ModelsTab />;
+      case 'ai':        return <AITab ModelsPanel={ModelsTab} />;
       case 'protocols': return <ProtocolsTab />;
       case 'staff':     return <StaffTab />;
       case 'system':    return <SystemTab />;

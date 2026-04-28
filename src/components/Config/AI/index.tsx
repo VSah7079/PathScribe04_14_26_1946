@@ -8,10 +8,11 @@ const card: React.CSSProperties = {
   borderRadius: '12px', padding: '20px', marginBottom: '12px',
 };
 
-const AITab: React.FC = () => {
-  const [config,  setConfig]  = useState<AIBehaviorConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
+const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel }) => {
+  const [config,        setConfig]        = useState<AIBehaviorConfig | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [saving,        setSaving]        = useState(false);
+  const [modelsOpen,    setModelsOpen]    = useState(false);
 
   useEffect(() => {
     aiBehaviorService.get().then(res => {
@@ -94,6 +95,42 @@ const AITab: React.FC = () => {
       <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 32 }}>
         <AiProviderSettings isAdmin={true} />
       </div>
+
+      {/* ── Model Versions — admin-only, collapsible ──────────────────────── */}
+      {ModelsPanel && (
+        <div style={{ marginTop: 32, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 24 }}>
+          <button
+            onClick={() => setModelsOpen(o => !o)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#64748b', fontSize: '12px', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.06em', padding: 0,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
+          >
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5"
+              style={{ transition: 'transform 0.2s', transform: modelsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
+            >
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            Model Versions
+            <span style={{ marginLeft: 4, fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', color: '#475569', letterSpacing: 0 }}>
+              Admin only
+            </span>
+          </button>
+
+          {modelsOpen && (
+            <div style={{ marginTop: 20 }}>
+              <ModelsPanel />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
