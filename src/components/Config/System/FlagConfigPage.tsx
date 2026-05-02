@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import '../../../pathscribe.css';
 import { Flag, TagClass, DataSourceType } from '../../../services/flags/IFlagService';
 import { IconKey } from '../../../types/smarttag.types';
@@ -49,6 +50,9 @@ const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const FlagConfigPage: React.FC = () => {
+  const { log } = useAuditLog();
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, showModal);
   const [flags,         setFlags]         = useState<Flag[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [showModal,     setShowModal]     = useState(false);
@@ -382,9 +386,9 @@ const FlagConfigPage: React.FC = () => {
       {/* ── Add / Edit Modal ── */}
       {showModal && (
         <div className="ps-conf-backdrop">
-          <div className="ps-conf-modal" style={{ maxWidth: tagClass === 'COMPUTATIONAL' ? 1060 : 560, width: '100%', transition: 'max-width 0.2s ease' }}>
+          <div className="ps-conf-modal" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="flag-modal-title" style={{ maxWidth: tagClass === 'COMPUTATIONAL' ? 1060 : 560, width: '100%', transition: 'max-width 0.2s ease' }}>
             <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 700, marginBottom: 20 }}>
-              {editingFlag ? 'Edit Flag' : 'Create Flag'}
+              <span id="flag-modal-title">{editingFlag ? 'Edit Flag' : 'Create Flag'}</span>
             </h3>
 
             {/* Tag class toggle */}
@@ -479,17 +483,12 @@ const FlagConfigPage: React.FC = () => {
                           { value: 'ai-extract' as DataSourceType, label: 'AI Extract', hint: 'AI proxy parses LIS text' },
                           { value: 'pathscribe' as DataSourceType, label: 'PS Entry',   hint: 'Captured in synoptic' },
                         ]).map(opt => (
-                          <label key={opt.value} title={opt.hint} style={{
-                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: '6px 4px', borderRadius: 6, cursor: 'pointer',
-                            border: `1.5px solid ${dataSourceType === opt.value ? 'var(--ps-conf-teal)' : 'var(--ps-conf-border)'}`,
-                            background: dataSourceType === opt.value ? 'rgba(56,189,248,0.08)' : 'transparent',
-                          }}>
-                            <input type="radio" checked={dataSourceType === opt.value}
-                              onChange={() => setDataSourceType(opt.value)} style={{ display: 'none' }} />
-                            <span style={{ fontSize: 11, fontWeight: 600, color: dataSourceType === opt.value ? 'var(--ps-conf-teal)' : 'var(--ps-conf-text-3)', textAlign: 'center' }}>
-                              {opt.label}
-                            </span>
+                          <label key={opt.value} title={opt.hint}
+                            className="comp-source-radio"
+                            data-selected={dataSourceType === opt.value ? 'true' : 'false'}>
+                            <input type="radio" className="ps-radio-hidden" checked={dataSourceType === opt.value}
+                              onChange={() => setDataSourceType(opt.value)} />
+                            <span className="comp-source-radio-label">{opt.label}</span>
                           </label>
                         ))}
                       </div>

@@ -373,22 +373,13 @@ const SidecarDisplay: React.FC<Props> = ({ flag, caseId, onResultLoaded, aiSugge
               </div>
             )}
             {/* Specimen assignment badge */}
-            <div style={{ marginTop: 6 }}>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 10, fontWeight: 600, letterSpacing: '0.05em',
-                color: '#94a3b8', background: 'rgba(148,163,184,0.08)',
-                border: '1px solid rgba(148,163,184,0.15)',
-                borderRadius: 4, padding: '2px 7px',
-                textTransform: 'uppercase',
-              }}>
-                <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
-                  <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                  <path d="M3.5 6h5M6 3.5v5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                </svg>
-                {specimenLabel ?? 'All specimens'}
-              </span>
-            </div>
+            <span className="comp-specimen-badge">
+              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M3.5 6h5M6 3.5v5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              {specimenLabel ?? 'All specimens'}
+            </span>
           </div>
           {cfg && (
             <span style={{

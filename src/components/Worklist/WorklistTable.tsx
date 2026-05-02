@@ -1335,6 +1335,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
         .wl-specimen-chip__sep { color: rgba(148,163,184,0.4); }
         .wl-col-header:hover button { color: #f1f5f9 !important; }
         thead tr th { border-bottom: 1px solid rgba(255,255,255,0.09); }
+        thead tr th:last-child { padding-right: 16px; }
+        tbody tr td:last-child { padding-right: 16px; }
 
         /* ── Card layout (tablet < 1024px) ── */
         .wl-card-list { padding: 12px; overflow-x: hidden; }

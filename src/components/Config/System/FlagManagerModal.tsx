@@ -500,7 +500,7 @@ const FlagManagerModal: React.FC<Props> = ({
               )}
 
               {/* Individual specimens */}
-              {localCase.specimens.map((sp: any, i: number) => (
+              {localCase.specimens.map((sp: any) => (
                 <div key={sp.id} style={{ marginBottom: 2 }}>
                   <button
                     className={`fm-target-row${spIds.has(sp.id) ? " active" : ""}`}

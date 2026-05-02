@@ -171,11 +171,11 @@ const DemoResetTab: React.FC = () => {
     onConfirm: () => void; onCancel: () => void;
     confirmLabel: string; confirmColor: string;
   }) => (
-    <div style={{
+    <div role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" style={{
       background: 'rgba(0,0,0,0.2)', border: '1px solid var(--ps-conf-border)',
       borderRadius: 8, padding: '20px 24px', marginTop: 16,
     }}>
-      <h4 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>{title}</h4>
+      <h4 id="confirm-dialog-title" style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>{title}</h4>
       <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
         {description}
       </p>
@@ -234,21 +234,17 @@ const DemoResetTab: React.FC = () => {
       </div>
 
       {/* ── Option 1: My data only ── */}
-      <div style={{
-        border: '1px solid var(--ps-conf-border)', borderRadius: 8,
-        padding: '20px 24px', marginBottom: 16,
-        background: 'rgba(8,145,178,0.04)',
-      }}>
+      <div className="comp-reset-card comp-reset-card--user">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+            <div className="comp-reset-card-title">
               Reset my data only
             </div>
-            <div style={{ fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
+            <div className="comp-reset-card-desc">
               Removes your cases and restores your seed data. Other testers' work is preserved.
             </div>
             {hospitalId && (
-              <div style={{ fontSize: 11, color: 'var(--ps-conf-teal)', marginTop: 6, fontWeight: 500 }}>
+              <div className="comp-reset-hospital-label">
                 Your hospital: {hospitalLabel[hospitalId] ?? hospitalId}
               </div>
             )}
@@ -277,21 +273,17 @@ const DemoResetTab: React.FC = () => {
       </div>
 
       {/* ── Option 2: Full reset ── */}
-      <div style={{
-        border: '1px solid var(--ps-conf-border)', borderRadius: 8,
-        padding: '20px 24px',
-        background: 'rgba(239,68,68,0.03)',
-      }}>
+      <div className="comp-reset-card comp-reset-card--full">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+            <div className="comp-reset-card-title">
               Full reset
             </div>
-            <div style={{ fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
+            <div className="comp-reset-card-desc">
               Clears all mock data for all users — cases, flags, messages, session, and UI state.
               Use this to restore a completely clean baseline before a new testing session.
             </div>
-            <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, fontWeight: 500 }}>
+            <div className="comp-reset-card-warning">
               Affects all testers. Use sparingly.
             </div>
           </div>

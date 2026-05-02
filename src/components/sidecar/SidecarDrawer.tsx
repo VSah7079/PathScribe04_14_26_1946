@@ -14,9 +14,9 @@ import { useNavigate } from 'react-router-dom';
 import { Flag } from '@/services/flags/IFlagService';
 import { ComputationalResult } from '@/types/smarttag.types';
 import { useSidecar, SidecarLayoutMode } from '@/contexts/SidecarContext';
-import SidecarNavigator from './SidecarNavigator';
 import SidecarDisplay   from './SidecarDisplay';
 import { COMP_EVENT, COMP_AUDIT } from '@/constants/computationalActions';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 
 // ─── Keyframe injection ───────────────────────────────────────────────────────
@@ -109,13 +109,15 @@ interface Props {
 
 const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoaded: onResultLoadedProp }) => {
   const { isOpen, layoutMode, selectedFlag, caseId, caseFlags: contextCaseFlags, selectFlag, close } = useSidecar();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(drawerRef, isOpen && layoutMode === 'overlay');
   const { log } = useAuditLog();
 
   // Case-specific computational flags — fetched from services when drawer opens
-  const [activeFlags, setActiveFlags] = useState<Flag[]>([]);
+  const [activeFlags,   setActiveFlags]   = useState<Flag[]>([]);
+  const [caseSpecimens, setCaseSpecimens] = useState<Array<{ id: string; label: string; description: string }>>([]);
   const navigate = useNavigate();
 
-  const drawerRef  = useRef<HTMLDivElement>(null);
   const [visible, setVisible]  = useState(false);
   const [animate, setAnimate]  = useState<'in' | 'out' | 'none'>('none');
 
@@ -153,20 +155,35 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
         (sp.specimenFlags ?? sp.flags ?? []).forEach(addCode)
       );
 
-      const allFlags  = flagResult.data;
-      const compFlags = allFlags.filter(f =>
-        f.tagClass === 'COMPUTATIONAL' &&
-        f.status   === 'Active'        &&
-        f.lisCode  && lisCodes.has(f.lisCode)
+      // Build lisCode → specimenId map from case data
+      const lisCodeToSpecimenId: Record<string, string | null> = {};
+      const collectAssignment = (f: any) => {
+        if (f?.lisCode) lisCodeToSpecimenId[f.lisCode] = f.specimenId ?? null;
+      };
+      ((caseData as any).specimenFlags ?? []).forEach(collectAssignment);
+      ((caseData as any).specimens ?? []).forEach((sp: any) =>
+        (sp.specimenFlags ?? sp.flags ?? []).forEach(collectAssignment)
       );
 
-      // Always include the currently selected flag even if lookup misses
-      const selected = selectedFlag;
-      if (selected && !compFlags.find(f => f.id === selected.id)) {
-        compFlags.unshift(selected);
-      }
+      // Store specimen list for grouping
+      const specs = ((caseData as any).specimens ?? []).map((sp: any) => ({
+        id: sp.id, label: sp.label, description: sp.description ?? '',
+      }));
+      setCaseSpecimens(specs);
 
-      setActiveFlags(compFlags.length > 0 ? compFlags : computationalFlags);
+      // Deduplicate by lisCode and enrich with specimenId
+      const seenCodes = new Set<string>();
+      const allFlags  = flagResult.data;
+      const compFlags = allFlags
+        .filter(f =>
+          f.tagClass === 'COMPUTATIONAL' &&
+          f.status   === 'Active'        &&
+          f.lisCode  && lisCodes.has(f.lisCode) &&
+          !seenCodes.has(f.lisCode!) && seenCodes.add(f.lisCode!)
+        )
+        .map(f => ({ ...f, specimenId: lisCodeToSpecimenId[f.lisCode!] ?? null } as any));
+
+      setActiveFlags(compFlags);  // empty if nothing on case — no fallback to all flags
     }).catch(() => {});
   }, [caseId, isOpen]);
 
@@ -269,7 +286,8 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
       )}
       <div
         ref={drawerRef}
-        role="complementary"
+        role="dialog"
+        aria-modal="true"
         aria-label="Computational data sidecar"
         style={{ zIndex: 200,
         ...ls.container,
@@ -352,19 +370,74 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
                                result data has maximum breathing room.           */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {layoutMode === 'overlay' && (
-          <div style={{ width: 200, flexShrink: 0, borderRight: '1px solid rgba(30,41,59,0.9)', overflowY: 'auto' }}>
-            <SidecarNavigator
-              flags={activeFlags}
-              results={results}
-              selectedFlag={selectedFlag}
-              onSelect={(flag) => {
-                selectFlag(flag);
-                log(COMP_AUDIT.USE_RESULT_VIEWED, {
-                  caseId, flagId: flag.id, flagName: flag.name,
-                  status: results[flag.id]?.status ?? 'PENDING'
-                });
-              }}
-            />
+          <div className="comp-navigator" style={{ width: 220, flexShrink: 0, borderRight: '1px solid rgba(30,41,59,0.9)' }}
+            role="listbox" aria-label="Ordered computational tests">
+            {activeFlags.length === 0 && (
+              <div className="comp-empty-note">No computational flags on this case.</div>
+            )}
+            {(() => {
+              const caseLevelFlags = activeFlags.filter(f => !(f as any).specimenId);
+              const bySpecimen = caseSpecimens.map(sp => ({
+                sp, flags: activeFlags.filter(f => (f as any).specimenId === sp.id),
+              }));
+
+              const renderFlag = (flag: Flag) => {
+                const result    = results[flag.id];
+                const status    = result?.status;
+                const dotColor  = status === 'FINAL' && result?.actionability === 'ACTIONABLE' ? '#dc2626'
+                  : status === 'FINAL' ? '#059669' : status === 'PRELIMINARY' ? '#f59e0b' : '#0891b2';
+                const isSelected = selectedFlag?.id === flag.id;
+                return (
+                  <button
+                    key={flag.id}
+                    role="option"
+                    aria-selected={isSelected}
+                    className="comp-flag-row"
+                    style={{ paddingLeft: 20 }}
+                    onClick={() => {
+                      selectFlag(flag);
+                      log(COMP_AUDIT.USE_RESULT_VIEWED, {
+                        caseId, flagId: flag.id, flagName: flag.name,
+                        status: status ?? 'PENDING'
+                      });
+                    }}
+                  >
+                    <span className="comp-status-dot" style={{ background: dotColor }} aria-hidden="true" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="comp-flag-row-name">{flag.name}</div>
+                      <div className="comp-flag-row-code">{flag.lisCode}</div>
+                    </div>
+                  </button>
+                );
+              };
+
+              return (
+                <>
+                  {(caseLevelFlags.length > 0 || caseSpecimens.length === 0) && (
+                    <div>
+                      <div className="comp-col-label" style={{ paddingTop: 10 }}>
+                        Case level
+                        {caseLevelFlags.length > 0 && <span className="comp-group-count">{caseLevelFlags.length}</span>}
+                      </div>
+                      {caseLevelFlags.length === 0
+                        ? <div className="comp-empty-note" style={{ paddingTop: 2 }}>None</div>
+                        : caseLevelFlags.map(renderFlag)}
+                    </div>
+                  )}
+                  {bySpecimen.map(({ sp, flags: spFlags }) => (
+                    <div key={sp.id}>
+                      <div className="comp-col-label" style={{ paddingTop: 10 }}>
+                        {sp.label}: {sp.description}
+                        {spFlags.length > 0 && <span className="comp-group-count">{spFlags.length}</span>}
+                      </div>
+                      {spFlags.length === 0
+                        ? <div className="comp-empty-note" style={{ paddingTop: 2 }}>None ordered</div>
+                        : spFlags.map(renderFlag)}
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </div>
         )}
 

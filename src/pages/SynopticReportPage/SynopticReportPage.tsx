@@ -113,6 +113,41 @@ const SynopticReportPage: React.FC = () => {
 
   // Computational flags + left panel tab state
   const [computationalFlags,   setComputationalFlags]   = useState<Flag[]>([]);
+  const refreshCompFlags = useCallback(async () => {
+    const res = await flagService.getAll().catch(() => null);
+    if (!res?.ok) return;
+    const allComp = (res.data as Flag[]).filter(f => f.tagClass === 'COMPUTATIONAL' && f.status === 'Active');
+    const seenCodes = new Set<string>();
+    const compFlags = allComp.filter(f => {
+      if (!f.lisCode || seenCodes.has(f.lisCode)) return false;
+      seenCodes.add(f.lisCode);
+      return true;
+    });
+    setComputationalFlags(compFlags);
+    if (caseId) {
+      const c = await mockCaseService.getCase(caseId).catch(() => null);
+      if (c) setCaseData(c);
+    }
+    if (compFlags.length > 0 && caseId) {
+      const { resultService } = await import('@/services');
+      const entries = await Promise.allSettled(
+        compFlags.map(async f => {
+          if (!f.dataSource?.sourceId) return null;
+          const result = await resultService.getResult(f.dataSource.sourceId, caseId);
+          return [f.name, result.data] as [string, Record<string, string | number | boolean | null>];
+        })
+      );
+      const resultsMap: Record<string, Record<string, string | number | boolean | null>> = {};
+      entries.forEach(e => {
+        if (e.status === "fulfilled" && e.value) {
+          const [name, data] = e.value;
+          if (data && Object.keys(data).length > 0) resultsMap[name] = data;
+        }
+      });
+      setComputationalResults(resultsMap);
+    }
+  }, [caseId]);
+
   const [leftTab,              setLeftTab]              = useState<'report' | 'results'>('report');
 
 
@@ -142,32 +177,7 @@ const SynopticReportPage: React.FC = () => {
       }).catch(() => {});
     }
 
-    flagService.getAll().then(async res => {
-      if (!res.ok) return;
-      const compFlags = res.data.filter((f: Flag) => f.tagClass === 'COMPUTATIONAL' && f.status === 'Active');
-      setComputationalFlags(compFlags);
-
-      // Fetch all computational results in parallel so the AI prompt has
-      // discrete data available when generateAiSuggestionsForReport runs.
-      if (compFlags.length > 0 && caseId) {
-        const { resultService } = await import('@/services');
-        const entries = await Promise.allSettled(
-          compFlags.map(async f => {
-            if (!f.dataSource?.sourceId) return null;
-            const result = await resultService.getResult(f.dataSource.sourceId, caseId);
-            return [f.name, result.data] as [string, Record<string, string | number | boolean | null>];
-          })
-        );
-        const resultsMap: Record<string, Record<string, string | number | boolean | null>> = {};
-        entries.forEach(e => {
-          if (e.status === 'fulfilled' && e.value) {
-            const [name, data] = e.value;
-            if (data && Object.keys(data).length > 0) resultsMap[name] = data;
-          }
-        });
-        setComputationalResults(resultsMap);
-      }
-    }).catch(() => {});
+    refreshCompFlags();
 
     setHasUnsavedData(false);
     mockCaseService.getCase(caseId).then((c) => {
@@ -231,18 +241,43 @@ const SynopticReportPage: React.FC = () => {
       });
     }
 
-    // If we found matches, filter to only ordered flags
-    if (appliedLisCodes.size > 0) {
-      return computationalFlags.filter(f => f.lisCode && appliedLisCodes.has(f.lisCode));
+    // Build a map from lisCode → specimenId so we can enrich flag definitions
+    const lisCodeToSpecimenId: Record<string, string | null> = {};
+    const collectAssignment = (f: any, overwrite = true) => {
+      if (!f?.lisCode) return;
+      const spId = f.specimenId ?? null;
+      // Only overwrite if: not yet set, OR we have a real specimenId, OR overwrite forced
+      if (overwrite || !(f.lisCode in lisCodeToSpecimenId) || spId !== null) {
+        lisCodeToSpecimenId[f.lisCode] = spId;
+      }
+    };
+    if (caseData) {
+      ((caseData as any).caseFlags     ?? []).forEach((f: any) => collectAssignment(f, false));
+      ((caseData as any).specimenFlags ?? []).forEach(collectAssignment);
+      ((caseData as any).specimens ?? []).forEach((sp: any) => {
+        (sp.specimenFlags ?? sp.flags ?? []).forEach(collectAssignment);
+      });
     }
 
-    // Fallback: show all computational flags
+    // Filter to ordered flags and enrich each with its specimenId
+    if (appliedLisCodes.size > 0) {
+      return computationalFlags
+        .filter(f => f.lisCode && appliedLisCodes.has(f.lisCode))
+        .map(f => ({
+          ...f,
+          specimenId: lisCodeToSpecimenId[f.lisCode!] ?? null,
+        }));
+    }
+
+    // Fallback: if caseData isn't loaded yet return empty — avoids the flash
+    // where all 7 flags appear before the case-specific filter kicks in
+    if (!caseData) return [];
     return computationalFlags;
   }, [
     caseData?.id,
     // Stringify applied flags so memo recomputes when caseData finishes loading
-    JSON.stringify(((caseData as any)?.specimenFlags ?? []).map((f: any) => f.lisCode)),
-    JSON.stringify(((caseData as any)?.caseFlags ?? []).map((f: any) => f.lisCode)),
+    JSON.stringify(((caseData as any)?.specimenFlags ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
+    JSON.stringify(((caseData as any)?.caseFlags ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
     computationalFlags.length,
   ]);
 
@@ -645,8 +680,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   {caseId && (
                     <ComputationalPanel
                       caseId={caseId}
-                      allCompFlags={computationalFlags}
+                      allCompFlags={caseComputationalFlags}
+                      allAvailableFlags={computationalFlags}
                       aiSuggestions={aiSuggestions}
+                      onFlagsChanged={refreshCompFlags}
                     />
                   )}
                 </div>
@@ -832,8 +869,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
                         {caseId && (
                           <ComputationalPanel
                             caseId={caseId}
-                            allCompFlags={computationalFlags}
+                            allCompFlags={caseComputationalFlags}
+                            allAvailableFlags={computationalFlags}
                             aiSuggestions={aiSuggestions}
+                            onFlagsChanged={refreshCompFlags}
                           />
                         )}
                       </div>
