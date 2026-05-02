@@ -311,7 +311,11 @@ const FlagManagerModal: React.FC<Props> = ({
   // ── catalog ───────────────────────────────────────────────────────────────────
   const catalog = useMemo(() => {
     let pool = flagDefinitions.filter(d =>
-      d.active === true || (d as any).status?.toLowerCase() === "active"
+      // Only show ADMINISTRATIVE flags in the Flag Manager catalog
+      // Computational flags are driven by the LIS, not manually applied
+      ((d as any).tagClass !== 'COMPUTATIONAL') &&
+      // Handle both legacy 'active' boolean and new 'status' string
+      (d.active === true || (d as any).status?.toLowerCase() === 'active')
     );
     if (hasTarget) pool = pool.filter(d =>
       (d.level as string).toLowerCase() === targetLevel

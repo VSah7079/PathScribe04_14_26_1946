@@ -6,6 +6,9 @@ import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
 import '../../pathscribe.css';
 import { Case } from "../../types/case/Case";
+import { Flag } from '../../services/flag/IFlagService';
+import { useSidecar } from '@/contexts/SidecarContext';
+import ComputationalFlagIcon from '../flags/ComputationalFlagIcon';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -36,6 +39,8 @@ interface WorklistTableProps {
   onRowSelect?: (index: number, id: string) => void;
   onFirstCaseId?: (id: string | null) => void;
   onDisplayOrder?: (ids: string[]) => void;
+  /** Flag definitions from IFlagService — used to identify Computational flags. */
+  flagDefinitions?: Flag[];
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -333,10 +338,25 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   onRowSelect,
   onFirstCaseId,
   onDisplayOrder,
+  flagDefinitions = [],
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { reloadInbox } = useMessaging();
+
+  const { openOverlay, isOpen: isDrawerOpen, close: closeDrawer } = useSidecar();
+
+  // Lookup map: flagDefinitionId or lisCode → Flag definition.
+  // Used to identify which applied flags are COMPUTATIONAL.
+  const defMap = useMemo(() => {
+    const m = new Map<string, Flag>();
+    flagDefinitions.forEach(f => {
+      m.set(f.id, f);
+      if (f.lisCode) m.set(f.lisCode, f);
+    });
+    return m;
+  }, [flagDefinitions]);
+
 
   // ── Pediatric access state ──────────────────────────────────────────────
   const [pedBlockedCase, setPedBlockedCase] = React.useState<{id:string;age:number;clientId?:string}|null>(null);
@@ -663,6 +683,13 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
    */
   const handleRowClick = useCallback(
     (id: string) => {
+      // If sidecar overlay is open, first click closes it — does not navigate.
+      // We check a ref rather than state to avoid stale closure issues.
+      if (isDrawerOpen) {
+        closeDrawer();
+        return;
+      }
+
       const c = cases.find(c => c.id === id);
 
       // Pediatric restricted — show access modal instead of opening case
@@ -696,7 +723,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       }
       openCase(id);
     },
-    [cases, openCase, onRowSelect, onPoolCaseClick]
+    [cases, openCase, onRowSelect, onPoolCaseClick, isDrawerOpen, closeDrawer]
   );
 // ─────────────────────────────────────────────────────────────────────────────
   // DISPLAY ROW GENERATION (Dividers + Virtualization)
@@ -822,6 +849,64 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER: TABLE SHELL & SORT RIBBON
   // ─────────────────────────────────────────────────────────────────────────────
+
+
+  // Renders either a ComputationalFlagIcon (with stopPropagation) or the
+  // existing FlagChip — determined by the flag definition's tagClass.
+  const renderFlag = (appliedFlag: any, caseId: string, idx: number, isSpecimen: boolean) => {
+    const key = appliedFlag.flagDefinitionId ?? appliedFlag.lisCode ?? appliedFlag.id;
+    const def = key ? defMap.get(key) : undefined;
+
+    if (def?.tagClass === 'COMPUTATIONAL') {
+      return (
+        <ComputationalFlagIcon
+          key={`comp-${def.id}-${idx}`}
+          flag={def}
+          caseId={caseId}
+          size={26}
+          onSelect={(flag) => { openOverlay(flag, caseId); }}
+        />
+      );
+    }
+
+    return <FlagChip key={`${isSpecimen ? 'sf' : 'cf'}-${idx}`} flag={appliedFlag} isSpecimen={isSpecimen} />;
+  };
+
+
+  // Renders flags with computational icons FIRST (actionable data),
+  // followed by administrative pills (informational).
+  const renderFlags = (caseFlags: any[], specimenFlags: any[], caseId: string) => {
+    const allFlags = [
+      ...caseFlags.map(f => ({ f, isSpecimen: false })),
+      ...specimenFlags.map(f => ({ f, isSpecimen: true })),
+    ];
+    const computational = allFlags.filter(({ f }) => {
+      const key = f.flagDefinitionId ?? f.lisCode ?? f.id;
+      const def = key ? defMap.get(key) : undefined;
+      return def?.tagClass === 'COMPUTATIONAL';
+    });
+    const administrative = allFlags.filter(({ f }) => {
+      const key = f.flagDefinitionId ?? f.lisCode ?? f.id;
+      const def = key ? defMap.get(key) : undefined;
+      return !def || def.tagClass !== 'COMPUTATIONAL';
+    });
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        {/* Computational icons — gap from pills via marginRight when both exist */}
+        {computational.length > 0 && (
+          <div style={{
+            display:     'flex',
+            alignItems:  'center',
+            gap:         6,
+            marginRight: administrative.length > 0 ? 6 : 0,
+          }}>
+            {computational.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx, isSpecimen))}
+          </div>
+        )}
+        {administrative.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx + 1000, isSpecimen))}
+      </div>
+    );
+  };
 
   return (
     <div className="wl-container" style={{ 
@@ -986,8 +1071,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         <div className="wl-card__body-full">
                           <div className="wl-card__field-label">Flags</div>
                           <div className="wl-card__chips">
-                            {c.caseFlags?.map((f, idx) => <FlagChip key={`cf-${idx}`} flag={f} isSpecimen={false} />)}
-                            {c.specimenFlags?.map((f, idx) => <FlagChip key={`sf-${idx}`} flag={f} isSpecimen={true} />)}
+                            {renderFlags(c.caseFlags ?? [], c.specimenFlags ?? [], c.id)}
                           </div>
                         </div>
                       )}
@@ -1194,8 +1278,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     {/* Flags */}
                     <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                        {c.caseFlags?.map((f, idx) => <FlagChip key={`cf-${idx}`} flag={f} isSpecimen={false} />)}
-                        {c.specimenFlags?.map((f, idx) => <FlagChip key={`sf-${idx}`} flag={f} isSpecimen={true} />)}
+                        {renderFlags(c.caseFlags ?? [], c.specimenFlags ?? [], c.id)}
                       </div>
                     </td>
 

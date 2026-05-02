@@ -18,7 +18,7 @@ import NavBar             from '@/components/NavBar/NavBar';
 import HeaderBar          from './components/HeaderBar';
 import Sidebar            from './components/Sidebar';
 import LeftReportPanel    from './components/LeftReportPanel';
-import RightSynopticPanel, { type RightSynopticPanelHandle } from './components/RightSynopticPanel';
+import RightSynopticPanel, { type RightSynopticPanelHandle, type AiSuggestion, type MissingRequiredField, type ReviewField } from './components/RightSynopticPanel';
 import BottomActionBar    from './components/BottomActionBar';
 
 import AmendmentModal        from './modals/AmendmentModal';
@@ -39,16 +39,24 @@ import { useSynopticFlags }    from '../Synoptic/useSynopticFlags';
 import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { mockCaseService } from '@/services/cases/mockCaseService';
+import { flagService }    from '@/services';
+import type { ComputationalResult } from '@/types/smarttag.types';
+import type { Flag }      from '@/services/flags/IFlagService';
+import SidecarDisplay     from '../../components/sidecar/SidecarDisplay';
+import ComputationalPanel from '../../components/sidecar/ComputationalPanel';
+import SynopticSidebar    from '../../components/synoptic/SynopticSidebar';
+import { useSidecar }     from '@/contexts/SidecarContext';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { useLogout } from '@/hooks/useLogout';
 import '@/pathscribe.css';
 
 import type { Case } from '@/types/case/Case';
-import type { MissingRequiredField, ReviewField } from './components/RightSynopticPanel';
 import { AiReviewModal }  from './modals/AiReviewModal';
 import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
 import CaseTeamModal     from './modals/CaseTeamModal';
 import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
+import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '@/constants/computationalActions';
+import { useAuditLog } from '@/components/Audit/useAuditLog';
 
 // ─── Shared overlay style (passed to all modals) ──────────────
 const overlayStyle: React.CSSProperties = {
@@ -60,6 +68,7 @@ const overlayStyle: React.CSSProperties = {
 
 const SynopticReportPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
+  const { log }   = useAuditLog();
   const navigate   = useNavigate();
   const location   = useLocation();
   const handleLogout = useLogout();
@@ -102,6 +111,19 @@ const SynopticReportPage: React.FC = () => {
   const [delegateReturnTo,  setDelegateReturnTo]    = useState<'team' | null>(null);
   const [showTeamModal,     setShowTeamModal]       = useState(false);
 
+  // Computational flags + left panel tab state
+  const [computationalFlags,   setComputationalFlags]   = useState<Flag[]>([]);
+  const [leftTab,              setLeftTab]              = useState<'report' | 'results'>('report');
+
+
+  // AI suggestions lifted from RightSynopticPanel so SidecarDisplay can
+  // check concordance against the discrete computational result.
+  const [aiSuggestions,        setAiSuggestions]        = useState<Record<string, AiSuggestion>>({});
+
+  // Discrete computational results loaded upfront so they can be fed into
+  // the AI prompt — higher accuracy than relying on narrative text alone.
+  const [computationalResults, setComputationalResults] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
+
   useEffect(() => {
     if (!caseId) return;
 
@@ -119,6 +141,33 @@ const SynopticReportPage: React.FC = () => {
         setWorklistIndex(ids.indexOf(caseId));
       }).catch(() => {});
     }
+
+    flagService.getAll().then(async res => {
+      if (!res.ok) return;
+      const compFlags = res.data.filter((f: Flag) => f.tagClass === 'COMPUTATIONAL' && f.status === 'Active');
+      setComputationalFlags(compFlags);
+
+      // Fetch all computational results in parallel so the AI prompt has
+      // discrete data available when generateAiSuggestionsForReport runs.
+      if (compFlags.length > 0 && caseId) {
+        const { resultService } = await import('@/services');
+        const entries = await Promise.allSettled(
+          compFlags.map(async f => {
+            if (!f.dataSource?.sourceId) return null;
+            const result = await resultService.getResult(f.dataSource.sourceId, caseId);
+            return [f.name, result.data] as [string, Record<string, string | number | boolean | null>];
+          })
+        );
+        const resultsMap: Record<string, Record<string, string | number | boolean | null>> = {};
+        entries.forEach(e => {
+          if (e.status === 'fulfilled' && e.value) {
+            const [name, data] = e.value;
+            if (data && Object.keys(data).length > 0) resultsMap[name] = data;
+          }
+        });
+        setComputationalResults(resultsMap);
+      }
+    }).catch(() => {});
 
     setHasUnsavedData(false);
     mockCaseService.getCase(caseId).then((c) => {
@@ -164,6 +213,130 @@ const SynopticReportPage: React.FC = () => {
 
   const { toastMsg, toastVisible, showToast } = useSynopticToast();
 
+  // Filter to only computational flags actually ordered for this case.
+  // Cross-references caseData applied flags by lisCode.
+  const caseComputationalFlags = React.useMemo(() => {
+    const appliedLisCodes = new Set<string>();
+
+    // Helper to extract lisCode from any flag-like object
+    const addCode = (f: any) => { if (f?.lisCode) appliedLisCodes.add(f.lisCode); };
+
+    // Check all possible locations flags could live in the case data
+    if (caseData) {
+      ((caseData as any).caseFlags     ?? []).forEach(addCode);
+      ((caseData as any).specimenFlags ?? []).forEach(addCode);
+      ((caseData as any).flags         ?? []).forEach(addCode);
+      ((caseData as any).specimens ?? []).forEach((sp: any) => {
+        (sp.specimenFlags ?? sp.flags ?? sp.appliedFlags ?? []).forEach(addCode);
+      });
+    }
+
+    // If we found matches, filter to only ordered flags
+    if (appliedLisCodes.size > 0) {
+      return computationalFlags.filter(f => f.lisCode && appliedLisCodes.has(f.lisCode));
+    }
+
+    // Fallback: show all computational flags
+    return computationalFlags;
+  }, [
+    caseData?.id,
+    // Stringify applied flags so memo recomputes when caseData finishes loading
+    JSON.stringify(((caseData as any)?.specimenFlags ?? []).map((f: any) => f.lisCode)),
+    JSON.stringify(((caseData as any)?.caseFlags ?? []).map((f: any) => f.lisCode)),
+    computationalFlags.length,
+  ]);
+
+  // Fetch ALL case computational flag results when the Computational tab opens
+  // so Navigator dots show their correct colours immediately — not just the selected one.
+  useEffect(() => {
+    if (!caseId || caseComputationalFlags.length === 0) return;
+    // Fetch on mount AND whenever the tab becomes 'results' or the flag list changes
+    import('@/services').then(({ resultService }) => {
+      caseComputationalFlags.forEach(flag => {
+        const sourceId = flag.dataSource?.sourceId;
+        if (!sourceId) return;
+        resultService.getResult(sourceId, caseId)
+          .then((result: ComputationalResult) =>
+            setTabResults(prev => ({ ...prev, [flag.id]: result }))
+          )
+          .catch(() => {});
+      });
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId, caseComputationalFlags.length, caseComputationalFlags.map(f => f.id).join()]);
+
+  // Listen for protocol suggestions from ComputationalPanel order requests
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { protocolIds, flagName } = (e as CustomEvent).detail;
+      if (!protocolIds?.length) return;
+      // Pre-filter the Add Synoptic modal to suggested protocols and open it
+      setAvailableProtocols((prev: any[]) =>
+        prev.filter((p: any) => protocolIds.includes(p.id))
+      );
+      setShowAddSynopticModal(true);
+      showToast(`${flagName} ordered — select a protocol to add`);
+    };
+    window.addEventListener('ps:suggest-protocols', handler);
+    return () => window.removeEventListener('ps:suggest-protocols', handler);
+  }, [showToast]);
+
+  // ── Computational voice actions — SYNOPTIC context ─────────────────────
+  useEffect(() => {
+    // Register actions with context = SYNOPTIC
+    Object.entries(COMP_VOICE).forEach(([key, phrases]) => {
+      const eventName = COMP_EVENT[key as keyof typeof COMP_EVENT];
+      mockActionRegistryService.registerAction?.({
+        id:       `comp_synoptic_${key.toLowerCase()}`,
+        label:    phrases[0],
+        phrases,
+        event:    eventName,
+        context:  'SYNOPTIC',
+        category: 'Computational Data',
+      });
+    });
+
+    const openCompTab = () => {
+      setLeftTab('results');
+      log(COMP_AUDIT.USE_COMP_TAB_OPENED, { caseId, source: 'voice' });
+    };
+    const openReportTab  = () => setLeftTab('report');
+    const openOrderModal = () => {
+      setLeftTab('results');
+      // Brief delay so the tab renders before dispatching
+      setTimeout(() => window.dispatchEvent(new CustomEvent('PATHSCRIBE_COMP_OPEN_ORDER_MODAL_INTERNAL')), 100);
+      log(COMP_AUDIT.USE_ORDER_MODAL_OPENED, { caseId });
+    };
+    const nextAssay = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.NEXT_ASSAY));
+    const prevAssay = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.PREV_ASSAY));
+    const readResult = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.READ_RESULT));
+
+    window.addEventListener(COMP_EVENT.OPEN_COMP_TAB,    openCompTab);
+    window.addEventListener(COMP_EVENT.OPEN_REPORT_TAB,  openReportTab);
+    window.addEventListener(COMP_EVENT.OPEN_ORDER_MODAL, openOrderModal);
+    window.addEventListener(COMP_EVENT.NEXT_ASSAY,       nextAssay);
+    window.addEventListener(COMP_EVENT.PREV_ASSAY,       prevAssay);
+    window.addEventListener(COMP_EVENT.READ_RESULT,      readResult);
+
+    return () => {
+      window.removeEventListener(COMP_EVENT.OPEN_COMP_TAB,    openCompTab);
+      window.removeEventListener(COMP_EVENT.OPEN_REPORT_TAB,  openReportTab);
+      window.removeEventListener(COMP_EVENT.OPEN_ORDER_MODAL, openOrderModal);
+      window.removeEventListener(COMP_EVENT.NEXT_ASSAY,       nextAssay);
+      window.removeEventListener(COMP_EVENT.PREV_ASSAY,       prevAssay);
+      window.removeEventListener(COMP_EVENT.READ_RESULT,      readResult);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId]);
+
+  // SidecarContext — used by SynopticSidebar to set selectedFlag.
+  // When a flag is selected in the sidebar, switch the left panel to Results tab.
+  const { selectedFlag, isOpen, openDocked } = useSidecar();
+  React.useEffect(() => {
+    if (isOpen && selectedFlag) setLeftTab('results');
+  }, [selectedFlag, isOpen]);
+
   const {
     flagCaseData, setFlagCaseData: _setFlagCaseData,
     flagDefinitions,
@@ -174,6 +347,11 @@ const SynopticReportPage: React.FC = () => {
   } = useSynopticFlags(caseId ?? '');
 
   // ── Navigation guard ───────────────────────────────────────
+  // Reset to Full Report tab so the report content shows through the dirty modal overlay
+  React.useEffect(() => {
+    if (hasUnsavedData && leftTab === "results") setLeftTab("report");
+  }, [hasUnsavedData, leftTab]);
+
   const guard = useCallback((path: string, state?: object) => {
     if (hasUnsavedData) {
       setPendingNavigation(path);
@@ -361,7 +539,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
         {/* Main body */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
-          {/* Sidebar */}
+          {/* Sidebar — SynopticSidebar adds Computational section at bottom */}
+          <SynopticSidebar>
           <Sidebar
             caseData={caseData}
             activeTab={activeTab}
@@ -395,10 +574,84 @@ Original report issued pending ancillary studies. This amendment incorporates th
               }
             }}
           />
+          </SynopticSidebar>
 
-          {/* Left panel */}
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative', background: 'rgba(15,23,42,0.95)' }}>
-            <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
+          {/* Left panel — tabbed: Full Report ↔ Results ──────────────────────
+               No layout shift. The pathologist toggles between the LIS source
+               document and the live computational result in the same column.  */}
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative', background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column' }}>
+
+            {/* Tab bar */}
+            <div style={{
+              display:        'flex',
+              alignItems:     'center',
+              borderBottom:   '1px solid rgba(255,255,255,0.08)',
+              flexShrink:     0,
+              background:     'rgba(10,16,32,0.6)',
+            }}>
+              {(['report', 'results'] as const).map(tab => {
+                const label    = tab === 'report' ? '📄 Full Report' : '⚗️ Computational';
+                const isActive = leftTab === tab;
+                const hasResult = tab === 'results' && caseComputationalFlags.length > 0;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setLeftTab(tab)}
+                    style={{
+                      padding:       '9px 18px',
+                      fontSize:      12,
+                      fontWeight:    isActive ? 600 : 400,
+                      color:         isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
+                      background:    'none',
+                      border:        'none',
+                      borderBottom:  isActive ? '2px solid #38bdf8' : '2px solid transparent',
+                      cursor:        'pointer',
+                      transition:    'all 0.15s',
+                      display:       'flex',
+                      alignItems:    'center',
+                      gap:           6,
+                      whiteSpace:    'nowrap' as const,
+                    }}
+                  >
+                    {label}
+                    {hasResult && (
+                      <span style={{
+                        fontSize:    10,
+                        fontWeight:  600,
+                        background:  isActive ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.08)',
+                        color:       isActive ? '#38bdf8' : 'rgba(148,163,184,0.6)',
+                        padding:     '0px 5px',
+                        borderRadius: 99,
+                        lineHeight:  '16px',
+                      }}>
+                        {caseComputationalFlags.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab content */}
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+              {/* Full Report — always rendered, hidden when Results tab active */}
+              <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
+                <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
+              </div>
+
+              {/* ComputationalPanel — same service fetch as worklist drawer, case-filtered */}
+              {leftTab === 'results' && (
+                <div style={{ position: 'absolute', inset: 0, background: '#0b1120' }}>
+                  {caseId && (
+                    <ComputationalPanel
+                      caseId={caseId}
+                      allCompFlags={computationalFlags}
+                      aiSuggestions={aiSuggestions}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Expand button — zero-width divider, always on top */}
@@ -433,6 +686,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 scrollToField={alertFieldId}
                 onScrollComplete={() => setAlertFieldId(null)}
                 onHighlight={setHighlightText}
+                computationalResults={computationalResults}
+                onAiSuggestionsUpdate={setAiSuggestions}
               />
             </div>
           </div>
@@ -535,8 +790,55 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
               {/* Panels */}
               <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                  <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
+                {/* Left — same tabbed panel as normal view */}
+                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'rgba(15,23,42,0.95)' }}>
+
+                  {/* Tab bar */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, background: 'rgba(10,16,32,0.6)' }}>
+                    {(['report', 'results'] as const).map(tab => {
+                      const isActive = leftTab === tab;
+                      const label    = tab === 'report' ? '📄 Full Report' : '⚗️ Computational';
+                      return (
+                        <button key={tab} onClick={() => setLeftTab(tab)} style={{
+                          padding: '9px 18px', fontSize: 12,
+                          fontWeight:   isActive ? 600 : 400,
+                          color:        isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
+                          background:   'none', border: 'none',
+                          borderBottom: isActive ? '2px solid #38bdf8' : '2px solid transparent',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                        }}>
+                          {label}
+                          {tab === 'results' && caseComputationalFlags.length > 0 && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 600,
+                              background:   isActive ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.08)',
+                              color:        isActive ? '#38bdf8' : 'rgba(148,163,184,0.6)',
+                              padding: '0 5px', borderRadius: 99, lineHeight: '16px',
+                            }}>{caseComputationalFlags.length}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tab content */}
+                  <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
+                      <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
+                    </div>
+                    {leftTab === 'results' && (
+                      <div style={{ position: 'absolute', inset: 0, background: '#0b1120', display: 'flex' }}>
+                        {caseId && (
+                          <ComputationalPanel
+                            caseId={caseId}
+                            allCompFlags={computationalFlags}
+                            aiSuggestions={aiSuggestions}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Collapse button on the divider */}
@@ -914,11 +1216,9 @@ Proceed with sign-out?`)) return;
         }}
         onConfirm={() => {
           setHasUnsavedData(false);
-          // Handle context-level navigation (AppShell nav, breadcrumbs)
           if (pendingPath) {
             confirmContextNavigate();
           }
-          // Handle local navigation (next/prev case)
           const dest = pendingNavigation;
           setPendingNavigation(null);
           if (dest === 'next') navigateToCase('next');

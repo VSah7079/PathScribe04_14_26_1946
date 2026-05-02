@@ -68,7 +68,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface AiSuggestion {
+export interface AiSuggestion {
   value: string | string[];
   confidence: number;
   source: string;
@@ -381,6 +381,18 @@ interface RightSynopticPanelProps {
   scrollToField?: string | null;
   onScrollComplete?: () => void;
   onHighlight?: (source: string | null) => void;
+  /**
+   * Discrete computational results keyed by assay name (e.g. "HER2 IHC").
+   * Passed into the AI prompt so the AI uses discrete LIS data rather than
+   * relying solely on narrative text. Higher confidence results when present.
+   */
+  computationalResults?: Record<string, Record<string, string | number | boolean | null>>;
+  /**
+   * Called whenever AI suggestions are loaded or updated.
+   * SynopticReportPage stores them and passes to SidecarDisplay for
+   * concordance checking against the discrete computational result.
+   */
+  onAiSuggestionsUpdate?: (suggestions: Record<string, AiSuggestion>) => void;
 }
 
 // Module-level template cache — survives re-renders, cleared only on page reload
@@ -388,7 +400,7 @@ const TEMPLATE_CACHE = new Map<string, any>();
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
-  ({ caseData: initialCaseData, activeReportInstanceId, onCaseUpdate, isDirty, scrollToField, onScrollComplete, onHighlight }, ref) => {
+  ({ caseData: initialCaseData, activeReportInstanceId, onCaseUpdate, isDirty, scrollToField, onScrollComplete, onHighlight, computationalResults, onAiSuggestionsUpdate }, ref) => {
 
   const orchestratorMode = useMemo(() => getOrchestratorMode(), []);
   const caseData = initialCaseData;
@@ -401,6 +413,12 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   const [error,               setError]               = useState<string | null>(null);
   const [activeSectionId,     setActiveSectionId]     = useState('');
   const [aiSuggestions,       setAiSuggestions]       = useState<Record<string, AiSuggestion>>({});
+
+  // Notify parent whenever suggestions update so SidecarDisplay can check concordance
+  const updateAiSuggestions = useCallback((sugs: Record<string, AiSuggestion>) => {
+    setAiSuggestions(sugs);
+    onAiSuggestionsUpdate?.(sugs);
+  }, [onAiSuggestionsUpdate]);
   const [activeFieldId,       setActiveFieldId]       = useState<string | null>(null);
   const [pulsingFieldId,      setPulsingFieldId]      = useState<string | null>(null);
   const [confidenceThreshold, setConfidenceThreshold] = useState(75);
@@ -647,7 +665,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           if (cancelled) return;
 
           const suggestions: Record<string, AiSuggestion> = (activeInst as any)?.aiSuggestions ?? {};
-          setAiSuggestions(suggestions);
+          updateAiSuggestions(suggestions);
 
           // Gate pre-fill on autoInsertSuggestions setting:
           // false (default) = fields stay blank, pathologist clicks Confirm per field
@@ -672,7 +690,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           if (detail.template.sections.length > 0) setActiveSectionId(detail.template.sections[0].id);
         } else {
           if (cancelled) return;
-          setAiSuggestions({});
+          updateAiSuggestions({});
           setAnswers(() => answersToLoad);
           if (!isDirty) loadedAnswersRef.current = JSON.stringify(answersToLoad);
           setTemplateDetail(null);
@@ -803,12 +821,12 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       onCaseUpdate?.({ ...caseData, synopticTemplateId: id, synopticAnswers: {} });
       setTemplateDetail(detail);
       setAnswers({});
-      setAiSuggestions({});
+      updateAiSuggestions({});
       if (detail.template.sections.length > 0) setActiveSectionId(detail.template.sections[0].id);
       const allFields = detail.template.sections.flatMap((s: any) => s.fields);
-      const suggestions = await generateAiSuggestionsForReport(caseData, id, allFields);
+      const suggestions = await generateAiSuggestionsForReport(caseData, id, allFields, computationalResults);
       if (Object.keys(suggestions).length > 0) {
-        setAiSuggestions(suggestions);
+        updateAiSuggestions(suggestions);
         setAnswers(prev => {
           const prefilled = { ...prev };
           Object.entries(suggestions).forEach(([fieldId, sug]) => {

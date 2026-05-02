@@ -3,51 +3,111 @@ import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 
 const SEED_FLAGS: Flag[] = [
-  // ── Case-level flags ─────────────────────────────────────────────────────────
-  { id: 'f1',  name: 'STAT — Rush Processing',      lisCode: 'STAT',   description: 'Rush processing required — prioritise above routine queue',       level: 'Case',     severity: 5, status: 'Active'   },
-  { id: 'f2',  name: 'Malignant',                   lisCode: 'MAL',    description: 'Malignant diagnosis confirmed',                                    level: 'Case',     severity: 5, status: 'Active'   },
-  { id: 'f3',  name: 'Second Opinion Requested',    lisCode: 'SOP',    description: 'External or internal second opinion has been requested',           level: 'Case',     severity: 3, status: 'Active'   },
-  { id: 'f4',  name: 'Clinical Correlation',        lisCode: 'CORR',   description: 'Clinical correlation recommended before sign-out',                 level: 'Case',     severity: 2, status: 'Active'   },
-  { id: 'f5',  name: 'Tumor Board Scheduled',       lisCode: 'TB',     description: 'Case scheduled for multidisciplinary tumor board review',          level: 'Case',     severity: 3, status: 'Active'   },
-  { id: 'f6',  name: 'Amended',                     lisCode: 'AMD',    description: 'Report has been amended — review changes before sign-out',         level: 'Case',     severity: 3, status: 'Active'   },
-  { id: 'f7',  name: 'QC Review',                   lisCode: 'QC',     description: 'Selected for quality control review',                              level: 'Case',     severity: 2, status: 'Active'   },
-  { id: 'f8',  name: 'Hold — Pending Info',         lisCode: 'HOLD',   description: 'Case on hold pending additional clinical information',             level: 'Case',     severity: 2, status: 'Active'   },
-  { id: 'f9',  name: 'Discordant',                  lisCode: 'DISC',   description: 'QC discordance noted between gross and microscopic findings',      level: 'Case',     severity: 4, status: 'Active'   },
-  { id: 'f11', name: 'Neuro-Oncology Consult',      lisCode: 'NEURO',  description: 'Neuro-oncology team consultation requested',                       level: 'Case',     severity: 3, status: 'Active'   },
-  { id: 'f12', name: 'Heme Oncology Notified',      lisCode: 'HEME',   description: 'Haematology oncology team has been notified',                      level: 'Case',     severity: 2, status: 'Active'   },
-  { id: 'f13', name: 'Sarcoma Protocol',            lisCode: 'SARC',   description: 'Sarcoma multidisciplinary protocol initiated',                     level: 'Case',     severity: 3, status: 'Active'   },
-  { id: 'f14', name: 'Pending Clinical Correlation',lisCode: 'PCC',    description: 'Awaiting clinical correlation from referring physician',           level: 'Case',     severity: 3, status: 'Active'   },
-  { id: 'f15', name: 'Intraoperative Consult',      lisCode: 'INTRA',  description: 'Frozen section or intraoperative consultation performed',          level: 'Case',     severity: 4, status: 'Active'   },
-  { id: 'f10', name: 'Legacy Urgent',               lisCode: 'URG',    description: 'Legacy urgent flag — replaced by STAT',                           level: 'Case',     severity: 4, status: 'Inactive' },
 
-  // ── Specimen-level flags ──────────────────────────────────────────────────────
-  { id: 'f20', name: 'Margins Involved',            lisCode: 'MARG',   description: 'Surgical margins involved by tumour — surgeon notification pending', level: 'Specimen', severity: 5, status: 'Active'   },
-  { id: 'f21', name: 'Insufficient Specimen',       lisCode: 'INSUF',  description: 'Specimen insufficient for definitive diagnosis',                   level: 'Specimen', severity: 3, status: 'Active'   },
-  { id: 'f22', name: 'Frozen Section Correlation',  lisCode: 'FSC',    description: 'Permanent section requires correlation with frozen section result', level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f23', name: 'Additional Levels Requested', lisCode: 'ALR',    description: 'Deeper tissue levels requested for further evaluation',            level: 'Specimen', severity: 4, status: 'Active'   },
-  { id: 'f24', name: 'IHC Ordered',                 lisCode: 'IHC',    description: 'Immunohistochemistry panel ordered — awaiting results',            level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f25', name: 'ER/PR/HER2 Pending',          lisCode: 'ERH2',   description: 'Hormone receptor and HER2 testing in progress',                   level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f26', name: 'Molecular Panel Ordered',     lisCode: 'MOL',    description: 'Molecular/genomic panel ordered — awaiting results',              level: 'Specimen', severity: 3, status: 'Active'   },
-  { id: 'f27', name: 'Flow Cytometry Ordered',      lisCode: 'FLOW',   description: 'Flow cytometry requested for immunophenotyping',                  level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f28', name: 'Cytogenetics Pending',        lisCode: 'CYTO',   description: 'Cytogenetics/FISH testing pending',                               level: 'Specimen', severity: 3, status: 'Active'   },
-  { id: 'f29', name: 'Decal in Progress',           lisCode: 'DECAL',  description: 'Bone specimen undergoing decalcification — processing delayed',   level: 'Specimen', severity: 3, status: 'Active'   },
-  { id: 'f30', name: 'HER2 Testing Ordered',        lisCode: 'HER2',   description: 'HER2 FISH or ISH testing ordered',                               level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f31', name: 'Rejection Rule-Out',          lisCode: 'REJ',    description: 'Pathological evaluation for transplant rejection initiated',      level: 'Specimen', severity: 4, status: 'Active'   },
-  { id: 'f32', name: 'Trichrome Pending',           lisCode: 'TRICH',  description: 'Masson trichrome stain ordered for fibrosis assessment',          level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f33', name: 'Calcifications Noted',        lisCode: 'CALC',   description: 'Microcalcifications identified — radiological correlation advised', level: 'Specimen', severity: 3, status: 'Active'   },
-  { id: 'f34', name: 'Tumour Markers Ordered',      lisCode: 'TM',     description: 'Serum or tissue tumour markers requested',                        level: 'Specimen', severity: 2, status: 'Active'   },
-  { id: 'f35', name: 'Molecular Profiling Pending', lisCode: 'MPROF',  description: 'Comprehensive molecular profiling panel in progress',             level: 'Specimen', severity: 3, status: 'Active'   },
+  // ── Case-level — Administrative ────────────────────────────────────────────
+  { id: 'f1',  tagClass: 'ADMINISTRATIVE', name: 'STAT — Rush Processing',       lisCode: 'STAT',  description: 'Rush processing required',                          level: 'Case',     severity: 5, status: 'Active'   },
+  { id: 'f2',  tagClass: 'ADMINISTRATIVE', name: 'Malignant',                    lisCode: 'MAL',   description: 'Malignant diagnosis confirmed',                      level: 'Case',     severity: 5, status: 'Active'   },
+  { id: 'f3',  tagClass: 'ADMINISTRATIVE', name: 'Second Opinion Requested',     lisCode: 'SOP',   description: 'External or internal second opinion requested',      level: 'Case',     severity: 3, status: 'Active'   },
+  { id: 'f4',  tagClass: 'ADMINISTRATIVE', name: 'Clinical Correlation',         lisCode: 'CORR',  description: 'Clinical correlation recommended before sign-out',   level: 'Case',     severity: 2, status: 'Active'   },
+  { id: 'f5',  tagClass: 'ADMINISTRATIVE', name: 'Tumor Board Scheduled',        lisCode: 'TB',    description: 'Case scheduled for multidisciplinary tumor board',   level: 'Case',     severity: 3, status: 'Active'   },
+  { id: 'f6',  tagClass: 'ADMINISTRATIVE', name: 'Amended',                      lisCode: 'AMD',   description: 'Report has been amended — review before sign-out',  level: 'Case',     severity: 3, status: 'Active'   },
+  { id: 'f7',  tagClass: 'ADMINISTRATIVE', name: 'QC Review',                    lisCode: 'QC',    description: 'Selected for quality control review',               level: 'Case',     severity: 2, status: 'Active'   },
+  { id: 'f8',  tagClass: 'ADMINISTRATIVE', name: 'Hold — Pending Info',          lisCode: 'HOLD',  description: 'Case on hold pending additional clinical information', level: 'Case',   severity: 2, status: 'Active'   },
+  { id: 'f9',  tagClass: 'ADMINISTRATIVE', name: 'Discordant',                   lisCode: 'DISC',  description: 'QC discordance noted between gross and microscopic', level: 'Case',     severity: 4, status: 'Active'   },
+  { id: 'f11', tagClass: 'ADMINISTRATIVE', name: 'Neuro-Oncology Consult',       lisCode: 'NEURO', description: 'Neuro-oncology team consultation requested',         level: 'Case',     severity: 3, status: 'Active'   },
+  { id: 'f12', tagClass: 'ADMINISTRATIVE', name: 'Heme Oncology Notified',       lisCode: 'HEME',  description: 'Haematology oncology team has been notified',       level: 'Case',     severity: 2, status: 'Active'   },
+  { id: 'f13', tagClass: 'ADMINISTRATIVE', name: 'Sarcoma Protocol',             lisCode: 'SARC',  description: 'Sarcoma multidisciplinary protocol initiated',      level: 'Case',     severity: 3, status: 'Active'   },
+  { id: 'f14', tagClass: 'ADMINISTRATIVE', name: 'Pending Clinical Correlation', lisCode: 'PCC',   description: 'Awaiting clinical correlation from referring MD',   level: 'Case',     severity: 3, status: 'Active'   },
+  { id: 'f15', tagClass: 'ADMINISTRATIVE', name: 'Intraoperative Consult',       lisCode: 'INTRA', description: 'Frozen section or intraoperative consultation done', level: 'Case',    severity: 4, status: 'Active'   },
+  { id: 'f10', tagClass: 'ADMINISTRATIVE', name: 'Legacy Urgent',                lisCode: 'URG',   description: 'Legacy urgent flag — replaced by STAT',            level: 'Case',     severity: 4, status: 'Inactive' },
+
+  // ── Specimen-level — Administrative ────────────────────────────────────────
+  { id: 'f20', tagClass: 'ADMINISTRATIVE', name: 'Margins Involved',             lisCode: 'MARG',  description: 'Surgical margins involved — surgeon notification pending', level: 'Specimen', severity: 5, status: 'Active' },
+  { id: 'f21', tagClass: 'ADMINISTRATIVE', name: 'Insufficient Specimen',        lisCode: 'INSUF', description: 'Specimen insufficient for definitive diagnosis',     level: 'Specimen', severity: 3, status: 'Active'   },
+  { id: 'f22', tagClass: 'ADMINISTRATIVE', name: 'Frozen Section Correlation',   lisCode: 'FSC',   description: 'Permanent section requires correlation with frozen', level: 'Specimen', severity: 2, status: 'Active'   },
+  { id: 'f23', tagClass: 'ADMINISTRATIVE', name: 'Additional Levels Requested',  lisCode: 'ALR',   description: 'Deeper tissue levels requested for evaluation',      level: 'Specimen', severity: 4, status: 'Active'   },
+  { id: 'f29', tagClass: 'ADMINISTRATIVE', name: 'Decal in Progress',            lisCode: 'DECAL', description: 'Bone specimen undergoing decalcification',          level: 'Specimen', severity: 3, status: 'Active'   },
+  { id: 'f31', tagClass: 'ADMINISTRATIVE', name: 'Rejection Rule-Out',           lisCode: 'REJ',   description: 'Evaluation for transplant rejection initiated',      level: 'Specimen', severity: 4, status: 'Active'   },
+  { id: 'f32', tagClass: 'ADMINISTRATIVE', name: 'Trichrome Pending',            lisCode: 'TRICH', description: 'Trichrome stain ordered for fibrosis assessment',    level: 'Specimen', severity: 2, status: 'Active'   },
+  { id: 'f33', tagClass: 'ADMINISTRATIVE', name: 'Calcifications Noted',         lisCode: 'CALC',  description: 'Microcalcifications — radiological correlation advised', level: 'Specimen', severity: 3, status: 'Active' },
+  { id: 'f34', tagClass: 'ADMINISTRATIVE', name: 'Tumour Markers Ordered',       lisCode: 'TM',    description: 'Serum or tissue tumour markers requested',          level: 'Specimen', severity: 2, status: 'Active'   },
+
+  // ── Specimen-level — Computational ─────────────────────────────────────────
+  {
+    id: 'f24', tagClass: 'COMPUTATIONAL', name: 'IHC Panel', lisCode: 'IHC',
+    description: 'Immunohistochemistry panel — live result from LIS',
+    level: 'Specimen', severity: 2, status: 'Active',
+    iconKey: 'ihc',
+    synopticFieldIds: ['her2_ihc_result', 'er_status', 'pr_status', 'ki67_proliferation_index'],
+    dataSource: { sourceId: 'ihc-panel', endpoint: '/api/results/ihc/panel', resultPath: 'results.ihc', pollIntervalMs: 30000 },
+  },
+  {
+    id: 'f25', tagClass: 'COMPUTATIONAL', name: 'ER / PR / HER2', lisCode: 'ERH2',
+    defaultProtocolIds: ['cap-breast-core-biopsy', 'cap-breast-resection'],
+    description: 'Hormone receptor and HER2 testing — live result from LIS',
+    level: 'Specimen', severity: 2, status: 'Active',
+    iconKey: 'ihc',
+    synopticFieldIds: ['her2_ihc_result', 'er_status', 'pr_status'],
+    dataSource: { sourceId: 'er-pr-her2', endpoint: '/api/results/ihc/er-pr-her2', resultPath: 'results.receptors', pollIntervalMs: 30000 },
+  },
+  {
+    id: 'f30', tagClass: 'COMPUTATIONAL', name: 'HER2 FISH', lisCode: 'HER2',
+    defaultProtocolIds: ['cap-her2-ish'],
+    description: 'HER2 FISH / ISH testing — live result from LIS',
+    level: 'Specimen', severity: 2, status: 'Active',
+    iconKey: 'fish',
+    synopticFieldIds: ['her2_ish_result', 'her2_her2_cep17_ratio'],
+    dataSource: { sourceId: 'her2-fish', endpoint: '/api/results/fish/her2', resultPath: 'results.fish', pollIntervalMs: 60000 },
+  },
+  {
+    id: 'f26', tagClass: 'COMPUTATIONAL', name: 'Molecular Panel', lisCode: 'MOL',
+    defaultProtocolIds: ['cap-colorectal-carcinoma'],
+    description: 'Molecular / genomic panel — live result from LIS',
+    level: 'Specimen', severity: 3, status: 'Active',
+    iconKey: 'molecular',
+    synopticFieldIds: ['kras_mutation', 'nras_mutation', 'braf_mutation', 'msi_status'],
+    dataSource: { sourceId: 'mol-panel', endpoint: '/api/results/molecular/panel', resultPath: 'results.variants', pollIntervalMs: 60000 },
+  },
+  {
+    id: 'f35', tagClass: 'COMPUTATIONAL', name: 'Molecular Profiling', lisCode: 'MPROF',
+    defaultProtocolIds: ['cap-lung-resection'],
+    description: 'Comprehensive molecular profiling panel — live result from LIS',
+    level: 'Specimen', severity: 3, status: 'Active',
+    iconKey: 'molecular',
+    synopticFieldIds: ['kras_mutation', 'egfr_mutation', 'alk_rearrangement', 'ros1_rearrangement', 'pdl1_tumor_proportion_score'],
+    dataSource: { sourceId: 'mol-profiling', endpoint: '/api/results/molecular/profiling', resultPath: 'results.profile' },
+    meta: { panelVersion: '2.1' },
+  },
+  {
+    id: 'f27', tagClass: 'COMPUTATIONAL', name: 'Flow Cytometry', lisCode: 'FLOW',
+    description: 'Flow cytometry immunophenotyping — live result from LIS',
+    level: 'Specimen', severity: 2, status: 'Active',
+    iconKey: 'flow-cytometry',
+    synopticFieldIds: ['immunophenotype_result', 'flow_cytometry_findings'],
+    dataSource: { sourceId: 'flow-cyto', endpoint: '/api/results/flow/panel', resultPath: 'results.populations', pollIntervalMs: 60000 },
+  },
+  {
+    id: 'f28', tagClass: 'COMPUTATIONAL', name: 'Cytogenetics / FISH', lisCode: 'CYTO',
+    defaultProtocolIds: ['cap-lymphoma'],
+    description: 'Cytogenetics and FISH testing — live result from LIS',
+    level: 'Specimen', severity: 3, status: 'Active',
+    iconKey: 'cytogenetics',
+    synopticFieldIds: ['cytogenetics_result', 'her2_ish_result', 'fish_result'],
+    dataSource: { sourceId: 'cytogenetics', endpoint: '/api/results/cytogenetics', resultPath: 'results.karyotype', pollIntervalMs: 60000 },
+  },
 ];
 
-const load = () => storageGet<Flag[]>('pathscribe_flags', SEED_FLAGS);
-const persist = (data: Flag[]) => storageSet('pathscribe_flags', data);
+const load    = ()             => storageGet<Flag[]>('pathscribe_flags_v2', SEED_FLAGS);
+const persist = (data: Flag[]) => storageSet('pathscribe_flags_v2', data);
+
 let MOCK_FLAGS: Flag[] = load();
 
-const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
-const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
-const delay = () => new Promise(r => setTimeout(r, 80));
+const ok    = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
+const err   = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
+const delay = ()                                  => new Promise(r => setTimeout(r, 80));
 
 export const mockFlagService: IFlagService = {
+
   async getAll() {
     await delay();
     return ok([...MOCK_FLAGS]);
@@ -57,6 +117,11 @@ export const mockFlagService: IFlagService = {
     await delay();
     const f = MOCK_FLAGS.find(f => f.id === id);
     return f ? ok({ ...f }) : err(`Flag ${id} not found`);
+  },
+
+  async getByClass(tagClass) {
+    await delay();
+    return ok(MOCK_FLAGS.filter(f => f.tagClass === tagClass).map(f => ({ ...f })));
   },
 
   async add(flag) {
@@ -76,11 +141,6 @@ export const mockFlagService: IFlagService = {
     return ok({ ...MOCK_FLAGS[idx], ...changes });
   },
 
-  async deactivate(id) {
-    return mockFlagService.update(id, { status: 'Inactive' });
-  },
-
-  async reactivate(id) {
-    return mockFlagService.update(id, { status: 'Active' });
-  },
+  async deactivate(id) { return mockFlagService.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return mockFlagService.update(id, { status: 'Active'   }); },
 };

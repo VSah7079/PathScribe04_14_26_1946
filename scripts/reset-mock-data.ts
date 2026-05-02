@@ -22,6 +22,7 @@
     'pathscribe_users_version',       // mockUserService seed version
     'pathscribe_messages_version',    // mockMessageService seed version
     'pathscribe_mock_cases_version',  // mockCaseService seed version (uses mock_ prefix but tracked separately)
+    'pathscribe_flags_version',        // mockFlagService seed version
   ];
 
   VERSIONED_KEYS.forEach(k => {
@@ -37,6 +38,15 @@
   ];
 
   STATE_KEYS.forEach(k => {
+    if (localStorage.getItem(k) !== null) {
+      localStorage.removeItem(k);
+      cleared.push(k);
+    }
+  });
+
+  // ── Flag service storage (uses different prefix) ──
+  const FLAG_KEYS = ['pathscribe_flags', 'pathscribe_flags_v2'];
+  FLAG_KEYS.forEach(k => {
     if (localStorage.getItem(k) !== null) {
       localStorage.removeItem(k);
       cleared.push(k);

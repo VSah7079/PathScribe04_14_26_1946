@@ -112,8 +112,8 @@ const MOCK_CASES: Case[] = [
       { id: 'pending_clin_cor',     name: 'Pending Clinical Correlation',              color: 'yellow', severity: 2 },
     ],
     specimenFlags: [
-      { id: 'her2_fish_pending', name: 'HER2 ISH Pending',   color: 'blue',   severity: 2 },
-      { id: 'ki67_pending',      name: 'Ki-67 Pending',      color: 'green',  severity: 1 },
+      { id: 'comp-erh2-4401', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
+      { id: 'comp-her2f-4401', name: 'HER2 FISH', lisCode: 'HER2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
     ],
     reportingMode: 'pathscribe',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
@@ -194,8 +194,7 @@ const MOCK_CASES: Case[] = [
       { id: 'stat_rush',           name: 'STAT — Rush Processing',    color: 'red',    severity: 5 },
     ],
     specimenFlags: [
-      { id: 'kras_ras_pending',    name: 'KRAS/RAS Panel Pending',    color: 'green',  severity: 2 },
-      { id: 'braf_pending',        name: 'BRAF V600E Noted',          color: 'orange', severity: 3 },
+      { id: 'comp-mol-4402', name: 'Molecular Panel', lisCode: 'MOL', color: 'green', severity: 2, orderedVia: 'lis', specimenId: 'S26-4402-SP-1' },
     ],
     reportingMode: 'pathscribe',
     coding: { icd10: ['C18.7'], snomed: ['363346000'] },
@@ -278,8 +277,8 @@ const MOCK_CASES: Case[] = [
       { id: 'thoracic_mdt',        name: 'Thoracic MDT — Fri 09:00', color: 'blue',   severity: 3 },
     ],
     specimenFlags: [
-      { id: 'ngs_panel_pending',   name: 'NGS Panel Pending',         color: 'blue',   severity: 3 },
-      { id: 'pdl1_pending',        name: 'PD-L1 TPS Noted 45%',      color: 'orange', severity: 2 },
+      { id: 'comp-mprof-4403', name: 'Molecular Profiling', lisCode: 'MPROF', color: 'blue', severity: 3, orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
+      { id: 'comp-ihc-4403', name: 'IHC Panel (PD-L1)', lisCode: 'IHC', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
     ],
     reportingMode: 'pathscribe',
     coding: { icd10: ['C34.11'], snomed: ['254637007'] },
@@ -468,7 +467,7 @@ const MOCK_CASES: Case[] = [
       { id: 'frozen_section',      name: 'Frozen Section Pending',   color: 'orange', severity: 4 },
     ],
     specimenFlags: [
-      { id: 'er_pr_her2_ordered',  name: 'ER/PR/HER2 Ordered',       color: 'blue',   severity: 2 },
+      { id: 'comp-erh2-4406', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4406-SP-1' },
     ],
     reportingMode: 'pathscribe',
   },
@@ -552,7 +551,8 @@ const MOCK_CASES: Case[] = [
       { id: 'braf_msi_noted',      name: 'BRAF+ / MSI-H Noted',        color: 'orange', severity: 3 },
     ],
     specimenFlags: [
-      { id: 'lynch_reflex',        name: 'Lynch Reflex Testing Done',   color: 'green',  severity: 2 },
+      { id: 'comp-ihc-4407', name: 'MMR IHC Panel', lisCode: 'IHC', color: 'green', severity: 3, orderedVia: 'lis', specimenId: 'S26-4407-SP-1' },
+      { id: 'comp-mol-4407', name: 'Molecular Panel', lisCode: 'MOL', color: 'green', severity: 3 },
     ],
     reportingMode: 'pathscribe',
     coding: { icd10: ['C20'], snomed: ['363346000'] },
@@ -660,8 +660,8 @@ const MOCK_CASES: Case[] = [
       { id: 'stat_rush',           name: 'STAT — Rush Processing',     color: 'red',    severity: 5 },
     ],
     specimenFlags: [
-      { id: 'her2_3plus_alert',    name: 'HER2 3+ — Oncology Alert',   color: 'red',    severity: 4 },
-      { id: 'ki67_high',           name: 'Ki-67 65% — High',           color: 'orange', severity: 3 },
+      { id: 'comp-erh2-4408', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'red', severity: 3, orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
+      { id: 'comp-her2f-4408', name: 'HER2 FISH', lisCode: 'HER2', color: 'red', severity: 3, orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
     ],
     reportingMode: 'pathscribe',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
@@ -2026,7 +2026,7 @@ export const mockPatientHistory = mockPatientHistoryMap['S26-4401'] ?? DEFAULT_H
 // ─── Persisted case store ─────────────────────────────────────────────────────
 // Version bump here forces a re-seed whenever mock data changes structurally.
 // Increment MOCK_VERSION whenever MOCK_CASES fields are added/changed.
-const MOCK_VERSION = '21'; // bumped: added assignedParticipationTypeId: primary to all assigned cases
+const MOCK_VERSION = '28'; // bumped: added computational specimenFlags // bumped: added assignedParticipationTypeId: primary to all assigned cases
 const VERSION_KEY  = 'pathscribe_mock_cases_version';
 
 const storedVersion = localStorage.getItem(VERSION_KEY);
@@ -2051,19 +2051,36 @@ if (!CASES) {
 export async function generateAiSuggestionsForReport(
   caseData: Case,
   templateId: string,
-  templateFields: Array<{ id: string; label: string; options?: Array<{ id: string; label: string }> }>
+  templateFields: Array<{ id: string; label: string; options?: Array<{ id: string; label: string }> }>,
+  computationalResults?: Record<string, Record<string, string | number | boolean | null>>
 ): Promise<Record<string, { value: string | string[]; confidence: number; source: string; verification: 'unverified' }>> {
   const fieldList = templateFields.map(f => {
     const opts = f.options?.map(o => `${o.id} (${o.label})`).join(', ');
     return opts ? `- ${f.id} | ${f.label} | options: [${opts}]` : `- ${f.id} | ${f.label} | free text`;
   }).join('\n');
 
-  const prompt = `You are a pathology AI assistant. Analyse the following pathology case text and suggest answers for each synoptic field.
+  // Format discrete computational results for the prompt when available.
+  // These are higher-fidelity signals than the narrative ancillary text —
+  // the AI should prefer them when they conflict with narrative.
+  const computationalSection = computationalResults && Object.keys(computationalResults).length > 0
+    ? '\n\nCOMPUTATIONAL RESULTS (discrete, authoritative — prefer over narrative when present):\n' +
+      Object.entries(computationalResults)
+        .map(([assay, data]) => {
+          const fields = Object.entries(data)
+            .filter(([, v]) => v !== null && v !== undefined)
+            .map(([k, v]) => `  ${k}: ${v}`)
+            .join('\n');
+          return `${assay}:\n${fields}`;
+        })
+        .join('\n\n')
+    : '';
+
+  const prompt = `You are a pathology AI assistant. Analyse the following pathology case data and suggest answers for each synoptic field.
 
 CASE ID: ${caseData.id}
 GROSS DESCRIPTION: ${caseData.diagnostic?.grossDescription ?? '—'}
 MICROSCOPIC DESCRIPTION: ${caseData.diagnostic?.microscopicDescription ?? '—'}
-ANCILLARY STUDIES: ${caseData.diagnostic?.ancillaryStudies ?? '—'}
+ANCILLARY STUDIES: ${caseData.diagnostic?.ancillaryStudies ?? '—'}${computationalSection}
 
 SYNOPTIC FIELDS (id | label | allowed option ids):
 ${fieldList}
@@ -2081,7 +2098,7 @@ Rules:
 - value must be an option id (not the label) when options are listed, or a plain string for free text
 - For checkboxes/multi-select fields, value may be an array of option ids
 - confidence is 0–100 based on how clearly the text supports the answer
-- source is a short (≤12 word) direct quote or paraphrase from gross/micro/ancillary
+- source is a short (≤12 word) direct quote or paraphrase from gross/micro/ancillary/computational
 - Only include fields you can answer with reasonable confidence (≥30)
 - Do NOT invent findings not present in the text`;
 

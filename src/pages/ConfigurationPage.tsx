@@ -18,9 +18,10 @@ import StaffTab      from '../components/Config/Users/index';
 import SystemTab     from '../components/Config/System/index';
 import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
-import { ActionsTab } from '../components/Config/Actions/ActionsTab';
+import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
+import DemoResetTab    from '../components/Config/System/DemoResetTab';
 
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'narrative', 'actions', 'macros'] as const;
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'narrative', 'demo'] as const;
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
@@ -32,6 +33,7 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'actions',   label: 'Action Registry'    },
   { id: 'macros',    label: 'Macros'             },
   { id: 'narrative', label: 'Narrative Templates' },
+  { id: 'demo',      label: '⟳ Demo Reset'          },
 ];
 
 function getTabFromSearch(search: string): TabId {
@@ -104,6 +106,7 @@ const ConfigurationPage: React.FC = () => {
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
       case 'narrative': return <NarrativeTemplatesTab />;
+      case 'demo':      return <DemoResetTab />;
       default:          return null;
     }
   };

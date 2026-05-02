@@ -19,6 +19,9 @@ import { DirtyStateProvider } from './contexts/DirtyStateProvider';
 // Voice Integration
 import { VoiceProvider } from "./contexts/VoiceProvider";
 
+// Sidecar — persists drawer state across Worklist ↔ Synoptic navigation
+import { SidecarProvider } from "@/contexts/SidecarContext";
+
 // Scanner Integration (barcode/QR scanner support)
 import { ScannerProvider } from "./contexts/ScannerProvider";
 
@@ -101,6 +104,7 @@ const App: React.FC = () => (
                 <DirtyStateProvider>
                 <BreadcrumbProvider>
                 <VoiceProvider>
+                  <SidecarProvider>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       {/* Public Route */}
@@ -160,6 +164,7 @@ const App: React.FC = () => (
                       </Route>
                     </Routes>
                   </Suspense>
+                  </SidecarProvider>
                 </VoiceProvider>
                 </BreadcrumbProvider>
                 </DirtyStateProvider>

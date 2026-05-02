@@ -1,18 +1,37 @@
-import React from "react";
+import React from 'react';
 import '../../pathscribe.css';
-import { FlagDefinition } from "../../types/FlagDefinition";
+import { Flag } from '../../services/flag/IFlagService';
 
 interface Props {
-  flags: FlagDefinition[];
+  flags: Flag[];
+  onReview: () => void;
 }
 
-const AutoCreatedBanner: React.FC<Props> = ({ flags }) => {
-  const codes = flags.map(f => f.lisCode).join(", ");
+const AutoCreatedBanner: React.FC<Props> = ({ flags, onReview }) => {
+  if (!flags.length) return null;
+
+  const codes = flags.map(f => f.lisCode).join(', ');
+  const count = flags.length;
 
   return (
-    <div className="banner-warning">
-      <strong>New LIS Flags Detected:</strong> {codes}
-      <div>These flags were automatically created from LIS codes. Review and update as needed.</div>
+    <div className="banner-warning" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
+      <div>
+        <strong>
+          {count} new LIS flag{count !== 1 ? 's' : ''} detected:
+        </strong>{' '}
+        {codes}
+        <div style={{ marginTop: 4, fontSize: 13 }}>
+          These flags were automatically created from unrecognised LIS codes and added as
+          Administrative flags. Review and update them before they appear in case workflows.
+        </div>
+      </div>
+      <button
+        className="ps-conf-btn-primary"
+        onClick={onReview}
+        style={{ flexShrink: 0 }}
+      >
+        Review Now
+      </button>
     </div>
   );
 };

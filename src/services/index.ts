@@ -20,6 +20,7 @@ export { mockCodeService          as codeService          } from './codes/mockCo
 export { mockMessageService       as messageService       } from './messages/mockMessageService';
 export { mockInternalNoteService  as internalNoteService  } from './internalNotes/mockInternalNoteService';
 export { INTERNAL_NOTE_TYPE_LABELS                        } from './internalNotes/IInternalNoteService';
+export { mockResultService        as resultService         } from './result/MockResultService';
 
 // ─── Type re-exports ──────────────────────────────────────────────────────────
 export type { StaffUser }         from './users/IUserService';
@@ -41,3 +42,4 @@ export type { ClinicalCode, CodeSystem, CodeSearchParams, IcdOSubtype } from './
 export type { Message }           from './messages/IMessageService';
 export type { InternalNote, InternalNoteType, InternalNoteVisibility } from './internalNotes/IInternalNoteService';
 export type { ServiceResult }     from './types';
+export type { ComputationalResult, ExtractionProvenance } from '../types/smarttag.types';

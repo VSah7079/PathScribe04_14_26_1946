@@ -1,228 +1,331 @@
-/**
- * components/Config/System/DemoResetTab.tsx
- * ─────────────────────────────────────────────────────────────────────────────
- * Demo data reset panel — available in Configuration > System tab.
- * Clears all mock localStorage state so the demo restarts from scratch.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+// PathScribe — DemoResetTab
+// Two-level mock data reset for guest testing rounds.
+//
+//   Full reset    — clears everything, restores seed data for all users
+//   My data only  — clears only data belonging to the current user's hospital,
+//                   preserving other testers' work
+//
+// Both paths require a confirmation step before executing.
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import '../../../pathscribe.css';
 
-// ─── Storage keys to wipe ────────────────────────────────────────────────────
+// ─── Reset utilities ──────────────────────────────────────────────────────────
 
-const DEMO_KEYS: string[] = [
-  // Cases & synoptics
-  'pathscribe_mock_cases',
-  'pathscribe_mock_cases_version',
-  // Messages
-  'pathscribe_messages',
+const MOCK_PREFIX   = 'pathscribe_mock_';
+const SESSION_KEY   = 'pathscribe-user';
+
+const VERSIONED_KEYS = [
+  'pathscribe_users_version',
   'pathscribe_messages_version',
-  // Action registry & learned voice triggers
-  'ps_action_registry',
-  'ps_learned_triggers',
-  // AI behavior settings
-  'pathscribe_mock_pathscribe_aiBehavior',
-  // Protocol registry overrides
-  'ps_registry_overrides_v1',
-  // AI feedback log
-  'pathscribe_ai_feedback',
-  // Delegations & claims
-  'ps_delegations_v1',
-  'ps_claims_v1',
-  // Biometric state (not credentials — just session/policy)
-  'ps_biometric_policy',
-  'ps_biometric_session',
-  'ps_biometric_wizard_dismissed',
-  // Client / role / user overrides
-  'pathscribe_mock_pathscribe_clients',
-  'pathscribe_mock_pathscribe_roles',
-  'pathscribe_mock_pathscribe_users',
-  // Routing & participation
-  'pathscribe_routing_config',
-  'pathscribe_routing_rules',
-  'pathscribe_participation_types',
-  // Worklist sort preference
-  'worklistSort',
+  'pathscribe_mock_cases_version',
+  'pathscribe_flags_version',
 ];
 
-// Also clear any per-case comment keys (ps_case_comment_<id>)
-const CASE_COMMENT_PREFIX = 'ps_case_comment_';
+const FLAG_KEYS = [
+  'pathscribe_flags',
+  'pathscribe_flags_v2',
+];
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const STATE_KEYS = [
+  'pathscribe_ped_requested',
+];
 
-const C = {
-  bg:        '#0f172a',
-  surface:   '#1e293b',
-  border:    '#334155',
-  text:      '#f1f5f9',
-  muted:     '#94a3b8',
-  danger:    '#ef4444',
-  dangerBg:  'rgba(239,68,68,0.08)',
-  dangerBdr: 'rgba(239,68,68,0.3)',
-  amber:     '#f59e0b',
-  amberBg:   'rgba(245,158,11,0.08)',
-  amberBdr:  'rgba(245,158,11,0.3)',
-  green:     '#22c55e',
-  greenBg:   'rgba(34,197,94,0.08)',
-  greenBdr:  'rgba(34,197,94,0.3)',
+// Hospital → user mapping (mirrors mockCaseService USER_HOSPITAL_MAP)
+const HOSPITAL_MAP: Record<string, string> = {
+  'PATH-001':    'HOSP-001',   // Sarah Johnson — US demo
+  'PATH-UK-001': 'HOSP-MFT',  // Paul Carter   — UK
+  'PATH-UK-002': 'HOSP-MFT',
+  'PATH-US-001': 'HOSP-MPA',  // Amber Fehrs-Battey — US
+  'PATH-US-002': 'HOSP-HFHS',
 };
 
-type ResetState = 'idle' | 'confirm' | 'done';
+/** Read current user id from localStorage session */
+function getCurrentUserId(): string | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.id ?? parsed?.userId ?? null;
+  } catch {
+    return null;
+  }
+}
 
-export function DemoResetTab() {
-  const [state, setState]   = useState<ResetState>('idle');
-  const [cleared, setCleared] = useState<number>(0);
-
-  function handleReset() {
-    let count = 0;
-
-    // Clear known keys
-    for (const key of DEMO_KEYS) {
-      if (localStorage.getItem(key) !== null) {
-        localStorage.removeItem(key);
-        count++;
-      }
+/** Full reset — clears all mock data for all users */
+function executeFullReset(): string[] {
+  const cleared: string[] = [];
+  const remove = (k: string) => {
+    if (localStorage.getItem(k) !== null) {
+      localStorage.removeItem(k);
+      cleared.push(k);
     }
+  };
 
-    // Clear dynamic case comment keys
-    const allKeys = Object.keys(localStorage);
-    for (const key of allKeys) {
-      if (key.startsWith(CASE_COMMENT_PREFIX)) {
-        localStorage.removeItem(key);
-        count++;
+  VERSIONED_KEYS.forEach(remove);
+  FLAG_KEYS.forEach(remove);
+  STATE_KEYS.forEach(remove);
+  remove(SESSION_KEY);
+
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(MOCK_PREFIX))
+    .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
+
+  sessionStorage.clear();
+  return cleared;
+}
+
+/**
+ * Partial reset — removes only the current user's cases from the mock case
+ * store, then forces a version bump so their cases re-seed from defaults.
+ * Other users' work is preserved.
+ */
+function executeUserReset(userId: string): string[] {
+  const cleared: string[] = [];
+  const hospitalId = HOSPITAL_MAP[userId];
+
+  // Load and filter the cases store
+  const casesKey = `${MOCK_PREFIX}cases`;
+  const raw = localStorage.getItem(casesKey);
+  if (raw) {
+    try {
+      const cases = JSON.parse(raw);
+      const filtered = cases.filter(
+        (c: any) => c.originHospitalId !== hospitalId && c.hospitalId !== hospitalId
+      );
+      if (filtered.length !== cases.length) {
+        localStorage.setItem(casesKey, JSON.stringify(filtered));
+        cleared.push(`${casesKey} (removed ${cases.length - filtered.length} cases)`);
       }
+    } catch {
+      // If corrupt, remove the whole store — it will re-seed
+      localStorage.removeItem(casesKey);
+      cleared.push(casesKey);
     }
-
-    setCleared(count);
-    setState('done');
   }
 
-  return (
-    <div style={{ maxWidth: 640, padding: '32px 0' }}>
+  // Clear the cases version so the full seed re-runs on next load
+  // (seed data is additive — it won't duplicate cases already present)
+  localStorage.removeItem('pathscribe_mock_cases_version');
+  cleared.push('pathscribe_mock_cases_version (version reset)');
 
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: '0 0 6px' }}>
-        Demo Reset
-      </h2>
-      <p style={{ fontSize: 13, color: C.muted, margin: '0 0 32px', lineHeight: 1.7 }}>
-        Resets all mock demo data back to the initial seeded state — cases,
-        messages, AI suggestions, voice learning, protocol overrides, and
-        worklist preferences. The page will reload automatically.
-        <br /><br />
-        Use this after a demo run so the next reviewer starts with a clean slate.
+  // Clear any user-specific session state
+  sessionStorage.clear();
+  cleared.push('sessionStorage');
+
+  return cleared;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+type Mode    = 'full' | 'user';
+type UIState = 'idle' | 'confirm-full' | 'confirm-user' | 'done';
+
+interface ResetResult { mode: Mode; cleared: string[]; }
+
+const DemoResetTab: React.FC = () => {
+  const [uiState,    setUiState]    = useState<UIState>('idle');
+  const [result,     setResult]     = useState<ResetResult | null>(null);
+  const [userId,     setUserId]     = useState<string | null>(null);
+  const [countdown,  setCountdown]  = useState(3);
+
+  useEffect(() => {
+    setUserId(getCurrentUserId());
+  }, []);
+
+  // Countdown before redirect after reset
+  useEffect(() => {
+    if (uiState !== 'done') return;
+    if (countdown <= 0) { window.location.href = '/worklist'; return; }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [uiState, countdown]);
+
+  const handleFullReset = () => {
+    const cleared = executeFullReset();
+    setResult({ mode: 'full', cleared });
+    setUiState('done');
+  };
+
+  const handleUserReset = () => {
+    if (!userId) return;
+    const cleared = executeUserReset(userId);
+    setResult({ mode: 'user', cleared });
+    setUiState('done');
+    setCountdown(3);
+  };
+
+  const hospitalId = userId ? HOSPITAL_MAP[userId] : null;
+  const hospitalLabel: Record<string, string> = {
+    'HOSP-001': 'DVMC / US (Sarah Johnson)',
+    'HOSP-MFT': 'Manchester Foundation Trust (Paul Carter)',
+    'HOSP-MPA': 'Midwest Pathology Associates (Amber Fehrs-Battey)',
+    'HOSP-HFHS': 'Henry Ford Health System (Amber Fehrs-Battey)',
+  };
+
+  // ── Confirmation dialogs ──────────────────────────────────────────────────
+  const ConfirmDialog = ({
+    title, description, warning, onConfirm, onCancel, confirmLabel, confirmColor,
+  }: {
+    title: string; description: string; warning: string;
+    onConfirm: () => void; onCancel: () => void;
+    confirmLabel: string; confirmColor: string;
+  }) => (
+    <div style={{
+      background: 'rgba(0,0,0,0.2)', border: '1px solid var(--ps-conf-border)',
+      borderRadius: 8, padding: '20px 24px', marginTop: 16,
+    }}>
+      <h4 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>{title}</h4>
+      <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
+        {description}
       </p>
-
-      {/* What gets reset */}
-      <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
-        borderRadius: 10, padding: '20px 24px', marginBottom: 28,
-      }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: C.muted, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          What gets reset
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 32px' }}>
-          {[
-            'All case data & synoptic answers',
-            'AI suggestions & verification state',
-            'In-app messages & notifications',
-            'Voice learned triggers',
-            'Countersign workflow state',
-            'Protocol registry overrides',
-            'Delegation & claim records',
-            'AI behavior settings',
-            'Case comments',
-            'Worklist sort preferences',
-          ].map(item => (
-            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.muted }}>
-              <span style={{ color: C.amber, fontSize: 16, lineHeight: 1 }}>◦</span>
-              {item}
-            </div>
-          ))}
-        </div>
-        <div style={{
-          marginTop: 16, padding: '10px 14px', borderRadius: 7,
-          background: C.amberBg, border: `1px solid ${C.amberBdr}`,
-          fontSize: 12, color: C.amber,
-        }}>
-          ⚠ Does <strong>not</strong> reset: login credentials, biometric enrolment, theme, or system configuration.
-        </div>
-      </div>
-
-      {/* Idle state */}
-      {state === 'idle' && (
+      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#f87171', lineHeight: 1.6 }}>
+        ⚠ {warning}
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button className="ps-conf-btn-secondary" onClick={onCancel}>Cancel</button>
         <button
-          onClick={() => setState('confirm')}
+          onClick={onConfirm}
           style={{
-            padding: '11px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700,
-            cursor: 'pointer', border: `1.5px solid ${C.dangerBdr}`,
-            background: C.dangerBg, color: C.danger,
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => {
-            (e.target as HTMLButtonElement).style.background = 'rgba(239,68,68,0.16)';
-          }}
-          onMouseLeave={e => {
-            (e.target as HTMLButtonElement).style.background = C.dangerBg;
+            padding: '8px 20px', fontSize: 13, fontWeight: 600,
+            background: confirmColor, border: 'none', borderRadius: 6,
+            color: '#fff', cursor: 'pointer',
           }}
         >
-          Reset Demo Data…
+          {confirmLabel}
         </button>
-      )}
-
-      {/* Confirm state */}
-      {state === 'confirm' && (
-        <div style={{
-          background: C.dangerBg, border: `1.5px solid ${C.dangerBdr}`,
-          borderRadius: 10, padding: '20px 24px',
-        }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: C.danger, margin: '0 0 6px' }}>
-            Are you sure?
-          </p>
-          <p style={{ fontSize: 13, color: C.muted, margin: '0 0 20px', lineHeight: 1.6 }}>
-            This will wipe all in-progress demo work — answered fields, messages,
-            countersign state, and voice learning. The app will reload and all
-            cases will return to their initial state.
-          </p>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={() => setState('idle')}
-              style={{
-                padding: '9px 20px', borderRadius: 7, fontSize: 13, cursor: 'pointer',
-                border: `1px solid ${C.border}`, background: 'transparent', color: C.muted,
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                handleReset();
-                // Short delay so the user sees "done" before reload
-                setTimeout(() => window.location.reload(), 1200);
-              }}
-              style={{
-                padding: '9px 24px', borderRadius: 7, fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', border: 'none', background: C.danger, color: '#fff',
-              }}
-            >
-              Yes, Reset Everything
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Done state */}
-      {state === 'done' && (
-        <div style={{
-          background: C.greenBg, border: `1.5px solid ${C.greenBdr}`,
-          borderRadius: 10, padding: '20px 24px',
-        }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: C.green, margin: '0 0 4px' }}>
-            ✓ Reset complete — {cleared} storage {cleared === 1 ? 'key' : 'keys'} cleared
-          </p>
-          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>
-            Reloading…
-          </p>
-        </div>
-      )}
+      </div>
     </div>
   );
-}
+
+  // ── Done state ────────────────────────────────────────────────────────────
+  if (uiState === 'done' && result) {
+    return (
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 0' }}>
+        <div style={{
+          background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)',
+          borderRadius: 8, padding: '20px 24px',
+        }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#34d399', marginBottom: 8 }}>
+            ✓ {result.mode === 'full' ? 'Full reset complete' : 'Your data has been reset'}
+          </div>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ps-conf-text-3)' }}>
+            {result.cleared.length} item{result.cleared.length !== 1 ? 's' : ''} cleared.
+            Redirecting to Worklist in {countdown}s…
+          </p>
+          <div style={{ fontSize: 11, color: 'var(--ps-conf-text-3)', fontFamily: 'monospace', lineHeight: 1.8 }}>
+            {result.cleared.map(k => <div key={k}>✓ {k}</div>)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main UI ───────────────────────────────────────────────────────────────
+  return (
+    <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 0' }}>
+
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 700 }}>Demo Data Reset</h2>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
+          Restore mock data to a clean baseline without requiring developer access.
+          Choose between resetting only your data or performing a full system reset.
+        </p>
+      </div>
+
+      {/* ── Option 1: My data only ── */}
+      <div style={{
+        border: '1px solid var(--ps-conf-border)', borderRadius: 8,
+        padding: '20px 24px', marginBottom: 16,
+        background: 'rgba(8,145,178,0.04)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+              Reset my data only
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
+              Removes your cases and restores your seed data. Other testers' work is preserved.
+            </div>
+            {hospitalId && (
+              <div style={{ fontSize: 11, color: 'var(--ps-conf-teal)', marginTop: 6, fontWeight: 500 }}>
+                Your hospital: {hospitalLabel[hospitalId] ?? hospitalId}
+              </div>
+            )}
+          </div>
+          <button
+            className="ps-conf-btn-secondary"
+            disabled={!userId || uiState === 'confirm-full'}
+            onClick={() => { setUiState('confirm-user'); setCountdown(3); }}
+            style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
+            Reset my data…
+          </button>
+        </div>
+
+        {uiState === 'confirm-user' && (
+          <ConfirmDialog
+            title="Reset your data?"
+            description={`This will remove all cases for ${hospitalLabel[hospitalId ?? ''] ?? 'your hospital'} and restore them to the demo seed. Your flag configurations are not affected.`}
+            warning="This cannot be undone. The page will reload automatically."
+            confirmLabel="Yes, reset my data"
+            confirmColor="#0891B2"
+            onConfirm={handleUserReset}
+            onCancel={() => setUiState('idle')}
+          />
+        )}
+      </div>
+
+      {/* ── Option 2: Full reset ── */}
+      <div style={{
+        border: '1px solid var(--ps-conf-border)', borderRadius: 8,
+        padding: '20px 24px',
+        background: 'rgba(239,68,68,0.03)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+              Full reset
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ps-conf-text-3)', lineHeight: 1.6 }}>
+              Clears all mock data for all users — cases, flags, messages, session, and UI state.
+              Use this to restore a completely clean baseline before a new testing session.
+            </div>
+            <div style={{ fontSize: 11, color: '#f87171', marginTop: 6, fontWeight: 500 }}>
+              Affects all testers. Use sparingly.
+            </div>
+          </div>
+          <button
+            disabled={uiState === 'confirm-user'}
+            onClick={() => setUiState('confirm-full')}
+            style={{
+              flexShrink: 0, whiteSpace: 'nowrap',
+              padding: '8px 18px', fontSize: 13, fontWeight: 600,
+              background: 'transparent',
+              border: '1px solid rgba(239,68,68,0.5)',
+              borderRadius: 6, color: '#f87171', cursor: 'pointer',
+              opacity: uiState === 'confirm-user' ? 0.4 : 1,
+            }}
+          >
+            Full reset…
+          </button>
+        </div>
+
+        {uiState === 'confirm-full' && (
+          <ConfirmDialog
+            title="Full reset — are you sure?"
+            description="This will clear all mock data for every user including cases, flag configurations, messages, and sessions. All testers will lose their current state."
+            warning="This affects Paul, Amber, and Sarah. All work in progress will be lost."
+            confirmLabel="Yes, reset everything"
+            confirmColor="#dc2626"
+            onConfirm={handleFullReset}
+            onCancel={() => setUiState('idle')}
+          />
+        )}
+      </div>
+
+    </div>
+  );
+};
+
+export default DemoResetTab;
