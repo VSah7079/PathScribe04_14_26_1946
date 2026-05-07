@@ -1,10 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "regions": ["iad1"],
-  "env": {
-    "VITE_API_BASE_URL": "@vite_api_base_url",
-    "VITE_AI_API_KEY": "@vite_ai_api_key"
-  }
+  "framework": "vite"
 }
