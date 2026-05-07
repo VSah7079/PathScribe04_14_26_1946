@@ -75,30 +75,22 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 800,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-tiptap': [
-              '@tiptap/react',
-              '@tiptap/starter-kit',
-              '@tiptap/extension-color',
-              '@tiptap/extension-highlight',
-              '@tiptap/extension-image',
-              '@tiptap/extension-placeholder',
-              '@tiptap/extension-text-align',
-              '@tiptap/extension-text-style',
-              '@tiptap/extension-typography',
-              '@tiptap/extension-underline',
-              '@tiptap/extension-table',
-              '@tiptap/extension-table-cell',
-              '@tiptap/extension-table-header',
-              '@tiptap/extension-table-row',
-              '@tiptap/extension-font-family',
-              '@tiptap/extension-subscript',
-              '@tiptap/extension-superscript',
-              '@tiptap/extension-character-count',
-              '@tiptap/extension-dropcursor',
-            ],
-            'vendor-xlsx': ['xlsx'],
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                return 'vendor-react';
+              }
+
+              if (id.includes('@tiptap')) {
+                return 'vendor-tiptap';
+              }
+
+              if (id.includes('xlsx')) {
+                return 'vendor-xlsx';
+              }
+            }
+
+            return undefined;
           },
         },
       },
