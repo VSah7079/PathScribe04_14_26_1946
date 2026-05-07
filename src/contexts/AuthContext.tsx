@@ -78,75 +78,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.trim().toLowerCase();
       const normalizedPassword = password.trim();
 
-      // Get env vars with fallback for demo/testing
-      const DEMO_EMAIL = (import.meta.env.VITE_DEMO_EMAIL || "demo@pathscribe.ai").toLowerCase();
-      const DEMO_PASS = import.meta.env.VITE_DEMO_PASS || "xyxRnJrIu64nsi0KqPn-";
-      const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || "admin@pathscribe.ai").toLowerCase();
-      const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || "ZBs=inBiC6^N*XYwH3v^";
-      const UK_DEMO_EMAIL = (import.meta.env.VITE_UK_DEMO_EMAIL || "paul.carter@mft.nhs.uk").toLowerCase();
-      const UK_DEMO_PASS = import.meta.env.VITE_UK_DEMO_PASS || "Pathscribe_TempPass2026!";
-      const US_DEMO_EMAIL = (import.meta.env.VITE_US_DEMO_EMAIL || "amber.fehrs@demo.pathscribe.ai").toLowerCase();
-      const US_DEMO_PASS = import.meta.env.VITE_US_DEMO_PASS || "One_Amazing_Person!";
-      const TUTHILL_EMAIL = (import.meta.env.VITE_TUTHILL_EMAIL || "mark.tuthill@hfhs-demo.pathscribe.ai").toLowerCase();
-      const TUTHILL_PASS = import.meta.env.VITE_TUTHILL_PASS || "One_Amazing_Doctor!";
+      // Hardcoded credentials for demo/testing (fallback)
+      const credentials = [
+        { email: "demo@pathscribe.ai", password: "xyxRnJrIu64nsi0KqPn-", id: "PATH-001", name: "Dr. Sarah Johnson", role: "pathologist", initials: "SJ", voiceProfile: "EN-US" },
+        { email: "admin@pathscribe.ai", password: "ZBs=inBiC6^N*XYwH3v^", id: "u3", name: "System Admin", role: "admin", initials: "SA", voiceProfile: "EN-US" },
+        { email: "paul.carter@mft.nhs.uk", password: "Pathscribe_TempPass2026!", id: "PATH-UK-001", name: "Paul Carter", role: "pathologist", initials: "PC", voiceProfile: "EN-GB" },
+        { email: "oliver.pemberton@mft.nhs.uk", password: "xyxRnJrIu64nsi0KqPn-", id: "PATH-UK-002", name: "Dr. Oliver Pemberton", role: undefined, initials: "OP", voiceProfile: "EN-GB" },
+        { email: "amber.fehrs@demo.pathscribe.ai", password: "One_Amazing_Person!", id: "PATH-US-001", name: "Amber Fehrs-Battey", role: "pathologist", initials: "AF", voiceProfile: "EN-US" },
+        { email: "mark.tuthill@hfhs-demo.pathscribe.ai", password: "One_Amazing_Doctor!", id: "PATH-US-002", name: "Dr. J. Mark Tuthill", role: "pathologist", initials: "MT", voiceProfile: "EN-US" },
+      ];
 
-      if (normalizedEmail === DEMO_EMAIL && normalizedPassword === DEMO_PASS) {
+      // Find matching credential
+      const cred = credentials.find(c => c.email.toLowerCase() === normalizedEmail && c.password === normalizedPassword);
+      
+      if (cred) {
         authenticatedUser = {
-          id: "PATH-001",
-          name: "Dr. Sarah Johnson",
+          id: cred.id,
+          name: cred.name,
           email: email,
-          role: "pathologist",
-          initials: "SJ",
-          voiceProfile: "EN-US",
+          role: cred.role || "pathologist",
+          initials: cred.initials,
+          voiceProfile: cred.voiceProfile as any,
         };
-      } else if (normalizedEmail === ADMIN_EMAIL && normalizedPassword === ADMIN_PASS) {
-        authenticatedUser = {
-          id: "u3",
-          name: "System Admin",
-          email: email,
-          role: "admin",
-          initials: "SA",
-          voiceProfile: "EN-US",
-        };
-      } else if (normalizedEmail === UK_DEMO_EMAIL && normalizedPassword === UK_DEMO_PASS) {
-        authenticatedUser = {
-          id: "PATH-UK-001",
-          name: "Paul Carter",
-          email: email,
-          role: "pathologist",
-          initials: "PC",
-          voiceProfile: "EN-GB",
-          locale: "en-GB",
-        } as any;
-      } else if (normalizedEmail === "oliver.pemberton@mft.nhs.uk" && normalizedPassword === DEMO_PASS) {
-        authenticatedUser = {
-          id: "PATH-UK-002",
-          name: "Dr. Oliver Pemberton",
-          email: email,
-          role: undefined,
-          initials: "OP",
-          voiceProfile: "EN-GB",
-          locale: "en-GB",
-        } as any;
-      } else if (normalizedEmail === US_DEMO_EMAIL && normalizedPassword === US_DEMO_PASS) {
-        authenticatedUser = {
-          id: "PATH-US-001",
-          name: "Amber Fehrs-Battey",
-          email: email,
-          role: "pathologist",
-          initials: "AF",
-          voiceProfile: "EN-US",
-        } as any;
-      } else if (normalizedEmail === TUTHILL_EMAIL && normalizedPassword === TUTHILL_PASS) {
-        authenticatedUser = {
-          id: "PATH-US-002",
-          name: "Dr. J. Mark Tuthill",
-          email: email,
-          role: "pathologist",
-          initials: "MT",
-          voiceProfile: "EN-US",
-        } as any;
       }
+
+      // Debug
+      console.log('[Auth Login]', { email: normalizedEmail, passwordLen: normalizedPassword.length, found: !!cred });
 
       if (!authenticatedUser) return false;
 
