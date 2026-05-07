@@ -14,7 +14,7 @@ export { mockFontService          as fontService          } from './fonts/mockFo
 export { mockAIBehaviorService    as aiBehaviorService    } from './aiBehavior/mockAIBehaviorService';
 export { mockModelService         as modelService         } from './models/mockModelService';
 export { mockSavedSearchService   as savedSearchService   } from './savedSearches/mockSavedSearchService';
-export { mockAuditService         as auditService         } from './auditLog/mockAuditService';
+export { mockAuditService         as auditService         } from './auditlog/mockAuditService';
 export { mockCaseService          as caseService          } from './cases/mockCaseService';
 export { mockCodeService          as codeService          } from './codes/mockCodeService';
 export { mockMessageService       as messageService       } from './messages/mockMessageService';
@@ -36,7 +36,7 @@ export type { EditorFont, EditorFontConfig } from './fonts/IFontService';
 export type { AIBehaviorConfig }  from './aiBehavior/IAIBehaviorService';
 export type { AIModel }           from './models/IModelService';
 export type { SavedSearch, SearchContext, WorklistFilters, CaseSearchFilters, RefinedSearchFilters } from './savedSearches/ISavedSearchService';
-export type { AuditLog, ErrorLog, AuditLogType, ErrorSeverity } from './auditLog/IAuditService';
+export type { AuditLog, ErrorLog, AuditLogType, ErrorSeverity } from './auditlog/IAuditService';
 export type { PathologyCase, CaseStatus, CasePriority, AIStatus, CaseFilterParams } from './cases/ICaseService';
 export type { ClinicalCode, CodeSystem, CodeSearchParams, IcdOSubtype } from './codes/ICodeService';
 export type { Message }           from './messages/IMessageService';

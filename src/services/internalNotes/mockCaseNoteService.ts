@@ -1,7 +1,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { CaseNote, NewCaseNote, ICaseNoteService } from './ICaseNoteService';
-import { mockAuditService } from '../auditLog/mockAuditService';
+import { mockAuditService } from '../auditlog/mockAuditService';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 

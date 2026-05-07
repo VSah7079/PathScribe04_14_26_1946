@@ -1,7 +1,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { Message, MessageThread, IMessageService } from './IMessageService';
-import { mockAuditService } from '../auditLog/mockAuditService';
+import { mockAuditService } from '../auditlog/mockAuditService';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 

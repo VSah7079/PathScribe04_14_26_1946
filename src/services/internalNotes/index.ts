@@ -17,7 +17,7 @@ export { mockMacroService         as macroService         } from '../macros/mock
 export { mockFontService          as fontService          } from '../fonts/mockFontService';
 export { mockAIBehaviorService    as aiBehaviorService    } from '../aiBehavior/mockAIBehaviorService';
 export { mockModelService         as modelService         } from '../models/mockModelService';
-export { mockAuditService         as auditService         } from '../auditLog/mockAuditService';
+export { mockAuditService         as auditService         } from '../auditlog/mockAuditService';
 
 // Fixed Action Registry / Shortcut pathing based on your location
 export { mockActionRegistryService as shortcutService     } from '../actionRegistry/mockActionRegistryService';
@@ -57,4 +57,4 @@ export type {
   ErrorLog, 
   AuditLogType, 
   ErrorSeverity 
-} from '../auditLog/IAuditService';
+} from '../auditlog/IAuditService';

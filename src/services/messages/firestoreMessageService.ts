@@ -16,7 +16,7 @@ import {
 import { db } from '../../firebase';
 import { ServiceResult, ID } from '../types';
 import { Message, MessageThread, IMessageService } from './IMessageService';
-import { firestoreAuditService } from '../auditLog/firestoreAuditService';
+import { firestoreAuditService } from '../auditlog/firestoreAuditService';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 

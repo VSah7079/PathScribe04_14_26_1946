@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 // ── Types & Data ─────────────────────────────────────────────────────────────
 // Components import ONLY from services/index.ts — never directly from mock/firestore files.
-import type { AuditLog, ErrorLog } from '../services/auditLog/IAuditService';
+import type { AuditLog, ErrorLog } from '../services/auditlog/IAuditService';
 import { auditService } from '../services';
 
 type ActiveTab = 'audit' | 'errors';
