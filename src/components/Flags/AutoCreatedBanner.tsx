@@ -1,6 +1,6 @@
 import React from 'react';
 import '../../pathscribe.css';
-import { Flag } from '../../services/flag/IFlagService';
+import { Flag } from '../../services/flags/IFlagService';
 
 interface Props {
   flags: Flag[];

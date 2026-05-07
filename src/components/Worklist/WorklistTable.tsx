@@ -6,9 +6,9 @@ import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
 import '../../pathscribe.css';
 import { Case } from "../../types/case/Case";
-import { Flag } from '../../services/flag/IFlagService';
+import { Flag } from '../../services/flags/IFlagService';
 import { useSidecar } from '@/contexts/SidecarContext';
-import ComputationalFlagIcon from '../flags/ComputationalFlagIcon';
+import ComputationalFlagIcon from '../Flags/ComputationalFlagIcon';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES

@@ -7,7 +7,7 @@
 import React from 'react';
 import { Flag } from '@/services/flags/IFlagService';
 import { ComputationalResult, ResultStatus, ActionabilityLevel } from '@/types/smarttag.types';
-import { FlagIconGlyph } from '../flags/flagIcons';
+import { FlagIconGlyph } from '../Flags/flagIcons';
 
 // ─── Status color (matches ComputationalFlagIcon) ─────────────────────────────
 

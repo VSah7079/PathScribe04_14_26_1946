@@ -4,7 +4,7 @@
 // survives navigation between Worklist and Synoptic Report.
 
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import { Flag } from '../services/flag/IFlagService';
+import { Flag } from '../services/flags/IFlagService';
 
 // ─── Shape ────────────────────────────────────────────────────────────────────
 
