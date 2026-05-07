@@ -74,70 +74,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       let authenticatedUser: User | null = null;
 
+      // Normalize input - trim whitespace and lowercase email
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password.trim();
+
       // Get env vars with fallback for demo/testing
-      const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL || "demo@pathscribe.ai";
+      const DEMO_EMAIL = (import.meta.env.VITE_DEMO_EMAIL || "demo@pathscribe.ai").toLowerCase();
       const DEMO_PASS = import.meta.env.VITE_DEMO_PASS || "xyxRnJrIu64nsi0KqPn-";
-      const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || "admin@pathscribe.ai";
+      const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || "admin@pathscribe.ai").toLowerCase();
       const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || "ZBs=inBiC6^N*XYwH3v^";
-      const UK_DEMO_EMAIL = import.meta.env.VITE_UK_DEMO_EMAIL || "paul.carter@mft.nhs.uk";
+      const UK_DEMO_EMAIL = (import.meta.env.VITE_UK_DEMO_EMAIL || "paul.carter@mft.nhs.uk").toLowerCase();
       const UK_DEMO_PASS = import.meta.env.VITE_UK_DEMO_PASS || "Pathscribe_TempPass2026!";
-      const US_DEMO_EMAIL = import.meta.env.VITE_US_DEMO_EMAIL || "amber.fehrs@demo.pathscribe.ai";
+      const US_DEMO_EMAIL = (import.meta.env.VITE_US_DEMO_EMAIL || "amber.fehrs@demo.pathscribe.ai").toLowerCase();
       const US_DEMO_PASS = import.meta.env.VITE_US_DEMO_PASS || "One_Amazing_Person!";
-      const TUTHILL_EMAIL = import.meta.env.VITE_TUTHILL_EMAIL || "mark.tuthill@hfhs-demo.pathscribe.ai";
+      const TUTHILL_EMAIL = (import.meta.env.VITE_TUTHILL_EMAIL || "mark.tuthill@hfhs-demo.pathscribe.ai").toLowerCase();
       const TUTHILL_PASS = import.meta.env.VITE_TUTHILL_PASS || "One_Amazing_Doctor!";
 
-      if (email === DEMO_EMAIL && password === DEMO_PASS) {
+      if (normalizedEmail === DEMO_EMAIL && normalizedPassword === DEMO_PASS) {
         authenticatedUser = {
           id: "PATH-001",
           name: "Dr. Sarah Johnson",
-          email: DEMO_EMAIL,
+          email: email,
           role: "pathologist",
           initials: "SJ",
           voiceProfile: "EN-US",
         };
-      } else if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+      } else if (normalizedEmail === ADMIN_EMAIL && normalizedPassword === ADMIN_PASS) {
         authenticatedUser = {
           id: "u3",
           name: "System Admin",
-          email: ADMIN_EMAIL,
+          email: email,
           role: "admin",
           initials: "SA",
           voiceProfile: "EN-US",
         };
-      } else if (email === UK_DEMO_EMAIL && password === UK_DEMO_PASS) {
+      } else if (normalizedEmail === UK_DEMO_EMAIL && normalizedPassword === UK_DEMO_PASS) {
         authenticatedUser = {
           id: "PATH-UK-001",
           name: "Paul Carter",
-          email: UK_DEMO_EMAIL,
+          email: email,
           role: "pathologist",
           initials: "PC",
           voiceProfile: "EN-GB",
           locale: "en-GB",
         } as any;
-      } else if (email === "oliver.pemberton@mft.nhs.uk" && password === DEMO_PASS) {
+      } else if (normalizedEmail === "oliver.pemberton@mft.nhs.uk" && normalizedPassword === DEMO_PASS) {
         authenticatedUser = {
           id: "PATH-UK-002",
           name: "Dr. Oliver Pemberton",
-          email: "oliver.pemberton@mft.nhs.uk",
+          email: email,
           role: undefined,
           initials: "OP",
           voiceProfile: "EN-GB",
           locale: "en-GB",
         } as any;
-      } else if (email === US_DEMO_EMAIL && password === US_DEMO_PASS) {
+      } else if (normalizedEmail === US_DEMO_EMAIL && normalizedPassword === US_DEMO_PASS) {
         authenticatedUser = {
           id: "PATH-US-001",
           name: "Amber Fehrs-Battey",
-          email: US_DEMO_EMAIL,
+          email: email,
           role: "pathologist",
           initials: "AF",
           voiceProfile: "EN-US",
         } as any;
-      } else if (email === TUTHILL_EMAIL && password === TUTHILL_PASS) {
+      } else if (normalizedEmail === TUTHILL_EMAIL && normalizedPassword === TUTHILL_PASS) {
         authenticatedUser = {
           id: "PATH-US-002",
           name: "Dr. J. Mark Tuthill",
-          email: TUTHILL_EMAIL,
+          email: email,
           role: "pathologist",
           initials: "MT",
           voiceProfile: "EN-US",
