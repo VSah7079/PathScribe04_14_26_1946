@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../../../pathscribe.css';
-import type { MedicalCode, SynopticField } from '../synopticTypes';
+import type { MedicalCode, FieldVerification, SpecimenOption } from '../synopticTypes';
 import CodeBadge from './CodeBadge';
+import { SOURCE_META } from '../codeConstants';
+import AddCodeModal from './AddCodeModal';
 
 const CodesPanel: React.FC<{
   codes: MedicalCode[];

@@ -90,6 +90,14 @@ export interface CaseData {
   caseComments: Partial<Record<CaseRole, string>>;
   synoptics: SpecimenSynoptic[];
 }
+
+export interface SpecimenOption {
+  index: number;
+  id: number;
+  specimenId?: string | null;
+  name: string;
+}
+
 export interface OtherRoleComment {
   role: CaseRole;
   text: string;

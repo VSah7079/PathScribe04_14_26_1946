@@ -1,6 +1,6 @@
 import React from 'react';
 import '../../../pathscribe.css';
-import PathScribeEditor from '../../../components/Editor/PathScribeEditor';
+import type { CaseRole } from '../synopticTypes';
 
 const OtherRoleComment: React.FC<{
   role: CaseRole;

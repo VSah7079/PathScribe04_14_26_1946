@@ -76,8 +76,8 @@ export interface OrchestratorCallbacks {
 // ─────────────────────────────────────────────────────────────
 
 function buildSectionPrompt(
-  sectionId: string,
-  sectionTitle: string,
+  _sectionId: string,
+  _sectionTitle: string,
   sectionInstruction: string,
   context: StructuredContext
 ): string {

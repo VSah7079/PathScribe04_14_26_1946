@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import type { AuditLog, ErrorLog } from '../services/auditLog/IAuditService';
 import { auditService } from '../services';
 
+type ActiveTab = 'audit' | 'errors';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function parseDateStr(ts: string): Date {

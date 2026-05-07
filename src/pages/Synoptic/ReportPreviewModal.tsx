@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
-import type { CaseData, ActivePath, SpecimenSynoptic, SynopticReportNode } from '../synopticTypes';
+import type { CaseData, SpecimenSynoptic, SynopticReportNode, SynopticField, CaseRole } from './synopticTypes';
+import { ROLE_META } from './synopticTypes';
 
 const SPEC_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
