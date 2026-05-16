@@ -3,40 +3,26 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * React context, provider, and hook for PathScribe system-level configuration.
  *
- * Architecture role:
- *   This is the runtime layer that sits on top of the pure types in
- *   types/systemConfig.ts. It handles:
- *     - Loading config from localStorage on mount
- *     - Providing config values to any component in the tree
- *     - Persisting changes back to localStorage on every update
- *     - Merging saved config with DEFAULT_SYSTEM_CONFIG so that newly added
- *       fields always have a valid value even if the user's saved config
- *       pre-dates the field being added
+ * Three layers of config, loaded independently:
+ *
+ *   1. SystemConfig        — local system settings (LIS toggles, voice, etc.)
+ *                            Loaded from localStorage, edited in Config UI.
+ *
+ *   2. EnterpriseConfig    — top-level org settings (feature flags for the
+ *                            whole network). Will be Firestore-backed in prod.
+ *
+ *   3. HospitalConfig      — per-hospital overrides. Hospital-level features
+ *                            take precedence over enterprise-level defaults.
+ *                            Will be Firestore-backed in prod.
+ *
+ * Feature resolution:
+ *   Use isFeatureEnabled('reportingPlusEnabled') rather than reading
+ *   enterprise/hospital config directly. The helper applies the override
+ *   hierarchy: hospital → enterprise → false.
  *
  * Usage:
- *   1. Wrap your app (or at minimum the router) with <SystemConfigProvider>
- *      in main.tsx / App.tsx — alongside AuthProvider.
- *
- *   2. In any component that needs config values:
- *        import { useSystemConfig } from '../contexts/SystemConfigContext';
- *        const { config, updateConfig } = useSystemConfig();
- *
- *   3. To read a value:
- *        const { lisIntegrationEnabled } = config;
- *
- *   4. To update a value (e.g. from a toggle in LISSection):
- *        updateConfig({ lisIntegrationEnabled: true });
- *      updateConfig does a shallow merge — pass only the fields you want to change.
- *
- * Persistence:
- *   Config is stored in localStorage under the key defined by LS_KEY.
- *   Bump LS_VERSION if the SystemConfig shape changes in a breaking way —
- *   this discards old saved config and falls back to defaults cleanly.
- *
- * Related files:
- *   types/systemConfig.ts               ← shape + defaults (no React)
- *   components/Config/System/LISSection.tsx  ← primary UI for editing config
- *   pages/SynopticReportPage.tsx         ← consumer (reads LIS flags)
+ *   const { config, updateConfig, enterpriseConfig, hospitalConfig,
+ *           isFeatureEnabled } = useSystemConfig();
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -48,61 +34,81 @@ import React, {
   useEffect,
 } from 'react';
 
-import {
-  SystemConfig,
-  DEFAULT_SYSTEM_CONFIG,
-} from '../types/systemConfig';
+import { SystemConfig, DEFAULT_SYSTEM_CONFIG } from '../types/systemConfig';
+import type { EnterpriseConfig, EnterpriseFeatures } from '@app-types/config/EnterpriseConfig';
+import type { HospitalConfig } from '@app-types/config/HospitalConfig';
 
-// NEW — typed enterprise + hospital config
-import { EnterpriseConfig } from '@app-types/config/EnterpriseConfig';
-import { HospitalConfig } from '@app-types/config/HospitalConfig';
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+const DEFAULT_ENTERPRISE_FEATURES: EnterpriseFeatures = {
+  reportingPlusEnabled: false,
+};
+
+const DEFAULT_ENTERPRISE_CONFIG: EnterpriseConfig = {
+  id:       'ENT-DEFAULT',
+  name:     'PathScribe Enterprise',
+  features: DEFAULT_ENTERPRISE_FEATURES,
+};
+
+const DEFAULT_HOSPITAL_CONFIG: HospitalConfig = {
+  id:           'HOSP-001',
+  name:         'Default Hospital',
+  enterpriseId: 'ENT-DEFAULT',
+  features:     { reportingPlusEnabled: true },
+};
 
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 
 const LS_VERSION = 'v1';
 const LS_KEY     = `pathscribe_system_config_${LS_VERSION}`;
+const LS_ENT_KEY = `pathscribe_enterprise_config_${LS_VERSION}`;
+const LS_HSP_KEY = `pathscribe_hospital_config_${LS_VERSION}`;
 
-const loadConfig = (): SystemConfig => {
+function loadSystemConfig(): SystemConfig {
   try {
     const raw = localStorage.getItem(LS_KEY);
     const merged: SystemConfig = raw
       ? { ...DEFAULT_SYSTEM_CONFIG, ...JSON.parse(raw) as Partial<SystemConfig> }
       : { ...DEFAULT_SYSTEM_CONFIG };
-
-    // Hard env override — VITE_VOICE_ENABLED=false disables voice entirely
     const envVoice = (import.meta as any).env?.VITE_VOICE_ENABLED;
     if (envVoice === 'false') merged.voiceEnabled = false;
-
     return merged;
-  } catch {
-    // Corrupted storage — fall back to defaults silently
-  }
-  return { ...DEFAULT_SYSTEM_CONFIG };
-};
+  } catch { return { ...DEFAULT_SYSTEM_CONFIG }; }
+}
 
-const saveConfig = (config: SystemConfig): void => {
+function loadJson<T>(key: string, fallback: T): T {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(config));
-  } catch {
-    // Storage full or unavailable — fail silently
-  }
-};
+    const raw = localStorage.getItem(key);
+    return raw ? { ...fallback, ...JSON.parse(raw) as Partial<T> } : { ...fallback };
+  } catch { return { ...fallback }; }
+}
+
+function saveJson<T>(key: string, value: T): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
 
 // ─── Context shape ────────────────────────────────────────────────────────────
 
 interface SystemConfigContextValue {
-  /** The current system configuration. Read-only from consumers. */
-  config: SystemConfig;
+  // ── System config ───────────────────────────────────────────────────────
+  config:        SystemConfig;
+  updateConfig:  (patch: Partial<SystemConfig>) => void;
+  resetConfig:   () => void;
+
+  // ── Enterprise + Hospital config ────────────────────────────────────────
+  enterpriseConfig:        EnterpriseConfig;
+  hospitalConfig:          HospitalConfig;
+  updateEnterpriseConfig:  (patch: Partial<EnterpriseConfig>) => void;
+  updateHospitalConfig:    (patch: Partial<HospitalConfig>)    => void;
 
   /**
-   * Shallow-merge update. Pass only the fields you want to change.
-   * Changes are immediately reflected in the context and persisted to
-   * localStorage.
+   * Resolves a feature flag through the override hierarchy:
+   *   hospital.features → enterprise.features → false
+   *
+   * Example:
+   *   const reportingPlus = isFeatureEnabled('reportingPlusEnabled');
    */
-  updateConfig: (patch: Partial<SystemConfig>) => void;
-
-  /** Reset all config values back to DEFAULT_SYSTEM_CONFIG. */
-  resetConfig: () => void;
+  isFeatureEnabled: (feature: keyof EnterpriseFeatures) => boolean;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -113,17 +119,14 @@ const SystemConfigContext = createContext<SystemConfigContextValue | null>(null)
 
 export const SystemConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
-  // NEW — typed enterprise + hospital config state
-  // These do NOT replace your SystemConfig. They are inputs used elsewhere.
+  const [config,           setConfig]           = useState<SystemConfig>(loadSystemConfig);
+  const [enterpriseConfig, setEnterpriseConfig] = useState<EnterpriseConfig>(() => loadJson(LS_ENT_KEY, DEFAULT_ENTERPRISE_CONFIG));
+  const [hospitalConfig,   setHospitalConfig]   = useState<HospitalConfig>(()   => loadJson(LS_HSP_KEY, DEFAULT_HOSPITAL_CONFIG));
 
-
-  // Existing combined system config
-  const [config, setConfig] = useState<SystemConfig>(loadConfig);
-
-  // Persist to localStorage whenever config changes
-  useEffect(() => {
-    saveConfig(config);
-  }, [config]);
+  // Persist all three configs whenever they change
+  useEffect(() => { saveJson(LS_KEY,     config);           }, [config]);
+  useEffect(() => { saveJson(LS_ENT_KEY, enterpriseConfig); }, [enterpriseConfig]);
+  useEffect(() => { saveJson(LS_HSP_KEY, hospitalConfig);   }, [hospitalConfig]);
 
   const updateConfig = useCallback((patch: Partial<SystemConfig>) => {
     setConfig(prev => ({ ...prev, ...patch }));
@@ -133,14 +136,30 @@ export const SystemConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setConfig({ ...DEFAULT_SYSTEM_CONFIG });
   }, []);
 
+  const updateEnterpriseConfig = useCallback((patch: Partial<EnterpriseConfig>) => {
+    setEnterpriseConfig(prev => ({ ...prev, ...patch }));
+  }, []);
+
+  const updateHospitalConfig = useCallback((patch: Partial<HospitalConfig>) => {
+    setHospitalConfig(prev => ({ ...prev, ...patch }));
+  }, []);
+
+  // Hospital overrides enterprise — if hospital explicitly sets a feature,
+  // that value wins regardless of the enterprise default.
+  const isFeatureEnabled = useCallback((feature: keyof EnterpriseFeatures): boolean => {
+    const hospitalVal  = hospitalConfig.features[feature];
+    const enterpriseVal = enterpriseConfig.features[feature];
+    // Hospital value takes precedence; fall back to enterprise; default false
+    return hospitalVal ?? enterpriseVal ?? false;
+  }, [hospitalConfig, enterpriseConfig]);
+
   return (
-    <SystemConfigContext.Provider
-      value={{
-        config,
-        updateConfig,
-        resetConfig,
-      }}
-    >
+    <SystemConfigContext.Provider value={{
+      config, updateConfig, resetConfig,
+      enterpriseConfig, hospitalConfig,
+      updateEnterpriseConfig, updateHospitalConfig,
+      isFeatureEnabled,
+    }}>
       {children}
     </SystemConfigContext.Provider>
   );
@@ -150,11 +169,9 @@ export const SystemConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 export const useSystemConfig = (): SystemConfigContextValue => {
   const ctx = useContext(SystemConfigContext);
-  if (!ctx) {
-    throw new Error(
-      'useSystemConfig must be used within a <SystemConfigProvider>. ' +
-      'Add <SystemConfigProvider> to your app root in main.tsx or App.tsx.'
-    );
-  }
+  if (!ctx) throw new Error(
+    'useSystemConfig must be used within a <SystemConfigProvider>. ' +
+    'Add <SystemConfigProvider> to your app root in main.tsx or App.tsx.'
+  );
   return ctx;
 };

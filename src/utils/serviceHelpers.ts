@@ -1,11 +1,11 @@
-import { ServiceResult } from '../types/service';
+import { ServiceResult } from '../services/types';
 
 export const createSuccess = <T>(data: T): ServiceResult<T> => ({
-  success: true,
+  ok: true,
   data,
 });
 
 export const createError = <T>(error: string): ServiceResult<T> => ({
-  success: false,
+  ok: false,
   error,
 });

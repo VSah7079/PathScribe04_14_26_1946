@@ -35,7 +35,7 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut, onNavigate, aiConfidence }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiConfidence }) => {
   const isOrchestration = getOrchestratorMode();
 
   const accession = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '—';
@@ -45,7 +45,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut, onNavigate, 
   const mrn       = caseData?.patient?.mrn ?? '—';
   const sex       = caseData?.patient?.sex ?? '—';
   const status    = caseData?.status ?? 'draft';
-  const hospital    = getOrganisationByHospitalId(caseData?.originHospitalId);
+  const hospital    = getOrganisationByHospitalId(caseData?.originHospitalId ?? '');
   const clientName  = caseData?.order?.clientName ?? null;
   const meta        = CASE_STATE_META[status] ?? CASE_STATE_META['draft'];
 

@@ -9,7 +9,7 @@ import { mockFlagService } from "../services/flags/mockFlagService";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+
 
 // Map from mockFlagService's Flag type to the FlagDefinition shape used by the UI.
 // mockFlagService uses level: 'Case' | 'Specimen' (capitalised)
@@ -96,9 +96,13 @@ export const attachFlagsToCase = (caseObj: any, opts?: {
   caseFlagIds?: string[];
   specimenFlagIds?: { id: string; specimenId?: string; specimenLabel?: string }[];
 }) => {
-  // This helper is used at mock-data build time — pull flags synchronously from
-  // the module-level cache that mockFlagService maintains.
-  return { ...caseObj, caseFlags: [], specimenFlags: [] };
+  const caseFlags = (opts?.caseFlagIds ?? []).map(id => ({
+    id, definitionId: id, level: 'case',
+  }));
+  const specimenFlags = (opts?.specimenFlagIds ?? []).map(f => ({
+    ...f, definitionId: f.id, level: 'specimen',
+  }));
+  return { ...caseObj, caseFlags, specimenFlags };
 };
 
 export const _resetFlagsStore = (_seed?: FlagDefinition[]) => {

@@ -2,31 +2,14 @@
 // Compact worklist icon for a Computational flag.
 // Visual state machine: PENDING → PRELIMINARY → FINAL (actionable | non-actionable)
 // Clicking opens the Sidecar Drawer via onSelect.
+// Keyframes live in pathscribe.css (ps-pulse-subtle).
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import '@/pathscribe.css';
 import { Flag } from '@/services/flags/IFlagService';
 import { ResultStatus, ActionabilityLevel } from '@/types/smarttag.types';
 import { useComputationalResult } from '@/hooks/useComputationalResult';
-import { FlagIconGlyph } from './flagIcons';
-
-// ─── Keyframe injection ───────────────────────────────────────────────────────
-// Injected once into document.head. Non-distracting opacity pulse only —
-// no scale, no color flash, no movement.
-
-const STYLE_ID = 'ps-comp-flag-keyframes';
-
-function injectKeyframes() {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = STYLE_ID;
-  style.textContent = `
-    @keyframes ps-pulse-subtle {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.65; }
-    }
-  `;
-  document.head.appendChild(style);
-}
+import { FlagIconGlyph } from './FlagIcons';
 
 // ─── Status → visual config ───────────────────────────────────────────────────
 
@@ -97,93 +80,35 @@ interface Props {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const ComputationalFlagIcon: React.FC<Props> = ({
-  flag,
-  caseId,
-  size = 28,
-  onSelect,
-}) => {
-  const hasInjected = useRef(false);
-
-  useEffect(() => {
-    if (!hasInjected.current) {
-      injectKeyframes();
-      hasInjected.current = true;
-    }
-  }, []);
-
-  const { result, loading, error } = useComputationalResult(flag, caseId);
-
-  const visual = resolveVisual(result?.status, result?.actionability);
-
-  const tooltipLines = [
-    flag.displayName ?? flag.name,
-    visual.statusLabel,
-    error ? `Error: ${error}` : null,
-  ].filter(Boolean).join('\n');
-
-  const iconKey = flag.iconKey ?? 'generic-lab';
+const ComputationalFlagIcon: React.FC<Props> = ({ flag, caseId, size = 28, onSelect }) => {
+  // loading is intentionally omitted — resolveVisual handles the no-result state
+  // via LOADING_VISUAL when result is undefined.
+  const { result, error } = useComputationalResult(flag, caseId);
+  const visual    = resolveVisual(result?.status, result?.actionability);
   const glyphSize = Math.round(size * 0.55);
+  const tooltip   = [flag.name, visual.statusLabel, error ? `Error: ${error}` : null]
+    .filter(Boolean).join('\n');
 
   return (
     <button
-      title={tooltipLines}
-      aria-label={`${flag.displayName ?? flag.name}: ${visual.statusLabel}`}
+      title={tooltip}
+      aria-label={`${flag.name}: ${visual.statusLabel}`}
       onClick={e => { e.stopPropagation(); onSelect(flag); }}
+      className="ps-comp-flag-btn"
       style={{
-        // Layout
-        display:         'inline-flex',
-        alignItems:      'center',
-        justifyContent:  'center',
-        width:           size,
-        height:          size,
-        borderRadius:    6,
-        flexShrink:      0,
-        position:        'relative',
-        cursor:          'pointer',
-
-        // Visuals
-        background:      visual.bgColor,
-        border:          `1.5px solid ${visual.color}`,
-        color:           visual.color,
-
-        // Animation (on the container — pulse the whole icon)
-        animation:       visual.animation,
-
-        // Reset button defaults
-        padding:         0,
-        outline:         'none',
-        transition:      'border-color 0.15s, background 0.15s',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.filter = 'brightness(1.15)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.filter = 'none';
-      }}
-      onFocus={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 2px ${visual.color}55`;
-      }}
-      onBlur={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        width:      size,
+        height:     size,
+        background: visual.bgColor,
+        border:     `1.5px solid ${visual.color}`,
+        color:      visual.color,
+        animation:  visual.animation,
       }}
     >
-      <FlagIconGlyph iconKey={iconKey} size={glyphSize} />
+      <FlagIconGlyph iconKey={flag.iconKey ?? 'generic-lab'} size={glyphSize} />
 
       {/* Status dot — bottom-right corner */}
-      <span
-        aria-hidden="true"
-        style={{
-          position:     'absolute',
-          bottom:       -3,
-          right:        -3,
-          width:        8,
-          height:       8,
-          borderRadius: '50%',
-          background:   visual.color,
-          border:       '1.5px solid var(--color-background-primary, #fff)',
-        }}
-      />
+      <span aria-hidden="true" className="ps-comp-flag-dot"
+        style={{ background: visual.color }} />
     </button>
   );
 };

@@ -130,9 +130,9 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   const siteOrg = React.useMemo(() => {
     return getOrganisationByHospitalId(originHospitalId ?? 'HOSP-001');
   }, [originHospitalId]);
-  const siteCodingSystems = React.useMemo<CodeSystem[]>(() => {
+  const siteCodingSystems = React.useMemo<CodingSystem[]>(() => {
     const systems = siteOrg?.sites?.[0]?.codingSystems;
-    return (systems?.length ? systems : ['SNOMED', 'ICD10', 'ICD11', 'LOINC', 'ICDO', 'CPT']) as CodeSystem[];
+    return systems?.length ? systems : ['SNOMED', 'ICD10', 'ICD11', 'LOINC', 'ICDO', 'CPT'] as CodingSystem[];
   }, [siteOrg]);
   const SYSTEMS = ALL_SYSTEMS.filter(s => siteCodingSystems.includes(s.id));
   const isUK = siteOrg?.sites?.[0]?.defaultLocale === 'en-GB';

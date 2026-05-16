@@ -67,6 +67,12 @@ const RuleModal: React.FC<{
   const handleSave = () => {
     if (!subspecialtyId) { setError('Select a pool'); return; }
     if (keywords.length === 0) { setError('Add at least one keyword'); return; }
+    // Guard against duplicate priority levels
+    const conflict = allRules.find(r => r.priority === priority && r.id !== rule?.id);
+    if (conflict) {
+      setError(`Priority ${priority} is already used by another rule — choose a different value`);
+      return;
+    }
     onSave({ subspecialtyId, keywords, priority, active, note: note.trim() || undefined });
   };
 
@@ -210,6 +216,8 @@ const RoutingRulesSection: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    // Safety guard — built-in rules cannot be deleted even if called programmatically
+    if (BUILT_IN_ROUTING_RULES.some(r => r.id === id)) return;
     if (!window.confirm('Delete this routing rule?')) return;
     persist(rules.filter(r => r.id !== id));
   };

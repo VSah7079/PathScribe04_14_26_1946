@@ -135,27 +135,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+
+    if (!stored) {
+      // No stored session — show login immediately
+      setLoading(false);
+      return;
+    }
+
+    const restoreSession = async () => {
       try {
         const parsed = JSON.parse(stored);
-        if (parsed && !parsed.voiceProfile) {
-          parsed.voiceProfile = "EN-US";
+
+        // Ensure voiceProfile always has a fallback
+        if (!parsed.voiceProfile) parsed.voiceProfile = 'EN-US';
+
+        // Resolve canViewPediatric if missing from stored session
+        if (parsed.canViewPediatric === undefined) {
+          const fields = await resolveStaffFields(parsed.id);
+          Object.assign(parsed, fields);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
         }
-        // If canViewPediatric missing from stored session, resolve from userService
-        if (parsed && parsed.canViewPediatric === undefined) {
-          resolveStaffFields(parsed.id).then(fields => {
-            Object.assign(parsed, fields);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-            setUser({ ...parsed });
-          });
-        } else {
-          setUser(parsed);
-        }
+
+        setUser({ ...parsed });
       } catch (e) {
-        console.error("Failed to parse stored user", e);
+        console.error('Failed to restore session:', e);
+        localStorage.removeItem(STORAGE_KEY);
+      } finally {
+        // Always clear loading — whether restore succeeded or failed
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    restoreSession();
   }, []);
 
   return (

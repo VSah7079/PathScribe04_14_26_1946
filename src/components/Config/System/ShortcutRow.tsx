@@ -1,6 +1,12 @@
 import React from "react";
 import '../../../pathscribe.css';
-import { ActionDefinition, PSShortcut } from "../../../actions/actionRegistry";
+
+interface PSShortcut { display?: string; }
+interface ActionDefinition {
+  id: string;
+  label: string;
+  shortcut?: string | PSShortcut;
+}
 
 interface ShortcutRowProps {
   action: ActionDefinition;

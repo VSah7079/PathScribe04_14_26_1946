@@ -108,7 +108,7 @@ interface Props {
 // ─── SidecarDrawer ────────────────────────────────────────────────────────────
 
 const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoaded: onResultLoadedProp }) => {
-  const { isOpen, layoutMode, selectedFlag, caseId, caseFlags: contextCaseFlags, selectFlag, close } = useSidecar();
+  const { isOpen, layoutMode, selectedFlag, caseId, caseFlags: _contextCaseFlags, selectFlag, close } = useSidecar();
   const drawerRef = useRef<HTMLDivElement>(null);
   useFocusTrap(drawerRef, isOpen && layoutMode === 'overlay');
   const { log } = useAuditLog();
@@ -136,12 +136,19 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
 
   // Fetch the case's applied flags, match against flag definitions to get
   // only the computational flags actually ordered for this case.
+  // If computationalFlags are passed from the parent, skip the service call.
   useEffect(() => {
     if (!caseId || !isOpen) return;
     log(COMP_AUDIT.USE_SIDECAR_OPENED, { caseId, flagId: selectedFlag?.id, source: 'click' });
+
+    const flagsPromise: Promise<{ ok: true; data: Flag[] } | { ok: false; error: string }> =
+      computationalFlags?.length
+        ? Promise.resolve({ ok: true as const, data: computationalFlags })
+        : flagService.getAll();
+
     Promise.all([
-      caseService.getCase(caseId),   // returns Case | undefined directly
-      flagService.getAll(),           // returns ServiceResult<Flag[]>
+      caseService.getCase(caseId),
+      flagsPromise,
     ]).then(([caseData, flagResult]) => {
       if (!caseData || !flagResult.ok) return;
 
@@ -185,7 +192,7 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
 
       setActiveFlags(compFlags);  // empty if nothing on case — no fallback to all flags
     }).catch(() => {});
-  }, [caseId, isOpen]);
+  }, [caseId, isOpen, computationalFlags]);
 
   // Voice: read result aloud when triggered
   React.useEffect(() => {
@@ -204,7 +211,7 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
       u.rate = 0.95;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
-      log(COMP_AUDIT.USE_RESULT_READ_ALOUD, { caseId, flagId: selectedFlag.id });
+      log(COMP_AUDIT.USE_RESULT_READ_ALOUD, { caseId: caseId ?? undefined, flagId: selectedFlag.id });
     };
     const nextAssay = () => {
       if (!activeFlags.length) return;
@@ -259,7 +266,7 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
   // Overlay mode: scroll auto-dismiss (keeps UX clean during scroll)
   useEffect(() => {
     if (!isOpen || layoutMode !== 'overlay') return;
-    const handleScroll = () => { log(COMP_AUDIT.USE_SIDECAR_CLOSED, { caseId }); close(); };
+    const handleScroll = () => { log(COMP_AUDIT.USE_SIDECAR_CLOSED, { caseId: caseId ?? undefined }); close(); };
     window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, [isOpen, layoutMode, close]);

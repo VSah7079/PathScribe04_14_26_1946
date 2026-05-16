@@ -36,10 +36,16 @@ export type { EditorFont, EditorFontConfig } from './fonts/IFontService';
 export type { AIBehaviorConfig }  from './aiBehavior/IAIBehaviorService';
 export type { AIModel }           from './models/IModelService';
 export type { SavedSearch, SearchContext, WorklistFilters, CaseSearchFilters, RefinedSearchFilters } from './savedSearches/ISavedSearchService';
+<<<<<<< HEAD
 export type { AuditLog, ErrorLog, AuditLogType, ErrorSeverity } from './auditlog/IAuditService';
 export type { PathologyCase, CaseStatus, CasePriority, AIStatus, CaseFilterParams } from './cases/ICaseService';
+=======
+export type { AuditLog, ErrorLog, AuditLogType, ErrorSeverity } from './auditLog/IAuditService';
+
+>>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
 export type { ClinicalCode, CodeSystem, CodeSearchParams, IcdOSubtype } from './codes/ICodeService';
 export type { Message }           from './messages/IMessageService';
 export type { InternalNote, InternalNoteType, InternalNoteVisibility } from './internalNotes/IInternalNoteService';
 export type { ServiceResult }     from './types';
-export type { ComputationalResult, ExtractionProvenance } from '../types/smarttag.types';
+export type { ComputationalResult } from '../types/smarttag.types';
+export type { PathologyCase, CaseFilterParams } from './cases/ICaseService';

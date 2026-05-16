@@ -157,10 +157,10 @@ export const MessageThread: React.FC<Props> = ({
               borderRadius: 10, overflow: 'hidden', minWidth: 180,
               boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
             }}>
-              {[
-                { label: 'Mark as unread', icon: '●', action: () => { onMarkUnread(); setMenuOpen(false); } },
-                { label: 'Delete message', icon: '🗑', action: () => { onDelete(); setMenuOpen(false); }, danger: true },
-              ].map(item => (
+              {([
+                { label: 'Mark as unread', icon: <span style={{ fontSize: 14 }}>●</span>,    action: () => { onMarkUnread(); setMenuOpen(false); }, danger: false },
+                { label: 'Delete message', icon: <span style={{ fontSize: 14, display: 'flex', alignItems: 'center' }}><IconTrash /></span>, action: () => { onDelete(); setMenuOpen(false); }, danger: true  },
+              ] as { label: string; icon: React.ReactNode; action: () => void; danger: boolean }[]).map(item => (
                 <button
                   key={item.label}
                   onClick={item.action}
@@ -175,7 +175,7 @@ export const MessageThread: React.FC<Props> = ({
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                 >
-                  <span style={{ fontSize: 14 }}>{item.icon}</span> {item.label}
+                  {item.icon} {item.label}
                 </button>
               ))}
             </div>

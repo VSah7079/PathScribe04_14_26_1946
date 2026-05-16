@@ -80,9 +80,7 @@ export default function MFA() {
         Tip: Lost your device? Contact your IT administrator to reset MFA using your backup codes.
       </p>
 
-      <a href="/login" style={{ display: "block", marginTop: "20px" }}>
-        ← Back to login
-      </a>
+      <a href="/">← Back to login</a>
     </div>
   );
 }

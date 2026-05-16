@@ -17,13 +17,12 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
 import { messageService } from '../../services';
-import type { MessageThread } from '../../services';
 import { useMessaging } from '../../contexts/MessagingContext';
 import NavBar from '../NavBar/NavBar';
 import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
@@ -54,34 +53,6 @@ const INTERNAL_USERS: InternalUser[] = [
 const avatarInitials = (name: string) =>
   name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s*/i, '')
     .split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
-
-const formatMessageDate = (date: Date | string | number) => {
-  try {
-    // Convert to Date object regardless of what was passed in
-    const d = new Date(date);
-    
-    // Safety check: If the date is invalid, return an empty string instead of crashing
-    if (isNaN(d.getTime())) return ""; 
-    
-    const now = new Date();
-    
-    // Normalize both to start of day to compare "Today-ness" accurately
-    const isToday = d.toDateString() === now.toDateString();
-    
-    // Calculate difference in days
-    const diffInDays = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
-
-    if (isToday) {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffInDays < 7) {
-      return d.toLocaleDateString([], { weekday: 'short' }); // "Mon", "Tue"
-    } else {
-      return d.toLocaleDateString([], { month: 'short', day: 'numeric' }); // "Feb 15"
-    }
-  } catch (e) {
-    return ""; // Total safety fallback
-  }
-};
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -336,7 +307,6 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
           {filterType === 'deleted' ? 'No deleted messages.' : 'Your inbox is empty.'}
         </div>
       ) : messages.map(m => {
-        const isSelected = selectedIds.includes(m.id);
         const isChecked  = selectedIds.includes(m.id);
         return (
           <div key={m.id}
@@ -733,7 +703,9 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   );
 };
 
-const AppShell: React.FC = () => {
+interface AppShellProps { hideNav?: boolean; }
+
+const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const navigate = useNavigate();
 
   const { user } = useAuth();
@@ -741,7 +713,7 @@ const AppShell: React.FC = () => {
   const handleLogout = useLogout();
   const location = useLocation();
   const { crumbs, pushCrumb } = useBreadcrumb();
-  const { requestNavigate, pendingPath, confirmNavigate, cancelNavigate } = useDirtyState();
+  const { requestNavigate } = useDirtyState();
 
   const guardedNavigate = React.useCallback((path: string) => {
     requestNavigate(path, (p) => navigate(p));
@@ -776,7 +748,7 @@ const AppShell: React.FC = () => {
   const [showUserSearch,   setShowUserSearch]   = useState(false);
   const [toDropdownOpen,   setToDropdownOpen]   = useState(false);
   const [toHighlightIdx,   setToHighlightIdx]   = useState(0);
-  const [secureEmailToast, setSecureEmailToast] = useState<string | null>(null);
+  const [secureEmailToast, _setSecureEmailToast] = useState<string | null>(null);
   const [secureEmailOpen,  setSecureEmailOpen]  = useState(false);
   const toInputRef = useRef<HTMLInputElement>(null);
 
@@ -1128,16 +1100,17 @@ const AppShell: React.FC = () => {
  return (
     <div className="ps-app-root" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', color: '#f1f5f9', background: '#020617', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       
-     {/* ── NAVBAR ── */}
-      <NavBar
-        onLogoClick={() => guardedNavigate('/')}
-        onLogout={handleLogout}
-        onProfileClick={() => setAboutOpen(true)}
-      />
-
+      {/* ── NAVBAR ── */}
+      {!hideNav && (
+        <NavBar
+          onLogoClick={() => guardedNavigate('/')}
+          onLogout={handleLogout}
+          onProfileClick={() => setAboutOpen(true)}
+        />
+      )}
 
       {/* Breadcrumb bar — dynamic */}
-      {crumbs.length > 1 && (
+      {!hideNav && crumbs.length > 1 && (
         <div style={{ flexShrink: 0, padding: '5px 24px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '6px' }}>
           {crumbs.map((crumb, i) => {
             const isLast = i === crumbs.length - 1;
@@ -1166,17 +1139,17 @@ const AppShell: React.FC = () => {
         </div>
       )}
       {/* Outlet — flex:1 so it fills remaining height and full width exactly */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', width: '100%' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: hideNav ? 'visible' : 'hidden', width: '100%', isolation: 'isolate' }}>
         <Outlet />
       </div>
 
-      {/* ── MESSAGES DRAWER ── */}
-      {portalOpen && (
+      {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
+      {portalOpen && ReactDOM.createPortal(
         <>
-          <div onClick={handleCloseDrawer} style={{ position: 'fixed', top: '70px', right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', zIndex: 19998 }} />
+          <div onClick={handleCloseDrawer} style={{ position: 'fixed', top: '70px', right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', zIndex: 29998 }} />
 
           {/* ── Unified messaging surface ── */}
-          <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 20000 }} onClick={e => e.stopPropagation()}>
+          <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 30000 }} onClick={e => e.stopPropagation()}>
 
             {/* ── Unified top bar ── */}
             <div className="ps-msg-topbar">
@@ -1388,7 +1361,8 @@ const AppShell: React.FC = () => {
 
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 {/* Secure email toast — kept for voice trigger fallback */}
       {secureEmailToast && (

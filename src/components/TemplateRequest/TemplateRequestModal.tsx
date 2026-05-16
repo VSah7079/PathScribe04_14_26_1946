@@ -156,20 +156,16 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
 
     try {
       const result = await messageService.send({
-        id:            '',
-        senderId:      user.id,
-        senderName:    user.name,
-        recipientId:   ADMIN_RECIPIENT.id,
-        recipientName: ADMIN_RECIPIENT.name,
-        subject:       `Template Request — ${standard} ${organ} ${procedure}`,
-        body,
-        timestamp:     new Date(),
-        isRead:        false,
-        isDeleted:     false,
-        isUrgent:      urgency === 'urgent',
-        caseNumber:    '',
-        thread:        [],
-      });
+      senderId:      user.id,
+      senderName:    user.name,
+      recipientId:   ADMIN_RECIPIENT.id,
+      recipientName: ADMIN_RECIPIENT.name,
+      subject:       `Template Request — ${standard} ${organ} ${procedure}`,
+      body,
+      timestamp:     new Date(),
+      isUrgent:      urgency === 'urgent',
+      caseNumber:    '',
+    });
 
       if (result.ok) {
         setMessages(prev => [...prev, result.data]);

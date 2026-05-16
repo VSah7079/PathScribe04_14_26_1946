@@ -312,7 +312,7 @@ const SidecarDisplay: React.FC<Props> = ({ flag, caseId, onResultLoaded, aiSugge
   const prevConcordance = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (!result) return;
-    const agree = result.concordance?.agreesWithMorphology;
+    const agree = (result.concordance as any)?.agreesWithMorphology;
     const label = agree === true ? 'agrees' : agree === false ? 'differs' : null;
     if (label && label !== prevConcordance.current) {
       prevConcordance.current = label;

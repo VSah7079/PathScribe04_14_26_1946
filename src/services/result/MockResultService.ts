@@ -381,22 +381,7 @@ const RESULTS: Record<string, ComputationalResult> = {
   },
 
   // ── S26-4401 Grace Thompson (breast biopsy) ───────────────────────────────
-  'er-pr-her2_S26-4401': {
-    status: PR, actionability: A, resultedAt: daysAgo(1), concordance: 'indeterminate',
-    data: {
-      'ER':             'Positive — Allred 7/8 (90% strong)',
-      'PR':             'Positive — Allred 6/8 (70% moderate)',
-      'HER2 IHC':       '2+ (equivocal)',
-      'Ki-67':          '18%',
-      'interpretation': 'HER2 equivocal — FISH testing initiated',
-    },
-    extraction: { method: 'llm', confidence: 0.96, sourceText: 'ER: Allred 7/8. PR: Allred 6/8. HER2: 2+.', modelId: 'pathscribe-extract-v1.2' },
-  },
-  'her2-fish_S26-4401': {
-    status: F, actionability: NA, resultedAt: daysAgo(0), concordance: 'concordant',
-    data: { 'HER2/CEP17 ratio': '1.4', 'interpretation': 'Not amplified — FISH negative' },
-  },
-
+  
 };
 
 // ---------------------------------------------------------------------------

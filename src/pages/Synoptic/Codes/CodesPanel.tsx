@@ -1,9 +1,27 @@
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
+<<<<<<< HEAD
 import type { MedicalCode, FieldVerification, SpecimenOption } from '../synopticTypes';
 import CodeBadge from './CodeBadge';
 import { SOURCE_META } from '../codeConstants';
 import AddCodeModal from './AddCodeModal';
+=======
+import type { MedicalCode } from '../synopticTypes';
+import CodeBadge from './CodeBadge';
+import AddCodeModal from './AddCodeModal';
+
+// ── Local types ───────────────────────────────────────────────────────────────
+type FieldVerification = 'verified' | 'unverified' | 'disputed';
+// Derive directly from AddCodeModal props — guarantees the types always match
+type SpecimenOption = React.ComponentProps<typeof AddCodeModal>['allSpecimens'][number];
+
+// ── Source badge legend ───────────────────────────────────────────────────────
+const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
+  system: { label: 'Protocol', bg: '#eff6ff', color: '#1d4ed8' },
+  ai:     { label: 'AI',       bg: '#f0fdf4', color: '#15803d' },
+  manual: { label: 'Manual',   bg: '#fef3c7', color: '#92400e' },
+};
+>>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
 
 const CodesPanel: React.FC<{
   codes: MedicalCode[];

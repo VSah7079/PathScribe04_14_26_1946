@@ -112,7 +112,7 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!e || !e.key) return;
 
       // Don't intercept on the login page
-      if (window.location.pathname === '/login') return;
+     if (window.location.pathname === '/' && !user) return;
 
       const now = Date.now();
       const timeSinceLastKey = now - lastKeyTime.current;

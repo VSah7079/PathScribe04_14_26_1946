@@ -20,8 +20,10 @@ import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
 import DemoResetTab    from '../components/Config/System/DemoResetTab';
+import TemplateListTab from '../components/TemplateBuilder/TemplateListTab';
+import PartLibraryTab  from '../components/TemplateBuilder/PartLibraryTab';
 
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'narrative', 'demo'] as const;
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'narrative', 'templates', 'parts', 'demo'] as const;
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
@@ -33,7 +35,9 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'actions',   label: 'Action Registry'    },
   { id: 'macros',    label: 'Macros'             },
   { id: 'narrative', label: 'Narrative Templates' },
-  { id: 'demo',      label: '⟳ Demo Reset'          },
+  { id: 'templates', label: 'Report Templates'   },
+  { id: 'parts',     label: 'Part Library'       },
+  { id: 'demo',      label: '⟳ Demo Reset'       },
 ];
 
 function getTabFromSearch(search: string): TabId {
@@ -106,6 +110,8 @@ const ConfigurationPage: React.FC = () => {
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
       case 'narrative': return <NarrativeTemplatesTab />;
+      case 'templates': return <TemplateListTab />;
+      case 'parts':     return <PartLibraryTab />;
       case 'demo':      return <DemoResetTab />;
       default:          return null;
     }

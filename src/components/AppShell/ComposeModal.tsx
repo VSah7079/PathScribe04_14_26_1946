@@ -58,6 +58,8 @@ export interface ComposeDraft {
   caseNumber:  string;
   isUrgent:    boolean;
   sendAsEmail: boolean;
+  senderId:    string;
+  senderName:  string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -232,7 +234,11 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
     setTimeout(() => setDropdownOpen(false), 150);
   };
 
-  const draft: ComposeDraft = { recipients, subject, body, caseNumber, isUrgent, sendAsEmail: false };
+  const draft: ComposeDraft = {
+  recipients, subject, body, caseNumber, isUrgent, sendAsEmail: false,
+  senderId:   currentUserId,
+  senderName: currentUserName,
+};
   const canSend = recipients.length > 0 && subject.trim() && body.trim();
 
   return (

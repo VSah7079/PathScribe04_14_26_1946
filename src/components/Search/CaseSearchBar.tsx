@@ -1,31 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '@/pathscribe.css';
 import { useVoice } from '../../contexts/VoiceProvider';
 
 interface CaseSearchBarProps {
   compact?: boolean;
 }
 
+// Scan types emitted by ScannerProvider that warrant auto-navigation
+const AUTO_NAV_SCAN_TYPES = new Set(['barcode', 'qr']);
+
 const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
   const [caseNumber, setCaseNumber] = useState('');
-  const [scanFlash, setScanFlash]   = useState(false);
+  const [scanFlash,  setScanFlash]  = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  
-  const { phase, transcript } = useVoice();
 
-  // Listen for scanner events from ScannerProvider — show visual feedback
+  const { phase, transcript } = useVoice();
+  const isDictating = phase === 'dictate';
+
+  // ── Scanner events ────────────────────────────────────────────────────────
   useEffect(() => {
     const onScan = (e: CustomEvent) => {
-      const { raw, type } = e.detail;
-      setCaseNumber(raw);
+      const { raw, type } = e.detail as { raw: string; type: string };
+      const caseNum = raw?.trim().toUpperCase() ?? '';
+      setCaseNumber(caseNum);
       setScanFlash(true);
       setTimeout(() => setScanFlash(false), 1200);
+      // High-confidence scan types navigate automatically
+      if (AUTO_NAV_SCAN_TYPES.has(type) && caseNum.length > 3) {
+        navigate(`/case/${caseNum}/synoptic`);
+      }
     };
     window.addEventListener('PATHSCRIBE_SCAN', onScan as EventListener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', onScan as EventListener);
-  }, []);
+  }, [navigate]);
 
+  // ── Voice actions ─────────────────────────────────────────────────────────
   useEffect(() => {
     const handleVoiceAction = (e: any) => {
       const { action, payload } = e.detail;
@@ -45,11 +56,12 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
     return () => window.removeEventListener('SYSTEM_ACTION', handleVoiceAction);
   }, [navigate]);
 
+  // ── Dictation — populate field from voice transcript ──────────────────────
   useEffect(() => {
-    if (phase === 'direct' && transcript) {
+    if (isDictating && transcript) {
       setCaseNumber(transcript.toUpperCase().replace(/\s+/g, ''));
     }
-  }, [transcript, phase]);
+  }, [transcript, isDictating]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && caseNumber.trim().length > 3) {
@@ -58,46 +70,38 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
     }
   };
 
-  const borderColor = scanFlash
-    ? '#10B981'
-    : phase === 'direct'
-      ? '#F59E0B'
-      : 'rgba(255,255,255,0.1)';
+  // ── CSS class composition ─────────────────────────────────────────────────
+  const inputClass = [
+    'ps-search-input',
+    compact       && 'ps-search-input--compact',
+    scanFlash     && 'ps-search-input--flash',
+    isDictating   && 'ps-search-input--dictate',
+  ].filter(Boolean).join(' ');
 
-  // Compact mode: slimmer padding, smaller icon, tighter radius — designed for the
-  // 280px inline slot in the WorklistPage header row.
-  const iconSize  = compact ? 16 : 20;
-  const iconLeft  = compact ? '10px' : '16px';
-  const iconTop   = compact ? '8px'  : '12px';
-  const inputPad  = compact ? '8px 40px 8px 34px' : '12px 48px 12px 48px';
-  const radius    = compact ? '8px'  : '10px';
-  const fontSize  = compact ? '12px' : 'inherit';
+  const iconClass = [
+    'ps-search-icon',
+    compact     && 'ps-search-icon--compact',
+    scanFlash   && 'ps-search-icon--flash',
+    isDictating && 'ps-search-icon--dictate',
+  ].filter(Boolean).join(' ');
+
+  const iconSize = compact ? 16 : 20;
 
   return (
-    <div style={{ width: '100%', position: 'relative' }}>
+    <div className="ps-search-wrap">
       <input
         ref={inputRef}
         type="text"
         value={caseNumber}
-        onChange={(e) => setCaseNumber(e.target.value.toUpperCase())}
+        onChange={e => setCaseNumber(e.target.value.toUpperCase())}
         onKeyDown={handleKeyDown}
         placeholder={compact ? 'Case / scan…' : 'Enter or scan case number...'}
         aria-label="Search or scan case number"
-        style={{
-          width: '100%',
-          padding: inputPad,
-          fontSize,
-          background: scanFlash ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.05)',
-          border: `2px solid ${borderColor}`,
-          borderRadius: radius,
-          color: '#fff',
-          outline: 'none',
-          transition: 'all 0.2s',
-          boxSizing: 'border-box',
-        }}
+        className={inputClass}
       />
-      {/* Icon */}
-      <div style={{ position: 'absolute', left: iconLeft, top: iconTop, color: scanFlash ? '#10B981' : phase === 'direct' ? '#F59E0B' : '#94a3b8', pointerEvents: 'none' }}>
+
+      {/* Search / scan / dictate icon */}
+      <div className={iconClass}>
         {scanFlash ? (
           <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="20 6 9 17 4 12"/>
@@ -108,27 +112,21 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
           </svg>
         )}
       </div>
-      {/* Go button */}
+
+      {/* Go button — shown when case number is long enough and not mid-scan */}
       {caseNumber.trim().length > 3 && !scanFlash && (
         <button
           onClick={() => { navigate(`/case/${caseNumber.trim()}/synoptic`); setCaseNumber(''); }}
           aria-label="Open case"
-          style={{
-            position: 'absolute', right: '6px',
-            top: compact ? '5px' : '7px',
-            padding: compact ? '3px 10px' : '5px 12px',
-            background: '#0891B2', border: 'none',
-            borderRadius: '6px', color: '#fff',
-            fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-            minHeight: '32px',
-          }}
+          className={`ps-search-go-btn${compact ? ' ps-search-go-btn--compact' : ''}`}
         >
           Go →
         </button>
       )}
+
       {/* Scan success indicator */}
       {scanFlash && (
-        <div style={{ position: 'absolute', right: '10px', top: compact ? '8px' : '12px', fontSize: '12px', fontWeight: 600, color: '#10B981' }}>
+        <div className={`ps-search-scanned${compact ? ' ps-search-scanned--compact' : ''}`}>
           ✓ Scanned
         </div>
       )}

@@ -7,7 +7,11 @@
 import React from 'react';
 import { Flag } from '@/services/flags/IFlagService';
 import { ComputationalResult, ResultStatus, ActionabilityLevel } from '@/types/smarttag.types';
+<<<<<<< HEAD
 import { FlagIconGlyph } from '../Flags/flagIcons';
+=======
+import { FlagIconGlyph } from '@/components/Flags/FlagIcons';
+>>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
 
 // ─── Status color (matches ComputationalFlagIcon) ─────────────────────────────
 

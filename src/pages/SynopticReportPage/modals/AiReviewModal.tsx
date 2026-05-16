@@ -1,10 +1,6 @@
 /**
  * AiReviewModal — AI Triage / Spell-checker Flow
  * ------------------------------------------------
- * Shown between Finalize click and FinalizeSynopticModal when there are
- * required fields that are AI-suggested but unverified and below the
- * confidence threshold.
- *
  * Keyboard: Space/→ = Confirm, O = Override, S = Skip, Esc = Cancel
  * Voice:    "Confirm" / "Override" / "Skip" / "Next" / "Cancel"
  */
@@ -23,13 +19,13 @@ export interface ReviewField {
 }
 
 interface AiReviewModalProps {
-  fields:         ReviewField[];
+  fields:          ReviewField[];
   finalizeAndNext: boolean;
-  onConfirm:      (fieldId: string) => void;
-  onOverride:     (fieldId: string) => void;
-  onSkip:         (fieldId: string) => void;
-  onComplete:     (summary: { confirmed: string[]; overridden: string[]; skipped: string[] }) => void;
-  onCancel:       () => void;
+  onConfirm:       (fieldId: string) => void;
+  onOverride:      (fieldId: string) => void;
+  onSkip:          (fieldId: string) => void;
+  onComplete:      (summary: { confirmed: string[]; overridden: string[]; skipped: string[] }) => void;
+  onCancel:        () => void;
 }
 
 const CONF_COLOR = (c: number) =>
@@ -38,16 +34,15 @@ const CONF_COLOR = (c: number) =>
 export const AiReviewModal: React.FC<AiReviewModalProps> = ({
   fields, finalizeAndNext, onConfirm, onOverride, onSkip, onComplete, onCancel,
 }) => {
-  const [index,    setIndex]    = useState(0);
-  const [skipped,  setSkipped]  = useState<string[]>([]);
-  const [confirmed,  setConfirmed]  = useState<string[]>([]);
-  const [overridden, setOverridden] = useState<string[]>([]);
+  const [index,     setIndex]     = useState(0);
+  const [skipped,   setSkipped]   = useState<string[]>([]);
+  const [confirmed, setConfirmed] = useState<string[]>([]);
+  const [overridden,setOverridden]= useState<string[]>([]);
 
   const current = fields[index];
   const total   = fields.length;
   const isDone  = index >= total;
 
-  // Advance to next field
   const advance = useCallback(() => {
     if (index + 1 >= total) {
       onComplete({ confirmed, overridden, skipped });
@@ -77,7 +72,6 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
     advance();
   }, [current, onSkip, advance]);
 
-  // Keyboard handler
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); handleConfirm(); }
@@ -89,7 +83,6 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [handleConfirm, handleOverride, handleSkip, onCancel]);
 
-  // Voice command handler — listens for PATHSCRIBE_ events dispatched by mockActionRegistryService
   useEffect(() => {
     const confirm  = () => handleConfirm();
     const override = () => handleOverride();
@@ -109,25 +102,14 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
 
   if (isDone) return null;
 
-  const progress = Math.round((index / total) * 100);
+  const progress     = Math.round((index / total) * 100);
   const displayValue = Array.isArray(current.aiValue)
     ? current.aiValue.join(', ')
     : current.aiValue;
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 10001,
-        background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div style={{
-        width: 580, background: '#0f172a',
-        borderRadius: 18, border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 30px 70px rgba(0,0,0,0.7)',
-        overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      }}>
+    <div className="ps-overlay" style={{ zIndex: 10001 }}>
+      <div className="ps-modal-dark" style={{ width: 'min(600px, 94vw)', padding: 0, gap: 0 }}>
 
         {/* Header */}
         <div style={{
@@ -135,16 +117,17 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
           background: 'rgba(8,145,178,0.1)',
           borderBottom: '1px solid rgba(8,145,178,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderRadius: '14px 14px 0 0',
         }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
+            <div className="fm-eyebrow" style={{ color: '#38bdf8', marginBottom: 3 }}>
               ✦ AI Review Mode · {finalizeAndNext ? 'Finalize & Next' : 'Finalize'}
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>
               Review uncertain AI findings before sign-out
             </div>
           </div>
-          <button onClick={onCancel} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 20, cursor: 'pointer', padding: 4 }}>×</button>
+          <button onClick={onCancel} className="ps-modal-close" style={{ fontSize: 20 }}>×</button>
         </div>
 
         {/* Progress bar */}
@@ -154,31 +137,26 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
 
         {/* Field counter */}
         <div style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <span style={{ fontSize: 12, color: '#64748b' }}>
-            Field <strong style={{ color: '#e2e8f0' }}>{index + 1}</strong> of <strong style={{ color: '#e2e8f0' }}>{total}</strong>
+          <span style={{ fontSize: 12, color: '#cbd5e1' }}>
+            Field <strong style={{ color: '#f1f5f9' }}>{index + 1}</strong> of <strong style={{ color: '#f1f5f9' }}>{total}</strong>
             {skipped.length > 0 && <span style={{ color: '#f59e0b', marginLeft: 8 }}> · {skipped.length} skipped</span>}
           </span>
           <div style={{ display: 'flex', gap: 4 }}>
             {fields.map((_, i) => (
               <div key={i} style={{
-                width: 6, height: 6, borderRadius: '50%',
+                width: 6, height: 6, borderRadius: '50%', transition: 'background 0.2s',
                 background: i < index
                   ? (skipped.includes(fields[i].fieldId) ? '#f59e0b' : '#10b981')
                   : i === index ? '#38bdf8' : 'rgba(255,255,255,0.15)',
-                transition: 'background 0.2s',
               }} />
             ))}
           </div>
         </div>
 
         {/* Field content */}
-        <div style={{ padding: '24px', flex: 1 }}>
-
-          {/* Section + field label */}
+        <div style={{ padding: 24 }}>
           <div style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {current.sectionTitle}
-            </span>
+            <span className="fm-eyebrow">{current.sectionTitle}</span>
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
             {current.fieldLabel}
@@ -186,10 +164,8 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
 
           {/* AI suggestion card */}
           <div style={{
-            padding: '14px 16px', borderRadius: 10,
-            background: 'rgba(8,145,178,0.08)',
-            border: `1px solid rgba(8,145,178,0.2)`,
-            marginBottom: 16,
+            padding: '14px 16px', borderRadius: 10, marginBottom: 16,
+            background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.2)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: '#38bdf8' }}>✦ AI Suggestion</span>
@@ -205,7 +181,7 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
             <div style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', marginBottom: 8 }}>
               {displayValue || '—'}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+            <div style={{ fontSize: 11, color: '#8a9db5', fontStyle: 'italic' }}>
               {current.source}
             </div>
           </div>
@@ -215,8 +191,8 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
             {[
               { key: 'Space / →', label: 'Confirm', color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
               { key: 'O',         label: 'Override', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-              { key: 'S',         label: 'Skip',    color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' },
-              { key: 'Esc',       label: 'Cancel',  color: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
+              { key: 'S',         label: 'Skip',    color: '#cbd5e1', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.12)' },
+              { key: 'Esc',       label: 'Cancel',  color: '#8a9db5', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
             ].map(h => (
               <div key={h.key} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, background: h.bg, border: `1px solid ${h.border}` }}>
                 <kbd style={{ fontSize: 10, fontWeight: 700, color: h.color, fontFamily: 'monospace' }}>{h.key}</kbd>
@@ -226,15 +202,15 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
           </div>
         </div>
 
-        {/* Footer action buttons */}
+        {/* Footer */}
         <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)',
           display: 'flex', gap: 10, justifyContent: 'flex-end',
+          borderRadius: '0 0 14px 14px',
         }}>
           <button
             onClick={handleSkip}
-            style={{ padding: '9px 18px', borderRadius: 8, background: 'transparent', border: '1.5px solid rgba(100,116,139,0.4)', color: '#94a3b8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            className="ps-btn-ghost-dark"
           >
             S — Skip
           </button>
@@ -251,6 +227,7 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
             Space — Confirm {index + 1 < total ? '& Next →' : '& Finalise 🔒'}
           </button>
         </div>
+
       </div>
     </div>
   );

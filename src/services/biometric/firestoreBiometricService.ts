@@ -60,17 +60,14 @@ import {
   serverTimestamp, Timestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '@/services/firebase';
+import { db, functions } from '@/firebase';
 import { getInstitutionId } from '@/services/auth/institutionService';
 
 import type {
   IBiometricService,
-  BiometricPolicy,
   BiometricCredential,
   EnrolmentChallenge,
   VerificationChallenge,
-  AttestationResponse,
-  AssertionResponse,
 } from './IBiometricService';
 import { BIOMETRIC_POLICY_DEFAULTS } from './IBiometricService';
 import type { ServiceResult } from '../types';

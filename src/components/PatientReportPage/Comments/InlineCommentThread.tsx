@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
+<<<<<<< HEAD
 import '../../../pathscribe.css';
 import { logEvent } from "../../../audit/auditLogger";
 import { mockDcisTemplate } from "../../../templates/mockDcisTemplate";
+=======
+import '@/pathscribe.css';
+import { logEvent } from "../../../audit/auditLogger";
+>>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
 
 interface Comment {
   id: string;
@@ -11,7 +16,8 @@ interface Comment {
 }
 
 interface InlineCommentThreadProps {
-  questionId: string;
+  questionId:  string;
+  templateId:  string;   // passed from parent — no longer hardcoded to DCIS
   currentUser?: string;
 }
 
@@ -19,12 +25,13 @@ const COMMENTS_KEY_PREFIX = "ps_comments_";
 
 export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({
   questionId,
+  templateId,
   currentUser = "Dr. Reviewer"
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
 
-  const storageKey = `${COMMENTS_KEY_PREFIX}${mockDcisTemplate.id}_${questionId}`;
+  const storageKey = `${COMMENTS_KEY_PREFIX}${templateId}_${questionId}`;
 
   // Load comments from localStorage
   useEffect(() => {
@@ -65,7 +72,7 @@ export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({
       user: currentUser,
       category: "user",
       action: "add_comment",
-      templateId: mockDcisTemplate.id,
+      templateId,
       questionId,
       commentId: newComment.id,
       newValue: text,
@@ -88,7 +95,7 @@ export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({
       user: currentUser,
       category: "user",
       action: updated?.resolved ? "resolve_comment" : "reopen_comment",
-      templateId: mockDcisTemplate.id,
+      templateId,
       questionId,
       commentId: id,
       detail: updated?.resolved ? "Comment resolved" : "Comment reopened",

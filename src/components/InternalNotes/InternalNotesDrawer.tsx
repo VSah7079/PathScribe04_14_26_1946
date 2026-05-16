@@ -296,10 +296,23 @@ const InternalNotesDrawer: React.FC<Props> = ({
                   onBlur={e => reportDictationCorrection(e.target.value)}
                   placeholder="Enter your clinical note — avoid patient names, DOB, or MRN"
                   rows={4}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#f1f5f9', fontSize: '14px', lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${isInterimNote ? 'rgba(8,145,178,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '8px', padding: '10px 12px', color: '#f1f5f9',
+                    fontSize: '14px', lineHeight: 1.6, resize: 'vertical', outline: 'none',
+                    boxSizing: 'border-box', fontFamily: 'inherit',
+                    transition: 'border-color 0.2s',
+                  }}
                 />
-                <div style={{ fontSize: '11px', color: '#475569', marginTop: '-4px' }}>
-                  These notes are part of the clinical record but will not appear in the formatted patient report.
+                <div style={{ fontSize: '11px', marginTop: '-4px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {isInterimNote ? (
+                    <span style={{ color: '#0891b2', fontWeight: 600 }}>● Listening…</span>
+                  ) : (
+                    <span style={{ color: '#475569' }}>
+                      These notes are part of the clinical record but will not appear in the formatted patient report.
+                    </span>
+                  )}
                 </div>
               </div>
 

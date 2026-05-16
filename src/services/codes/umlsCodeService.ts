@@ -27,7 +27,7 @@ const UTS_BASE = 'https://uts-ws.nlm.nih.gov/rest';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const ok  = <T>(data: T): ServiceResult<T>   => ({ ok: true,  data });
-const err = <T>(e: string): ServiceResult<T> => ({ ok: false, error: e });
+
 
 // Map UTS source abbreviations to our system labels
 const SNOMED_SOURCE = 'SNOMEDCT_US';

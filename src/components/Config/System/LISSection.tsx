@@ -30,7 +30,7 @@
  *   types/systemConfig.ts               ← SystemConfig interface + defaults
  *   contexts/SystemConfigContext.tsx    ← provider + useSystemConfig hook
  *   pages/SynopticReportPage.tsx        ← reads lisIntegrationEnabled,
- *                                          allowpathscribePostFinalActions
+ *                                          allowPathScribePostFinalActions
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -146,7 +146,7 @@ const LISSection: React.FC = () => {
   const {
     lisIntegrationEnabled,
     lisOwnsStatuses,
-    allowpathscribePostFinalActions,
+    allowPathScribePostFinalActions,
   } = config;
 
   // Derived: post-final action toggle is only meaningful when LIS is enabled
@@ -274,14 +274,14 @@ const LISSection: React.FC = () => {
         dimmed={postFinalDimmed}
       >
         <Toggle
-          enabled={allowpathscribePostFinalActions}
-          onChange={val => updateConfig({ allowpathscribePostFinalActions: val })}
+          enabled={allowPathScribePostFinalActions}
+          onChange={val => updateConfig({ allowPathScribePostFinalActions: val })}
           disabled={!lisIntegrationEnabled}
         />
       </SettingRow>
 
       {/* ── Contextual note when LIS is on but actions are disabled ── */}
-      {lisIntegrationEnabled && !allowpathscribePostFinalActions && (
+      {lisIntegrationEnabled && !allowPathScribePostFinalActions && (
         <div style={{
           marginLeft: '20px',
           padding: '10px 14px',
@@ -296,7 +296,7 @@ const LISSection: React.FC = () => {
       )}
 
       {/* ── Contextual note when LIS is on and actions are enabled ── */}
-      {lisIntegrationEnabled && allowpathscribePostFinalActions && (
+      {lisIntegrationEnabled && allowPathScribePostFinalActions && (
         <div style={{
           marginLeft: '20px',
           padding: '10px 14px',

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import "./pathscribe.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -37,7 +37,8 @@ import MockEMRPage from './pages/MockEMRPage';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 const Home = lazy(() => import("./pages/Home"));
-const Login = lazy(() => import("./Login"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+
 const WorklistPage = lazy(() => import("./pages/WorklistPage/WorklistPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const ConfigurationPage = lazy(() => import("./pages/ConfigurationPage"));
@@ -62,6 +63,14 @@ const TemplateRendererPage = lazy(() =>
   import("./components/Config/Templates/TemplateRenderer").then((m) => ({
     default: m.TemplateRenderer,
   }))
+);
+
+// ── Report Part & Template Assembly (replaces old TemplateBuilderPage) ────────
+const PartBuilderPage = lazy(() =>
+  import("./components/TemplateBuilder/PartBuilderPage")
+);
+const TemplateAssemblyPage = lazy(() =>
+  import("./components/TemplateBuilder/TemplateAssemblyPage")
 );
 
 // ── Loading fallback ──────────────────────────────────────────────────────────
@@ -107,8 +116,9 @@ const App: React.FC = () => (
                   <SidecarProvider>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
-                      {/* Public Route */}
-                      <Route path="/login" element={<Login />} />
+                      
+                      {/* Public route — shown when not authenticated */}
+                      <Route path="/login" element={<LoginPage />} />
 
                       {/* Protected Routes — ScannerProvider only active when authenticated */}
                       <Route element={<ProtectedRoute />}>
@@ -127,16 +137,39 @@ const App: React.FC = () => (
                           />
                         </Route>
 
-                        {/* Clinical Routes — full-screen, no AppShell, but still need scanner */}
+                        {/* Clinical Routes — full-screen, AppShell mounted for drawer/messaging but NavBar hidden */}
+                        <Route element={<ScannerProvider><AppShell hideNav /></ScannerProvider>}>
+                          <Route
+                            path="/case/:caseId/synoptic"
+                            element={<SynopticReportPage />}
+                            loader={synopticLoader}
+                          />
+                          <Route
+                            path="/report/:accession"
+                            element={<FullReportPage />}
+                          />
+                        </Route>
+
+                        {/* ── Report Part Builder — full-screen canvas for one part ── */}
                         <Route
-                          path="/case/:caseId/synoptic"
-                          element={<ScannerProvider><SynopticReportPage /></ScannerProvider>}
-                          loader={synopticLoader}
+                          path="/admin/parts/new"
+                          element={<PartBuilderPage />}
                         />
                         <Route
-                          path="/report/:accession"
-                          element={<ScannerProvider><FullReportPage /></ScannerProvider>}
+                          path="/admin/parts/:partId/edit"
+                          element={<PartBuilderPage />}
                         />
+
+                        {/* ── Template Assembly — slot list editor ── */}
+                        <Route
+                          path="/admin/templates/new"
+                          element={<TemplateAssemblyPage />}
+                        />
+                        <Route
+                          path="/admin/templates/:templateId/edit"
+                          element={<TemplateAssemblyPage />}
+                        />
+
                         <Route
                           path="/case/:accession"
                           element={<PatientReportPage />}
@@ -157,11 +190,13 @@ const App: React.FC = () => (
                           path="/template-review/:templateId"
                           element={<TemplateRendererPage />}
                         />
-                        <Route 
-                          path="/mock-emr" 
-                          element={<MockEMRPage />} 
+                        <Route
+                          path="/mock-emr"
+                          element={<MockEMRPage />}
                         />
                       </Route>
+                      {/* Redirect any unmatched paths to login */}
+                      <Route path="*" element={<Navigate to="/login" replace />} />
                     </Routes>
                   </Suspense>
                   </SidecarProvider>

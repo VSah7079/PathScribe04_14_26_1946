@@ -49,9 +49,6 @@ interface WorklistTableProps {
 const BATCH_SIZE = 15;
 const SORT_KEY   = 'worklistSort';
 
-// Defines the exact grid proportions for the table
-const COL_GRID = '16px 152px 1fr 72px 26px 150px 1fr 95px 1fr 1fr 68px';
-
 const HEADER_COLUMNS: { label: string; key: string }[] = [
   { label: 'Case',        key: 'id'                  },
   { label: 'Patient',     key: 'lastName'             },
@@ -62,7 +59,7 @@ const HEADER_COLUMNS: { label: string; key: string }[] = [
   { label: 'Accession',   key: 'accessionDate'        },
   { label: 'Physician',   key: 'submittingPhysician'  },
   { label: 'Flag(s)',     key: 'flagSeverity'         },
-  { label: 'Status',      key: 'status'               },
+  { label: 'Status   ', key: 'status'               },
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 // COLOR PALETTES
@@ -89,18 +86,6 @@ const formatDate = (iso?: string): string => {
   const dd = String(d.getDate()).padStart(2, '0');
   const yyyy = d.getFullYear();
   return `${mm}/${dd}/${yyyy}`;
-};
-
-const formatDateTime = (iso?: string): string => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const mm   = String(d.getMonth() + 1).padStart(2, '0');
-  const dd   = String(d.getDate()).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  const hh   = String(d.getHours()).padStart(2, '0');
-  const min  = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}/${dd}/${yyyy} ${hh}:${min}`;
 };
 
 const getAgeLabel = (dobStr: string): string => {
@@ -236,7 +221,7 @@ const FlagChip: React.FC<{ flag: any; isSpecimen?: boolean }> = React.memo(({ fl
         color: palette.dot,
       }}
     >
-      <svg width="7" height="8" viewBox="0 0 7 8" fill="none" style={{ flexShrink: 0 }}>
+      <svg width="7" height="8" viewBox="0 0 7 8" fill="none" className="wl-flag-chip-icon">
         <path
           d="M1 7V1 M1 1 L6 2.5 L1 4"
           stroke={palette.dot}
@@ -260,23 +245,10 @@ const SpecimenChip: React.FC<{
   description: string; 
   fullDescription?: string 
 }> = React.memo(({ label, description, fullDescription }) => (
-  <span
-    className="wl-specimen-chip"
-    title={`${label}: ${fullDescription || description}`}
-    style={{ maxWidth: '100%', overflow: 'hidden' }}
-  >
-    <span className="wl-specimen-chip__label" style={{ flexShrink: 0 }}>
-      {label}
-    </span>
-    <span className="wl-specimen-chip__sep" style={{ flexShrink: 0 }}>·</span>
-    <span style={{ 
-      overflow: 'hidden', 
-      textOverflow: 'ellipsis', 
-      whiteSpace: 'nowrap', 
-      minWidth: 0 
-    }}>
-      {description}
-    </span>
+  <span className="wl-specimen-chip" title={`${label}: ${fullDescription || description}`}>
+    <span className="wl-specimen-chip__label">{label}</span>
+    <span className="wl-specimen-chip__sep">·</span>
+    <span className="wl-specimen-chip__desc">{description}</span>
   </span>
 ));
 
@@ -290,16 +262,8 @@ const StatusDot: React.FC<{ status: string }> = React.memo(({ status }) => {
   return (
     <span
       title={`Status: ${label}`}
-      style={{
-        display: 'inline-block',
-        width: '10px',
-        height: '10px',
-        borderRadius: '50%',
-        background: s.color,
-        boxShadow: `0 0 4px ${s.color}66`,
-        flexShrink: 0,
-        cursor: 'default',
-      }}
+      className="wl-status-dot"
+      style={{ background: s.color, boxShadow: `0 0 4px ${s.color}66` }}
     />
   );
 });
@@ -308,19 +272,7 @@ const StatusDot: React.FC<{ status: string }> = React.memo(({ status }) => {
  * UrgentDot: A red pulsing dot used to highlight STAT/Urgent cases.
  */
 const UrgentDot: React.FC = React.memo(() => (
-  <span
-    title="Urgent Case (STAT)"
-    style={{
-      display: 'inline-block',
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      background: '#EF4444',
-      boxShadow: '0 0 6px #EF4444, 0 0 12px rgba(239,68,68,0.4)',
-      flexShrink: 0,
-      animation: 'urgentPulse 2s ease-in-out infinite',
-    }}
-  />
+  <span title="Urgent Case (STAT)" className="wl-urgent-dot" />
 ));
 // ─────────────────────────────────────────────────────────────────────────────
 // WORKLIST TABLE COMPONENT
@@ -333,7 +285,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   delegatedCaseIds = [],
   onBeforeNavigate,
   onPoolCaseClick,
-  selectedIndex = -1,
+  selectedIndex: _selectedIndex,
   selectedCaseId = null,
   onRowSelect,
   onFirstCaseId,
@@ -822,12 +774,16 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   }, []);
 
   // Keep the mirror inner spacer width in sync with the actual table width
+  // Hide the mirror bar when the table fits without horizontal scrolling
   useEffect(() => {
     if (isTablet) return;
     const table = scrollRef.current?.querySelector('table');
     if (!innerRef.current || !table) return;
     const sync = () => {
-      if (innerRef.current) innerRef.current.style.width = `${table.scrollWidth}px`;
+      if (!innerRef.current || !scrollRef.current) return;
+      innerRef.current.style.width = `${table.scrollWidth}px`;
+      const needsScroll = table.scrollWidth > scrollRef.current.clientWidth;
+      if (mirrorRef.current) mirrorRef.current.style.display = needsScroll ? '' : 'none';
     };
     const observer = new ResizeObserver(sync);
     observer.observe(table);
@@ -891,15 +847,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       return !def || def.tagClass !== 'COMPUTATIONAL';
     });
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        {/* Computational icons — gap from pills via marginRight when both exist */}
+      <div className="wl-flags-wrap">
         {computational.length > 0 && (
-          <div style={{
-            display:     'flex',
-            alignItems:  'center',
-            gap:         6,
-            marginRight: administrative.length > 0 ? 6 : 0,
-          }}>
+          <div className="wl-comp-flags" style={{ marginRight: administrative.length > 0 ? 6 : 0 }}>
             {computational.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx, isSpecimen))}
           </div>
         )}
@@ -909,28 +859,20 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   };
 
   return (
-    <div className="wl-container" style={{ 
-      background: 'rgba(255,255,255,0.02)', 
-      border: '1px solid rgba(255,255,255,0.1)', 
-      borderRadius: '16px', 
-      display: 'flex', 
-      flexDirection: 'column',
-      height: tableHeight ? `${tableHeight}px` : '100%',
-      overflow: 'hidden',
-    }}>
+    <div className="wl-container" style={{ height: tableHeight ? `${tableHeight}px` : '100%' }}>
       
       {/* Multi-Sort Indicator Ribbon */}
       {sortStack.length > 1 && (
-        <div style={{ display: 'flex', gap: '8px', padding: '6px 20px', background: 'rgba(56,189,248,0.05)', borderBottom: '1px solid rgba(56,189,248,0.1)', alignItems: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: '9px', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase' }}>Sorted by:</span>
+        <div className="wl-sort-ribbon">
+          <span className="wl-sort-ribbon__label">Sorted by:</span>
           {sortStack.map((s) => (
-            <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(56,189,248,0.1)', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', color: '#38bdf8' }}>
+            <div key={s.key} className="wl-sort-chip">
               {HEADER_COLUMNS.find(h => h.key === s.key)?.label}
-              <span style={{ opacity: 0.6, marginLeft: '2px' }}>{s.dir}</span>
-              <button onClick={() => onRemoveSort(s.key)} style={{ border: 'none', background: 'transparent', color: '#38bdf8', cursor: 'pointer', padding: '0 2px' }}>×</button>
+              <span className="wl-sort-chip__dir">{s.dir}</span>
+              <button onClick={() => onRemoveSort(s.key)} className="wl-sort-chip__remove">×</button>
             </div>
           ))}
-          <button onClick={clearSort} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#64748b', fontSize: '9px', cursor: 'pointer', textDecoration: 'underline' }}>Clear All</button>
+          <button onClick={clearSort} className="wl-sort-clear">Clear All</button>
         </div>
       )}
 
@@ -946,11 +888,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
       {/* ── CARD LAYOUT (tablet / iPad < 1024px) ── */}
       {isTablet ? (
-        <div className="wl-scroll wl-card-list" ref={scrollRef} onScroll={handleScroll} style={{ overflowX: 'hidden' }}>
+        <div className="wl-scroll wl-card-list" ref={scrollRef} onScroll={handleScroll}>
           {finalCases.length === 0 ? (
-            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-              No cases match the current filter.
-            </div>
+            <div className="wl-empty-state">No cases match the current filter.</div>
           ) : (
             <>
               {visibleRows.map((row: DisplayRow, rowIndex: number) => {
@@ -1021,16 +961,13 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         <div className="wl-card__field-label">Patient</div>
                         <div className="wl-card__field-value" data-phi="name">
                           {isPedRestricted(c)
-                            ? <span style={{color:'#f59e0b'}}>🔒 Restricted Patient</span>
+                            ? <span className="wl-ped-name">🔒 Restricted Patient</span>
                             : <>{c.patient.lastName}, {c.patient.firstName}</>}
                         </div>
                         {isPedRestricted(c) ? (
-                          <div style={{fontSize:'10px',color:'#f59e0b',opacity:0.8,fontStyle:'italic',marginTop:2}}>
+                          <div className="wl-ped-hint">
                             {pedRequestedIds.has(c.id) ? (
-                              <span style={{fontStyle:'normal',fontWeight:600,background:'rgba(245,158,11,0.1)',
-                                border:'1px solid rgba(245,158,11,0.3)',borderRadius:4,padding:'1px 6px'}}>
-                                ⏳ Access requested
-                              </span>
+                              <span className="wl-ped-badge">⏳ Access requested</span>
                             ) : 'Click to request pediatric access'}
                           </div>
                         ) : (
@@ -1040,7 +977,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                             {formatDate(c.patient.dateOfBirth)}
                             {' '}
                             ({c.patient.dateOfBirth ? getAgeLabel(c.patient.dateOfBirth) : '—'})
-                            <span style={{marginLeft:'6px'}} data-phi="mrn">· MRN {c.patient.mrn ?? '—'}</span>
+                            <span className="wl-mrn-inline" data-phi="mrn">· MRN {c.patient.mrn ?? '—'}</span>
                           </div>
                         )}
                       </div>
@@ -1049,7 +986,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       <div>
                         <div className="wl-card__field-label">Accession · Physician</div>
                         <div className="wl-card__field-sub">{formatDate(c.order?.receivedDate)}</div>
-                        <div className="wl-card__field-sub" style={{ color: '#94a3b8' }}>
+                        <div className="wl-card__field-sub">
                           {c.order?.requestingProvider ?? '—'}
                         </div>
                       </div>
@@ -1082,8 +1019,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
               })}
 
               {isLoadingMore && (
-                <div style={{ padding: '32px', textAlign: 'center' }}>
-                  <div className="wl-loader-spinner" style={{ margin: '0 auto' }} />
+                <div className="wl-loading-state">
+                  <div className="wl-loader-spinner wl-loader-center" />
                 </div>
               )}
 
@@ -1096,48 +1033,44 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       ) : (
 
       /* ── TABLE LAYOUT (desktop ≥ 1024px) ── */
-      <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+      <div className="wl-table-wrap">
 
-        {/* Scroll container — inset:0 fills the relative parent exactly */}
+        {/* Scroll container */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            overflowX: 'auto',
-            overflowY: 'auto',
-          }}
+          className="wl-table-scroll"
         >
-          <table style={{ width: '100%', minWidth: '1255px', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <table className="wl-table" style={{ minWidth: '1100px' }}>
 
-          {/* Single source of truth for all column widths */}
+          {/* Column widths tuned for 1366px viewport — total ~1107px */}
           <colgroup>
             <col style={{ width: '32px'  }} />{/* urgent dot */}
-            <col style={{ width: '155px' }} />{/* case id */}
-            <col style={{ width: '155px' }} />{/* patient */}
-            <col style={{ width: '72px'  }} />{/* mrn */}
-            <col style={{ width: '32px'  }} />{/* sex */}
-            <col style={{ width: '112px' }} />{/* dob */}
-            <col style={{ width: '225px' }} />{/* specimens */}
-            <col style={{ width: '90px'  }} />{/* accession */}
-            <col style={{ width: '145px' }} />{/* physician */}
-            <col style={{ width: '240px' }} />{/* flags — fixed, not greedy */}
-            <col style={{ width: '32px'  }} />{/* status dot */}
+            <col style={{ width: '130px' }} />{/* case id */}
+            <col style={{ width: '135px' }} />{/* patient */}
+            <col style={{ width: '60px'  }} />{/* mrn */}
+            <col style={{ width: '30px'  }} />{/* sex */}
+            <col style={{ width: '105px' }} />{/* dob */}
+            <col style={{ width: '190px' }} />{/* specimens */}
+            <col style={{ width: '85px'  }} />{/* accession */}
+            <col style={{ width: '120px' }} />{/* physician */}
+            <col style={{ width: '180px' }} />{/* flags */}
+            <col style={{ width: '40px'  }} />{/* status dot */}
           </colgroup>
 
           {/* ── Sticky Header ── */}
-          <thead style={{ position: 'sticky', top: 0, zIndex: 3 }}>
-            <tr style={{ background: 'rgba(10,15,25,0.96)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.09)' }}>
-              <th style={{ padding: '8px' }} />
-              {HEADER_COLUMNS.map(({ label, key }) => {
+          <thead className="wl-thead">
+            <tr className="wl-thead-row">
+              <th className="wl-th-dot" />
+              {HEADER_COLUMNS.map(({ label, key }, colIdx) => {
                 const sortEntry = sortStack.find(e => e.key === key);
                 const isPrimary = sortStack[0]?.key === key;
+                const isLast    = colIdx === HEADER_COLUMNS.length - 1;
                 return (
-                  <th key={key} style={{ padding: '8px 8px 8px 0', textAlign: 'left', fontWeight: 'normal' }}>
-                    <button onClick={() => onHeaderClick(key)} style={{ background: 'transparent', border: 'none', color: isPrimary ? '#38bdf8' : sortEntry ? '#7dd3fc' : '#64748b', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'color 0.2s', padding: 0, whiteSpace: 'nowrap' }}>
+                  <th key={key} className={isLast ? 'wl-col-th--last' : 'wl-col-th'}>
+                    <button onClick={() => onHeaderClick(key)} className={isLast ? 'wl-col-header-btn wl-col-header-btn--last' : 'wl-col-header-btn'} style={{ color: isPrimary ? '#38bdf8' : sortEntry ? '#7dd3fc' : '#94a3b8' }}>
                       {label}
-                      {sortEntry && <span style={{ fontSize: '12px', lineHeight: 1 }}>{sortEntry.dir === 'asc' ? '▴' : '▾'}</span>}
+                      {sortEntry && <span className="wl-sort-arrow">{sortEntry.dir === 'asc' ? '▴' : '▾'}</span>}
                     </button>
                   </th>
                 );
@@ -1149,7 +1082,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
           <tbody>
             {finalCases.length === 0 ? (
               <tr>
-                <td colSpan={11} style={{ padding: '60px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                <td colSpan={11} className="wl-td-empty">
                   No cases match the current filter.
                 </td>
               </tr>
@@ -1158,13 +1091,17 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
                 // Section divider
                 if ('__divider' in row) {
+                  const isUrgentDiv = row.label === 'Urgent' || row.label === 'Pool — Urgent';
+                  const isPoolDiv   = row.label === 'Pool' || row.label === 'Pool — Urgent';
                   return (
                     <tr key={`div-${row.label}-${rowIndex}`}>
-                      <td colSpan={11} style={{ padding: '10px 20px 6px', background: row.label === 'Urgent' ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '9px', fontWeight: 800, color: row.label === 'Urgent' ? '#f87171' : '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{row.label}</span>
-                          <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', padding: '1px 6px', borderRadius: '10px', color: '#64748b' }}>{row.count}</span>
-                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+                      <td colSpan={11} className={isUrgentDiv ? 'wl-td-divider--urgent' : 'wl-td-divider--normal'}>
+                        <div className="wl-card-divider" style={{ padding: 0 }}>
+                          <span className={`wl-card-divider__label${isUrgentDiv ? ' wl-card-divider__label--urgent' : isPoolDiv ? ' wl-card-divider__label--pool' : ''}`}>
+                            {row.label}
+                          </span>
+                          <span className="wl-card-divider__count">{row.count}</span>
+                          <div className="wl-card-divider__line" />
                         </div>
                       </td>
                     </tr>
@@ -1193,17 +1130,17 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     }}
                   >
                     {/* Urgent dot */}
-                    <td style={{ padding: '12px 8px', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <td className="wl-td-dot">
+                      <div className="wl-td-dot-inner">
                         {isUrgent && <UrgentDot />}
                       </div>
                     </td>
 
                     {/* Case ID */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle' }}>
+                    <td className="wl-td">
                       {c.originHospitalId && c.originHospitalId !== 'HOSP-001' && (
                         <div title={getOrganisationByHospitalId(c.originHospitalId)?.name ?? c.originHospitalId}
-                          style={{ fontSize: 9, fontWeight: 700, color: '#475569', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 1, cursor: 'default' }}>
+                          className="wl-org-label">
                           {getOrganisationShortName(c.originHospitalId)}
                         </div>
                       )}
@@ -1213,51 +1150,47 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     </td>
 
                     {/* Patient name */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle' }} data-phi="name">
+                    <td className="wl-td" data-phi="name">
                       {isPedRestricted(c) ? (
                         <div>
-                          <div style={{color:'#f59e0b',fontWeight:600}}>🔒 Restricted Patient</div>
+                          <div className="wl-ped-name">🔒 Restricted Patient</div>
                           {pedRequestedIds.has(c.id) ? (
-                            <div style={{fontSize:'10px',color:'#f59e0b',fontWeight:600,marginTop:3,display:'inline-flex',alignItems:'center',gap:4,
-                              background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.3)',
-                              borderRadius:4,padding:'1px 6px'}}>
-                              ⏳ Access requested
-                            </div>
+                            <div className="wl-ped-badge">⏳ Access requested</div>
                           ) : (
-                            <div style={{fontSize:'10px',color:'#f59e0b',opacity:0.75,fontStyle:'italic',marginTop:2}}>Click to request pediatric access</div>
+                            <div className="wl-ped-hint">Click to request pediatric access</div>
                           )}
                         </div>
                       ) : (
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="wl-patient-overflow">
                           {c.patient.lastName}, {c.patient.firstName}
                         </div>
                       )}
                     </td>
 
                     {/* MRN */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', opacity: 0.6, fontSize: '12px' }} data-phi="mrn">
+                    <td className="wl-td-muted" data-phi="mrn">
                       {isPedRestricted(c) ? '—' : (c.patient.mrn ?? '—')}
                     </td>
 
                     {/* Sex */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', opacity: 0.6, textAlign: 'center' }}>
+                    <td className="wl-td-center">
                       {isPedRestricted(c) ? '—' : (c.patient.sex?.charAt(0) ?? '—')}
                     </td>
 
                     {/* DOB */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', fontSize: '12px', whiteSpace: 'nowrap' }} data-phi="dob">
+                    <td className="wl-td-dob" data-phi="dob">
                       {isPedRestricted(c) ? '—' : (
                         <>{formatDate(c.patient.dateOfBirth)}
-                        <span style={{ opacity: 0.4, marginLeft: '4px' }}>({c.patient.dateOfBirth ? getAgeLabel(c.patient.dateOfBirth) : '—'})</span></>
+                        <span className="wl-dob-age">({c.patient.dateOfBirth ? getAgeLabel(c.patient.dateOfBirth) : '—'})</span></>
                       )}
                     </td>
 
                     {/* Specimens */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle' }}>
+                    <td className="wl-td">
                       {isPedRestricted(c) ? (
-                        <span style={{ color: '#475569', fontSize: 12, fontStyle: 'italic' }}>—</span>
+                        <span className="wl-specimen-empty">—</span>
                       ) : (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                        <div className="wl-chips-wrap">
                           {c.specimens?.slice(0, 3).map(s => (
                             <SpecimenChip key={s.id} label={s.label} description={s.description} />
                           ))}
@@ -1266,24 +1199,24 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     </td>
 
                     {/* Accession date */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', opacity: 0.7, fontSize: '12px', whiteSpace: 'nowrap' }}>
+                    <td className="wl-td-date">
                       {formatDate(c.order?.receivedDate)}
                     </td>
 
                     {/* Physician */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', opacity: 0.7, fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td className="wl-td-physician">
                       {c.order?.requestingProvider ?? '—'}
                     </td>
 
                     {/* Flags */}
-                    <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                    <td className="wl-td">
+                      <div className="wl-chips-wrap">
                         {renderFlags(c.caseFlags ?? [], c.specimenFlags ?? [], c.id)}
                       </div>
                     </td>
 
                     {/* Status dot */}
-                    <td style={{ padding: '12px 20px 12px 0', verticalAlign: 'middle', textAlign: 'center' }}>
+                    <td className="wl-td-status">
                       <StatusDot status={c.status} />
                     </td>
                   </tr>
@@ -1293,138 +1226,76 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
             {isLoadingMore && (
               <tr>
-                <td colSpan={11} style={{ padding: '32px', textAlign: 'center' }}>
-                  <div className="wl-loader-spinner" style={{ margin: '0 auto' }} />
+                <td colSpan={11} className="wl-loading-state">
+                  <div className="wl-loader-spinner wl-loader-center" />
                 </td>
               </tr>
             )}
-
-            {/* Bottom buffer so last row doesn't sit on the taskbar */}
-            <tr><td colSpan={11} style={{ height: '60px' }} /></tr>
+            <tr><td colSpan={11} className="wl-row-spacer" /></tr>
           </tbody>
         </table>
         </div>{/* end scroll container */}
+
+        {/* Floating mirror scrollbar — bidirectional horizontal scroll sync.
+            Dragging this bar scrolls the table; scrolling the table syncs this bar.
+            The innerRef div is kept in sync with the table's actual scroll width
+            via the ResizeObserver in the useEffect above. */}
+        <div
+          ref={mirrorRef}
+          className="wl-mirror-bar"
+          onScroll={handleMirrorScroll}
+        >
+          <div ref={innerRef} style={{ height: '1px' }} />
+        </div>
 
       </div>
 
       )} {/* end isTablet ternary */}
 
-      <style>{`
-        @keyframes urgentPulse {
-          0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 6px #EF4444; }
-          50% { opacity: 0.7; transform: scale(0.9); }
-        }
-        .wl-loader-spinner {
-          width: 16px; height: 16px; border: 2px solid rgba(56,189,248,0.1);
-          border-top-color: #38bdf8; border-radius: 50%; animation: wl-spin 0.8s linear infinite;
-        }
-        @keyframes wl-spin { to { transform: rotate(360deg); } }
-        .wl-scroll::-webkit-scrollbar { width: 4px; height: 8px; }
-        .wl-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 4px; }
-        .wl-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.6); border-radius: 4px; }
-        .wl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.9); }
-        .wl-scroll::-webkit-scrollbar-corner { background: transparent; }
-        .wl-mirror-bar { overflow-x: auto; overflow-y: hidden; height: 12px; flex-shrink: 0; background: rgba(0,0,0,0.25); border-top: 1px solid rgba(255,255,255,0.06); }
-        .wl-mirror-bar::-webkit-scrollbar { height: 12px; }
-        .wl-mirror-bar::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
-        .wl-mirror-bar::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.5); border-radius: 6px; }
-        .wl-mirror-bar::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.8); }
-        .wl-flag-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-        .wl-specimen-chip { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(100,116,139,0.28); padding: 3px 10px; border-radius: 20px; font-size: 11px; color: rgba(255,255,255,0.75); }
-        .wl-specimen-chip__label { color: #cbd5e1; font-weight: 600; }
-        .wl-specimen-chip__sep { color: rgba(148,163,184,0.4); }
-        .wl-col-header:hover button { color: #f1f5f9 !important; }
-        thead tr th { border-bottom: 1px solid rgba(255,255,255,0.09); }
-        thead tr th:last-child { padding-right: 16px; }
-        tbody tr td:last-child { padding-right: 16px; }
-
-        /* ── Card layout (tablet < 1024px) ── */
-        .wl-card-list { padding: 12px; overflow-x: hidden; }
-        .wl-card-divider { display: flex; align-items: center; gap: 8px; padding: 16px 4px 8px; }
-        .wl-card-divider__label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
-        .wl-card-divider__label--urgent { color: #f87171; }
-        .wl-card-divider__label--pool   { color: #F97316; }
-        .wl-card-divider__count { font-size: 11px; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 10px; color: #94a3b8; }
-        .wl-card-divider__line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
-
-        .wl-card {
-          margin-bottom: 8px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-left: 3px solid rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.02);
-          cursor: pointer;
-          transition: background 0.15s ease, border-color 0.15s ease;
-          overflow: hidden;
-        }
-        .wl-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14); }
-        .wl-card--urgent { border-color: rgba(239,68,68,0.4); border-left-color: #EF4444; }
-        .wl-card--selected { background: rgba(8,145,178,0.12); border-color: #0891B2; border-left-color: #0891B2; }
-
-        .wl-card__header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 14px 8px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .wl-card__id-group { display: flex; align-items: center; gap: 8px; }
-        .wl-card__org { font-size: 8px; font-weight: 700; color: #475569; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1px; }
-        .wl-card__case-id { font-size: 14px; font-weight: 700; color: #0891b2; }
-        .wl-card__case-id--urgent { color: #f87171; }
-        .wl-card__status-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 10px; border-radius: 6px; border: 1px solid transparent; white-space: nowrap; }
-
-        .wl-card__body { padding: 10px 14px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
-        .wl-card__body-full { grid-column: 1 / -1; }
-        .wl-card__field-label { font-size: 9px; color: #475569; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
-        .wl-card__field-value { font-size: 14px; font-weight: 600; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .wl-card__field-sub { font-size: 11px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .wl-card__chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
-      `}</style>
-
       {/* ── Pediatric Access Modal ─────────────────────────────────────── */}
       {pedBlockedCase && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(6px)',
-          display:'flex',alignItems:'center',justifyContent:'center',zIndex:50000}}>
-          <div style={{background:'#1e293b',border:'1px solid rgba(245,158,11,0.4)',borderRadius:16,
-            padding:'32px',width:480,boxShadow:'0 24px 60px rgba(0,0,0,0.6)'}}>
-            <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16}}>
-              <div style={{width:48,height:48,borderRadius:12,flexShrink:0,fontSize:26,
-                background:'rgba(245,158,11,0.12)',border:'1px solid rgba(245,158,11,0.3)',
-                display:'flex',alignItems:'center',justifyContent:'center'}}>🔒</div>
-              <div>
-                <div style={{fontSize:17,fontWeight:700,color:'#f1f5f9',marginBottom:2}}>Pediatric Access Required</div>
-                <div style={{fontSize:12,color:'#94a3b8'}}>Patient age {pedBlockedCase.age} · Case {pedBlockedCase.id}</div>
+        <div className="ps-overlay" onClick={() => setPedBlockedCase(null)}>
+          <div className="ps-modal ps-modal-md" onClick={e => e.stopPropagation()}
+            style={{ borderColor: 'rgba(245,158,11,0.4)' }}>
+
+            <div className="ps-modal-header">
+              <div className="ps-modal-header-inner">
+                <div className="ps-ped-icon">🔒</div>
+                <div>
+                  <div className="ps-modal-title">Pediatric Access Required</div>
+                  <div className="ps-modal-subtitle">
+                    Patient age {pedBlockedCase.age} · Case {pedBlockedCase.id}
+                  </div>
+                </div>
               </div>
             </div>
-            <p style={{fontSize:13,color:'#94a3b8',lineHeight:1.6,marginBottom:20}}>
-              This patient is classified as pediatric. Access requires both a user-level qualification <em>and</em> authorization
-              by the submitting client. Your System Admin can grant access via{' '}
-              <strong style={{color:'#f59e0b'}}>Configuration → Client Dictionary</strong>.
-            </p>
-            {pedRequestSent ? (
-              <div style={{padding:'12px 16px',borderRadius:8,marginBottom:20,textAlign:'center',
-                background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',
-                fontSize:13,color:'#f59e0b'}}>
-                ⏳ Access request pending — your System Admin has been notified.<br/>
-                <span style={{fontSize:11,opacity:0.75}}>You'll receive a message when access is granted.</span>
-              </div>
-            ) : (
-              <div style={{padding:'12px 16px',borderRadius:8,marginBottom:20,
-                background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.2)',
-                fontSize:12,color:'#94a3b8',lineHeight:1.6}}>
-                <strong style={{color:'#f59e0b'}}>Request Pediatric Access</strong><br/>
-                One click sends an automated request to your System Admin.
-              </div>
-            )}
-            <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
-              <button onClick={() => setPedBlockedCase(null)}
-                style={{padding:'9px 18px',borderRadius:8,fontSize:13,cursor:'pointer',
-                  border:'1px solid #334155',background:'transparent',color:'#94a3b8',fontFamily:'inherit'}}>
+
+            <div className="ps-modal-body">
+              <p className="ps-ped-body">
+                This patient is classified as pediatric. Access requires both a user-level qualification <em>and</em> authorization
+                by the submitting client. Your System Admin can grant access via{' '}
+                <strong className="ps-ped-highlight">Configuration → Client Dictionary</strong>.
+              </p>
+
+              {pedRequestSent ? (
+                <div className="ps-ped-pending">
+                  ⏳ Access request pending — your System Admin has been notified.<br/>
+                  <span className="ps-ped-pending-sub">You'll receive a message when access is granted.</span>
+                </div>
+              ) : (
+                <div className="ps-ped-info-box">
+                  <strong className="ps-ped-highlight">Request Pediatric Access</strong><br/>
+                  One click sends an automated request to your System Admin.
+                </div>
+              )}
+            </div>
+
+            <div className="ps-modal-footer">
+              <button className="ps-btn-secondary" onClick={() => setPedBlockedCase(null)}>
                 Close
               </button>
               {!pedRequestSent && (
-                <button onClick={async () => {
+                <button className="ps-btn-primary" onClick={async () => {
                   if (!user || !pedBlockedCase) return;
                   try {
                     await messageService.send({
@@ -1441,8 +1312,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       isUrgent: false,
                     });
                     markPedRequested(pedBlockedCase.id);
-                    reloadInbox(); // refresh messaging context immediately
-                    // Audit: permission request sent
+                    reloadInbox();
                     auditService.logEvent({
                       type: 'system',
                       event: 'Pediatric Access Requested',
@@ -1452,9 +1322,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       confidence: null,
                     }).catch(() => {});
                   } catch { markPedRequested(pedBlockedCase.id); }
-                }}
-                style={{padding:'9px 20px',borderRadius:8,fontSize:13,fontWeight:700,
-                  cursor:'pointer',border:'none',background:'#f59e0b',color:'#000',fontFamily:'inherit'}}>
+                }}>
                   Request Pediatric Access
                 </button>
               )}

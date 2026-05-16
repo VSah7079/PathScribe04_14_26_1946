@@ -1,5 +1,5 @@
 // src/pages/SynopticReportPage/components/LeftReportPanel.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import type { Case } from '@/types/case/Case';
 import { useAuth } from '@/contexts/AuthContext';
 import InternalNotesDrawer from '@/components/InternalNotes/InternalNotesDrawer';

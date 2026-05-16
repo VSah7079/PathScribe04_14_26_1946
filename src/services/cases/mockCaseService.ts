@@ -6,9 +6,9 @@
 
 import { ICaseService } from "./ICaseService";
 import { callAi } from '../aiIntegration/aiProviderService';
-import { Case, SynopticReportInstance } from "../../types/case/Case";
+import { Case } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
-import { storageGet, storageSet } from "../mockStorage";
+import { storageSet } from "../mockStorage";
 
 const STORAGE_KEY = 'cases';
 
@@ -23,10 +23,6 @@ function isoYearsAgo(years: number, month = 6, day = 15): string {
 function isoDaysAgo(days: number): string {
   const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString();
 }
-function iid(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
-
 // ─── Mock Cases ────────────────────────────────────────────────────────────────
 
 const MOCK_CASES: Case[] = [
@@ -115,7 +111,7 @@ const MOCK_CASES: Case[] = [
       { id: 'comp-erh2-4401', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
       { id: 'comp-her2f-4401', name: 'HER2 FISH', lisCode: 'HER2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
   },
 
@@ -196,7 +192,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { id: 'comp-mol-4402', name: 'Molecular Panel', lisCode: 'MOL', color: 'green', severity: 2, orderedVia: 'lis', specimenId: 'S26-4402-SP-1' },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C18.7'], snomed: ['363346000'] },
   },
 
@@ -280,7 +276,7 @@ const MOCK_CASES: Case[] = [
       { id: 'comp-mprof-4403', name: 'Molecular Profiling', lisCode: 'MPROF', color: 'blue', severity: 3, orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
       { id: 'comp-ihc-4403', name: 'IHC Panel (PD-L1)', lisCode: 'IHC', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C34.11'], snomed: ['254637007'] },
   },
 
@@ -353,7 +349,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { id: 'psma_ihc_pending',    name: 'PSMA IHC Noted Positive',  color: 'green',  severity: 1 },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C61'], snomed: ['254900004'] },
   },
 
@@ -424,7 +420,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { id: 'margins_close',       name: 'Close Margin — 3mm',       color: 'yellow', severity: 3 },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['D05.11'], snomed: ['397201007'] },
   },
 
@@ -469,7 +465,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { id: 'comp-erh2-4406', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4406-SP-1' },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
   },
 
   // ── Case 7: Colorectal — rectal resection, multi-specimen ─────────────────
@@ -554,7 +550,7 @@ const MOCK_CASES: Case[] = [
       { id: 'comp-ihc-4407', name: 'MMR IHC Panel', lisCode: 'IHC', color: 'green', severity: 3, orderedVia: 'lis', specimenId: 'S26-4407-SP-1' },
       { id: 'comp-mol-4407', name: 'Molecular Panel', lisCode: 'MOL', color: 'green', severity: 3 },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C20'], snomed: ['363346000'] },
   },
 
@@ -663,7 +659,7 @@ const MOCK_CASES: Case[] = [
       { id: 'comp-erh2-4408', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'red', severity: 3, orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
       { id: 'comp-her2f-4408', name: 'HER2 FISH', lisCode: 'HER2', color: 'red', severity: 3, orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
     ],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
   },
 
@@ -726,7 +722,7 @@ const MOCK_CASES: Case[] = [
       { id: 'geriatric_patient', name: 'Geriatric Patient — 100y', color: 'purple', severity: 3 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
   },
 
@@ -769,7 +765,7 @@ const MOCK_CASES: Case[] = [
       { id: 'poc_case', name: 'Products of Conception', color: 'blue', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
   },
 
   // ── Case 11: Pending Review — awaiting attending sign-off ────────────────
@@ -822,7 +818,7 @@ const MOCK_CASES: Case[] = [
       { id: 'ihc_pending',        name: 'ER/PR/HER2 Pending',          color: 'blue',   severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
   },
 
@@ -880,7 +876,7 @@ const MOCK_CASES: Case[] = [
       { id: 'second_opinion',    name: 'Second Opinion — MDT Review', color: 'blue',   severity: 3 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C61'], snomed: ['254900004'] },
   },
 
@@ -899,7 +895,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Gastrointestinal',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'pathscribe', coding: {},
+    reportingMode: 'copilot', coding: {},
   } as any,
 
   {
@@ -916,7 +912,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Dermatopathology',
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'pathscribe', coding: {},
+    reportingMode: 'copilot', coding: {},
   } as any,
 
   {
@@ -934,7 +930,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [{ id: 'stat_rush', name: 'STAT — Rush Processing', color: 'red', severity: 5 }],
     specimenFlags: [],
-    reportingMode: 'pathscribe', coding: {},
+    reportingMode: 'copilot', coding: {},
   } as any,
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -1049,7 +1045,7 @@ const MOCK_CASES: Case[] = [
       { id: 'kras_result',    name: 'KRAS Result — Oncology Notified', color: 'green', severity: 1 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: {
       icd10: ['C20'],
       snomed: ['413448001'],
@@ -1120,7 +1116,7 @@ const MOCK_CASES: Case[] = [
       { id: 'psma_positive', name: 'PSMA IHC — Positive', color: 'yellow', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C61'], snomed: [] },
   },
 
@@ -1202,7 +1198,7 @@ const MOCK_CASES: Case[] = [
       { id: 'second_opinion', name: 'Second Opinion Requested', color: 'blue', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C20'], snomed: ['413448001'] },
   },
 
@@ -1272,7 +1268,7 @@ const MOCK_CASES: Case[] = [
       { userId: 'PATH-UK-001', role: 'Attending', name: 'Paul Carter' },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C61'], snomed: [] },
   },
 
@@ -1348,7 +1344,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(8), updatedAt: isoDaysAgo(5),
     caseFlags: [],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C18.0'], snomed: ['413448001'] },
   },
 
@@ -1388,7 +1384,7 @@ const MOCK_CASES: Case[] = [
       { id: 'perforation', name: 'Tumour Perforation — pT4', color: 'red', severity: 3 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C18.7'], snomed: [] },
   },
 
@@ -1407,7 +1403,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Gastrointestinal',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'pathscribe', coding: {},
+    reportingMode: 'copilot', coding: {},
   } as any,
 
   {
@@ -1426,7 +1422,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Uropathology',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'pathscribe', coding: {},
+    reportingMode: 'copilot', coding: {},
   } as any,
 
   {
@@ -1444,7 +1440,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [{ id: 'stat_rush', name: 'STAT — Rush Processing', color: 'red', severity: 5 }],
     specimenFlags: [],
-    reportingMode: 'pathscribe', coding: {},
+    reportingMode: 'copilot', coding: {},
   } as any,
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1546,7 +1542,7 @@ const MOCK_CASES: Case[] = [
       { id: 'sentinel_pos',   name: 'Sentinel Node Positive — Completion Dissection?',  color: 'red',   severity: 4 },
     ],
     specimenFlags: [],
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: { icd10: ['C43.61'], snomed: ['372244006'] },
   },
 
@@ -1591,7 +1587,7 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     caseTeam: [{ userId: 'PATH-US-001', role: 'Attending', name: 'Amber Fehrs-Battey' }],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
-    caseFlags: [], specimenFlags: [], reportingMode: 'pathscribe', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
   // HFHS-002 — Amber: Colorectal adenocarcinoma, post-neoadjuvant
@@ -1628,7 +1624,7 @@ const MOCK_CASES: Case[] = [
     }],
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
-    caseFlags: [], specimenFlags: [], reportingMode: 'pathscribe', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
   // HFHS-003 — Amber: Prostate adenocarcinoma, radical prostatectomy
@@ -1672,7 +1668,7 @@ const MOCK_CASES: Case[] = [
     }],
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
-    caseFlags: [], specimenFlags: [], reportingMode: 'pathscribe', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
   // HFHS-004 — Tuthill: Lung adenocarcinoma — Pathology Informatics focus, AI routing demo
@@ -1713,7 +1709,7 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [{ id: 'egfr_actionable', name: 'Actionable Mutation — Oncology Alert', color: 'teal', severity: 4 }],
-    specimenFlags: [], reportingMode: 'pathscribe', coding: {},
+    specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
   // HFHS-005 — Tuthill: STAT frozen section — routing/workflow demo
@@ -1738,7 +1734,7 @@ const MOCK_CASES: Case[] = [
       { id: 'stat_frozen', name: 'STAT — Intraoperative Frozen Section', color: 'red', severity: 5 },
       { id: 'or_pending', name: 'OR Awaiting Result', color: 'amber', severity: 4 },
     ],
-    specimenFlags: [], reportingMode: 'pathscribe', coding: {},
+    specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
   // HFHS-006 — Pool case (unassigned, routes to Surgical Pathology pool)
@@ -1756,7 +1752,7 @@ const MOCK_CASES: Case[] = [
     status: 'pool' as CaseStatus,
     poolId: 'GYN-MPA', poolName: 'Gynaecologic Pathology',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
-    caseFlags: [], specimenFlags: [], reportingMode: 'pathscribe', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
   // MPA26-1007-PED — Amber: Pediatric Wilms tumor (nephroblastoma)
@@ -1837,7 +1833,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [],
     status: 'draft' as CaseStatus,
     pediatricRestricted: true,
-    reportingMode: 'pathscribe',
+    reportingMode: 'copilot',
     coding: {},
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
   } as any,
@@ -2077,6 +2073,7 @@ export async function generateAiSuggestionsForReport(
 
   const prompt = `You are a pathology AI assistant. Analyse the following pathology case data and suggest answers for each synoptic field.
 
+TEMPLATE: ${templateId}
 CASE ID: ${caseData.id}
 GROSS DESCRIPTION: ${caseData.diagnostic?.grossDescription ?? '—'}
 MICROSCOPIC DESCRIPTION: ${caseData.diagnostic?.microscopicDescription ?? '—'}
@@ -2959,7 +2956,7 @@ export async function findSimilarCases(
 
     results.push({
       caseId: c.id,
-      accession: c.accession.fullAccession,
+      accession: c.accession?.fullAccession ?? c.accession?.accessionNumber ?? '',
       patientInitials,
       date: new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       diagnosis: primaryReport?.templateName?.replace('CAP ', '').replace(' — Resection', '').replace(' — Needle Biopsy', '') ?? 'Unknown',
@@ -3024,6 +3021,26 @@ export const mockCaseService: ICaseService = {
   async getCase(id: string): Promise<Case | undefined> {
     await delay();
     return CASES.find(c => c.id === id);
+  },
+
+  async getAll(params?) {
+    await delay();
+    let results = [...CASES];
+    if (params?.status) {
+      const statuses = Array.isArray(params.status) ? params.status : [params.status];
+      results = results.filter(c => statuses.includes((c as any).status));
+    }
+    if (params?.search) {
+      const q = params.search.toLowerCase();
+      results = results.filter(c =>
+        c.accession?.fullAccession?.toLowerCase().includes(q) ||
+        `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q)
+      );
+    }
+    if (params?.specialty) {
+      results = results.filter(c => (c as any).specialty === params.specialty);
+    }
+    return { ok: true, data: results as any[] };
   },
 
   async listCasesForUser(userId: string): Promise<Case[]> {

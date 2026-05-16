@@ -9,12 +9,12 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 import React from 'react';
-import { aiBehaviorService } from '@/services';
-import type { AIBehaviorConfig } from '@/services/aiIntegration/IAIBehaviorService';
+// Lines 12-13:
+import { aiBehaviorService } from '@/services/aiBehavior/IAIBehaviorService';
+import type { AIBehaviorConfig } from '@/services/aiBehavior/IAIBehaviorService';
 
 // Use CSS tokens where possible; JS constants kept for dynamic style logic
 const TEAL   = 'var(--ps-conf-teal)';
-const PANEL  = 'var(--ps-conf-surface)';
 const BORDER = 'var(--ps-conf-border)';
 const TEXT   = 'var(--ps-conf-text)';
 const MUTED  = 'var(--ps-conf-text-2)';

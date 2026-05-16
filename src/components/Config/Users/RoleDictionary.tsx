@@ -8,7 +8,7 @@ import {
   ACTION_GROUPS, DEFAULT_ROLE_PERMISSIONS,
   ActionId, PermissionSet,
 } from '../../../constants/systemActions';
-import { loadParticipationTypes, ParticipationType } from '../System/ParticipationTypesSection';
+import { loadParticipationTypes } from '../System/ParticipationTypesSection';
 import { roleService, auditService } from '../../../services';
 import {
   overlay, modalBox, modalHeaderStyle, modalFooterStyle,
@@ -23,11 +23,12 @@ export interface Role {
   description: string;
   color: string;
   caseAccess: boolean;
+  canViewPediatric: boolean;
   configAccess: boolean;
   permissions: PermissionSet;
   builtIn: boolean;
-  clientIds?: string[];                          // undefined / empty = all clients
-  participationTypeIds: string[];                // IDs from ParticipationTypesSection master list
+  clientIds?: string[];
+  participationTypeIds: string[];
 }
 
 export const DEFAULT_PARTICIPATION: Record<string, string[]> = {
@@ -38,10 +39,10 @@ export const DEFAULT_PARTICIPATION: Record<string, string[]> = {
 };
 
 export const DEFAULT_ROLES: Role[] = [
-  { id: 'pathologist', name: 'Pathologist', description: 'Licensed pathologist with full clinical case access and sign-out authority.',   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['pathologist'] },
-  { id: 'resident',    name: 'Resident',    description: 'Pathology resident with case access and co-sign capability.',                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['resident']    },
-  { id: 'admin',       name: 'Admin',       description: 'System administrator with configuration access but no clinical case access.',    color: '#FDD663', caseAccess: false, configAccess: true,  permissions: DEFAULT_ROLE_PERMISSIONS['Admin'],       builtIn: true, participationTypeIds: []                                        },
-  { id: 'physician',   name: 'Physician',   description: 'External ordering physician. Directory only — no app access.',                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],   builtIn: true, participationTypeIds: []                                        },
+  { id: 'pathologist', name: 'Pathologist', description: 'Licensed pathologist with full clinical case access and sign-out authority.',   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'],canViewPediatric: false, builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['pathologist'] },
+  { id: 'resident',    name: 'Resident',    description: 'Pathology resident with case access and co-sign capability.',                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'], canViewPediatric: false,   builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['resident']    },
+  { id: 'admin',       name: 'Admin',       description: 'System administrator with configuration access but no clinical case access.',    color: '#FDD663', caseAccess: false, configAccess: true,  permissions: DEFAULT_ROLE_PERMISSIONS['Admin'], canViewPediatric: false,      builtIn: true, participationTypeIds: []                                        },
+  { id: 'physician',   name: 'Physician',   description: 'External ordering physician. Directory only — no app access.',                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],canViewPediatric: false,   builtIn: true, participationTypeIds: []                                        },
 ];
 
 // Mock client list — replace with clientService.getAll() when wired
@@ -639,7 +640,14 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
 
   useEffect(() => {
     roleService.getAll().then(res => {
-      if (res.ok) { setRoles(res.data); onRolesChange?.(res.data); }
+      if (res.ok) {
+        const mapped = res.data.map(r => ({
+          ...r,
+          canViewPediatric: (r as any).canViewPediatric ?? false,
+          participationTypeIds: r.participationTypeIds ?? [],
+        })) as Role[];
+        setRoles(mapped); onRolesChange?.(mapped);
+      }
       else { onRolesChange?.(DEFAULT_ROLES); }
       setLoading(false);
     });
@@ -655,14 +663,15 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
     if (modal?.mode === 'add') {
       const res = await roleService.add({ ...draft, builtIn: false });
       if (res.ok) {
-        const next = [...roles, res.data];
+        const next = [...roles, res.data as Role];
         setRoles(next); onRolesChange?.(next);
       }
     } else if (modal?.role) {
       const res = await roleService.update(modal.role.id, draft);
       if (res.ok) {
-        const next = roles.map(r => r.id === res.data.id ? res.data : r);
-        setRoles(next); onRolesChange?.(next);
+        const next = roles.map(r => r.id === res.data.id ? res.data as unknown as Role : r);
+        setRoles(next);
+        onRolesChange?.(next);
         // Audit: log if Pediatric Access permission changed
         const prevPed = (modal.role as any)?.canViewPediatric ?? false;
         const newPed  = (draft as any)?.canViewPediatric ?? false;

@@ -190,6 +190,16 @@ const SigningPanel: React.FC<SigningPanelProps> = ({
       setTimeout(() => pwRef.current?.focus(), 100);
       return;
     }
+
+    // Cadence check — if the user already verified within the required
+    // window (per session / per N days), auto-complete without re-prompting.
+    // This is the correct use of isBiometricCurrentForUser.
+    if (isBiometricCurrentForUser(userId)) {
+      setBioStep('verified');
+      setTimeout(onSign, 400);
+      return;
+    }
+
     isBiometricAvailable().then(avail => {
       const cred = getCredentialForUser(userId);
       const enrolled = !!cred && avail;
@@ -197,7 +207,7 @@ const SigningPanel: React.FC<SigningPanelProps> = ({
       setDeviceName(getDeviceName());
       if (!enrolled) setTimeout(() => pwRef.current?.focus(), 100);
     });
-  }, [userId]);
+  }, [userId, onSign]);
 
   const handleBiometric = async () => {
     setBioStep('pending');

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RequestReviewModal from '@/components/RequestReview/RequestReviewModal';
 import { PoolClaimModal } from '@/components/Worklist/PoolClaimModal';
-import { mockCaseService } from '@/services/cases/mockCaseService';
+
 
 interface BottomActionBarProps {
   caseData: Case | null;
@@ -14,7 +14,7 @@ interface BottomActionBarProps {
   onFinalize: () => void;
   onFinalizeAndNext: () => void;
   onSignOut: () => void;
-  onAddendumAmendment: () => void;
+  
   onDelegate?: () => void;
   onHistory?: () => void;
   onFlags?: () => void;
@@ -22,6 +22,10 @@ interface BottomActionBarProps {
   onTeam?: () => void;
   onNextCase: () => void;
   onPreviousCase: () => void;
+  /** Orchestrator — generate report from synoptic answers */
+  onGenerateReport?: () => void;
+  isGenerating?: boolean;
+  onAbortGenerate?: () => void;
 }
 
 const ActionButton: React.FC<{
@@ -73,7 +77,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onFinalize,
   onFinalizeAndNext,
   onSignOut,
-  onAddendumAmendment,
+  
   onDelegate,
   onHistory,
   onFlags,
@@ -81,6 +85,9 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onTeam,
   onNextCase,
   onPreviousCase,
+  onGenerateReport,
+  isGenerating = false,
+  onAbortGenerate,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -174,6 +181,21 @@ useEffect(() => {
         {/* Normal reporting actions — hidden for pool cases */}
         {!isPool && !isFinalized && (
           <>
+            {/* Generate Report — shown when Orchestrator is wired */}
+            {onGenerateReport && (
+              <>
+                {isGenerating ? (
+                  <ActionButton onClick={() => onAbortGenerate?.()} variant="solid" color="#dc2626" hoverColor="#b91c1c" title="Abort generation">
+                    ✕ Abort
+                  </ActionButton>
+                ) : (
+                  <ActionButton onClick={onGenerateReport} variant="solid" color="#0891B2" hoverColor="#0E7490" title="Generate AI report draft from synoptic answers">
+                    ⚡ Generate Report
+                  </ActionButton>
+                )}
+                <Divider />
+              </>
+            )}
             <ActionButton onClick={onSaveDraft} variant="outline" color={isDirty ? '#0891B2' : '#334155'}>💾 Save Draft</ActionButton>
             <ActionButton onClick={onSaveAndNext} variant="outline" color={isDirty ? '#0891B2' : '#334155'}>💾 Save &amp; Next</ActionButton>
             <Divider />

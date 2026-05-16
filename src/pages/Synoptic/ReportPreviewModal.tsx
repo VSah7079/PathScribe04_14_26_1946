@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
+<<<<<<< HEAD
 import type { CaseData, SpecimenSynoptic, SynopticReportNode, SynopticField, CaseRole } from './synopticTypes';
 import { ROLE_META } from './synopticTypes';
+=======
+
+// ── Local type stubs (synopticTypes.ts was removed — types defined inline) ───
+// TODO: restore proper types when synopticTypes is re-established
+type CaseData = any;
+type SpecimenSynoptic = any;
+type SynopticReportNode = any;
+type SynopticField = any;
+const ROLE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {};
+type CaseRole = string;
+>>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
 
 const SPEC_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -15,7 +27,7 @@ const ReportPreviewModal: React.FC<{
   const now        = new Date();
   const reportDate = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const reportTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  const allFinalized = caseData.synoptics.every(s => s.reports.every(r => r.status === 'finalized'));
+  const allFinalized = caseData.synoptics.every((s: any) => s.reports.every((r: any) => r.status === 'finalized'));
 
   // ── Scroll-spy: update active anchor on scroll ─────────────────────────────
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -44,7 +56,7 @@ const ReportPreviewModal: React.FC<{
   // Uses the first non-empty tumor field value as the primary diagnosis text.
   const getDiagnosisSummary = (specimen: SpecimenSynoptic): string => {
     for (const report of specimen.reports) {
-      const primary = report.tumorFields.find(f => f.type !== 'comment' && f.value.trim());
+      const primary = report.tumorFields.find((f: any) => f.type !== 'comment' && f.value.trim());
       if (primary) return primary.value;
     }
     return '— pending —';
@@ -69,9 +81,9 @@ const ReportPreviewModal: React.FC<{
 
   // ── Render a synoptic node (recursive, preserves tree) ────────────────────
   const renderNode = (node: SynopticReportNode, depth = 0): React.ReactNode => {
-    const tumorRows     = node.tumorFields.filter(f     => f.type !== 'comment' && (f.value || f.required));
-    const marginRows    = node.marginFields.filter(f    => f.type !== 'comment' && (f.value || f.required));
-    const biomarkerRows = node.biomarkerFields.filter(f => f.type !== 'comment' && (f.value || f.required));
+    const tumorRows     = node.tumorFields.filter((f: any)     => f.type !== 'comment' && (f.value || f.required));
+    const marginRows    = node.marginFields.filter((f: any)    => f.type !== 'comment' && (f.value || f.required));
+    const biomarkerRows = node.biomarkerFields.filter((f: any) => f.type !== 'comment' && (f.value || f.required));
     const hasAnyField   = tumorRows.length + marginRows.length + biomarkerRows.length > 0;
 
     // Visual weight scales with depth: depth-0 is a major section, depth-1+ is a subsection
@@ -135,17 +147,17 @@ const ReportPreviewModal: React.FC<{
         )}
 
         {/* Children — indented, in order */}
-        {node.children.map(child => renderNode(child, depth + 1))}
+        {node.children.map((child: any) => renderNode(child, depth + 1))}
       </div>
     );
   };
 
   // ── Render diagnostic codes for a specimen ────────────────────────────────
   const renderCodes = (specimen: SpecimenSynoptic) => {
-    const codes  = specimen.reports.flatMap(r => r.codes);
+    const codes  = specimen.reports.flatMap((r: any) => r.codes);
     if (!codes.length) return null;
-    const snomed = codes.filter(c => c.system === 'SNOMED');
-    const icd    = codes.filter(c => c.system === 'ICD');
+    const snomed = codes.filter((c: any) => c.system === 'SNOMED');
+    const icd    = codes.filter((c: any) => c.system === 'ICD');
     return (
       <div style={{ marginTop: '12px', padding: '12px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '10px' }}>Diagnostic Codes</div>
@@ -153,7 +165,7 @@ const ReportPreviewModal: React.FC<{
           {snomed.length > 0 && (
             <div>
               <div style={{ fontSize: '9px', fontWeight: 700, color: '#0f766e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>SNOMED CT</div>
-              {snomed.map(c => (
+              {snomed.map((c: any) => (
                 <div key={c.id} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '3px', display: 'flex', gap: '8px' }}>
                   <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f766e', flexShrink: 0 }}>{c.code}</span>
                   <span>{c.display}</span>
@@ -164,7 +176,7 @@ const ReportPreviewModal: React.FC<{
           {icd.length > 0 && (
             <div>
               <div style={{ fontSize: '9px', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '5px' }}>ICD-10</div>
-              {icd.map(c => (
+              {icd.map((c: any) => (
                 <div key={c.id} style={{ fontSize: '11px', color: '#1e293b', marginBottom: '3px', display: 'flex', gap: '8px' }}>
                   <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', flexShrink: 0 }}>{c.code}</span>
                   <span>{c.display}</span>
@@ -180,15 +192,15 @@ const ReportPreviewModal: React.FC<{
   const multiSpecimen = caseData.synoptics.length > 1;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: 10001, display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
+    <div className="ps-rp-overlay">
 
       {/* ── Top toolbar ── */}
-      <div style={{ background: '#0d1117', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      <div className="ps-rp-toolbar">
+        <div className="ps-rp-toolbar-left">
           {/* Title */}
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-0.2px' }}>Report Preview</div>
-            <div style={{ fontSize: '11px', color: '#475569', marginTop: '1px' }}>{caseData.accession} · {caseData.patient}</div>
+            <div className="ps-rp-title">Report Preview</div>
+            <div className="ps-rp-subtitle">{caseData.accession} · {caseData.patient}</div>
           </div>
           {/* Status badge */}
           <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '6px',
@@ -199,27 +211,19 @@ const ReportPreviewModal: React.FC<{
             {allFinalized ? '✓ Finalized' : '⚠ Contains drafts'}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => window.print()}
-            style={{ padding: '6px 14px', borderRadius: '7px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#cbd5e1'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
-          >🖨 Print</button>
-          <button onClick={onClose}
-            style={{ padding: '6px 12px', borderRadius: '7px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#475569', fontSize: '18px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}
-          >✕</button>
+        <div className="ps-rp-toolbar-right">
+          <button onClick={() => window.print()} className="ps-rp-btn">🖨 Print</button>
+          <button onClick={onClose} className="ps-rp-close-btn">✕</button>
         </div>
       </div>
 
       {/* ── Body: left nav + document ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: '#0d1117' }}>
+      <div className="ps-rp-body">
 
         {/* Left navigation rail — shown for multi-specimen cases */}
         {multiSpecimen && (
-          <div style={{ width: '210px', flexShrink: 0, background: '#0d1117', borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto', padding: '20px 0' }}>
-            <div style={{ padding: '0 16px 10px', fontSize: '9px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '1px' }}>Contents</div>
+          <div className="ps-rp-nav">
+            <div className="ps-rp-nav-label">Contents</div>
 
             {/* Diagnosis summary link */}
             <button onClick={() => scrollTo('diagnosis')} style={{ width: '100%', textAlign: 'left', padding: '7px 16px', background: activeAnchor === 'diagnosis' ? 'rgba(8,145,178,0.15)' : 'transparent', border: 'none', borderLeft: `2px solid ${activeAnchor === 'diagnosis' ? '#0891B2' : 'transparent'}`, color: activeAnchor === 'diagnosis' ? '#7dd3fc' : '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.1s' }}
@@ -230,11 +234,11 @@ const ReportPreviewModal: React.FC<{
             </button>
 
             {/* Specimen links */}
-            {caseData.synoptics.map((spec, si) => {
+            {caseData.synoptics.map((spec: any, si: number) => {
               const letter  = SPEC_LETTERS[si] ?? `${si + 1}`;
               const anchor  = `spec-${si}`;
               const active  = activeAnchor === anchor;
-              const allFin  = spec.reports.every(r => r.status === 'finalized');
+              const allFin  = spec.reports.every((r: any) => r.status === 'finalized');
               return (
                 <div key={spec.specimenId}>
                   <button onClick={() => scrollTo(anchor)} style={{ width: '100%', textAlign: 'left', padding: '7px 16px', background: active ? 'rgba(8,145,178,0.15)' : 'transparent', border: 'none', borderLeft: `2px solid ${active ? '#0891B2' : 'transparent'}`, color: active ? '#7dd3fc' : '#e2e8f0', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.1s' }}
@@ -246,7 +250,7 @@ const ReportPreviewModal: React.FC<{
                     {!allFin && <span style={{ fontSize: '8px', color: '#f59e0b', flexShrink: 0 }}>●</span>}
                   </button>
                   {/* Report sub-links */}
-                  {spec.reports.map((r, ri) => {
+                  {spec.reports.map((r: any, ri: number) => {
                     const rAnchor = `report-${si}-${ri}`;
                     const rActive = activeAnchor === rAnchor;
                     return (
@@ -276,8 +280,8 @@ const ReportPreviewModal: React.FC<{
         )}
 
         {/* Scrollable document */}
-        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', background: '#0d1117', padding: '40px 32px' }}>
-          <div ref={printRef} style={{ maxWidth: '760px', margin: '0 auto', background: 'white', borderRadius: '6px', boxShadow: '0 8px 48px rgba(0,0,0,0.6)', padding: '52px 60px', position: 'relative', fontFamily: "'Georgia', 'Times New Roman', serif", lineHeight: 1.5 }}>
+        <div ref={scrollRef} className="ps-rp-scroll">
+          <div ref={printRef} className="ps-rp-document">
 
             {/* DRAFT watermark */}
             {!allFinalized && (
@@ -324,10 +328,10 @@ const ReportPreviewModal: React.FC<{
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
-                  {caseData.synoptics.map((spec, si) => {
+                  {caseData.synoptics.map((spec: any, si: number) => {
                     const letter  = SPEC_LETTERS[si] ?? `${si + 1}`;
                     const dx      = getDiagnosisSummary(spec);
-                    const isDraft = spec.reports.some(r => r.status === 'draft');
+                    const isDraft = spec.reports.some((r: any) => r.status === 'draft');
                     return (
                       <tr key={spec.specimenId} style={{ borderBottom: '1px solid #f1f5f9', verticalAlign: 'top' }}>
                         <td style={{ padding: '5px 12px 5px 0', fontFamily: 'Inter, sans-serif', width: '28px' }}>
@@ -348,7 +352,7 @@ const ReportPreviewModal: React.FC<{
             </div>
 
             {/* ── SPECIMEN SECTIONS ── */}
-            {caseData.synoptics.map((specimen, si) => {
+            {caseData.synoptics.map((specimen: any, si: number) => {
               const letter = SPEC_LETTERS[si] ?? `${si + 1}`;
               return (
                 <div key={specimen.specimenId} data-anchor={`spec-${si}`} style={{ marginBottom: '36px' }}>
@@ -371,7 +375,7 @@ const ReportPreviewModal: React.FC<{
 
                   {/* Synoptic reports — tree preserved, not flattened */}
                   <div style={{ border: '1.5px solid #0f172a', borderTop: 'none', borderRadius: '0 0 4px 4px', padding: '20px 18px 14px' }}>
-                    {specimen.reports.map((report, ri) => (
+                    {specimen.reports.map((report: any, ri: number) => (
                       <div key={report.instanceId} data-anchor={`report-${si}-${ri}`}>
                         {renderNode(report, 0)}
                       </div>

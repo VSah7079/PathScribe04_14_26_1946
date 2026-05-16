@@ -3,7 +3,7 @@ import '../../../pathscribe.css';
 import type { CaseRole } from '../synopticTypes';
 
 const OtherRoleComment: React.FC<{
-  role: CaseRole;
+  role: string;
   meta: { label: string; color: string; bg: string; border: string };
   content: string;
   hasContent: boolean;
@@ -28,10 +28,14 @@ const OtherRoleComment: React.FC<{
         )}
       </div>
       {expanded && hasContent && (
-        <div
-          style={{ padding: '12px 16px', borderTop: `1px solid ${meta.border}`, background: 'white', fontSize: '13px', lineHeight: '1.7', color: '#1e293b' }}
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <div style={{ borderTop: `1px solid ${meta.border}`, background: 'white' }}>
+          <PathScribeEditor
+            content={content}
+            onChange={() => {}}
+            readOnly
+            minHeight="auto"
+          />
+        </div>
       )}
     </div>
   );

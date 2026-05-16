@@ -52,12 +52,12 @@ const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 const FlagConfigPage: React.FC = () => {
   const { log } = useAuditLog();
   const modalRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(modalRef, showModal);
   const [flags,         setFlags]         = useState<Flag[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [showModal,     setShowModal]     = useState(false);
   const [showConfirm,   setShowConfirm]   = useState(false);
   const [editingFlag,   setEditingFlag]   = useState<Flag | null>(null);
+  useFocusTrap(modalRef, showModal);
 
   // Available protocols for the defaultProtocolIds picker
   const [availableProtocols, setAvailableProtocols] = useState<{ id: string; name: string }[]>([]);

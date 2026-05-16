@@ -50,11 +50,10 @@ export function ensureSectionHeading(
   sectionId: string,
   sectionTitle: string
 ): number {
-  const anchorMap = buildAnchorMap(editor);
-  const existing = anchorMap.get(sectionId);
-
-  if (existing?.found) {
-    return existing.insertPos;
+  // Use the dedicated helper — avoids duplicating anchorMap.get() logic here
+  const existingPos = getSectionInsertPos(buildAnchorMap(editor), sectionId);
+  if (existingPos !== null) {
+    return existingPos;
   }
 
   // Section not found — append heading at end of document
@@ -70,9 +69,8 @@ export function ensureSectionHeading(
     })
     .run();
 
-  // Rebuild map to get the new position
-  const updatedMap = buildAnchorMap(editor);
-  return updatedMap.get(sectionId)?.insertPos ?? editor.state.doc.content.size;
+  // Rebuild to get the freshly inserted heading's position
+  return getSectionInsertPos(buildAnchorMap(editor), sectionId) ?? editor.state.doc.content.size;
 }
 
 // ─────────────────────────────────────────────────────────────

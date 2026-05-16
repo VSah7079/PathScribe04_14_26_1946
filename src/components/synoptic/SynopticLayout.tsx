@@ -22,7 +22,6 @@ const SIDECAR_WIDTH   = 640;
 const CHECKLIST_WIDTH = 340;
 
 // ─── Column wrapper ───────────────────────────────────────────────────────────
-// Shared padding, border, and scroll behaviour for Report and Checklist.
 
 const Column: React.FC<{
   children:  React.ReactNode;
@@ -30,11 +29,11 @@ const Column: React.FC<{
   bordered?: boolean;
 }> = ({ children, style, bordered = true }) => (
   <div style={{
-    display:     'flex',
-    flexDirection:'column',
-    height:      '100%',
-    overflowY:   'auto',
-    borderLeft:  bordered ? '0.5px solid var(--color-border-tertiary)' : undefined,
+    display:      'flex',
+    flexDirection: 'column',
+    height:       '100%',
+    overflowY:    'auto',
+    borderLeft:   bordered ? '0.5px solid var(--color-border-tertiary)' : undefined,
     ...style,
   }}>
     {children}
@@ -64,7 +63,7 @@ interface Props {
 
 const SynopticLayout: React.FC<Props> = ({
   computationalFlags,
-  caseId,
+  caseId: _caseId,
   sidebarChildren,
   reportChildren,
   checklistChildren,
@@ -72,45 +71,35 @@ const SynopticLayout: React.FC<Props> = ({
   const { isOpen, layoutMode } = useSidecar();
   const sidecarVisible = isOpen && layoutMode === 'docked';
 
-  // Collect results from SidecarDisplay so SynopticSidebar status dots
-  // stay live without independent fetches per sidebar row.
+  // Collect results from SidecarDisplay so status dots stay live
+  // without independent fetches per sidebar row.
   const [results, setResults] = useState<Record<string, ComputationalResult | null>>({});
 
   const handleResultLoaded = useCallback((flagId: string, result: ComputationalResult) => {
     setResults(prev => (prev[flagId] === result ? prev : { ...prev, [flagId]: result }));
   }, []);
 
+  // Suppress unused warning — results collected for future sidebar status dots
+  void results;
+
   return (
     <div style={{
-      display:  'flex',
+      display:       'flex',
       flexDirection: 'row',
-      height:   '100%',
-      width:    '100%',
-      overflow: 'hidden',
+      height:        '100%',
+      width:         '100%',
+      overflow:      'hidden',
     }}>
 
       {/* ── Col 1: Sidebar (fixed width) ── */}
-      <div style={{
-        width:      SIDEBAR_WIDTH,
-        flexShrink: 0,
-        height:     '100%',
-      }}>
-        <SynopticSidebar
-          computationalFlags={computationalFlags}
-          caseId={caseId}
-          results={results}
-        >
+      {/* computationalFlags were planned here but moved to the Results tab */}
+      <div style={{ width: SIDEBAR_WIDTH, flexShrink: 0, height: '100%' }}>
+        <SynopticSidebar>
           {sidebarChildren}
         </SynopticSidebar>
       </div>
 
       {/* ── Col 2: Sidecar (collapsible — pushes, never overlays) ── */}
-      {/*
-        Width transitions between 0 and SIDECAR_WIDTH.
-        overflow: hidden prevents content from bleeding during the transition.
-        The SidecarDrawer fills this container; it never positions itself
-        outside it in docked mode.
-      */}
       <div style={{
         width:      sidecarVisible ? SIDECAR_WIDTH : 0,
         flexShrink: 0,

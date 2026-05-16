@@ -76,7 +76,7 @@ export type ActionId =
   // ── Case management ───────────────────────────────────────────────────────
   | 'case.viewWorklist' | 'case.open' | 'case.create' | 'case.editDemographics'
   | 'case.assign' | 'case.reassign' | 'case.prioritize' | 'case.hold'
-  | 'case.releaseHold' | 'case.archive' | 'case.delete'
+  | 'case.releaseHold' | 'case.archive' | 'case.delete' | 'case.viewPediatric'
   // ── Specimen ──────────────────────────────────────────────────────────────
   | 'specimen.add' | 'specimen.edit' | 'specimen.remove'
   | 'specimen.applyFlag' | 'specimen.removeFlag' | 'specimen.assignSubspecialty'
@@ -289,6 +289,8 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'case.releaseHold',      label: 'Release Case From Hold',     internalKey: 'F19+PS009' },
       { id: 'case.archive',          label: 'Archive Case',               internalKey: 'F19+PS010' },
       { id: 'case.delete',           label: 'Delete Case',                internalKey: 'F19+PS011', description: 'Admin only' },
+      { id: 'case.delete',           label: 'Delete Case',                internalKey: 'F19+PS011', description: 'Admin only' },
+      { id: 'case.viewPediatric',    label: 'View Pediatric Cases',       internalKey: 'F19+PS012', description: 'Requires client authorization' },
     ],
   },
 

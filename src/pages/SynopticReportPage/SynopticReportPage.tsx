@@ -40,9 +40,7 @@ import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { mockCaseService } from '@/services/cases/mockCaseService';
 import { flagService }    from '@/services';
-import type { ComputationalResult } from '@/types/smarttag.types';
 import type { Flag }      from '@/services/flags/IFlagService';
-import SidecarDisplay     from '../../components/sidecar/SidecarDisplay';
 import ComputationalPanel from '../../components/sidecar/ComputationalPanel';
 import SynopticSidebar    from '../../components/synoptic/SynopticSidebar';
 import { useSidecar }     from '@/contexts/SidecarContext';
@@ -57,6 +55,16 @@ import CaseTeamModal     from './modals/CaseTeamModal';
 import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
 import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '@/constants/computationalActions';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
+
+// ── Orchestrator ───────────────────────────────────────────────
+import OrchestratorReportPanel, { textToHtml } from './components/OrchestratorReportPanel';
+import type { OrchestratorSection } from './components/OrchestratorReportPanel';
+import SequencerPanel from './components/SequencerPanel';
+import { runOrchestrator, regenerateSection } from '@/lib/orchestratorEngine';
+import type { OrchestratorEvent } from '@/lib/orchestratorEngine';
+import { mockReportTemplateService, STANDARD_TEMPLATE_ID } from '@/services/reportTemplates/mockReportTemplateService';
+import { mockReportPartService } from '@/services/reportParts/mockReportPartService';
+import { buildContext } from '@/lib/contextBuilder';
 
 // ─── Shared overlay style (passed to all modals) ──────────────
 const overlayStyle: React.CSSProperties = {
@@ -74,9 +82,6 @@ const SynopticReportPage: React.FC = () => {
   const handleLogout = useLogout();
 
   // ── Worklist state ─────────────────────────────────────────
-  // WorklistTable passes the ordered case ID array through router state
-  // so Previous / Next don't need a separate service call and the order
-  // always matches what the user saw in the worklist.
   const routerWorklistIds: string[] = (location.state as any)?.worklistCaseIds ?? [];
 
   // ── Case data ──────────────────────────────────────────────
@@ -101,10 +106,6 @@ const SynopticReportPage: React.FC = () => {
   const [worklistCases, setWorklistCases] = useState<string[]>([]);
   const [worklistIndex, setWorklistIndex] = useState(0);
   const [alertFieldId, setAlertFieldId] = useState<string | null>(null);
-  
- 
-  
- 
   const [availableProtocols, setAvailableProtocols] = useState<{id:string;name:string}[]>([]);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [showDelegateModal, setShowDelegateModal]   = useState(false);
@@ -148,24 +149,39 @@ const SynopticReportPage: React.FC = () => {
     }
   }, [caseId]);
 
-  const [leftTab,              setLeftTab]              = useState<'report' | 'results'>('report');
+  // ── Left panel tab + Orchestrator state ───────────────────
+  const [leftTab, setLeftTab] = useState<'draft' | 'report' | 'results'>('report');
+  const [showSequencer, setShowSequencer] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem('ps_sidebar_collapsed') === 'true'
+  );
 
+  // Orchestration mode = PathScribe owns the report.
+  // CoPilot mode = LIS owns the report; PathScribe feeds structured data back.
+  const isOrchestrationMode = (caseData?.reportingMode ?? 'pathscribe') === 'pathscribe';
 
-  // AI suggestions lifted from RightSynopticPanel so SidecarDisplay can
-  // check concordance against the discrete computational result.
+  useEffect(() => {
+    localStorage.setItem('ps_sidebar_collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  // If mode changes to copilot while on draft tab, move to report tab
+  useEffect(() => {
+    if (!isOrchestrationMode && leftTab === 'draft') setLeftTab('report');
+  }, [isOrchestrationMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  const [orchSections,    setOrchSections]    = useState<OrchestratorSection[]>([]);
+  const [isOrchestrating, setIsOrchestrating] = useState(false);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<Date | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
+
+  // AI suggestions lifted from RightSynopticPanel
   const [aiSuggestions,        setAiSuggestions]        = useState<Record<string, AiSuggestion>>({});
-
-  // Discrete computational results loaded upfront so they can be fed into
-  // the AI prompt — higher accuracy than relying on narrative text alone.
   const [computationalResults, setComputationalResults] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
 
   useEffect(() => {
     if (!caseId) return;
 
     // ── Worklist for Previous / Next ──────────────────────────
-    // WorklistTable passes the ordered ID list via router state so the order
-    // always matches what the user saw.  Fall back to a service fetch only
-    // when the page is opened directly by URL (no router state present).
     if (routerWorklistIds.length > 0) {
       setWorklistCases(routerWorklistIds);
       setWorklistIndex(routerWorklistIds.indexOf(caseId));
@@ -182,19 +198,15 @@ const SynopticReportPage: React.FC = () => {
     setHasUnsavedData(false);
     mockCaseService.getCase(caseId).then((c) => {
       setCaseData(c ?? null);
-      // Auto-select first specimen
       if (c?.specimens?.length) setActiveSpecimenId(c.specimens[0].id);
-      // Set active report instance (new system) or fall back to legacy
       if (c?.synopticReports?.length) {
         setActiveReportInstanceId(c.synopticReports[0].instanceId);
       }
-      // Load approved templates for Add Synoptic modal
-      import('@/services/templates/templateService').then(m => 
-        m.listTemplates('published').then(templates => 
+      import('@/services/templates/templateService').then(m =>
+        m.listTemplates('published').then(templates =>
           setAvailableProtocols(templates.map((t:any) => ({ id: t.id, name: t.name })))
         )
       );
-      // Restore any persisted case comment
       const stored = c?.id ? localStorage.getItem(`ps_case_comment_${c.id}`) : null;
       if (stored) { setCaseCommentAttending(stored); setHasCaseComment(true); }
       setIsLoaded(true);
@@ -219,19 +231,13 @@ const SynopticReportPage: React.FC = () => {
   const {
     showLogoutModal,  setShowLogoutModal,
     isProfileOpen,    setIsProfileOpen,
-    } = useSynopticModals();
+  } = useSynopticModals();
 
   const { toastMsg, toastVisible, showToast } = useSynopticToast();
 
-  // Filter to only computational flags actually ordered for this case.
-  // Cross-references caseData applied flags by lisCode.
   const caseComputationalFlags = React.useMemo(() => {
     const appliedLisCodes = new Set<string>();
-
-    // Helper to extract lisCode from any flag-like object
     const addCode = (f: any) => { if (f?.lisCode) appliedLisCodes.add(f.lisCode); };
-
-    // Check all possible locations flags could live in the case data
     if (caseData) {
       ((caseData as any).caseFlags     ?? []).forEach(addCode);
       ((caseData as any).specimenFlags ?? []).forEach(addCode);
@@ -240,13 +246,10 @@ const SynopticReportPage: React.FC = () => {
         (sp.specimenFlags ?? sp.flags ?? sp.appliedFlags ?? []).forEach(addCode);
       });
     }
-
-    // Build a map from lisCode → specimenId so we can enrich flag definitions
     const lisCodeToSpecimenId: Record<string, string | null> = {};
     const collectAssignment = (f: any, overwrite = true) => {
       if (!f?.lisCode) return;
       const spId = f.specimenId ?? null;
-      // Only overwrite if: not yet set, OR we have a real specimenId, OR overwrite forced
       if (overwrite || !(f.lisCode in lisCodeToSpecimenId) || spId !== null) {
         lisCodeToSpecimenId[f.lisCode] = spId;
       }
@@ -258,55 +261,24 @@ const SynopticReportPage: React.FC = () => {
         (sp.specimenFlags ?? sp.flags ?? []).forEach(collectAssignment);
       });
     }
-
-    // Filter to ordered flags and enrich each with its specimenId
     if (appliedLisCodes.size > 0) {
       return computationalFlags
         .filter(f => f.lisCode && appliedLisCodes.has(f.lisCode))
-        .map(f => ({
-          ...f,
-          specimenId: lisCodeToSpecimenId[f.lisCode!] ?? null,
-        }));
+        .map(f => ({ ...f, specimenId: lisCodeToSpecimenId[f.lisCode!] ?? null }));
     }
-
-    // Fallback: if caseData isn't loaded yet return empty — avoids the flash
-    // where all 7 flags appear before the case-specific filter kicks in
     if (!caseData) return [];
     return computationalFlags;
   }, [
     caseData?.id,
-    // Stringify applied flags so memo recomputes when caseData finishes loading
     JSON.stringify(((caseData as any)?.specimenFlags ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
     JSON.stringify(((caseData as any)?.caseFlags ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
     computationalFlags.length,
   ]);
 
-  // Fetch ALL case computational flag results when the Computational tab opens
-  // so Navigator dots show their correct colours immediately — not just the selected one.
-  useEffect(() => {
-    if (!caseId || caseComputationalFlags.length === 0) return;
-    // Fetch on mount AND whenever the tab becomes 'results' or the flag list changes
-    import('@/services').then(({ resultService }) => {
-      caseComputationalFlags.forEach(flag => {
-        const sourceId = flag.dataSource?.sourceId;
-        if (!sourceId) return;
-        resultService.getResult(sourceId, caseId)
-          .then((result: ComputationalResult) =>
-            setTabResults(prev => ({ ...prev, [flag.id]: result }))
-          )
-          .catch(() => {});
-      });
-    }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId, caseComputationalFlags.length, caseComputationalFlags.map(f => f.id).join()]);
-
-  // Listen for protocol suggestions from ComputationalPanel order requests
   useEffect(() => {
     const handler = (e: Event) => {
       const { protocolIds, flagName } = (e as CustomEvent).detail;
       if (!protocolIds?.length) return;
-      // Pre-filter the Add Synoptic modal to suggested protocols and open it
       setAvailableProtocols((prev: any[]) =>
         prev.filter((p: any) => protocolIds.includes(p.id))
       );
@@ -317,12 +289,11 @@ const SynopticReportPage: React.FC = () => {
     return () => window.removeEventListener('ps:suggest-protocols', handler);
   }, [showToast]);
 
-  // ── Computational voice actions — SYNOPTIC context ─────────────────────
+  // ── Computational voice actions ────────────────────────────
   useEffect(() => {
-    // Register actions with context = SYNOPTIC
     Object.entries(COMP_VOICE).forEach(([key, phrases]) => {
       const eventName = COMP_EVENT[key as keyof typeof COMP_EVENT];
-      mockActionRegistryService.registerAction?.({
+      (mockActionRegistryService as any).registerAction?.({
         id:       `comp_synoptic_${key.toLowerCase()}`,
         label:    phrases[0],
         phrases,
@@ -332,19 +303,15 @@ const SynopticReportPage: React.FC = () => {
       });
     });
 
-    const openCompTab = () => {
-      setLeftTab('results');
-      log(COMP_AUDIT.USE_COMP_TAB_OPENED, { caseId, source: 'voice' });
-    };
-    const openReportTab  = () => setLeftTab('report');
+    const openCompTab   = () => { setLeftTab('results'); log(COMP_AUDIT.USE_COMP_TAB_OPENED, { caseId, source: 'voice' }); };
+    const openReportTab = () => setLeftTab('report');
     const openOrderModal = () => {
       setLeftTab('results');
-      // Brief delay so the tab renders before dispatching
       setTimeout(() => window.dispatchEvent(new CustomEvent('PATHSCRIBE_COMP_OPEN_ORDER_MODAL_INTERNAL')), 100);
       log(COMP_AUDIT.USE_ORDER_MODAL_OPENED, { caseId });
     };
-    const nextAssay = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.NEXT_ASSAY));
-    const prevAssay = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.PREV_ASSAY));
+    const nextAssay  = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.NEXT_ASSAY));
+    const prevAssay  = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.PREV_ASSAY));
     const readResult = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.READ_RESULT));
 
     window.addEventListener(COMP_EVENT.OPEN_COMP_TAB,    openCompTab);
@@ -365,9 +332,7 @@ const SynopticReportPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
-  // SidecarContext — used by SynopticSidebar to set selectedFlag.
-  // When a flag is selected in the sidebar, switch the left panel to Results tab.
-  const { selectedFlag, isOpen, openDocked } = useSidecar();
+  const { selectedFlag, isOpen } = useSidecar();
   React.useEffect(() => {
     if (isOpen && selectedFlag) setLeftTab('results');
   }, [selectedFlag, isOpen]);
@@ -381,22 +346,15 @@ const SynopticReportPage: React.FC = () => {
     onRemoveFlag,
   } = useSynopticFlags(caseId ?? '');
 
-  // ── Navigation guard ───────────────────────────────────────
-  // Reset to Full Report tab so the report content shows through the dirty modal overlay
   React.useEffect(() => {
     if (hasUnsavedData && leftTab === "results") setLeftTab("report");
   }, [hasUnsavedData, leftTab]);
 
   const guard = useCallback((path: string, state?: object) => {
-    if (hasUnsavedData) {
-      setPendingNavigation(path);
-      return;
-    }
+    if (hasUnsavedData) { setPendingNavigation(path); return; }
     navigate(path, state ? { state } : undefined);
   }, [hasUnsavedData, navigate]);
 
-  // ── Browser unload guard — warns on tab close / browser back ──
-  // ── Voice actions — Case Team ────────────────────────────────────────────
   React.useEffect(() => {
     const openTeam = () => setShowTeamModal(true);
     window.addEventListener('PATHSCRIBE_OPEN_CASE_TEAM',   openTeam);
@@ -419,27 +377,21 @@ const SynopticReportPage: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedData]);
 
-
-
-  // ── Case navigation ────────────────────────────────────────
   const navigateToCase = useCallback((direction: 'next' | 'prev') => {
     const newIndex = direction === 'next' ? worklistIndex + 1 : worklistIndex - 1;
     if (newIndex >= 0 && newIndex < worklistCases.length) {
-      // Forward the worklist so the destination page also has working Prev/Next
       navigate(`/case/${worklistCases[newIndex]}/synoptic`, {
         state: { worklistCaseIds: worklistCases },
       });
     }
   }, [worklistCases, worklistIndex, navigate]);
 
-  // ── Sign-out confirm ───────────────────────────────────────
   const handleSignOutConfirm = useCallback(() => {
     setCaseSigned(true);
     setShowSignOutModal(false);
     showToast('Case signed out successfully');
   }, [setCaseSigned, setShowSignOutModal, showToast]);
 
-  // ── Synoptic panel ref — used to sweep verification at finalize ───────────
   const synopticPanelRef = React.useRef<RightSynopticPanelHandle>(null);
   const [missingFields,          setMissingFields]          = React.useState<MissingRequiredField[]>([]);
   const [showMissingWarning,     setShowMissingWarning]     = React.useState(false);
@@ -448,24 +400,17 @@ const SynopticReportPage: React.FC = () => {
   const [finalizeAndNextPending, setFinalizeAndNextPending] = React.useState(false);
   const [deferredAmendmentContext, setDeferredAmendmentContext] = React.useState<{ title: string; prefill: string } | null>(null);
 
-  // ── Finalize confirm ───────────────────────────────────────
   const handleFinalizeConfirm = useCallback(() => {
-    // Sweep unverified AI suggestions → auto-confirmed before persisting
     if (synopticPanelRef.current) {
       const { verificationSummary } = synopticPanelRef.current.sweepAndGetFinalState();
       console.info('[PathScribe] Finalization sweep:', verificationSummary);
     }
     setShowFinalizeModal(false);
-
-    // Deferred synoptic on already-finalized case → trigger amendment flow
-    const activeReport = caseData?.synopticReports?.find(
-      r => r.instanceId === activeReportInstanceId
-    ) as any;
+    const activeReport = caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any;
     if (caseData?.status === 'finalized' && activeReport?.status === 'deferred') {
       const completedFields = Object.entries(activeReport.answers ?? {})
         .filter(([, v]) => v && (Array.isArray(v) ? (v as string[]).length > 0 : (v as string).trim()))
-        .map(([k]) => k)
-        .join(', ');
+        .map(([k]) => k).join(', ');
       const pendingNote = activeReport.deferredPending ? ` (${activeReport.deferredPending})` : '';
       setDeferredAmendmentContext({
         title: activeReport.templateName ?? 'Deferred Synoptic',
@@ -482,12 +427,122 @@ Original report issued pending ancillary studies. This amendment incorporates th
     }
   }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal]);
 
-  // ── Amendment submit ───────────────────────────────────────
   const handleAmendmentSubmit = useCallback(() => {
     setShowAmendmentModal(false);
     showToast(`${amendmentMode === 'addendum' ? 'Addendum' : 'Amendment'} submitted`);
     setAmendmentText('');
   }, [amendmentMode, setAmendmentText, setShowAmendmentModal, showToast]);
+
+  // ── Orchestrator handlers ──────────────────────────────────
+
+  const handleOrchEvent = useCallback((event: OrchestratorEvent) => {
+    switch (event.type) {
+      case 'section-start':
+        setOrchSections(prev => {
+          const exists = prev.find(s => s.id === event.sectionId);
+          if (exists) {
+            return prev.map(s => s.id === event.sectionId
+              ? { ...s, isStreaming: event.sectionType !== 'synoptic', pendingDraft: undefined }
+              : s);
+          }
+          return [...prev, {
+            id:          event.sectionId!,
+            label:       event.sectionLabel!,
+            type:        event.sectionType === 'synoptic' ? 'synoptic' : 'narrative',
+            text:        '',
+            aiGenerated: '',
+            userEdited:  false,
+            isStreaming: event.sectionType !== 'synoptic',
+          }];
+        });
+        break;
+
+      case 'token':
+        setOrchSections(prev => prev.map(s => {
+          if (s.id !== event.sectionId) return s;
+          if (s.userEdited) return { ...s, pendingDraft: (s.pendingDraft ?? '') + (event.token ?? '') };
+          return { ...s, text: s.text + (event.token ?? '') };
+        }));
+        break;
+
+      case 'section-complete': {
+        const html = event.sectionType === 'synoptic'
+          ? (event.sectionText ?? '')          // already HTML from renderSynopticAnswers
+          : textToHtml(event.sectionText ?? '');
+        setOrchSections(prev => prev.map(s => {
+          if (s.id !== event.sectionId) return s;
+          if (s.userEdited && event.sectionType !== 'synoptic') return { ...s, isStreaming: false, pendingDraft: html };
+          return { ...s, isStreaming: false, text: html, aiGenerated: html };
+        }));
+        break;
+      }
+
+      case 'complete':
+        setIsOrchestrating(false);
+        setLastGeneratedAt(new Date());
+        abortRef.current = null;
+        break;
+
+      case 'error':
+        setIsOrchestrating(false);
+        abortRef.current = null;
+        showToast(`Generation error: ${event.error?.message ?? 'Unknown'}`);
+        break;
+    }
+  }, [showToast]);
+
+  const handleGenerateReport = useCallback(async () => {
+    if (!caseData) return;
+    const tplResult = await mockReportTemplateService.getById(STANDARD_TEMPLATE_ID);
+    if (!tplResult.ok) { showToast('Could not load report template'); return; }
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsOrchestrating(true);
+    setLeftTab('draft');
+    try {
+      await runOrchestrator(
+        (tplResult as any).data,
+        buildContext(caseData, null),
+        handleOrchEvent,
+        mockReportPartService,
+        { signal: controller.signal },
+      );
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') showToast(`Generation failed: ${e?.message ?? 'Unknown'}`);
+      setIsOrchestrating(false);
+      abortRef.current = null;
+    }
+  }, [caseData, handleOrchEvent, showToast]);
+
+  const handleAbortGenerate = useCallback(() => {
+    abortRef.current?.abort();
+    setIsOrchestrating(false);
+    abortRef.current = null;
+    showToast('Generation cancelled');
+  }, [showToast]);
+
+  const handleRegenerateSection = useCallback(async (sectionId: string) => {
+    if (!caseData || isOrchestrating) return;
+    const tplResult = await mockReportTemplateService.getById(STANDARD_TEMPLATE_ID);
+    if (!tplResult.ok) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsOrchestrating(true);
+    try {
+      await regenerateSection(
+        sectionId,
+        (tplResult as any).data,
+        buildContext(caseData, null),
+        handleOrchEvent,
+        mockReportPartService,
+        { signal: controller.signal },
+      );
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') showToast(`Regeneration failed: ${e?.message ?? 'Unknown'}`);
+      setIsOrchestrating(false);
+      abortRef.current = null;
+    }
+  }, [caseData, isOrchestrating, handleOrchEvent, showToast]);
 
   // ─────────────────────────────────────────────────────────
   // Render
@@ -533,20 +588,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
           aiConfidence={92}
         />
 
-        {/* Alert bar — shown when there are unanswered required fields */}
+        {/* Alert bar */}
         {(() => {
           const reports = caseData?.synopticReports ?? [];
           const activeReport = activeReportInstanceId
             ? reports.find(r => r.instanceId === activeReportInstanceId)
             : reports[0];
           const answers = activeReport?.answers ?? caseData?.synopticAnswers ?? {};
-          void answers; // reserved for future required-field count display
-
-          // Show alert if any answers exist but some required fields empty
-          // For now show a contextual alert based on template
+          void answers;
           const templateId = activeReport?.templateId ?? caseData?.synopticTemplateId;
           if (!templateId) return null;
-
           return (
             <div style={{ background: '#fef3c7', borderTop: 'none', borderBottom: '1px solid #fde047', flexShrink: 0 }}>
               <div
@@ -574,58 +625,93 @@ Original report issued pending ancillary studies. This amendment incorporates th
         {/* Main body */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
-          {/* Sidebar — SynopticSidebar adds Computational section at bottom */}
+          {/* Sidebar */}
           <SynopticSidebar>
-          <Sidebar
-            caseData={caseData}
-            activeTab={activeTab}
-            onChangeTab={setActiveTab}
-            activeSpecimenId={activeSpecimenId}
-            onSelectSpecimen={setActiveSpecimenId}
-            onAddSynoptic={() => setShowAddSynopticModal(true)}
-            onOpenCaseComment={() => setShowCaseCommentModal(true)}
-            onOpenSpecimenComment={(id) => { setActiveSpecimenCommentId(id); setShowSpecimenCommentModal(true); }}
-            hasCaseComment={hasCaseComment}
-            specimenComments={specimenComments}
-            activeReportInstanceId={activeReportInstanceId}
-            onSelectReport={(instanceId, specimenId) => {
-              setActiveReportInstanceId(instanceId);
-              setActiveSpecimenId(specimenId);
-            }}
-            onDeleteReport={(instanceId) => {
-              if (!caseData) return;
-              const remaining = (caseData.synopticReports ?? []).filter(r => r.instanceId !== instanceId);
-              const updated: Case = {
-                ...caseData,
-                synopticReports: remaining,
-                updatedAt: new Date().toISOString(),
-              };
-              setCaseData(updated);
-              setHasUnsavedData(true);
-              // If deleted the active report, switch to first remaining
-              if (activeReportInstanceId === instanceId) {
-                setActiveReportInstanceId(remaining[0]?.instanceId ?? '');
-                setActiveSpecimenId(remaining[0]?.specimenId ?? '');
-              }
-            }}
-          />
+            <Sidebar
+              caseData={caseData}
+              activeTab={activeTab}
+              onChangeTab={setActiveTab}
+              activeSpecimenId={activeSpecimenId}
+              onSelectSpecimen={setActiveSpecimenId}
+              onAddSynoptic={() => setShowAddSynopticModal(true)}
+              onOpenCaseComment={() => setShowCaseCommentModal(true)}
+              onOpenSpecimenComment={(id) => { setActiveSpecimenCommentId(id); setShowSpecimenCommentModal(true); }}
+              hasCaseComment={hasCaseComment}
+              specimenComments={specimenComments}
+              activeReportInstanceId={activeReportInstanceId}
+              onSelectReport={(instanceId, specimenId) => {
+                setActiveReportInstanceId(instanceId);
+                setActiveSpecimenId(specimenId);
+              }}
+              onDeleteReport={(instanceId) => {
+                if (!caseData) return;
+                const remaining = (caseData.synopticReports ?? []).filter(r => r.instanceId !== instanceId);
+                const updated: Case = { ...caseData, synopticReports: remaining, updatedAt: new Date().toISOString() };
+                setCaseData(updated);
+                setHasUnsavedData(true);
+                if (activeReportInstanceId === instanceId) {
+                  setActiveReportInstanceId(remaining[0]?.instanceId ?? '');
+                  setActiveSpecimenId(remaining[0]?.specimenId ?? '');
+                }
+              }}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed(v => !v)}
+            />
           </SynopticSidebar>
 
-          {/* Left panel — tabbed: Full Report ↔ Results ──────────────────────
-               No layout shift. The pathologist toggles between the LIS source
-               document and the live computational result in the same column.  */}
+          {/* Left panel — tabbed ──────────────────────────────────────────── */}
           <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative', background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column' }}>
+
+            {/* Collapsed sidebar nav strip */}
+            {sidebarCollapsed && (() => {
+              const allSynoptics = (caseData?.specimens ?? []).flatMap(sp =>
+                (caseData?.synopticReports ?? [])
+                  .filter(r => r.specimenId === sp.id)
+                  .map(r => ({ ...r, specimenLabel: sp.label, specimenDesc: sp.description }))
+              );
+              const idx     = allSynoptics.findIndex(r => r.instanceId === activeReportInstanceId);
+              const current = allSynoptics[idx];
+              const prev    = allSynoptics[idx - 1];
+              const next    = allSynoptics[idx + 1];
+              return (
+                <div className="ps-syn-nav-strip">
+                  <button
+                    className="ps-syn-nav-strip-btn"
+                    onClick={() => prev && (setActiveReportInstanceId(prev.instanceId), setActiveSpecimenId(prev.specimenId))}
+                    disabled={!prev}
+                  >‹</button>
+                  <div className="ps-syn-nav-strip-text">
+                    {current ? (
+                      <>
+                        <span className="ps-syn-nav-strip-letter">{current.specimenLabel}:</span>
+                        {' '}{current.specimenDesc}
+                        <span className="ps-syn-nav-strip-sep">›</span>
+                        <span className="ps-syn-nav-strip-name">{current.templateName}</span>
+                        <span className="ps-syn-nav-strip-count">{idx + 1} / {allSynoptics.length}</span>
+                      </>
+                    ) : (
+                      <span style={{ color: '#475569' }}>No synoptic selected</span>
+                    )}
+                  </div>
+                  <button
+                    className="ps-syn-nav-strip-btn"
+                    onClick={() => next && (setActiveReportInstanceId(next.instanceId), setActiveSpecimenId(next.specimenId))}
+                    disabled={!next}
+                  >›</button>
+                </div>
+              );
+            })()}
 
             {/* Tab bar */}
             <div style={{
-              display:        'flex',
-              alignItems:     'center',
-              borderBottom:   '1px solid rgba(255,255,255,0.08)',
-              flexShrink:     0,
-              background:     'rgba(10,16,32,0.6)',
+              display: 'flex', alignItems: 'center',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              flexShrink: 0, background: 'rgba(10,16,32,0.6)',
             }}>
-              {(['report', 'results'] as const).map(tab => {
-                const label    = tab === 'report' ? '📄 Full Report' : '⚗️ Computational';
+              {(['draft', 'report', 'results'] as const)
+                .filter(tab => tab !== 'draft' || isOrchestrationMode)
+                .map(tab => {
+                const label = tab === 'draft' ? '✍️ Report Draft' : tab === 'report' ? '📋 Full Report' : '⚗️ Computational';
                 const isActive = leftTab === tab;
                 const hasResult = tab === 'results' && caseComputationalFlags.length > 0;
                 return (
@@ -633,31 +719,23 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     key={tab}
                     onClick={() => setLeftTab(tab)}
                     style={{
-                      padding:       '9px 18px',
-                      fontSize:      12,
-                      fontWeight:    isActive ? 600 : 400,
-                      color:         isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
-                      background:    'none',
-                      border:        'none',
-                      borderBottom:  isActive ? '2px solid #38bdf8' : '2px solid transparent',
-                      cursor:        'pointer',
-                      transition:    'all 0.15s',
-                      display:       'flex',
-                      alignItems:    'center',
-                      gap:           6,
-                      whiteSpace:    'nowrap' as const,
+                      padding: '9px 18px', fontSize: 12,
+                      fontWeight:   isActive ? 600 : 400,
+                      color:        isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
+                      background:   'none', border: 'none',
+                      borderBottom: isActive ? '2px solid #38bdf8' : '2px solid transparent',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      whiteSpace: 'nowrap' as const,
                     }}
                   >
                     {label}
                     {hasResult && (
                       <span style={{
-                        fontSize:    10,
-                        fontWeight:  600,
+                        fontSize: 10, fontWeight: 600,
                         background:  isActive ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.08)',
                         color:       isActive ? '#38bdf8' : 'rgba(148,163,184,0.6)',
-                        padding:     '0px 5px',
-                        borderRadius: 99,
-                        lineHeight:  '16px',
+                        padding: '0px 5px', borderRadius: 99, lineHeight: '16px',
                       }}>
                         {caseComputationalFlags.length}
                       </span>
@@ -665,16 +743,69 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   </button>
                 );
               })}
+
+              {/* Sequencer — modal trigger, visually distinct from tabs */}
+              <div style={{ marginLeft: 'auto', padding: '0 10px', display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={() => setShowSequencer(true)}
+                  title="Open report sequencer"
+                  style={{
+                    padding: '5px 12px', fontSize: 11, fontWeight: 600,
+                    color: '#38bdf8', cursor: 'pointer',
+                    background: 'rgba(8,145,178,0.1)',
+                    border: '1px solid rgba(8,145,178,0.3)',
+                    borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6,
+                    transition: 'all 0.15s', whiteSpace: 'nowrap' as const,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.2)'; e.currentTarget.style.borderColor = '#0891B2'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.1)'; e.currentTarget.style.borderColor = 'rgba(8,145,178,0.3)'; }}
+                >
+                  🔀 Sequencer ↗
+                </button>
+              </div>
             </div>
 
             {/* Tab content */}
             <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-              {/* Full Report — always rendered, hidden when Results tab active */}
+              {/* Report Draft — Orchestrator output */}
+              <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none', flexDirection: 'column' }}>
+                <OrchestratorReportPanel
+                  sections={orchSections}
+                  isGenerating={isOrchestrating}
+                  lastGeneratedAt={lastGeneratedAt}
+                  onSectionChange={(id, html) => setOrchSections(prev =>
+                    prev.map(s => s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s)
+                  )}
+                  onAcceptDraft={id => setOrchSections(prev =>
+                    prev.map(s => s.id === id && s.pendingDraft != null
+                      ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
+                      : s)
+                  )}
+                  onKeepVersion={id => setOrchSections(prev =>
+                    prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
+                  )}
+                  onRegenerateSection={handleRegenerateSection}
+                />
+              </div>
+
+              {/* Sequencer — now a modal, triggered by tab button */}
+              <SequencerPanel
+                show={showSequencer}
+                onClose={() => setShowSequencer(false)}
+                caseData={caseData}
+                activeReportInstanceId={activeReportInstanceId}
+                onSelectReport={(instanceId, specimenId) => {
+                  setActiveReportInstanceId(instanceId);
+                  setActiveSpecimenId(specimenId);
+                }}
+              />
+
+              {/* Full Report — LIS source */}
               <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
                 <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
               </div>
 
-              {/* ComputationalPanel — same service fetch as worklist drawer, case-filtered */}
+              {/* Computational */}
               {leftTab === 'results' && (
                 <div style={{ position: 'absolute', inset: 0, background: '#0b1120' }}>
                   {caseId && (
@@ -683,7 +814,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       allCompFlags={caseComputationalFlags}
                       allAvailableFlags={computationalFlags}
                       aiSuggestions={aiSuggestions}
-                      onFlagsChanged={refreshCompFlags}
+                      
                     />
                   )}
                 </div>
@@ -691,7 +822,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
             </div>
           </div>
 
-          {/* Expand button — zero-width divider, always on top */}
+          {/* Expand button */}
           <div style={{ position: 'relative', width: 0, zIndex: 200, display: 'flex', alignItems: 'center' }}>
             <button
               onClick={() => setPanelMode(m => m ? null : 'expanded')}
@@ -730,7 +861,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           </div>
         </div>
 
-        {/* ── Fullscreen review overlay ──────────────────────────────────────────── */}
+        {/* Fullscreen review overlay */}
         {panelMode === 'expanded' && caseData && (() => {
           const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
           const patient   = caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
@@ -742,18 +873,13 @@ Original report issued pending ancillary studies. This amendment incorporates th
               onKeyDown={e => { if (e.key === 'Escape') setPanelMode(null); }}
               tabIndex={-1}
             >
-              {/* Identity bar — two rows */}
               <div style={{ background: 'rgba(8,20,40,0.98)', borderBottom: '1px solid rgba(8,145,178,0.3)', flexShrink: 0 }}>
-
-                {/* Row 1: patient identity */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px', height: 34, fontSize: 12 }}>
                   <span style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace' }}>{accession}</span>
                   {patient && <><span style={{ color: '#334155' }}>·</span><span style={{ color: '#f1f5f9', fontWeight: 600 }}>{patient}</span></>}
                   {sex  && <><span style={{ color: '#334155' }}>·</span><span style={{ color: '#f1f5f9' }}>{sex}</span></>}
                   {dob  && <><span style={{ color: '#334155' }}>·</span><span style={{ color: '#94a3b8', fontSize: 11 }}>DOB</span><span style={{ color: '#f1f5f9', marginLeft: 3 }}>{dob}</span></>}
                 </div>
-
-                {/* Row 2: specimen pills — full width, overflows naturally */}
                 {caseData.specimens && caseData.specimens.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 10px', overflowX: 'auto' }}>
                     <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, letterSpacing: '0.08em', flexShrink: 0, textTransform: 'uppercase', marginRight: 4 }}>Specimen:</span>
@@ -762,11 +888,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       const hasNone  = reports.length === 0;
                       const hasMulti = reports.length > 1;
                       const isActive = sp.id === activeSpecimenId;
-                      const pillBorder  = hasNone ? '#d97706'  : '#0891B2';
-                      const pillBg      = hasNone ? 'transparent' : isActive ? '#0891B2'              : 'transparent';
-                      const pillColor   = hasNone ? '#fbbf24'  : isActive ? '#ffffff'               : '#7dd3fc';
-                      const labelColor  = hasNone ? '#f59e0b'  : isActive ? '#ffffff'               : '#38bdf8';
-
+                      const pillBorder = hasNone ? '#d97706' : '#0891B2';
+                      const pillBg     = hasNone ? 'transparent' : isActive ? '#0891B2' : 'transparent';
+                      const pillColor  = hasNone ? '#fbbf24' : isActive ? '#ffffff' : '#7dd3fc';
+                      const labelColor = hasNone ? '#f59e0b' : isActive ? '#ffffff' : '#38bdf8';
                       return (
                         <div key={sp.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                           <button
@@ -778,37 +903,26 @@ Original report issued pending ancillary studies. This amendment incorporates th
                             }}
                             style={{
                               padding: '3px 12px', fontSize: 12, fontWeight: 600, flexShrink: 0,
-                              borderRadius: 20,
-                              border: `1.5px solid ${pillBorder}`,
+                              borderRadius: 20, border: `1.5px solid ${pillBorder}`,
                               background: pillBg, color: pillColor,
                               cursor: 'pointer', transition: 'all 0.15s',
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              whiteSpace: 'nowrap',
+                              display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
                             }}
                           >
                             <span style={{ color: labelColor, fontWeight: 800 }}>{sp.label}:</span>
                             <span>{sp.description}</span>
                             {hasNone && <span style={{ fontSize: 10 }}>⚠</span>}
                           </button>
-
-                          {/* Dropdown — includes specimen letter for context */}
                           {hasMulti && (
                             <select
                               className="ps-specimen-pill"
                               value={isActive ? activeReportInstanceId : reports[0].instanceId}
-                              onChange={e => {
-                                setActiveSpecimenId(sp.id);
-                                setActiveReportInstanceId(e.target.value);
-                              }}
+                              onChange={e => { setActiveSpecimenId(sp.id); setActiveReportInstanceId(e.target.value); }}
                               style={{
-                                height: 24, fontSize: 11, fontWeight: 600,
-                                maxWidth: 160, flexShrink: 0,
-                                background: 'rgba(8,145,178,0.15)',
-                                color: '#7dd3fc',
-                                border: '1.5px solid #0891B2',
-                                borderRadius: 20,
-                                padding: '0 8px',
-                                cursor: 'pointer', outline: 'none',
+                                height: 24, fontSize: 11, fontWeight: 600, maxWidth: 160, flexShrink: 0,
+                                background: 'rgba(8,145,178,0.15)', color: '#7dd3fc',
+                                border: '1.5px solid #0891B2', borderRadius: 20,
+                                padding: '0 8px', cursor: 'pointer', outline: 'none',
                               }}
                             >
                               {reports.map((r: any, i: number) => (
@@ -825,22 +939,18 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 )}
               </div>
 
-              {/* Panels */}
               <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-                {/* Left — same tabbed panel as normal view */}
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'rgba(15,23,42,0.95)' }}>
-
-                  {/* Tab bar */}
                   <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, background: 'rgba(10,16,32,0.6)' }}>
-                    {(['report', 'results'] as const).map(tab => {
+                    {(['draft', 'sequencer', 'report', 'results'] as const).map(tab => {
                       const isActive = leftTab === tab;
-                      const label    = tab === 'report' ? '📄 Full Report' : '⚗️ Computational';
+                      const label    = tab === 'draft' ? '✍️ Report Draft' : tab === 'sequencer' ? '🔀 Sequencer' : tab === 'report' ? '📋 Full Report' : '⚗️ Computational';
                       return (
                         <button key={tab} onClick={() => setLeftTab(tab)} style={{
                           padding: '9px 18px', fontSize: 12,
-                          fontWeight:   isActive ? 600 : 400,
-                          color:        isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
-                          background:   'none', border: 'none',
+                          fontWeight: isActive ? 600 : 400,
+                          color: isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
+                          background: 'none', border: 'none',
                           borderBottom: isActive ? '2px solid #38bdf8' : '2px solid transparent',
                           cursor: 'pointer', transition: 'all 0.15s',
                           display: 'flex', alignItems: 'center', gap: 6,
@@ -849,8 +959,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                           {tab === 'results' && caseComputationalFlags.length > 0 && (
                             <span style={{
                               fontSize: 10, fontWeight: 600,
-                              background:   isActive ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.08)',
-                              color:        isActive ? '#38bdf8' : 'rgba(148,163,184,0.6)',
+                              background: isActive ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.08)',
+                              color: isActive ? '#38bdf8' : 'rgba(148,163,184,0.6)',
                               padding: '0 5px', borderRadius: 99, lineHeight: '16px',
                             }}>{caseComputationalFlags.length}</span>
                           )}
@@ -858,9 +968,36 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       );
                     })}
                   </div>
-
-                  {/* Tab content */}
                   <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none', flexDirection: 'column' }}>
+                      <OrchestratorReportPanel
+                        sections={orchSections}
+                        isGenerating={isOrchestrating}
+                        lastGeneratedAt={lastGeneratedAt}
+                        onSectionChange={(id, html) => setOrchSections(prev =>
+                          prev.map(s => s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s)
+                        )}
+                        onAcceptDraft={id => setOrchSections(prev =>
+                          prev.map(s => s.id === id && s.pendingDraft != null
+                            ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
+                            : s)
+                        )}
+                        onKeepVersion={id => setOrchSections(prev =>
+                          prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
+                        )}
+                        onRegenerateSection={handleRegenerateSection}
+                      />
+                    </div>
+                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'sequencer' ? 'flex' : 'none', flexDirection: 'column' }}>
+                      <SequencerPanel
+                        caseData={caseData}
+                        activeReportInstanceId={activeReportInstanceId}
+                        onSelectReport={(instanceId, specimenId) => {
+                          setActiveReportInstanceId(instanceId);
+                          setActiveSpecimenId(specimenId);
+                        }}
+                      />
+                    </div>
                     <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
                       <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
                     </div>
@@ -872,7 +1009,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                             allCompFlags={caseComputationalFlags}
                             allAvailableFlags={computationalFlags}
                             aiSuggestions={aiSuggestions}
-                            onFlagsChanged={refreshCompFlags}
+                            
                           />
                         )}
                       </div>
@@ -880,7 +1017,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   </div>
                 </div>
 
-                {/* Collapse button on the divider */}
                 <div style={{ position: 'relative', width: 0, zIndex: 200, display: 'flex', alignItems: 'center' }}>
                   <button
                     onClick={() => setPanelMode(null)}
@@ -927,17 +1063,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
             if (missing.length > 0) { setMissingFields(missing); setShowMissingWarning(true); return; }
             const uncertain = synopticPanelRef.current.getUncertainRequiredFields();
             if (uncertain.length > 0) { setReviewFields(uncertain); setFinalizeAndNextPending(false); setShowAiReview(true); return; }
-            // Check for any deferred synoptics — warn but allow sign-out
             const deferredReports = (caseData?.synopticReports ?? []).filter((r: any) => r.status === 'deferred');
             if (deferredReports.length > 0) {
               const names = deferredReports.map((r: any) => r.templateName).join(', ');
-              if (!window.confirm(`${deferredReports.length} synoptic report(s) are marked deferred and will not be included in this sign-out:
-
-${names}
-
-These will require an amendment when ancillary results are available.
-
-Proceed with sign-out?`)) return;
+              if (!window.confirm(`${deferredReports.length} synoptic report(s) are marked deferred and will not be included in this sign-out:\n\n${names}\n\nThese will require an amendment when ancillary results are available.\n\nProceed with sign-out?`)) return;
             }
             setShowFinalizeModal(true);
           }}
@@ -950,7 +1079,7 @@ Proceed with sign-out?`)) return;
             setShowFinalizeModal(true);
           }}
           onSignOut={() => setShowSignOutModal(true)}
-          onAddendumAmendment={() => { setAmendmentMode('addendum'); setShowAmendmentModal(true); }}
+          
           onHistory={() => setIsSimilarCasesOpen(true)}
           onFlags={() => openFlagManager(caseData)}
           onDelegate={() => setShowDelegateModal(true)}
@@ -958,6 +1087,9 @@ Proceed with sign-out?`)) return;
           onCodes={() => setShowCodesModal(true)}
           onNextCase={() => { if (hasUnsavedData) { setPendingNavigation('next'); } else { navigateToCase('next'); } }}
           onPreviousCase={() => { if (hasUnsavedData) { setPendingNavigation('prev'); } else { navigateToCase('prev'); } }}
+          onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
+          isGenerating={isOrchestrating}
+          onAbortGenerate={handleAbortGenerate}
         />
       </div>
 
@@ -976,14 +1108,13 @@ Proceed with sign-out?`)) return;
         onConfirm={handleSignOutConfirm}
       />
 
-      {/* AI Review Mode — triage uncertain fields before finalize */}
       {showAiReview && (
         <AiReviewModal
           fields={reviewFields}
           finalizeAndNext={finalizeAndNextPending}
           onConfirm={(fieldId: string) => synopticPanelRef.current?.setFieldVerification(fieldId, 'verified')}
           onOverride={(fieldId: string) => synopticPanelRef.current?.setFieldVerification(fieldId, 'disputed')}
-          onSkip={(_fieldId: string) => { /* stays unverified — auto-confirmed at sweep */ }}
+          onSkip={(_fieldId: string) => { /* stays unverified */ }}
           onComplete={(summary) => {
             console.info('[PathScribe] AI review summary:', summary);
             setShowAiReview(false);
@@ -993,7 +1124,6 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Missing Required Fields Warning */}
       {showMissingWarning && (
         <div
           onClick={() => setShowMissingWarning(false)}
@@ -1072,7 +1202,6 @@ Proceed with sign-out?`)) return;
         onConfirm={() => { setShowLogoutModal(false); handleLogout(); }}
       />
 
-      {/* Add Synoptic Modal */}
       {showAddSynopticModal && (
         <AddSynopticModal
           caseData={caseData}
@@ -1087,7 +1216,6 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Case Comment Modal */}
       {showCaseCommentModal && (
         <CaseCommentModal
           accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
@@ -1101,7 +1229,6 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Specimen / Report Comment Modal */}
       {showSpecimenCommentModal && activeSpecimenCommentId && (
         <ReportCommentModal
           specimenName={
@@ -1119,7 +1246,6 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* History — Similar Cases Panel */}
       {isSimilarCasesOpen && caseData && (
         <PatientHistoryModal
           patientName={`${caseData.patient.lastName}, ${caseData.patient.firstName}`}
@@ -1128,13 +1254,11 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Codes Modal */}
       {showCodesModal && caseData && (
         <AddCodeModal
           existingCodes={(caseData as any).codes ?? []}
           allSpecimens={(caseData.specimens ?? []).map((sp, i) => ({
-            index: i,
-            id: i + 1,
+            index: i, id: i + 1,
             name: `${sp.label}: ${sp.description ?? ''}`,
           }))}
           activeSpecimenIndex={0}
@@ -1156,10 +1280,7 @@ Proceed with sign-out?`)) return;
             ) ?? ''
           }
           narrativeText={
-            // Pass narrative if Orchestrator mode generated one (stored on the report instance)
-            (caseData.synopticReports?.find(r =>
-              r.instanceId === activeReportInstanceId
-            ) as any)?.narrativeContent ?? undefined
+            (caseData.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any)?.narrativeContent ?? undefined
           }
           onAddToSpecimens={(codes, _specimenIndices) => {
             const newIcd    = codes.filter(c => c.system === 'ICD').map(c => c.code);
@@ -1178,7 +1299,6 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Flag Manager Modal */}
       {showFlagManager && flagCaseData && (
         <FlagManagerModal
           key={`flag-modal-${flagCaseData.id}`}
@@ -1206,7 +1326,6 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Case Team Modal */}
       {showTeamModal && caseData && (
         <CaseTeamModal
           caseData={caseData}
@@ -1216,16 +1335,12 @@ Proceed with sign-out?`)) return;
         />
       )}
 
-      {/* Delegate Modal */}
       {showDelegateModal && (
         <DelegateModal
           isOpen={showDelegateModal}
           onClose={() => {
             setShowDelegateModal(false);
-            if (delegateReturnTo === 'team') {
-              setShowTeamModal(true);
-              setDelegateReturnTo(null);
-            }
+            if (delegateReturnTo === 'team') { setShowTeamModal(true); setDelegateReturnTo(null); }
           }}
           registry={mockActionRegistryService}
           caseId={caseId}
@@ -1233,10 +1348,7 @@ Proceed with sign-out?`)) return;
           onDelegated={() => {
             setShowDelegateModal(false);
             showToast('Case delegated successfully');
-            if (delegateReturnTo === 'team') {
-              setShowTeamModal(true);
-              setDelegateReturnTo(null);
-            }
+            if (delegateReturnTo === 'team') { setShowTeamModal(true); setDelegateReturnTo(null); }
           }}
           synopticInstances={(caseData?.synopticReports ?? []).map(r => ({
             instanceId: r.instanceId,
@@ -1249,15 +1361,10 @@ Proceed with sign-out?`)) return;
       <UnsavedWarningModal
         show={!!pendingNavigation || !!pendingPath}
         overlayStyle={overlayStyle}
-        onCancel={() => {
-          setPendingNavigation(null);
-          cancelContextNavigate();
-        }}
+        onCancel={() => { setPendingNavigation(null); cancelContextNavigate(); }}
         onConfirm={() => {
           setHasUnsavedData(false);
-          if (pendingPath) {
-            confirmContextNavigate();
-          }
+          if (pendingPath) confirmContextNavigate();
           const dest = pendingNavigation;
           setPendingNavigation(null);
           if (dest === 'next') navigateToCase('next');

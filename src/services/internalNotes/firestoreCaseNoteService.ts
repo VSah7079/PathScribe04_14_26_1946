@@ -13,7 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { ServiceResult, ID } from '../types';
+import {  ID } from '../types';
 import { CaseNote, NewCaseNote, ICaseNoteService } from './ICaseNoteService';
 import { firestoreAuditService } from '../auditLog/firestoreAuditService';
 

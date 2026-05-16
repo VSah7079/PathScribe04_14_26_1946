@@ -343,15 +343,15 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'NEXT_TAB', label: 'Next Tab', category: 'NAVIGATION',
+    id: 'NEXT_TAB', label: 'Next Tab / Section', category: 'NAVIGATION',
     shortcut: 'Alt+.', internalKey: ACTION_MAP['nav.nextTab']?.internalKey ?? 'F14+PS003',
-    voiceTriggers: ['next tab', 'go to next tab', 'tab right'],
+    voiceTriggers: ['next tab', 'go to next tab', 'tab right', 'next section', 'go to next section'],
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'PREVIOUS_TAB', label: 'Previous Tab', category: 'NAVIGATION',
+    id: 'PREVIOUS_TAB', label: 'Previous Tab / Section', category: 'NAVIGATION',
     shortcut: 'Alt+,', internalKey: ACTION_MAP['nav.previousTab']?.internalKey ?? 'F14+PS004',
-    voiceTriggers: ['previous tab', 'go to previous tab', 'tab left', 'prior tab'],
+    voiceTriggers: ['previous tab', 'go to previous tab', 'tab left', 'prior tab', 'previous section', 'go to previous section', 'prior section'],
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
@@ -547,7 +547,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_PRE_FINALISE', label: 'Finalise Report', category: VOICE_CONTEXT.REPORTING,
-    shortcut: 'Alt+F', internalKey: ACTION_MAP['system.finalise']?.internalKey ?? 'F13+PS010',
+    shortcut: 'Alt+F', internalKey: (ACTION_MAP as any)['system.finalise']?.internalKey ?? 'F13+PS010',
     voiceTriggers: [
       'finalise', 'finalize', 'finalise report', 'finalize report',
       'finalise case', 'finalize case', 'sign off', 'sign off report',
@@ -557,7 +557,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FINALISE_AND_NEXT', label: 'Finalise and Next Case', category: VOICE_CONTEXT.REPORTING,
-    shortcut: 'Alt+Shift+F', internalKey: ACTION_MAP['system.finaliseNext']?.internalKey ?? 'F13+PS011',
+    shortcut: 'Alt+Shift+F', internalKey: (ACTION_MAP as any)['system.finaliseNext']?.internalKey ?? 'F13+PS011',
     voiceTriggers: [
       'finalise and next', 'finalize and next',
       'finalise next', 'finalize next',

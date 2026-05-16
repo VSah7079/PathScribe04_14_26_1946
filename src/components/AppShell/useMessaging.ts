@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 // Importing the mock and the types from your verified path
-import { mockMessageService, Message } from '../../services/messages/IMessageService';
-import { ID } from '../../services/types'; 
+import type { Message } from '../../services/messages/IMessageService';
+import { mockMessageService } from '../../services/messages/mockMessageService';
+
 
 export const useMessaging = (userId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);

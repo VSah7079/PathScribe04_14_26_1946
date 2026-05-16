@@ -183,9 +183,9 @@ const SubspecialtiesSection: React.FC = () => {
   const commitSave = (d: Draft, spAssignments: string[], target: Subspecialty | null, unlinkAll: boolean) => {
     const subId = modalMode === "add" ? d.name.toLowerCase().replace(/\s+/g, "-") : target!.id;
     if (modalMode === "add") {
-      addSubspecialty({ name: d.name, active: d.active, userIds: d.userIds, specimenIds: [], clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' } as any);
+      addSubspecialty({ name: d.name, active: d.active, userIds: d.userIds, specimenIds: [], clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' } as any as any as any);
     } else {
-      updateSubspecialty({ ...target!, name: d.name, active: d.active, userIds: unlinkAll ? [] : d.userIds, clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' });
+     updateSubspecialty({ ...target!, name: d.name, active: d.active, userIds: unlinkAll ? [] : d.userIds, clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' } as any);
     }
     specimens.forEach((sp) => {
       const shouldBelong     = !unlinkAll && spAssignments.includes(sp.id);

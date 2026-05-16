@@ -5,7 +5,7 @@
 // No Firestore reads needed — results are fetched from the source of truth.
 
 import { IResultService } from './IResultService';
-import { Flag } from '../flag/IFlagService';
+import { Flag } from '../flags/IFlagService';
 import { ComputationalResult } from '../../types/smarttag.types';
 
 // ---------------------------------------------------------------------------

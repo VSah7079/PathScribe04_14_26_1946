@@ -46,7 +46,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import '../../../pathscribe.css';
 import { useNavigate, useParams } from 'react-router-dom';
 import { mockDcisTemplate } from '../../../templates/mockDcisTemplate';
+<<<<<<< HEAD
 import { InlineCommentThread } from '../../PatientReportPage/Comments/InlineCommentThread';
+=======
+import { InlineCommentThread } from '../../../components/PatientReportPage/Comments/InlineCommentThread';
+>>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
 import { TemplateLifecycleState } from '../../../types/AuditEvent';
 import { Question, ChoiceQuestion, TemplateSection } from '../../../types/templateTypes';
 import { PROTOCOL_REGISTRY } from '../Protocols/protocolShared';
@@ -284,7 +288,7 @@ export const TemplateRenderer: React.FC = () => {
   const handleSingleChange = (questionId: string, optionId: string) => {
     const prev = answers[questionId];
     persistAnswers({ ...answers, [questionId]: optionId });
-    auditOnly({ category: 'user', action: 'set_single_answer', templateId: template.id, questionId, oldValue: prev, newValue: optionId });
+    auditOnly({ category: 'user', action: 'set_single_answer'as any, templateId: template.id, questionId, oldValue: prev, newValue: optionId });
   };
 
   const handleMultiChange = (questionId: string, optionId: string) => {
@@ -293,13 +297,13 @@ export const TemplateRenderer: React.FC = () => {
     const nextArray = exists ? current.filter(id => id !== optionId) : [...current, optionId];
     const prev      = answers[questionId];
     persistAnswers({ ...answers, [questionId]: nextArray });
-    auditOnly({ category: 'user', action: exists ? 'remove_multi_answer' : 'add_multi_answer', templateId: template.id, questionId, oldValue: prev, newValue: nextArray });
+    auditOnly({ category: 'user', action: exists ? 'remove_multi_answer' : 'add_multi_answer'as any, templateId: template.id, questionId, oldValue: prev, newValue: nextArray });
   };
 
   const handleTextChange = (questionId: string, value: string) => {
     const prev = answers[questionId];
     persistAnswers({ ...answers, [questionId]: value });
-    auditOnly({ category: 'user', action: 'set_text_answer', templateId: template.id, questionId, oldValue: prev, newValue: value });
+    auditOnly({ category: 'user', action: 'set_text_answer'as any, templateId: template.id, questionId, oldValue: prev, newValue: value });
   };
 
   // ── Lifecycle transition ───────────────────────────────────────────────────
@@ -339,7 +343,7 @@ export const TemplateRenderer: React.FC = () => {
     persistState('draft');
     setConfirmReset(false);
     transitionTemplate(template.id, 'draft' as any).catch(() => {});
-    auditOnly({ user: 'System', category: 'system', action: 'reset_template', templateId: template.id });
+    auditOnly({ user: 'System', category: 'system', action: 'reset_template' as any, templateId: template.id });
   };
 
   // ── Derived ────────────────────────────────────────────────────────────────
@@ -545,7 +549,7 @@ export const TemplateRenderer: React.FC = () => {
                   {q.text}
                 </div>
 
-                <InlineCommentThread questionId={q.id} currentUser={currentUser} />
+                <InlineCommentThread questionId={q.id} templateId={template.id} currentUser={user?.name ?? 'Dr. Reviewer'} />
 
                 {/* Single-select */}
                 {isChoiceQuestion(q) && !q.multiple && (

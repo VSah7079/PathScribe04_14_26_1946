@@ -4,7 +4,7 @@
 import React, { useImperativeHandle, forwardRef, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Case } from '@/types/case/Case';
 import type {
-  EditorTemplate,
+  
   EditorField,
   EditorSection,
   FieldOption,
@@ -13,12 +13,9 @@ import type { TemplateDetail } from '@/services/templates/templateService';
 import { listTemplates, getTemplate } from '@/services/templates/templateService';
 import { generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback } from '@/services/cases/mockCaseService';
 import { aiBehaviorService } from '@/services';
-import { callAi } from '@/services/aiIntegration/aiProviderService';
 import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
-import { narrativeTemplateConfig } from '@/components/Config/NarrativeTemplates/narrativeTemplateConfig';
-import NarrativeEditor from '@/components/Editor/NarrativeEditor';
 
-const AUTO_DRAFT_MS = 1800;
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 type VisCond = EditorField['visibleWhen'];
@@ -30,35 +27,7 @@ function isVisible(cond: VisCond | undefined, ans: Record<string, string | strin
   return Array.isArray(v) ? v.includes(cond.answerId) : v === cond.answerId;
 }
 
-function buildPrompt(tpl: EditorTemplate, ans: Record<string, string | string[]>, c: Case): string {
-  const lines: string[] = [];
-  tpl.sections.forEach(sec => {
-    if (!isVisible(sec.visibleWhen, ans)) return;
-    lines.push(`\n### ${sec.title}`);
-    sec.fields.forEach(f => {
-      if (!isVisible(f.visibleWhen, ans)) return;
-      const raw = ans[f.id]; if (!raw) return;
-      const display = f.options?.length
-        ? (Array.isArray(raw) ? raw : [raw]).map(id => f.options.find((o: FieldOption) => o.id === id)?.label ?? id).join(', ')
-        : Array.isArray(raw) ? raw.join(', ') : raw;
-      lines.push(`${f.label}: ${display}`);
-    });
-  });
-  const instr = narrativeTemplateConfig.sections
-    .filter(s => s.enabled)
-    .map(s => `- ${s.title}: ${s.aiInstruction}`)
-    .join('\n');
-  return [
-    'You are a pathology reporting assistant. Generate a professional narrative pathology report.',
-    `Rules: Do not invent findings. Use formal clinical prose.\n${instr}`,
-    `Case: ${c.id}`,
-    `Gross: ${c.diagnostic?.grossDescription ?? '—'}`,
-    `Micro: ${c.diagnostic?.microscopicDescription ?? '—'}`,
-    `Ancillary: ${c.diagnostic?.ancillaryStudies ?? '—'}`,
-    `\n## Synoptic Data`, ...lines,
-    `\nGenerate the full narrative report now.`,
-  ].join('\n');
-}
+
 
 // ─── Input styles ─────────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
@@ -400,7 +369,7 @@ const TEMPLATE_CACHE = new Map<string, any>();
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
-  ({ caseData: initialCaseData, activeReportInstanceId, onCaseUpdate, isDirty, scrollToField, onScrollComplete, onHighlight, computationalResults, onAiSuggestionsUpdate }, ref) => {
+  ({ caseData: initialCaseData, activeReportInstanceId, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, computationalResults, onAiSuggestionsUpdate }, ref) => {
 
   const orchestratorMode = useMemo(() => getOrchestratorMode(), []);
   const caseData = initialCaseData;
@@ -412,6 +381,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   const [loading,             setLoading]             = useState(true);
   const [error,               setError]               = useState<string | null>(null);
   const [activeSectionId,     setActiveSectionId]     = useState('');
+  const [viewMode,            setViewMode]            = useState<'tabs' | 'page'>('tabs');
   const [aiSuggestions,       setAiSuggestions]       = useState<Record<string, AiSuggestion>>({});
 
   // Notify parent whenever suggestions update so SidecarDisplay can check concordance
@@ -424,17 +394,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   const [confidenceThreshold, setConfidenceThreshold] = useState(75);
   const [autoInsertSuggestions, setAutoInsertSuggestions] = useState(false);
 
-  // Orchestrator state
-  const [narrativeContent, setNarrativeContent] = useState('');
-  const [isGenerating,     setIsGenerating]     = useState(false);
-  const [generateError,    setGenerateError]    = useState<string | null>(null);
-  const [lastGeneratedAt,  setLastGeneratedAt]  = useState<Date | null>(null);
-
   // ── Refs ───────────────────────────────────────────────────────────────────
   const loadedAnswersRef   = useRef<string>('');
   const fieldRefs          = useRef<Record<string, HTMLDivElement | null>>({});
+  const sectionHeaderRefs  = useRef<Record<string, HTMLDivElement | null>>({});
   const lastJumpedFieldId  = useRef<string | null>(null);
-  const timerRef           = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Load AI behavior settings ──────────────────────────────────────────────
   useEffect(() => {
@@ -461,7 +425,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
 
   // ── Jump to field ─────────────────────────────────────────────────────────
   const jumpToField = useCallback((fieldId: string, sectionId: string) => {
-    setActiveSectionId(sectionId);
+    if (viewMode === 'tabs') setActiveSectionId(sectionId);
     setActiveFieldId(fieldId);
     setPulsingFieldId(fieldId);
     lastJumpedFieldId.current = fieldId;
@@ -475,9 +439,59 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       }
       setTimeout(() => setPulsingFieldId(null), 2000);
     }, 80);
-  }, []);
+  }, [viewMode]);
 
-  // ── Voice: next unanswered / next required ────────────────────────────────
+  // ── View mode + section navigation voice/action events ───────────────────
+  useEffect(() => {
+    const onFullView     = () => setViewMode('page');
+    const onTabbedView   = () => setViewMode('tabs');
+
+    const onNextTab = () => {
+      if (!templateDetail) return;
+      const sections = templateDetail.template.sections.filter((s: any) => isVisible(s.visibleWhen, answers));
+      if (viewMode === 'tabs') {
+        const idx = sections.findIndex((s: any) => s.id === (activeSectionId || sections[0]?.id));
+        const next = sections[Math.min(idx + 1, sections.length - 1)];
+        if (next) setActiveSectionId(next.id);
+      } else {
+        // Page mode — scroll to next section header
+        const idx = sections.findIndex((s: any) =>
+          sectionHeaderRefs.current[s.id] &&
+          (sectionHeaderRefs.current[s.id]?.getBoundingClientRect().top ?? 0) > 10
+        );
+        const target = sections[idx >= 0 ? idx : 0];
+        if (target) sectionHeaderRefs.current[target.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    const onPreviousTab = () => {
+      if (!templateDetail) return;
+      const sections = templateDetail.template.sections.filter((s: any) => isVisible(s.visibleWhen, answers));
+      if (viewMode === 'tabs') {
+        const idx = sections.findIndex((s: any) => s.id === (activeSectionId || sections[0]?.id));
+        const prev = sections[Math.max(idx - 1, 0)];
+        if (prev) setActiveSectionId(prev.id);
+      } else {
+        // Page mode — scroll to previous section header above viewport
+        const visible = sections.filter((s: any) =>
+          (sectionHeaderRefs.current[s.id]?.getBoundingClientRect().top ?? 1) < 0
+        );
+        const target = visible[visible.length - 1];
+        if (target) sectionHeaderRefs.current[target.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    window.addEventListener('PATHSCRIBE_FULL_VIEW',    onFullView);
+    window.addEventListener('PATHSCRIBE_TABBED_VIEW',  onTabbedView);
+    window.addEventListener('PATHSCRIBE_NEXT_TAB',     onNextTab);
+    window.addEventListener('PATHSCRIBE_PREVIOUS_TAB', onPreviousTab);
+    return () => {
+      window.removeEventListener('PATHSCRIBE_FULL_VIEW',    onFullView);
+      window.removeEventListener('PATHSCRIBE_TABBED_VIEW',  onTabbedView);
+      window.removeEventListener('PATHSCRIBE_NEXT_TAB',     onNextTab);
+      window.removeEventListener('PATHSCRIBE_PREVIOUS_TAB', onPreviousTab);
+    };
+  }, [templateDetail, answers, viewMode, activeSectionId]);
   useEffect(() => {
     const handleNextUnanswered = () => {
       if (!templateDetail) return;
@@ -682,7 +696,9 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
                 }
               });
             }
-            if (!isDirty) loadedAnswersRef.current = JSON.stringify(prefilled);
+            // Always update the ref on report switch so the propagation effect
+            // doesn't fire spuriously with stale data from the previous report.
+            loadedAnswersRef.current = JSON.stringify(prefilled);
             return prefilled;
           });
 
@@ -692,7 +708,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           if (cancelled) return;
           updateAiSuggestions({});
           setAnswers(() => answersToLoad);
-          if (!isDirty) loadedAnswersRef.current = JSON.stringify(answersToLoad);
+          loadedAnswersRef.current = JSON.stringify(answersToLoad);
           setTemplateDetail(null);
         }
       } catch (e: any) {
@@ -703,31 +719,6 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     })();
     return () => { cancelled = true; };
   }, [initialCaseData?.id, initialCaseData?.synopticTemplateId, initialCaseData?.synopticReports?.length, activeReportInstanceId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Narrative generation ──────────────────────────────────────────────────
-  const generateNarrative = useCallback(async () => {
-    if (!templateDetail || !caseData) return;
-    setIsGenerating(true); setGenerateError(null);
-    try {
-      const { text } = await callAi({
-        system: 'You are a board-certified pathologist assistant. Generate professional pathology report narrative. Never invent findings.',
-        prompt: buildPrompt(templateDetail.template, answers, caseData),
-      });
-      setNarrativeContent(text);
-      setLastGeneratedAt(new Date());
-    } catch (e: any) {
-      setGenerateError(e?.message);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [templateDetail, answers, caseData]);
-
-  useEffect(() => {
-    if (!orchestratorMode || !templateDetail || !caseData || Object.keys(answers).length === 0) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(generateNarrative, AUTO_DRAFT_MS);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [answers, orchestratorMode, templateDetail, caseData, generateNarrative]);
 
   // ── setAnswer ─────────────────────────────────────────────────────────────
   const setAnswer = useCallback((fieldId: string, value: string | string[]) => {
@@ -896,40 +887,6 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     </div>
   );
 
-  // ── Orchestrator left panel ───────────────────────────────────────────────
-  const OrchestratorLeft = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#e2e8f0' }}>AI Narrative Report</h3>
-          {lastGeneratedAt && <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>Last generated {lastGeneratedAt.toLocaleTimeString()}</div>}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {generateError && <span style={{ fontSize: 11, color: '#f87171' }}>⚠ {generateError}</span>}
-          <button
-            onClick={generateNarrative}
-            disabled={isGenerating}
-            style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, border: '1px solid rgba(8,145,178,0.4)', background: 'rgba(8,145,178,0.15)', color: isGenerating ? '#64748b' : '#38bdf8', cursor: isGenerating ? 'not-allowed' : 'pointer' }}
-          >
-            {isGenerating ? '⏳ Generating…' : '↻ Regenerate'}
-          </button>
-        </div>
-      </div>
-      <div style={{ fontSize: 11, color: '#475569', marginBottom: 10, fontStyle: 'italic' }}>
-        Auto-drafts as you fill synoptic fields · Edit freely after generation
-      </div>
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <NarrativeEditor
-          value={narrativeContent}
-          onChange={setNarrativeContent}
-          readOnly={isGenerating}
-          minHeight="calc(100vh - 320px)"
-          placeholder="AI-generated narrative will appear here…"
-        />
-      </div>
-    </div>
-  );
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -1042,55 +999,108 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           </button>
         </div>
 
-        {/* Section tabs */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {visibleSections.map((sec: EditorSection) => {
-            const isActive = sec.id === (activeSectionId || visibleSections[0]?.id);
-            const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && answers[f.id]).length;
-            const secTotal = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers)).length;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => setActiveSectionId(sec.id)}
-                style={{
-                  padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  background: isActive ? '#0891B2' : 'rgba(255,255,255,0.06)',
-                  border: `2px solid ${isActive ? '#0891B2' : 'rgba(148,163,184,0.2)'}`,
-                  color: isActive ? 'white' : '#cbd5e1', transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(8,145,178,0.15)'; e.currentTarget.style.borderColor = 'rgba(8,145,178,0.5)'; e.currentTarget.style.color = '#7dd3fc'; }}}
-                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = '#cbd5e1'; }}}
-              >
-                {sec.title}
-                {secTotal > 0 && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.8 }}>({secAnswered}/{secTotal})</span>}
-              </button>
-            );
-          })}
+        {/* Section tabs + view mode toggle */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
+          {/* Toggle button */}
+          <div style={{ display: 'flex', borderRadius: 6, border: '1px solid rgba(148,163,184,0.2)', overflow: 'hidden', flexShrink: 0 }}>
+            <button
+              onClick={() => setViewMode('tabs')}
+              title="Tab view — one section at a time"
+              style={{
+                padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none',
+                background: viewMode === 'tabs' ? '#0891B2' : 'transparent',
+                color: viewMode === 'tabs' ? '#fff' : '#cbd5e1',
+                transition: 'all 0.15s',
+              }}
+            >
+              ⊟ Tabs
+            </button>
+            <button
+              onClick={() => setViewMode('page')}
+              title="Page view — all sections scrollable"
+              style={{
+                padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', border: 'none',
+                borderLeft: '1px solid rgba(148,163,184,0.2)',
+                background: viewMode === 'page' ? '#0891B2' : 'transparent',
+                color: viewMode === 'page' ? '#fff' : '#cbd5e1',
+                transition: 'all 0.15s',
+              }}
+            >
+              ☰ Page
+            </button>
+          </div>
+
+          {/* Section tabs — tabs mode only */}
+          {viewMode === 'tabs' && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+              {visibleSections.map((sec: EditorSection) => {
+                const isActive = sec.id === (activeSectionId || visibleSections[0]?.id);
+                const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && answers[f.id]).length;
+                const secTotal = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers)).length;
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => setActiveSectionId(sec.id)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      background: isActive ? '#0891B2' : 'rgba(255,255,255,0.06)',
+                      border: `2px solid ${isActive ? '#0891B2' : 'rgba(148,163,184,0.2)'}`,
+                      color: isActive ? 'white' : '#cbd5e1', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(8,145,178,0.15)'; e.currentTarget.style.borderColor = 'rgba(8,145,178,0.5)'; e.currentTarget.style.color = '#7dd3fc'; }}}
+                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = '#cbd5e1'; }}}
+                  >
+                    {sec.title}
+                    {secTotal > 0 && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.8 }}>({secAnswered}/{secTotal})</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Body */}
-      {orchestratorMode ? (
-        <div style={{ flex: 1, display: 'flex', gap: 0, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ flex: '0 0 55%', padding: '0 20px 20px', overflowY: 'auto' }}>
-            {OrchestratorLeft}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+
+        {/* Tabs mode — single active section */}
+        {viewMode === 'tabs' && activeSection && (
+          <div>
+            <h4 style={{ fontSize: 13, fontWeight: 700, color: '#8a9db5', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+              {activeSection.title}
+            </h4>
+            {SectionFields(activeSection)}
           </div>
-          <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.08)', padding: '0 24px 24px', overflowY: 'auto' }}>
-            {activeSection && SectionFields(activeSection)}
-          </div>
-        </div>
-      ) : (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
-          {activeSection && (
-            <div>
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-                {activeSection.title}
+        )}
+
+        {/* Page mode — all sections stacked */}
+        {viewMode === 'page' && visibleSections.map((sec: EditorSection, idx: number) => (
+          <div key={sec.id} style={{ marginBottom: idx < visibleSections.length - 1 ? 32 : 0 }}>
+            <div
+              ref={el => { sectionHeaderRefs.current[sec.id] = el; }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                paddingBottom: 8, borderBottom: '1px solid rgba(8,145,178,0.25)',
+              }}
+            >
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0, flex: 1 }}>
+                {sec.title}
               </h4>
-              {SectionFields(activeSection)}
+              {(() => {
+                const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && answers[f.id]).length;
+                const secTotal    = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers)).length;
+                return secTotal > 0 ? (
+                  <span style={{ fontSize: 10, color: secAnswered === secTotal ? '#10b981' : '#8a9db5', fontWeight: 600 }}>
+                    {secAnswered}/{secTotal}
+                  </span>
+                ) : null;
+              })()}
             </div>
-          )}
-        </div>
-      )}
+            {SectionFields(sec)}
+          </div>
+        ))}
+
+      </div>
     </div>
   );
 });

@@ -4,9 +4,14 @@
 // and the same Navigator + Display layout — no SidecarContext dependency.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  DndContext, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay,
+  useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { Flag }               from '@/services/flags/IFlagService';
 import { ComputationalResult } from '@/types/smarttag.types';
-import { flagService, caseService, messageService } from '@/services';
+import { caseService, messageService } from '@/services';
 import SidecarDisplay   from './SidecarDisplay';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { COMP_EVENT, COMP_AUDIT } from '@/constants/computationalActions';
@@ -14,12 +19,90 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+// ─── DnD sub-components ───────────────────────────────────────────────────────
+
+const SpecimenDropZone: React.FC<{
+  dropId: string;
+  isOver: boolean;
+  children: React.ReactNode;
+}> = ({ dropId, isOver, children }) => {
+  const { setNodeRef } = useDroppable({ id: dropId });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        borderRadius: 6,
+        outline: isOver ? '2px solid #38bdf8' : '2px solid transparent',
+        outlineOffset: -2,
+        background: isOver ? 'rgba(56,189,248,0.06)' : 'transparent',
+        transition: 'outline 0.12s, background 0.12s',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const DraggableFlagCard: React.FC<{
+  flag: Flag;
+  isPending: boolean;
+  isDragging: boolean;
+  protocolLabel: string;
+  onToggle: () => void;
+}> = ({ flag, isPending, isDragging, protocolLabel, onToggle }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: `flag-${flag.id}` });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`fm-flag-card${isPending ? ' applied' : ''}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        cursor: isDragging ? 'grabbing' : 'default',
+        opacity: isDragging ? 0.35 : 1,
+        transform: transform ? CSS.Translate.toString(transform) : undefined,
+        touchAction: 'none',
+        userSelect: 'none',
+        transition: isDragging ? 'none' : 'opacity 0.15s',
+        padding: '10px 14px',
+      }}
+      onClick={onToggle}
+    >
+      {/* Drag handle — left side */}
+      <div
+        {...listeners}
+        {...attributes}
+        style={{ cursor: 'grab', flexShrink: 0, color: '#334155', display: 'flex', alignItems: 'center' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor" aria-hidden="true">
+          <circle cx="3" cy="2.5" r="1.2"/><circle cx="3" cy="7" r="1.2"/><circle cx="3" cy="11.5" r="1.2"/>
+          <circle cx="9" cy="2.5" r="1.2"/><circle cx="9" cy="7" r="1.2"/><circle cx="9" cy="11.5" r="1.2"/>
+        </svg>
+      </div>
+
+      <span className={`fm-code-chip${isPending ? ' applied' : ''}`}>{flag.lisCode}</span>
+
+      <div className="fm-flag-info" style={{ flex: 1, minWidth: 0 }}>
+        <div className="fm-flag-name-row">
+          <span className="fm-flag-name">{flag.name}</span>
+          {isPending && <span style={{ fontSize: 10, color: '#34d399', fontWeight: 700, marginLeft: 6, flexShrink: 0 }}>✓ Staged</span>}
+        </div>
+        <span className="fm-flag-desc">{protocolLabel}</span>
+      </div>
+    </div>
+  );
+};
+
 interface Props {
-  caseId:          string;
+  caseId:              string;
   /** All active computational flag definitions — passed from parent. */
-  allCompFlags:    Flag[];
+  allCompFlags:        Flag[];
+  /** All available flags in the system — used to derive orderable flags. */
+  allAvailableFlags?:  Flag[];
+  /** Callback to refresh flags in the parent after order/cancel. */
+  onFlagsChanged?:     () => void | Promise<void>;
   /** AI suggestions from RightSynopticPanel for concordance checking. */
-  aiSuggestions?:  Record<string, any>;
+  aiSuggestions?:      Record<string, any>;
 }
 
 // ─── ComputationalPanel ───────────────────────────────────────────────────────
@@ -41,6 +124,11 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
   const [cancelling,     setCancelling]     = useState(false);
   const [selectedFlag, setSelectedFlag] = useState<Flag | null>(null);
   const [results,      setResults]      = useState<Record<string, ComputationalResult | null>>({});
+
+  // DnD state for order modal
+  const [activeDragFlag, setActiveDragFlag] = useState<Flag | null>(null);
+  const [overDropId,     setOverDropId]     = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   useFocusTrap(orderModalRef,  showOrderModal);
   useFocusTrap(cancelModalRef, !!cancelTarget);
 
@@ -125,8 +213,8 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
         await messageService.send?.({
           subject: `Order Request: ${flag.name}`,
           body: `Order request for ${flag.name} (${flag.lisCode}) on case ${caseId}.`,
-          type: 'order-request', caseId,
-        }).catch(() => {});
+          caseNumber: caseId,
+        } as any).catch(() => {});
         if (flag.defaultProtocolIds?.length && caseId) {
           window.dispatchEvent(new CustomEvent('ps:suggest-protocols', {
             detail: { caseId, protocolIds: flag.defaultProtocolIds, flagName: flag.name }
@@ -191,14 +279,14 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
       });
 
       // Send cancellation notification (non-blocking)
-      await messageService.send?.({
-        subject: `Cancellation Request: ${cancelTarget.name}`,
-        body: `Cancellation request for ${cancelTarget.name} (${cancelTarget.lisCode}) on case ${caseId}. ` +
-              (orderedVia === 'pathscribe'
-                ? 'Order was placed via PathScribe — lab notified to cancel.'
-                : 'Order originated in LIS — PathScribe has notified the lab. Please also cancel in your LIS system.'),
-        type: 'cancel-request', caseId,
-      }).catch(() => {});
+        await messageService.send?.({
+          subject: `Cancellation Request: ${cancelTarget.name}`,
+          body: `Cancellation request for ${cancelTarget.name} (${cancelTarget.lisCode}) on case ${caseId}. ` +
+                (orderedVia === 'pathscribe'
+                  ? 'Order was placed via PathScribe — lab notified to cancel.'
+                  : 'Order originated in LIS — PathScribe has notified the lab. Please also cancel in your LIS system.'),
+          caseNumber: caseId,
+        } as any).catch(() => {});
 
       // Remove from case flags
       // Remove from case persisted data too
@@ -291,10 +379,20 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
   if (caseFlags.length === 0) {
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100%', color: '#4e607a', fontSize: 13,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100%', gap: 12,
       }}>
-        No computational assays ordered for this case.
+        <div style={{ color: '#4e607a', fontSize: 13 }}>
+          No computational assays ordered for this case.
+        </div>
+        {orderableFlags.length > 0 && (
+          <button
+            onClick={() => { setShowOrderModal(true); setOrderSearch(''); setPendingOrders([]); setSelectedTarget(null); }}
+            className="comp-order-trigger-btn"
+          >
+            + Order a test
+          </button>
+        )}
       </div>
     );
   }
@@ -417,17 +515,18 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
             })()}
           </div>
 
-          {/* Order button — opens modal */}
-          {orderableFlags.length > 0 && (
-            <div style={{ flexShrink: 0, padding: '10px 12px', borderTop: '1px solid rgba(30,41,59,0.9)' }}>
-              <button
-                onClick={() => { setShowOrderModal(true); setOrderSearch(''); setPendingOrders([]); setSelectedTarget(null); }}
-                className="comp-order-trigger-btn"
-              >
-                + Order additional test
-              </button>
-            </div>
-          )}
+          {/* Order button — always visible in left pane footer */}
+          <div style={{ flexShrink: 0, padding: '10px 12px', borderTop: '1px solid rgba(30,41,59,0.9)' }}>
+            <button
+              onClick={() => { if (orderableFlags.length === 0) return; setShowOrderModal(true); setOrderSearch(''); setPendingOrders([]); setSelectedTarget(null); }}
+              className="comp-order-trigger-btn"
+              disabled={orderableFlags.length === 0}
+              title={orderableFlags.length === 0 ? 'All available tests are already ordered' : 'Order an additional computational test'}
+              style={{ opacity: orderableFlags.length === 0 ? 0.4 : 1, cursor: orderableFlags.length === 0 ? 'default' : 'pointer' }}
+            >
+              {orderableFlags.length === 0 ? '✓ All tests ordered' : '+ Order additional test'}
+            </button>
+          </div>
         </div>
 
         {/* Display pane */}
@@ -476,11 +575,30 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
               </div>
             </div>
 
-            {/* Body: left specimen selector + right test list */}
+            {/* Body: left specimen selector + right test list — drag flag cards onto targets */}
+            <DndContext
+              sensors={sensors}
+              onDragStart={(e: DragStartEvent) => {
+                const flagId = String(e.active.id).replace('flag-', '');
+                setActiveDragFlag(orderableFlags.find(f => f.id === flagId) ?? null);
+              }}
+              onDragOver={(e: DragOverEvent) => setOverDropId(e.over ? String(e.over.id) : null)}
+              onDragEnd={(e: DragEndEvent) => {
+                const flagId = String(e.active.id).replace('flag-', '');
+                const flag   = orderableFlags.find(f => f.id === flagId);
+                const overId = e.over ? String(e.over.id) : null;
+                if (flag && overId) {
+                  const specimenId = overId === 'drop-all' ? null : overId.replace('drop-sp-', '');
+                  togglePendingOrder(flag, specimenId);
+                }
+                setActiveDragFlag(null);
+                setOverDropId(null);
+              }}
+            >
             <div className="fm-body">
 
             {/* Left — pending orders + apply-to with current flags shown per specimen */}
-            <div className="fm-left" style={{ width: 240, overflowY: 'auto' }}>
+            <div className="fm-left" style={{ width: 300, overflowY: 'auto' }}>
 
               {/* Pending orders */}
               <div className="fm-col-label" style={{ padding: '10px 14px 6px' }}>
@@ -520,8 +638,10 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
               {(() => {
                 const caseLevelFlags = caseFlags.filter(f => !(f as any).specimenId);
                 const isSelected = selectedTarget === null;
+                const isOver = overDropId === 'drop-all';
                 return (
-                  <div>
+                  <SpecimenDropZone dropId="drop-all" isOver={isOver}>
+                    <div>
                     <div
                       role="button" tabIndex={0}
                       onClick={() => setSelectedTarget(null)}
@@ -529,12 +649,15 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                       className={`fm-specimen-row${isSelected ? ' selected' : ''}`}
                       style={{ padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: isSelected ? 'rgba(56,189,248,0.08)' : 'transparent', borderLeft: `2px solid ${isSelected ? '#38bdf8' : 'transparent'}` }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, color: '#94a3b8' }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, color: isOver ? '#38bdf8' : '#94a3b8' }}>
                         <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.4"/>
                         <path d="M4 8h8M8 4v8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                       </svg>
-                      <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 400, color: isSelected ? '#e2e8f0' : '#94a3b8' }}>All Specimens</span>
+                      <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 400, color: isOver ? '#38bdf8' : isSelected ? '#e2e8f0' : '#94a3b8', flex: 1 }}>All Specimens</span>
                       {caseLevelFlags.length > 0 && <span className="comp-group-count">{caseLevelFlags.length}</span>}
+                      {isOver && activeDragFlag && (
+                        <span style={{ fontSize: 10, color: '#38bdf8', fontWeight: 700 }}>Drop to order</span>
+                      )}
                     </div>
                     {caseLevelFlags.map(f => {
                       const dotColor = results[f.id]?.status === 'FINAL' ? '#059669' : results[f.id]?.status === 'PRELIMINARY' ? '#f59e0b' : '#0891b2';
@@ -556,32 +679,38 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </SpecimenDropZone>
                 );
               })()}
 
               {/* Per-specimen */}
               {caseSpecimens.map(sp => {
-                const spFlags = caseFlags.filter(f => (f as any).specimenId === sp.id);
+                const spFlags    = caseFlags.filter(f => (f as any).specimenId === sp.id);
                 const isSelected = selectedTarget === sp.id;
+                const isOver     = overDropId === `drop-sp-${sp.id}`;
                 return (
-                  <div key={sp.id}>
+                  <SpecimenDropZone key={sp.id} dropId={`drop-sp-${sp.id}`} isOver={isOver}>
+                    <div>
                     <div
                       role="button" tabIndex={0}
                       onClick={() => setSelectedTarget(sp.id)}
                       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSelectedTarget(sp.id)}
                       style={{ padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 8, background: isSelected ? 'rgba(56,189,248,0.08)' : 'transparent', borderLeft: `2px solid ${isSelected ? '#38bdf8' : 'transparent'}` }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2, color: '#94a3b8' }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2, color: isOver ? '#38bdf8' : '#94a3b8' }}>
                         <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/>
-                        <circle cx="8" cy="8" r="2" fill={isSelected ? '#38bdf8' : 'transparent'} stroke="currentColor" strokeWidth="1.2"/>
+                        <circle cx="8" cy="8" r="2" fill={isSelected || isOver ? '#38bdf8' : 'transparent'} stroke="currentColor" strokeWidth="1.2"/>
                       </svg>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: isSelected ? '#e2e8f0' : '#94a3b8', display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {sp.label}:
-                          {spFlags.length > 0 && <span className="comp-group-count">{spFlags.length}</span>}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: isOver ? '#38bdf8' : isSelected ? '#e2e8f0' : '#94a3b8', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <span style={{ flexShrink: 0 }}>{sp.label}:</span>
+                          <span style={{ color: isOver ? '#38bdf8' : isSelected ? '#cbd5e1' : '#64748b', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis' }}>{sp.description}</span>
+                          {spFlags.length > 0 && <span className="comp-group-count" style={{ flexShrink: 0 }}>{spFlags.length}</span>}
+                          {isOver && activeDragFlag && (
+                            <span style={{ fontSize: 10, color: '#38bdf8', fontWeight: 700, flexShrink: 0 }}>Drop to order</span>
+                          )}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{sp.description}</div>
                       </div>
                     </div>
                     {spFlags.map(f => {
@@ -604,7 +733,8 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </SpecimenDropZone>
                 );
               })}
             </div>
@@ -634,7 +764,6 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
             <div className="fm-col-header" style={{ gridTemplateColumns: '70px 1fr 90px' }}>
               <span className="fm-col-label">Code</span>
               <span className="fm-col-label">Test <span className="fm-col-label-note">· suggested protocol</span></span>
-              <span className="fm-col-label">Action</span>
             </div>
 
             {/* Test list */}
@@ -645,35 +774,23 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                   (f.lisCode ?? '').toLowerCase().includes(orderSearch.toLowerCase()) ||
                   (f.description ?? '').toLowerCase().includes(orderSearch.toLowerCase())
                 )
-                .map(flag => (
-                  <div
-                    key={flag.id}
-                    className={`fm-flag-card${pendingOrders.find(o => o.flag.id === flag.id) ? ' applied' : ''}`}
-                    style={{ gridTemplateColumns: '70px 1fr 90px' }}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={!!pendingOrders.find(o => o.flag.id === flag.id)}
-                    onClick={() => { if (!orderableFlags.find(f => f.id === flag.id)) return; togglePendingOrder(flag, selectedTarget); }}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!orderableFlags.find(f => f.id === flag.id)) return; togglePendingOrder(flag, selectedTarget); } }}
-                  >
-                    <span className={`fm-code-chip${pendingOrders.find(o => o.flag.id === flag.id) ? ' applied' : ''}`}>
-                      {flag.lisCode}
-                    </span>
-                    <div className="fm-flag-info">
-                      <div className="fm-flag-name-row">
-                        <span className="fm-flag-name">{flag.name}</span>
-                      </div>
-                      <span className="fm-flag-desc">
-                        {flag.defaultProtocolIds?.length
-                          ? `Suggests: ${flag.defaultProtocolIds.map(id => availableProtocols[id] ?? id).join(', ')}`
-                          : flag.description ?? 'No linked protocol'}
-                      </span>
-                    </div>
-                    <span className="fm-apply-btn" style={{ color: pendingOrders.find(o => o.flag.id === flag.id) ? '#34d399' : undefined }}>
-                      {pendingOrders.find(o => o.flag.id === flag.id) ? '✓ Staged' : '+ Order'}
-                    </span>
-                  </div>
-                ))
+                .map(flag => {
+                  const isPending = !!pendingOrders.find(o => o.flag.id === flag.id);
+                  const isDragging = activeDragFlag?.id === flag.id;
+                  const protocolLabel = flag.defaultProtocolIds?.length
+                    ? `Suggests: ${flag.defaultProtocolIds.map(id => availableProtocols[id] ?? id).join(', ')}`
+                    : flag.description ?? 'No linked protocol';
+                  return (
+                    <DraggableFlagCard
+                      key={flag.id}
+                      flag={flag}
+                      isPending={isPending}
+                      isDragging={isDragging}
+                      protocolLabel={protocolLabel}
+                      onToggle={() => togglePendingOrder(flag, selectedTarget)}
+                    />
+                  );
+                })
               }
               {orderableFlags.filter(f => !orderSearch ||
                 f.name.toLowerCase().includes(orderSearch.toLowerCase()) ||
@@ -687,6 +804,24 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
 
             </div>{/* end fm-right */}
             </div>{/* end fm-body */}
+
+            {/* Drag overlay — ghost chip floating under cursor */}
+            <DragOverlay>
+              {activeDragFlag && (
+                <div style={{
+                  padding: '8px 14px', background: '#1e293b',
+                  border: '2px solid #38bdf8', borderRadius: 8,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  fontSize: 13, fontWeight: 600, color: '#e2e8f0',
+                  cursor: 'grabbing', opacity: 0.95, pointerEvents: 'none',
+                }}>
+                  <span className="fm-code-chip">{activeDragFlag.lisCode}</span>
+                  <span>{activeDragFlag.name}</span>
+                </div>
+              )}
+            </DragOverlay>
+            </DndContext>
 
             {/* Footer */}
             <div style={{ padding: '12px 22px', borderTop: '1px solid rgba(30,41,59,0.9)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

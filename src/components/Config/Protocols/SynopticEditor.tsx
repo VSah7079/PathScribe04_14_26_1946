@@ -519,6 +519,8 @@ const SynopticEditor: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
   const [searchParams] = useSearchParams();
   const isDuplicate  = searchParams.get('mode') === 'duplicate';
+  const fromRequest  = searchParams.get('fromRequest') === 'true';
+const requestMeta  = searchParams.get('meta') ? JSON.parse(decodeURIComponent(searchParams.get('meta')!)) : null;
   const fromSection  = searchParams.get('from');
   const backTarget   = fromSection === 'review' ? '/configuration?tab=protocols&section=review' : '/configuration?tab=protocols';
   const isNew        = !templateId || templateId === 'new';

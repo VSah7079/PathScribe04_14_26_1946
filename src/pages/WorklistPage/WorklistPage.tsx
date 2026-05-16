@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { mockCaseService, getDelegations } from '@/services/cases/mockCaseService';
+import { mockOrchestratorCaseService } from '@/services/cases/mockOrchestratorCaseService';
 import type { Case } from '@/types/case/Case';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLogout } from '@hooks/useLogout';
@@ -27,6 +28,15 @@ const WorklistPage: React.FC = () => {
 
   const [activeFilter, setActiveFilter]       = useState<'all' | 'review' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
+
+  // Orchestrator mode — reads from localStorage (set by Configuration page)
+  const isOrchestratorEnabled = (): boolean => {
+    try { return localStorage.getItem('ps_orchestrator_enabled') === 'true'; } catch { return false; }
+  };
+  // Orchestrator mode — true if config flag set OR outreach cases are present in the list
+  const orchestratorEnabled = isOrchestratorEnabled() || realCases.some(c => c.reportingMode === 'pathscribe');
+  // When Orchestrator is on, default to showing only orchestrator cases
+  const [showOrchOnly, setShowOrchOnly] = useState(() => orchestratorEnabled);
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
   const [delegatedCaseIds, setDelegatedCaseIds]     = useState<string[]>([]);
   const [physicianFilter, setPhysicianFilter] = useState<string>('');
@@ -63,7 +73,7 @@ const WorklistPage: React.FC = () => {
   const [computationalFlags, setComputationalFlags] = useState<Flag[]>([]);
 
   // Sidecar — reset to overlay mode when returning from synoptic page.
-  const { openOverlay, close: closeSidecar } = useSidecar();
+  const { openOverlay: _openOverlay, close: closeSidecar } = useSidecar();
   useEffect(() => {
     closeSidecar(); // close overlay when returning to worklist — re-opens on next icon click
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,9 +110,13 @@ const WorklistPage: React.FC = () => {
   }, [location.key]);
 
   useEffect(() => {
-    const canViewPeds = (user as any)?.canViewPediatric ?? false;
-    mockCaseService.listCasesForUser(user?.id ?? 'current').then(cases => {
-      setRealCases(cases);
+    
+    // Load Copilot cases + Orchestrator cases and merge
+    Promise.all([
+      mockCaseService.listCasesForUser(user?.id ?? 'current'),
+      mockOrchestratorCaseService.listCasesForUser(user?.id ?? 'current'),
+    ]).then(([copilotCases, orchCases]) => {
+      setRealCases([...copilotCases, ...orchCases]);
     }).catch(() => {});
     // Load delegated-to-me count + case IDs
     getDelegations().then(all => {
@@ -194,12 +208,31 @@ const WorklistPage: React.FC = () => {
     return canViewPeds || authorizedIds.includes(user?.id ?? '');
   };
 
-  const filteredCases = realCases.filter(c => {
-    if (!canViewCase(c)) return false; // ← pediatric access gate
+  // Cases passed to WorklistTable — Outreach cases isolated from LIS cases
+  const displayCases = React.useMemo(() => {
+    if (orchestratorEnabled && showOrchOnly) {
+      // Outreach view: only outreach/orchestration cases
+      return realCases.filter(c => c.reportingMode === 'pathscribe');
+    }
+    if (orchestratorEnabled && !showOrchOnly) {
+      // LIS view: only copilot cases
+      return realCases.filter(c => c.reportingMode === 'copilot' || !c.reportingMode);
+    }
+    return realCases;
+  }, [realCases, showOrchOnly, orchestratorEnabled]);
+
+  // Urgent Outreach indicator — drives toggle colour
+  const hasUrgentOutreach = React.useMemo(() =>
+    realCases.some(c => c.reportingMode === 'pathscribe' && c.order?.priority === 'STAT'),
+    [realCases]
+  );
+
+  // filteredCases and stats both operate on displayCases so tiles always match the current view
+  const filteredCases = displayCases.filter(c => {
+    if (!canViewCase(c)) return false;
     if (activeFilter === 'pool')       return c.status === 'pool';
-    if (activeFilter === 'all')        return true; // pool cases shown under Pool group
-    // Pool cases always pass through so they appear under their own group
-    if (c.status === 'pool')  return true;
+    if (activeFilter === 'all')        return true;
+    if (c.status === 'pool')           return true;
     if (activeFilter === 'urgent')     return c.order?.priority === 'STAT';
     if (activeFilter === 'review')     return c.status === 'pending-review';
     if (activeFilter === 'completed')  return c.status === 'finalized';
@@ -210,13 +243,13 @@ const WorklistPage: React.FC = () => {
     return true;
   });
 
-  const nonPoolCases = realCases.filter(c => c.status !== 'pool' && canViewCase(c));
+  const nonPoolCases = displayCases.filter(c => c.status !== 'pool' && canViewCase(c));
   const stats = {
     total:          nonPoolCases.length,
-    pool:           realCases.filter(c => c.status === 'pool').length,
+    pool:           displayCases.filter(c => c.status === 'pool').length,
     inProgress:     nonPoolCases.filter(c => c.status === 'in-progress').length,
     needsReview:    nonPoolCases.filter(c => c.status === 'pending-review').length,
-    urgent:         realCases.filter(c => canViewCase(c) && c.order?.priority === 'STAT').length,
+    urgent:         nonPoolCases.filter(c => c.order?.priority === 'STAT').length,  // excludes pool, matches table
     amended:        nonPoolCases.filter(c => c.status === 'amended').length,
     draft:          nonPoolCases.filter(c => c.status === 'draft').length,
     finalizing:     nonPoolCases.filter(c => c.status === 'finalizing').length,
@@ -236,7 +269,7 @@ const WorklistPage: React.FC = () => {
     const registerComp = () => {
       Object.entries(COMP_VOICE).forEach(([key, phrases]) => {
         const eventName = COMP_EVENT[key as keyof typeof COMP_EVENT];
-        mockActionRegistryService.registerAction?.({
+        (mockActionRegistryService as any).registerAction?.({
           id:       `comp_${key.toLowerCase()}`,
           label:    phrases[0],
           phrases,
@@ -487,11 +520,59 @@ const WorklistPage: React.FC = () => {
 
               {/* Title */}
               <div style={{ flexShrink: 0 }}>
-                <h1 style={{ fontSize: '28px', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>Active Cases</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <h1 style={{ fontSize: '28px', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+                    {orchestratorEnabled && showOrchOnly ? 'Outreach Cases' : 'Active Cases'}
+                  </h1>
+                  {/* Orchestrator mode toggle — only shown when Orchestrator is enabled */}
+                  {orchestratorEnabled && (
+                    <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(8,145,178,0.1)', border: '1px solid rgba(8,145,178,0.3)', borderRadius: 20, padding: '2px', gap: 2 }}>
+                      <button
+                        onClick={() => setShowOrchOnly(true)}
+                        title="Show Outreach cases only"
+                        style={{
+                          padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700,
+                          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                          background: showOrchOnly
+                            ? (hasUrgentOutreach ? '#f59e0b' : '#0891b2')
+                            : 'transparent',
+                          color: showOrchOnly ? '#fff' : (hasUrgentOutreach ? '#f59e0b' : '#64748b'),
+                          letterSpacing: '0.04em',
+                          position: 'relative' as const,
+                        }}
+                      >
+                        📤 OUTREACH
+                        {/* Urgent dot when not active */}
+                        {hasUrgentOutreach && !showOrchOnly && (
+                          <span style={{
+                            position: 'absolute', top: 0, right: 0,
+                            width: 6, height: 6, borderRadius: '50%',
+                            background: '#f59e0b', border: '1.5px solid #0d1829',
+                          }} />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowOrchOnly(false)}
+                        title="Show LIS cases"
+                        style={{
+                          padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700,
+                          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                          background: !showOrchOnly ? '#0891b2' : 'transparent',
+                          color: !showOrchOnly ? '#fff' : '#64748b',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        LIS
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0', whiteSpace: 'nowrap' }}>
                   {activeFilter === 'pool'
                     ? <span style={{ color: '#F97316' }}>Viewing pool queue — {stats.pool} case{stats.pool !== 1 ? 's' : ''}</span>
-                    : <>Managing {stats.total} case{stats.total !== 1 ? 's' : ''}{activeFilter !== 'all' && <span style={{ color: '#0891B2', marginLeft: '6px' }}>· filtered</span>}</>
+                    : orchestratorEnabled && showOrchOnly
+                      ? <>{stats.total} outreach case{stats.total !== 1 ? 's' : ''}{hasUrgentOutreach && <span style={{ color: '#f59e0b', marginLeft: 6 }}>· {stats.urgent} urgent</span>}</>
+                      : <>Managing {stats.total} case{stats.total !== 1 ? 's' : ''}{activeFilter !== 'all' && <span style={{ color: '#0891B2', marginLeft: '6px' }}>· filtered</span>}</>
                   }
                 </p>
               </div>
@@ -531,9 +612,8 @@ const WorklistPage: React.FC = () => {
                         marginRight:    '6px', // extra breathing room before divider
                       }}
                     >
-                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#e2e8f0' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        {isActive && <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#e2e8f0', display: 'inline-block', flexShrink: 0 }} />}
-                        ⬡ Total Cases
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#e2e8f0' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>
+                        Total Cases
                       </div>
                       <div style={{ fontSize: '20px', fontWeight: 800, color: '#e2e8f0', lineHeight: 1 }}>
                         {stats.total}
@@ -619,7 +699,7 @@ const WorklistPage: React.FC = () => {
               <SidecarDrawer computationalFlags={computationalFlags} />
               <WorklistTable
                 flagDefinitions={allFlags}
-                cases={realCases}
+                cases={displayCases}
                 activeFilter={activeFilter}
                 tableHeight={tableHeight}
                 delegatedCaseIds={delegatedCaseIds}
@@ -668,7 +748,10 @@ const WorklistPage: React.FC = () => {
         fromFilter="pool"
         onAccepted={() => {
           setClaimModal(null);
-          mockCaseService.listCasesForUser(user?.id ?? 'current').then(setRealCases).catch(() => {});
+          Promise.all([
+            mockCaseService.listCasesForUser(user?.id ?? 'current'),
+            mockOrchestratorCaseService.listCasesForUser(user?.id ?? 'current'),
+          ]).then(([copilot, orch]) => setRealCases([...copilot, ...orch])).catch(() => {});
         }}
         onPassed={() => setClaimModal(null)}
         onClose={() => setClaimModal(null)}

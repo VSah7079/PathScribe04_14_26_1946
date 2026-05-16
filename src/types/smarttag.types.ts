@@ -75,6 +75,13 @@ export interface StatusColorRule {
   /** Semantic color token consumed by the SidecarDrawer and worklist icon. */
   colorToken: "neutral" | "amber" | "green" | "red";
 }
+export interface ExtractionProvenance {
+  method:     'llm' | 'ocr+llm' | 'hl7-parse' | 'pdf-parse' | 'native';
+  confidence: number;   // 0–1
+  sourceText: string;
+  modelId?:   string;
+}
+
 
 /** Default ruleset — overridable per-tag in configuration. */
 export const DEFAULT_STATUS_RULES: StatusColorRule[] = [
@@ -94,6 +101,7 @@ export const DEFAULT_STATUS_RULES: StatusColorRule[] = [
  * IHC scores, FISH ratios, mutation calls, etc. without pre-baking schemas.
  */
 export interface ComputationalResult {
+  extraction?: ExtractionProvenance;
   status:        ResultStatus;
   actionability: ActionabilityLevel;
 

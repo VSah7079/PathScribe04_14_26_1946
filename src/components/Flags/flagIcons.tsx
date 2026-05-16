@@ -3,7 +3,7 @@
 // Color is controlled by the parent — these glyphs use currentColor throughout.
 
 import React from 'react';
-import { IconKey } from '../types/smarttag.types';
+import { IconKey } from '../../types/smarttag.types';
 
 interface GlyphProps {
   size?: number;

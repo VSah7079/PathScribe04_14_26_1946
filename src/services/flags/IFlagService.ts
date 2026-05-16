@@ -1,5 +1,5 @@
 import { ServiceResult, ID } from '../types';
-import { DataSourceBinding, StatusColorRule, IconKey } from '../types/smarttag.types';
+import { DataSourceBinding, StatusColorRule, IconKey } from '../../types/smarttag.types';
 
 export type TagClass = 'ADMINISTRATIVE' | 'COMPUTATIONAL';
 

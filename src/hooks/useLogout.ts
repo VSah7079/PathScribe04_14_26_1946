@@ -12,6 +12,6 @@ export function useLogout() {
 
   return () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 }
