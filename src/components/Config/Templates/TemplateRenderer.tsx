@@ -46,18 +46,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import '../../../pathscribe.css';
 import { useNavigate, useParams } from 'react-router-dom';
 import { mockDcisTemplate } from '../../../templates/mockDcisTemplate';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { InlineCommentThread } from '../../PatientReportPage/Comments/InlineCommentThread';
-=======
-import { InlineCommentThread } from '../../../components/PatientReportPage/Comments/InlineCommentThread';
->>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
-=======
-import { InlineCommentThread } from '../../../components/PatientReportPage/Comments/InlineCommentThread';
-=======
-import { InlineCommentThread } from '../../PatientReportPage/Comments/InlineCommentThread';
->>>>>>> 89dbd2ea88adc76aaa25cd49e285e80115521477
->>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
 import { TemplateLifecycleState } from '../../../types/AuditEvent';
 import { Question, ChoiceQuestion, TemplateSection } from '../../../types/templateTypes';
 import { PROTOCOL_REGISTRY } from '../Protocols/protocolShared';

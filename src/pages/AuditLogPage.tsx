@@ -83,7 +83,6 @@ function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<s
 
 
 // ── Component ────────────────────────────────────────────────────────────────
-type ActiveTab = 'audit' | 'activity' | 'changes' | 'error';
 const AuditLogPage: React.FC = () => {
   const navigate = useNavigate();
 
