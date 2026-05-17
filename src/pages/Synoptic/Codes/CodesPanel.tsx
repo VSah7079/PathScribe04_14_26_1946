@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import type { MedicalCode, FieldVerification, SpecimenOption } from '../synopticTypes';
 import CodeBadge from './CodeBadge';
 import { SOURCE_META } from '../codeConstants';
 import AddCodeModal from './AddCodeModal';
 =======
+=======
+>>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
 import type { MedicalCode } from '../synopticTypes';
 import CodeBadge from './CodeBadge';
 import AddCodeModal from './AddCodeModal';
@@ -21,7 +24,16 @@ const SOURCE_META: Record<string, { label: string; bg: string; color: string }> 
   ai:     { label: 'AI',       bg: '#f0fdf4', color: '#15803d' },
   manual: { label: 'Manual',   bg: '#fef3c7', color: '#92400e' },
 };
+<<<<<<< HEAD
 >>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
+=======
+=======
+import type { MedicalCode, FieldVerification, SpecimenOption } from '../synopticTypes';
+import CodeBadge from './CodeBadge';
+import { SOURCE_META } from '../codeConstants';
+import AddCodeModal from './AddCodeModal';
+>>>>>>> 89dbd2ea88adc76aaa25cd49e285e80115521477
+>>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
 
 const CodesPanel: React.FC<{
   codes: MedicalCode[];

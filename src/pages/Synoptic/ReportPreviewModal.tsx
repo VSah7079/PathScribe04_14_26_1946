@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import type { CaseData, SpecimenSynoptic, SynopticReportNode, SynopticField, CaseRole } from './synopticTypes';
 import { ROLE_META } from './synopticTypes';
 =======
+=======
+>>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
 
 // ── Local type stubs (synopticTypes.ts was removed — types defined inline) ───
 // TODO: restore proper types when synopticTypes is re-established
@@ -13,7 +16,14 @@ type SynopticReportNode = any;
 type SynopticField = any;
 const ROLE_META: Record<string, { label: string; color: string; bg: string; border: string }> = {};
 type CaseRole = string;
+<<<<<<< HEAD
 >>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
+=======
+=======
+import type { CaseData, SpecimenSynoptic, SynopticReportNode, SynopticField, CaseRole } from './synopticTypes';
+import { ROLE_META } from './synopticTypes';
+>>>>>>> 89dbd2ea88adc76aaa25cd49e285e80115521477
+>>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
 
 const SPEC_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
