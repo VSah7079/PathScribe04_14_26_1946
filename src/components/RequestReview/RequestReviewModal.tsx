@@ -113,7 +113,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
             <div style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>Request Colleague Review</div>
             {caseLabel && <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{caseId} · {caseLabel}</div>}
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
+          <button onClick={onClose} className="ps-close-btn" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
           </button>
         </div>
@@ -140,7 +140,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Review type */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Review Type</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Review Type</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {NOTE_TYPES.map(t => (
                   <button
@@ -156,7 +156,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Colleague picker */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Send To</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Send To</div>
               <input
                 type="text"
                 placeholder="Search colleagues…"
@@ -176,7 +176,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{r.name}</div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>{r.role}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.role}</div>
                     </div>
                     {selectedId === r.id && (
                       <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -188,7 +188,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Optional note */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Additional Context <span style={{ fontWeight: 400, color: '#334155' }}>(optional)</span></div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Additional Context <span style={{ fontWeight: 400, color: '#334155' }}>(optional)</span></div>
               <textarea
                 placeholder="e.g. Please review the deep margin — uncertain if pT1 or muscularis invasion…"
                 value={message}
@@ -201,7 +201,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
             {/* Info notice */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 8 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span style={{ fontSize: 11, color: '#8B5CF6' }}>This does not transfer case ownership. The colleague will receive a message with a link to the case report.</span>
+              <span style={{ fontSize: 11, color: '#a78bfa' }}>This does not transfer case ownership. The colleague will receive a message with a link to the case report.</span>
             </div>
 
             {/* Actions */}

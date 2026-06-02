@@ -10,20 +10,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuditLog } from '../components/Audit/useAuditLog';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../constants/systemActions';
-import NarrativeTemplatesTab from '../components/Config/NarrativeTemplates';
 import AITab         from '../components/Config/AI/index';
 import ModelsTab     from '../components/Config/Models/index';
 import ProtocolsTab  from '../components/Config/Protocols/index';
-import StaffTab      from '../components/Config/Users/index';
+import StaffTab      from '../components/Config/Staff/StaffTab';
 import SystemTab     from '../components/Config/System/index';
 import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
 import DemoResetTab    from '../components/Config/System/DemoResetTab';
-import TemplateListTab from '../components/TemplateBuilder/TemplateListTab';
-import PartLibraryTab  from '../components/TemplateBuilder/PartLibraryTab';
+import ReportTemplatesSection from '../components/TemplateBuilder/ReportTemplatesSection';
 
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'narrative', 'templates', 'parts', 'demo'] as const;
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'templates', 'demo'] as const;
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
@@ -34,9 +32,7 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'system',    label: 'System'             },
   { id: 'actions',   label: 'Action Registry'    },
   { id: 'macros',    label: 'Macros'             },
-  { id: 'narrative', label: 'Narrative Templates' },
   { id: 'templates', label: 'Report Templates'   },
-  { id: 'parts',     label: 'Part Library'       },
   { id: 'demo',      label: '⟳ Demo Reset'       },
 ];
 
@@ -109,9 +105,7 @@ const ConfigurationPage: React.FC = () => {
       case 'actions':   return <ActionsTab />;
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
-      case 'narrative': return <NarrativeTemplatesTab />;
-      case 'templates': return <TemplateListTab />;
-      case 'parts':     return <PartLibraryTab />;
+      case 'templates': return <ReportTemplatesSection />;
       case 'demo':      return <DemoResetTab />;
       default:          return null;
     }
@@ -120,17 +114,28 @@ const ConfigurationPage: React.FC = () => {
   if (!isLoaded) return <div style={{ padding: '24px', color: '#e2e8f0' }}>Loading configuration…</div>;
 
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', color: '#f1f5f9', overflow: 'hidden' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '32px 40px 0', boxSizing: 'border-box' }}>
+    <div style={{
+      height:        '100%',
+      width:         '100%',
+      display:       'flex',
+      flexDirection: 'column',
+      overflow:      'hidden',
+      color:         '#f1f5f9',
+    }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: '28px', flexShrink: 0 }}>
+      {/* ── Header + Tab bar — full width, never scrolls ── */}
+      <div style={{
+        width:      '100%',
+        padding:    '32px 40px 0',
+        boxSizing:  'border-box',
+        flexShrink: 0,
+      }}>
+        <div style={{ marginBottom: '28px' }}>
           <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>Configuration</h1>
           <p style={{ fontSize: '13px', color: '#94a3b8' }}>Control AI behavior, templates, users, and system settings</p>
         </div>
 
-        {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '0', borderBottom: '1px solid #1e293b' }}>
           {TAB_LABELS.map(tab => (
             <button
               key={tab.id}
@@ -141,7 +146,7 @@ const ConfigurationPage: React.FC = () => {
                 padding: '9px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
                 fontSize: '13px', whiteSpace: 'nowrap' as const,
                 fontWeight: activeTab === tab.id ? 700 : 500,
-                color: activeTab === tab.id ? '#0891b2' : '#94a3b8',
+                color:      activeTab === tab.id ? '#0891b2' : '#94a3b8',
                 borderBottom: activeTab === tab.id ? '2px solid #0891b2' : '2px solid transparent',
               }}
             >
@@ -149,9 +154,16 @@ const ConfigurationPage: React.FC = () => {
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Tab Content — fills remaining height, scrolls internally */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: 40, width: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* ── Scrollable content — FULL WIDTH so scrollbar lands at viewport edge ── */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', width: '100%' }}>
+        {/* Inner content: full width, padding on sides */}
+        <div style={{
+          padding:    '24px 40px 80px',
+          boxSizing:  'border-box',
+          width:      '100%',
+        }}>
           {renderActiveTab()}
         </div>
       </div>

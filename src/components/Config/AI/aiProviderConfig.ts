@@ -19,6 +19,7 @@ export type AiProviderId =
   | 'openai'
   | 'azure_openai'
   | 'aws_bedrock'
+  | 'mock'        // Demo / offline testing — no API calls
   | 'custom';
 
 // ─── Per-provider model options ───────────────────────────────
@@ -42,6 +43,9 @@ export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }
     { id: 'anthropic.claude-sonnet-4-20250514-v1:0', label: 'Claude Sonnet 4 via Bedrock' },
     { id: 'anthropic.claude-opus-4-20250514-v1:0',   label: 'Claude Opus 4 via Bedrock' },
     { id: 'amazon.nova-pro-v1:0',                    label: 'Amazon Nova Pro' },
+  ],
+  mock: [
+    { id: 'mock-v1', label: 'Mock (instant, no API cost — demo only)' },
   ],
   custom: [
     { id: 'custom', label: 'Custom model (set in endpoint config)' },

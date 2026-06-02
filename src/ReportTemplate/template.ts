@@ -1,5 +1,7 @@
 // src/types/template.ts
 // ─────────────────────────────────────────────────────────────
+
+import type { AssemblySlot } from '../types/reportPart';
 // Report Template type system for PathScribe Orchestration mode.
 // Defines the TemplateNode union and all supporting types.
 // ─────────────────────────────────────────────────────────────
@@ -398,8 +400,18 @@ export interface ReportTemplate {
   /** CAP / RCPath / custom */
   standard?: 'CAP' | 'RCPath' | 'custom';
   status: TemplateStatus;
-  /** Ordered root-level nodes — includes headers, footers, sections */
-  nodes: TemplateNode[];
+  /**
+   * Assembly manifest (new Part Library architecture).
+   * Defines which ReportParts appear in which page zones.
+   * Empty for templates still using the legacy canvas (nodes).
+   */
+  assembly: AssemblySlot[];
+  /**
+   * Legacy canvas nodes (TemplateBuilderPage / old architecture).
+   * Optional — assembly-based templates (TemplateAssemblyPage) use
+   * assembly[] instead and leave this empty.
+   */
+  nodes?: TemplateNode[];
   /** Whether Orchestration (AI generation) is enabled for this template */
   orchestrationEnabled: boolean;
   /** Institution this template belongs to */

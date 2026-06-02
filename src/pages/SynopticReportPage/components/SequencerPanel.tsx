@@ -60,6 +60,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
   const [specimenOrder, setSpecimenOrder] = useState<string[]>([]);
   const [synopticOrder, setSynopticOrder] = useState<Record<string, string[]>>({});
   const [expandedIds,   setExpandedIds]   = useState<Set<string>>(new Set());
+  const [expandedSynoptics, setExpandedSynoptics] = useState<Set<string>>(new Set());
   // fieldId → label maps keyed by templateId
   const [templateFieldMaps, setTemplateFieldMaps] = useState<Record<string, Record<string, string>>>({});
 
@@ -242,11 +243,11 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
             <div className="fm-eyebrow">Report Assembly</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 2 }}>
               <h2 className="fm-title" style={{ margin: 0 }}>Report Sequencer</h2>
-              <span style={{ fontSize: 11, color: '#8a9db5', background: 'rgba(255,255,255,0.06)', padding: '3px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.08)' }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '3px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.08)' }}>
                 {rows.length} specimen{rows.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div style={{ fontSize: 12, color: '#8a9db5', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
               Drag specimens to set their order in the final report. Synoptics follow their specimen.
             </div>
           </div>
@@ -254,7 +255,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
             {hasCustomOrder && (
               <button
                 onClick={resetOrder}
-                style={{ fontSize: 11, color: '#8a9db5', background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}
+                style={{ fontSize: 11, color: '#94a3b8', background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}
               >
                 ↺ Reset order
               </button>
@@ -270,7 +271,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
           <div style={{ flex: '0 0 48%', overflowY: 'auto', padding: '20px 24px', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
 
             {(!caseData || rows.length === 0) && (
-              <div style={{ padding: 40, color: '#8a9db5', textAlign: 'center', fontSize: 13 }}>No specimens on this case.</div>
+              <div style={{ padding: 40, color: '#94a3b8', textAlign: 'center', fontSize: 13 }}>No specimens on this case.</div>
             )}
 
             {rows.map((row, i) => {
@@ -316,10 +317,10 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                         {row.description}
                       </span>
 
-                      <span style={{ fontSize: 11, color: '#8a9db5', flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
                         {row.synoptics.length} synoptic{row.synoptics.length !== 1 ? 's' : ''}
                       </span>
-                      <span style={{ fontSize: 9, color: '#8a9db5', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
+                      <span style={{ fontSize: 9, color: '#94a3b8', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>▶</span>
                     </div>
 
                     {/* Synoptic rows */}
@@ -352,11 +353,11 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                                   <circle cx="9" cy="2.5" r="1.2"/><circle cx="9" cy="7" r="1.2"/><circle cx="9" cy="11.5" r="1.2"/>
                                 </svg>
                               )}
-                              <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0 }}>{si + 1}.</span>
+                              <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>{si + 1}.</span>
                               <span style={{ fontSize: 12, color: isActive ? '#7dd3fc' : '#cbd5e1', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {syn.templateName}
                               </span>
-                              <span style={{ fontSize: 10, color: '#64748b', flexShrink: 0 }}>
+                              <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>
                                 {syn.filledCount} field{syn.filledCount !== 1 ? 's' : ''} answered
                               </span>
                               {isActive && (
@@ -369,7 +370,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                     )}
 
                     {isExpanded && row.synoptics.length === 0 && (
-                      <div style={{ padding: '9px 14px 9px 48px', fontSize: 12, color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.04)', fontStyle: 'italic' }}>
+                      <div style={{ padding: '9px 14px 9px 48px', fontSize: 12, color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.04)', fontStyle: 'italic' }}>
                         No synoptic reports attached
                       </div>
                     )}
@@ -382,12 +383,14 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
           {/* RIGHT — document-outline preview */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', background: 'rgba(0,0,0,0.15)' }}>
 
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#8a9db5', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>
               Report Assembly Preview
             </div>
 
-            {/* Report Header block */}
-            <DocSection icon="▲" label="Report Header" sublabel="Institutional header, patient demographics, accession" muted />
+            {/* Report Header — only for Outreach/Orchestrator cases; LIS owns its own header */}
+            {caseData?.id?.startsWith('O26-') && (
+              <DocSection icon="▲" label="Report Header" sublabel="Institutional header, patient demographics, accession" muted />
+            )}
 
             {/* Specimens in order */}
             {rows.map((row, i) => (
@@ -412,7 +415,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
 
                 {/* Synoptic subsections */}
                 {row.synoptics.length === 0 && (
-                  <div style={{ padding: '6px 14px 6px 32px', fontSize: 12, color: '#475569', fontStyle: 'italic' }}>
+                  <div style={{ padding: '6px 14px 6px 32px', fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
                     No synoptic reports — gross description only
                   </div>
                 )}
@@ -424,7 +427,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                   const answeredFields = Object.entries(syn.answers)
                     .filter(([, v]) => v !== '' && !(Array.isArray(v) && !v.length))
                     .map(([id, v]) => ({ label: fieldMap[id] ?? id, value: Array.isArray(v) ? v.join(', ') : v }));
-                  const PREVIEW_MAX = 12;
+                  const PREVIEW_MAX = expandedSynoptics.has(syn.instanceId) ? 999 : 10;
                   const visibleFields = answeredFields.slice(0, PREVIEW_MAX);
                   const overflow = answeredFields.length - PREVIEW_MAX;
 
@@ -450,12 +453,12 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0 }}>{si + 1}.</span>
+                        <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>{si + 1}.</span>
                         <span style={{ fontSize: 13, fontWeight: 600, color: isActive ? '#7dd3fc' : '#cbd5e1', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {syn.templateName}
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, flexShrink: 0 }}>{syn.status}</span>
-                        <span style={{ fontSize: 10, color: '#64748b', flexShrink: 0 }}>{syn.filledCount}/{syn.totalCount}</span>
+                        <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{syn.filledCount}/{syn.totalCount}</span>
                         {/* Mini progress bar */}
                         <div style={{ width: 40, height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', flexShrink: 0 }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#10b981' : '#0891B2', borderRadius: 99 }} />
@@ -467,28 +470,50 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
 
                       {/* Field rows */}
                       {visibleFields.length > 0 && (
-                        <div style={{ padding: '6px 14px 8px 46px' }}>
+                        <div style={{ padding: '8px 14px 10px 46px' }}>
                           {visibleFields.map(({ label, value }) => (
-                            <div key={label} style={{ display: 'flex', gap: 8, marginBottom: 3, alignItems: 'baseline' }}>
-                              <span style={{ fontSize: 10, color: '#64748b', flexShrink: 0, minWidth: 140, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div key={label} style={{ display: 'flex', gap: 10, marginBottom: 5, alignItems: 'baseline' }}>
+                              <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0, minWidth: 155, maxWidth: 155, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {label}
                               </span>
-                              <span style={{ fontSize: 11, color: '#e2e8f0', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 13, color: '#e2e8f0', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {value}
                               </span>
                             </div>
                           ))}
                           {overflow > 0 && (
-                            <div style={{ fontSize: 10, color: '#475569', marginTop: 4, fontStyle: 'italic' }}>
-                              + {overflow} more field{overflow !== 1 ? 's' : ''} — click to view all
+                            <div
+                              onClick={() => setExpandedSynoptics(prev => { const next = new Set(prev); next.add(syn.instanceId); return next; })}
+                              style={{ fontSize: 11, color: '#38bdf8', marginTop: 6, fontStyle: 'italic', cursor: 'pointer', userSelect: 'none' }}
+                            >
+                              + {overflow} more field{overflow !== 1 ? 's' : ''} — click to expand
+                            </div>
+                          )}
+                          {expandedSynoptics.has(syn.instanceId) && overflow === 0 && answeredFields.length > 10 && (
+                            <div
+                              onClick={() => setExpandedSynoptics(prev => { const next = new Set(prev); next.delete(syn.instanceId); return next; })}
+                              style={{ fontSize: 11, color: '#64748b', marginTop: 6, fontStyle: 'italic', cursor: 'pointer', userSelect: 'none' }}
+                            >
+                              ▲ collapse
                             </div>
                           )}
                         </div>
                       )}
 
                       {answeredFields.length === 0 && (
-                        <div style={{ padding: '6px 14px 8px 46px', fontSize: 10, color: '#475569', fontStyle: 'italic' }}>
+                        <div style={{ padding: '6px 14px 8px 46px', fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
                           No fields answered yet
+                        </div>
+                      )}
+
+                      {/* Synoptics Finalized — per synoptic, not at document level */}
+                      {syn.status === 'finalized' && (
+                        <div style={{ margin: '6px 14px 4px 46px', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 5, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)' }}>
+                          <span style={{ fontSize: 12 }}>✍</span>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#34d399' }}>Synoptic Finalized</div>
+                            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>Pathologist attestation recorded</div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -497,12 +522,11 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
               </div>
             ))}
 
-            {/* Sign-off block */}
-            <DocSection icon="✍" label="Sign-off" sublabel="Pathologist signature and date" muted />
+            {/* Synoptics Finalized appears within each individual synoptic card above */}
 
             {/* Hint */}
             <div style={{ marginTop: 24, padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+              <p style={{ fontSize: 11, color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
                 The order shown here determines how specimens appear in the generated report.
                 Synoptic values remain unchanged — only their presentation sequence is affected.
                 Click any synoptic row to jump to it in the editor.
@@ -525,10 +549,10 @@ const DocSection: React.FC<{ icon: string; label: string; sublabel: string; mute
     background: 'rgba(255,255,255,0.02)',
     border: '1px solid rgba(255,255,255,0.06)',
   }}>
-    <span style={{ fontSize: 13, color: '#475569', flexShrink: 0 }}>{icon}</span>
+    <span style={{ fontSize: 13, color: '#94a3b8', flexShrink: 0 }}>{icon}</span>
     <div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#8a9db5' }}>{label}</div>
-      <div style={{ fontSize: 10, color: '#475569', marginTop: 1 }}>{sublabel}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{label}</div>
+      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>{sublabel}</div>
     </div>
   </div>
 );

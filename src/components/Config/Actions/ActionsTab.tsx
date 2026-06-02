@@ -236,17 +236,17 @@ export const ActionsTab: React.FC = () => {
           <p style={{ color: 'var(--ps-conf-text-2)' }}>Admin-only command configuration. Keyboard shortcuts must be unique system-wide.</p>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <button onClick={exportCurrentRegistry} style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}>Download Template</button>
-            <button onClick={() => fileInputRef.current?.click()} style={{ background: 'var(--ps-conf-overlay)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--ps-conf-text)', padding: '8px 20px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>📥 Bulk Import</button>
+            <button onClick={exportCurrentRegistry} className="ps-conf-action-link">Download Template</button>
+            <button onClick={() => fileInputRef.current?.click()} className="ps-conf-btn-secondary">📥 Bulk Import</button>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".csv" />
         </div>
       </div>
 
-      <input className="registry-search" type="text" placeholder="Search actions..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--ps-conf-overlay)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', marginBottom: '16px', outline: 'none' }} />
+      <input type="text" placeholder="Search actions..." value={search} onChange={(e) => setSearch(e.target.value)} className="registry-search-input" />
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
         {filterOptions.map(cat => (
-          <button key={cat} onClick={() => setSelectedCategory(cat)} style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', background: selectedCategory === cat ? 'rgba(56, 189, 248, 0.2)' : 'var(--ps-conf-overlay)', color: selectedCategory === cat ? '#38bdf8' : 'var(--ps-conf-text-3)', border: `1px solid ${selectedCategory === cat ? '#38bdf8' : 'rgba(255,255,255,0.1)'}` }}>{cat}</button>
+          <button key={cat} onClick={() => setSelectedCategory(cat)} className={`ps-conf-category-btn${selectedCategory === cat ? ' active' : ''}`}>{cat}</button>
         ))}
       </div>
 
@@ -279,7 +279,7 @@ export const ActionsTab: React.FC = () => {
                       </div>
                     </td>
                     <td style={{ padding: '16px', textAlign: 'right' }}>
-                      <button onClick={() => openEditModal(action)} style={{ background: 'transparent', border: '1px solid #334155', color: 'var(--ps-conf-text-2)', borderRadius: '4px', padding: '6px 16px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                      <button onClick={() => openEditModal(action)} className="ps-conf-btn-row">Edit</button>
                     </td>
                   </tr>
                 ))}
@@ -290,8 +290,8 @@ export const ActionsTab: React.FC = () => {
       </div>
 
       {editingAction && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: 'var(--ps-conf-bg)', border: '1px solid #1e293b', borderRadius: '12px', padding: '32px', width: '480px' }}>
+        <div className="ps-conf-edit-modal-overlay">
+          <div className="ps-conf-edit-modal">
             <h4 style={{ fontSize: '20px', marginBottom: '4px' }}>Edit Action</h4>
             <p style={{ color: 'var(--ps-conf-text-3)', fontSize: '14px', marginBottom: '24px' }}>{editingAction.label}</p>
             <div style={{ marginBottom: '20px' }}>
@@ -308,7 +308,7 @@ export const ActionsTab: React.FC = () => {
                 />
                 {tempShortcut && (
                   <button onClick={() => { setTempShortcut(''); setShortcutError(''); setShortcutSuggestion(''); }}
-                    style={{ padding: '0 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: '#f87171', cursor: 'pointer', fontSize: 12 }}>
+                    className="ps-conf-shortcut-clear">
                     Clear
                   </button>
                 )}
@@ -334,9 +334,8 @@ export const ActionsTab: React.FC = () => {
               <textarea value={tempTriggers} onChange={(e) => setTempTriggers(e.target.value)} style={{ width: '100%', background: 'var(--ps-conf-surface)', border: '1px solid #334155', color: '#fff', padding: '12px', borderRadius: '6px', height: '100px', resize: 'none', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setEditingAction(null)} style={{ background: 'transparent', border: 'none', color: 'var(--ps-conf-text-3)', cursor: 'pointer', fontWeight: 'bold' }}>CANCEL</button>
-              <button onClick={handleSave} disabled={!!shortcutError}
-                style={{ background: shortcutError ? 'var(--ps-conf-surface)' : '#38bdf8', border: 'none', color: shortcutError ? '#475569' : '#000', padding: '10px 28px', borderRadius: '6px', fontWeight: 'bold', cursor: shortcutError ? 'not-allowed' : 'pointer' }}>
+              <button onClick={() => setEditingAction(null)} className="fm-btn-cancel">Cancel</button>
+              <button onClick={handleSave} className="ps-btn-primary" disabled={!!shortcutError}>
                 SAVE CHANGES
               </button>
             </div>

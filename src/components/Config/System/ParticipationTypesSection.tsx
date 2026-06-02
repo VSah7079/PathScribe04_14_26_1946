@@ -21,6 +21,8 @@ export interface ParticipationType {
   requiresCountersign:   boolean;
   canBeAssignedTemplate: boolean;
   canViewWholeCase:      boolean;
+  /** Multiple people can hold this role on the same case simultaneously */
+  allowsMultiple:        boolean;
   color:                 string;
   builtIn:               boolean;
   active:                boolean;
@@ -33,63 +35,63 @@ export const BUILT_IN_PARTICIPATION_TYPES: ParticipationType[] = [
     id: 'primary', label: 'Primary Pathologist', abbreviation: 'Primary',
     description: 'Responsible pathologist with full case ownership and sign-out authority.',
     canFinalize: true, requiresCountersign: false,
-    canBeAssignedTemplate: true, canViewWholeCase: true,
+    canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: false,
     color: '#8AB4F8', builtIn: true, active: true,
   },
   {
     id: 'consultant', label: 'Consultant', abbreviation: 'Consult',
     description: 'Subspecialty consultant contributing an opinion on specific specimens or findings.',
     canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: true, canViewWholeCase: false,
+    canBeAssignedTemplate: true, canViewWholeCase: false, allowsMultiple: true,
     color: '#60a5fa', builtIn: true, active: true,
   },
   {
     id: 'second_opinion', label: 'Second Opinion', abbreviation: '2nd Op',
     description: 'Formal second opinion — can view the whole case but does not sign out.',
     canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: true, canViewWholeCase: true,
+    canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: true,
     color: '#818cf8', builtIn: true, active: true,
   },
   {
     id: 'frozen_section', label: 'Frozen Section', abbreviation: 'Frozen',
     description: 'Intraoperative frozen section pathologist — report requires attending countersign.',
     canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: true, canViewWholeCase: false,
+    canBeAssignedTemplate: true, canViewWholeCase: false, allowsMultiple: false,
     color: '#38bdf8', builtIn: true, active: true,
   },
   {
     id: 'grossing', label: 'Grossing Pathologist', abbreviation: 'Grossing',
     description: 'Performs macroscopic examination and specimen description. Work requires countersign.',
     canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: false, canViewWholeCase: true,
+    canBeAssignedTemplate: false, canViewWholeCase: true, allowsMultiple: true,
     color: '#81C995', builtIn: true, active: true,
   },
   {
     id: 'preliminary_report', label: 'Preliminary Report', abbreviation: 'Prelim',
     description: 'Drafts the microscopic report under supervision. Requires attending countersign.',
     canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: true, canViewWholeCase: true,
+    canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: true,
     color: '#4ade80', builtIn: true, active: true,
   },
   {
     id: 'observer', label: 'Observer', abbreviation: 'Observer',
     description: 'View-only access for training or audit purposes. No reporting capability.',
     canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: false, canViewWholeCase: true,
+    canBeAssignedTemplate: false, canViewWholeCase: true, allowsMultiple: true,
     color: '#6b7280', builtIn: true, active: true,
   },
   {
     id: 'cytotechnologist', label: 'Cytotechnologist', abbreviation: 'CytoTech',
     description: 'Screens cytology slides and flags abnormals for pathologist review.',
     canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: true, canViewWholeCase: false,
+    canBeAssignedTemplate: true, canViewWholeCase: false, allowsMultiple: true,
     color: '#f59e0b', builtIn: true, active: true,
   },
   {
     id: 'tumour_board', label: 'Tumour Board', abbreviation: 'MDT',
     description: 'Multidisciplinary team participant — view access for case discussion.',
     canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: false, canViewWholeCase: true,
+    canBeAssignedTemplate: false, canViewWholeCase: true, allowsMultiple: true,
     color: '#8b5cf6', builtIn: true, active: true,
   },
 ];
@@ -103,7 +105,9 @@ export function loadParticipationTypes(): ParticipationType[] {
   // Ensure built-ins are always present (migration guard)
   const ids = stored.map(t => t.id);
   const missing = BUILT_IN_PARTICIPATION_TYPES.filter(t => !ids.includes(t.id));
-  return [...missing, ...stored];
+  // Migration: backfill allowsMultiple for types stored before this field existed
+  const migrated = stored.map(t => ({ allowsMultiple: false, ...t }));
+  return [...missing, ...migrated];
 }
 
 function saveParticipationTypes(types: ParticipationType[]) {
@@ -143,7 +147,7 @@ type Draft = Omit<ParticipationType, 'id' | 'builtIn'>;
 const emptyDraft: Draft = {
   label: '', abbreviation: '', description: '',
   canFinalize: false, requiresCountersign: false,
-  canBeAssignedTemplate: true, canViewWholeCase: true,
+  canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: false,
   color: '#8AB4F8', active: true,
 };
 
@@ -158,6 +162,7 @@ const TypeModal: React.FC<{
       label: type.label, abbreviation: type.abbreviation, description: type.description,
       canFinalize: type.canFinalize, requiresCountersign: type.requiresCountersign,
       canBeAssignedTemplate: type.canBeAssignedTemplate, canViewWholeCase: type.canViewWholeCase,
+      allowsMultiple: type.allowsMultiple ?? false,
       color: type.color, active: type.active,
     } : { ...emptyDraft }
   );
@@ -237,10 +242,11 @@ const TypeModal: React.FC<{
             <label style={LABEL}>Capabilities</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {([
-                { key: 'canFinalize',           label: 'Can Finalise',         desc: 'Can sign out and finalise a case independently',                        disabled: isBuiltIn },
-                { key: 'requiresCountersign',   label: 'Requires Countersign', desc: 'Work must be reviewed and countersigned by a more senior participant',   disabled: isBuiltIn },
-                { key: 'canBeAssignedTemplate', label: 'Template Assignment',  desc: 'Can be assigned a specific synoptic template on a case',                 disabled: isBuiltIn },
-                { key: 'canViewWholeCase',      label: 'Full Case View',       desc: 'Can view the entire case, not just assigned specimens or synoptics',      disabled: isBuiltIn },
+                { key: 'canFinalize',           label: 'Can Finalise',          desc: 'Can sign out and finalise a case independently',                       disabled: isBuiltIn },
+                { key: 'requiresCountersign',   label: 'Requires Countersign',  desc: 'Work must be reviewed and countersigned by a more senior participant',  disabled: isBuiltIn },
+                { key: 'canBeAssignedTemplate', label: 'Template Assignment',   desc: 'Can be assigned a specific synoptic template on a case',                disabled: isBuiltIn },
+                { key: 'canViewWholeCase',      label: 'Full Case View',        desc: 'Can view the entire case, not just assigned specimens or synoptics',     disabled: isBuiltIn },
+                { key: 'allowsMultiple',        label: 'Multiple Participants', desc: 'Multiple people can hold this role on the same case simultaneously',    disabled: false },
               ] as const).map(({ key, label, desc, disabled }) => (
                 <label key={key} style={{
                   display: 'flex', alignItems: 'flex-start', gap: 12, cursor: disabled ? 'default' : 'pointer',
@@ -392,6 +398,7 @@ const ParticipationTypesSection: React.FC = () => {
                       <AttrChip label="Countersign"    value={t.requiresCountersign}     onColor="#f59e0b" />
                       <AttrChip label="Template"       value={t.canBeAssignedTemplate}   onColor="#8AB4F8" />
                       <AttrChip label="Full View"      value={t.canViewWholeCase}        onColor="#8AB4F8" />
+                      <AttrChip label="Multi"          value={t.allowsMultiple ?? false} onColor="#a78bfa" />
                     </div>
                   </td>
                   {/* Status */}

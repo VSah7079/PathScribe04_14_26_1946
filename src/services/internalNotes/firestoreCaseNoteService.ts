@@ -15,7 +15,7 @@ import {
 import { db } from '../../firebase';
 import {  ID } from '../types';
 import { CaseNote, NewCaseNote, ICaseNoteService } from './ICaseNoteService';
-import { firestoreAuditService } from '../auditLog/firestoreAuditService';
+import { firestoreAuditService } from '../auditlog/firestoreAuditService';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 

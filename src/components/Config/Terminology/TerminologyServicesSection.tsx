@@ -173,9 +173,9 @@ const ServiceRow: React.FC<{
     alignItems: 'center',
     padding: '12px 16px',
     marginBottom: '6px',
-    background: '#1e293b',
+    background: 'rgba(255,255,255,0.03)',
     borderRadius: '9px',
-    border: '1px solid #334155',
+    border: '1px solid rgba(255,255,255,0.08)',
     transition: 'all 0.15s',
   }}>
 
@@ -209,7 +209,7 @@ const ServiceRow: React.FC<{
           <span style={{
             fontSize: '10px', fontFamily: 'monospace', color: '#475569',
             background: 'rgba(255,255,255,0.04)', padding: '1px 6px',
-            borderRadius: '4px', border: '1px solid #334155',
+            borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)',
           }}>
             {def.envVar}
           </span>

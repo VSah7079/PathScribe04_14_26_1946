@@ -174,6 +174,13 @@ export interface ReportTemplate {
    */
   assembly: AssemblySlot[];
 
+  /**
+   * Legacy canvas nodes — used by the node-based TemplateBuilderPage editor.
+   * Optional when using assembly mode (TemplateAssemblyPage).
+   * Both fields may be populated simultaneously during the transition period.
+   */
+  nodes?: TemplateNode[];
+
   /** Whether AI narrative generation is enabled */
   orchestrationEnabled: boolean;
 

@@ -22,6 +22,16 @@ const VERSIONED_KEYS = [
   'pathscribe_flags_version',
 ];
 
+const SETTINGS_KEYS = [
+  'pathscribe_subspecialties',
+  'pathscribe_report_templates',
+];
+
+const CASE_KEYS = [
+  'ps_cases',
+  'orch_cases_v2',
+];
+
 const FLAG_KEYS = [
   'pathscribe_flags',
   'pathscribe_flags_v2',
@@ -33,11 +43,12 @@ const STATE_KEYS = [
 
 // Hospital → user mapping (mirrors mockCaseService USER_HOSPITAL_MAP)
 const HOSPITAL_MAP: Record<string, string> = {
-  'PATH-001':    'HOSP-001',   // Sarah Johnson — US demo
+  'PATH-001':    'HOSP-001',   // Pete Nimmo — US demo
   'PATH-UK-001': 'HOSP-MFT',  // Paul Carter   — UK
   'PATH-UK-002': 'HOSP-MFT',
   'PATH-US-001': 'HOSP-MPA',  // Amber Fehrs-Battey — US
-  'PATH-US-002': 'HOSP-HFHS',
+  'PATH-US-002': 'HOSP-HFHS',  // J. Mark Tuthill
+  'PATH-RB-001': 'HOSP-RB',    // Rossana Babakhani
 };
 
 /** Read current user id from localStorage session */
@@ -63,6 +74,8 @@ function executeFullReset(): string[] {
   };
 
   VERSIONED_KEYS.forEach(remove);
+  SETTINGS_KEYS.forEach(remove);
+  CASE_KEYS.forEach(remove);
   FLAG_KEYS.forEach(remove);
   STATE_KEYS.forEach(remove);
   remove(SESSION_KEY);
@@ -157,10 +170,11 @@ const DemoResetTab: React.FC = () => {
 
   const hospitalId = userId ? HOSPITAL_MAP[userId] : null;
   const hospitalLabel: Record<string, string> = {
-    'HOSP-001': 'DVMC / US (Sarah Johnson)',
+    'HOSP-001': 'PathScribe Demo (Pete Nimmo)',
     'HOSP-MFT': 'Manchester Foundation Trust (Paul Carter)',
     'HOSP-MPA': 'Midwest Pathology Associates (Amber Fehrs-Battey)',
-    'HOSP-HFHS': 'Henry Ford Health System (Amber Fehrs-Battey)',
+    'HOSP-HFHS': 'Henry Ford Health System (J. Mark Tuthill)',
+    'HOSP-RB':    'PathScribe Review (Rossana Babakhani)',
   };
 
   // ── Confirmation dialogs ──────────────────────────────────────────────────
@@ -186,11 +200,7 @@ const DemoResetTab: React.FC = () => {
         <button className="ps-conf-btn-secondary" onClick={onCancel}>Cancel</button>
         <button
           onClick={onConfirm}
-          style={{
-            padding: '8px 20px', fontSize: 13, fontWeight: 600,
-            background: confirmColor, border: 'none', borderRadius: 6,
-            color: '#fff', cursor: 'pointer',
-          }}
+          className={confirmColor === '#dc2626' ? 'ps-btn-danger-solid' : 'ps-btn-primary'}
         >
           {confirmLabel}
         </button>
@@ -202,11 +212,8 @@ const DemoResetTab: React.FC = () => {
   if (uiState === 'done' && result) {
     return (
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 0' }}>
-        <div style={{
-          background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)',
-          borderRadius: 8, padding: '20px 24px',
-        }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#34d399', marginBottom: 8 }}>
+        <div className="ps-reset-success">
+          <div className="ps-reset-success__title">
             ✓ {result.mode === 'full' ? 'Full reset complete' : 'Your data has been reset'}
           </div>
           <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ps-conf-text-3)' }}>

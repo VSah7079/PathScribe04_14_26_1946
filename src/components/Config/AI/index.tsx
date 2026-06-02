@@ -2,13 +2,34 @@ import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
 import { aiBehaviorService } from '../../../services/aiBehavior/IAIBehaviorService';
 import type { AIBehaviorConfig } from '../../../services/aiBehavior/IAIBehaviorService';
+import { resolveAiConfig, PROVIDER_MODELS } from './aiProviderConfig';
 import AiProviderSettings from './AiProviderSettings';
+import OrchestratorConfigSection from './OrchestratorConfigSection';
+
+// ── Role check helper ─────────────────────────────────────────
+// Reads from the same auth context used elsewhere in PathScribe.
+// Returns true if the current user has org-admin privileges.
+function useIsAdmin(): boolean {
+  try {
+    const raw  = localStorage.getItem('pathscribe_current_user');
+    const user = raw ? JSON.parse(raw) : null;
+    return user?.role === 'admin' || user?.role === 'superadmin';
+  } catch { return false; }
+}
 
 const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel }) => {
   const [config,     setConfig]     = useState<AIBehaviorConfig | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
+  const isAdmin = useIsAdmin();
+
+  // Resolve active provider for the engine badge
+  const activeConfig  = resolveAiConfig();
+  const providerLabel = activeConfig.providerId === 'mock'
+    ? 'Mock — Demo Mode'
+    : `${activeConfig.modelId}`;
+  const isMock = activeConfig.providerId === 'mock';
 
   useEffect(() => {
     aiBehaviorService.get().then(res => {
@@ -37,6 +58,32 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
       <p className="ps-conf-section-subtitle" style={{ marginBottom: 24 }}>
         Configure how the AI assists with gross and microscopic reporting.
       </p>
+
+      {/* ── AI Engine (read-only badge for all users) ── */}
+      <div className="ps-conf-card" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ps-conf-text)', marginBottom: 2 }}>
+              AI Engine
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ps-conf-text-2)' }}>
+              {isMock
+                ? 'Demo mode active — responses are simulated'
+                : 'Managed by your lab administrator'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            {isMock && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.25)' }}>
+                DEMO
+              </span>
+            )}
+            <span style={{ fontSize: 12, fontWeight: 600, color: isMock ? '#fbbf24' : '#38bdf8', background: isMock ? 'rgba(251,191,36,0.08)' : 'rgba(56,189,248,0.08)', padding: '5px 12px', borderRadius: 8, border: `1px solid ${isMock ? 'rgba(251,191,36,0.2)' : 'rgba(56,189,248,0.2)'}` }}>
+              {providerLabel}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* ── Gross-Driven AI ── */}
       <div className="ps-conf-card" style={{ marginBottom: 12 }}>
@@ -135,10 +182,22 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
         {saving && <span style={{ fontSize: 13, color: 'var(--ps-conf-text-3)' }}>Saving…</span>}
       </div>
 
-      {/* ── AI Provider Configuration ── */}
-      <div style={{ marginTop: 40, borderTop: '1px solid var(--ps-conf-border)', paddingTop: 32 }}>
-        <AiProviderSettings isAdmin={true} />
-      </div>
+      {/* ── AI Provider Configuration — admin only ── */}
+      {isAdmin ? (
+        <div style={{ marginTop: 40, borderTop: '1px solid var(--ps-conf-border)', paddingTop: 32 }}>
+          <AiProviderSettings isAdmin={true} />
+        </div>
+      ) : (
+        <div style={{ marginTop: 32, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', fontSize: 12, color: '#475569' }}>
+          AI provider configuration is managed by your lab administrator. Contact your admin to change the AI engine or model.
+        </div>
+      )}
+
+      {/* ── Orchestrator Config (replaces Narrative Templates tab) ── */}
+      <OrchestratorConfigSection isAdmin={isAdmin} />
+
+      {/* Bottom spacer — ensures content clears the viewport edge */}
+      <div className="ps-config-bottom-spacer" />
 
       {/* ── Model Versions — admin only ── */}
       {ModelsPanel && (

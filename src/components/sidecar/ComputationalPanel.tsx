@@ -553,7 +553,7 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
       {/* ── Order Additional Test modal — Flag Manager style ── */}
       {showOrderModal && (
         <div className="fm-overlay" style={{ zIndex: 10100 }} onClick={() => setShowOrderModal(false)} onKeyDown={e => e.key === 'Escape' && setShowOrderModal(false)}>
-          <div className="fm-modal comp-order-modal" ref={orderModalRef} role="dialog" aria-modal="true" aria-labelledby="order-modal-title" onClick={e => e.stopPropagation()}>
+          <div className="ps-research-modal fm-modal comp-order-modal" ref={orderModalRef} role="dialog" aria-modal="true" aria-labelledby="order-modal-title" onClick={e => e.stopPropagation()}>
 
             {/* Header */}
             <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid rgba(30,41,59,0.9)', flexShrink: 0 }}>
@@ -598,10 +598,10 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
             <div className="fm-body">
 
             {/* Left — pending orders + apply-to with current flags shown per specimen */}
-            <div className="fm-left" style={{ width: 300, overflowY: 'auto' }}>
+            <div className="fm-left comp-order-left">
 
               {/* Pending orders */}
-              <div className="fm-col-label" style={{ padding: '10px 14px 6px' }}>
+              <div className="fm-col-label">
                 Pending orders
                 {pendingOrders.length > 0 && (
                   <span className="comp-group-count">{pendingOrders.length}</span>
@@ -614,7 +614,7 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                   <div key={flag.id} className="fm-flag-chip">
                     <span className="fm-flag-chip-name">
                       <strong>{flag.lisCode}</strong> — {flag.name}
-                      {sid && <span style={{ display: 'block', fontSize: 10, color: '#64748b', marginTop: 1 }}>{specimenLabel(sid)}</span>}
+                      {sid && <span className="comp-order-spec-sub">{specimenLabel(sid)}</span>}
                     </span>
                     <button
                       className="fm-chip-remove-btn"
@@ -629,10 +629,10 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                 ))
               )}
 
-              <div className="fm-divider" style={{ margin: '8px 0' }} />
+              <div className="fm-divider" />
 
               {/* Apply to — with currently ordered flags shown under each target */}
-              <div className="fm-col-label" style={{ padding: '0 14px 6px' }}>Apply to</div>
+              <div className="fm-col-label">Apply to</div>
 
               {/* All Specimens (case-level) */}
               {(() => {
@@ -646,31 +646,30 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                       role="button" tabIndex={0}
                       onClick={() => setSelectedTarget(null)}
                       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSelectedTarget(null)}
-                      className={`fm-specimen-row${isSelected ? ' selected' : ''}`}
-                      style={{ padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: isSelected ? 'rgba(56,189,248,0.08)' : 'transparent', borderLeft: `2px solid ${isSelected ? '#38bdf8' : 'transparent'}` }}
+                      className={`comp-order-target-row${isSelected ? ' selected' : ''}${isOver ? ' dropping' : ''}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, color: isOver ? '#38bdf8' : '#94a3b8' }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="comp-order-target-icon">
                         <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.4"/>
                         <path d="M4 8h8M8 4v8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                       </svg>
-                      <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 400, color: isOver ? '#38bdf8' : isSelected ? '#e2e8f0' : '#94a3b8', flex: 1 }}>All Specimens</span>
+                      <span className="comp-order-target-label">All Specimens</span>
                       {caseLevelFlags.length > 0 && <span className="comp-group-count">{caseLevelFlags.length}</span>}
                       {isOver && activeDragFlag && (
-                        <span style={{ fontSize: 10, color: '#38bdf8', fontWeight: 700 }}>Drop to order</span>
+                        <span className="comp-order-drop-hint">Drop to order</span>
                       )}
                     </div>
                     {caseLevelFlags.map(f => {
                       const dotColor = results[f.id]?.status === 'FINAL' ? '#059669' : results[f.id]?.status === 'PRELIMINARY' ? '#f59e0b' : '#0891b2';
                       return (
-                        <div key={f.id} style={{ padding: '3px 14px 3px 36px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div key={f.id} className="comp-order-flag-preview">
                           <span className="comp-status-dot" style={{ background: dotColor }} />
-                          <span style={{ fontSize: 11, color: '#8a9db5', fontWeight: 600, flex: '0 0 auto' }}>{f.lisCode}</span>
-                          <span style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{f.name}</span>
+                          <span className="comp-order-flag-code">{f.lisCode}</span>
+                          <span className="comp-order-flag-name">{f.name}</span>
                           <button
                             className="comp-trash-btn"
                             aria-label={`Cancel ${f.name} order`}
                             onClick={e => { e.stopPropagation(); setCancelTarget(f); }}
-                            style={{ flexShrink: 0 }}
+                           
                           >
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <path d="M3 4h10M6 4V3h4v1M7 7v5M9 7v5M4 4l1 9h6l1-9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -696,17 +695,17 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                       role="button" tabIndex={0}
                       onClick={() => setSelectedTarget(sp.id)}
                       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSelectedTarget(sp.id)}
-                      style={{ padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 8, background: isSelected ? 'rgba(56,189,248,0.08)' : 'transparent', borderLeft: `2px solid ${isSelected ? '#38bdf8' : 'transparent'}` }}
+                      className={`comp-order-target-row comp-order-target-row--specimen${isSelected ? ' selected' : ''}${isOver ? ' dropping' : ''}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2, color: isOver ? '#38bdf8' : '#94a3b8' }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="comp-order-target-icon">
                         <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/>
                         <circle cx="8" cy="8" r="2" fill={isSelected || isOver ? '#38bdf8' : 'transparent'} stroke="currentColor" strokeWidth="1.2"/>
                       </svg>
-                      <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="comp-order-spec-content">
                         <div style={{ fontSize: 12, fontWeight: 600, color: isOver ? '#38bdf8' : isSelected ? '#e2e8f0' : '#94a3b8', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          <span style={{ flexShrink: 0 }}>{sp.label}:</span>
+                          <span>{sp.label}:</span>
                           <span style={{ color: isOver ? '#38bdf8' : isSelected ? '#cbd5e1' : '#64748b', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis' }}>{sp.description}</span>
-                          {spFlags.length > 0 && <span className="comp-group-count" style={{ flexShrink: 0 }}>{spFlags.length}</span>}
+                          {spFlags.length > 0 && <span className="comp-group-count">{spFlags.length}</span>}
                           {isOver && activeDragFlag && (
                             <span style={{ fontSize: 10, color: '#38bdf8', fontWeight: 700, flexShrink: 0 }}>Drop to order</span>
                           )}
@@ -716,15 +715,15 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                     {spFlags.map(f => {
                       const dotColor = results[f.id]?.status === 'FINAL' ? '#059669' : results[f.id]?.status === 'PRELIMINARY' ? '#f59e0b' : '#0891b2';
                       return (
-                        <div key={f.id} style={{ padding: '3px 14px 3px 36px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div key={f.id} className="comp-order-flag-preview">
                           <span className="comp-status-dot" style={{ background: dotColor }} />
-                          <span style={{ fontSize: 11, color: '#8a9db5', fontWeight: 600, flex: '0 0 auto' }}>{f.lisCode}</span>
-                          <span style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{f.name}</span>
+                          <span className="comp-order-flag-code">{f.lisCode}</span>
+                          <span className="comp-order-flag-name">{f.name}</span>
                           <button
                             className="comp-trash-btn"
                             aria-label={`Cancel ${f.name} order`}
                             onClick={e => { e.stopPropagation(); setCancelTarget(f); }}
-                            style={{ flexShrink: 0 }}
+                           
                           >
                             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <path d="M3 4h10M6 4V3h4v1M7 7v5M9 7v5M4 4l1 9h6l1-9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -761,7 +760,7 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
             </div>
 
             {/* Column header */}
-            <div className="fm-col-header" style={{ gridTemplateColumns: '70px 1fr 90px' }}>
+            <div className="comp-order-grid-header">
               <span className="fm-col-label">Code</span>
               <span className="fm-col-label">Test <span className="fm-col-label-note">· suggested protocol</span></span>
             </div>
@@ -796,7 +795,7 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                 f.name.toLowerCase().includes(orderSearch.toLowerCase()) ||
                 (f.lisCode ?? '').toLowerCase().includes(orderSearch.toLowerCase())
 ).length === 0 && (
-                <div className="comp-empty-note" style={{ padding: '24px 0', textAlign: 'center' }}>
+                <div className="comp-order-empty">
                   No tests match your search.
                 </div>
               )}
@@ -824,7 +823,7 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
             </DndContext>
 
             {/* Footer */}
-            <div style={{ padding: '12px 22px', borderTop: '1px solid rgba(30,41,59,0.9)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="comp-order-footer">
               <button className="ps-btn-ghost-dark" onClick={() => setShowOrderModal(false)}>Cancel</button>
               <button
                 onClick={handlePlaceOrders}
@@ -838,7 +837,7 @@ const ComputationalPanel: React.FC<Props> = ({ caseId, allCompFlags, allAvailabl
                   opacity: placing ? 0.7 : 1,
                 }}
               >
-                {placing ? 'Placing orders…' : `Place ${pendingOrders.length > 0 ? pendingOrders.length : ''} Order${pendingOrders.length !== 1 ? 's' : ''}`}
+                {placing ? 'Placing…' : pendingOrders.length > 0 ? `Place ${pendingOrders.length} Order${pendingOrders.length !== 1 ? 's' : ''}` : 'Place Order(s)'}
               </button>
             </div>
           </div>

@@ -53,7 +53,7 @@ export const createFlag = async (payload: {
     severity:    payload.severity ?? 1,
     status:      payload.active === false ? 'Inactive' : 'Active',
   } as any);
-  if (!result.ok) throw new Error(result.error);
+  if (result.ok === false) throw new Error(result.error);
   return toFlagDefinition(result.data);
 };
 
@@ -64,7 +64,7 @@ export const updateFlag = async (id: string, updates: Partial<FlagDefinition>): 
   if (updates.severity)    mapped.severity = updates.severity;
   if (updates.active !== undefined) mapped.status = updates.active ? 'Active' : 'Inactive';
   const result = await mockFlagService.update(id, mapped);
-  if (!result.ok) throw new Error(result.error);
+  if (result.ok === false) throw new Error(result.error);
   return toFlagDefinition(result.data);
 };
 

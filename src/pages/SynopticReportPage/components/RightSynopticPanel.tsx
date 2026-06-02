@@ -108,7 +108,9 @@ const FieldRow: React.FC<FieldRowProps> = ({
                   : aiAttempted && !ai && !hasValue ? '3px solid rgba(100,116,139,0.3)'
                   : '3px solid transparent',
         paddingLeft: (ai || aiAttempted || isPulsing) ? 10 : 0,
-        background: isPulsing ? 'rgba(245,158,11,0.06)' : 'transparent',
+        background: isPulsing ? 'rgba(245,158,11,0.06)'
+                  : isActive && hasValue ? 'rgba(8,145,178,0.05)'
+                  : 'transparent',
         borderRadius: isPulsing ? 6 : 2,
         outline: isPulsing ? '1px solid rgba(245,158,11,0.25)' : 'none',
         outlineOffset: '3px',

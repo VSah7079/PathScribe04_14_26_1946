@@ -171,13 +171,12 @@ const RoleModal: React.FC<{
   const totalActions = ACTION_GROUPS.reduce((n, g) => n + g.actions.length, 0);
 
   return (
-    <div data-capture-hide="true" style={overlay} onClick={onClose}>
+    <div data-capture-hide="true" style={{ ...overlay, alignItems: 'flex-start', overflowY: 'auto', padding: '32px 0' }} onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
         style={{
           ...modalBox,
           width: 'min(1080px, 96vw)',
-          maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -235,13 +234,13 @@ const RoleModal: React.FC<{
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexShrink: 0,
             padding: '4px 10px', borderRadius: 6,
-            background: (draft as any).canViewPediatric ? 'rgba(245,158,11,0.1)' : 'transparent',
-            border: `1px solid ${(draft as any).canViewPediatric ? 'rgba(245,158,11,0.35)' : 'transparent'}`,
+            background: (draft as any).canViewPediatric ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${(draft as any).canViewPediatric ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.12)'}`,
           }}>
             <input type="checkbox"
               checked={(draft as any).canViewPediatric ?? false}
               onChange={e => setDraft(d => ({ ...d, canViewPediatric: e.target.checked } as any))}
-              style={{ width: 16, height: 16, accentColor: '#f59e0b', cursor: 'pointer' }} />
+              style={{ width: 16, height: 16, accentColor: '#f59e0b', cursor: 'pointer', flexShrink: 0 }} />
             <span style={{ fontSize: 13, color: (draft as any).canViewPediatric ? '#f59e0b' : '#9ca3af', fontWeight: 600 }}>
               Pediatric Access
             </span>

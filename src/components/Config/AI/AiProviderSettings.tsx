@@ -25,6 +25,7 @@ const PROVIDER_LABELS: Record<AiProviderId, string> = {
   openai:      'OpenAI (GPT-4)',
   azure_openai:'Azure OpenAI',
   aws_bedrock: 'AWS Bedrock',
+  mock:        'Mock — Demo Mode',
   custom:      'Self-hosted / Custom endpoint',
 };
 
@@ -33,6 +34,7 @@ const PROVIDER_NOTES: Record<AiProviderId, string> = {
   openai:      'API key managed server-side. Contact PathScribe support to rotate keys.',
   azure_openai:'Requires Azure deployment name and endpoint. Key managed server-side.',
   aws_bedrock: 'Uses IAM role credentials on the server. No API key needed here.',
+  mock:        'No API connection. Returns instant deterministic responses. Use for demos and offline testing only.',
   custom:      'Must be an OpenAI-compatible endpoint. Auth managed server-side.',
 };
 
@@ -158,6 +160,13 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         {isDevMode() && <span style={{ marginLeft: 8, color: '#fbbf24' }}>⚠ Dev mode — direct API calls enabled</span>}
       </div>
 
+      {/* Demo mode banner */}
+      {providerId === 'mock' && (
+        <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 24, fontSize: 12, color: '#34d399' }}>
+          <strong>Demo Mode active</strong> — AI responses are instant and simulated. No API calls are made. Safe for offline demos and testing. Switch to a real provider before clinical use.
+        </div>
+      )}
+
       {/* Provider selector */}
       <div style={{ marginBottom: 20 }}>
         <label style={labelStyle}>AI Provider</label>
@@ -166,9 +175,16 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           onChange={e => setProviderId(e.target.value as AiProviderId)}
           style={inputStyle}
         >
-          {(Object.keys(PROVIDER_LABELS) as AiProviderId[]).map(id => (
-            <option key={id} value={id}>{PROVIDER_LABELS[id]}</option>
-          ))}
+          {/* Real providers */}
+          <optgroup label="Production Providers">
+            {(['anthropic', 'openai', 'azure_openai', 'aws_bedrock', 'custom'] as AiProviderId[]).map(id => (
+              <option key={id} value={id}>{PROVIDER_LABELS[id]}</option>
+            ))}
+          </optgroup>
+          {/* Mock for demos */}
+          <optgroup label="Development &amp; Demo">
+            <option value="mock">{PROVIDER_LABELS.mock}</option>
+          </optgroup>
         </select>
         <p style={{ fontSize: 11, color: '#475569', marginTop: 6 }}>
           {PROVIDER_NOTES[providerId]}

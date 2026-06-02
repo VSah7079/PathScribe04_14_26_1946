@@ -208,6 +208,10 @@ const NodeCard: React.FC<NodeCardProps> = ({
   if (node.type === 'page-break') {
     propertyChips.push('Always');
   }
+  if (node.type === 'column-layout') {
+    const n = (node as import('../../types/template').ColumnLayoutNode).numColumns;
+    propertyChips.push(`${n} col · flows`);
+  }
   // Column width chip — always show when not full-width
   const colSpan = node.colSpan ?? 12;
   if (colSpan < 12) {
@@ -457,49 +461,68 @@ const NodeCard: React.FC<NodeCardProps> = ({
         }} />
       </div>
 
-      {/* Children — column-layout: explicit per-column drop zones */}
+      {/* Children — column-layout: flat ordered list matching the flowing
+          column-count preview. Content fills col 1 to bottom then overflows
+          into col 2, so there is no meaningful per-column slot at authoring
+          time — only ordering matters. */}
       {isContainer && expanded && node.type === 'column-layout' && (() => {
         const colNode = node as import('../../types/template').ColumnLayoutNode;
         const numCols = colNode.numColumns;
+        const colColor = '#0e9f6e';
         return (
           <div style={{ marginLeft: 8, marginTop: 4 }}>
+
+            {/* ── Column-count indicator ─────────────────────────── */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${numCols}, 1fr)`,
-              gap: `4px ${colNode.columnGap ?? 16}px`,
-              padding: '8px',
-              background: 'rgba(255,255,255,0.01)',
-              border: `1px dashed ${showGrid ? 'rgba(8,145,178,0.3)' : 'rgba(255,255,255,0.07)'}`,
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 8px', marginBottom: 5,
+              background: 'rgba(14,159,110,0.07)',
+              border: '1px solid rgba(14,159,110,0.18)',
               borderRadius: 4,
             }}>
-              {Array.from({ length: numCols }).map((_, colIdx) => (
-                <div key={colIdx} style={{
-                  minHeight: 52,
-                  background: showGrid ? 'rgba(8,145,178,0.04)' : 'rgba(255,255,255,0.02)',
-                  border: `1px dashed ${showGrid ? 'rgba(8,145,178,0.25)' : 'rgba(255,255,255,0.05)'}`,
-                  borderRadius: 4, padding: '4px',
-                }}>
-                  <div style={{ fontSize: 8, color: '#334155', textAlign: 'center',
-                    marginBottom: 4, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Column {colIdx + 1}
-                  </div>
-                  {colNode.children
-                    .filter((_, ci) => ci % numCols === colIdx)
-                    .map((child, ci) => (
-                      <React.Fragment key={child.id}>
-                        <DropZone parentId={node.id} insertIndex={colIdx + ci * numCols} onDrop={onDrop} isActive={isDragging} />
-                        <NodeCard node={child} depth={depth + 1} selectedId={selectedId}
-                          isDragging={isDragging} onSelect={onSelect} onDrop={onDrop} onDelete={onDelete} />
-                      </React.Fragment>
-                    ))}
-                  <DropZone parentId={node.id} insertIndex={colIdx + colNode.children.filter((_, ci) => ci % numCols === colIdx).length * numCols} onDrop={onDrop} isActive={isDragging} />
-                  {colNode.children.filter((_, ci) => ci % numCols === colIdx).length === 0 && (
-                    <div style={{ fontSize: 10, color: '#1e293b', textAlign: 'center', padding: '6px 0', fontStyle: 'italic' }}>
-                      Drop here
-                    </div>
+              {/* Mini column-stripe diagram */}
+              {Array.from({ length: numCols }).map((_, i) => (
+                <React.Fragment key={i}>
+                  <div style={{ flex: 1, height: 4, borderRadius: 2,
+                    background: 'rgba(14,159,110,0.35)' }} />
+                  {i < numCols - 1 && (
+                    <div style={{ width: 1, height: 14,
+                      background: 'rgba(14,159,110,0.25)' }} />
                   )}
-                </div>
+                </React.Fragment>
               ))}
+              <span style={{ fontSize: 9, fontWeight: 700, color: colColor,
+                marginLeft: 6, flexShrink: 0, letterSpacing: '0.04em' }}>
+                {numCols} col · flows ↓→
+              </span>
+            </div>
+
+            {/* ── Flat ordered child list ────────────────────────── */}
+            <div style={{
+              padding: '4px 6px',
+              background: 'rgba(14,159,110,0.03)',
+              border: `1px dashed rgba(14,159,110,0.2)`,
+              borderRadius: 4,
+            }}>
+              <DropZone parentId={node.id} insertIndex={0}
+                onDrop={onDrop} isActive={isDragging} />
+              {colNode.children.map((child, i) => (
+                <React.Fragment key={child.id}>
+                  <NodeCard
+                    node={child} depth={depth + 1} selectedId={selectedId}
+                    isDragging={isDragging} onSelect={onSelect}
+                    onDrop={onDrop} onDelete={onDelete}
+                  />
+                  <DropZone parentId={node.id} insertIndex={i + 1}
+                    onDrop={onDrop} isActive={isDragging} />
+                </React.Fragment>
+              ))}
+              {colNode.children.length === 0 && (
+                <div style={{ fontSize: 10, color: colColor, textAlign: 'center',
+                  padding: '10px 0', fontStyle: 'italic', opacity: 0.65 }}>
+                  Drop content here — flows across {numCols} columns in preview
+                </div>
+              )}
             </div>
           </div>
         );

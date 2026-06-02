@@ -386,8 +386,8 @@ const FlagConfigPage: React.FC = () => {
       {/* ── Add / Edit Modal ── */}
       {showModal && (
         <div className="ps-conf-backdrop">
-          <div className="ps-conf-modal" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="flag-modal-title" style={{ maxWidth: tagClass === 'COMPUTATIONAL' ? 1060 : 560, width: '100%', transition: 'max-width 0.2s ease' }}>
-            <h3 style={{ marginTop: 0, fontSize: 18, fontWeight: 700, marginBottom: 20 }}>
+          <div className="ps-conf-modal" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="flag-modal-title" style={{ maxWidth: tagClass === 'COMPUTATIONAL' ? 1060 : 560, width: '100%', transition: 'max-width 0.2s ease', padding: '24px' }}>
+            <h3 style={{ marginTop: 0, fontSize: 16, fontWeight: 700, marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--ps-conf-border)' }}>
               <span id="flag-modal-title">{editingFlag ? 'Edit Flag' : 'Create Flag'}</span>
             </h3>
 
@@ -577,7 +577,7 @@ const FlagConfigPage: React.FC = () => {
             <label className="ps-conf-label" style={{ marginTop: 16 }}>Status</label>
             <Toggle value={active} onChange={setActive} />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingTop: 16, gap: 10, borderTop: '1px solid var(--ps-conf-border)' }}>
               <button className="ps-conf-btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="ps-conf-btn-primary" onClick={requestSave}>Save</button>
             </div>

@@ -196,10 +196,10 @@ const AuditLogPage: React.FC = () => {
               <p style={{ fontSize: '14px', color: '#94a3b8' }}>Complete record of AI actions, user changes, system events and errors</p>
             </div>
             <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              {(['audit', 'error'] as const).map(tab => (
+              {(['audit', 'errors'] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '8px 18px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s', background: activeTab === tab ? 'rgba(8,145,178,0.25)' : 'transparent', color: activeTab === tab ? '#0891B2' : '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {tab === 'audit' ? '📋 Audit Log' : '⚠️ Error Log'}
-                  {tab === 'error' && openErrors > 0 && <span style={{ background: '#ef4444', color: '#fff', borderRadius: '10px', fontSize: '10px', fontWeight: 700, padding: '1px 6px' }}>{openErrors}</span>}
+                  {tab === 'errors' && openErrors > 0 && <span style={{ background: '#ef4444', color: '#fff', borderRadius: '10px', fontSize: '10px', fontWeight: 700, padding: '1px 6px' }}>{openErrors}</span>}
                 </button>
               ))}
             </div>
@@ -284,7 +284,8 @@ const AuditLogPage: React.FC = () => {
               </div>
 
               {/* Table */}
-              <div style={{ flex: 1, minHeight: 0, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div className="ps-table-scroll-wrap">
+              <div style={{ flex: 1, minHeight: 0, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: '680px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '170px 75px 145px 1fr 155px 80px', padding: '10px 20px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
                   <div>Timestamp</div><div>Type</div><div>Event</div><div>Detail</div><div>User</div><div>Case</div>
                 </div>
@@ -309,12 +310,13 @@ const AuditLogPage: React.FC = () => {
                   })}
                 </div>
               </div>
+              </div>{/* end ps-table-scroll-wrap */}
               <div style={{ marginTop: '6px', fontSize: '12px', color: '#475569', textAlign: 'right', flexShrink: 0 }}>Showing {filteredAuditLogs.length} of {auditLogs.length} events</div>
             </>
           )}
 
           {/* ── ERROR TAB ── */}
-          {activeTab === 'error' && (
+          {activeTab === 'errors' && (
             <>
               {/* Filters */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
@@ -345,7 +347,8 @@ const AuditLogPage: React.FC = () => {
               </div>
 
               {/* Error Table */}
-              <div style={{ flex: 1, minHeight: 0, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div className="ps-table-scroll-wrap">
+              <div style={{ flex: 1, minHeight: 0, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: '760px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '165px 85px 105px 1fr 145px 75px 85px', padding: '10px 20px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
                   <div>Timestamp</div><div>Severity</div><div>Code</div><div>Message</div><div>Source</div><div>Case</div><div>Status</div>
                 </div>
@@ -371,6 +374,7 @@ const AuditLogPage: React.FC = () => {
                   })}
                 </div>
               </div>
+              </div>{/* end ps-table-scroll-wrap */}
               <div style={{ marginTop: '6px', fontSize: '12px', color: '#475569', textAlign: 'right', flexShrink: 0 }}>Showing {filteredErrorLogs.length} of {errorLogs.length} errors</div>
             </>
           )}

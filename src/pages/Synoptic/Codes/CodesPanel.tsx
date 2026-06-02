@@ -1,39 +1,10 @@
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import type { MedicalCode, FieldVerification, SpecimenOption } from '../synopticTypes';
 import CodeBadge from './CodeBadge';
+import type { CodeSourceMeta } from '../codeConstants';
 import { SOURCE_META } from '../codeConstants';
 import AddCodeModal from './AddCodeModal';
-=======
-=======
->>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
-import type { MedicalCode } from '../synopticTypes';
-import CodeBadge from './CodeBadge';
-import AddCodeModal from './AddCodeModal';
-
-// ── Local types ───────────────────────────────────────────────────────────────
-type FieldVerification = 'verified' | 'unverified' | 'disputed';
-// Derive directly from AddCodeModal props — guarantees the types always match
-type SpecimenOption = React.ComponentProps<typeof AddCodeModal>['allSpecimens'][number];
-
-// ── Source badge legend ───────────────────────────────────────────────────────
-const SOURCE_META: Record<string, { label: string; bg: string; color: string }> = {
-  system: { label: 'Protocol', bg: '#eff6ff', color: '#1d4ed8' },
-  ai:     { label: 'AI',       bg: '#f0fdf4', color: '#15803d' },
-  manual: { label: 'Manual',   bg: '#fef3c7', color: '#92400e' },
-};
-<<<<<<< HEAD
->>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
-=======
-=======
-import type { MedicalCode, FieldVerification, SpecimenOption } from '../synopticTypes';
-import CodeBadge from './CodeBadge';
-import { SOURCE_META } from '../codeConstants';
-import AddCodeModal from './AddCodeModal';
->>>>>>> 89dbd2ea88adc76aaa25cd49e285e80115521477
->>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
 
 const CodesPanel: React.FC<{
   codes: MedicalCode[];
@@ -55,7 +26,7 @@ const CodesPanel: React.FC<{
     <div>
       {/* Legend */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', marginBottom: '14px', fontSize: '11px' }}>
-        {Object.entries(SOURCE_META).map(([k, v]) => (
+        {Object.entries(SOURCE_META).map(([k, v]: [string, CodeSourceMeta]) => (
           <span key={k} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span style={{ padding: '1px 6px', borderRadius: '10px', background: v.bg, color: v.color, fontWeight: 700 }}>{v.label}</span>
             {k === 'system' ? '= CAP/RCPath (locked)' : k === 'ai' ? '= AI-assigned' : '= Manual (yours)'}

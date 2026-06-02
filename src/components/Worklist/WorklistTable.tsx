@@ -33,6 +33,8 @@ interface WorklistTableProps {
   tableHeight?: number;
   delegatedCaseIds?: string[];
   onBeforeNavigate?: (caseId: string) => void;
+  /** 'search' when inside SearchPage, 'worklist' otherwise */
+  navSource?: 'search' | 'worklist';
   onPoolCaseClick?: (caseId: string, summary: string) => void;
   selectedIndex?: number;
   selectedCaseId?: string | null;
@@ -284,6 +286,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   tableHeight,
   delegatedCaseIds = [],
   onBeforeNavigate,
+  navSource = 'worklist',
   onPoolCaseClick,
   selectedIndex: _selectedIndex,
   selectedCaseId = null,
@@ -618,6 +621,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
    */
   const openCase = useCallback(
     (id: string) => {
+      sessionStorage.setItem('pathscribe:navFrom', navSource);
       onBeforeNavigate?.(id);
       navigate(`/case/${id}/synoptic`, {
         state: { 
@@ -626,7 +630,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
         },
       });
     },
-    [navigate, onBeforeNavigate, finalCases]
+    [navigate, onBeforeNavigate, finalCases, navSource]
   );
 
   /**
@@ -812,8 +816,10 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   const renderFlag = (appliedFlag: any, caseId: string, idx: number, isSpecimen: boolean) => {
     const key = appliedFlag.flagDefinitionId ?? appliedFlag.lisCode ?? appliedFlag.id;
     const def = key ? defMap.get(key) : undefined;
+    // Use definition tagClass first, then the flag's own tagClass as fallback
+    const effectiveTagClass = def?.tagClass ?? (appliedFlag as any).tagClass;
 
-    if (def?.tagClass === 'COMPUTATIONAL') {
+    if (effectiveTagClass === 'COMPUTATIONAL' && def) {
       return (
         <ComputationalFlagIcon
           key={`comp-${def.id}-${idx}`}
@@ -839,12 +845,14 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     const computational = allFlags.filter(({ f }) => {
       const key = f.flagDefinitionId ?? f.lisCode ?? f.id;
       const def = key ? defMap.get(key) : undefined;
-      return def?.tagClass === 'COMPUTATIONAL';
+      const effectiveTagClass = def?.tagClass ?? (f as any).tagClass;
+      return effectiveTagClass === 'COMPUTATIONAL';
     });
     const administrative = allFlags.filter(({ f }) => {
       const key = f.flagDefinitionId ?? f.lisCode ?? f.id;
       const def = key ? defMap.get(key) : undefined;
-      return !def || def.tagClass !== 'COMPUTATIONAL';
+      const effectiveTagClass = def?.tagClass ?? (f as any).tagClass;
+      return !effectiveTagClass || effectiveTagClass !== 'COMPUTATIONAL';
     });
     return (
       <div className="wl-flags-wrap">

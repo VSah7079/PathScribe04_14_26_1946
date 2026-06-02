@@ -209,6 +209,149 @@ const PartPicker: React.FC<{
   );
 };
 
+// ── Persistent Parts Panel (left sidebar) ──────────────────────
+
+const PART_TYPE_CONFIG = {
+  header: { label: 'Header Parts', icon: '▲', roles: ['header-p1', 'header-p2plus'] as AssemblyRole[] },
+  body:   { label: 'Body Parts',   icon: '▬', roles: ['body'] as AssemblyRole[]                      },
+  footer: { label: 'Footer Parts', icon: '▼', roles: ['footer-p1', 'footer-p2plus'] as AssemblyRole[]},
+};
+
+const PartsPanel: React.FC<{
+  activeRole:  AssemblyRole | null;
+  usedPartIds: Set<string>;
+  onAdd:       (part: ReportPart, role: AssemblyRole) => void;
+}> = ({ activeRole, usedPartIds, onAdd }) => {
+  const [parts, setParts] = useState<ReportPart[]>([]);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    pSvc.getAll().then(r => {
+      if (r.ok) setParts(r.data.filter((p: ReportPart) => p.status === 'published'));
+    });
+  }, []);
+
+  const filtered = parts.filter(p =>
+    !search || p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <aside style={{
+      width: 240, flexShrink: 0,
+      background: '#f8fafc', borderRight: '1px solid #e2e8f0',
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    }}>
+      {/* Panel header */}
+      <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#475569', letterSpacing: '0.06em' }}>
+          Part Library
+        </div>
+        {activeRole ? (
+          <div style={{ fontSize: 11, color: '#0891b2', fontWeight: 600, marginTop: 3 }}>
+            Click a part to add → {ASSEMBLY_ROLE_LABELS[activeRole]}
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+            Click a zone "+" to start adding
+          </div>
+        )}
+      </div>
+
+      {/* Search */}
+      <div style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+        <input
+          value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search parts…"
+          style={{
+            width: '100%', padding: '5px 8px', fontSize: 11,
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6,
+            outline: 'none', color: '#334155', boxSizing: 'border-box' as const,
+          }}
+        />
+      </div>
+
+      {/* Part groups */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {(Object.entries(PART_TYPE_CONFIG) as [string, typeof PART_TYPE_CONFIG['body']][]).map(([type, cfg]) => {
+          const group = filtered.filter(p => p.partType === type);
+          if (group.length === 0) return null;
+
+          // Dim group when active role doesn't match this type
+          const groupActive = !activeRole || cfg.roles.includes(activeRole);
+
+          return (
+            <div key={type} style={{ borderBottom: '1px solid #f1f5f9', opacity: groupActive ? 1 : 0.35 }}>
+              {/* Group header */}
+              <div style={{
+                padding: '8px 12px 5px', fontSize: 10, fontWeight: 700,
+                textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.06em',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                <span>{cfg.icon}</span> {cfg.label}
+                <span style={{ marginLeft: 'auto', background: '#e2e8f0', borderRadius: 10,
+                  padding: '1px 6px', fontSize: 9, fontWeight: 700, color: '#64748b' }}>
+                  {group.length}
+                </span>
+              </div>
+
+              {/* Part rows */}
+              {group.map(part => {
+                const canAdd = activeRole && cfg.roles.includes(activeRole);
+                const alreadyUsed = usedPartIds.has(part.id);
+                return (
+                  <div
+                    key={part.id}
+                    title={canAdd ? `Add to ${ASSEMBLY_ROLE_LABELS[activeRole!]}` : 'Select a zone first'}
+                    onClick={() => canAdd && onAdd(part, activeRole!)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 12px',
+                      cursor: canAdd ? 'pointer' : 'default',
+                      borderBottom: '1px solid #f8fafc',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => { if (canAdd) e.currentTarget.style.background = '#e0f2fe'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{
+                      fontSize: 12, flexShrink: 0, width: 24, height: 24,
+                      borderRadius: 5, background: '#e2e8f0',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#64748b',
+                    }}>
+                      {type === 'header' ? '▲' : type === 'footer' ? '▼' : '▬'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 11, fontWeight: 600, color: '#334155',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {part.name}
+                      </div>
+                      {part.description && (
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {part.description}
+                        </div>
+                      )}
+                    </div>
+                    {alreadyUsed && (
+                      <span style={{ fontSize: 9, color: '#0891b2', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    )}
+                    {canAdd && !alreadyUsed && (
+                      <span style={{ fontSize: 14, color: '#0891b2', fontWeight: 700, flexShrink: 0 }}>+</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+};
+
 // ── Slot row ───────────────────────────────────────────────────
 
 const SlotRow: React.FC<{
@@ -290,7 +433,7 @@ const SlotRow: React.FC<{
 
 // ── Add slot button ────────────────────────────────────────────
 
-const AddSlotRow: React.FC<{ role: AssemblyRole; onAdd: () => void }> = ({ role, onAdd }) => (
+const AddSlotRow: React.FC<{ role: AssemblyRole; onAdd: () => void; activeRole?: AssemblyRole | null }> = ({ role, onAdd, activeRole }) => (
   <button onClick={onAdd} style={{
     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
     padding: '10px 16px', borderRadius: 8, marginBottom: 4,
@@ -318,25 +461,69 @@ export const TemplateAssemblyPage: React.FC = () => {
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [picker, setPicker]     = useState<AssemblyRole | null>(null);
+  const [activeRole, setActiveRole] = useState<AssemblyRole | null>(null);
   const [draggingSlotId, setDraggingSlotId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resolvedParts, setResolvedParts] = useState<ReportPart[]>([]);
 
   // Load
   useEffect(() => {
-    if (!templateId) return;
+    // Treat both undefined (no :templateId param in route) and 'new' as a blank template.
+    // Without this, navigating to /admin/templates/new leaves templateId=undefined,
+    // the !templateId guard fires, setLoading(false) is never called, and the page
+    // is permanently stuck on "Loading template…".
+    if (!templateId || templateId === 'new') {
+      // Initialise a blank template in local state — no service call.
+      // It will be persisted the first time the user saves (Publish / auto-save).
+      const blank = {
+        id:                 `tmpl-${Date.now()}`,
+        name:               'New Report Template',
+        specialty:          'general',
+        subspecialty:       undefined,
+        standard:           'custom',
+        status:             'draft',
+        orchestrationEnabled: false,
+        institutionId:      'PATHSCRIBE',
+        createdBy:          'user',
+        createdAt:          new Date().toISOString(),
+        updatedAt:          new Date().toISOString(),
+        version:            '1.0.0',
+        assembly:           [],
+        nodes:              [],
+      } as unknown as ReportTemplate;
+      setTemplate(blank);
+      setLoading(false);
+      return;
+    }
     svc.getById(templateId).then(r => {
-      if (r.ok) setTemplate(r.data);
-      else setError(r.error);
+      if (r.ok) setTemplate({ ...r.data, assembly: r.data.assembly ?? [] });
+      else if (r.ok === false) setError(r.error);
       setLoading(false);
     });
   }, [templateId]);
 
   const save = useCallback(async (updated: ReportTemplate) => {
     setSaving(true);
-    const r = await svc.save(updated);
-    if (r.ok) setTemplate(r.data);
-    else setError(r.error);
+    // Try update first; if not found (new template), create instead
+    const r = await svc.save(updated).catch(() => null);
+    if (r?.ok) {
+      setTemplate(r.data);
+      // Update URL if template was just created (id may have been a temp 'new' id)
+      if (window.location.pathname.includes('/new')) {
+        window.history.replaceState({}, '', `/admin/templates/${r.data.id}/edit`);
+      }
+    } else {
+      // First save — template doesn't exist in store yet, create it
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, createdAt: _ca, updatedAt: _ua, ...createPayload } = updated;
+      const c = await svc.create(createPayload);
+      if (c.ok) {
+        setTemplate(c.data);
+        window.history.replaceState({}, '', `/admin/templates/${c.data.id}/edit`);
+      } else {
+        if (c.ok === false) setError(c.error ?? 'Failed to save');
+      }
+    }
     setSaving(false);
   }, []);
 
@@ -373,6 +560,19 @@ export const TemplateAssemblyPage: React.FC = () => {
 
   // Validation — computed once per render, displayed as warnings below error banner
   const validation = template ? validateAssembly(template) : null;
+
+  // ── Hooks that must come before any early return ─────────────
+  // IDs already in assembly — shown as ✓ in panel
+  const usedPartIds = React.useMemo(
+    () => new Set((template?.assembly ?? []).map((s: AssemblySlot) => s.partId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [template?.assembly]
+  );
+
+  const handlePanelAdd = useCallback((part: ReportPart, role: AssemblyRole) => {
+    addSlot(role, part);
+    setActiveRole(null);
+  }, [addSlot]);
 
   if (loading) return <div style={S.loading}>Loading template…</div>;
   if (!template) return <div style={S.loading}>Template not found.</div>;
@@ -443,7 +643,17 @@ export const TemplateAssemblyPage: React.FC = () => {
         </div>
       </header>
 
-      {/* ── Two-page layout ── */}
+      {/* ── Body: left panel + canvas ── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* Persistent Parts Panel */}
+        <PartsPanel
+          activeRole={activeRole}
+          usedPartIds={usedPartIds}
+          onAdd={handlePanelAdd}
+        />
+
+        {/* ── Two-page canvas ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', background: '#e2e8f0' }}>
 
         {/* Service errors */}
@@ -532,7 +742,7 @@ export const TemplateAssemblyPage: React.FC = () => {
                         </button>
                       </div>
                     ))}
-                    <AddSlotRow role="body" onAdd={() => setPicker('body')} />
+                    <AddSlotRow role="body" onAdd={() => setActiveRole(r => r === 'body' ? null : 'body')} activeRole={activeRole} />
                   </React.Fragment>
                 );
                 const icon = role.startsWith('header') ? '▲' : '▼';
@@ -551,7 +761,7 @@ export const TemplateAssemblyPage: React.FC = () => {
                         onToggle={() => toggleSlot(slot.slotId)}
                       />
                     ))}
-                    <AddSlotRow role={role} onAdd={() => setPicker(role)} />
+                    <AddSlotRow role={role} onAdd={() => setActiveRole(r => r === role ? null : role)} activeRole={activeRole} />
                   </React.Fragment>
                 );
               })}
@@ -579,7 +789,7 @@ export const TemplateAssemblyPage: React.FC = () => {
                         onToggle={() => toggleSlot(slot.slotId)}
                       />
                     ))}
-                    <AddSlotRow role={role} onAdd={() => setPicker(role)} />
+                    <AddSlotRow role={role} onAdd={() => setActiveRole(r => r === role ? null : role)} activeRole={activeRole} />
                     {/* Body reference sits between header and footer on pages 2+ */}
                     {role.startsWith('header') && (
                       <>
@@ -601,7 +811,8 @@ export const TemplateAssemblyPage: React.FC = () => {
           </div>
 
         </div>{/* end two-column grid */}
-      </div>{/* end scroll area */}
+      </div>{/* end canvas scroll area */}
+      </div>{/* end body flex wrapper */}
 
       {/* ── Part picker modal ── */}
       {picker && (

@@ -74,15 +74,6 @@ const S: Record<string, React.CSSProperties> = {
   },
   patientName: { fontSize: 20, fontWeight: 600, color: '#fff' },
   mrn: { fontSize: 13, color: muted, fontWeight: 400, marginLeft: 6 },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    color: muted,
-    fontSize: 18,
-    cursor: 'pointer',
-    padding: '2px 6px',
-    lineHeight: 1,
-  },
   breadcrumb: {
     display: 'flex',
     alignItems: 'center',
@@ -178,16 +169,6 @@ const S: Record<string, React.CSSProperties> = {
     borderTop: border,
     display: 'flex',
     justifyContent: 'flex-end',
-  },
-  refineBtn: {
-    background: accent,
-    color: '#fff',
-    border: 'none',
-    borderRadius: 20,
-    padding: '8px 18px',
-    fontSize: 13,
-    cursor: 'pointer',
-    fontWeight: 500,
   },
   fullReport: {
     padding: '24px 32px',
@@ -422,7 +403,7 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
               )}
             </div>
           </div>
-          <button style={S.closeBtn} onClick={view === 'report' ? goBack : onClose}>
+          <button className="ps-close-btn" onClick={view === 'report' ? goBack : onClose} aria-label="Close">
             {view === 'report' ? '← Back' : '✕'}
           </button>
         </div>
@@ -505,20 +486,15 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
                   type="button"
                   onClick={handleSendMessage}
                   disabled={sending || !composeNote.trim()}
-                  style={{
-                    padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                    background: sent ? '#10b981' : accent, border: 'none', color: '#fff',
-                    cursor: sending || !composeNote.trim() ? 'not-allowed' : 'pointer',
-                    opacity: !composeNote.trim() && !sent ? 0.5 : 1,
-                    transition: 'background 0.2s',
-                  }}
+                  className="ps-btn-primary"
+                  style={{ background: sent ? '#10b981' : undefined }}
                 >
                   {sent ? '✓ Sent' : sending ? 'Sending…' : 'Send ↑'}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowCompose(false); setComposeNote(''); }}
-                  style={{ padding: '7px 12px', borderRadius: 8, fontSize: 13, background: 'none', border, color: muted, cursor: 'pointer' }}
+                  className="fm-btn-cancel"
                 >
                   Cancel
                 </button>
@@ -531,18 +507,15 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
                 <button
                   type="button"
                   onClick={() => view === 'report' && setShowCompose(true)}
-                  style={{
-                    padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                    background: 'none', border, color: view === 'report' ? accent : muted,
-                    cursor: view === 'report' ? 'pointer' : 'not-allowed',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
+                  className="fm-btn-cancel"
+                  disabled={view !== 'report'}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   ✉ {view === 'report' && physicianName ? `Message ${physicianName}` : 'Message Pathologist'}
                 </button>
               )}
             </div>
-            <button type="button" style={S.refineBtn} onClick={() => {
+            <button type="button" className="ps-btn-ghost-teal" onClick={() => {
               setCrumbs([
                 { label: 'Home', path: '/' },
                 { label: 'Case Report', path: window.location.pathname },

@@ -45,8 +45,8 @@ const LABEL: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#9ca
 const INPUT: React.CSSProperties = { padding: '9px 12px', fontSize: 13, color: '#e5e7eb', background: '#0f0f0f', border: '1px solid #374151', borderRadius: 7, outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' };
 const ROW: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 };
 
-function initials(u: StaffUser) { return (u.firstName[0] + u.lastName[0]).toUpperCase(); }
-function fullName(u: StaffUser) { return `${u.firstName} ${u.lastName}`; }
+function initials(u: StaffUser) { const parts = [u.firstName, (u as any).middleName, u.lastName].filter(Boolean); return parts.length >= 2 ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase() : (parts[0]?.[0] ?? '?').toUpperCase(); }
+function fullName(u: StaffUser) { return [u.firstName, (u as any).middleName, u.lastName].filter(Boolean).join(' '); }
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
@@ -91,8 +91,8 @@ const SignatureUpload = ({ url, onChange }: { url?: string; onChange: (url: stri
 };
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
-type Draft = { firstName: string; lastName: string; credentials: string; email: string; roles: string[]; npi: string; gmcNumber: string; license: string; phone: string; department: string; signatureUrl: string; active: boolean; voiceProfile: string; canViewPediatric: boolean;};
-const emptyDraft: Draft = { firstName: '', lastName: '', credentials: '', email: '', roles: [], npi: '', gmcNumber: '', license: '', phone: '', department: '', signatureUrl: '', active: true, voiceProfile: '', canViewPediatric: false };
+type Draft = { firstName: string; middleName: string; lastName: string; credentials: string; email: string; roles: string[]; npi: string; gmcNumber: string; license: string; phone: string; department: string; signatureUrl: string; active: boolean; voiceProfile: string; canViewPediatric: boolean;};
+const emptyDraft: Draft = { firstName: '', middleName: '', lastName: '', credentials: '', email: '', roles: [], npi: '', gmcNumber: '', license: '', phone: '', department: '', signatureUrl: '', active: true, voiceProfile: '', canViewPediatric: false };
 
 interface StaffModalProps {
   mode: 'add' | 'edit';
@@ -104,7 +104,7 @@ interface StaffModalProps {
 
 const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onClose }) => {
   const [draft, setDraft] = useState<Draft>(
-    user ? { firstName: user.firstName, lastName: user.lastName, credentials: user.credentials || '', email: user.email, roles: [...user.roles], npi: user.npi, gmcNumber: user.gmcNumber || '', license: user.license, phone: user.phone, department: user.department, signatureUrl: user.signatureUrl || '', active: user.status === 'Active', voiceProfile: user.voiceProfile || '', canViewPediatric: user.canViewPediatric ?? false }
+    user ? { firstName: user.firstName, middleName: (user as any).middleName || '', lastName: user.lastName, credentials: user.credentials || '', email: user.email, roles: [...user.roles], npi: user.npi, gmcNumber: user.gmcNumber || '', license: user.license, phone: user.phone, department: user.department, signatureUrl: user.signatureUrl || '', active: user.status === 'Active', voiceProfile: user.voiceProfile || '', canViewPediatric: user.canViewPediatric ?? false }
          : emptyDraft
   );
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
@@ -127,35 +127,48 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
   };
 
   return (
-    <div data-capture-hide="true" style={overlay}>
-      <div style={{ ...modalBox, maxWidth: 600, maxHeight: '95vh', padding: 0, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ ...modalHeaderStyle, padding: '20px 24px 0', flexShrink: 0 }}>
-          {mode === 'add' ? 'Add Staff Member' : `Edit — ${user?.firstName} ${user?.lastName}`}
+    <div data-capture-hide="true" className="ps-conf-backdrop" onClick={onClose}>
+      <div className="ps-conf-modal" onClick={e => e.stopPropagation()}>
+        <div className="ps-conf-modal-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span>{mode === 'add' ? 'Add Staff Member' : `Edit — ${[user?.firstName, (user as any)?.middleName, user?.lastName].filter(Boolean).join(' ')}`}</span>
+          <button
+            onClick={onClose}
+            style={{ background:'transparent', border:'1px solid rgba(255,255,255,0.12)', borderRadius:7,
+              color:'#64748b', cursor:'pointer', fontSize:16, lineHeight:1, padding:'4px 9px',
+              display:'flex', alignItems:'center', justifyContent:'center' }}
+            aria-label="Close"
+          >✕</button>
         </div>
 
-        <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+        <div className="ps-conf-modal-body">
 
-          <div style={ROW}>
-            <div style={FIELD}>
-              <label style={LABEL}>First Name <span style={{ color: '#ef4444' }}>*</span></label>
-              <input style={{ ...INPUT, borderColor: errors.firstName ? '#ef4444' : '#374151' }} value={draft.firstName} onChange={e => set('firstName', e.target.value)} placeholder="First name" />
+          {/* Row 1: First | Middle | Last */}
+          <div className="ps-conf-form-row--3">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">First Name <span style={{ color: '#ef4444' }}>*</span></label>
+              <input className="ps-conf-input" style={{ borderColor: errors.firstName ? '#ef4444' : undefined }} value={draft.firstName} onChange={e => set('firstName', e.target.value)} placeholder="First name" />
               {errors.firstName && <span style={{ fontSize: 11, color: '#ef4444' }} data-phi="name">{errors.firstName}</span>}
             </div>
-            <div style={FIELD}>
-              <label style={LABEL}>Last Name <span style={{ color: '#ef4444' }}>*</span></label>
-              <input style={{ ...INPUT, borderColor: errors.lastName ? '#ef4444' : '#374151' }} value={draft.lastName} onChange={e => set('lastName', e.target.value)} placeholder="Last name" />
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Middle Name</label>
+              <input className="ps-conf-input" value={draft.middleName} onChange={e => set('middleName', e.target.value)} placeholder="Middle name" />
+            </div>
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
+              <input className="ps-conf-input" style={{ borderColor: errors.lastName ? '#ef4444' : undefined }} value={draft.lastName} onChange={e => set('lastName', e.target.value)} placeholder="Last name" />
               {errors.lastName && <span style={{ fontSize: 11, color: '#ef4444' }} data-phi="name">{errors.lastName}</span>}
             </div>
           </div>
 
-          <div style={ROW}>
-            <div style={FIELD}>
-              <label style={LABEL}>Email</label>
-              <input style={{ ...INPUT, borderColor: errors.email ? '#ef4444' : '#374151' }} value={draft.email} onChange={e => set('email', e.target.value)} placeholder="user@hospital.org" />
+          {/* Row 2: Email | Role */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Email</label>
+              <input className="ps-conf-input" style={{ borderColor: errors.email ? '#ef4444' : undefined }} value={draft.email} onChange={e => set('email', e.target.value)} placeholder="user@hospital.org" />
               {errors.email && <span style={{ fontSize: 11, color: '#ef4444' }}>{errors.email}</span>}
             </div>
-            <div style={FIELD}>
-              <label style={LABEL}>Role <span style={{ color: '#ef4444' }}>*</span></label>
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Role <span style={{ color: '#ef4444' }}>*</span></label>
               {draft.roles.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
                   {draft.roles.map(rName => {
@@ -170,141 +183,97 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
                   })}
                 </div>
               )}
-              <div style={{ position: 'relative' }}>
-                <select
-                  value=""
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val && !draft.roles.includes(val)) set('roles', [...draft.roles, val]);
-                  }}
-                  style={{ ...INPUT, color: draft.roles.length === 0 ? '#6b7280' : '#e5e7eb', cursor: 'pointer' }}
-                >
-                  <option value="" disabled>Select a role...</option>
-                  {roles.filter(r => r.name !== 'Physician' && !draft.roles.includes(r.name)).map(r => (
-                    <option key={r.id} value={r.name} style={{ background: '#0f0f0f' }}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
+              <select value="" onChange={e => { const val = e.target.value; if (val && !draft.roles.includes(val)) set('roles', [...draft.roles, val]); }}
+                className="ps-conf-select" style={{ cursor: 'pointer' }}>
+                <option value="" disabled>Select a role...</option>
+                {roles.filter(r => r.name !== 'Physician' && !draft.roles.includes(r.name)).map(r => (
+                  <option key={r.id} value={r.name} style={{ background: '#0f0f0f' }}>{r.name}</option>
+                ))}
+              </select>
               {errors.roles && <span style={{ fontSize: 11, color: '#ef4444' }}>{errors.roles}</span>}
             </div>
           </div>
 
-          <div style={FIELD}>
-            <label style={LABEL}>Credentials <span style={{ color: '#4b5563', fontWeight: 400, textTransform: 'none' }}>(e.g. MD, FCAP)</span></label>
-            <input style={INPUT} value={draft.credentials} onChange={e => set('credentials', e.target.value)} placeholder="e.g. MD, FCAP / MBChB, FRCPath" />
+          {/* Row 3: Phone | Department — moved up */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Phone</label>
+              <input className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder="555-0100" />
+            </div>
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Department</label>
+              <input className="ps-conf-input" value={draft.department} onChange={e => set('department', e.target.value)} placeholder="e.g. Surgical Pathology" />
+            </div>
           </div>
 
-          <div style={ROW}>
-            <div style={FIELD}>
-              <label style={LABEL}>NPI Number <span style={{ color: '#4b5563', fontWeight: 400, textTransform: 'none' }}>(US)</span></label>
-              <input style={INPUT} value={draft.npi} onChange={e => set('npi', e.target.value)} placeholder="10-digit NPI" />
-            </div>
-            <div style={FIELD}>
-              <label style={LABEL}>GMC Number <span style={{ color: '#4b5563', fontWeight: 400, textTransform: 'none' }}>(UK)</span></label>
-              <input style={INPUT} value={draft.gmcNumber} onChange={e => set('gmcNumber', e.target.value)} placeholder="7-digit GMC number" />
-            </div>
-          </div>
-          <div style={ROW}>
-            <div style={FIELD}>
-              <label style={LABEL}>License Number</label>
-              <input style={INPUT} value={draft.license} onChange={e => set('license', e.target.value)} placeholder="State license #" />
-            </div>
-            <div style={FIELD} />
+          {/* Row 4: Credentials (full width) */}
+          <div className="ps-conf-form-field">
+            <label className="ps-conf-label">Credentials <span style={{ color: '#64748b', fontWeight: 400, textTransform: 'none' }}>(e.g. MD, FCAP)</span></label>
+            <input className="ps-conf-input" value={draft.credentials} onChange={e => set('credentials', e.target.value)} placeholder="e.g. MD, FCAP / MBChB, FRCPath" />
           </div>
 
-          <div style={FIELD}>
-            <label style={LABEL}>Personal Voice Profile (Linguistic Override)</label>
-            <div style={{ position: 'relative' }}>
-              <select 
-                value={draft.voiceProfile} 
-                onChange={e => set('voiceProfile', e.target.value)}
-                style={{ 
-                  ...INPUT, 
-                  cursor: 'pointer',
-                  borderColor: '#374151', 
-                  background: '#0f0f0f',
-                  appearance: 'none',
-                  paddingRight: '32px'
-                }}
-              >
-                <option value="" style={{ background: '#0f0f0f', color: '#8AB4F8' }}>System Default (Inherited)</option>
+          {/* Row 5: NPI | GMC */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">NPI Number <span style={{ color: '#64748b', fontWeight: 400, textTransform: 'none' }}>(US)</span></label>
+              <input className="ps-conf-input" value={draft.npi} onChange={e => set('npi', e.target.value)} placeholder="10-digit NPI" />
+            </div>
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">GMC Number <span style={{ color: '#64748b', fontWeight: 400, textTransform: 'none' }}>(UK)</span></label>
+              <input className="ps-conf-input" value={draft.gmcNumber} onChange={e => set('gmcNumber', e.target.value)} placeholder="7-digit GMC number" />
+            </div>
+          </div>
+
+          {/* Row 6: License | Voice Profile — stray ▼ div removed */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">License Number</label>
+              <input className="ps-conf-input" value={draft.license} onChange={e => set('license', e.target.value)} placeholder="State license #" />
+            </div>
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Voice Profile</label>
+              <select value={draft.voiceProfile} onChange={e => set('voiceProfile', e.target.value)} className="ps-conf-select">
+                <option value="" style={{ background: '#0f0f0f' }}>System Default (Inherited)</option>
                 {VOICE_PROFILES.map((profile) => (
-                  <option key={profile.id} value={profile.id} style={{ background: '#0f0f0f' }}>
-                    {profile.label}
-                  </option>
+                  <option key={profile.id} value={profile.id} style={{ background: '#0f0f0f' }}>{profile.label}</option>
                 ))}
               </select>
-              <div style={{ 
-                position: 'absolute', 
-                right: '12px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                pointerEvents: 'none', 
-                color: '#9ca3af', 
-                fontSize: '11px',
-                display: 'flex',
-                alignItems: 'center',
-                opacity: 0.8
-              }}>
-                <span style={{ transform: 'scaleX(1.2)' }}>▼</span>
-              </div>
             </div>
-            <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
-              Leave as "System Default" to use the facility-wide accent setting.
-            </p>
           </div>
 
-          {/* Pediatric Access */}
-          <div style={{
-            padding: '12px 16px', borderRadius: 8,
+          {/* Row 7: Pediatric Access */}
+          <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 10,
             background: draft.canViewPediatric ? 'rgba(8,145,178,0.06)' : 'transparent',
             border: `1px solid ${draft.canViewPediatric ? 'rgba(8,145,178,0.25)' : 'rgba(255,255,255,0.08)'}`,
-            transition: 'all 0.2s',
           }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={draft.canViewPediatric}
+              <input type="checkbox" checked={draft.canViewPediatric}
                 onChange={e => setDraft(d => ({ ...d, canViewPediatric: e.target.checked }))}
-                style={{ width: 16, height: 16, accentColor: '#0891b2', cursor: 'pointer' }}
-              />
+                style={{ width: 16, height: 16, accentColor: '#0891b2', cursor: 'pointer' }} />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: draft.canViewPediatric ? '#38bdf8' : '#9ca3af' }}>
-                  Pediatric Access
-                </div>
-                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-                  Qualifies this pathologist to report pediatric cases. Client-level authorization is also required per client.
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: draft.canViewPediatric ? '#38bdf8' : '#9ca3af' }}>Pediatric Access</div>
+                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Qualifies this pathologist to report pediatric cases. Client-level authorization is also required per client.</div>
               </div>
             </label>
           </div>
 
-          <div style={ROW}>
-            <div style={FIELD}>
-              <label style={LABEL}>Phone</label>
-              <input style={INPUT} value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder="555-0100" />
+          {/* Row 8: Status | Signature side by side */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Status</label>
+              <Toggle value={draft.active} onChange={v => set('active', v)} />
             </div>
-            <div style={FIELD}>
-              <label style={LABEL}>Department</label>
-              <input style={INPUT} value={draft.department} onChange={e => set('department', e.target.value)} placeholder="e.g. Surgical Pathology" />
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label">Signature</label>
+              <SignatureUpload url={draft.signatureUrl} onChange={url => set('signatureUrl', url)} />
             </div>
-          </div>
-
-          <div style={FIELD}>
-            <label style={LABEL}>Status</label>
-            <Toggle value={draft.active} onChange={v => set('active', v)} />
-          </div>
-
-          <div style={FIELD}>
-            <label style={LABEL}>Signature</label>
-            <SignatureUpload url={draft.signatureUrl} onChange={url => set('signatureUrl', url)} />
           </div>
 
         </div>
 
-        <div style={{ ...modalFooterStyle, padding: '12px 24px', borderTop: '1px solid #1f2937', flexShrink: 0 }}>
-          <button style={cancelButtonStyle} onClick={onClose}>Cancel</button>
-          <button style={applyButtonStyle} onClick={handleSave}>
+        <div className="ps-conf-modal-footer">
+          <button className="ps-conf-btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="ps-conf-btn-primary" onClick={handleSave}>
             {mode === 'add' ? 'Add Staff Member' : 'Save Changes'}
           </button>
         </div>

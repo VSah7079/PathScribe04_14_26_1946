@@ -9,11 +9,11 @@
 import { useState } from "react";
 import '../../pathscribe.css';
 import { useClientDictionary } from "../../contexts/useClientDictionary";
-import { ClientEditorModal } from "./ClientEditorModal";
-import { ClientTable } from "./ClientTable";
+import { ClientEditorModal } from "../../components/system/clients/ClientEditorModal";
+import { ClientTable } from "../../components/system/clients/ClientTable";
 
 export const ClientDictionaryPage = () => {
-  const { clients, addClient, updateClient, deleteClient } = useClientDictionary();
+  const { clients, addClient, updateClient } = useClientDictionary();
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export const ClientDictionaryPage = () => {
         <ClientTable
           clients={clients}
           onEdit={handleEdit}
-          onDelete={deleteClient}
+          onToggleActive={(id, active) => updateClient(id, { active })}
         />
       </div>
 
@@ -64,3 +64,4 @@ export const ClientDictionaryPage = () => {
     </div>
   );
 };
+

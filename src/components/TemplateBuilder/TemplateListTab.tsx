@@ -13,34 +13,22 @@ const svc = mockReportTemplateService;
 // ── Status badge ───────────────────────────────────────────────
 
 const StatusBadge: React.FC<{ status: ReportTemplate['status'] }> = ({ status }) => {
-  const map: Record<ReportTemplate['status'], { bg: string; color: string }> = {
-    published: { bg: 'rgba(14,159,110,0.15)',  color: '#0e9f6e' },
-    draft:     { bg: 'rgba(234,179,8,0.15)',   color: '#eab308' },
-    archived:  { bg: 'rgba(100,116,139,0.15)', color: '#64748b' },
-  };
-  const c = map[status] ?? map.draft;
-  return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-      background: c.bg, color: c.color, letterSpacing: '0.04em', textTransform: 'capitalize' }}>
-      {status}
-    </span>
-  );
+  return <span className={`tmpl-badge tmpl-badge--${status}`}>{status}</span>;
 };
 
 // ── Empty state ────────────────────────────────────────────────
 
 const EmptyState: React.FC<{ onBlank: () => void; onStandard: () => void }> = ({ onBlank, onStandard }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '64px 20px', gap: 16 }}>
-    <div style={{ fontSize: 40, opacity: 0.12 }}>⊞</div>
-    <div style={{ fontSize: 15, fontWeight: 600, color: '#334155' }}>No report templates yet</div>
-    <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', maxWidth: 380 }}>
+  <div className="tmpl-empty">
+    <div className="tmpl-empty__icon">⊞</div>
+    <div className="tmpl-empty__title">No report templates yet</div>
+    <div className="tmpl-empty__desc">
       Report templates define the structure, fields, and AI generation rules for Orchestration mode.
       Start from the standard surgical pathology layout or build from scratch.
     </div>
-    <div style={{ display: 'flex', gap: 10 }}>
-      <button onClick={onStandard} style={btn('#0891b2')}>Use Standard Template</button>
-      <button onClick={onBlank}    style={btn('#334155')}>Start Blank</button>
+    <div className="tmpl-empty__actions">
+      <button onClick={onStandard} className="ps-btn-ghost-teal">Use Standard Template</button>
+      <button onClick={onBlank}    className="ps-btn-ghost-teal">Start Blank</button>
     </div>
   </div>
 );
@@ -55,7 +43,6 @@ const TemplateRow: React.FC<{
   isDeleting:    boolean;
   isDuplicating: boolean;
 }> = ({ template, onEdit, onDuplicate, onDelete, isDeleting, isDuplicating }) => {
-  const [hovered, setHovered]           = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isStandard = template.id === STANDARD_TEMPLATE_ID;
 
@@ -66,45 +53,25 @@ const TemplateRow: React.FC<{
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setConfirmDelete(false); }}
-      style={{
-        display: 'flex', alignItems: 'center', padding: '14px 16px',
-        borderRadius: 8, gap: 14, transition: 'all 0.1s',
-        background: hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
-        border: `1px solid ${hovered ? '#1e293b' : 'transparent'}`,
-      }}
+      onMouseLeave={() => setConfirmDelete(false)}
+      className="tmpl-row"
     >
       {/* Icon */}
-      <div style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-        background: isStandard ? 'rgba(8,145,178,0.15)' : 'rgba(255,255,255,0.06)',
-        color: isStandard ? '#0891b2' : '#475569',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+      <div className={`tmpl-row-icon${isStandard ? ' tmpl-row-icon--standard' : ''}`}>
         ⊞
       </div>
 
       {/* Name + meta */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div className="tmpl-row-info">
+        <div className="tmpl-row-title-row">
+          <span className="tmpl-row-name">
             {template.name}
           </span>
           <StatusBadge status={template.status} />
-          {template.orchestrationEnabled && (
-            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
-              background: 'rgba(14,159,110,0.15)', color: '#0e9f6e' }}>
-              AI
-            </span>
-          )}
-          {isStandard && (
-            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
-              background: 'rgba(8,145,178,0.12)', color: '#0891b2' }}>
-              STANDARD
-            </span>
-          )}
+          {template.orchestrationEnabled && <span className="tmpl-badge tmpl-badge--ai">AI</span>}
+          {isStandard && <span className="tmpl-badge tmpl-badge--standard">STANDARD</span>}
         </div>
-        <div style={{ fontSize: 11, color: '#475569', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="tmpl-row-meta">
           {template.specialty && (
             <span>{template.specialty}{template.subspecialty ? ` — ${template.subspecialty}` : ''}</span>
           )}
@@ -114,30 +81,28 @@ const TemplateRow: React.FC<{
         </div>
       </div>
 
-      {/* Actions */}
-      {hovered && (
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+      {/* Actions — shown via CSS :hover on .tmpl-row */}
+      <div className="tmpl-row-actions">
           {!isStandard && (
-            <button onClick={onEdit} style={btn('#0891b2', true)}>Edit</button>
+            <button onClick={onEdit} className="tmpl-row-btn tmpl-row-btn--edit">Edit</button>
           )}
-          <button onClick={onDuplicate} disabled={isDuplicating} style={btn('#475569', true)}>
+          <button onClick={onDuplicate} disabled={isDuplicating} className="tmpl-row-btn">
             {isDuplicating ? '…' : 'Duplicate'}
           </button>
           {!isStandard && (
             confirmDelete ? (
               <>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>Delete?</span>
-                <button onClick={onDelete} disabled={isDeleting} style={btn('#ef4444', true)}>
+                <span className="tmpl-delete-confirm-label">Delete?</span>
+                <button onClick={onDelete} disabled={isDeleting} className="tmpl-row-btn tmpl-row-btn--confirm-delete">
                   {isDeleting ? '…' : 'Yes'}
                 </button>
-                <button onClick={() => setConfirmDelete(false)} style={btn('#1e293b', true)}>No</button>
+                <button onClick={() => setConfirmDelete(false)} className="tmpl-row-btn">No</button>
               </>
             ) : (
-              <button onClick={() => setConfirmDelete(true)} style={btn('#1e293b', true)}>Delete</button>
+              <button onClick={() => setConfirmDelete(true)} className="tmpl-row-btn tmpl-row-btn--delete">Delete</button>
             )
           )}
         </div>
-      )}
     </div>
   );
 };
@@ -160,7 +125,7 @@ const TemplateListTab: React.FC = () => {
     try {
       const result = await svc.getAll();
       if (result.ok) setTemplates(result.data);
-      else setError(result.error);
+      else if (result.ok === false) setError(result.error);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Failed to load templates');
     } finally {
@@ -177,7 +142,7 @@ const TemplateListTab: React.FC = () => {
     if (fromStandardId) {
       const result = await svc.clone(fromStandardId, 'My Surgical Pathology Report');
       if (result.ok) navigate(`/admin/templates/${result.data.id}/edit`);
-      else setError(result.error);
+      else if (result.ok === false) setError(result.error);
     } else {
       navigate('/admin/templates/new');
     }
@@ -188,7 +153,7 @@ const TemplateListTab: React.FC = () => {
     try {
       const result = await svc.clone(id);
       if (result.ok) navigate(`/admin/templates/${result.data.id}/edit`);
-      else setError(result.error);
+      else if (result.ok === false) setError(result.error);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Failed to duplicate');
     } finally {
@@ -200,7 +165,7 @@ const TemplateListTab: React.FC = () => {
     setDeletingId(id);
     try {
       const result = await svc.remove(id);
-      if (!result.ok) setError(result.error);
+      if (result.ok === false) setError(result.error);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Failed to delete');
     } finally {
@@ -223,25 +188,25 @@ const TemplateListTab: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 4 }}>
+    <div className="tmpl-list-root">
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+      <div className="tmpl-list-header">
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>Report Templates</h2>
-          <p style={{ fontSize: 12, color: '#475569', margin: '3px 0 0' }}>
+          <h2 className="tmpl-list-title">Report Templates</h2>
+          <p className="tmpl-list-subtitle">
             Define structure, fields, and AI generation for Orchestration mode
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="tmpl-header-actions">
           <button
             onClick={() => handleCreate(STANDARD_TEMPLATE_ID)}
-            style={btn('#334155')}
+            className="ps-btn-ghost-teal"
             title="Copy the standard surgical pathology layout as a starting point"
           >
             From Standard
           </button>
-          <button onClick={() => handleCreate()} style={btn('#0891b2')}>
+          <button onClick={() => handleCreate()} className="ps-btn-ghost-teal">
             + New Template
           </button>
         </div>
@@ -249,44 +214,34 @@ const TemplateListTab: React.FC = () => {
 
       {/* Error banner */}
       {error && (
-        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)',
-          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, fontSize: 12, color: '#fca5a5',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="tmpl-error">
           {error}
           <button onClick={() => setError(null)}
-            style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>✕</button>
+className="tmpl-error-dismiss">✕</button>
         </div>
       )}
 
       {/* Filter + search */}
       {!loading && templates.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 2, background: '#0d1117', borderRadius: 6,
-            padding: 2, border: '1px solid #1e293b' }}>
+        <div className="tmpl-filter-row">
+          <div className="tmpl-filter-bar">
             {(['all', 'published', 'draft', 'archived'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{
-                background: filter === f ? '#1e293b' : 'transparent', border: 'none',
-                borderRadius: 4, color: filter === f ? '#f1f5f9' : '#475569',
-                fontSize: 11, fontWeight: filter === f ? 600 : 400,
-                padding: '4px 10px', cursor: 'pointer', textTransform: 'capitalize',
-              }}>
-                {f}{counts[f] > 0 && <span style={{ opacity: 0.6 }}> ({counts[f]})</span>}
+              <button key={f} onClick={() => setFilter(f)} className={`tmpl-filter-btn${filter === f ? ' active' : ''}`}>
+                {f}{counts[f] > 0 && <span className="tmpl-filter-count"> ({counts[f]})</span>}
               </button>
             ))}
           </div>
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search templates…"
-            style={{ flex: 1, maxWidth: 260, background: '#0d1117', border: '1px solid #1e293b',
-              borderRadius: 6, color: '#cbd5e1', fontSize: 12, padding: '6px 10px', outline: 'none' }}
+            className="tmpl-search"
           />
         </div>
       )}
 
       {/* List */}
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', fontSize: 13, color: '#334155' }}>
-          Loading templates…
+        <div className="tmpl-loading">Loading templates…
         </div>
       ) : filtered.length === 0 && templates.length === 0 ? (
         <EmptyState
@@ -294,11 +249,10 @@ const TemplateListTab: React.FC = () => {
           onStandard={() => handleCreate(STANDARD_TEMPLATE_ID)}
         />
       ) : filtered.length === 0 ? (
-        <div style={{ padding: 32, textAlign: 'center', fontSize: 13, color: '#334155' }}>
-          No templates match your search
+        <div className="tmpl-loading">No templates match your search
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="tmpl-list-body">
           {filtered.map(t => (
             <TemplateRow
               key={t.id}

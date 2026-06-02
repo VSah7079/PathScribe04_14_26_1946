@@ -1,189 +1,622 @@
-/**
- * services/reportTemplates/mockReportTemplateService.ts  (v2 — Assembly model)
- * ─────────────────────────────────────────────────────────────────────────────
- * Seeded with the PathScribe Standard Surgical Pathology Template,
- * built from the Standard Part Library.
- *
- * The "5-Minute Histo Report" assembly:
- *   header-p1     → PathScribe Standard Header — Page 1
- *   header-p2plus → PathScribe Compact Header — Pages 2+
- *   body[0]       → Patient & Order Demographics
- *   body[1]       → Clinical Information
- *   body[2]       → Specimens Submitted
- *   body[3]       → Diagnosis              (AI-generated draft)
- *   body[4]       → Synoptic Summary       (auto-table)
- *   body[5]       → Gross Description      (AI-generated)
- *   body[6]       → Microscopic Description (AI-generated)
- *   body[7]       → Ancillary Studies      (conditional)
- *   body[8]       → Comment               (optional)
- *   body[9]       → Sign-off
- *   footer-p2plus → PathScribe Compact Footer — Pages 2+
- *   footer-p1     → PathScribe Standard Footer — Page 1
- * ─────────────────────────────────────────────────────────────────────────────
- */
+// src/services/reportTemplates/mockReportTemplateService.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Seeded Case Report Templates for PathScribe Orchestration mode.
+//
+// These are CASE-LEVEL document shells — not synoptic checklists.
+// Each template defines the narrative sections of the final signed report.
+// The Synoptic Summary section embeds the per-specimen CAP/RCPath answers.
+// ─────────────────────────────────────────────────────────────────────────────
 
-import type { ServiceResult, ID } from '../types';
-import type { ReportTemplate, AssemblySlot } from '../../types/reportPart';
-import type { IReportTemplateService } from './IReportTemplateService';
-import { PART_IDS } from '../reportParts/mockReportPartService';
+import type { ReportTemplate } from '../../types/reportPart';
+import { SectionNode, IfBlockNode, RepeatGroupNode, ParagraphNode, StaticLabelNode } from '@/types/template';
+import { IReportTemplateService } from './IReportTemplateService';
+import { ServiceResult, ID } from '../types';
+import { storageGet, storageSet } from '../mockStorage';
 
-// ── Helpers ────────────────────────────────────────────────────
+// ── Well-known template ID constants ─────────────────────────────────────────
+// Imported by TemplateListTab and other consumers to identify the gold standard.
+export const STANDARD_TEMPLATE_ID  = 'tmpl-gold-standard';
+export const BREAST_TEMPLATE_ID    = 'tmpl-breast';
+export const GI_TEMPLATE_ID        = 'tmpl-gi';
+export const THORACIC_TEMPLATE_ID  = 'tmpl-thoracic';
+export const URO_TEMPLATE_ID       = 'tmpl-uro';
 
-const delay = (ms = 300) => new Promise(res => setTimeout(res, ms));
-const now   = () => new Date().toISOString();
-const uid   = () => crypto.randomUUID();
-const ok    = <T>(d: T): ServiceResult<T> => ({ ok: true, data: d });
-const err   = <T>(m: string, _c = 'ERROR'): ServiceResult<T> => ({ ok: false, error: m });
+const NOW = new Date().toISOString();
+const SYSTEM = 'system';
+const INST   = 'PATHSCRIBE';
 
-const CHANGE_EVENT = 'PATHSCRIBE_REPORT_TEMPLATES_CHANGED';
-const notifyChanged = () => window.dispatchEvent(new Event(CHANGE_EVENT));
+// ── Section factory helpers ───────────────────────────────────────────────────
 
-export function onReportTemplatesChanged(h: () => void): () => void {
-  window.addEventListener(CHANGE_EVENT, h);
-  return () => window.removeEventListener(CHANGE_EVENT, h);
-}
+const section = (id: string, label: string, printHeading: string, aiEnabled: boolean, children: any[] = []): SectionNode => ({
+  id, type: 'section', label, printHeading,
+  colSpan: 12, required: false, hideIfEmpty: false, fhirExport: false,
+  collapsible: true, defaultCollapsed: false,
+  ai: { enabled: aiEnabled, temperature: 0.3, maxTokens: 600 },
+  children,
+});
 
-const LS = 'ps_rtpl2_';
-const lsLoad  = (id: string): ReportTemplate | null => { try { const r = localStorage.getItem(LS+id); return r ? JSON.parse(r) : null; } catch { return null; } };
-const lsSave  = (t: ReportTemplate) => localStorage.setItem(LS+t.id, JSON.stringify(t));
-const lsDel   = (id: string) => localStorage.removeItem(LS+id);
-const lsAllIds = () => Object.keys(localStorage).filter(k => k.startsWith(LS)).map(k => k.slice(LS.length));
+const paragraph = (id: string, label: string, bindingKey: string): ParagraphNode => ({
+  id, type: 'paragraph', label, bindingKey,
+  colSpan: 12, required: false, hideIfEmpty: true, fhirExport: false,
+  richText: true, aiWritable: true,
+});
 
-const store = new Map<string, ReportTemplate>();
-const storeGet = (id: string): ReportTemplate | undefined => {
-  const p = lsLoad(id); if (p) { store.set(id, p); return p; }
-  return store.get(id);
+const heading = (id: string, text: string): StaticLabelNode => ({
+  id, type: 'static-label', label: text, text,
+  colSpan: 12, required: false, hideIfEmpty: false, fhirExport: false,
+  variant: 'h3', bold: true,
+});
+
+const conditional = (id: string, label: string, field: string, children: any[]): IfBlockNode => ({
+  id, type: 'if-block', label, colSpan: 12,
+  required: false, hideIfEmpty: false, fhirExport: false,
+  condition: { logic: 'AND', clauses: [{ field, operator: 'notEmpty' as const }] },
+  children,
+});
+
+const repeatSpecimens = (id: string, children: any[]): RepeatGroupNode => ({
+  id, type: 'repeat-group', label: 'Per-specimen section',
+  colSpan: 12, required: false, hideIfEmpty: false, fhirExport: false,
+  iterateOver: 'specimens', itemAlias: 'specimen', children,
+});
+
+// ── Shared section builders ───────────────────────────────────────────────────
+
+const reportHeaderSection = (): SectionNode => section(
+  'sec-header', 'Report Header', 'PATHOLOGY REPORT', false, [
+    { id: 'hdr-inst',      type: 'text-field', label: 'Institution',        bindingKey: 'institution.name',      colSpan: 6,  required: false, hideIfEmpty: false, fhirExport: false },
+    { id: 'hdr-dept',      type: 'text-field', label: 'Department',         bindingKey: 'institution.department', colSpan: 6,  required: false, hideIfEmpty: false, fhirExport: false },
+    { id: 'hdr-patient',   type: 'text-field', label: 'Patient Name',       bindingKey: 'patient.name',          colSpan: 4,  required: true,  hideIfEmpty: false, fhirExport: true  },
+    { id: 'hdr-dob',       type: 'date',       label: 'Date of Birth',      bindingKey: 'patient.dob',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true, format: 'date' },
+    { id: 'hdr-sex',       type: 'text-field', label: 'Sex',                bindingKey: 'patient.sex',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
+    { id: 'hdr-mrn',       type: 'text-field', label: 'MRN',                bindingKey: 'patient.mrn',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
+    { id: 'hdr-accession', type: 'text-field', label: 'Accession',          bindingKey: 'case.accession',        colSpan: 4,  required: true,  hideIfEmpty: false, fhirExport: true  },
+    { id: 'hdr-received',  type: 'date',       label: 'Date Received',      bindingKey: 'case.receivedDate',     colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: false, format: 'date' },
+    { id: 'hdr-clinician', type: 'text-field', label: 'Requesting Clinician', bindingKey: 'case.requestingProvider', colSpan: 6, required: false, hideIfEmpty: false, fhirExport: false },
+    { id: 'hdr-facility',  type: 'text-field', label: 'Submitting Facility', bindingKey: 'case.clientName',      colSpan: 6,  required: false, hideIfEmpty: false, fhirExport: false },
+  ]
+);
+
+const clinicalHistorySection = (): SectionNode => section(
+  'sec-clinical', 'Clinical History', 'CLINICAL HISTORY', true,
+  [ paragraph('p-clinical', 'Clinical History', 'diagnostic.clinicalHistory') ]
+);
+
+const grossSection = (): SectionNode => section(
+  'sec-gross', 'Gross Description', 'GROSS DESCRIPTION', true,
+  [ repeatSpecimens('rep-gross', [
+      heading('h-gross-sp', 'Specimen {{specimen.label}}: {{specimen.description}}'),
+      paragraph('p-gross', 'Gross Description', 'specimen.grossDescription'),
+    ])
+  ]
+);
+
+const intraopSection = (): IfBlockNode => conditional(
+  'sec-intraop', 'Intraoperative Consultation', 'diagnostic.intraoperative',
+  [ section('sec-intraop-inner', 'Intraoperative', 'INTRAOPERATIVE CONSULTATION', false,
+      [ paragraph('p-intraop', 'Frozen Section / Intraoperative', 'diagnostic.intraoperative') ]
+    )
+  ]
+);
+
+const microscopicSection = (): SectionNode => section(
+  'sec-micro', 'Microscopic Description', 'MICROSCOPIC DESCRIPTION', true,
+  [ repeatSpecimens('rep-micro', [
+      heading('h-micro-sp', 'Specimen {{specimen.label}}'),
+      paragraph('p-micro', 'Microscopic Description', 'specimen.microscopicDescription'),
+    ])
+  ]
+);
+
+const ancillarySection = (): SectionNode => section(
+  'sec-ancillary', 'Ancillary Studies', 'ANCILLARY STUDIES', false,
+  [ paragraph('p-ancillary', 'Ancillary Studies Summary', 'diagnostic.ancillaryStudies') ]
+);
+
+const synopticSummarySection = (): SectionNode => section(
+  'sec-synoptic', 'Synoptic Summary', 'SYNOPTIC SUMMARY', false,
+  [ repeatSpecimens('rep-synoptic', [
+      heading('h-syn-sp', 'Specimen {{specimen.label}}: {{specimen.synopticTemplateName}}'),
+      { id: 'ref-synoptic', type: 'template-ref', label: 'CAP Synoptic Checklist',
+        colSpan: 12, required: false, hideIfEmpty: false, fhirExport: false,
+        refTemplateId: '{{specimen.synopticTemplateId}}' },
+    ])
+  ]
+);
+
+const impressionSection = (): SectionNode => section(
+  'sec-impression', 'Diagnostic Impression', 'DIAGNOSTIC IMPRESSION', true,
+  [ paragraph('p-impression', 'Diagnostic Impression', 'diagnostic.impression'),
+    { id: 'p-diagnosis-code', type: 'text-field', label: 'Primary Diagnosis Code (ICD-O)',
+      bindingKey: 'diagnostic.icdCode', colSpan: 6, required: false, hideIfEmpty: true, fhirExport: true },
+    { id: 'p-snomed',         type: 'text-field', label: 'SNOMED Morphology',
+      bindingKey: 'diagnostic.snomedMorphology', colSpan: 6, required: false, hideIfEmpty: true, fhirExport: true },
+  ]
+);
+
+const differentialSection = (): IfBlockNode => conditional(
+  'sec-diff', 'Differential Diagnosis', 'diagnostic.differentialDiagnosis',
+  [ section('sec-diff-inner', 'Differential Diagnosis', 'DIFFERENTIAL DIAGNOSIS', false,
+      [ paragraph('p-diff', 'Differential Diagnosis', 'diagnostic.differentialDiagnosis') ]
+    )
+  ]
+);
+
+const recommendationsSection = (): SectionNode => section(
+  'sec-recs', 'Recommendations', 'RECOMMENDATIONS', false,
+  [ paragraph('p-recs', 'Clinical Recommendations', 'diagnostic.recommendations') ]
+);
+
+const attestationSection = (): SectionNode => section(
+  'sec-attest', 'Pathologist Attestation', 'ATTESTATION', false,
+  [ { id: 'attest-pathologist', type: 'text-field', label: 'Reporting Pathologist',
+      bindingKey: 'signoff.pathologistName', colSpan: 6, required: true, hideIfEmpty: false, fhirExport: true },
+    { id: 'attest-date', type: 'date', label: 'Date Signed',
+      bindingKey: 'signoff.signedAt', colSpan: 6, required: true, hideIfEmpty: false, fhirExport: true, format: 'datetime' },
+    { id: 'attest-statement', type: 'rich-text-block', label: 'Attestation Statement',
+      colSpan: 12, required: false, hideIfEmpty: false, fhirExport: false,
+      content: '<p>I attest that I have personally reviewed the slides and clinical history for this case and that the above report represents my professional diagnostic opinion.</p>' },
+  ]
+);
+
+const amendmentSection = (): IfBlockNode => conditional(
+  'sec-amendment', 'Amendment', 'case.isAmended',
+  [ section('sec-amendment-inner', 'Amendment', 'AMENDMENT', false, [
+      { id: 'amend-date', type: 'date', label: 'Amendment Date',
+        bindingKey: 'amendment.amendedAt', colSpan: 6, required: false, hideIfEmpty: false, fhirExport: true, format: 'datetime' },
+      { id: 'amend-by', type: 'text-field', label: 'Amended By',
+        bindingKey: 'amendment.amendedBy', colSpan: 6, required: false, hideIfEmpty: false, fhirExport: true },
+      paragraph('p-amendment', 'Amendment Details', 'amendment.description'),
+    ])
+  ]
+);
+
+// ── Staging section variants ──────────────────────────────────────────────────
+
+const stagingSection = (extraChildren: any[] = []): IfBlockNode => conditional(
+  'sec-staging', 'Staging', 'diagnostic.pT',
+  [ section('sec-staging-inner', 'Staging', 'STAGING', false, [
+      { id: 'stage-pt', type: 'text-field', label: 'pT', bindingKey: 'diagnostic.pT', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-pn', type: 'text-field', label: 'pN', bindingKey: 'diagnostic.pN', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-pm', type: 'text-field', label: 'pM', bindingKey: 'diagnostic.pM', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-group', type: 'text-field', label: 'Stage Group', bindingKey: 'diagnostic.stageGroup', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+      ...extraChildren,
+    ])
+  ]
+);
+
+// ── Gold Standard Template ────────────────────────────────────────────────────
+
+const GOLD_STANDARD: ReportTemplate = {
+  id: 'tmpl-gold-standard',
+  name: 'Gold Standard — General Surgical Pathology',
+  specialty: 'general',
+  subspecialty: undefined,
+  standard: 'custom',
+  status: 'published',
+  orchestrationEnabled: true,
+  institutionId: INST,
+  createdBy: SYSTEM,
+  createdAt: NOW,
+  updatedAt: NOW,
+  version: '1.0.0',
+  assembly: [
+    // ── Headers
+    { slotId: 'slot-h-p1', partId: 'std_header_page1',   partName: 'Page 1 — Header',    partType: 'header', role: 'header-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-h-p2', partId: 'std_header_p2plus',  partName: 'Pages 2+ — Header',  partType: 'header', role: 'header-p2plus', enabled: true, order: 0 },
+    // ── Body — canonical AP order
+    { slotId: 'slot-b-01', partId: 'std_body_demographics', partName: 'Patient Demographics',   partType: 'body', role: 'body', enabled: true, order: 0 },
+    { slotId: 'slot-b-02', partId: 'std_body_clinical',     partName: 'Clinical History',        partType: 'body', role: 'body', enabled: true, order: 1 },
+    { slotId: 'slot-b-03', partId: 'std_body_specimens',    partName: 'Specimen Description',    partType: 'body', role: 'body', enabled: true, order: 2 },
+    { slotId: 'slot-b-04', partId: 'std_body_gross',        partName: 'Gross Description',       partType: 'body', role: 'body', enabled: true, order: 3 },
+    { slotId: 'slot-b-05', partId: 'std_body_microscopic',  partName: 'Microscopic Description', partType: 'body', role: 'body', enabled: true, order: 4 },
+    { slotId: 'slot-b-06', partId: 'std_body_ancillary',    partName: 'Ancillary Studies',       partType: 'body', role: 'body', enabled: true, order: 5 },
+    { slotId: 'slot-b-07', partId: 'std_body_synoptic',     partName: 'Synoptic Summary',        partType: 'body', role: 'body', enabled: true, order: 6 },
+    { slotId: 'slot-b-08', partId: 'std_body_diagnosis',    partName: 'Diagnosis / Impression',  partType: 'body', role: 'body', enabled: true, order: 7 },
+    { slotId: 'slot-b-09', partId: 'std_body_comment',      partName: 'Pathologist Comment',     partType: 'body', role: 'body', enabled: true, order: 8 },
+    { slotId: 'slot-b-10', partId: 'std_body_signoff',      partName: 'Sign-off & Attestation',  partType: 'body', role: 'body', enabled: true, order: 9 },
+    // ── Footers
+    { slotId: 'slot-f-p1', partId: 'std_footer_page1',   partName: 'Page 1 — Footer',    partType: 'footer', role: 'footer-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-f-p2', partId: 'std_footer_p2plus',  partName: 'Pages 2+ — Footer',  partType: 'footer', role: 'footer-p2plus', enabled: true, order: 0 },
+  ],
+  nodes: [
+    reportHeaderSection(),
+    clinicalHistorySection(),
+    grossSection(),
+    intraopSection(),
+    microscopicSection(),
+    ancillarySection(),
+    synopticSummarySection(),
+    impressionSection(),
+    differentialSection(),
+    stagingSection(),
+    recommendationsSection(),
+    attestationSection(),
+    amendmentSection(),
+  ],
 };
-const storeAll = (): ReportTemplate[] => {
-  const ids = new Set([...store.keys(), ...lsAllIds()]);
-  return Array.from(ids).map(storeGet).filter(Boolean) as ReportTemplate[];
+
+// ── Breast Template ───────────────────────────────────────────────────────────
+
+const BREAST_TEMPLATE: ReportTemplate = {
+  id: 'tmpl-breast',
+  name: 'Breast Pathology Report',
+  specialty: 'breast',
+  subspecialty: 'breast',
+  standard: 'CAP',
+  status: 'published',
+  orchestrationEnabled: true,
+  institutionId: INST,
+  createdBy: SYSTEM,
+  createdAt: NOW,
+  updatedAt: NOW,
+  version: '1.0.0',
+  assembly: [
+    // ── Headers
+    { slotId: 'slot-h-p1', partId: 'std_header_page1',   partName: 'Page 1 — Header',    partType: 'header', role: 'header-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-h-p2', partId: 'std_header_p2plus',  partName: 'Pages 2+ — Header',  partType: 'header', role: 'header-p2plus', enabled: true, order: 0 },
+    // ── Body — canonical AP order
+    { slotId: 'slot-b-01', partId: 'std_body_demographics', partName: 'Patient Demographics',   partType: 'body', role: 'body', enabled: true, order: 0 },
+    { slotId: 'slot-b-02', partId: 'std_body_clinical',     partName: 'Clinical History',        partType: 'body', role: 'body', enabled: true, order: 1 },
+    { slotId: 'slot-b-03', partId: 'std_body_specimens',    partName: 'Specimen Description',    partType: 'body', role: 'body', enabled: true, order: 2 },
+    { slotId: 'slot-b-04', partId: 'std_body_gross',        partName: 'Gross Description',       partType: 'body', role: 'body', enabled: true, order: 3 },
+    { slotId: 'slot-b-05', partId: 'std_body_microscopic',  partName: 'Microscopic Description', partType: 'body', role: 'body', enabled: true, order: 4 },
+    { slotId: 'slot-b-06', partId: 'std_body_ancillary',    partName: 'Ancillary Studies',       partType: 'body', role: 'body', enabled: true, order: 5 },
+    { slotId: 'slot-b-07', partId: 'std_body_synoptic',     partName: 'Synoptic Summary',        partType: 'body', role: 'body', enabled: true, order: 6 },
+    { slotId: 'slot-b-08', partId: 'std_body_diagnosis',    partName: 'Diagnosis / Impression',  partType: 'body', role: 'body', enabled: true, order: 7 },
+    { slotId: 'slot-b-09', partId: 'std_body_comment',      partName: 'Pathologist Comment',     partType: 'body', role: 'body', enabled: true, order: 8 },
+    { slotId: 'slot-b-10', partId: 'std_body_signoff',      partName: 'Sign-off & Attestation',  partType: 'body', role: 'body', enabled: true, order: 9 },
+    // ── Footers
+    { slotId: 'slot-f-p1', partId: 'std_footer_page1',   partName: 'Page 1 — Footer',    partType: 'footer', role: 'footer-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-f-p2', partId: 'std_footer_p2plus',  partName: 'Pages 2+ — Footer',  partType: 'footer', role: 'footer-p2plus', enabled: true, order: 0 },
+  ],
+  nodes: [
+    reportHeaderSection(),
+    clinicalHistorySection(),
+    grossSection(),
+    intraopSection(),
+    microscopicSection(),
+    ancillarySection(),
+    // Breast-specific: receptor status summary
+    conditional('sec-receptors', 'Receptor Status', 'diagnostic.erStatus', [
+      section('sec-receptors-inner', 'Receptor Status', 'RECEPTOR STATUS', false, [
+        { id: 'rx-er', type: 'text-field', label: 'ER Status', bindingKey: 'diagnostic.erStatus', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'rx-pr', type: 'text-field', label: 'PR Status', bindingKey: 'diagnostic.prStatus', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'rx-her2', type: 'text-field', label: 'HER2 Status', bindingKey: 'diagnostic.her2Status', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'rx-ki67', type: 'text-field', label: 'Ki-67 Index', bindingKey: 'diagnostic.ki67', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+      ]),
+    ]),
+    synopticSummarySection(),
+    impressionSection(),
+    differentialSection(),
+    stagingSection([
+      { id: 'stage-grade', type: 'text-field', label: 'Histologic Grade', bindingKey: 'diagnostic.histologicGrade', colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-lvi',   type: 'text-field', label: 'LVI', bindingKey: 'diagnostic.lvi', colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-margin', type: 'text-field', label: 'Margins', bindingKey: 'diagnostic.margins', colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+    ]),
+    recommendationsSection(),
+    attestationSection(),
+    amendmentSection(),
+  ],
 };
 
-// ── Assembly slot builder ──────────────────────────────────────
+// ── Gastrointestinal Template ─────────────────────────────────────────────────
 
-function slot(partId: string, partName: string, partType: 'header'|'footer'|'body', role: AssemblySlot['role'], order: number): AssemblySlot {
-  return { slotId: uid(), partId, partName, partType, role, order, enabled: true };
+const GI_TEMPLATE: ReportTemplate = {
+  id: 'tmpl-gi',
+  name: 'Gastrointestinal Pathology Report',
+  specialty: 'gi',
+  subspecialty: 'gi',
+  standard: 'CAP',
+  status: 'published',
+  orchestrationEnabled: true,
+  institutionId: INST,
+  createdBy: SYSTEM,
+  createdAt: NOW,
+  updatedAt: NOW,
+  version: '1.0.0',
+  assembly: [
+    // ── Headers
+    { slotId: 'slot-h-p1', partId: 'std_header_page1',   partName: 'Page 1 — Header',    partType: 'header', role: 'header-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-h-p2', partId: 'std_header_p2plus',  partName: 'Pages 2+ — Header',  partType: 'header', role: 'header-p2plus', enabled: true, order: 0 },
+    // ── Body — canonical AP order
+    { slotId: 'slot-b-01', partId: 'std_body_demographics', partName: 'Patient Demographics',   partType: 'body', role: 'body', enabled: true, order: 0 },
+    { slotId: 'slot-b-02', partId: 'std_body_clinical',     partName: 'Clinical History',        partType: 'body', role: 'body', enabled: true, order: 1 },
+    { slotId: 'slot-b-03', partId: 'std_body_specimens',    partName: 'Specimen Description',    partType: 'body', role: 'body', enabled: true, order: 2 },
+    { slotId: 'slot-b-04', partId: 'std_body_gross',        partName: 'Gross Description',       partType: 'body', role: 'body', enabled: true, order: 3 },
+    { slotId: 'slot-b-05', partId: 'std_body_microscopic',  partName: 'Microscopic Description', partType: 'body', role: 'body', enabled: true, order: 4 },
+    { slotId: 'slot-b-06', partId: 'std_body_ancillary',    partName: 'Ancillary Studies',       partType: 'body', role: 'body', enabled: true, order: 5 },
+    { slotId: 'slot-b-07', partId: 'std_body_synoptic',     partName: 'Synoptic Summary',        partType: 'body', role: 'body', enabled: true, order: 6 },
+    { slotId: 'slot-b-08', partId: 'std_body_diagnosis',    partName: 'Diagnosis / Impression',  partType: 'body', role: 'body', enabled: true, order: 7 },
+    { slotId: 'slot-b-09', partId: 'std_body_comment',      partName: 'Pathologist Comment',     partType: 'body', role: 'body', enabled: true, order: 8 },
+    { slotId: 'slot-b-10', partId: 'std_body_signoff',      partName: 'Sign-off & Attestation',  partType: 'body', role: 'body', enabled: true, order: 9 },
+    // ── Footers
+    { slotId: 'slot-f-p1', partId: 'std_footer_page1',   partName: 'Page 1 — Footer',    partType: 'footer', role: 'footer-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-f-p2', partId: 'std_footer_p2plus',  partName: 'Pages 2+ — Footer',  partType: 'footer', role: 'footer-p2plus', enabled: true, order: 0 },
+  ],
+  nodes: [
+    reportHeaderSection(),
+    clinicalHistorySection(),
+    grossSection(),
+    intraopSection(),
+    microscopicSection(),
+    ancillarySection(),
+    synopticSummarySection(),
+    impressionSection(),
+    differentialSection(),
+    stagingSection([
+      { id: 'stage-grade',  type: 'text-field', label: 'Histologic Grade', bindingKey: 'diagnostic.histologicGrade', colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-msi',    type: 'text-field', label: 'MSI Status',       bindingKey: 'diagnostic.msiStatus',       colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-margin', type: 'text-field', label: 'Margins',           bindingKey: 'diagnostic.margins',          colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+    ]),
+    recommendationsSection(),
+    attestationSection(),
+    amendmentSection(),
+  ],
+};
+
+// ── Thoracic Template ─────────────────────────────────────────────────────────
+
+const THORACIC_TEMPLATE: ReportTemplate = {
+  id: 'tmpl-thoracic',
+  name: 'Thoracic / Pulmonary Pathology Report',
+  specialty: 'thoracic',
+  subspecialty: 'thoracic',
+  standard: 'CAP',
+  status: 'published',
+  orchestrationEnabled: true,
+  institutionId: INST,
+  createdBy: SYSTEM,
+  createdAt: NOW,
+  updatedAt: NOW,
+  version: '1.0.0',
+  assembly: [
+    // ── Headers
+    { slotId: 'slot-h-p1', partId: 'std_header_page1',   partName: 'Page 1 — Header',    partType: 'header', role: 'header-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-h-p2', partId: 'std_header_p2plus',  partName: 'Pages 2+ — Header',  partType: 'header', role: 'header-p2plus', enabled: true, order: 0 },
+    // ── Body — canonical AP order
+    { slotId: 'slot-b-01', partId: 'std_body_demographics', partName: 'Patient Demographics',   partType: 'body', role: 'body', enabled: true, order: 0 },
+    { slotId: 'slot-b-02', partId: 'std_body_clinical',     partName: 'Clinical History',        partType: 'body', role: 'body', enabled: true, order: 1 },
+    { slotId: 'slot-b-03', partId: 'std_body_specimens',    partName: 'Specimen Description',    partType: 'body', role: 'body', enabled: true, order: 2 },
+    { slotId: 'slot-b-04', partId: 'std_body_gross',        partName: 'Gross Description',       partType: 'body', role: 'body', enabled: true, order: 3 },
+    { slotId: 'slot-b-05', partId: 'std_body_microscopic',  partName: 'Microscopic Description', partType: 'body', role: 'body', enabled: true, order: 4 },
+    { slotId: 'slot-b-06', partId: 'std_body_ancillary',    partName: 'Ancillary Studies',       partType: 'body', role: 'body', enabled: true, order: 5 },
+    { slotId: 'slot-b-07', partId: 'std_body_synoptic',     partName: 'Synoptic Summary',        partType: 'body', role: 'body', enabled: true, order: 6 },
+    { slotId: 'slot-b-08', partId: 'std_body_diagnosis',    partName: 'Diagnosis / Impression',  partType: 'body', role: 'body', enabled: true, order: 7 },
+    { slotId: 'slot-b-09', partId: 'std_body_comment',      partName: 'Pathologist Comment',     partType: 'body', role: 'body', enabled: true, order: 8 },
+    { slotId: 'slot-b-10', partId: 'std_body_signoff',      partName: 'Sign-off & Attestation',  partType: 'body', role: 'body', enabled: true, order: 9 },
+    // ── Footers
+    { slotId: 'slot-f-p1', partId: 'std_footer_page1',   partName: 'Page 1 — Footer',    partType: 'footer', role: 'footer-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-f-p2', partId: 'std_footer_p2plus',  partName: 'Pages 2+ — Footer',  partType: 'footer', role: 'footer-p2plus', enabled: true, order: 0 },
+  ],
+  nodes: [
+    reportHeaderSection(),
+    clinicalHistorySection(),
+    grossSection(),
+    intraopSection(),
+    microscopicSection(),
+    ancillarySection(),
+    // Thoracic-specific: PD-L1 / molecular
+    conditional('sec-molecular-thoracic', 'Molecular Profile', 'diagnostic.pdl1Score', [
+      section('sec-mol-inner', 'Molecular Profile', 'MOLECULAR PROFILE', false, [
+        { id: 'mol-pdl1',  type: 'text-field', label: 'PD-L1 TPS (%)', bindingKey: 'diagnostic.pdl1Score',  colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'mol-egfr',  type: 'text-field', label: 'EGFR',          bindingKey: 'diagnostic.egfr',       colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'mol-alk',   type: 'text-field', label: 'ALK',           bindingKey: 'diagnostic.alk',        colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'mol-ros1',  type: 'text-field', label: 'ROS1',          bindingKey: 'diagnostic.ros1',       colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'mol-kras',  type: 'text-field', label: 'KRAS',          bindingKey: 'diagnostic.kras',       colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+      ]),
+    ]),
+    synopticSummarySection(),
+    impressionSection(),
+    differentialSection(),
+    stagingSection([
+      { id: 'stage-visceral-pleura', type: 'text-field', label: 'Visceral Pleural Invasion', bindingKey: 'diagnostic.visceralPleura', colSpan: 6, required: false, hideIfEmpty: true, fhirExport: true },
+      { id: 'stage-lvi',             type: 'text-field', label: 'LVI',                        bindingKey: 'diagnostic.lvi',            colSpan: 6, required: false, hideIfEmpty: true, fhirExport: true },
+    ]),
+    recommendationsSection(),
+    attestationSection(),
+    amendmentSection(),
+  ],
+};
+
+// ── Urological Template ───────────────────────────────────────────────────────
+
+const URO_TEMPLATE: ReportTemplate = {
+  id: 'tmpl-uro',
+  name: 'Urological Pathology Report',
+  specialty: 'uro',
+  subspecialty: 'uro',
+  standard: 'CAP',
+  status: 'published',
+  orchestrationEnabled: true,
+  institutionId: INST,
+  createdBy: SYSTEM,
+  createdAt: NOW,
+  updatedAt: NOW,
+  version: '1.0.0',
+  assembly: [
+    // ── Headers
+    { slotId: 'slot-h-p1', partId: 'std_header_page1',   partName: 'Page 1 — Header',    partType: 'header', role: 'header-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-h-p2', partId: 'std_header_p2plus',  partName: 'Pages 2+ — Header',  partType: 'header', role: 'header-p2plus', enabled: true, order: 0 },
+    // ── Body — canonical AP order
+    { slotId: 'slot-b-01', partId: 'std_body_demographics', partName: 'Patient Demographics',   partType: 'body', role: 'body', enabled: true, order: 0 },
+    { slotId: 'slot-b-02', partId: 'std_body_clinical',     partName: 'Clinical History',        partType: 'body', role: 'body', enabled: true, order: 1 },
+    { slotId: 'slot-b-03', partId: 'std_body_specimens',    partName: 'Specimen Description',    partType: 'body', role: 'body', enabled: true, order: 2 },
+    { slotId: 'slot-b-04', partId: 'std_body_gross',        partName: 'Gross Description',       partType: 'body', role: 'body', enabled: true, order: 3 },
+    { slotId: 'slot-b-05', partId: 'std_body_microscopic',  partName: 'Microscopic Description', partType: 'body', role: 'body', enabled: true, order: 4 },
+    { slotId: 'slot-b-06', partId: 'std_body_ancillary',    partName: 'Ancillary Studies',       partType: 'body', role: 'body', enabled: true, order: 5 },
+    { slotId: 'slot-b-07', partId: 'std_body_synoptic',     partName: 'Synoptic Summary',        partType: 'body', role: 'body', enabled: true, order: 6 },
+    { slotId: 'slot-b-08', partId: 'std_body_diagnosis',    partName: 'Diagnosis / Impression',  partType: 'body', role: 'body', enabled: true, order: 7 },
+    { slotId: 'slot-b-09', partId: 'std_body_comment',      partName: 'Pathologist Comment',     partType: 'body', role: 'body', enabled: true, order: 8 },
+    { slotId: 'slot-b-10', partId: 'std_body_signoff',      partName: 'Sign-off & Attestation',  partType: 'body', role: 'body', enabled: true, order: 9 },
+    // ── Footers
+    { slotId: 'slot-f-p1', partId: 'std_footer_page1',   partName: 'Page 1 — Footer',    partType: 'footer', role: 'footer-p1',     enabled: true, order: 0 },
+    { slotId: 'slot-f-p2', partId: 'std_footer_p2plus',  partName: 'Pages 2+ — Footer',  partType: 'footer', role: 'footer-p2plus', enabled: true, order: 0 },
+  ],
+  nodes: [
+    reportHeaderSection(),
+    clinicalHistorySection(),
+    grossSection(),
+    microscopicSection(),   // No intraop — uncommon in prostate biopsies
+    ancillarySection(),
+    // Urological-specific: Gleason grading
+    conditional('sec-gleason', 'Gleason Grading', 'diagnostic.gleasonPrimary', [
+      section('sec-gleason-inner', 'Gleason Grading', 'GLEASON GRADING', false, [
+        { id: 'gl-primary',   type: 'text-field', label: 'Primary Pattern',  bindingKey: 'diagnostic.gleasonPrimary',   colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'gl-secondary', type: 'text-field', label: 'Secondary Pattern', bindingKey: 'diagnostic.gleasonSecondary', colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'gl-score',     type: 'text-field', label: 'Gleason Score',    bindingKey: 'diagnostic.gleasonScore',     colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'gl-group',     type: 'text-field', label: 'Grade Group',      bindingKey: 'diagnostic.gradeGroup',       colSpan: 3, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'gl-cores',     type: 'text-field', label: 'Positive Cores',   bindingKey: 'diagnostic.positiveCores',    colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'gl-pni',       type: 'text-field', label: 'Perineural Invasion', bindingKey: 'diagnostic.perineuralInvasion', colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+        { id: 'gl-lvi',       type: 'text-field', label: 'LVI',              bindingKey: 'diagnostic.lvi',              colSpan: 4, required: false, hideIfEmpty: true, fhirExport: true },
+      ]),
+    ]),
+    synopticSummarySection(),
+    impressionSection(),
+    differentialSection(),
+    stagingSection(),
+    recommendationsSection(),
+    attestationSection(),
+    amendmentSection(),
+  ],
+};
+
+// ── Seed data ─────────────────────────────────────────────────────────────────
+
+const SEED_TEMPLATES: ReportTemplate[] = [
+  GOLD_STANDARD,
+  BREAST_TEMPLATE,
+  GI_TEMPLATE,
+  THORACIC_TEMPLATE,
+  URO_TEMPLATE,
+];
+
+// ── Change listeners (mirrors onReportPartsChanged pattern) ──────────────────
+// TemplateListTab calls: useEffect(() => { load(); return onReportTemplatesChanged(load); }, [load])
+
+type Listener = () => void;
+const _templateListeners: Set<Listener> = new Set();
+
+/** Subscribe to template data changes. Returns an unsubscribe function. */
+export function onReportTemplatesChanged(cb: Listener): () => void {
+  _templateListeners.add(cb);
+  return () => _templateListeners.delete(cb);
 }
 
-// ── Standard 5-Minute Template ─────────────────────────────────
-
-const STD_ID = 'std_surgical_pathology_v2';
-
-function buildStandardTemplate(): ReportTemplate {
-  const t = now();
-  return {
-    id: STD_ID,
-    name: 'Standard Surgical Pathology — 5 Min',
-    specialty: 'General',
-    standard: 'CAP',
-    status: 'published',
-    orchestrationEnabled: true,
-    institutionId: '',
-    createdBy: 'PathScribe',
-    createdAt: t, updatedAt: t,
-    version: '2.0.0',
-    assembly: [
-      slot(PART_IDS.HDR_P1,       'Standard Header — Page 1',    'header', 'header-p1',     0),
-      slot(PART_IDS.HDR_P2,       'Compact Header — Pages 2+',   'header', 'header-p2plus', 0),
-      slot(PART_IDS.DEMOGRAPHICS,  'Patient & Demographics',      'body',   'body',           0),
-      slot(PART_IDS.CLINICAL,      'Clinical Information',        'body',   'body',           1),
-      slot(PART_IDS.SPECIMENS,     'Specimens Submitted',         'body',   'body',           2),
-      slot(PART_IDS.DIAGNOSIS,     'Diagnosis',                   'body',   'body',           3),
-      slot(PART_IDS.SYNOPTIC,      'Synoptic Summary',            'body',   'body',           4),
-      slot(PART_IDS.GROSS,         'Gross Description',           'body',   'body',           5),
-      slot(PART_IDS.MICROSCOPIC,   'Microscopic Description',     'body',   'body',           6),
-      slot(PART_IDS.ANCILLARY,     'Ancillary Studies',           'body',   'body',           7),
-      slot(PART_IDS.COMMENT,       'Comment',                     'body',   'body',           8),
-      slot(PART_IDS.SIGNOFF,       'Sign-off',                    'body',   'body',           9),
-      slot(PART_IDS.FTR_P2,       'Compact Footer — Pages 2+',   'footer', 'footer-p2plus', 0),
-      slot(PART_IDS.FTR_P1,       'Standard Footer — Page 1',    'footer', 'footer-p1',     0),
-    ],
-  };
+function _notifyTemplateListeners() {
+  _templateListeners.forEach(cb => cb());
 }
 
-store.set(STD_ID, buildStandardTemplate());
+// ── Service ───────────────────────────────────────────────────────────────────
 
-// ── Service ────────────────────────────────────────────────────
+const STORAGE_KEY = 'pathscribe_report_templates';
+const load    = () => storageGet<ReportTemplate[]>(STORAGE_KEY, SEED_TEMPLATES);
+const persist = (data: ReportTemplate[]) => storageSet(STORAGE_KEY, data);
+let TEMPLATES: ReportTemplate[] = load();
 
-class MockReportTemplateService implements IReportTemplateService {
+const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
+const err = <T>(e: string): ServiceResult<T> => ({ ok: false, error: e });
+const delay = () => new Promise(r => setTimeout(r, 60));
 
-  async getAll(status?: ReportTemplate['status'] | ReportTemplate['status'][]): Promise<ServiceResult<ReportTemplate[]>> {
-    await delay(250);
-    const all = storeAll();
-    const ss = status ? (Array.isArray(status) ? status : [status]) : null;
-    return ok(ss ? all.filter(t => ss.includes(t.status)) : all);
-  }
+export const mockReportTemplateService: IReportTemplateService = {
+  async getAll() {
+    await delay();
+    return ok([...TEMPLATES]);
+  },
 
-  async getById(id: ID): Promise<ServiceResult<ReportTemplate>> {
-    await delay(200);
-    const t = storeGet(id);
-    if (!t) return err(`Template '${id}' not found`, 'NOT_FOUND');
-    return ok(t);
-  }
+  async getById(id: ID) {
+    await delay();
+    const t = TEMPLATES.find(t => t.id === id);
+    return t ? ok({ ...t }) : err(`Template ${id} not found`);
+  },
 
-  async create(partial: Partial<Omit<ReportTemplate,'id'|'createdAt'|'updatedAt'>> = {}): Promise<ServiceResult<ReportTemplate>> {
-    await delay(350);
-    const created: ReportTemplate = {
-      id: uid(), name: 'New Template', specialty: '', status: 'draft',
-      assembly: [], orchestrationEnabled: true, institutionId: '',
-      createdBy: 'current-user', createdAt: now(), updatedAt: now(), version: '1.0.0',
-      ...partial,
+  async getBySubspecialty(subspecialtyId: string) {
+    await delay();
+    const results = TEMPLATES.filter(
+      t => t.subspecialty === subspecialtyId || t.specialty === subspecialtyId
+    );
+    return ok(results.length ? results : [GOLD_STANDARD]);
+  },
+
+  async create(t) {
+    await delay();
+    const newT: ReportTemplate = {
+      ...t,
+      id:        `tmpl-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-    store.set(created.id, created); lsSave(created); notifyChanged();
-    return ok(created);
-  }
+    TEMPLATES = [...TEMPLATES, newT];
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
+    return ok({ ...newT });
+  },
 
-  async save(template: ReportTemplate): Promise<ServiceResult<ReportTemplate>> {
-    await delay(350);
-    const updated = { ...template, updatedAt: now() };
-    store.set(updated.id, updated); lsSave(updated); notifyChanged();
-    return ok(updated);
-  }
+  // save() — accepts a full template object (used by TemplateAssemblyPage)
+  async save(template: ReportTemplate) {
+    await delay();
+    const idx = TEMPLATES.findIndex(t => t.id === template.id);
+    if (idx === -1) return err<ReportTemplate>(`Template ${template.id} not found`);
+    const updated = { ...template, updatedAt: new Date().toISOString() };
+    TEMPLATES = TEMPLATES.map(t => t.id === template.id ? updated : t);
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
+    return ok({ ...updated });
+  },
 
-  async clone(id: ID, newName?: string): Promise<ServiceResult<ReportTemplate>> {
-    await delay(400);
-    const src = storeGet(id);
-    if (!src) return err(`Template '${id}' not found`, 'NOT_FOUND');
+  async update(id, changes) {
+    await delay();
+    const idx = TEMPLATES.findIndex(t => t.id === id);
+    if (idx === -1) return err(`Template ${id} not found`);
+    const updated = { ...TEMPLATES[idx], ...changes, updatedAt: new Date().toISOString() };
+    TEMPLATES = TEMPLATES.map(t => t.id === id ? updated : t);
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
+    return ok({ ...updated });
+  },
+
+  async clone(id: ID, name?: string) {
+    await delay();
+    const src = TEMPLATES.find(t => t.id === id);
+    if (!src) return err<ReportTemplate>(`Template ${id} not found`);
     const cloned: ReportTemplate = {
       ...JSON.parse(JSON.stringify(src)),
-      id: uid(),
-      name: newName ?? `${src.name} (Copy)`,
-      status: 'draft',
-      createdBy: 'current-user',
-      createdAt: now(), updatedAt: now(), version: '1.0.0',
-      // Re-ID slots so they're independent
-      assembly: src.assembly.map(s => ({ ...s, slotId: uid() })),
+      id:        `tmpl-${Date.now()}`,
+      name:      name ?? `${src.name} (copy)`,
+      status:    'draft' as const,
+      assembly:  (src as any).assembly ?? [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'user',
     };
-    store.set(cloned.id, cloned); lsSave(cloned); notifyChanged();
-    return ok(cloned);
-  }
+    TEMPLATES = [...TEMPLATES, cloned];
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
+    return ok({ ...cloned });
+  },
 
-  async publish(id: ID): Promise<ServiceResult<ReportTemplate>> {
-    await delay(300);
-    const t = storeGet(id);
-    if (!t) return err(`Template '${id}' not found`, 'NOT_FOUND');
-    const updated = { ...t, status: 'published' as const, updatedAt: now() };
-    store.set(id, updated); lsSave(updated); notifyChanged();
-    return ok(updated);
-  }
-
-  async archive(id: ID): Promise<ServiceResult<ReportTemplate>> {
-    await delay(300);
-    const t = storeGet(id);
-    if (!t) return err(`Template '${id}' not found`, 'NOT_FOUND');
-    if (id === STD_ID) return err('Built-in template cannot be archived. Duplicate and modify instead.', 'FORBIDDEN');
-    const updated = { ...t, status: 'archived' as const, updatedAt: now() };
-    store.set(id, updated); lsSave(updated); notifyChanged();
-    return ok(updated);
-  }
-
-  async remove(id: ID): Promise<ServiceResult<void>> {
-    await delay(300);
-    if (id === STD_ID) return err('Built-in template cannot be deleted.', 'FORBIDDEN');
-    store.delete(id); lsDel(id); notifyChanged();
+  async remove(id: ID) {
+    await delay();
+    if (!TEMPLATES.find(t => t.id === id)) return err(`Template ${id} not found`);
+    TEMPLATES = TEMPLATES.filter(t => t.id !== id);
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
     return ok(undefined);
-  }
-}
+  },
 
-export const mockReportTemplateService: IReportTemplateService = new MockReportTemplateService();
-export const STANDARD_TEMPLATE_ID = STD_ID;
+  // publish() — sets status to 'published' (used by TemplateAssemblyPage)
+  async publish(id: ID) {
+    await delay();
+    const idx = TEMPLATES.findIndex(t => t.id === id);
+    if (idx === -1) return err<ReportTemplate>(`Template ${id} not found`);
+    const updated: ReportTemplate = {
+      ...TEMPLATES[idx],
+      status:    'published' as const,
+      updatedAt: new Date().toISOString(),
+    };
+    TEMPLATES = TEMPLATES.map(t => t.id === id ? updated : t);
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
+    return ok({ ...updated });
+  },
+};

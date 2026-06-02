@@ -95,7 +95,8 @@ const CaseRoutingSection: React.FC = () => {
   useEffect(() => {
     subspecialtyService.getAll().then(res => {
       if (res.ok) {
-        setPools(res.data.filter((s: Subspecialty) => s.active && s.isWorkgroup));
+        // Show all active subspecialties — admins can mark any as a routing destination
+        setPools(res.data.filter((s: Subspecialty) => s.active));
       }
     });
   }, []);

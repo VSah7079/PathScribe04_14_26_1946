@@ -24,7 +24,7 @@ import BottomActionBar    from './components/BottomActionBar';
 import AmendmentModal        from './modals/AmendmentModal';
 import { CaseCommentModal }   from '../Synoptic/Comments/CaseCommentModal';
 import PatientHistoryModal    from '../../components/CasePanel/PatientHistoryModal';
-import FlagManagerModal       from '../../components/Config/System/FlagManagerModal';
+import FlagManagerModal       from '../../components/Flags/FlagManagerModal';
 import { AddCodeModal }       from '../Synoptic/Codes/AddCodeModal';
 import { ReportCommentModal } from '../Synoptic/Comments/ReportCommentModal';
 import CaseSignOutModal      from './modals/CaseSignOutModal';
@@ -38,7 +38,7 @@ import { useSynopticToast }    from '../Synoptic/useSynopticToast';
 import { useSynopticFlags }    from '../Synoptic/useSynopticFlags';
 import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
-import { mockCaseService } from '@/services/cases/mockCaseService';
+import { caseRouter } from '@/services/cases/CaseRouter';
 import { flagService }    from '@/services';
 import type { Flag }      from '@/services/flags/IFlagService';
 import ComputationalPanel from '../../components/sidecar/ComputationalPanel';
@@ -60,10 +60,8 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 import OrchestratorReportPanel, { textToHtml } from './components/OrchestratorReportPanel';
 import type { OrchestratorSection } from './components/OrchestratorReportPanel';
 import SequencerPanel from './components/SequencerPanel';
-import { runOrchestrator, regenerateSection } from '@/lib/orchestratorEngine';
-import type { OrchestratorEvent } from '@/lib/orchestratorEngine';
-import { mockReportTemplateService, STANDARD_TEMPLATE_ID } from '@/services/reportTemplates/mockReportTemplateService';
-import { mockReportPartService } from '@/services/reportParts/mockReportPartService';
+import { OrchestratorEngine } from '@/orchestrator/orchestratorEngine';
+import type { OrchestratorCallbacks } from '@/orchestrator/orchestratorEngine';
 import { buildContext } from '@/lib/contextBuilder';
 
 // ─── Shared overlay style (passed to all modals) ──────────────
@@ -83,6 +81,14 @@ const SynopticReportPage: React.FC = () => {
 
   // ── Worklist state ─────────────────────────────────────────
   const routerWorklistIds: string[] = (location.state as any)?.worklistCaseIds ?? [];
+
+  // Track whether this case was opened from Search or Worklist.
+  // sessionStorage key is set by SearchPage / WorklistTable before navigation.
+  const navSource: 'search' | 'worklist' = React.useMemo(() => {
+    return sessionStorage.getItem('pathscribe:navFrom') === 'search' ? 'search' : 'worklist';
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const backPath = navSource === 'search' ? '/search' : '/worklist';
 
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
@@ -126,7 +132,7 @@ const SynopticReportPage: React.FC = () => {
     });
     setComputationalFlags(compFlags);
     if (caseId) {
-      const c = await mockCaseService.getCase(caseId).catch(() => null);
+      const c = await caseRouter.getCase(caseId);
       if (c) setCaseData(c);
     }
     if (compFlags.length > 0 && caseId) {
@@ -150,7 +156,9 @@ const SynopticReportPage: React.FC = () => {
   }, [caseId]);
 
   // ── Left panel tab + Orchestrator state ───────────────────
-  const [leftTab, setLeftTab] = useState<'draft' | 'report' | 'results'>('report');
+  const [leftTab, setLeftTab] = useState<'draft' | 'sequencer' | 'report' | 'results'>(
+    () => (caseId?.startsWith('O26-') ? 'draft' : 'report')
+  );
   const [showSequencer, setShowSequencer] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem('ps_sidebar_collapsed') === 'true'
@@ -158,7 +166,10 @@ const SynopticReportPage: React.FC = () => {
 
   // Orchestration mode = PathScribe owns the report.
   // CoPilot mode = LIS owns the report; PathScribe feeds structured data back.
-  const isOrchestrationMode = (caseData?.reportingMode ?? 'pathscribe') === 'pathscribe';
+  // Orchestration mode = PathScribe owns the report (Outreach/O26- cases).
+  // Determined by case ID prefix — matches CaseRouter's routing key.
+  // LIS cases (S26-*, no reportingMode) must NOT default to orchestration mode.
+  const isOrchestrationMode = !!(caseId?.startsWith('O26-'));
 
   useEffect(() => {
     localStorage.setItem('ps_sidebar_collapsed', String(sidebarCollapsed));
@@ -172,7 +183,15 @@ const SynopticReportPage: React.FC = () => {
   const [orchSections,    setOrchSections]    = useState<OrchestratorSection[]>([]);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [lastGeneratedAt, setLastGeneratedAt] = useState<Date | null>(null);
-  const abortRef = React.useRef<AbortController | null>(null);
+  const abortRef  = React.useRef<AbortController | null>(null);
+
+  // ── Dirty-state timing guards ──────────────────────────────────────────
+  // Track when hasUnsavedData first becomes true relative to case load.
+  // Changes that fire within 1200 ms of load are from component initialisation
+  // (e.g. RightSynopticPanel seeding form values) — not real user edits.
+  const caseLoadedAt = React.useRef<number>(Date.now());
+  const dirtySetAt   = React.useRef<number | null>(null);
+  const engineRef = React.useRef<OrchestratorEngine | null>(null);
 
   // AI suggestions lifted from RightSynopticPanel
   const [aiSuggestions,        setAiSuggestions]        = useState<Record<string, AiSuggestion>>({});
@@ -181,12 +200,29 @@ const SynopticReportPage: React.FC = () => {
   useEffect(() => {
     if (!caseId) return;
 
+    // Reset dirty-timing refs for each fresh case load
+    caseLoadedAt.current = Date.now();
+    dirtySetAt.current   = null;
+
     // ── Worklist for Previous / Next ──────────────────────────
     if (routerWorklistIds.length > 0) {
+      // Arrived via case-to-case navigation (prev/next already carried the list)
       setWorklistCases(routerWorklistIds);
       setWorklistIndex(routerWorklistIds.indexOf(caseId));
+    } else if (navSource === 'search') {
+      // Arrived from Search results — use the saved search result order
+      try {
+        const searchIds: string[] = JSON.parse(
+          sessionStorage.getItem('pathscribe:searchResultIds') ?? '[]'
+        );
+        if (searchIds.length > 0) {
+          setWorklistCases(searchIds);
+          setWorklistIndex(searchIds.indexOf(caseId ?? ''));
+        }
+      } catch { /* malformed storage — ignore */ }
     } else {
-      mockCaseService.listCasesForUser('current').then((cases: any[]) => {
+      // Arrived from regular Worklist
+      caseRouter.listCasesForUser('current').then((cases: any[]) => {
         const ids = cases.map((c: any) => c.id);
         setWorklistCases(ids);
         setWorklistIndex(ids.indexOf(caseId));
@@ -196,15 +232,13 @@ const SynopticReportPage: React.FC = () => {
     refreshCompFlags();
 
     setHasUnsavedData(false);
-    mockCaseService.getCase(caseId).then((c) => {
+    caseRouter.getCase(caseId).then(c => {
       setCaseData(c ?? null);
       if (c?.specimens?.length) setActiveSpecimenId(c.specimens[0].id);
-      if (c?.synopticReports?.length) {
-        setActiveReportInstanceId(c.synopticReports[0].instanceId);
-      }
+      if (c?.synopticReports?.length) setActiveReportInstanceId(c.synopticReports[0].instanceId);
       import('@/services/templates/templateService').then(m =>
         m.listTemplates('published').then(templates =>
-          setAvailableProtocols(templates.map((t:any) => ({ id: t.id, name: t.name })))
+          setAvailableProtocols(templates.map((t: any) => ({ id: t.id, name: t.name })))
         )
       );
       const stored = c?.id ? localStorage.getItem(`ps_case_comment_${c.id}`) : null;
@@ -212,6 +246,24 @@ const SynopticReportPage: React.FC = () => {
       setIsLoaded(true);
     }).catch(() => setIsLoaded(true));
   }, [caseId]);
+
+  // Track when dirty state was first set relative to case load
+  React.useEffect(() => {
+    if (hasUnsavedData) {
+      if (dirtySetAt.current === null) dirtySetAt.current = Date.now();
+    } else {
+      dirtySetAt.current = null;
+    }
+  }, [hasUnsavedData]);
+
+  // Returns true only when dirty state originated from a real user edit
+  // (not from component initialisation within the first 1200 ms of case load)
+  const shouldWarnDirty = React.useCallback((): boolean => {
+    if (!hasUnsavedData) return false;
+    const likelyInit = dirtySetAt.current !== null &&
+      (dirtySetAt.current - caseLoadedAt.current) < 1200;
+    return !likelyInit;
+  }, [hasUnsavedData]);
 
   // ── Hooks ──────────────────────────────────────────────────
   const {
@@ -236,42 +288,54 @@ const SynopticReportPage: React.FC = () => {
   const { toastMsg, toastVisible, showToast } = useSynopticToast();
 
   const caseComputationalFlags = React.useMemo(() => {
+    if (!caseData) return [];
+
+    // Collect all applied flag objects (raw) from the case
+    const appliedFlags: any[] = [
+      ...((caseData as any).caseFlags     ?? []),
+      ...((caseData as any).specimenFlags ?? []),
+      ...((caseData as any).flags         ?? []),
+    ];
+    (caseData as any).specimens?.forEach((sp: any) => {
+      appliedFlags.push(...(sp.specimenFlags ?? sp.flags ?? sp.appliedFlags ?? []));
+    });
+
+    // Collect applied lisCodes and specimenId assignments
     const appliedLisCodes = new Set<string>();
-    const addCode = (f: any) => { if (f?.lisCode) appliedLisCodes.add(f.lisCode); };
-    if (caseData) {
-      ((caseData as any).caseFlags     ?? []).forEach(addCode);
-      ((caseData as any).specimenFlags ?? []).forEach(addCode);
-      ((caseData as any).flags         ?? []).forEach(addCode);
-      ((caseData as any).specimens ?? []).forEach((sp: any) => {
-        (sp.specimenFlags ?? sp.flags ?? sp.appliedFlags ?? []).forEach(addCode);
-      });
-    }
     const lisCodeToSpecimenId: Record<string, string | null> = {};
-    const collectAssignment = (f: any, overwrite = true) => {
+    appliedFlags.forEach(f => {
       if (!f?.lisCode) return;
+      appliedLisCodes.add(f.lisCode);
       const spId = f.specimenId ?? null;
-      if (overwrite || !(f.lisCode in lisCodeToSpecimenId) || spId !== null) {
+      if (!(f.lisCode in lisCodeToSpecimenId) || spId !== null) {
         lisCodeToSpecimenId[f.lisCode] = spId;
       }
-    };
-    if (caseData) {
-      ((caseData as any).caseFlags     ?? []).forEach((f: any) => collectAssignment(f, false));
-      ((caseData as any).specimenFlags ?? []).forEach(collectAssignment);
-      ((caseData as any).specimens ?? []).forEach((sp: any) => {
-        (sp.specimenFlags ?? sp.flags ?? []).forEach(collectAssignment);
-      });
+    });
+
+    if (appliedLisCodes.size === 0) {
+      // No computational tests ordered on this case — return empty, not all definitions
+      return [];
     }
-    if (appliedLisCodes.size > 0) {
-      return computationalFlags
-        .filter(f => f.lisCode && appliedLisCodes.has(f.lisCode))
-        .map(f => ({ ...f, specimenId: lisCodeToSpecimenId[f.lisCode!] ?? null }));
-    }
-    if (!caseData) return [];
-    return computationalFlags;
+
+    // Match against flag service definitions (by lisCode)
+    const fromDefinitions = computationalFlags
+      .filter(f => f.lisCode && appliedLisCodes.has(f.lisCode))
+      .map(f => ({ ...f, specimenId: lisCodeToSpecimenId[f.lisCode!] ?? null }));
+
+    if (fromDefinitions.length > 0) return fromDefinitions;
+
+    // Fallback: definitions didn't have matching lisCodes — use the raw applied flags
+    // directly if they carry enough info (tagClass, name, lisCode)
+    return appliedFlags
+      .filter(f => f?.lisCode && f?.tagClass === 'COMPUTATIONAL')
+      .map(f => ({
+        ...f,
+        specimenId: lisCodeToSpecimenId[f.lisCode] ?? null,
+      }));
   }, [
     caseData?.id,
     JSON.stringify(((caseData as any)?.specimenFlags ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
-    JSON.stringify(((caseData as any)?.caseFlags ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
+    JSON.stringify(((caseData as any)?.caseFlags    ?? []).map((f: any) => `${f.lisCode}:${f.specimenId ?? ''}`)),
     computationalFlags.length,
   ]);
 
@@ -346,14 +410,40 @@ const SynopticReportPage: React.FC = () => {
     onRemoveFlag,
   } = useSynopticFlags(caseId ?? '');
 
+  // Tracks whether onApplyFlags/onRemoveFlag fired during this modal session
+  // Watch caseFlags/specimenFlags — set dirty any time they change after initial load.
+  // Works regardless of which modal or callback applied the change.
+  const initialFlagsKey = React.useRef<string | null>(null);
+
+  // When caseFlags or specimenFlags change after load → mark dirty
+  React.useEffect(() => {
+    if (!isLoaded || !caseData) return;
+    const key = JSON.stringify([
+      ((caseData as any).caseFlags ?? []).map((f: any) => f.id ?? f.lisCode),
+      (caseData.specimens ?? []).map((sp: any) => ((sp as any).specimenFlags ?? []).map((f: any) => f.id ?? f.lisCode)),
+    ]);
+    if (initialFlagsKey.current === null) {
+      initialFlagsKey.current = key;
+      return;
+    }
+    if (key !== initialFlagsKey.current) {
+      setHasUnsavedData(true);
+      initialFlagsKey.current = key;
+    }
+  }); // intentionally no dep array — runs after every render but only acts when key changes
+
   React.useEffect(() => {
     if (hasUnsavedData && leftTab === "results") setLeftTab("report");
   }, [hasUnsavedData, leftTab]);
 
   const guard = useCallback((path: string, state?: object) => {
-    if (hasUnsavedData) { setPendingNavigation(path); return; }
-    navigate(path, state ? { state } : undefined);
-  }, [hasUnsavedData, navigate]);
+    // Remap /worklist → /search when the user arrived from a search result
+    const dest = (path === '/worklist' && navSource === 'search') ? '/search' : path;
+    // Tell SearchPage to restore previous results when returning to it
+    if (dest === '/search') sessionStorage.setItem('pathscribe:searchReturn', '1');
+    if (shouldWarnDirty()) { setPendingNavigation(dest); return; }
+    navigate(dest, state ? { state } : undefined);
+  }, [shouldWarnDirty, navSource, navigate]);
 
   React.useEffect(() => {
     const openTeam = () => setShowTeamModal(true);
@@ -375,6 +465,21 @@ const SynopticReportPage: React.FC = () => {
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedData]);
+
+  // Block browser back/forward button when dirty.
+  // BrowserRouter doesn't support useBlocker, so we use popstate instead.
+  React.useEffect(() => {
+    if (!hasUnsavedData) return;
+    // Push a sentinel so the back button has somewhere to go
+    window.history.pushState(null, '', window.location.href);
+    const handlePop = () => {
+      // Push again to keep the user on this page
+      window.history.pushState(null, '', window.location.href);
+      setPendingNavigation('__back__');
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
   }, [hasUnsavedData]);
 
   const navigateToCase = useCallback((direction: 'next' | 'prev') => {
@@ -435,114 +540,83 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
   // ── Orchestrator handlers ──────────────────────────────────
 
-  const handleOrchEvent = useCallback((event: OrchestratorEvent) => {
-    switch (event.type) {
-      case 'section-start':
-        setOrchSections(prev => {
-          const exists = prev.find(s => s.id === event.sectionId);
-          if (exists) {
-            return prev.map(s => s.id === event.sectionId
-              ? { ...s, isStreaming: event.sectionType !== 'synoptic', pendingDraft: undefined }
-              : s);
-          }
-          return [...prev, {
-            id:          event.sectionId!,
-            label:       event.sectionLabel!,
-            type:        event.sectionType === 'synoptic' ? 'synoptic' : 'narrative',
-            text:        '',
-            aiGenerated: '',
-            userEdited:  false,
-            isStreaming: event.sectionType !== 'synoptic',
-          }];
-        });
-        break;
-
-      case 'token':
-        setOrchSections(prev => prev.map(s => {
-          if (s.id !== event.sectionId) return s;
-          if (s.userEdited) return { ...s, pendingDraft: (s.pendingDraft ?? '') + (event.token ?? '') };
-          return { ...s, text: s.text + (event.token ?? '') };
-        }));
-        break;
-
-      case 'section-complete': {
-        const html = event.sectionType === 'synoptic'
-          ? (event.sectionText ?? '')          // already HTML from renderSynopticAnswers
-          : textToHtml(event.sectionText ?? '');
-        setOrchSections(prev => prev.map(s => {
-          if (s.id !== event.sectionId) return s;
-          if (s.userEdited && event.sectionType !== 'synoptic') return { ...s, isStreaming: false, pendingDraft: html };
-          return { ...s, isStreaming: false, text: html, aiGenerated: html };
-        }));
-        break;
-      }
-
-      case 'complete':
-        setIsOrchestrating(false);
-        setLastGeneratedAt(new Date());
-        abortRef.current = null;
-        break;
-
-      case 'error':
-        setIsOrchestrating(false);
-        abortRef.current = null;
-        showToast(`Generation error: ${event.error?.message ?? 'Unknown'}`);
-        break;
-    }
-  }, [showToast]);
+  // ── Orchestrator callbacks ─────────────────────────────────────────────────
+  const buildOrchCallbacks = useCallback((): OrchestratorCallbacks => ({
+    onSectionStart: (sectionId, title) => {
+      setOrchSections(prev => {
+        const exists = prev.find(s => s.id === sectionId);
+        if (exists) return prev.map(s => s.id === sectionId ? { ...s, isStreaming: true, pendingDraft: undefined } : s);
+        return [...prev, { id: sectionId, label: title, type: 'narrative' as const, text: '', aiGenerated: '', userEdited: false, isStreaming: true }];
+      });
+    },
+    onToken: (sectionId, token) => {
+      setOrchSections(prev => prev.map(s => {
+        if (s.id !== sectionId) return s;
+        if (s.userEdited) return { ...s, pendingDraft: (s.pendingDraft ?? '') + token };
+        return { ...s, text: s.text + token };
+      }));
+    },
+    onSectionComplete: (sectionId, result) => {
+      const html = textToHtml(result.text ?? '');
+      setOrchSections(prev => prev.map(s => {
+        if (s.id !== sectionId) return s;
+        if (s.userEdited) return { ...s, isStreaming: false, pendingDraft: html };
+        return { ...s, isStreaming: false, text: html, aiGenerated: html };
+      }));
+    },
+    onComplete: () => {
+      setIsOrchestrating(false);
+      setLastGeneratedAt(new Date());
+      engineRef.current = null;
+      abortRef.current  = null;
+    },
+    onError: (_sectionId, error) => {
+      setIsOrchestrating(false);
+      engineRef.current = null;
+      abortRef.current  = null;
+      showToast(`Generation error: ${error}`);
+    },
+  }), [showToast]);
 
   const handleGenerateReport = useCallback(async () => {
     if (!caseData) return;
-    const tplResult = await mockReportTemplateService.getById(STANDARD_TEMPLATE_ID);
-    if (!tplResult.ok) { showToast('Could not load report template'); return; }
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const engine = new OrchestratorEngine(undefined, buildContext(caseData, null) as any, buildOrchCallbacks());
+    engineRef.current = engine;
     setIsOrchestrating(true);
     setLeftTab('draft');
     try {
-      await runOrchestrator(
-        (tplResult as any).data,
-        buildContext(caseData, null),
-        handleOrchEvent,
-        mockReportPartService,
-        { signal: controller.signal },
-      );
+      await engine.run();
     } catch (e: any) {
       if (e?.name !== 'AbortError') showToast(`Generation failed: ${e?.message ?? 'Unknown'}`);
       setIsOrchestrating(false);
-      abortRef.current = null;
+      engineRef.current = null;
+      abortRef.current  = null;
     }
-  }, [caseData, handleOrchEvent, showToast]);
+  }, [caseData, buildOrchCallbacks, showToast]);
 
   const handleAbortGenerate = useCallback(() => {
-    abortRef.current?.abort();
+    engineRef.current?.cancel();
     setIsOrchestrating(false);
-    abortRef.current = null;
+    engineRef.current = null;
+    abortRef.current  = null;
     showToast('Generation cancelled');
   }, [showToast]);
 
   const handleRegenerateSection = useCallback(async (sectionId: string) => {
     if (!caseData || isOrchestrating) return;
-    const tplResult = await mockReportTemplateService.getById(STANDARD_TEMPLATE_ID);
-    if (!tplResult.ok) return;
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const engine = new OrchestratorEngine(undefined, buildContext(caseData, null) as any, buildOrchCallbacks());
+    engineRef.current = engine;
     setIsOrchestrating(true);
     try {
-      await regenerateSection(
-        sectionId,
-        (tplResult as any).data,
-        buildContext(caseData, null),
-        handleOrchEvent,
-        mockReportPartService,
-        { signal: controller.signal },
-      );
+      await engine.regenerateSection(sectionId);
     } catch (e: any) {
       if (e?.name !== 'AbortError') showToast(`Regeneration failed: ${e?.message ?? 'Unknown'}`);
+    } finally {
       setIsOrchestrating(false);
-      abortRef.current = null;
+      engineRef.current = null;
+      abortRef.current  = null;
     }
-  }, [caseData, isOrchestrating, handleOrchEvent, showToast]);
+  }, [caseData, isOrchestrating, buildOrchCallbacks, showToast]);
 
   // ─────────────────────────────────────────────────────────
   // Render
@@ -728,6 +802,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       display: 'flex', alignItems: 'center', gap: 6,
                       whiteSpace: 'nowrap' as const,
                     }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#94a3b8'; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; }}
                   >
                     {label}
                     {hasResult && (
@@ -814,7 +890,12 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       allCompFlags={caseComputationalFlags}
                       allAvailableFlags={computationalFlags}
                       aiSuggestions={aiSuggestions}
-                      
+                      onFlagsChanged={async () => {
+                        // Re-fetch case so the tab badge count stays in sync
+                        if (!caseId) return;
+                        const c = await caseRouter.getCase(caseId).catch(() => null);
+                        if (c) setCaseData(c ?? null);
+                      }}
                     />
                   )}
                 </div>
@@ -954,7 +1035,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
                           borderBottom: isActive ? '2px solid #38bdf8' : '2px solid transparent',
                           cursor: 'pointer', transition: 'all 0.15s',
                           display: 'flex', alignItems: 'center', gap: 6,
-                        }}>
+                        }}
+                          onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#94a3b8'; }}
+                          onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; }}
+                        >
                           {label}
                           {tab === 'results' && caseComputationalFlags.length > 0 && (
                             <span style={{
@@ -990,6 +1074,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     </div>
                     <div style={{ position: 'absolute', inset: 0, display: leftTab === 'sequencer' ? 'flex' : 'none', flexDirection: 'column' }}>
                       <SequencerPanel
+                        show={leftTab === 'sequencer'}
+                        onClose={() => setLeftTab('report')}
                         caseData={caseData}
                         activeReportInstanceId={activeReportInstanceId}
                         onSelectReport={(instanceId, specimenId) => {
@@ -1085,8 +1171,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onDelegate={() => setShowDelegateModal(true)}
           onTeam={() => setShowTeamModal(true)}
           onCodes={() => setShowCodesModal(true)}
-          onNextCase={() => { if (hasUnsavedData) { setPendingNavigation('next'); } else { navigateToCase('next'); } }}
-          onPreviousCase={() => { if (hasUnsavedData) { setPendingNavigation('prev'); } else { navigateToCase('prev'); } }}
+          onNextCase={() => { if (shouldWarnDirty()) { setPendingNavigation('next'); } else { navigateToCase('next'); } }}
+          onPreviousCase={() => { if (shouldWarnDirty()) { setPendingNavigation('prev'); } else { navigateToCase('prev'); } }}
           onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
           isGenerating={isOrchestrating}
           onAbortGenerate={handleAbortGenerate}
@@ -1160,7 +1246,9 @@ Original report issued pending ancillary studies. This amendment incorporates th
               <span style={{ fontSize: 12, color: '#64748b' }}>{missingFields.length} field{missingFields.length !== 1 ? 's' : ''} need attention</span>
               <button
                 onClick={() => setShowMissingWarning(false)}
-                style={{ padding: '9px 20px', borderRadius: 8, background: '#0891B2', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '9px 20px', borderRadius: 8, background: '#0891B2', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#0e7490')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#0891B2')}
               >
                 Return and Fix
               </button>
@@ -1224,6 +1312,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
             setCaseCommentAttending(html);
             setHasCaseComment(!!html && html !== '<p></p>');
             if (caseData?.id) localStorage.setItem(`ps_case_comment_${caseData.id}`, html);
+            setHasUnsavedData(true);
           }}
           onClose={() => setShowCaseCommentModal(false)}
         />
@@ -1241,6 +1330,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           isFinalized={false}
           onChange={(html) => {
             setSpecimenComments(prev => ({ ...prev, [activeSpecimenCommentId]: html }));
+            setHasUnsavedData(true);
           }}
           onClose={() => setShowSpecimenCommentModal(false)}
         />
@@ -1292,6 +1382,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 snomed: [...((prev as any).coding?.snomed ?? []), ...newSnomed],
               },
             } : prev);
+            setHasUnsavedData(true);
             setShowCodesModal(false);
           }}
           onClose={() => setShowCodesModal(false)}
@@ -1308,8 +1399,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
             flags: (flagCaseData as any).flags ?? [],
           } as any}
           flagDefinitions={flagDefinitions}
-          onApplyFlags={onApplyFlags}
-          onRemoveFlag={onRemoveFlag}
+          onApplyFlags={async (...args: Parameters<typeof onApplyFlags>) => { await onApplyFlags(...args); }}
+          onRemoveFlag={async (...args: Parameters<typeof onRemoveFlag>) => { await onRemoveFlag(...args); }}
           onClose={() => {
             if (flagCaseData && caseData) {
               setCaseData(prev => prev ? {
@@ -1330,7 +1421,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         <CaseTeamModal
           caseData={caseData}
           onClose={() => setShowTeamModal(false)}
-          onUpdated={(updated) => { setCaseData(updated); }}
+          onUpdated={(updated) => { setCaseData(updated); setHasUnsavedData(true); }}
           onDelegate={() => { setShowTeamModal(false); setDelegateReturnTo('team'); setShowDelegateModal(true); }}
         />
       )}
@@ -1361,7 +1452,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
       <UnsavedWarningModal
         show={!!pendingNavigation || !!pendingPath}
         overlayStyle={overlayStyle}
-        onCancel={() => { setPendingNavigation(null); cancelContextNavigate(); }}
+        onCancel={() => {
+          setPendingNavigation(null);
+          cancelContextNavigate();
+        }}
         onConfirm={() => {
           setHasUnsavedData(false);
           if (pendingPath) confirmContextNavigate();
@@ -1369,6 +1463,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
           setPendingNavigation(null);
           if (dest === 'next') navigateToCase('next');
           else if (dest === 'prev') navigateToCase('prev');
+          else if (dest === '__back__') {
+            if (backPath === '/search') sessionStorage.setItem('pathscribe:searchReturn', '1');
+            navigate(backPath);
+          }
+          // backPath is '/search' or '/worklist' depending on navSource
           else if (dest) navigate(dest);
         }}
       />

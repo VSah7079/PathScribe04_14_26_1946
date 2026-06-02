@@ -9,7 +9,7 @@ import '@/pathscribe.css';
 import { Flag } from '@/services/flags/IFlagService';
 import { ResultStatus, ActionabilityLevel } from '@/types/smarttag.types';
 import { useComputationalResult } from '@/hooks/useComputationalResult';
-import { FlagIconGlyph } from './FlagIcons';
+import { FlagIconGlyph } from './flagIcons';
 
 // ─── Status → visual config ───────────────────────────────────────────────────
 

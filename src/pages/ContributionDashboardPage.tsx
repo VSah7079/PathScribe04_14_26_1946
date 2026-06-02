@@ -1,3 +1,4 @@
+// src/pages/ContributionDashboardPage.tsx
 import React, { useState, useEffect } from "react";
 import '../pathscribe.css';
 import { useAuth } from "@contexts/AuthContext";
@@ -5,9 +6,9 @@ import { WarningIcon } from "@components/Icons";
 import CaseSearchBar from "@components/Search/CaseSearchBar";
 import FlagRow        from "@components/Dashboards/FlagRow";
 import CaseMixTile    from "@components/Dashboards/CaseMixTile";
-import ProductivityTab from "./ProductivityTab";
-import QualityTab      from "./QualityTab";
-import AIContributionTab from "./AIContributionTab";
+import ProductivityTab from "../components/Contribution/ProductivityTab";
+import QualityTab      from "../components/Contribution/QualityTab";
+import AIContributionTab from "../components/Contribution/AIContributionTab";
 import { pathscribeTheme as t } from "@theme/pathscribeTheme";
 import type {
   ContributionFlag,
@@ -20,11 +21,17 @@ import { VOICE_CONTEXT } from '../constants/systemActions';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
+// Extended KPI data — peer averages and % of target (added alongside KpiTile)
+const kpiExtras = [
+  { peer: 109, targetPct: 107, targetLabel: "of volume target" },
+  { peer: 18,  targetPct: null, targetLabel: null },
+  { peer: 76,  targetPct: 72,  targetLabel: "AI adoption target" },
+];
+
 const mockKpis: KpiTile[] = [
   { label: "CASE_LABEL_PLACEHOLDER",  value: 128,  unit: "",      delta: "+12%",     up: true,  icon: "✓"  },
   { label: "Cases In Progress", value: 14,   unit: "",      delta: "-3",       up: false, icon: "⏳" },
   { label: "AI‑Assisted Cases", value: 92,   unit: "",      delta: "+8%",      up: true,  icon: "🤖" },
-  { label: "Avg TAT",           value: 27.4, unit: " hrs",  delta: "-2.1 hrs", up: true,  icon: "⚡" },
 ];
 
 const mockCaseMixData: CaseMixData = {
@@ -45,6 +52,37 @@ const mockQualityFlags: ContributionFlag[] = [
 
 // RVU last-30-days mock
 const mockRvu30 = { total: 387, delta: "+6.2%", up: true, avgPerCase: 21.8 };
+
+// TAT Performance mock — first-touch and total-case averages
+// Multi-client TAT data — aggregate across all active clients
+// Each client has its own SLA; the overview shows the weighted aggregate.
+const mockClientTatData = [
+  { code: 'MGH', firstTouchHrs: 2.4, totalHrs: 18.2, targetFirst: 4,  targetTotal: 24, cases: 58 },
+  { code: 'RMC', firstTouchHrs: 5.1, totalHrs: 32.4, targetFirst: 8,  targetTotal: 48, cases: 34 },
+  { code: 'WSC', firstTouchHrs: 3.8, totalHrs: 22.1, targetFirst: 6,  targetTotal: 36, cases: 19 },
+  { code: 'BMC', firstTouchHrs: 1.9, totalHrs: 14.6, targetFirst: 6,  targetTotal: 24, cases: 17 },
+];
+// Weighted averages and aggregate on-target %
+const totalCases  = mockClientTatData.reduce((s, c) => s + c.cases, 0);
+const wAvgFirst   = mockClientTatData.reduce((s, c) => s + c.firstTouchHrs * c.cases, 0) / totalCases;
+const wAvgTotal   = mockClientTatData.reduce((s, c) => s + c.totalHrs * c.cases, 0) / totalCases;
+const pctFirst    = Math.round(mockClientTatData.reduce((s, c) => s + (c.firstTouchHrs <= c.targetFirst ? c.cases : 0), 0) / totalCases * 100);
+const pctTotal    = Math.round(mockClientTatData.reduce((s, c) => s + (c.totalHrs    <= c.targetTotal ? c.cases : 0), 0) / totalCases * 100);
+const pctOnTarget = Math.round((pctFirst + pctTotal) / 2);
+
+// Legacy alias for TatPerformanceTile (keeps tile props unchanged)
+const mockTatTargets = {
+  clientCode:    `${mockClientTatData.length} clients`,
+  firstTouchHrs: +wAvgFirst.toFixed(1),
+  totalHrs:      +wAvgTotal.toFixed(1),
+};
+
+// mockTatPerf now derived from the multi-client aggregate above
+const mockTatPerf = {
+  firstTouchAvgHrs: +wAvgFirst.toFixed(1),
+  totalCaseAvgHrs:  +wAvgTotal.toFixed(1),
+  onTargetPct:      pctOnTarget,
+};
 
 // Weekly mock (cases + RVUs per day)
 interface DailyData { day: string; cases: number; rvus: number; }
@@ -157,10 +195,77 @@ const Rvu30Tile: React.FC = () => (
   </div>
 );
 
+// ─── TAT Performance tile ─────────────────────────────────────────────────────
+
+const TatPerformanceTile: React.FC = () => {
+  const pct      = mockTatPerf.onTargetPct;
+  const ftPct    = Math.min(100, (mockTatPerf.firstTouchAvgHrs / mockTatTargets.firstTouchHrs) * 100);
+  const totalPct = Math.min(100, (mockTatPerf.totalCaseAvgHrs  / mockTatTargets.totalHrs)      * 100);
+
+  const barColor = (p: number) => p < 70 ? '#10b981' : p < 90 ? '#f59e0b' : '#ef4444';
+  const ftColor    = barColor(ftPct);
+  const totalColor = barColor(totalPct);
+  const summaryColor = pct >= 85 ? '#10b981' : pct >= 65 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="ps-tat-tile">
+      <div className="ps-tat-tile__header">
+        <span className="ps-tat-tile__eyebrow">TAT Performance</span>
+        <span className="ps-tat-tile__icon">⏱</span>
+      </div>
+
+      {/* First Touch metric + bar */}
+      <div className="ps-tat-tile__metric-block">
+        <div className="ps-tat-tile__row">
+          <div className="ps-tat-tile__row-left">
+            <span className="ps-tat-tile__row-icon ps-tat-tile__row-icon--teal">⚡</span>
+            <span className="ps-tat-tile__metric-label">First Touch</span>
+          </div>
+          <span className="ps-tat-tile__metric-value">
+            {mockTatPerf.firstTouchAvgHrs}h{' '}
+            <span className="ps-tat-tile__metric-unit">avg</span>
+          </span>
+        </div>
+        <div className="ps-tat-tile__bar-track">
+          <div className="ps-tat-tile__bar-fill" style={{ width: `${ftPct}%`, background: ftColor }} />
+        </div>
+        <div className="ps-tat-tile__target-label">
+          {ftPct.toFixed(0)}% of {mockTatTargets.firstTouchHrs}h target
+        </div>
+      </div>
+
+      {/* Total Case metric + bar */}
+      <div className="ps-tat-tile__metric-block">
+        <div className="ps-tat-tile__row">
+          <div className="ps-tat-tile__row-left">
+            <span className="ps-tat-tile__row-icon ps-tat-tile__row-icon--green">✓</span>
+            <span className="ps-tat-tile__metric-label">Total Case</span>
+          </div>
+          <span className="ps-tat-tile__metric-value">
+            {mockTatPerf.totalCaseAvgHrs}h{' '}
+            <span className="ps-tat-tile__metric-unit">avg</span>
+          </span>
+        </div>
+        <div className="ps-tat-tile__bar-track">
+          <div className="ps-tat-tile__bar-fill" style={{ width: `${totalPct}%`, background: totalColor }} />
+        </div>
+        <div className="ps-tat-tile__target-label">
+          {totalPct.toFixed(0)}% of {mockTatTargets.totalHrs}h target
+        </div>
+      </div>
+
+      {/* Summary line */}
+      <div className="ps-tat-tile__summary-line">
+        <span style={{ color: summaryColor, fontWeight: 700 }}>{pct}% on target</span>
+        <span style={{ fontSize: '10px', color: '#475569' }}>weighted across {mockClientTatData.length} clients</span>
+      </div>
+    </div>
+  );
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ContributionDashboardPage: React.FC = () => {
-  //const navigate = useNavigate();
   const { user } = useAuth();
   
 
@@ -175,7 +280,7 @@ const ContributionDashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ padding: "32px", color: t.colors.text.primary, overflowY: "auto", height: "100%" }}>
+    <div className="ps-contrib-page" style={{ padding: "clamp(16px,3vw,32px)", color: t.colors.text.primary, overflowY: "auto", height: "100%" }}>
 
       {/* ─── Page Title ──────────────────────────────────────────────────── */}
       <div style={{ marginBottom: "24px" }}>
@@ -191,12 +296,13 @@ const ContributionDashboardPage: React.FC = () => {
       <div data-capture-hide="true"><CaseSearchBar /></div>
 
       {/* ─── Tabs ────────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: "24px", marginTop: "32px", marginBottom: "24px" }}>
+      <div className="ps-contrib-tab-bar">
         {(Object.keys(TAB_LABELS) as DashboardTab[]).map((tab) => (
-          <div key={tab} style={{ paddingBottom: "8px", cursor: "pointer", fontWeight: 600,
-            borderBottom: activeTab === tab ? `3px solid ${t.colors.accentTeal}` : "3px solid transparent",
-            color: activeTab === tab ? t.colors.text.primary : t.colors.text.muted,
-          }} onClick={() => setActiveTab(tab)}>
+          <div
+            key={tab}
+            className={`ps-contrib-tab${activeTab === tab ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
             {TAB_LABELS[tab]}
           </div>
         ))}
@@ -206,31 +312,56 @@ const ContributionDashboardPage: React.FC = () => {
       {activeTab === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-          {/* KPI row — 5 tiles including RVU */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "16px" }}>
-            {mockKpis.map((kpi) => (
-              <div key={kpi.label} style={{ padding: "16px", borderRadius: "16px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, display: "flex", flexDirection: "column", gap: "8px" }}>
+          {/* KPI row — 3 standard KPIs + TAT Performance tile + RVU tile = 5 columns */}
+          <div className="ps-kpi-grid">
+            {mockKpis.map((kpi, ki) => {
+              const ext = kpiExtras[ki];
+              return (
+              <div key={kpi.label} style={{ padding: "18px", borderRadius: "16px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, display: "flex", flexDirection: "column", gap: "6px" }}>
+                {/* Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "13px", color: t.colors.text.muted }}>
-                  {kpi.label === "CASE_LABEL_PLACEHOLDER" ? finalCaseLabel : kpi.label}
-                </span>
-                  <span style={{ fontSize: "16px" }}>{kpi.icon}</span>
+                  <span style={{ fontSize: "14px", color: t.colors.text.muted, fontWeight: 500 }}>
+                    {kpi.label === "CASE_LABEL_PLACEHOLDER" ? finalCaseLabel : kpi.label}
+                  </span>
+                  <span style={{ fontSize: "18px" }}>{kpi.icon}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                  <span style={{ fontSize: "22px", fontWeight: 700 }}>{kpi.value}</span>
-                  {kpi.unit && <span style={{ fontSize: "13px", color: t.colors.text.muted }}>{kpi.unit}</span>}
+                {/* Value */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
+                  <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.5px" }}>{kpi.value}</span>
+                  {kpi.unit && <span style={{ fontSize: "14px", color: t.colors.text.muted }}>{kpi.unit}</span>}
                 </div>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: kpi.up ? t.colors.semantic.success : t.colors.semantic.warning }}>
-                  {kpi.up ? "▲ " : "▼ "}{kpi.delta}
+                {/* Delta vs prior period */}
+                <div style={{ fontSize: "13px", fontWeight: 600, color: kpi.up ? t.colors.semantic.success : t.colors.semantic.warning }}>
+                  {kpi.up ? "▲" : "▼"} {kpi.delta} vs prior period
                 </div>
+                {/* Divider */}
+                <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+                {/* Peer average */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "12px", color: t.colors.text.muted }}>Peer avg</span>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: t.colors.text.secondary }}>{ext?.peer ?? "—"}</span>
+                </div>
+                {/* % of target */}
+                {ext?.targetPct != null && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", color: t.colors.text.muted }}>% of target</span>
+                    <span style={{ fontSize: "13px", fontWeight: 700,
+                      color: ext.targetPct >= 100 ? t.colors.semantic.success : ext.targetPct >= 75 ? t.colors.semantic.warning : "#f87171" }}>
+                      {ext.targetPct}%
+                    </span>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
+            {/* TAT Performance — split tile replacing plain Avg TAT KPI */}
+            <TatPerformanceTile />
             {/* RVU tile as 5th KPI */}
             <Rvu30Tile />
           </div>
 
           {/* Main content: 2-col */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr", gap: "24px" }}>
+          <div className="ps-contrib-overview-grid">
 
             {/* Left column */}
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>

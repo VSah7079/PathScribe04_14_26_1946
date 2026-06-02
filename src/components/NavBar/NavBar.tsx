@@ -60,7 +60,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 interface SystemInfoModalProps { onClose: () => void; }
 
-const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => {
+export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [copied,     setCopied]     = useState(false);
   const [anthropicOk, setAnthropicOk] = useState<boolean | null>(null);
@@ -218,7 +218,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
   const qaEnabled = loadEnhancementConfig().qaEnabled;
 
   const userInitials = user?.name
-    ? user.name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('')
+    ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })()
     : 'DSJ';
 
   useEffect(() => {
@@ -233,8 +233,9 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
   }, []);
 
   const handleAvatarClick = () => {
-    setSysInfoOpen(true);
-    onProfileClick(); // notify parent (analytics, breadcrumb update, etc.)
+    // Badge modal (aboutOpen) is shown by AppShell via onProfileClick.
+    // SystemInfoModal opens only from within the badge modal — do NOT open both at once.
+    onProfileClick();
   };
 
   const linksModal = linksOpen && ReactDOM.createPortal(

@@ -252,7 +252,7 @@ export const firestoreBiometricService: IBiometricService = {
   async isBiometricCurrentForUser(userId) {
     try {
       const policyResult = await firestoreBiometricService.getPolicy();
-      if (!policyResult.ok) return err(policyResult.error!);
+      if (policyResult.ok === false) return err(policyResult.error);
       const policy = policyResult.data!;
 
       if (!policy.enabled) return ok(false);

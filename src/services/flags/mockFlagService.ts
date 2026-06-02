@@ -95,6 +95,16 @@ const SEED_FLAGS: Flag[] = [
     synopticFieldIds: ['cytogenetics_result', 'her2_ish_result', 'fish_result'],
     dataSource: { sourceId: 'cytogenetics', endpoint: '/api/results/cytogenetics', resultPath: 'results.karyotype', pollIntervalMs: 60000 },
   },
+
+  // ── Rossana UX review cases ────────────────────────────────────────────────
+  { id: 'thyroid-board',      tagClass: 'ADMINISTRATIVE', name: 'Thyroid MDT',                lisCode: 'THYR',  description: 'Thyroid multidisciplinary team review',              level: 'Case',     severity: 3, status: 'Active' },
+  { id: 'braf-positive',      tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive',        lisCode: 'BRAF',  description: 'BRAF V600E mutation detected — targeted therapy eligible', level: 'Case', severity: 2, status: 'Active' },
+  { id: 'gynaec-oncol',       tagClass: 'ADMINISTRATIVE', name: 'Gynaecology Oncology',       lisCode: 'GYNOC', description: 'Gynaecology oncology review requested',              level: 'Case',     severity: 2, status: 'Active' },
+  { id: 'urology-mdt',        tagClass: 'ADMINISTRATIVE', name: 'Urology MDT',                lisCode: 'UROL',  description: 'Urology multidisciplinary team review',              level: 'Case',     severity: 3, status: 'Active' },
+  { id: 'melanoma-mdt',       tagClass: 'ADMINISTRATIVE', name: 'Melanoma MDT',               lisCode: 'MEL',   description: 'Melanoma multidisciplinary team — immunotherapy discussion', level: 'Case', severity: 3, status: 'Active' },
+  { id: 'pdl1-result',        tagClass: 'COMPUTATIONAL',  name: 'PD-L1 CPS 15',              lisCode: 'PDL1',  description: 'PD-L1 result — immunotherapy eligibility review',    level: 'Specimen', severity: 2, status: 'Active' },
+  { id: 'vhl-mutation',       tagClass: 'COMPUTATIONAL',  name: 'VHL Mutation',               lisCode: 'VHL',   description: 'VHL mutation detected',                             level: 'Specimen', severity: 2, status: 'Active' },
+  { id: 'braf-comp',          tagClass: 'COMPUTATIONAL',  name: 'BRAF V600E',                 lisCode: 'BRAFM', description: 'BRAF V600E result from molecular panel',            level: 'Specimen', severity: 2, status: 'Active' },
 ];
 
 const load    = ()             => storageGet<Flag[]>('pathscribe_flags_v2', SEED_FLAGS);

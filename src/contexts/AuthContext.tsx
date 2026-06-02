@@ -6,7 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "pathologist" | "admin";
+  role: "pathologist" | "admin" | "pathologist-admin";
   initials: string;
   voiceProfile: VoiceProfileId;
 }
@@ -79,13 +79,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedPassword = password.trim();
 
       // Hardcoded credentials for demo/testing (fallback)
+      // Role guide:
+      //   "pathologist"       → clinical cases + reporting only
+      //   "admin"             → configuration + user management only
+      //   "pathologist-admin" → both (route guards should treat as both)
       const credentials = [
-        { email: "demo@pathscribe.ai", password: "xyxRnJrIu64nsi0KqPn-", id: "PATH-001", name: "Dr. Sarah Johnson", role: "pathologist", initials: "SJ", voiceProfile: "EN-US" },
-        { email: "admin@pathscribe.ai", password: "ZBs=inBiC6^N*XYwH3v^", id: "u3", name: "System Admin", role: "admin", initials: "SA", voiceProfile: "EN-US" },
-        { email: "paul.carter@mft.nhs.uk", password: "Pathscribe_TempPass2026!", id: "PATH-UK-001", name: "Paul Carter", role: "pathologist", initials: "PC", voiceProfile: "EN-GB" },
-        { email: "oliver.pemberton@mft.nhs.uk", password: "xyxRnJrIu64nsi0KqPn-", id: "PATH-UK-002", name: "Dr. Oliver Pemberton", role: undefined, initials: "OP", voiceProfile: "EN-GB" },
-        { email: "amber.fehrs@demo.pathscribe.ai", password: "One_Amazing_Person!", id: "PATH-US-001", name: "Amber Fehrs-Battey", role: "pathologist", initials: "AF", voiceProfile: "EN-US" },
-        { email: "mark.tuthill@hfhs-demo.pathscribe.ai", password: "One_Amazing_Doctor!", id: "PATH-US-002", name: "Dr. J. Mark Tuthill", role: "pathologist", initials: "MT", voiceProfile: "EN-US" },
+        { email: "pete.nimmo@pathscribe.ai",           password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "pathologist" as const, initials: "PN", voiceProfile: "EN-US" },
+        { email: "demo@pathscribe.ai",                 password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "pathologist" as const, initials: "PN", voiceProfile: "EN-US" },
+        { email: "sarah.johnson@demo.pathscribe.ai",   password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-SJ-001", name: "Dr. Sarah Johnson",    role: "pathologist" as const, initials: "SJ", voiceProfile: "EN-US" },
+        { email: "admin@pathscribe.ai",                password: "ZBs=inBiC6^N*XYwH3v^",   id: "u3",          name: "System Admin",         role: "admin"       as const, initials: "SA", voiceProfile: "EN-US" },
+        { email: "paul.carter@mft.nhs.uk",             password: "Pathscribe_TempPass2026!", id: "PATH-UK-001", name: "Paul Carter",          role: "pathologist" as const, initials: "PC", voiceProfile: "EN-GB" },
+        { email: "oliver.pemberton@mft.nhs.uk",        password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-UK-002", name: "Dr. Oliver Pemberton", role: "pathologist" as const, initials: "OP", voiceProfile: "EN-GB" },
+        { email: "amber.fehrs@demo.pathscribe.ai",     password: "One_Amazing_Person!",      id: "PATH-US-001", name: "Amber Fehrs-Battey",   role: "pathologist" as const, initials: "AF", voiceProfile: "EN-US" },
+        { email: "mark.tuthill@hfhs-demo.pathscribe.ai", password: "One_Amazing_Doctor!",   id: "PATH-US-002", name: "Dr. J. Mark Tuthill",  role: "pathologist"        as const, initials: "MT", voiceProfile: "EN-US" },
+        // ── UX Review account — full pathologist + admin access ──────────────────
+        { email: (import.meta.env.VITE_BABAKHANI_EMAIL ?? "rossana.babakhani@pathscribe.ai").toLowerCase(),
+                                                            password: "Review_PathScribe_2026!", id: "PATH-RB-001", name: "Rossana Babakhani",     role: "pathologist-admin" as const, initials: "RB", voiceProfile: "EN-US" },
       ];
 
       // Find matching credential
@@ -187,6 +196,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+
+// ── Role helper — use this in route guards instead of strict equality ─────────
+// Handles "pathologist-admin" transparently alongside single roles.
+export function roleHas(user: User | null, check: "pathologist" | "admin"): boolean {
+  if (!user) return false;
+  if (user.role === "pathologist-admin") return true;
+  return user.role === check;
+}
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");

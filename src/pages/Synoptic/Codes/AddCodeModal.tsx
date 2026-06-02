@@ -774,7 +774,7 @@ Rules:
                       {isActive ? (
                         <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, flexShrink: 0 }}>✓</span>
                       ) : (
-                        <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 700, flexShrink: 0 }}>+ Apply</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', color: '#38bdf8', flexShrink: 0 }} title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
                       )}
                     </div>
                   );
@@ -883,7 +883,7 @@ Rules:
                     {isActive ? (
                       <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, textAlign: 'right' }}>✓ Applied</span>
                     ) : (
-                      <span className="fm-apply-btn" style={{ textAlign: 'right' }}>+ Apply</span>
+                      <span className="fm-apply-btn" style={{ textAlign: 'right', display: 'inline-flex', alignItems: 'center' }} title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
                     )}
                   </div>
                 );

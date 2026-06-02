@@ -39,21 +39,26 @@ const ActionButton: React.FC<{
   const [isHovered, setIsHovered] = useState(false);
 
   const baseStyle: React.CSSProperties = {
-    padding: variant === 'solid' ? '7px 16px' : '7px 12px',
+    padding:      '6px 11px',                       // slightly tighter to fit more buttons
     borderRadius: '7px',
-    fontWeight: variant === 'solid' ? 700 : 600,
-    fontSize: '12px',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.15s ease',
-    border: variant === 'solid' ? 'none' : `1.5px solid ${color}`,
-    background: variant === 'solid' 
-      ? (isHovered ? (hoverColor || color) : color) 
-      : (isHovered ? `${color}1A` : 'transparent'),
-    color: variant === 'solid' ? 'white' : color,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px'
+    fontWeight:   700,
+    fontSize:     '12px',
+    cursor:       'pointer',
+    whiteSpace:   'nowrap',
+    transition:   'all 0.15s ease',
+    border:       `1.5px solid ${isHovered && variant === 'solid' ? (hoverColor || color) : color}`,
+    background:   variant === 'solid'
+      ? (isHovered ? (hoverColor || color) : color)
+      : (isHovered ? `${color}22` : 'transparent'),
+    color:        variant === 'solid' ? 'white' : color,
+    display:      'flex',
+    alignItems:   'center',
+    gap:          '5px',
+    transform:    isHovered ? 'translateY(1px)' : 'translateY(0)',
+    boxShadow:    isHovered ? `0 2px 8px ${color}44` : 'none',
+    lineHeight:   '1.2',            // explicit line-height prevents height variation from emoji/# chars
+    height:       '32px',           // fixed height so ALL buttons are identical regardless of content
+    boxSizing:    'border-box' as const,
   };
 
   return (
@@ -66,7 +71,7 @@ const ActionButton: React.FC<{
 };
 
 const Divider = () => (
-  <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+  <div style={{ width: 1, height: 32, background: '#475569', flexShrink: 0, margin: '0 2px' }} />
 );
 
 const BottomActionBar: React.FC<BottomActionBarProps> = ({
@@ -146,10 +151,11 @@ useEffect(() => {
   return (
     <>
     <div style={{
-      background: '#0d1829', padding: '10px 24px', borderTop: '1px solid rgba(255,255,255,0.08)',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, gap: '8px',
+      background: '#0d1829', padding: '11px 12px 10px', borderTop: '1px solid rgba(255,255,255,0.08)',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, gap: '6px',
+      overflow: 'visible', position: 'relative', zIndex: 200,
     }}>
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', overflowX: 'auto', flexShrink: 1, minWidth: 0 }}>
         <ActionButton onClick={onPreviousCase} variant="outline" color="#64748b" title="Previous case">← Previous</ActionButton>
         <ActionButton onClick={onNextCase} variant="outline" color="#64748b" title="Next case">Next →</ActionButton>
         <Divider />
@@ -170,7 +176,7 @@ useEffect(() => {
         </>}
       </div>
 
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
         {/* Pool case — show Claim button only */}
         {isPool && (
           <ActionButton onClick={() => setClaimOpen(true)} variant="solid" color="#6366f1" hoverColor="#4f46e5">
@@ -185,22 +191,22 @@ useEffect(() => {
             {onGenerateReport && (
               <>
                 {isGenerating ? (
-                  <ActionButton onClick={() => onAbortGenerate?.()} variant="solid" color="#dc2626" hoverColor="#b91c1c" title="Abort generation">
+                  <ActionButton onClick={() => onAbortGenerate?.()} variant="outline" color="#ef4444" title="Abort generation">
                     ✕ Abort
                   </ActionButton>
                 ) : (
-                  <ActionButton onClick={onGenerateReport} variant="solid" color="#0891B2" hoverColor="#0E7490" title="Generate AI report draft from synoptic answers">
+                  <ActionButton onClick={onGenerateReport} variant="outline" color="#38bdf8" title="Generate AI report draft from synoptic answers">
                     ⚡ Generate Report
                   </ActionButton>
                 )}
                 <Divider />
               </>
             )}
-            <ActionButton onClick={onSaveDraft} variant="outline" color={isDirty ? '#0891B2' : '#334155'}>💾 Save Draft</ActionButton>
-            <ActionButton onClick={onSaveAndNext} variant="outline" color={isDirty ? '#0891B2' : '#334155'}>💾 Save &amp; Next</ActionButton>
+            <ActionButton onClick={onSaveDraft} variant="outline" color={isDirty ? '#38bdf8' : '#94a3b8'} title="Save draft">💾 Save Draft</ActionButton>
+            <ActionButton onClick={onSaveAndNext} variant="outline" color={isDirty ? '#38bdf8' : '#94a3b8'} title="Save and go to next case">💾 Save &amp; Next</ActionButton>
             <Divider />
-            <ActionButton onClick={onFinalize} variant="solid" color="#0891B2" hoverColor="#0E7490">🔒 Finalize</ActionButton>
-            <ActionButton onClick={onFinalizeAndNext} variant="solid" color="#0891B2" hoverColor="#0E7490">🔒 Finalize &amp; Next</ActionButton>
+            <ActionButton onClick={onFinalize} variant="outline" color="#34d399" title="Finalize this report">🔒 Finalize</ActionButton>
+            <ActionButton onClick={onFinalizeAndNext} variant="outline" color="#34d399" title="Finalize and go to next case">🔒 Finalize &amp; Next</ActionButton>
           </>
         )}
         {!isPool && (allFinalized || isFinalized) && status !== 'finalized' && (

@@ -212,10 +212,22 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
       return <GroupedChildren children={branch} ctx={ctx} pageNum={pageNum} totalPages={totalPages} />;
     }
     case 'column-layout':
+      // CSS column-count produces true newsprint flow: content fills column 1
+      // to the bottom, then continues at the top of column 2 — no manual
+      // assignment of children to columns required.
+      // break-inside:avoid on each child wrapper prevents a node from being
+      // split mid-content across a column break.
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${node.numColumns}, 1fr)`, gap: `0 ${node.columnGap ?? 16}px`, marginBottom: 10 }}>
-          {Array.from({ length: node.numColumns }).map((_, ci) => (
-            <div key={ci}><GroupedChildren children={node.children.filter((_, idx) => idx % node.numColumns === ci)} ctx={ctx} pageNum={pageNum} totalPages={totalPages} /></div>
+        <div style={{
+          columnCount:  node.numColumns,
+          columnGap:    `${node.columnGap ?? 16}px`,
+          columnRule:   '1px solid #e2e8f0',
+          marginBottom: 10,
+        }}>
+          {node.children.map(child => (
+            <div key={child.id} style={{ breakInside: 'avoid', marginBottom: 6 }}>
+              <ContentNode node={child} ctx={ctx} pageNum={pageNum} totalPages={totalPages} />
+            </div>
           ))}
         </div>
       );

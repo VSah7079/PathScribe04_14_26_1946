@@ -16,6 +16,17 @@ export interface Client {
   /** User IDs explicitly approved to report pediatric cases from this client.
    *  Both this AND canViewPediatric on the user record must be true (Option C). */
   authorizedPediatricPathologistIds: string[];
+  // ── TAT configuration ─────────────────────────────────────────────────────
+  /** Hours from receivedDate before a first-touch escalation fires.
+   *  Null = use system default (SystemConfig.defaults.tatFirstTouchHours). */
+  tatFirstTouchHours: number | null;
+  /** Total case TAT target in hours (receivedDate → finalizedAt).
+   *  Null = use system default (SystemConfig.defaults.tatTotalHours). */
+  tatTotalHours: number | null;
+  /** Roles to notify when a TAT threshold is breached. Empty = no notifications. */
+  escalationTargets: ('pathGroup' | 'admin' | 'referrer')[];
+  /** Urgency level applied to escalation alerts for this client. */
+  escalationPriority: 'high' | 'critical';
 }
 
 export interface IClientService {
@@ -29,11 +40,41 @@ export interface IClientService {
 
 // ─── Mock ─────────────────────────────────────────────────────────────────────
 const SEED_CLIENTS: Client[] = [
-  { id: 'c1', name: 'Metro General Hospital',   code: 'MGH',  address: '100 Main St',      phone: '555-2001', fax: '555-2002', email: 'lab@metrogeneral.org',  status: 'Active',   pediatricAgeThreshold: 18,   authorizedPediatricPathologistIds: [] },
-  { id: 'c2', name: 'Riverside Medical Center', code: 'RMC',  address: '200 River Rd',     phone: '555-2003', fax: '555-2004', email: 'lab@riverside.org',     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [] },
-  { id: 'c3', name: 'Northside Clinic',         code: 'NSC',  address: '300 North Ave',    phone: '555-2005', fax: '555-2006', email: 'lab@northside.org',     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [] },
-  { id: 'c4', name: 'Westview Surgery Center',  code: 'WSC',  address: '400 West Blvd',    phone: '555-2007', fax: '555-2008', email: 'lab@westview.org',      status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [] },
-  { id: 'c5', name: 'Eastpark Oncology',        code: 'EPO',  address: '500 East Park Dr', phone: '555-2009', fax: '555-2010', email: 'lab@eastpark.org',      status: 'Inactive', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [] },
+  {
+    id: 'c1', name: 'Metro General Hospital',   code: 'MGH',  address: '100 Main St',      phone: '555-2001', fax: '555-2002', email: 'lab@metrogeneral.org',
+    status: 'Active',   pediatricAgeThreshold: 18,   authorizedPediatricPathologistIds: [],
+    // Academic centre — tight SLAs negotiated in contract
+    tatFirstTouchHours: 4,  tatTotalHours: 24,
+    escalationTargets: ['pathGroup', 'admin'], escalationPriority: 'critical',
+  },
+  {
+    id: 'c2', name: 'Riverside Medical Center', code: 'RMC',  address: '200 River Rd',     phone: '555-2003', fax: '555-2004', email: 'lab@riverside.org',
+    status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
+    // Community hospital — standard 2-day TAT
+    tatFirstTouchHours: 8,  tatTotalHours: 48,
+    escalationTargets: ['admin'], escalationPriority: 'high',
+  },
+  {
+    id: 'c3', name: 'Northside Clinic',         code: 'NSC',  address: '300 North Ave',    phone: '555-2005', fax: '555-2006', email: 'lab@northside.org',
+    status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
+    // Small clinic — no custom targets, inherits system defaults
+    tatFirstTouchHours: null, tatTotalHours: null,
+    escalationTargets: [], escalationPriority: 'high',
+  },
+  {
+    id: 'c4', name: 'Westview Surgery Center',  code: 'WSC',  address: '400 West Blvd',    phone: '555-2007', fax: '555-2008', email: 'lab@westview.org',
+    status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
+    // Surgical centre — rapid intra-op consults expected
+    tatFirstTouchHours: 6,  tatTotalHours: 36,
+    escalationTargets: ['pathGroup', 'referrer'], escalationPriority: 'high',
+  },
+  {
+    id: 'c5', name: 'Eastpark Oncology',        code: 'EPO',  address: '500 East Park Dr', phone: '555-2009', fax: '555-2010', email: 'lab@eastpark.org',
+    status: 'Inactive', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
+    // Oncology centre — fast first touch, 24h total
+    tatFirstTouchHours: 4,  tatTotalHours: 24,
+    escalationTargets: ['pathGroup', 'admin', 'referrer'], escalationPriority: 'critical',
+  },
 ];
 
 const load = () => storageGet<Client[]>('pathscribe_clients', SEED_CLIENTS);

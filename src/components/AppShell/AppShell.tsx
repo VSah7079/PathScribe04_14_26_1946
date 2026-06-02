@@ -24,35 +24,39 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
 import { messageService } from '../../services';
 import { useMessaging } from '../../contexts/MessagingContext';
-import NavBar from '../NavBar/NavBar';
+import NavBar, { SystemInfoModal } from '../NavBar/NavBar';
 import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
 import { useDirtyState } from '../../contexts/DirtyStateContext';
 import '../../pathscribe.css';
+import { openUserGuide, openAdminGuide } from '../../utils/guideAssets';
 
 // ─── Internal user directory ─────────────────────────────────────────────────
 interface InternalUser { id: string; name: string; role: string; }
 const INTERNAL_USERS: InternalUser[] = [
-  { id: 'u2',  name: 'Lab Manager',     role: 'Laboratory'           },
-  { id: 'u3',  name: 'System Admin',    role: 'IT / Administration'  },
-  { id: 'u4',  name: 'Dr. Sarah Chen',  role: 'Pathology'            },
-  { id: 'u5',  name: 'Dr. Aristhone',   role: 'Pathology'            },
-  { id: 'u6',  name: 'IT Support',      role: 'IT / Administration'  },
-  { id: 'u7',  name: 'Billing Dept',    role: 'Finance'              },
-  { id: 'u8',  name: 'Dr. Miller',      role: 'Pathology'            },
-  { id: 'u9',  name: 'Archives',        role: 'Medical Records'      },
-  { id: 'u10', name: 'QA Team',         role: 'Quality Assurance'    },
-  { id: 'u11', name: 'Dr. Patel',       role: 'Gastroenterology'     },
-  { id: 'u12', name: 'Transcription',   role: 'Medical Transcription'},
-  { id: 'u13', name: 'Medical Records', role: 'Medical Records'      },
-  { id: 'u14', name: 'Dr. Wilson',      role: 'Oncology'             },
-  { id: 'u15', name: 'Compliance',      role: 'Compliance'           },
-  { id: 'u16', name: 'Supply Room',     role: 'Operations'           },
-  { id: 'u17', name: 'Dr. Lee',         role: 'Dermatopathology'     },
+  { id: 'u2',  name: 'Lab Manager',          role: 'Laboratory'           },
+  { id: 'u3',  name: 'System Admin',          role: 'IT / Administration'  },
+  { id: 'u4',  name: 'Dr. Sarah Li Chen',     role: 'Pathology'            },
+  { id: 'u5',  name: 'Dr. James Emeka Okafor',role: 'Pathology'            },
+  { id: 'u6',  name: 'IT Support',            role: 'IT / Administration'  },
+  { id: 'u7',  name: 'Billing Dept',          role: 'Finance'              },
+  { id: 'u8',  name: 'Dr. Miller',            role: 'Pathology'            },
+  { id: 'u9',  name: 'Archives',              role: 'Medical Records'      },
+  { id: 'u10', name: 'QA Team',               role: 'Quality Assurance'    },
+  { id: 'u11', name: 'Dr. Aisha Priya Patel', role: 'Gastroenterology'     },
+  { id: 'u12', name: 'Transcription',         role: 'Medical Transcription'},
+  { id: 'u13', name: 'Medical Records',       role: 'Medical Records'      },
+  { id: 'u14', name: 'Dr. Wilson',            role: 'Oncology'             },
+  { id: 'u15', name: 'Compliance',            role: 'Compliance'           },
+  { id: 'u16', name: 'Supply Room',           role: 'Operations'           },
+  { id: 'u17', name: 'Dr. Lee',               role: 'Dermatopathology'     },
 ];
 
-const avatarInitials = (name: string) =>
-  name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s*/i, '')
-    .split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+const avatarInitials = (name: string) => {
+  const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s*/i, '').split(' ').filter(Boolean);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : parts[0]?.[0]?.toUpperCase() ?? '?';
+};
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -78,41 +82,90 @@ interface UserSearchOverlayProps {
   onClose: () => void;
 }
 const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onSelect, onClose }) => {
-  const [q, setQ] = React.useState('');
+  const [q,        setQ]        = React.useState('');
+  const [pending,  setPending]  = React.useState<InternalUser[]>([]);
   const ref = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { ref.current?.focus(); }, []);
+
+  const pendingIds = pending.map(u => u.id);
   const results = INTERNAL_USERS.filter(u =>
     !alreadyAdded.includes(u.id) &&
     (u.name.toLowerCase().includes(q.toLowerCase()) || u.role.toLowerCase().includes(q.toLowerCase()))
   );
+
+  const toggle = (u: InternalUser) => {
+    setPending(prev =>
+      prev.find(p => p.id === u.id) ? prev.filter(p => p.id !== u.id) : [...prev, u]
+    );
+  };
+
+  const handleDone = () => {
+    pending.forEach(u => onSelect(u));
+    onClose();
+  };
+
   return (
     <div className="ps-user-search-modal">
       <div className="ps-user-search-header">
         <span className="ps-user-search-title">Find a recipient</span>
         <button className="ps-user-search-close" onClick={onClose}>×</button>
       </div>
+
+      {/* Selected chips */}
+      {pending.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, padding:'8px 16px 0' }}>
+          {pending.map(u => (
+            <span key={u.id} style={{ display:'inline-flex', alignItems:'center', gap:5,
+              padding:'3px 10px', borderRadius:999, fontSize:12, fontWeight:600,
+              background:'rgba(8,145,178,0.15)', color:'#38bdf8', border:'1px solid rgba(8,145,178,0.3)' }}>
+              {u.name}
+              <span onClick={() => toggle(u)} style={{ cursor:'pointer', opacity:0.7, fontSize:13 }}>×</span>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="ps-user-search-input-wrap">
         <div className="ps-user-search-bar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input ref={ref} className="ps-user-search-input" type="text" placeholder="Search by name or department…" value={q} onChange={e => setQ(e.target.value)} />
         </div>
       </div>
+
       <div className="ps-user-search-results">
         {results.length === 0
           ? <div className="ps-user-search-empty">No users found.</div>
-          : results.map(u => (
-            <div key={u.id} className="ps-user-search-item" onClick={() => onSelect(u)}>
-              <div className="ps-user-search-avatar">{avatarInitials(u.name)}</div>
-              <div>
-                <div className="ps-user-search-name">{u.name}</div>
-                <div className="ps-user-search-role">{u.role}</div>
-              </div>
-            </div>
-          ))
+          : results.map(u => {
+              const sel = pendingIds.includes(u.id);
+              return (
+                <div key={u.id}
+                  className="ps-user-search-item"
+                  onClick={() => toggle(u)}
+                  style={{ background: sel ? 'rgba(8,145,178,0.08)' : undefined }}>
+                  <div className="ps-user-search-avatar" style={{ background: sel ? 'rgba(8,145,178,0.3)' : undefined }}>
+                    {sel ? '✓' : avatarInitials(u.name)}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div className="ps-user-search-name">{u.name}</div>
+                    <div className="ps-user-search-role">{u.role}</div>
+                  </div>
+                  {sel && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+              );
+            })
         }
       </div>
-      <div className="ps-user-search-footer">
+
+      <div className="ps-user-search-footer" style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
         <button className="ps-user-search-cancel" onClick={onClose}>Cancel</button>
+        <button
+          onClick={handleDone}
+          disabled={pending.length === 0}
+          style={{ padding:'8px 20px', borderRadius:8, border:'none', fontSize:13, fontWeight:700, cursor: pending.length > 0 ? 'pointer' : 'default',
+            background: pending.length > 0 ? '#0891b2' : 'rgba(255,255,255,0.05)',
+            color: pending.length > 0 ? '#fff' : '#475569', transition:'all 0.15s' }}>
+          Add {pending.length > 0 ? `${pending.length} recipient${pending.length > 1 ? 's' : ''}` : 'recipients'}
+        </button>
       </div>
     </div>
   );
@@ -587,7 +640,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   return ReactDOM.createPortal(
     <div
       onClick={onClose}
-      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:20000, display:'flex', alignItems:'center', justifyContent:'center' }}
+      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:22000, display:'flex', alignItems:'center', justifyContent:'center' }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -709,7 +762,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const navigate = useNavigate();
 
   const { user } = useAuth();
-  const userInitials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'DR';
+  const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
   const handleLogout = useLogout();
   const location = useLocation();
   const { crumbs, pushCrumb } = useBreadcrumb();
@@ -741,6 +794,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
 // ─── Drawers & Modals ──────────────────────────────────────────────────────
   const [aboutOpen, setAboutOpen]             = useState(false);
+  const [systemInfoOpen, setSystemInfoOpen]   = useState(false);
   const [newRecipients, setNewRecipients]     = useState<InternalUser[]>([]);
   const [newToInput,    setNewToInput]        = useState('');
   const [newSubject,    setNewSubject]        = useState('');
@@ -1395,27 +1449,59 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
 
       {/* MODALS */}
-{aboutOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#1C1C1E', width: '380px', borderRadius: '16px', padding: '30px', textAlign: 'center', border: '1px solid #333' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '12px', border: '2px solid #0891B2', margin: '0 auto 15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0891B2', fontSize: '24px', fontWeight: 800 }}>{userInitials}</div>
-            <h2 style={{ margin: '0', color: '#FFF' }}>{user?.name || "Dr. Sarah Johnson"}</h2>
-            
-            {/* RESTORED HELP LINK SECTION */}
-            <div style={{ margin: '20px 0', padding: '15px 0', borderTop: '1px solid #333', borderBottom: '1px solid #333' }}>
-              <a 
-                href="/help/documentation.pdf" 
-                target="_blank" 
-                rel="noreferrer"
-                style={{ color: '#0891B2', textDecoration: 'none', fontSize: '14px', fontWeight: 600, display: 'block' }}
-              >
-                View System Help File
-              </a>
+      {systemInfoOpen && <SystemInfoModal onClose={() => setSystemInfoOpen(false)} />}
+
+      {aboutOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setAboutOpen(false)}>
+          <div style={{ background: '#1a2336', width: '340px', borderRadius: '18px', padding: '28px 24px 20px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '14px', border: '2px solid #0891B2', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '24px', fontWeight: 800 }}>{userInitials}</div>
+            <h2 style={{ margin: '0 0 4px', color: '#f1f5f9', fontSize: 18 }}>{user?.name || 'Dr. Sarah Johnson'}</h2>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>{user?.role ?? 'Pathologist'}</div>
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.07)', margin: '0 -24px', padding: '4px 0' }}>
+              {/* User Guide */}
+              <button
+                onClick={() => { setAboutOpen(false); openUserGuide(); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 24px', color: '#38bdf8', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(56,189,248,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                User Guide
+              </button>
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '0 24px' }} />
+              {/* Admin Guide — all users in demo */}
+              <button
+                onClick={() => { setAboutOpen(false); openAdminGuide(); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 24px', color: '#c084fc', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(139,92,246,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                Admin Guide
+              </button>
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '0 24px' }} />
+              <button
+                onClick={() => { setAboutOpen(false); setSystemInfoOpen(true); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 24px', color: '#38bdf8', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(56,189,248,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                </svg>
+                System Information
+              </button>
             </div>
 
-            <button 
-              onClick={() => setAboutOpen(false)} 
-              style={{ marginTop: '10px', background: '#0891B2', color: '#FFF', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', width: '100%', fontWeight: 600 }}
+            <button
+              onClick={() => setAboutOpen(false)}
+              className="ps-btn-ghost-teal"
+              style={{ marginTop: 16, width: '100%', justifyContent: 'center' }}
             >
               Close
             </button>

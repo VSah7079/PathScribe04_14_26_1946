@@ -1,6 +1,7 @@
+// src/pages/WorklistPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { mockCaseService, getDelegations } from '@/services/cases/mockCaseService';
-import { mockOrchestratorCaseService } from '@/services/cases/mockOrchestratorCaseService';
+import { getDelegations } from '@/services/cases/mockCaseService';
+import { caseRouter } from '@/services/cases/CaseRouter';
 import type { Case } from '@/types/case/Case';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLogout } from '@hooks/useLogout';
@@ -26,17 +27,21 @@ const WorklistPage: React.FC = () => {
   const navigate = useNavigate();
   const location  = useLocation();
 
+  // contextFilter: which data source (LIS or Outreach) — the "home" context
+  // Sticky for the session — restored from sessionStorage on mount
+  const [contextFilter, setContextFilter] = useState<'lis' | 'outreach'>(
+    () => (sessionStorage.getItem('ps_worklist_context') as 'lis' | 'outreach') ?? 'lis'
+  );
+  // Persist whenever it changes
+  React.useEffect(() => {
+    sessionStorage.setItem('ps_worklist_context', contextFilter);
+  }, [contextFilter]);
+
+  // activeFilter:  which sub-filter within that context
   const [activeFilter, setActiveFilter]       = useState<'all' | 'review' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
 
-  // Orchestrator mode — reads from localStorage (set by Configuration page)
-  const isOrchestratorEnabled = (): boolean => {
-    try { return localStorage.getItem('ps_orchestrator_enabled') === 'true'; } catch { return false; }
-  };
-  // Orchestrator mode — true if config flag set OR outreach cases are present in the list
-  const orchestratorEnabled = isOrchestratorEnabled() || realCases.some(c => c.reportingMode === 'pathscribe');
-  // When Orchestrator is on, default to showing only orchestrator cases
-  const [showOrchOnly, setShowOrchOnly] = useState(() => orchestratorEnabled);
+  // Note: orchestrator mode flag read via localStorage when needed at case open
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
   const [delegatedCaseIds, setDelegatedCaseIds]     = useState<string[]>([]);
   const [physicianFilter, setPhysicianFilter] = useState<string>('');
@@ -73,7 +78,7 @@ const WorklistPage: React.FC = () => {
   const [computationalFlags, setComputationalFlags] = useState<Flag[]>([]);
 
   // Sidecar — reset to overlay mode when returning from synoptic page.
-  const { openOverlay: _openOverlay, close: closeSidecar } = useSidecar();
+  const { openOverlay, close: closeSidecar } = useSidecar();
   useEffect(() => {
     closeSidecar(); // close overlay when returning to worklist — re-opens on next icon click
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,7 +92,7 @@ const WorklistPage: React.FC = () => {
     }).catch(() => {});
   }, []);
 
-  // Load real cases from mockCaseService on mount
+  // Load cases via the unified CaseRouter (routes LIS / Orchestrator by case ID prefix)
   // Also load client pediatric thresholds so we can filter cases the user can't access
   const [clientThresholds, setClientThresholds] = useState<Record<string, number | null>>({});
   const [clientAuthorized, setClientAuthorized] = useState<Record<string, string[]>>({});
@@ -110,14 +115,11 @@ const WorklistPage: React.FC = () => {
   }, [location.key]);
 
   useEffect(() => {
-    
-    // Load Copilot cases + Orchestrator cases and merge
-    Promise.all([
-      mockCaseService.listCasesForUser(user?.id ?? 'current'),
-      mockOrchestratorCaseService.listCasesForUser(user?.id ?? 'current'),
-    ]).then(([copilotCases, orchCases]) => {
-      setRealCases([...copilotCases, ...orchCases]);
-    }).catch(() => {});
+    const canViewPeds = (user as any)?.canViewPediatric ?? false;
+    // Load cases from both services via the unified router
+    caseRouter.listCasesForUser(user?.id ?? 'current')
+      .then(setRealCases)
+      .catch(() => {});
     // Load delegated-to-me count + case IDs
     getDelegations().then(all => {
       const mine = all.filter(d => d.toUserId === CURRENT_USER_ID && d.status === 'pending');
@@ -208,52 +210,67 @@ const WorklistPage: React.FC = () => {
     return canViewPeds || authorizedIds.includes(user?.id ?? '');
   };
 
-  // Cases passed to WorklistTable — Outreach cases isolated from LIS cases
-  const displayCases = React.useMemo(() => {
-    if (orchestratorEnabled && showOrchOnly) {
-      // Outreach view: only outreach/orchestration cases
-      return realCases.filter(c => c.reportingMode === 'pathscribe');
-    }
-    if (orchestratorEnabled && !showOrchOnly) {
-      // LIS view: only copilot cases
-      return realCases.filter(c => c.reportingMode === 'copilot' || !c.reportingMode);
-    }
-    return realCases;
-  }, [realCases, showOrchOnly, orchestratorEnabled]);
+  // Split by reporting mode
+  const lisCases  = React.useMemo(() => realCases.filter(c => (c as any).reportingMode !== 'orchestrator'), [realCases]);
+  const orchCases = React.useMemo(() => realCases.filter(c => (c as any).reportingMode === 'orchestrator'),  [realCases]);
 
-  // Urgent Outreach indicator — drives toggle colour
-  const hasUrgentOutreach = React.useMemo(() =>
-    realCases.some(c => c.reportingMode === 'pathscribe' && c.order?.priority === 'STAT'),
-    [realCases]
-  );
+  // displayCases stays simple — filteredCases handles the LIS/Outreach split explicitly
+  const displayCases = realCases;
 
-  // filteredCases and stats both operate on displayCases so tiles always match the current view
-  const filteredCases = displayCases.filter(c => {
-    if (!canViewCase(c)) return false;
-    if (activeFilter === 'pool')       return c.status === 'pool';
-    if (activeFilter === 'all')        return true;
-    if (c.status === 'pool')           return true;
-    if (activeFilter === 'urgent')     return c.order?.priority === 'STAT';
-    if (activeFilter === 'review')     return c.status === 'pending-review';
-    if (activeFilter === 'completed')  return c.status === 'finalized';
-    if (activeFilter === 'draft')      return c.status === 'draft';
-    if (activeFilter === 'inprogress') return c.status === 'in-progress';
-    if (activeFilter === 'amended')    return c.status === 'amended';
-    if (activeFilter === 'physician')  return (c.order?.requestingProvider ?? '').toLowerCase().includes(physicianFilter.toLowerCase());
-    return true;
-  });
+  // Outreach sub-counts (always from orchCases regardless of active filter)
+  const orchAssignedCount = React.useMemo(() => orchCases.filter(c => c.status !== 'pool').length,                                    [orchCases]);
+  const orchUrgentCount   = React.useMemo(() => orchCases.filter(c => c.order?.priority === 'STAT' && c.status !== 'pool').length, [orchCases]);
+  const orchPoolCount     = React.useMemo(() => orchCases.filter(c => c.status === 'pool').length,                                    [orchCases]);
+  const hasUrgentPool     = React.useMemo(() => orchCases.some(c => c.status === 'pool' && c.order?.priority === 'STAT'),             [orchCases]);
 
-  const nonPoolCases = displayCases.filter(c => c.status !== 'pool' && canViewCase(c));
+  // Source cases — driven by contextFilter (which worklist is "home")
+  const sourceCases = contextFilter === 'outreach' ? orchCases : lisCases;
+
+  // filteredCases — applies sub-filter within the current context
+  // thresholdsLoaded + clientThresholds must be deps since canViewCase gates on them.
+  const filteredCases = React.useMemo(() => {
+    return sourceCases.filter(c => {
+      if (!canViewCase(c)) return false;
+      if (activeFilter === 'pool')       return c.status === 'pool';
+      if (activeFilter === 'all')        return true;
+      if (c.status === 'pool')           return activeFilter === 'urgent' && c.order?.priority === 'STAT';
+      if (activeFilter === 'urgent')     return c.order?.priority === 'STAT';
+      if (activeFilter === 'review')     return c.status === 'pending-review';
+      if (activeFilter === 'completed')  return c.status === 'finalized';
+      if (activeFilter === 'draft')      return c.status === 'draft';
+      if (activeFilter === 'inprogress') return c.status === 'in-progress';
+      if (activeFilter === 'amended')    return c.status === 'amended';
+      if (activeFilter === 'physician')  return (c.order?.requestingProvider ?? '').toLowerCase().includes(physicianFilter.toLowerCase());
+      return true;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceCases, activeFilter, physicianFilter, thresholdsLoaded, clientThresholds]);
+
+  // Stats — always from sourceCases so tile counts match the current context
+  const statsCases   = sourceCases;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const nonPoolStats = React.useMemo(() => statsCases.filter(c => c.status !== 'pool' && canViewCase(c)),
+    [statsCases, thresholdsLoaded, clientThresholds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // LIS counts — always fixed, never switch with context
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const lisNonPool      = React.useMemo(() => lisCases.filter(c => c.status !== 'pool' && canViewCase(c)),
+    [lisCases, thresholdsLoaded, clientThresholds]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lisNonPoolCount = lisNonPool.length;
+  const lisUrgentCount  = React.useMemo(() => lisNonPool.filter(c => c.order?.priority === 'STAT').length, [lisNonPool]);
+  const lisPoolCount    = React.useMemo(() => lisCases.filter(c => c.status === 'pool').length, [lisCases]);
+  const hasUrgentLisPool = React.useMemo(() => lisCases.some(c => c.status === 'pool' && c.order?.priority === 'STAT'), [lisCases]);
   const stats = {
-    total:          nonPoolCases.length,
-    pool:           displayCases.filter(c => c.status === 'pool').length,
-    inProgress:     nonPoolCases.filter(c => c.status === 'in-progress').length,
-    needsReview:    nonPoolCases.filter(c => c.status === 'pending-review').length,
-    urgent:         nonPoolCases.filter(c => c.order?.priority === 'STAT').length,  // excludes pool, matches table
-    amended:        nonPoolCases.filter(c => c.status === 'amended').length,
-    draft:          nonPoolCases.filter(c => c.status === 'draft').length,
-    finalizing:     nonPoolCases.filter(c => c.status === 'finalizing').length,
-    completedToday: nonPoolCases.filter(c => {
+    total:          nonPoolStats.length,
+    pool:           statsCases.filter(c => c.status === 'pool').length,
+    outreach:       orchCases.length,
+    urgent:         nonPoolStats.filter(c => c.order?.priority === 'STAT').length,
+    inProgress:     nonPoolStats.filter(c => c.status === 'in-progress').length,
+    needsReview:    nonPoolStats.filter(c => c.status === 'pending-review').length,
+    amended:        nonPoolStats.filter(c => c.status === 'amended').length,
+    draft:          nonPoolStats.filter(c => c.status === 'draft').length,
+    finalizing:     nonPoolStats.filter(c => c.status === 'finalizing').length,
+    completedToday: nonPoolStats.filter(c => {
       if (c.status !== 'finalized') return false;
       if (!c.updatedAt) return false;
       const u = new Date(c.updatedAt), t = new Date();
@@ -262,6 +279,8 @@ const WorklistPage: React.FC = () => {
              u.getDate()     === t.getDate();
     }).length,
   };
+
+
 
   // ── Voice: set WORKLIST context on mount ──────────────────────────────────
   // Register computational voice actions with the action registry
@@ -512,130 +531,89 @@ const WorklistPage: React.FC = () => {
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
         {/* Main — fills remaining height */}
-        <main style={{ flex: 1, minHeight: 0, padding: '12px 20px', display: 'flex', flexDirection: 'column' }}>
+        <main style={{ flex: 1, minHeight: 0, padding: 'clamp(8px,1.5vw,12px) clamp(12px,2vw,20px)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
-            {/* Header row — title LEFT, search + tiles RIGHT */}
-            <div data-capture-hide="true" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', flexShrink: 0 }}>
+            {/* ── Header: Row 1 = Title + Search, Row 2 = Mode tiles + Filter tiles ── */}
+            <div data-capture-hide="true" className="ps-wl-header" style={{ marginBottom: '12px', flexShrink: 0 }}>
 
-              {/* Title */}
-              <div style={{ flexShrink: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <h1 style={{ fontSize: '28px', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                    {orchestratorEnabled && showOrchOnly ? 'Outreach Cases' : 'Active Cases'}
-                  </h1>
-                  {/* Orchestrator mode toggle — only shown when Orchestrator is enabled */}
-                  {orchestratorEnabled && (
-                    <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(8,145,178,0.1)', border: '1px solid rgba(8,145,178,0.3)', borderRadius: 20, padding: '2px', gap: 2 }}>
-                      <button
-                        onClick={() => setShowOrchOnly(true)}
-                        title="Show Outreach cases only"
-                        style={{
-                          padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700,
-                          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                          background: showOrchOnly
-                            ? (hasUrgentOutreach ? '#f59e0b' : '#0891b2')
-                            : 'transparent',
-                          color: showOrchOnly ? '#fff' : (hasUrgentOutreach ? '#f59e0b' : '#64748b'),
-                          letterSpacing: '0.04em',
-                          position: 'relative' as const,
-                        }}
-                      >
-                        📤 OUTREACH
-                        {/* Urgent dot when not active */}
-                        {hasUrgentOutreach && !showOrchOnly && (
-                          <span style={{
-                            position: 'absolute', top: 0, right: 0,
-                            width: 6, height: 6, borderRadius: '50%',
-                            background: '#f59e0b', border: '1.5px solid #0d1829',
-                          }} />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setShowOrchOnly(false)}
-                        title="Show LIS cases"
-                        style={{
-                          padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700,
-                          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                          background: !showOrchOnly ? '#0891b2' : 'transparent',
-                          color: !showOrchOnly ? '#fff' : '#64748b',
-                          letterSpacing: '0.04em',
-                        }}
-                      >
-                        LIS
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0', whiteSpace: 'nowrap' }}>
-                  {activeFilter === 'pool'
-                    ? <span style={{ color: '#F97316' }}>Viewing pool queue — {stats.pool} case{stats.pool !== 1 ? 's' : ''}</span>
-                    : orchestratorEnabled && showOrchOnly
-                      ? <>{stats.total} outreach case{stats.total !== 1 ? 's' : ''}{hasUrgentOutreach && <span style={{ color: '#f59e0b', marginLeft: 6 }}>· {stats.urgent} urgent</span>}</>
-                      : <>Managing {stats.total} case{stats.total !== 1 ? 's' : ''}{activeFilter !== 'all' && <span style={{ color: '#0891B2', marginLeft: '6px' }}>· filtered</span>}</>
-                  }
-                </p>
-              </div>
-
-              {/* Right side — compact search + tiles */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flex: 1, minWidth: 0 }}>
-
-                {/* Compact search bar — sits above the tiles, right-aligned */}
-                <div data-capture-hide="true" style={{ width: '100%', maxWidth: '280px' }}>
+              {/* Row 1 — Title left, Search right */}
+              <div className="ps-wl-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '10px' }}>
+                <h1 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+                  Active Cases
+                </h1>
+                <div data-capture-hide="true" style={{ width: '280px', flexShrink: 0 }}>
                   <CaseSearchBar compact />
                 </div>
+              </div>
 
-              {/* Tiles — right side, compact, act as filter buttons */}
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {/* Row 2 — Mode tiles left, Filter tiles right, same row = visual alignment */}
+              <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: '0', minWidth: 0 }}>
 
-                {/* ── TOTAL CASES — standalone summary tile, separated from filters ── */}
-                {(() => {
-                  const isActive = activeFilter === 'all';
-                  return (
-                    <button
-                      title={isActive ? 'Showing: All Cases — click to reset' : 'Show all cases'}
-                      onClick={() => { setActiveFilter(isActive ? 'all' : 'all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                      style={{
-                        background:     isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)',
-                        border:         `1.5px solid ${isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.14)'}`,
-                        boxShadow:      'none',
-                        borderRadius:   '8px',
-                        padding:        '6px 14px',
-                        backdropFilter: 'blur(10px)',
-                        minWidth:       '90px',
-                        minHeight:      '44px',
-                        cursor:         'pointer',
-                        transition:     'all 0.15s ease',
-                        textAlign:      'left' as const,
-                        outline:        'none',
-                        transform:      isActive ? 'translateY(-1px)' : 'none',
-                        marginRight:    '6px', // extra breathing room before divider
-                      }}
-                    >
-                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#e2e8f0' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>
-                        Total Cases
-                      </div>
-                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#e2e8f0', lineHeight: 1 }}>
-                        {stats.total}
-                      </div>
-                    </button>
-                  );
-                })()}
+                {/* Left: LIS Cases + Outreach */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexShrink: 0 }}>
+                  {/* LIS TILE */}
+                  {(() => {
+                    const isActive  = contextFilter === 'lis';
+                    const showBadge = contextFilter === 'outreach';
+                    return (
+                      <button
+                        title={isActive ? 'Currently in LIS Cases' : 'Switch to LIS Cases'}
+                        onClick={() => { setContextFilter('lis'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
+                        style={{ background: isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)', border: `1.5px solid ${isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.14)'}`, borderRadius: '8px', padding: '6px 10px', backdropFilter: 'blur(10px)', minWidth: '80px', minHeight: '44px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none', transform: isActive ? 'translateY(-1px)' : 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <div style={{ flex: '0 0 auto' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#e2e8f0' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>LIS Cases</div>
+                          <div style={{ fontSize: '20px', fontWeight: 800, color: '#e2e8f0', lineHeight: 1 }}>{lisNonPoolCount}</div>
+                        </div>
+                        {showBadge && (lisUrgentCount > 0 || lisPoolCount > 0) && (
+                          <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '3px' }}>
+                            {lisUrgentCount > 0 && <span style={{ fontSize: '9px', fontWeight: 900, color: '#EF4444', letterSpacing: '0.6px', textTransform: 'uppercase', lineHeight: 1 }}>Urgent</span>}
+                            {lisPoolCount > 0 && <span style={{ fontSize: '9px', fontWeight: 900, color: hasUrgentLisPool ? '#EF4444' : '#F97316', letterSpacing: '0.6px', textTransform: 'uppercase', lineHeight: 1 }}>Pool</span>}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })()}
+                  {/* OUTREACH TILE */}
+                  {(() => {
+                    const isActive  = contextFilter === 'outreach';
+                    const showBadge = contextFilter === 'lis';
+                    const poolColor = hasUrgentPool ? '#EF4444' : '#F97316';
+                    return (
+                      <button
+                        title={isActive ? 'Currently in Outreach Cases' : 'Switch to Outreach Cases'}
+                        onClick={() => { setContextFilter('outreach'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
+                        style={{ background: isActive ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.05)', border: `1.5px solid ${isActive ? '#F59E0B' : 'rgba(245,158,11,0.18)'}`, boxShadow: isActive ? '0 0 12px rgba(245,158,11,0.4)' : 'none', borderRadius: '8px', padding: '6px 10px', backdropFilter: 'blur(10px)', minWidth: '80px', minHeight: '44px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none', transform: isActive ? 'translateY(-1px)' : 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <div style={{ flex: '0 0 auto' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#F59E0B' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Outreach</div>
+                          <div style={{ fontSize: '20px', fontWeight: 800, color: '#F59E0B', lineHeight: 1 }}>{orchAssignedCount}</div>
+                        </div>
+                        {showBadge && (orchUrgentCount > 0 || orchPoolCount > 0) && (
+                          <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '3px' }}>
+                            {orchUrgentCount > 0 && <span style={{ fontSize: '9px', fontWeight: 900, color: '#EF4444', letterSpacing: '0.6px', textTransform: 'uppercase', lineHeight: 1 }}>Urgent</span>}
+                            {orchPoolCount > 0 && <span style={{ fontSize: '9px', fontWeight: 900, color: poolColor, letterSpacing: '0.6px', textTransform: 'uppercase', lineHeight: 1 }}>Pool</span>}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })()}
+                </div>
 
-                {/* ── Vertical divider ── */}
-                <div style={{ width: '1px', background: 'rgba(255,255,255,0.10)', alignSelf: 'stretch', margin: '0 4px', flexShrink: 0 }} />
+                {/* Right: filter tiles */}
+                <div className="ps-wl-filter-strip" style={{ display: 'flex', gap: '6px', alignItems: 'stretch', overflowX: 'auto', flexShrink: 1, minWidth: 0, paddingBottom: '2px' }}>
 
-                {/* ── Filter tiles group ── */}
                 {([
-                  { key: 'pool',       label: activeFilter === 'pool' ? '← Back to My Cases' : 'Pool Cases',      count: stats.pool,           color: '#F97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(249,115,22,0.18)',  activeBg: 'rgba(249,115,22,0.18)',  activeBorder: '#F97316',               glow: '0 0 12px rgba(249,115,22,0.4)' },
-                  { key: 'delegated',  label: 'Delegated to Me', count: delegatedToMeCount,   color: '#38bdf8', bg: 'rgba(56,189,248,0.05)',  border: 'rgba(56,189,248,0.18)',  activeBg: 'rgba(56,189,248,0.18)',  activeBorder: '#38bdf8',               glow: '0 0 12px rgba(56,189,248,0.4)' },
-                  { key: 'urgent',     label: 'Urgent',        count: stats.urgent,         color: '#EF4444', bg: 'rgba(239,68,68,0.05)',   border: 'rgba(239,68,68,0.18)',   activeBg: 'rgba(239,68,68,0.18)',   activeBorder: '#EF4444',               glow: '0 0 12px rgba(239,68,68,0.4)' },
-                  { key: 'inprogress', label: 'In Progress',     count: stats.inProgress,     color: '#0891B2', bg: 'rgba(8,145,178,0.05)',   border: 'rgba(8,145,178,0.18)',   activeBg: 'rgba(8,145,178,0.18)',   activeBorder: '#0891B2',               glow: '0 0 12px rgba(8,145,178,0.4)' },
-                  { key: 'review',     label: 'Needs Review',    count: stats.needsReview,    color: '#F59E0B', bg: 'rgba(245,158,11,0.05)',  border: 'rgba(245,158,11,0.18)',  activeBg: 'rgba(245,158,11,0.18)',  activeBorder: '#F59E0B',               glow: '0 0 12px rgba(245,158,11,0.4)' },
-                  { key: 'amended',    label: 'Amended',         count: stats.amended,        color: '#8B5CF6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  activeBg: 'rgba(139,92,246,0.18)',  activeBorder: '#8B5CF6',               glow: '0 0 12px rgba(139,92,246,0.4)' },
-                  { key: 'completed',  label: 'Completed Today', count: stats.completedToday, color: '#10B981', bg: 'rgba(16,185,129,0.05)',  border: 'rgba(16,185,129,0.18)',  activeBg: 'rgba(16,185,129,0.18)',  activeBorder: '#10B981',               glow: '0 0 12px rgba(16,185,129,0.4)' },
-                  { key: 'draft',      label: 'Draft',           count: stats.draft,          color: '#94a3b8', bg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.18)', activeBg: 'rgba(148,163,184,0.18)', activeBorder: '#94a3b8',               glow: '0 0 12px rgba(148,163,184,0.3)' },
-                  { key: 'finalizing', label: 'Finalizing',      count: stats.finalizing,     color: '#EC4899', bg: 'rgba(236,72,153,0.05)',  border: 'rgba(236,72,153,0.18)',  activeBg: 'rgba(236,72,153,0.18)',  activeBorder: '#EC4899',               glow: '0 0 12px rgba(236,72,153,0.4)' },
+                  { key: 'pool',       label: activeFilter === 'pool'       ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Pool Cases',      count: stats.pool,           color: '#F97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(249,115,22,0.18)',  activeBg: 'rgba(249,115,22,0.18)',  activeBorder: '#F97316',  glow: '0 0 12px rgba(249,115,22,0.4)',  sublabel: undefined },
+                  { key: 'delegated',  label: activeFilter === 'delegated'  ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Delegated to Me', count: delegatedToMeCount,   color: '#38bdf8', bg: 'rgba(56,189,248,0.05)',  border: 'rgba(56,189,248,0.18)',  activeBg: 'rgba(56,189,248,0.18)',  activeBorder: '#38bdf8',  glow: '0 0 12px rgba(56,189,248,0.4)',  sublabel: undefined },
+                  { key: 'urgent',     label: activeFilter === 'urgent'     ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Urgent',          count: stats.urgent,         color: '#EF4444', bg: 'rgba(239,68,68,0.05)',   border: 'rgba(239,68,68,0.18)',   activeBg: 'rgba(239,68,68,0.18)',   activeBorder: '#EF4444',  glow: '0 0 12px rgba(239,68,68,0.4)',   sublabel: undefined },
+                  { key: 'inprogress', label: activeFilter === 'inprogress' ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'In Progress',     count: stats.inProgress,     color: '#0891B2', bg: 'rgba(8,145,178,0.05)',   border: 'rgba(8,145,178,0.18)',   activeBg: 'rgba(8,145,178,0.18)',   activeBorder: '#0891B2',  glow: '0 0 12px rgba(8,145,178,0.4)',   sublabel: undefined },
+                  { key: 'review',     label: activeFilter === 'review'     ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Needs Review',    count: stats.needsReview,    color: '#F59E0B', bg: 'rgba(245,158,11,0.05)',  border: 'rgba(245,158,11,0.18)',  activeBg: 'rgba(245,158,11,0.18)',  activeBorder: '#F59E0B',  glow: '0 0 12px rgba(245,158,11,0.4)',  sublabel: undefined },
+                  { key: 'amended',    label: activeFilter === 'amended'    ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Amended',         count: stats.amended,        color: '#8B5CF6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  activeBg: 'rgba(139,92,246,0.18)',  activeBorder: '#8B5CF6',  glow: '0 0 12px rgba(139,92,246,0.4)',  sublabel: undefined },
+                  { key: 'completed',  label: activeFilter === 'completed'  ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Completed Today', count: stats.completedToday, color: '#10B981', bg: 'rgba(16,185,129,0.05)',  border: 'rgba(16,185,129,0.18)',  activeBg: 'rgba(16,185,129,0.18)',  activeBorder: '#10B981',  glow: '0 0 12px rgba(16,185,129,0.4)',  sublabel: undefined },
+                  { key: 'draft',      label: activeFilter === 'draft'      ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Draft',           count: stats.draft,          color: '#94a3b8', bg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.18)', activeBg: 'rgba(148,163,184,0.18)', activeBorder: '#94a3b8',  glow: '0 0 12px rgba(148,163,184,0.3)', sublabel: undefined },
+                  { key: 'finalizing', label: activeFilter === 'finalizing' ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Finalizing',      count: stats.finalizing,     color: '#EC4899', bg: 'rgba(236,72,153,0.05)',  border: 'rgba(236,72,153,0.18)',  activeBg: 'rgba(236,72,153,0.18)',  activeBorder: '#EC4899',  glow: '0 0 12px rgba(236,72,153,0.4)',  sublabel: undefined },
                 ] as const).map(tile => {
                   const isActive = activeFilter === tile.key;
                   return (
@@ -647,36 +625,37 @@ const WorklistPage: React.FC = () => {
                         background:     isActive ? tile.activeBg  : tile.bg,
                         border:         `1.5px solid ${isActive ? tile.activeBorder : tile.border}`,
                         boxShadow:      isActive ? tile.glow : 'none',
-                        borderRadius:   '8px',
-                        padding:        '6px 12px',
-                        backdropFilter: 'blur(10px)',
-                        minWidth:       '80px',
-                        minHeight:      '44px',
-                        cursor:         'pointer',
-                        transition:     'all 0.15s ease',
-                        textAlign:      'left' as const,
-                        outline:        'none',
-                        transform:      isActive ? 'translateY(-1px)' : 'none',
+                        borderRadius:   '8px', padding: '6px 12px', backdropFilter: 'blur(10px)',
+                        minWidth: '80px', minHeight: '44px', cursor: 'pointer',
+                        transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none',
+                        transform: isActive ? 'translateY(-1px)' : 'none',
                       }}
                     >
-                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? tile.color : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        {isActive && <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: tile.color, display: 'inline-block', flexShrink: 0 }} />}
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? tile.color : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>
                         {tile.label}
                       </div>
                       <div style={{ fontSize: '20px', fontWeight: 800, color: tile.color, lineHeight: 1 }}>
                         {tile.count}
                       </div>
+                      {tile.sublabel && (
+                        <div style={{ fontSize: '9px', fontWeight: 600, color: tile.color, opacity: 0.75, marginTop: '2px', letterSpacing: '0.2px' }}>
+                          {tile.sublabel}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
+
                 {activeFilter === 'physician' && physicianFilter && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(139,92,246,0.15)', border: '1.5px solid rgba(139,92,246,0.4)', borderRadius: '8px', fontSize: '12px', color: '#a78bfa', fontWeight: 600 }}>
                     👤 {physicianFilter}
                     <button onClick={() => { setActiveFilter('all'); setPhysicianFilter(''); }} style={{ background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer', fontSize: '14px', padding: '0 0 0 4px', lineHeight: 1 }}>✕</button>
                   </div>
                 )}
+
+
               </div>
-              </div>{/* end right-side column */}
+            </div>
             </div>
 
             {/* Physician voice prompt — conditional, fixed height */}
@@ -691,6 +670,7 @@ const WorklistPage: React.FC = () => {
             <div
               ref={wrapperRef}
               data-capture-hide="true"
+              className="ps-table-scroll-wrap"
               style={{ position: 'relative' }}
             >
               {/* Overlay Sidecar — opens when a computational flag icon is clicked.
@@ -699,7 +679,7 @@ const WorklistPage: React.FC = () => {
               <SidecarDrawer computationalFlags={computationalFlags} />
               <WorklistTable
                 flagDefinitions={allFlags}
-                cases={displayCases}
+                cases={filteredCases}
                 activeFilter={activeFilter}
                 tableHeight={tableHeight}
                 delegatedCaseIds={delegatedCaseIds}
@@ -748,10 +728,7 @@ const WorklistPage: React.FC = () => {
         fromFilter="pool"
         onAccepted={() => {
           setClaimModal(null);
-          Promise.all([
-            mockCaseService.listCasesForUser(user?.id ?? 'current'),
-            mockOrchestratorCaseService.listCasesForUser(user?.id ?? 'current'),
-          ]).then(([copilot, orch]) => setRealCases([...copilot, ...orch])).catch(() => {});
+          caseRouter.listCasesForUser(user?.id ?? 'current').then(setRealCases).catch(() => {});
         }}
         onPassed={() => setClaimModal(null)}
         onClose={() => setClaimModal(null)}

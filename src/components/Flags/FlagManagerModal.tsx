@@ -9,10 +9,33 @@
 // Gradients match the Patient History modal (.ps-research-* system).
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import "../../../pathscribe.css";
-import { FlagDefinition } from "../../../types/FlagDefinition";
-import { CaseWithFlags, FlagInstance } from "../../../types/flagsRuntime";
-import { ApplyFlagPayload, DeleteFlagPayload } from "../../../api/caseFlagsApi";
+import "../../pathscribe.css";
+import type { FlagDefinition } from "../../types/FlagDefinition";
+
+// ─── Payload types (previously in missing caseFlagsApi) ──────────────────────
+interface ApplyFlagPayload  { caseId: string; flagDefinitionId: string; specimenId?: string; }
+interface DeleteFlagPayload { caseId: string; flagInstanceId: string; specimenId?: string; }
+
+// ─── Local runtime types (previously in missing flagsRuntime / caseFlagsApi) ──
+interface FlagInstance {
+  id: string;
+  flagDefinitionId: string;
+  appliedAt: string;
+  appliedBy: string;
+  source: "product" | "system" | "user";
+  deletedAt: string | null;
+  deletedBy: string | null;
+}
+interface CaseWithFlags {
+  id: string;
+  flags: FlagInstance[];
+  specimens: Array<{ id: string; label?: string; flags: FlagInstance[] }>;
+  [key: string]: any;
+}
+interface PendingOp {
+  type: "apply" | "remove";
+  payload: { flagDefinitionId?: string; flagInstanceId?: string; specimenId?: string };
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -131,18 +154,16 @@ const FlagManagerModal: React.FC<Props> = ({
   const [spIds, setSpIds]           = useState<Set<string>>(new Set());
   const [query, setQuery]           = useState("");
 
-  type PendingOp =
-    | { type: "apply";  payload: ApplyFlagPayload }
-    | { type: "remove"; payload: DeleteFlagPayload };
-  const [pendingOps, setPendingOps] = useState<PendingOp[]>([]);
-
   const [scopeDialog, setScopeDialog] = useState<{
     flagName: string; defId: string; specimenId: string;
     otherSpecimenIds: string[];
     onConfirm: (removeAll: boolean) => void;
   } | null>(null);
 
-  const [saving, setSaving] = useState(false);
+  // Undo stack — brief 5-second window after a flag is removed
+  type UndoEntry = { id: string; inst: any; specimenId: string | undefined; timer: ReturnType<typeof setTimeout> };
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [, setPendingOps] = useState<PendingOp[]>([]);
 
   const allIds  = localCase.specimens.map((s: any) => s.id);
   const allOn   = allIds.length > 0 && allIds.every((id: string) => spIds.has(id));
@@ -211,41 +232,49 @@ const FlagManagerModal: React.FC<Props> = ({
     });
   }, []);
 
-  // ── apply ─────────────────────────────────────────────────────────────────────
+  // ── apply — immediate save ────────────────────────────────────────────────────
   const handleApply = useCallback(async (def: FlagDefinition) => {
     if (!hasTarget) return;
     if (caseOn) {
       addFlagLocally(def.id);
-      setPendingOps(ops => [...ops, { type: "apply", payload: { caseId: localCase.id, flagDefinitionId: def.id } }]);
+      await onApplyFlags({ caseId: localCase.id, flagDefinitionId: def.id });
     } else {
       for (const spId of Array.from(spIds)) {
         const sp = localCase.specimens.find((s: any) => s.id === spId);
         if (!activeInst(sp?.flags ?? []).some((f: FlagInstance) => f.flagDefinitionId === def.id)) {
           addFlagLocally(def.id, spId);
-          setPendingOps(ops => [...ops, { type: "apply", payload: { caseId: localCase.id, flagDefinitionId: def.id, specimenId: spId } }]);
+          await onApplyFlags({ caseId: localCase.id, flagDefinitionId: def.id, specimenId: spId });
         }
       }
     }
-  }, [hasTarget, caseOn, spIds, localCase, addFlagLocally]);
+  }, [hasTarget, caseOn, spIds, localCase, addFlagLocally, onApplyFlags]);
 
-  // ── remove ────────────────────────────────────────────────────────────────────
-  const doRemoveSingle = useCallback((inst: FlagInstance, specimenId: string | undefined) => {
+  // ── remove — immediate save + 5-second undo toast ────────────────────────────
+  const doRemoveSingle = useCallback(async (inst: FlagInstance, specimenId: string | undefined) => {
     removeFlagLocally(inst.id, specimenId);
-    if (inst.id.startsWith("local-")) {
-      setPendingOps(ops => ops.filter(op =>
-        !(op.type === "apply" && op.payload.flagDefinitionId === inst.flagDefinitionId &&
-          op.payload.specimenId === specimenId)
-      ));
-    } else {
-      setPendingOps(ops => [...ops, { type: "remove", payload: { caseId: localCase.id, flagInstanceId: inst.id, specimenId } }]);
+    if (!inst.id.startsWith("local-")) {
+      await onRemoveFlag({ caseId: localCase.id, flagInstanceId: inst.id, specimenId });
     }
-  }, [removeFlagLocally, localCase.id]);
+    // Offer a brief undo window
+    const undoId = `undo-${inst.id}-${Date.now()}`;
+    const timer = setTimeout(() => {
+      setUndoStack(prev => prev.filter(e => e.id !== undoId));
+    }, 5000);
+    setUndoStack(prev => [...prev, { id: undoId, inst, specimenId, timer }]);
+  }, [removeFlagLocally, localCase.id, onRemoveFlag]);
 
-  const doRemoveAll = useCallback((defId: string, specimenIds: string[]) => {
+  const handleUndo = useCallback(async (entry: { id: string; inst: any; specimenId: string | undefined; timer: ReturnType<typeof setTimeout> }) => {
+    clearTimeout(entry.timer);
+    setUndoStack(prev => prev.filter(e => e.id !== entry.id));
+    addFlagLocally(entry.inst.flagDefinitionId, entry.specimenId ?? undefined);
+    await onApplyFlags({ caseId: localCase.id, flagDefinitionId: entry.inst.flagDefinitionId, specimenId: entry.specimenId ?? undefined });
+  }, [addFlagLocally, localCase.id, onApplyFlags]);
+
+  const doRemoveAll = useCallback(async (defId: string, specimenIds: string[]) => {
     for (const spId of specimenIds) {
       const sp   = localCase.specimens.find((s: any) => s.id === spId);
       const inst = sp ? activeInst(sp.flags).find((f: FlagInstance) => f.flagDefinitionId === defId) : undefined;
-      if (inst) doRemoveSingle(inst, spId);
+      if (inst) await doRemoveSingle(inst, spId);
     }
   }, [localCase.specimens, doRemoveSingle]);
 
@@ -278,35 +307,11 @@ const FlagManagerModal: React.FC<Props> = ({
   }, [flagDefinitions, localCase.specimens, doRemoveSingle, doRemoveAll]);
 
   // ── save / cancel ─────────────────────────────────────────────────────────────
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    try {
-      for (const op of pendingOps) {
-        if (op.type === "apply")  await onApplyFlags(op.payload);
-        if (op.type === "remove") await onRemoveFlag(op.payload);
-      }
-      // After save, purge soft-deleted flags from local state so they disappear
-      setLocalCase(prev => {
-        const next = deepClone(prev);
-        next.flags = next.flags.filter((f: FlagInstance) => !f.deletedAt);
-        next.specimens = next.specimens.map((sp: any) => ({
-          ...sp,
-          flags: sp.flags.filter((f: FlagInstance) => !f.deletedAt),
-        }));
-        return next;
-      });
-      setPendingOps([]);
-    } finally {
-      setSaving(false);
-      onClose();
-    }
-  }, [pendingOps, onApplyFlags, onRemoveFlag, onClose]);
-
-  const handleCancel = useCallback(() => {
-    setLocalCase(deepClone(initialCaseData));
-    setPendingOps([]);
+  const handleClose = useCallback(() => {
+    // Clear any pending undo timers on close
+    undoStack.forEach(e => clearTimeout(e.timer));
     onClose();
-  }, [initialCaseData, onClose]);
+  }, [onClose, undoStack]);
 
   // ── catalog ───────────────────────────────────────────────────────────────────
   const catalog = useMemo(() => {
@@ -339,15 +344,15 @@ const FlagManagerModal: React.FC<Props> = ({
     });
   }, [caseOn, localCase, spIds]);
 
-  const isDirty = pendingOps.length > 0;
+  const isDirty = false; // Immediate save — no pending ops
 
   // ── voice listeners ───────────────────────────────────────────────────────────
   useEffect(() => {
     const selectCase    = () => toggleCase();
     const selectAllSpec = () => toggleAll();
     const deselectAll   = () => { setCaseOn(false); setSpIds(new Set()); };
-    const saveFlags     = () => { if (isDirty) void handleSave(); };
-    const cancelFlags   = () => handleCancel();
+    const saveFlags     = () => handleClose(); // immediate save — close is enough
+    const cancelFlags   = () => handleClose();
 
     window.addEventListener("PATHSCRIBE_FLAG_SELECT_CASE",          selectCase);
     window.addEventListener("PATHSCRIBE_FLAG_SELECT_ALL_SPECIMENS", selectAllSpec);
@@ -361,7 +366,7 @@ const FlagManagerModal: React.FC<Props> = ({
       window.removeEventListener("PATHSCRIBE_FLAG_SAVE",                 saveFlags);
       window.removeEventListener("PATHSCRIBE_FLAG_CANCEL",               cancelFlags);
     };
-  }, [isDirty, toggleCase, toggleAll, handleSave, handleCancel]);
+  }, [isDirty, toggleCase, toggleAll, handleClose]);
 
   // ── derived ───────────────────────────────────────────────────────────────────
   const totalFlags =
@@ -372,7 +377,7 @@ const FlagManagerModal: React.FC<Props> = ({
   const FlagChip: React.FC<{ inst: FlagInstance; specimenId?: string }> =
     ({ inst, specimenId }) => {
       const def      = defById(flagDefinitions, inst.flagDefinitionId);
-      const isLis    = inst.source === "lis";
+      const isLis    = false; // "lis" not in current source union; reserved for future LIS integration
       const isDeleted = !!inst.deletedAt;
       const name     = def?.name ?? inst.flagDefinitionId;
 
@@ -430,7 +435,7 @@ const FlagManagerModal: React.FC<Props> = ({
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
-      <div data-capture-hide="true" className="fm-overlay" onClick={handleCancel}>
+      <div data-capture-hide="true" className="fm-overlay" onClick={handleClose}>
         <div
           className="ps-research-modal fm-modal"
           onClick={e => e.stopPropagation()}
@@ -449,7 +454,7 @@ const FlagManagerModal: React.FC<Props> = ({
                 )}
               </div>
             </div>
-            <button onClick={handleCancel} aria-label="Close"
+            <button onClick={handleClose} aria-label="Close"
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '2px 8px', lineHeight: 1, flexShrink: 0 }}
               onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
@@ -636,21 +641,29 @@ const FlagManagerModal: React.FC<Props> = ({
 
           {/* ── FOOTER ── */}
           <div className="fm-footer">
-            <span className={`fm-footer-status${isDirty ? " dirty" : ""}`}>
-              {isDirty
-                ? `${pendingOps.length} unsaved change${pendingOps.length !== 1 ? "s" : ""}`
-                : "No changes"}
-            </span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="fm-btn-cancel" onClick={handleCancel}>Cancel</button>
-              <button
-                className="fm-btn-save"
-                onClick={handleSave}
-                disabled={saving || !isDirty}
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
+            {/* Undo toasts — appear briefly after each removal */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+              {undoStack.map(entry => {
+                const def = flagDefinitions.find((d: any) => d.id === entry.inst.flagDefinitionId);
+                return (
+                  <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', borderRadius: 6, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', fontSize: 12 }}>
+                    <span style={{ color: '#94a3b8', flex: 1 }}>
+                      Removed: <strong style={{ color: '#f59e0b' }}>{def?.name ?? entry.inst.flagDefinitionId}</strong>
+                    </span>
+                    <button
+                      onClick={() => handleUndo(entry)}
+                      style={{ padding: '2px 10px', borderRadius: 5, border: '1px solid rgba(245,158,11,0.5)', background: 'transparent', color: '#f59e0b', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      Undo
+                    </button>
+                  </div>
+                );
+              })}
+              {undoStack.length === 0 && (
+                <span style={{ fontSize: 11, color: '#475569' }}>Changes apply immediately</span>
+              )}
             </div>
+            <button className="fm-btn-cancel" onClick={handleClose} style={{ flexShrink: 0 }}>Close</button>
           </div>
         </div>
       </div>

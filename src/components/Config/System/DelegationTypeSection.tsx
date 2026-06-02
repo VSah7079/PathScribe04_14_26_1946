@@ -21,7 +21,8 @@ function generateId(label: string): string {
 const BLANK = (): DelegationType => ({
   id:'', label:'', description:'', active:true,
   color: PRESET_COLORS[0], transfersOwnership:false,
-  requiresNote:false, isSystem:false, sortOrder:999, cptHint:undefined,
+  requiresNote:false, multiAssign:false,
+  isSystem:false, sortOrder:999, cptHint:undefined,
 });
 
 const Toggle: React.FC<{checked:boolean; onChange:(v:boolean)=>void; label?:string; disabled?:boolean}> =

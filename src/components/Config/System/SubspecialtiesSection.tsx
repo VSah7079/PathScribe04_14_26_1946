@@ -7,7 +7,7 @@ import {
   cancelButtonStyle, applyButtonStyle,
 } from "../../Common/modalStyles";
 import { userService } from "../../../services";
-import { StaffUser } from "../Users/index";
+import { StaffUser } from "../Staff/StaffTab";
 import { mockClientService, Client } from "../../../services/clients/mockClientService";
 
 

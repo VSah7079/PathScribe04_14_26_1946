@@ -41,9 +41,9 @@ const S = {
   content: {
     position: "relative" as const,
     zIndex: 10,
-    maxWidth: "1400px",
-    margin: "0 auto",
-    padding: "24px 40px 60px",
+    width: "100%",
+    padding: "clamp(16px,3vw,24px) clamp(16px,4vw,40px) 60px",
+    boxSizing: "border-box" as const,
   } as React.CSSProperties,
   card: {
     background: "rgba(255,255,255,0.04)",

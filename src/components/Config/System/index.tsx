@@ -8,7 +8,7 @@ import SubspecialtiesSection from './SubspecialtiesSection';
 import FontsSection      from './FontsSection';
 import LISSection        from './LISSection';
 import RetentionSection  from './RetentionSection';
-import ClientDictionary from './ClientDictionary';
+import { ClientDictionaryPage } from '../../../pages/system/ClientDictionaryPage';
 import IdentifierFormatsSection from './IdentifierFormatsSection';
 import GoverningBodiesSection  from './GoverningBodiesSection';
 import DelegationTypeSection   from './DelegationTypeSection';
@@ -64,7 +64,7 @@ const SystemTab: React.FC = () => {
       case 'fonts':     return <FontsSection />;
       case 'lis':       return <LISSection />;
       case 'retention': return <RetentionSection />;
-      case 'clients':   return <ClientDictionary />;
+      case 'clients':   return <ClientDictionaryPage />;
       case 'identifiers': return <IdentifierFormatsSection />;
       case 'governing_bodies': return <GoverningBodiesSection isSuperAdmin={true} />; 
       case 'delegation_types': return <DelegationTypeSection />;
@@ -122,3 +122,5 @@ const SystemTab: React.FC = () => {
 };
 
 export default SystemTab;
+
+

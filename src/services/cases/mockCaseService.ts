@@ -104,12 +104,12 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'tumor_board_schedule', name: 'Tumor Board — Thu 14:00', color: 'blue',   severity: 3 },
-      { id: 'pending_clin_cor',     name: 'Pending Clinical Correlation',              color: 'yellow', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'tumor_board_schedule', name: 'Tumor Board — Thu 14:00', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'pending_clin_cor',     name: 'Pending Clinical Correlation',              color: '#f59e0b', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [
-      { id: 'comp-erh2-4401', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
-      { id: 'comp-her2f-4401', name: 'HER2 FISH', lisCode: 'HER2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
+      { id: 'comp-erh2-4401', name: 'ER/PR/HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
+      { id: 'comp-her2f-4401', name: 'HER2 FISH', lisCode: 'HER2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
@@ -186,11 +186,11 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'oncology_awaiting',   name: 'Oncology Awaiting Report',  color: 'red',    severity: 5 },
-      { id: 'stat_rush',           name: 'STAT — Rush Processing',    color: 'red',    severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'oncology_awaiting',   name: 'Oncology Awaiting Report',  color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',    color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
     ],
     specimenFlags: [
-      { id: 'comp-mol-4402', name: 'Molecular Panel', lisCode: 'MOL', color: 'green', severity: 2, orderedVia: 'lis', specimenId: 'S26-4402-SP-1' },
+      { id: 'comp-mol-4402', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4402-SP-1' },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['C18.7'], snomed: ['363346000'] },
@@ -269,12 +269,12 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'stat_rush',           name: 'STAT — Rush Processing',    color: 'red',    severity: 5 },
-      { id: 'thoracic_mdt',        name: 'Thoracic MDT — Fri 09:00', color: 'blue',   severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',    color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'thoracic_mdt',        name: 'Thoracic MDT — Fri 09:00', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [
-      { id: 'comp-mprof-4403', name: 'Molecular Profiling', lisCode: 'MPROF', color: 'blue', severity: 3, orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
-      { id: 'comp-ihc-4403', name: 'IHC Panel (PD-L1)', lisCode: 'IHC', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
+      { id: 'comp-mprof-4403', name: 'Molecular Profiling', lisCode: 'MPROF', color: '#3b82f6', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
+      { id: 'comp-ihc-4403', name: 'IHC Panel (PD-L1)', lisCode: 'IHC', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['C34.11'], snomed: ['254637007'] },
@@ -343,11 +343,11 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'urology_mdt',         name: 'Urology MDT Scheduled',    color: 'blue',   severity: 2 },
-      { id: 'gleason_upgrade',     name: 'Gleason Upgrade from Bx',  color: 'yellow', severity: 3 },
+      { id: 'urology-mdt',  tagClass: 'ADMINISTRATIVE', name: 'Urology MDT Scheduled',    lisCode: 'UROL',  color: '#3b82f6', severity: 2, level: 'Case', status: 'Active' },
+      { id: 'gleason-upgrade', tagClass: 'ADMINISTRATIVE', name: 'Gleason Upgrade from Bx',  lisCode: 'GGU',   color: '#f59e0b', severity: 3, level: 'Case', status: 'Active' },
     ],
     specimenFlags: [
-      { id: 'psma_ihc_pending',    name: 'PSMA IHC Noted Positive',  color: 'green',  severity: 1 },
+      { tagClass: 'ADMINISTRATIVE', id: 'psma_ihc_pending',    name: 'PSMA IHC Noted Positive',  color: '#10b981',  level: 'Case', status: 'Active', severity: 1 },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['C61'], snomed: ['254900004'] },
@@ -415,10 +415,10 @@ const MOCK_CASES: Case[] = [
     status: 'finalized' as CaseStatus,
     createdAt: isoDaysAgo(6), updatedAt: isoDaysAgo(0),  // finalized today
     caseFlags: [
-      { id: 'second_opinion',      name: 'Second Opinion Requested', color: 'purple', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'second_opinion',      name: 'Second Opinion Requested', color: '#8b5cf6', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [
-      { id: 'margins_close',       name: 'Close Margin — 3mm',       color: 'yellow', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'margins_close',       name: 'Close Margin — 3mm',       color: '#f59e0b', level: 'Case', status: 'Active', severity: 3 },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['D05.11'], snomed: ['397201007'] },
@@ -459,11 +459,11 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'stat_rush',           name: 'STAT — Rush Processing',   color: 'red',    severity: 5 },
-      { id: 'frozen_section',      name: 'Frozen Section Pending',   color: 'orange', severity: 4 },
+      { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',   color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'frozen_section',      name: 'Frozen Section Pending',   color: '#f97316', level: 'Case', status: 'Active', severity: 4 },
     ],
     specimenFlags: [
-      { id: 'comp-erh2-4406', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'blue', severity: 2, orderedVia: 'lis', specimenId: 'S26-4406-SP-1' },
+      { id: 'comp-erh2-4406', name: 'ER/PR/HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4406-SP-1' },
     ],
     reportingMode: 'copilot',
   },
@@ -543,12 +543,12 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'colorectal_mdt',      name: 'Colorectal MDT — Mon 13:00', color: 'blue', severity: 2 },
-      { id: 'braf_msi_noted',      name: 'BRAF+ / MSI-H Noted',        color: 'orange', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'colorectal_mdt',      name: 'Colorectal MDT — Mon 13:00', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'braf_msi_noted',      name: 'BRAF+ / MSI-H Noted',        color: '#f97316', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [
-      { id: 'comp-ihc-4407', name: 'MMR IHC Panel', lisCode: 'IHC', color: 'green', severity: 3, orderedVia: 'lis', specimenId: 'S26-4407-SP-1' },
-      { id: 'comp-mol-4407', name: 'Molecular Panel', lisCode: 'MOL', color: 'green', severity: 3 },
+      { id: 'comp-ihc-4407', name: 'MMR IHC Panel', lisCode: 'IHC', color: '#10b981', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4407-SP-1' },
+      { tagClass: 'ADMINISTRATIVE', id: 'comp-mol-4407', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', level: 'Case', status: 'Active', severity: 3 },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['C20'], snomed: ['363346000'] },
@@ -651,13 +651,13 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'oncology_hold',       name: 'Oncology Treatment on Hold', color: 'red',    severity: 5 },
-      { id: 'brca1_positive',      name: 'BRCA1 Pathogenic Variant',   color: 'purple', severity: 4 },
-      { id: 'stat_rush',           name: 'STAT — Rush Processing',     color: 'red',    severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'oncology_hold',       name: 'Oncology Treatment on Hold', color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'brca1_positive',      name: 'BRCA1 Pathogenic Variant',   color: '#8b5cf6', level: 'Case', status: 'Active', severity: 4 },
+      { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',     color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
     ],
     specimenFlags: [
-      { id: 'comp-erh2-4408', name: 'ER/PR/HER2', lisCode: 'ERH2', color: 'red', severity: 3, orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
-      { id: 'comp-her2f-4408', name: 'HER2 FISH', lisCode: 'HER2', color: 'red', severity: 3, orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
+      { id: 'comp-erh2-4408', name: 'ER/PR/HER2', lisCode: 'ERH2', color: '#ef4444', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
+      { id: 'comp-her2f-4408', name: 'HER2 FISH', lisCode: 'HER2', color: '#ef4444', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
     ],
     reportingMode: 'copilot',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
@@ -719,7 +719,7 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'geriatric_patient', name: 'Geriatric Patient — 100y', color: 'purple', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'geriatric_patient', name: 'Geriatric Patient — 100y', color: '#8b5cf6', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -762,7 +762,7 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'poc_case', name: 'Products of Conception', color: 'blue', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'poc_case', name: 'Products of Conception', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -814,8 +814,8 @@ const MOCK_CASES: Case[] = [
     status: 'pending-review' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'awaiting_sign_off',  name: 'Awaiting Attending Sign-off', color: 'yellow', severity: 3 },
-      { id: 'ihc_pending',        name: 'ER/PR/HER2 Pending',          color: 'blue',   severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'awaiting_sign_off',  name: 'Awaiting Attending Sign-off', color: '#f59e0b', level: 'Case', status: 'Active', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'ihc_pending',        name: 'ER/PR/HER2 Pending',          color: '#3b82f6',   level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -872,8 +872,8 @@ const MOCK_CASES: Case[] = [
     status: 'amended' as CaseStatus,
     createdAt: isoDaysAgo(6), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'amended_report',    name: 'Amended Report',              color: 'purple', severity: 4 },
-      { id: 'second_opinion',    name: 'Second Opinion — MDT Review', color: 'blue',   severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'amended_report',    name: 'Amended Report',              color: '#8b5cf6', level: 'Case', status: 'Active', severity: 4 },
+      { tagClass: 'ADMINISTRATIVE', id: 'second_opinion',    name: 'Second Opinion — MDT Review', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -928,7 +928,7 @@ const MOCK_CASES: Case[] = [
     poolId: '1',
     poolName: 'Gastrointestinal',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
-    caseFlags: [{ id: 'stat_rush', name: 'STAT — Rush Processing', color: 'red', severity: 5 }],
+    caseFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'stat_rush', name: 'STAT — Rush Processing', color: '#ef4444', level: 'Case', status: 'Active', severity: 5 }],
     specimenFlags: [],
     reportingMode: 'copilot', coding: {},
   } as any,
@@ -1041,8 +1041,8 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'mdt_colorectal', name: 'Colorectal MDT — Wed 14:00', color: 'blue', severity: 2 },
-      { id: 'kras_result',    name: 'KRAS Result — Oncology Notified', color: 'green', severity: 1 },
+      { tagClass: 'ADMINISTRATIVE', id: 'mdt_colorectal', name: 'Colorectal MDT — Wed 14:00', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'kras_result',    name: 'KRAS Result — Oncology Notified', color: '#10b981', level: 'Case', status: 'Active', severity: 1 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -1112,8 +1112,8 @@ const MOCK_CASES: Case[] = [
     ],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'urology_mdt', name: 'Urology MDT — Fri 09:00', color: 'blue', severity: 2 },
-      { id: 'psma_positive', name: 'PSMA IHC — Positive', color: 'yellow', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'urology_mdt', name: 'Urology MDT — Fri 09:00', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'psma_positive', name: 'PSMA IHC — Positive', color: '#f59e0b', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -1195,7 +1195,7 @@ const MOCK_CASES: Case[] = [
     status: 'pending-review' as CaseStatus,
     createdAt: isoDaysAgo(4), updatedAt: isoDaysAgo(1),
     caseFlags: [
-      { id: 'second_opinion', name: 'Second Opinion Requested', color: 'blue', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'second_opinion', name: 'Second Opinion Requested', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -1260,8 +1260,8 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'positive_margin', name: 'Positive Surgical Margin', color: 'red', severity: 3 },
-      { id: 'urology_mdt', name: 'Urology MDT — Fri 09:00', color: 'blue', severity: 2 },
+      { tagClass: 'ADMINISTRATIVE', id: 'positive_margin', name: 'Positive Surgical Margin', color: '#ef4444', level: 'Case', status: 'Active', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'urology_mdt', name: 'Urology MDT — Fri 09:00', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
     ],
     requiresCountersign: true,
     caseTeam: [
@@ -1380,8 +1380,8 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'stat_flag', name: 'STAT — Rush Processing', color: 'red', severity: 3 },
-      { id: 'perforation', name: 'Tumour Perforation — pT4', color: 'red', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'stat_flag', name: 'STAT — Rush Processing', color: '#ef4444', level: 'Case', status: 'Active', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'perforation', name: 'Tumour Perforation — pT4', color: '#ef4444', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -1438,7 +1438,7 @@ const MOCK_CASES: Case[] = [
     poolId: 'GI-UK',
     poolName: 'Gastrointestinal',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
-    caseFlags: [{ id: 'stat_rush', name: 'STAT — Rush Processing', color: 'red', severity: 5 }],
+    caseFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'stat_rush', name: 'STAT — Rush Processing', color: '#ef4444', level: 'Case', status: 'Active', severity: 5 }],
     specimenFlags: [],
     reportingMode: 'copilot', coding: {},
   } as any,
@@ -1464,8 +1464,8 @@ const MOCK_CASES: Case[] = [
       address: '44 Elmwood Drive, Springfield, IL 62701',
     },
     specimens: [
-      { id: 'S26-4420-SP-1', label: 'A', description: 'Wide local excision — right forearm', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [
-        { id: 'thick_melanoma', name: 'Breslow > 2 mm', color: 'red', severity: 4 },
+      { tagClass: 'ADMINISTRATIVE', id: 'S26-4420-SP-1', label: 'A', description: 'Wide local excision — right forearm', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [
+        { tagClass: 'ADMINISTRATIVE', id: 'thick_melanoma', name: 'Breslow > 2 mm', color: '#ef4444', level: 'Case', status: 'Active', severity: 4 },
       ]},
       { id: 'S26-4420-SP-2', label: 'B', description: 'Sentinel lymph node — right axilla', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
     ],
@@ -1538,8 +1538,8 @@ const MOCK_CASES: Case[] = [
     caseTeam: [{ userId: 'PATH-001', role: 'Attending', name: 'Dr. Sarah Johnson' }],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'braf_positive',  name: 'BRAF V600E Positive — Targeted Therapy Eligible', color: 'teal',  severity: 3 },
-      { id: 'sentinel_pos',   name: 'Sentinel Node Positive — Completion Dissection?',  color: 'red',   severity: 4 },
+      { tagClass: 'ADMINISTRATIVE', id: 'braf_positive',  name: 'BRAF V600E Positive — Targeted Therapy Eligible', color: '#0891b2',  level: 'Case', status: 'Active', severity: 3 },
+      { tagClass: 'ADMINISTRATIVE', id: 'sentinel_pos',   name: 'Sentinel Node Positive — Completion Dissection?',  color: '#ef4444',   level: 'Case', status: 'Active', severity: 4 },
     ],
     specimenFlags: [],
     reportingMode: 'copilot',
@@ -1708,7 +1708,7 @@ const MOCK_CASES: Case[] = [
     }],
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
-    caseFlags: [{ id: 'egfr_actionable', name: 'Actionable Mutation — Oncology Alert', color: 'teal', severity: 4 }],
+    caseFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'egfr_actionable', name: 'Actionable Mutation — Oncology Alert', color: '#0891b2', level: 'Case', status: 'Active', severity: 4 }],
     specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
 
@@ -1719,7 +1719,7 @@ const MOCK_CASES: Case[] = [
     originHospitalId: 'HOSP-HFHS', originEnterpriseId: 'ENT-HFHS',
     patient: { id: 'PAT-US-005', mrn: '300005', firstName: 'George', lastName: 'Washington', dateOfBirth: isoYearsAgo(55, 1, 18), sex: 'M', phone: '313-555-1005', email: 'g.washington@email.com', address: '6071 W Outer Dr, Detroit, MI 48235' },
     specimens: [
-      { id: 'HFHS26-1005-SP-1', label: 'A', description: 'Pancreatic head mass — INTRAOPERATIVE FROZEN SECTION', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'frozen', name: 'Frozen Section', color: 'amber', severity: 5 }] },
+      { tagClass: 'ADMINISTRATIVE', id: 'HFHS26-1005-SP-1', label: 'A', description: 'Pancreatic head mass — INTRAOPERATIVE FROZEN SECTION', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'frozen', name: 'Frozen Section', color: '#f59e0b', level: 'Case', status: 'Active', severity: 5 }] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Dr. Mazen Iskandar', clientId: 'c-hfhs-03', clientName: 'Detroit Medical Center', clinicalIndication: 'Pancreatic head mass 3.1 cm. CA19-9 elevated 480. Whipple procedure. Intraoperative: assess pancreatic neck margin and common bile duct margin.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-US-002', assignedParticipationTypeId: 'primary' },
     diagnostic: {
@@ -1731,8 +1731,8 @@ const MOCK_CASES: Case[] = [
     status: 'draft' as CaseStatus,
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [
-      { id: 'stat_frozen', name: 'STAT — Intraoperative Frozen Section', color: 'red', severity: 5 },
-      { id: 'or_pending', name: 'OR Awaiting Result', color: 'amber', severity: 4 },
+      { tagClass: 'ADMINISTRATIVE', id: 'stat_frozen', name: 'STAT — Intraoperative Frozen Section', color: '#ef4444', level: 'Case', status: 'Active', severity: 5 },
+      { tagClass: 'ADMINISTRATIVE', id: 'or_pending', name: 'OR Awaiting Result', color: '#f59e0b', level: 'Case', status: 'Active', severity: 4 },
     ],
     specimenFlags: [], reportingMode: 'copilot', coding: {},
   } as any,
@@ -1828,7 +1828,7 @@ const MOCK_CASES: Case[] = [
       },
     }],
     caseFlags: [
-      { id: 'flag-ped-001', name: 'Pediatric Patient', color: 'amber', severity: 3, level: 'Case', lisCode: 'PEDS', autoCreated: true },
+      { tagClass: 'ADMINISTRATIVE', id: 'flag-ped-001', name: 'Pediatric Patient', color: '#f59e0b', severity: 3, level: 'Case', lisCode: 'PEDS', autoCreated: true },
     ],
     specimenFlags: [],
     status: 'draft' as CaseStatus,
@@ -1837,6 +1837,326 @@ const MOCK_CASES: Case[] = [
     coding: {},
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
   } as any,
+  // ─────────────────────────────────────────────────────────────────────────
+  // ROSSANA BABAKHANI (PATH-RB-001) — UX Review Cases
+  // Two LIS (internal hospital) + Two Outreach (external clients)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── RB-01: THYROID — LIS / in-progress ──────────────────────────────────
+  {
+    id: 'S26-4480-THYROID',
+    accession: { accessionNumber: '4480', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4480-THYROID' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-RB-01', mrn: '200101',
+      firstName: 'Isabelle', lastName: 'Nakamura',
+      dateOfBirth: isoYearsAgo(44, 7, 19), sex: 'F',
+      phone: '555-301-4480', email: 'isabelle.nakamura@example.org',
+      address: '12 Saguaro Heights, Phoenix, AZ 85004',
+    },
+    specimens: [
+      { id: 'S26-4480-SP-1', label: 'A', description: 'Right thyroid lobe and isthmus', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+      { id: 'S26-4480-SP-2', label: 'B', description: 'Right central neck lymph nodes (level VI)', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Karen Shapiro',
+      clientId: 'c1', clientName: 'Metro General Hospital',
+      clinicalIndication: 'Thyroid nodule right lobe, 2.8 cm. FNA: Bethesda V — suspicious for papillary thyroid carcinoma. TSH: 1.4. Ultrasound: hypoechoic nodule with microcalcifications and increased vascularity. Proceeding to right hemithyroidectomy + central neck dissection.',
+      receivedDate: isoDaysAgo(2), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received fresh labeled "right thyroid lobe and isthmus" is a hemithyroidectomy specimen weighing 18.4g, measuring 5.2 × 3.1 × 1.8 cm. The external surface is smooth and intact. On serial sectioning a firm, grey-white nodule measuring 2.6 × 2.0 × 1.8 cm is identified in the mid to lower pole. The nodule has irregular borders and demonstrates focal calcification on cut section. The remaining thyroid parenchyma is brown-tan and homogeneous. Specimen B: four lymph nodes, largest 0.9 cm.',
+      microscopicDescription: 'Sections show papillary thyroid carcinoma, classical variant. The tumour measures 2.6 cm and demonstrates characteristic ground-glass nuclear features, nuclear grooves, and pseudoinclusions. Psammoma bodies are present. Tumour extends focally to the surgical margin. Lymphovascular invasion is identified. Specimen B: 2 of 4 lymph nodes contain metastatic papillary thyroid carcinoma; largest deposit 4 mm, no extracapsular extension.',
+      ancillaryStudies: 'BRAF V600E mutation: Detected by PCR. TERT promoter: Wild type. Thyroglobulin IHC: Positive. CK19 / Galectin-3: Positive.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4480-SP-1_thyroid_ptc_001',
+        specimenId: 'S26-4480-SP-1',
+        templateId: 'thyroid_malignant',
+        templateName: 'CAP Thyroid Gland — Malignant',
+        status: 'draft',
+        answers: {
+          procedure: 'hemithyroidectomy',
+          specimen_laterality: 'right',
+          histologic_type: 'papillary_thyroid_carcinoma_classical',
+          tumor_size: '2.6 cm',
+          tumor_focality: 'unifocal',
+          gross_extension: 'confined_to_thyroid',
+          margin_status: 'positive',
+          lvi: 'lvi_present',
+          regional_ln_status: 'tumor_present_nodes',
+          ln_with_tumor: '2',
+          ln_examined: '4',
+          braf_v600e: 'detected',
+          pT_category: 'pT2',
+          pN_category: 'pN1a',
+        },
+        aiSuggestions: {
+          procedure:             { value: 'hemithyroidectomy',                    confidence: 97, source: 'Gross: "right thyroid lobe and isthmus"', verification: 'unverified' },
+          specimen_laterality:   { value: 'right',                                confidence: 99, source: 'Gross: "right thyroid lobe"', verification: 'unverified' },
+          histologic_type:       { value: 'papillary_thyroid_carcinoma_classical', confidence: 94, source: 'Micro: "papillary thyroid carcinoma, classical variant"', verification: 'unverified' },
+          tumor_size:            { value: '2.6 cm',                               confidence: 96, source: 'Gross and micro: "2.6 × 2.0 × 1.8 cm"', verification: 'unverified' },
+          tumor_focality:        { value: 'unifocal',                             confidence: 90, source: 'No mention of additional foci', verification: 'unverified' },
+          margin_status:         { value: 'positive',                             confidence: 88, source: 'Micro: "tumour extends focally to the surgical margin"', verification: 'unverified' },
+          lvi:                   { value: 'lvi_present',                          confidence: 91, source: 'Micro: "Lymphovascular invasion is identified"', verification: 'unverified' },
+          regional_ln_status:    { value: 'tumor_present_nodes',                  confidence: 95, source: 'Specimen B: "2 of 4 lymph nodes contain metastatic PTC"', verification: 'unverified' },
+          ln_with_tumor:         { value: '2',                                    confidence: 93, source: 'Specimen B: "2 of 4 lymph nodes"', verification: 'unverified' },
+          ln_examined:           { value: '4',                                    confidence: 95, source: 'Gross: "four lymph nodes"', verification: 'unverified' },
+          braf_v600e:            { value: 'detected',                             confidence: 98, source: 'Ancillary: "BRAF V600E mutation: Detected"', verification: 'unverified' },
+          pT_category:           { value: 'pT2',                                  confidence: 87, source: 'Tumour 2.6 cm, confined to thyroid → pT2', verification: 'unverified' },
+          pN_category:           { value: 'pN1a',                                 confidence: 89, source: 'Level VI nodes positive → pN1a', verification: 'unverified' },
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
+    caseFlags: [
+      { id: 'thyroid-board', tagClass: 'ADMINISTRATIVE', name: 'Thyroid MDT',        lisCode: 'THYR',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
+      { id: 'braf-positive', tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive',lisCode: 'BRAF',  color: '#f59e0b', severity: 2, level: 'Case', status: 'Active' },
+    ],
+    specimenFlags: [
+      { id: 'braf-comp', tagClass: 'COMPUTATIONAL', name: 'BRAF V600E', lisCode: 'BRAFM', color: '#10b981', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4480-SP-1' },
+    ],
+    reportingMode: 'copilot',
+    coding: { icd10: ['C73'], snomed: ['363478007'] },
+  },
+
+  // ── RB-02: ENDOMETRIUM — LIS / draft ────────────────────────────────────
+  {
+    id: 'S26-4481-ENDO',
+    accession: { accessionNumber: '4481', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4481-ENDO' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-RB-02', mrn: '200102',
+      firstName: 'Constance', lastName: 'Adeyemi',
+      dateOfBirth: isoYearsAgo(58, 2, 28), sex: 'F',
+      phone: '555-302-4481', email: 'constance.adeyemi@example.org',
+      address: '339 Ocotillo Lane, Mesa, AZ 85201',
+    },
+    specimens: [
+      { id: 'S26-4481-SP-1', label: 'A', description: 'Endometrial curettings', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Patricia Owens',
+      clientId: 'c1', clientName: 'Metro General Hospital',
+      clinicalIndication: 'Post-menopausal bleeding. Endometrial thickness 14 mm on ultrasound. Office biopsy non-diagnostic. Proceeding to D&C. CA-125 normal.',
+      receivedDate: isoDaysAgo(1), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received in formalin labeled "endometrial curettings" is a 4.3g aggregate of tan-brown tissue fragments measuring up to 1.2 cm in greatest dimension. Representative sections submitted in four cassettes.',
+      microscopicDescription: 'Sections show endometrioid adenocarcinoma, FIGO grade 1. The tumour demonstrates glandular architecture with less than 5% solid growth. Nuclear atypia is mild. No myometrial tissue is identified in the curettings. No lymphovascular invasion seen in the submitted sections.',
+      ancillaryStudies: 'MMR IHC: MLH1, MSH2, MSH6, PMS2 — all retained (mismatch repair proficient). ER: Positive (strong, 90%). PR: Positive (moderate, 60%). p53: Wild type pattern.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4481-SP-1_endo_001',
+        specimenId: 'S26-4481-SP-1',
+        templateId: 'endometrium_biopsy',
+        templateName: 'CAP Endometrium — Biopsy/Curettage',
+        status: 'draft',
+        answers: {
+          procedure: 'dilation_and_curettage',
+          histologic_type: 'endometrioid_adenocarcinoma',
+          figo_grade: 'grade_1',
+          lvi: 'lvi_not_identified',
+          mismatch_repair: 'mmr_proficient',
+          er_status: 'er_positive',
+          pr_status: 'pr_positive',
+          p53: 'wild_type',
+        },
+        aiSuggestions: {
+          procedure:       { value: 'dilation_and_curettage',    confidence: 91, source: 'Clinical: "Proceeding to D&C"', verification: 'unverified' },
+          histologic_type: { value: 'endometrioid_adenocarcinoma', confidence: 95, source: 'Micro: "endometrioid adenocarcinoma, FIGO grade 1"', verification: 'unverified' },
+          figo_grade:      { value: 'grade_1',                   confidence: 92, source: 'Micro: "less than 5% solid growth"', verification: 'unverified' },
+          lvi:             { value: 'lvi_not_identified',         confidence: 84, source: 'Micro: "No lymphovascular invasion seen"', verification: 'unverified' },
+          mismatch_repair: { value: 'mmr_proficient',            confidence: 98, source: 'Ancillary: "MLH1, MSH2, MSH6, PMS2 — all retained"', verification: 'unverified' },
+          er_status:       { value: 'er_positive',               confidence: 97, source: 'Ancillary: "ER: Positive (strong, 90%)"', verification: 'unverified' },
+          pr_status:       { value: 'pr_positive',               confidence: 95, source: 'Ancillary: "PR: Positive (moderate, 60%)"', verification: 'unverified' },
+          p53:             { value: 'wild_type',                 confidence: 96, source: 'Ancillary: "p53: Wild type pattern"', verification: 'unverified' },
+        },
+        createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'draft' as CaseStatus,
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
+    caseFlags: [
+      { id: 'gynaec-oncol', tagClass: 'ADMINISTRATIVE', name: 'Gynaecology Oncology', lisCode: 'GYNOC', color: '#3b82f6', severity: 2, level: 'Case', status: 'Active' },
+    ],
+    specimenFlags: [],
+    reportingMode: 'copilot',
+    coding: { icd10: ['C54.1'], snomed: ['413448000'] },
+  },
+
+  // ── RB-03: RENAL CELL CARCINOMA — Outreach / STAT / in-progress ──────────
+  {
+    id: 'S26-4482-RENAL',
+    accession: { accessionNumber: '4482', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4482-RENAL' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-RB-03', mrn: '200103',
+      firstName: 'Victor', lastName: 'Halloran',
+      dateOfBirth: isoYearsAgo(62, 11, 3), sex: 'M',
+      phone: '555-303-4482', email: 'victor.halloran@example.org',
+      address: '58 Ironwood Trail, Scottsdale, AZ 85260',
+    },
+    specimens: [
+      { id: 'S26-4482-SP-1', label: 'A', description: 'Partial nephrectomy — right renal mass', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'S26-4482-SP-2', label: 'B', description: 'Surgical margin shave', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'STAT',
+      requestingProvider: 'Dr. Nathan Briggs',
+      clientId: 'c_outreach_urology', clientName: 'Desert Hills Urology Associates',
+      clinicalIndication: 'Incidental right renal mass 3.4 cm on CT abdomen. Enhancement pattern consistent with RCC. No lymphadenopathy. Serum creatinine stable. Robotic partial nephrectomy. Frozen section intraoperative.',
+      receivedDate: isoDaysAgo(1), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received fresh labeled "partial nephrectomy, right renal mass" is a 38.7g wedge of renal tissue measuring 5.5 × 4.0 × 2.8 cm. The cortical surface is bosselated. On sectioning a well-circumscribed, golden-yellow mass measuring 3.2 × 3.0 × 2.6 cm is identified, surrounded by a fibrous pseudocapsule. The mass is 0.2 cm from the closest surgical margin. Areas of central haemorrhage are present. No necrosis identified. Specimen B: A single shave of resection margin 0.1 cm in thickness.',
+      microscopicDescription: 'Sections show clear cell renal cell carcinoma (ccRCC), ISUP/WHO grade 2. Tumour cells are arranged in alveolar and acinar patterns with abundant clear cytoplasm and small, round, uniform nuclei with inconspicuous nucleoli. A delicate sinusoidal vascular network is present. No sarcomatoid differentiation. No rhabdoid features. Lymphovascular invasion is not identified. The tumour is confined within the renal capsule. Surgical margin (Specimen B) is negative; closest approach 2 mm.',
+      ancillaryStudies: 'CA IX IHC: Diffuse membranous positivity (consistent with ccRCC). CD10: Positive. CK7: Negative. TFE3: Negative. VHL sequencing: Mutation detected (c.332G>A, p.W111*). PD-L1 (22C3): CPS 2.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4482-SP-1_kidney_rcc_001',
+        specimenId: 'S26-4482-SP-1',
+        templateId: 'kidney_resection',
+        templateName: 'CAP Kidney — Partial/Total Nephrectomy',
+        status: 'draft',
+        answers: {
+          procedure: 'partial_nephrectomy',
+          specimen_laterality: 'right',
+          histologic_type: 'clear_cell_rcc',
+          who_isup_grade: 'grade_2',
+          tumor_size: '3.2 cm',
+          tumor_focality: 'unifocal',
+          renal_capsule: 'capsule_not_penetrated',
+          lvi: 'lvi_not_identified',
+          sarcomatoid: 'sarcomatoid_not_present',
+          margin_status: 'margins_negative',
+          distance_to_margin: '2 mm',
+          pT_category: 'pT1b',
+          pN_category: 'pNX',
+        },
+        aiSuggestions: {
+          procedure:          { value: 'partial_nephrectomy',   confidence: 98, source: 'Gross: "partial nephrectomy, right renal mass"', verification: 'unverified' },
+          specimen_laterality:{ value: 'right',                  confidence: 99, source: 'Gross: "right renal mass"', verification: 'unverified' },
+          histologic_type:    { value: 'clear_cell_rcc',        confidence: 95, source: 'Micro: "clear cell renal cell carcinoma (ccRCC)"', verification: 'unverified' },
+          who_isup_grade:     { value: 'grade_2',               confidence: 90, source: 'Micro: "ISUP/WHO grade 2 — inconspicuous nucleoli"', verification: 'unverified' },
+          tumor_size:         { value: '3.2 cm',                confidence: 96, source: 'Gross: "3.2 × 3.0 × 2.6 cm"', verification: 'unverified' },
+          tumor_focality:     { value: 'unifocal',              confidence: 93, source: 'Single mass described', verification: 'unverified' },
+          renal_capsule:      { value: 'capsule_not_penetrated', confidence: 89, source: 'Micro: "confined within the renal capsule"', verification: 'unverified' },
+          lvi:                { value: 'lvi_not_identified',    confidence: 88, source: 'Micro: "Lymphovascular invasion is not identified"', verification: 'unverified' },
+          sarcomatoid:        { value: 'sarcomatoid_not_present', confidence: 94, source: 'Micro: "No sarcomatoid differentiation"', verification: 'unverified' },
+          margin_status:      { value: 'margins_negative',      confidence: 92, source: 'Micro: "Surgical margin (Specimen B) is negative"', verification: 'unverified' },
+          distance_to_margin: { value: '2 mm',                  confidence: 88, source: 'Micro: "closest approach 2 mm"', verification: 'unverified' },
+          pT_category:        { value: 'pT1b',                  confidence: 86, source: 'Tumour 3.2 cm, organ confined → pT1b', verification: 'unverified' },
+          pN_category:        { value: 'pNX',                   confidence: 85, source: 'No lymph nodes submitted', verification: 'unverified' },
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+    caseFlags: [
+      { id: 'f1',          tagClass: 'ADMINISTRATIVE', name: 'STAT — Rush Processing', lisCode: 'STAT',  color: '#ef4444', severity: 5, level: 'Case', status: 'Active' },
+      { id: 'urology-mdt', tagClass: 'ADMINISTRATIVE', name: 'Urology MDT',            lisCode: 'UROL',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
+    ],
+    specimenFlags: [
+      { id: 'vhl-mutation', tagClass: 'COMPUTATIONAL', name: 'VHL Mutation', lisCode: 'VHL', color: '#10b981', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4482-SP-1' },
+    ],
+    reportingMode: 'copilot',
+    coding: { icd10: ['C64.1'], snomed: ['41607009'] },
+  },
+
+  // ── RB-04: MELANOMA — Outreach / in-progress / multi-specimen ───────────
+  {
+    id: 'S26-4483-MELANOMA',
+    accession: { accessionNumber: '4483', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4483-MELANOMA' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-RB-04', mrn: '200104',
+      firstName: 'Andrea', lastName: 'Morelli',
+      dateOfBirth: isoYearsAgo(51, 5, 8), sex: 'F',
+      phone: '555-304-4483', email: 'andrea.morelli@example.org',
+      address: '214 Prickly Pear Road, Chandler, AZ 85225',
+    },
+    specimens: [
+      { id: 'S26-4483-SP-1', label: 'A', description: 'Wide local excision — left upper back', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
+      { id: 'S26-4483-SP-2', label: 'B', description: 'Sentinel lymph node — left axilla #1', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
+      { id: 'S26-4483-SP-3', label: 'C', description: 'Sentinel lymph node — left axilla #2', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Michelle Foster',
+      clientId: 'c_outreach_derm', clientName: 'Oasis Dermatology Partners',
+      clinicalIndication: 'Melanoma left upper back. Excision biopsy: invasive melanoma, Breslow 1.8 mm, Clark level IV, ulceration present. Awaiting wide local excision + sentinel lymph node biopsy. Dermatoscopy: asymmetric lesion 1.4 cm. SLNB with Tc-99m lymphoscintigraphy.',
+      receivedDate: isoDaysAgo(3), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Specimen A: An oriented ellipse of skin measuring 7.0 × 3.5 cm with a central stellate scar 1.6 × 0.8 cm at the biopsy site. The specimen is inked and serially sectioned perpendicular to the long axis. No residual pigmented lesion is identified macroscopically. Specimens B and C: Two intact lymph nodes measuring 1.4 cm and 1.1 cm respectively.',
+      microscopicDescription: 'Specimen A: Biopsy site change. No residual melanoma identified. All margins (peripheral and deep) are negative; the deep margin at the biopsy site is 4 mm. Specimen B: Metastatic melanoma present in the subcapsular sinus and parenchyma of 1 of 1 sentinel lymph node; largest deposit 3.1 mm. No extranodal extension. Specimen C: No tumour in 1 sentinel lymph node examined.',
+      ancillaryStudies: 'S100: Positive. SOX10: Positive. Melan-A: Positive. HMB-45: Positive. Ki-67: 28% in primary. BRAF V600E (original excision): Detected. PD-L1 (28-8): CPS 15.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4483-SP-1_melanoma_001',
+        specimenId: 'S26-4483-SP-1',
+        templateId: 'melanoma_resection',
+        templateName: 'CAP Melanoma — Wide Local Excision',
+        status: 'in-progress',
+        answers: {
+          procedure: 'wide_local_excision',
+          specimen_site: 'back',
+          specimen_laterality: 'left',
+          residual_melanoma: 'no_residual_melanoma',
+          margin_status_peripheral: 'all_margins_negative',
+          margin_status_deep: 'all_margins_negative',
+          distance_to_deep_margin: '4 mm',
+          regional_ln_status: 'tumor_present_nodes',
+          sln_with_tumor: '1',
+          sln_examined: '2',
+          largest_sln_deposit: '3.1 mm',
+          extranodal_extension: 'ene_not_identified',
+          braf_v600e: 'detected',
+          pdl1_cps: '15',
+        },
+        aiSuggestions: {
+          procedure:                { value: 'wide_local_excision',      confidence: 97, source: 'Gross: "wide local excision — left upper back"', verification: 'verified' },
+          specimen_site:            { value: 'back',                      confidence: 96, source: 'Specimen label and gross description', verification: 'verified' },
+          specimen_laterality:      { value: 'left',                      confidence: 99, source: 'Specimen label: "left upper back"', verification: 'verified' },
+          residual_melanoma:        { value: 'no_residual_melanoma',      confidence: 93, source: 'Micro: "No residual melanoma identified"', verification: 'verified' },
+          margin_status_peripheral: { value: 'all_margins_negative',      confidence: 95, source: 'Micro: "All margins (peripheral and deep) are negative"', verification: 'verified' },
+          margin_status_deep:       { value: 'all_margins_negative',      confidence: 94, source: 'Micro: "All margins … are negative"', verification: 'verified' },
+          distance_to_deep_margin:  { value: '4 mm',                      confidence: 88, source: 'Micro: "deep margin … 4 mm"', verification: 'verified' },
+          regional_ln_status:       { value: 'tumor_present_nodes',       confidence: 96, source: 'Specimen B: "1 of 1 sentinel lymph node" positive', verification: 'verified' },
+          sln_with_tumor:           { value: '1',                         confidence: 95, source: 'Specimen B: "1 of 1 sentinel lymph node"', verification: 'verified' },
+          sln_examined:             { value: '2',                         confidence: 94, source: 'Specimens B + C: two sentinel nodes', verification: 'verified' },
+          largest_sln_deposit:      { value: '3.1 mm',                    confidence: 92, source: 'Specimen B: "largest deposit 3.1 mm"', verification: 'verified' },
+          extranodal_extension:     { value: 'ene_not_identified',        confidence: 90, source: 'Specimen B: "No extranodal extension"', verification: 'verified' },
+          braf_v600e:               { value: 'detected',                  confidence: 98, source: 'Ancillary: "BRAF V600E: Detected"', verification: 'verified' },
+          pdl1_cps:                 { value: '15',                        confidence: 96, source: 'Ancillary: "PD-L1 (28-8): CPS 15"', verification: 'verified' },
+        },
+        createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(1),
+    caseFlags: [
+      { id: 'melanoma-mdt', tagClass: 'ADMINISTRATIVE', name: 'Melanoma MDT', lisCode: 'MEL',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
+      { id: 'braf-positive',tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive', lisCode: 'BRAF', color: '#10b981', severity: 2, level: 'Case', status: 'Active' },
+    ],
+    specimenFlags: [
+      { id: 'braf-comp',  tagClass: 'COMPUTATIONAL', name: 'BRAF V600E',  lisCode: 'BRAFM', color: '#10b981', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4483-SP-1' },
+      { id: 'pdl1-result',tagClass: 'COMPUTATIONAL', name: 'PD-L1 CPS 15',lisCode: 'PDL1',  color: '#3b82f6', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4483-SP-1' },
+    ],
+    reportingMode: 'copilot',
+    coding: { icd10: ['C43.59'], snomed: ['372244006'] },
+  },
+
 ];
 
 // ─── Per-case patient history & similar cases ────────────────────────────────
@@ -3024,8 +3344,20 @@ export const mockCaseService: ICaseService = {
   },
 
   async getAll(params?) {
+    const ALL_CLIENTS_MAP: Record<string,string> = {
+      'c1':'Metro General','c2':'Riverside','c3':'Westside','c4':'Bayview',
+      'c5':'Catherine','c6':'Manchester','c7':'Midwest','c8':'Henry Ford'
+    };
     await delay();
+    // Safety net: if CASES is empty, attempt re-seed from MOCK_CASES
+    if (CASES.length === 0) {
+      console.warn('[mockCaseService] CASES empty — re-seeding from MOCK_CASES');
+      CASES.push(...MOCK_CASES.map(c => ({ ...c })));
+    }
     let results = [...CASES];
+    console.log('[mockCaseService.getAll] total cases:', CASES.length, '| params:', JSON.stringify(params).slice(0, 200));
+
+    // ── Worklist-style filters ─────────────────────────────────────────────
     if (params?.status) {
       const statuses = Array.isArray(params.status) ? params.status : [params.status];
       results = results.filter(c => statuses.includes((c as any).status));
@@ -3040,6 +3372,175 @@ export const mockCaseService: ICaseService = {
     if (params?.specialty) {
       results = results.filter(c => (c as any).specialty === params.specialty);
     }
+
+    // ── SearchPage CaseFilterParams ────────────────────────────────────────
+    if (params?.statusList?.length) {
+      const sl = (params.statusList as string[]).map((s: string) => s.toLowerCase());
+      results = results.filter(c => sl.includes(((c as any).status ?? '').toLowerCase()));
+    }
+    if (params?.priorityList?.length) {
+      const pl = (params.priorityList as string[]).map((s: string) => s.toLowerCase());
+      results = results.filter(c => {
+        const priority = ((c as any).priority ?? 'routine').toLowerCase();
+        return pl.some((p: string) => priority.includes(p.toLowerCase()));
+      });
+    }
+    if (params?.dateFrom || params?.dateTo) {
+      const from = params?.dateFrom ? new Date(params.dateFrom as string).getTime() : 0;
+      const to   = params?.dateTo   ? new Date(params.dateTo as string).getTime() + 86400000 : Infinity;
+      results = results.filter(c => {
+        // Use first specimen receivedAt as the case accession date
+        const specimens = (c as any).specimens ?? [];
+        const raw = specimens[0]?.receivedAt ?? specimens[0]?.collectedAt ?? (c as any).createdAt ?? '';
+        const d = raw ? new Date(raw).getTime() : NaN;
+        if (isNaN(d)) return true; // don't exclude cases with no date
+        return d >= from && d <= to;
+      });
+    }
+    if (params?.patientName) {
+      const q = (params.patientName as string).toLowerCase();
+      results = results.filter(c =>
+        `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q)
+      );
+    }
+    if (params?.accessionNo) {
+      const q = (params.accessionNo as string).toLowerCase();
+      results = results.filter(c =>
+        c.accession?.fullAccession?.toLowerCase().includes(q)
+      );
+    }
+    if (params?.genderList?.length) {
+      // Normalise both sides so 'M'|'male'|'Male' all resolve to 'male',
+      // 'F'|'female'|'Female' to 'female', etc.
+      // Case data stores single-letter codes ('M','F'); SearchPage sends full words ('Male','Female').
+      const toFull = (s: string): string => {
+        const l = s.toLowerCase();
+        if (l === 'm' || l === 'male')       return 'male';
+        if (l === 'f' || l === 'female')     return 'female';
+        if (l === 'x' || l === 'non-binary') return 'non-binary';
+        if (l === 'u' || l === 'unknown')    return 'unknown';
+        if (l === 'o' || l === 'other')      return 'other';
+        return l;
+      };
+      const gl = (params.genderList as string[]).map(toFull);
+      // Use c.patient.sex (the actual field) — NOT c.patient.gender (does not exist)
+      results = results.filter(c => gl.includes(toFull(c.patient?.sex ?? '')));
+    }
+
+    // Age range — no stored 'age' field; compute from patient.dateOfBirth at query time
+    if (params?.ageMin !== undefined || params?.ageMax !== undefined) {
+      const minAge = params.ageMin ?? 0;
+      const maxAge = params.ageMax ?? 150;
+      const now = new Date();
+      results = results.filter(c => {
+        const dob = c.patient?.dateOfBirth;
+        if (!dob) return true; // don't exclude cases with no DOB on record
+        const birth = new Date(dob);
+        const age =
+          now.getFullYear() - birth.getFullYear() -
+          (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+        return age >= minAge && age <= maxAge;
+      });
+    }
+
+    // DOB date range (separate from accession dateFrom/dateTo)
+    if (params?.dobFrom || params?.dobTo) {
+      const from = params.dobFrom ? new Date(params.dobFrom as string).getTime() : 0;
+      const to   = params.dobTo   ? new Date(params.dobTo   as string).getTime() + 86_400_000 : Infinity;
+      results = results.filter(c => {
+        const dob = c.patient?.dateOfBirth;
+        if (!dob) return true;
+        const d = new Date(dob).getTime();
+        return !isNaN(d) && d >= from && d <= to;
+      });
+    }
+    if (params?.specimenList?.length) {
+      const sl = params.specimenList as string[];
+      results = results.filter(c =>
+        (c.specimens ?? []).some((sp: any) =>
+          sl.some((s: string) => (sp.description ?? sp.label ?? '').toLowerCase().includes(s.toLowerCase()))
+        )
+      );
+    }
+    if (params?.diagnosisList?.length) {
+      const dl = params.diagnosisList as string[];
+      results = results.filter(c =>
+        dl.some((d: string) =>
+          ((c as any).diagnosis ?? '').toLowerCase().includes(d.toLowerCase()) ||
+          ((c as any).microscopicDescription ?? '').toLowerCase().includes(d.toLowerCase())
+        )
+      );
+    }
+    if (params?.pathologistIds?.length) {
+      const ids = params.pathologistIds as string[];
+      results = results.filter(c => ids.includes(c.order?.assignedTo ?? ''));
+    }
+    if (params?.synopticProtocolIds?.length) {
+      // SearchPage passes resolved templateIds (e.g. 'breast_invasive'), not the UI p01 keys.
+      // Match against synopticReports[].templateId — specimens never had a synopticTemplateId field.
+      const ids = (params.synopticProtocolIds as string[]).map((s: string) => s.toLowerCase());
+      results = results.filter(c =>
+        ((c as any).synopticReports ?? []).some((sr: any) => {
+          const t = (sr.templateId ?? '').toLowerCase();
+          // Exact match OR common-prefix match (lung_adeno ↔ lung_resection, melanoma_resection ↔ skin_melanoma_bx)
+          return ids.some((id: string) => t === id || t.startsWith(id.replace(/_[^_]+$/, '_')));
+        })
+      );
+    }
+    if (params?.flagIds?.length) {
+      // SearchPage sends flag display names (e.g. 'STAT — Rush Processing'), not ID keys.
+      // Use case-insensitive name-contains so 'STAT' matches 'STAT — Rush Processing'.
+      const search = (params.flagIds as string[]).map((s: string) => s.toLowerCase());
+      results = results.filter(c =>
+        ((c as any).caseFlags ?? []).some((f: any) =>
+          search.some((s: string) =>
+            (f.name ?? '').toLowerCase().includes(s) || s.includes((f.name ?? '').toLowerCase())
+          )
+        )
+      );
+    }
+
+    if (params?.clientIds?.length) {
+      const ids = params.clientIds as string[];
+      results = results.filter(c =>
+        ids.includes((c as any).order?.clientId ?? '') ||
+        ids.some((id: string) => (c as any).order?.clientName?.toLowerCase().includes(
+          ALL_CLIENTS_MAP[id]?.toLowerCase() ?? ''
+        ))
+      );
+    }
+
+    // SNOMED CT — SearchPage now passes s.code (e.g. '413448000'); match c.coding.snomed[]
+    if ((params as any)?.snomedCodes?.length) {
+      const codes: string[] = (params as any).snomedCodes;
+      results = results.filter(c => {
+        const caseCodes: string[] = (c as any).coding?.snomed ?? [];
+        return codes.some((code: string) => caseCodes.includes(code));
+      });
+    }
+
+    // ICD-10/11 — SearchPage now passes s.code (e.g. 'C50.412'); match c.coding.icd10[]
+    if ((params as any)?.icdCodes?.length) {
+      const codes: string[] = (params as any).icdCodes;
+      results = results.filter(c => {
+        const caseCodes: string[] = (c as any).coding?.icd10 ?? [];
+        // Trim trailing sub-category so 'C50' matches 'C50.412'
+        return codes.some((code: string) =>
+          caseCodes.some((cc: string) => cc.startsWith(code) || code.startsWith(cc))
+        );
+      });
+    }
+
+    // Attending / Requesting Provider — SearchPage maps attendingId → full name before passing
+    if ((params as any)?.attendingNames?.length) {
+      const strip = (s: string) => s.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, '').trim();
+      const names: string[] = ((params as any).attendingNames as string[]).map(strip);
+      results = results.filter(c => {
+        const prov = strip(c.order?.requestingProvider ?? '');
+        return names.some((n: string) => prov.includes(n) || n.includes(prov));
+      });
+    }
+
     return { ok: true, data: results as any[] };
   },
 
@@ -3053,6 +3554,7 @@ export const mockCaseService: ICaseService = {
       'PATH-UK-002': 'HOSP-MFT',
       'PATH-US-001': 'HOSP-MPA',
       'PATH-US-002': 'HOSP-HFHS',
+      'PATH-RB-001': 'HOSP-001',   // Rossana Babakhani
     };
 
     const userHospital = USER_HOSPITAL_MAP[userId];

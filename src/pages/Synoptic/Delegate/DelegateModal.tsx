@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
 import { IActionRegistryService } from '../../../services/actionRegistry/IActionRegistryService';
-import { mockStaffDirectoryService } from '../../../services/staffDirectory/mockStaffDirectoryService';
-import type { StaffMember } from '../../../services/staffDirectory/IStaffDirectoryService';
+import { userService } from '../../../services';
+import type { StaffUser } from '../../../services';
 import { useSubspecialties } from '../../../contexts/useSubspecialties';
 import { mockDelegationTypeService } from '../../../services/delegationTypes/mockDelegationTypeService';
 import { loadDelegationTypes } from '../../../constants/delegationTypes';
@@ -31,13 +31,9 @@ interface DelegateModalProps {
   synopticInstances?: SynopticOption[];
 }
 
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  Available: { bg: 'rgba(16,185,129,0.12)',  color: '#34d399' },
-  Busy:      { bg: 'rgba(251,146,60,0.12)',   color: '#fb923c' },
-  Active:    { bg: 'rgba(148,163,184,0.12)', color: '#94a3b8' },
-};
-
-export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = [] }) => {
+export const DelegateModal: React.FC<DelegateModalProps> = ({
+  isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = []
+}) => {
   const { subspecialties } = useSubspecialties();
   const [searchTerm,         setSearchTerm]         = useState('');
   const [selectedId,         setSelectedId]         = useState<string | null>(null);
@@ -45,11 +41,11 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
   const [confirming,         setConfirming]         = useState(false);
   const [delegationType,     setDelegationType]     = useState<string | null>(null);
   const [note,               setNote]               = useState('');
-  const [step,               setStep]               = useState<'type' | 'recipient'>('type');
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [delegationTypes, setDelegationTypes] = useState(() => loadDelegationTypes().filter((d: any) => d.active));
-  const [staff,      setStaff]      = useState<StaffMember[]>([]);
-  // Pools come directly from the subspecialties context (same source as Config UI)
+  const [delegationTypes,    setDelegationTypes]    = useState(() => loadDelegationTypes().filter((d: any) => d.active));
+  const [staff,              setStaff]              = useState<{id:string;name:string;role:string;subspecialty:string}[]>([]);
+  const [loading,            setLoading]            = useState(false);
+
   const contextPools: Pool[] = subspecialties
     .filter(s => s.active)
     .map(s => ({
@@ -58,18 +54,35 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
       subspecialty: s.name,
       memberCount: s.userIds?.length ?? 0,
     }));
-  const [loading,    setLoading]    = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setSearchTerm(''); setSelectedId(null); setConfirming(false); setDelegationType(null); setNote(''); setStep('type'); setSelectedInstanceId(null);
-      // Load real data from services
+      setSearchTerm(''); setSelectedId(null); setConfirming(false);
+      setDelegationType(null); setNote(''); setSelectedInstanceId(null);
       setLoading(true);
       Promise.all([
-        mockStaffDirectoryService.listIndividuals(),
+        userService.getAll(),
         mockDelegationTypeService.getActive(),
-      ]).then(([individuals, typesResult]) => {
-        setStaff(individuals);
+      ]).then(([usersResult, typesResult]) => {
+        if (usersResult.ok) {
+          const delegates = usersResult.data
+            .filter((u: StaffUser) =>
+              u.id !== currentUserId &&
+              u.roles.some(r => r === 'Pathologist' || r === 'Resident')
+            )
+            .map((u: StaffUser) => {
+              const prefix = u.credentials ? 'Dr. ' : '';
+              const parts   = [u.firstName, u.middleName, u.lastName].filter(Boolean);
+              return {
+                id:          u.id,
+                name:        prefix + parts.join(' '),
+                role:        u.roles.find(r => r === 'Pathologist' || r === 'Resident') ?? u.roles[0] ?? 'Staff',
+                subspecialty: u.department,
+
+              };
+            });
+          setStaff(delegates);
+        }
         if (typesResult.ok) setDelegationTypes(typesResult.data);
         setLoading(false);
       }).catch(() => setLoading(false));
@@ -95,14 +108,20 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
     p.subspecialty.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedStaff = staff.find(s => s.id === selectedId);
-  const selectedPool  = contextPools.find(p => p.id === selectedId);
-  const selectedLabel = selectedStaff?.name ?? selectedPool?.name ?? null;
+  const selectedStaff     = staff.find(s => s.id === selectedId);
+  const selectedPool      = contextPools.find(p => p.id === selectedId);
+  const selectedLabel     = selectedStaff?.name ?? selectedPool?.name ?? null;
+  const selectedDelegType = delegationTypes.find(d => d.id === delegationType);
 
-  const selectedDelegationType = delegationTypes.find(d => d.id === delegationType);
+  const canConfirm =
+    !!delegationType &&
+    !!selectedId &&
+    !confirming &&
+    !(selectedDelegType?.requiresNote && !note) &&
+    !(delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && !selectedInstanceId);
 
   const handleConfirm = async () => {
-    if (!selectedLabel || !delegationType) return;
+    if (!canConfirm) return;
     setConfirming(true);
     try {
       if (caseId) {
@@ -116,7 +135,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
         } else {
           const isPool = selectedPool !== undefined;
           await delegateCase(
-            caseId, currentUserId, delegationType,
+            caseId, currentUserId, delegationType!,
             isPool ? undefined   : (selectedId ?? undefined),
             isPool ? (selectedId ?? undefined) : undefined,
             isPool ? selectedLabel : undefined,
@@ -137,105 +156,93 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
     <div className="fm-overlay" onClick={onClose}>
       <div className="ps-research-modal fm-modal" onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
+        {/* ── Header ─────────────────────────────────────────── */}
         <div className="ps-research-header">
           <div>
-            <div className="fm-eyebrow">Case Action · Step {step === 'type' ? '1 of 2' : '2 of 2'}</div>
+            <div className="fm-eyebrow">Case Action · Delegation</div>
             <div className="fm-title-row">
               <span style={{ fontSize: 20 }}>👤</span>
-              <h2 className="fm-title">{step === 'type' ? 'Delegation Type' : 'Select Recipient'}</h2>
-              {selectedDelegationType && step === 'recipient' && (
+              <h2 className="fm-title">Delegate Case</h2>
+              {selectedDelegType && (
                 <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: 'rgba(8,145,178,0.12)', color: '#38bdf8', border: '1px solid rgba(8,145,178,0.2)' }}>
-                  {selectedDelegationType.label}
+                  {selectedDelegType.label}
                 </span>
               )}
             </div>
           </div>
-          <button className="ps-research-close" onClick={onClose} aria-label="Close">×</button>
+          {/* X — matches all other modals */}
+          <button className="ps-close-btn" onClick={onClose} aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
-        {/* Step 1 — Delegation Type */}
-        {step === 'type' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
-              Select the reason for delegation — this is recorded in the audit log and shown in My Contributions.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* ── Three-panel body ───────────────────────────────── */}
+        <div className="fm-body">
+
+          {/* Panel 1 — Delegation Type */}
+          <div className="fm-left" style={{ width: 420 }}>
+            <div className="fm-section-label" style={{ padding: '0 16px', marginBottom: 8 }}>Delegation Type</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 8px' }}>
               {delegationTypes.map(dt => {
                 const isSelected = delegationType === dt.id;
                 return (
                   <button
                     key={dt.id}
-                    onClick={() => { setDelegationType(dt.id); setStep('recipient'); }}
+                    onClick={() => {
+                      setDelegationType(isSelected ? null : dt.id);
+                      if (!isSelected) setSelectedInstanceId(null);
+                    }}
                     className={'fm-flag-card' + (isSelected ? ' applied' : '')}
-                    style={{ textAlign: 'left', cursor: 'pointer' }}
+                    style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', cursor: 'pointer', gap: 6, padding: '10px 12px', alignItems: 'flex-start', width: '100%' }}
                   >
-                    <span
-                      className="fm-code-chip"
-                      title={dt.id}
-                      style={{ width: 76, minWidth: 76, flexShrink: 0, textAlign: 'center', fontSize: 9, letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: isSelected ? dt.color + '22' : undefined, color: isSelected ? dt.color : undefined }}
-                    >
-                      {dt.id.replace('_', ' ')}
-                    </span>
-                    <div className="fm-flag-info">
-                      <div className="fm-flag-name-row">
-                        <span className="fm-flag-name">{dt.label}</span>
-                        {dt.transfersOwnership && (
-                          <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>transfers ownership</span>
-                        )}
-                        {dt.cptHint && (
-                          <span style={{ fontSize: 10, color: '#94a3b8' }}>CPT {dt.cptHint}</span>
-                        )}
-                      </div>
-                      <div className="fm-flag-desc">{dt.description}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                      <span
+                        className="fm-code-chip"
+                        style={{ fontSize: 9, letterSpacing: '0.03em', background: isSelected ? dt.color + '22' : undefined, color: isSelected ? dt.color : undefined, flexShrink: 0 }}
+                      >
+                        {dt.id.replace('_', ' ')}
+                      </span>
+                      <span className="fm-flag-name" style={{ flex: 1 }}>{dt.label}</span>
+                      {isSelected && <span style={{ color: '#34d399', fontSize: 13, fontWeight: 700 }}>✓</span>}
                     </div>
-                    {isSelected
-                      ? <span className="fm-applied-text">✓ Selected</span>
-                      : <span className="fm-apply-btn">Select</span>
-                    }
+                    <div className="fm-flag-desc" style={{ paddingLeft: 0, whiteSpace: 'normal', lineHeight: 1.35 }}>
+                      {dt.description}
+                    </div>
+                    {dt.transfersOwnership && (
+                      <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>transfers ownership</span>
+                    )}
                   </button>
                 );
               })}
-
-              {/* Synoptic picker — shown when SYNOPTIC_ASSIGN is selected */}
-              {delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                    Select Synoptic to Assign
-                  </div>
-                  {synopticInstances.map(inst => {
-                    const isSel = selectedInstanceId === inst.instanceId;
-                    return (
-                      <div
-                        key={inst.instanceId}
-                        className={'fm-flag-card' + (isSel ? ' applied' : '')}
-                        onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
-                        style={{ cursor: 'pointer', marginBottom: 4 }}
-                      >
-                        <span className="fm-code-chip" style={{ width: 80, fontSize: 10, textAlign: 'center' }}>SYNOPTIC</span>
-                        <div className="fm-flag-info">
-                          <span className="fm-flag-name">{inst.specimenDescription}</span>
-                          <span className="fm-flag-desc">{inst.templateName}</span>
-                        </div>
-                        {isSel
-                          ? <span className="fm-applied-text">✓ Selected</span>
-                          : <span className="fm-apply-btn">Select</span>
-                        }
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
-          </div>
-        )}
 
-        {/* Step 2 — Recipient selection (existing body) */}
-        {step === 'recipient' && (
-          <div className="fm-body">
-          {/* Left panel — tab switcher */}
-          <div className="fm-left">
-            <div className="fm-section-label" style={{ padding: '0 16px', marginBottom: 8 }}>Delegate to</div>
+            {/* Synoptic picker */}
+            {delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && (
+              <div style={{ marginTop: 12, padding: '0 8px' }}>
+                <div className="fm-section-label" style={{ marginBottom: 6 }}>Select Synoptic</div>
+                {synopticInstances.map(inst => {
+                  const isSel = selectedInstanceId === inst.instanceId;
+                  return (
+                    <div
+                      key={inst.instanceId}
+                      className={'fm-flag-card' + (isSel ? ' applied' : '')}
+                      onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
+                      style={{ cursor: 'pointer', marginBottom: 4, flexDirection: 'column', alignItems: 'flex-start', padding: '8px 12px' }}
+                    >
+                      <span className="fm-flag-name">{inst.specimenDescription}</span>
+                      <span className="fm-flag-desc">{inst.templateName}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Panel 2 — Delegate To */}
+          <div className="fm-middle">
+            <div className="fm-section-label" style={{ padding: '0 16px', marginBottom: 8 }}>Delegate To</div>
 
             <button
               className={'fm-target-row' + (tab === 'individuals' ? ' active' : '')}
@@ -265,18 +272,33 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
                 )}
               </div>
             )}
+
+            {/* Note field if required */}
+            {selectedDelegType?.requiresNote && (
+              <div style={{ padding: '0 12px', marginTop: 8 }}>
+                <div className="fm-section-label" style={{ marginBottom: 4 }}>Note (required)</div>
+                <input
+                  type="text"
+                  placeholder="Add a note…"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 6, fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Right panel — search + list */}
+          {/* Panel 3 — Search & Results */}
           <div className="fm-right">
 
-            {/* Search */}
-            <div style={{ padding: '14px 16px 10px' }}>
-              <div className="fm-search-wrap">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ color: '#64748b', flexShrink: 0 }}>
-                  <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
-                  <path d="M10 10l4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                </svg>
+            <div style={{ padding: '12px 14px 10px' }}>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none', display: 'flex' }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+                    <path d="M10 10l4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                </span>
                 <input
                   autoFocus
                   className="fm-search-input"
@@ -291,146 +313,100 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, r
               </div>
             </div>
 
-            {/* Column header */}
-            <div style={{ display: 'flex', gap: 8, padding: '4px 16px 8px', borderBottom: '1px solid rgba(30,41,59,0.9)' }}>
-              <span className="fm-col-header" style={{ width: 120 }}>NAME</span>
-              <span className="fm-col-header" style={{ flex: 1 }}>
-                {tab === 'individuals' ? 'ROLE · STATUS' : 'MEMBERS'}
-              </span>
-              <span className="fm-col-header" style={{ width: 80, textAlign: 'right' }}>ACTION</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 28px', gap: 12, padding: '4px 12px 6px', borderBottom: '1px solid rgba(30,41,59,0.9)', flexShrink: 0 }}>
+              <span className="fm-col-label">ROLE</span>
+              <span className="fm-col-label">{tab === 'individuals' ? 'NAME' : 'NAME · MEMBERS'}</span>
+              <span />
             </div>
 
-            {/* List */}
-            <div className="fm-flag-list">
+            <div className="fm-flag-list" style={{ paddingLeft: 0, paddingRight: 0 }}>
               {loading && (
-                <div className="fm-empty">
-                  <div className="fm-empty-hint">Loading staff…</div>
-                </div>
+                <div className="fm-empty"><div className="fm-empty-hint">Loading…</div></div>
               )}
+
               {tab === 'individuals' && !loading && (
                 filteredStaff.length === 0
-                  ? (
-                    <div className="fm-empty">
-                      <div className="fm-empty-heading">No results for "{searchTerm}"</div>
-                      <div className="fm-empty-hint">Try a different name or role</div>
-                    </div>
-                  )
-                  : filteredStaff.map(staff => {
-                    const isSelected = selectedId === staff.id;
-                    const s = STATUS_STYLE[staff.status] ?? STATUS_STYLE.Active;
-                    return (
-                      <div
-                        key={staff.id}
-                        className={'fm-flag-card' + (isSelected ? ' applied' : '')}
-                        onClick={() => setSelectedId(isSelected ? null : staff.id)}
-                      >
-                        <span className="fm-code-chip" style={{ width: 80, minWidth: 80, flexShrink: 0, textAlign: 'center', fontSize: 9, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {staff.role}
-                        </span>
-                        <div className="fm-flag-info">
-                          <div className="fm-flag-name-row">
-                            <span className="fm-flag-name">{staff.name}</span>
+                  ? <div className="fm-empty"><div className="fm-empty-heading">No results for "{searchTerm}"</div><div className="fm-empty-hint">Try a different name or role</div></div>
+                  : filteredStaff.map(s => {
+                      const isSelected = selectedId === s.id;
+                      return (
+                        <div
+                          key={s.id}
+                          className={'fm-flag-card' + (isSelected ? ' applied' : '')}
+                          onClick={() => setSelectedId(isSelected ? null : s.id)}
+                          style={{ gridTemplateColumns: '80px 1fr 28px' }}
+                        >
+                          <span className="fm-code-chip" style={{ width: 80, minWidth: 80, flexShrink: 0, textAlign: 'center', fontSize: 9, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {s.role}
+                          </span>
+                          <div className="fm-flag-info">
+                            <div className="fm-flag-name-row">
+                              <span className="fm-flag-name">{s.name}</span>
+                            </div>
                           </div>
-                          <div className="fm-flag-desc">
-                            <span style={{ padding: '1px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700, background: s.bg, color: s.color }}>
-                              {staff.status}
-                            </span>
-                          </div>
+                          <span style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', color: isSelected ? '#34d399' : '#0891B2' }}>
+                            {isSelected
+                              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5l4 4.5-4 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            }
+                          </span>
                         </div>
-                        {isSelected
-                          ? <span className="fm-applied-text">✓ Selected</span>
-                          : <span className="fm-apply-btn">+ Select</span>
-                        }
-                      </div>
-                    );
-                  })
+                      );
+                    })
               )}
 
               {tab === 'pools' && !loading && (
                 filteredPools.length === 0
-                  ? (
-                    <div className="fm-empty">
-                      <div className="fm-empty-heading">No pools found</div>
-                      <div className="fm-empty-hint">Try a different search term</div>
-                    </div>
-                  )
+                  ? <div className="fm-empty"><div className="fm-empty-heading">No pools found</div><div className="fm-empty-hint">Try a different search term</div></div>
                   : filteredPools.map(pool => {
-                    const isSelected = selectedId === pool.id;
-                    return (
-                      <div
-                        key={pool.id}
-                        className={'fm-flag-card' + (isSelected ? ' applied' : '')}
-                        onClick={() => setSelectedId(isSelected ? null : pool.id)}
-                      >
-                        <span className="fm-code-chip" style={{ width: 108, textAlign: 'center', fontSize: 11 }}>
-                          POOL
-                        </span>
-                        <div className="fm-flag-info">
-                          <div className="fm-flag-name-row">
-                            <span className="fm-flag-name">{pool.name}</span>
+                      const isSelected = selectedId === pool.id;
+                      return (
+                        <div
+                          key={pool.id}
+                          className={'fm-flag-card' + (isSelected ? ' applied' : '')}
+                          onClick={() => setSelectedId(isSelected ? null : pool.id)}
+                          style={{ gridTemplateColumns: '80px 1fr 28px' }}
+                        >
+                          <span className="fm-code-chip" style={{ width: 80, minWidth: 80, textAlign: 'center', fontSize: 10 }}>POOL</span>
+                          <div className="fm-flag-info">
+                            <div className="fm-flag-name-row">
+                              <span className="fm-flag-name">{pool.name}</span>
+                            </div>
+                            <div className="fm-flag-desc">{pool.memberCount} members available</div>
                           </div>
-                          <div className="fm-flag-desc">{pool.memberCount} members available</div>
+                          <span style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', color: isSelected ? '#34d399' : '#0891B2' }}>
+                            {isSelected
+                              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5l4 4.5-4 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            }
+                          </span>
                         </div>
-                        {isSelected
-                          ? <span className="fm-applied-text">✓ Selected</span>
-                          : <span className="fm-apply-btn">+ Select</span>
-                        }
-                      </div>
-                    );
-                  })
+                      );
+                    })
               )}
             </div>
           </div>
         </div>
-        )} {/* end step === 'recipient' */}
 
-        {/* Footer */}
+        {/* ── Footer ─────────────────────────────────────────── */}
         <div className="fm-footer">
           <span className={'fm-footer-status' + (delegationType || selectedLabel ? ' dirty' : '')}>
-            {step === 'type'
-              ? (delegationType ? delegationTypes.find(d => d.id === delegationType)?.label : 'Select a delegation type')
-              : (selectedLabel ? 'Delegating to: ' + selectedLabel : 'No recipient selected')
+            {!delegationType
+              ? 'Choose a delegation type'
+              : !selectedId
+                ? `${selectedDelegType?.label} — choose a recipient`
+                : `Delegating to ${selectedLabel} · ${selectedDelegType?.label}`
             }
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            {step === 'recipient' && (
-              <button className="fm-btn-cancel" onClick={() => setStep('type')}>← Back</button>
-            )}
             <button className="fm-btn-cancel" onClick={onClose}>Cancel</button>
-            {step === 'type' ? (
-              <button
-                className="fm-btn-save"
-                disabled={!delegationType}
-                style={{ opacity: (!delegationType || (delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && !selectedInstanceId)) ? 0.5 : 1 }}
-                onClick={() => {
-                  if (delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && !selectedInstanceId) return;
-                  setStep('recipient');
-                }}
-              >
-                Next →
-              </button>
-            ) : (
-              <>
-                {/* Optional note field */}
-                {selectedDelegationType?.requiresNote && (
-                  <input
-                    type="text"
-                    placeholder="Add a note (required)…"
-                    value={note}
-                    onChange={e => setNote(e.target.value)}
-                    style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0', width: 200, outline: 'none' }}
-                  />
-                )}
-                <button
-                  className="fm-btn-save"
-                  disabled={!selectedId || confirming || (selectedDelegationType?.requiresNote && !note)}
-                  onClick={handleConfirm}
-                  style={{ opacity: !selectedId || confirming ? 0.5 : 1 }}
-                >
-                  {confirming ? 'Delegating…' : 'Confirm Delegation'}
-                </button>
-              </>
-            )}
+            <button
+              className="fm-btn-save"
+              disabled={!canConfirm}
+              onClick={handleConfirm}
+            >
+              {confirming ? 'Delegating…' : 'Confirm Delegation'}
+            </button>
           </div>
         </div>
 

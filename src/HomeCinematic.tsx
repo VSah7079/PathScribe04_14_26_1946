@@ -15,8 +15,8 @@ export default function HomeCinematic() {
   const [themeNotice, setThemeNotice] = useState("");
   const [showAbout, setShowAbout] = useState(false);
 
-  const isAdmin = user?.roles?.includes("SystemAdmin");
-  const isPathologist = user?.roles?.includes("Pathologist");
+  const isAdmin = user?.role?.includes("SystemAdmin");
+  const isPathologist = user?.role?.includes("Pathologist");
 
   useEffect(() => {
     const saved = localStorage.getItem("theme-mode") as ThemeMode | null;
@@ -454,3 +454,4 @@ export default function HomeCinematic() {
     </div>
   );
 }
+

@@ -1,4 +1,7 @@
+// src/components/Contribution/ProductivityTab.tsx
 import React, { useState } from "react";
+import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis,
+         CartesianGrid, Tooltip as RechartsTooltip, ReferenceLine, Legend } from "recharts";
 import { pathscribeTheme as theme } from "@theme/pathscribeTheme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,8 +50,8 @@ const mockRvuTile = {
 
 const Card: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
   <div style={{
-    background: theme.colors.tile.background,
-    border: `1px solid ${theme.colors.tile.border}`,
+    background: theme.colors.surfaceSubtle,
+    border: `1px solid ${theme.colors.border.subtle}`,
     borderRadius: "16px",
     padding: "20px",
     ...style,
@@ -134,77 +137,63 @@ const LineChart: React.FC<{
   showTop: boolean;
   showLastYear: boolean;
 }> = ({ data, showPeer, showTop, showLastYear }) => {
-  const W      = 100 / (data.length - 1);
-  const maxVal = Math.max(mockPeerData.topPerf, ...data.map(d => d.cumulativeRvus));
-
-  const toY = (v: number) => 5 + (1 - v / maxVal) * 90;
-  const toX = (i: number) => i * W;
-
-  const youLine  = data.map((d, i) => ({ x: toX(i), y: toY(d.cumulativeRvus) }));
-  const peerLine = data.map((_, i) => ({ x: toX(i), y: toY(mockPeerData.peerAvg  * (i + 1) / data.length) }));
-  const topLine  = data.map((_, i) => ({ x: toX(i), y: toY(mockPeerData.topPerf  * (i + 1) / data.length) }));
-  const lastLine = data.map((_, i) => ({ x: toX(i), y: toY(mockPeerData.lastYear * (i + 1) / data.length) }));
-
-  const makePath = (pts: { x: number; y: number }[]) =>
-    pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-
-  // Y-axis tick values: 5 evenly-spaced labels from 0 to maxVal
-  const yTicks = [0, 0.25, 0.5, 0.75, 1.0].map(frac => ({
-    value: Math.round(frac * maxVal / 100) * 100,
-    y: toY(frac * maxVal),
+  // Build chart rows — cumulative actuals + peer / top / last-year projections
+  const n = data.length;
+  const chartRows = data.map((d, i) => ({
+    month:     d.month,
+    you:       d.cumulativeRvus,
+    peer:      +(mockPeerData.peerAvg  * (i + 1) / n).toFixed(0),
+    top:       +(mockPeerData.topPerf  * (i + 1) / n).toFixed(0),
+    lastYear:  +(mockPeerData.lastYear * (i + 1) / n).toFixed(0),
   }));
+  const chartYear = new Date().getFullYear();
+
+  const fmt = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v);
 
   return (
     <div>
-    <div style={{ display: "flex", gap: "4px" }}>
-      {/* Y-axis labels */}
-      <svg viewBox="0 0 12 110" style={{ width: "40px", height: "400px", flexShrink: 0, overflow: "visible" }}>
-        {yTicks.map(tick => (
-          <text key={tick.value} x="10" y={tick.y + 1} textAnchor="end" fontSize="4" fill={theme.colors.chart.axis}>
-            {tick.value >= 1000 ? `${(tick.value / 1000).toFixed(1)}k` : tick.value}
-          </text>
-        ))}
-        <text x="4" y="55" textAnchor="middle" fontSize="3.5" fill={theme.colors.text.muted}
-          transform="rotate(-90, 4, 55)">RVUs</text>
-      </svg>
-
-      {/* Main chart */}
-      <svg viewBox="0 0 100 110" style={{ flex: 1, height: "400px", overflow: "visible" }}>
-        {yTicks.map(tick => (
-          <line key={tick.value} x1={0} y1={tick.y} x2={100} y2={tick.y} stroke={theme.colors.chart.gridline} strokeWidth="0.4" />
-        ))}
-        {showLastYear && <path d={makePath(lastLine)} fill="none" stroke={theme.colors.text.muted} strokeWidth="1" strokeDasharray="2 2" />}
-        {showPeer     && <path d={makePath(peerLine)} fill="none" stroke={theme.colors.chart.cases} strokeWidth="1.2" strokeDasharray="3 2" />}
-        {showTop      && <path d={makePath(topLine)}  fill="none" stroke={theme.colors.chart.rvu} strokeWidth="1.2" strokeDasharray="3 2" />}
-        <path d={makePath(youLine)} fill="none" stroke={theme.colors.accentTeal} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        {youLine.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="1.8" fill={theme.colors.accentTeal} />
-        ))}
-        {data.map((d, i) => (
-          <text key={d.month} x={toX(i)} y={108} textAnchor="middle" fontSize="4.5" fill={theme.colors.chart.axis}>{d.month}</text>
-        ))}
-      </svg>
-    </div>
-
-    <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "8px" }}>
-      {[
-        { label: "Your RVUs",     color: theme.colors.accentTeal,          show: true        },
-        { label: "Peer Average",  color: theme.colors.chart.cases,         show: showPeer    },
-        { label: "Top Performer", color: theme.colors.chart.rvu,           show: showTop     },
-        { label: "Last Year",     color: theme.colors.text.muted,          show: showLastYear },
-      ].filter(l => l.show).map(l => (
-        <div key={l.label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <div style={{ width: "20px", height: "2px", background: l.color, borderRadius: "1px" }} />
-          <span style={{ fontSize: "11px", color: theme.colors.text.muted }}>{l.label}</span>
-        </div>
-      ))}
-    </div>
+      <ResponsiveContainer width="100%" height={380}>
+        <ComposedChart data={chartRows} margin={{ top: 12, right: 24, left: 8, bottom: 28 }}>
+          <CartesianGrid stroke={theme.colors.chart.gridline} strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 12, fill: theme.colors.chart.axis }}
+            axisLine={false} tickLine={false}
+            label={{ value: String(chartYear), position: 'insideBottom', offset: -12, fontSize: 11, fill: theme.colors.text.muted }}
+          />
+          <YAxis
+            tickFormatter={fmt}
+            tick={{ fontSize: 12, fill: theme.colors.chart.axis }}
+            axisLine={false} tickLine={false}
+            width={48}
+            label={{ value: 'RVUs', angle: -90, position: 'insideLeft', offset: 8, fontSize: 11, fill: theme.colors.text.muted }}
+          />
+          <RechartsTooltip
+            contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, fontSize: 12 }}
+            labelStyle={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}
+            formatter={(value: number, name: string) => [fmt(value) + ' RVUs', name]}
+          />
+          {showLastYear && (
+            <Line dataKey="lastYear" name="Last Year" stroke={theme.colors.text.muted}
+              strokeWidth={1} strokeDasharray="4 3" dot={false} />
+          )}
+          {showPeer && (
+            <Line dataKey="peer" name="Peer Average" stroke={theme.colors.chart.cases}
+              strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+          )}
+          {showTop && (
+            <Line dataKey="top" name="Top Performer" stroke={theme.colors.chart.rvu}
+              strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+          )}
+          <Line dataKey="you" name="Your RVUs" stroke={theme.colors.accentTeal}
+            strokeWidth={2.5} dot={{ r: 3, fill: theme.colors.accentTeal }}
+            activeDot={{ r: 5 }} />
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   );
 };
 
-
-// ─── RVU Summary Tile ─────────────────────────────────────────────────────────
 
 const RvuTile: React.FC = () => (
   <Card>
@@ -274,11 +263,18 @@ const ProductivityTab: React.FC = () => {
   const [showTop,      setShowTop]      = useState(true);
   const [showLastYear, setShowLastYear] = useState(false);
 
+  // Cap at current calendar month — no future data points
+  const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const currentMonthIdx = new Date().getMonth();
+  const availableMonthly = mockMonthly.filter(
+    d => MONTH_ORDER.indexOf(d.month) <= currentMonthIdx
+  );
+
   const filteredMonthly =
-    dateRange === "ytd" ? mockMonthly :
-    dateRange === "6m"  ? mockMonthly.slice(-6) :
-    dateRange === "3m"  ? mockMonthly.slice(-3) :
-                          mockMonthly.slice(-1);
+    dateRange === "ytd" ? availableMonthly :
+    dateRange === "6m"  ? availableMonthly.slice(-6) :
+    dateRange === "3m"  ? availableMonthly.slice(-3) :
+                          availableMonthly.slice(-1);
 
   const btn = (active: boolean): React.CSSProperties => ({
     padding: "5px 12px", fontSize: "12px", fontWeight: 600, borderRadius: "6px", cursor: "pointer",

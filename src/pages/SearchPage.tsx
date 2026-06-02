@@ -8,9 +8,12 @@ import WorklistTable from '../components/Worklist/WorklistTable';
 import { caseService, codeService } from '../services';
 import type { PathologyCase, CaseFilterParams, ClinicalCode } from '../services';
 import { LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty } from '../components/Common/LookupModal';
+// Extended component — adds onClear prop until LookupModal.tsx is updated
+const LookupModalX = LookupModal as React.ComponentType<React.ComponentProps<typeof LookupModal> & { onClear?: () => void; onDone?: () => void }>;
 import { useSpecimenDictionary } from '../components/Config/System/useSpecimenDictionary';
 import type { SpecimenEntry } from '../components/Config/System/specimenTypes';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
+import { useBreadcrumb }   from '../contexts/BreadcrumbContext';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { normalizeAccession } from '../utils/normalizeAccession';
 import { VOICE_CONTEXT } from '../constants/systemActions';
@@ -40,7 +43,7 @@ const ssSave  = (s: LastSearchSnapshot) => { try { sessionStorage.setItem(SS_KEY
 const ssClear = () => { try { sessionStorage.removeItem(SS_KEY); } catch {} };
 
 // â”€â”€â”€ Specimen dictionary (used for inline typeahead only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Full specimen list lives in mockSpecimenService â€” this is just for the
+// Full specimen list lives in mockSpecimenService ”” this is just for the
 // search field suggestions until that service is wired to this page.
 const SPECIMEN_DICTIONARY = [
   'Left Breast Mastectomy','Right Breast Mastectomy','Right Breast Lumpectomy','Left Breast Lumpectomy',
@@ -52,74 +55,171 @@ const SPECIMEN_DICTIONARY = [
   'Sentinel Lymph Node Biopsy','Core Needle Biopsy Breast','Prostate Biopsy Cores',
 ];
 
-// â”€â”€â”€ SNOMED/ICD inline data removed â€” now served by codeService â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ SNOMED/ICD inline data removed ”” now served by codeService â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // See src/services/codes/mockCodeService.ts
 
 // â”€â”€â”€ Synoptics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-interface SynopticTemplate { id: string; name: string; organ: string; category: string; }
+interface SynopticTemplate { id: string; name: string; organ: string; category: string; templateId: string; }
 const ALL_SYNOPTICS: SynopticTemplate[] = [
-  { id:'p01', name:'CAP Breast Invasive Carcinoma', organ:'Breast',     category:'Breast'      },
-  { id:'p02', name:'CAP Breast DCIS',               organ:'Breast DCIS',category:'Breast'      },
-  { id:'p03', name:'CAP Colon Resection',           organ:'Colon',      category:'GI'          },
-  { id:'p04', name:'CAP Rectum Resection',          organ:'Rectum',     category:'GI'          },
-  { id:'p05', name:'CAP Appendix',                  organ:'Appendix',   category:'GI'          },
-  { id:'p06', name:'CAP Prostatectomy',             organ:'Prostate',   category:'GU'          },
-  { id:'p07', name:'CAP Prostate Biopsy',           organ:'Prostate Bx',category:'GU'          },
-  { id:'p08', name:'CAP Kidney Resection',          organ:'Kidney',     category:'GU'          },
-  { id:'p09', name:'CAP Bladder Resection',         organ:'Bladder',    category:'GU'          },
-  { id:'p10', name:'CAP Lung Resection',            organ:'Lung',       category:'Thoracic'    },
-  { id:'p11', name:'CAP Mesothelioma',              organ:'Pleura',     category:'Thoracic'    },
-  { id:'p12', name:'CAP Thyroid',                   organ:'Thyroid',    category:'Endocrine'   },
-  { id:'p13', name:'CAP Adrenal',                   organ:'Adrenal',    category:'Endocrine'   },
-  { id:'p14', name:'CAP Endometrium',               organ:'Uterus',     category:'Gynaecology' },
-  { id:'p15', name:'CAP Cervix Resection',          organ:'Cervix',     category:'Gynaecology' },
-  { id:'p16', name:'CAP Ovary',                     organ:'Ovary',      category:'Gynaecology' },
-  { id:'p17', name:'CAP Melanoma',                  organ:'Skin',       category:'Skin'        },
-  { id:'p18', name:'CAP Squamous Cell Carcinoma',   organ:'Skin SCC',   category:'Skin'        },
-  { id:'p19', name:'CAP Soft Tissue',               organ:'Soft Tissue',category:'Bone/Soft'   },
-  { id:'p20', name:'CAP Bone',                      organ:'Bone',       category:'Bone/Soft'   },
-  { id:'p21', name:'CAP Lymph Node',                organ:'Lymph Node', category:'Haem'        },
-  { id:'p22', name:'CAP Hodgkin Lymphoma',          organ:'Lymphoma',   category:'Haem'        },
+  // Breast
+  { id:'p01', templateId:'breast_invasive',            name:'CAP Breast Invasive Carcinoma', organ:'Breast',      category:'Breast'      },
+  { id:'p02', templateId:'breast_dcis_resection',      name:'CAP Breast DCIS',               organ:'Breast DCIS', category:'Breast'      },
+  // GI — alphabetical by organ
+  { id:'p05', templateId:'appendix',                   name:'CAP Appendix',                  organ:'Appendix',    category:'GI'          },
+  { id:'p03', templateId:'colon_resection',            name:'CAP Colon Resection',           organ:'Colon',       category:'GI'          },
+  { id:'p04', templateId:'rcpath_colorectal_resection',name:'CAP Rectum Resection',          organ:'Rectum',      category:'GI'          },
+  // GU — alphabetical by organ
+  { id:'p09', templateId:'bladder_resection',          name:'CAP Bladder Resection',         organ:'Bladder',     category:'GU'          },
+  { id:'p08', templateId:'kidney_resection',           name:'CAP Kidney Resection',          organ:'Kidney',      category:'GU'          },
+  { id:'p06', templateId:'prostate_resection',         name:'CAP Prostatectomy',             organ:'Prostate',    category:'GU'          },
+  { id:'p07', templateId:'prostate_needle_biopsy',     name:'CAP Prostate Biopsy',           organ:'Prostate Bx', category:'GU'          },
+  // Thoracic
+  { id:'p10', templateId:'lung_adeno',                 name:'CAP Lung Resection',            organ:'Lung',        category:'Thoracic'    },
+  { id:'p11', templateId:'mesothelioma',               name:'CAP Mesothelioma',              organ:'Pleura',      category:'Thoracic'    },
+  // Endocrine — alphabetical
+  { id:'p13', templateId:'adrenal',                    name:'CAP Adrenal',                   organ:'Adrenal',     category:'Endocrine'   },
+  { id:'p12', templateId:'thyroid_malignant',          name:'CAP Thyroid',                   organ:'Thyroid',     category:'Endocrine'   },
+  // Gynaecology — alphabetical
+  { id:'p15', templateId:'cervix_resection',           name:'CAP Cervix Resection',          organ:'Cervix',      category:'Gynaecology' },
+  { id:'p14', templateId:'endometrium_biopsy',         name:'CAP Endometrium',               organ:'Uterus',      category:'Gynaecology' },
+  { id:'p16', templateId:'ovary',                      name:'CAP Ovary',                     organ:'Ovary',       category:'Gynaecology' },
+  // Skin — alphabetical
+  { id:'p17', templateId:'melanoma_resection',         name:'CAP Melanoma',                  organ:'Skin',        category:'Skin'        },
+  { id:'p18', templateId:'skin_scc',                   name:'CAP Squamous Cell Carcinoma',   organ:'Skin SCC',    category:'Skin'        },
+  // Bone/Soft — alphabetical
+  { id:'p20', templateId:'bone',                       name:'CAP Bone',                      organ:'Bone',        category:'Bone/Soft'   },
+  { id:'p19', templateId:'soft_tissue',                name:'CAP Soft Tissue',               organ:'Soft Tissue', category:'Bone/Soft'   },
+  // Haem
+  { id:'p22', templateId:'hodgkin_lymphoma',           name:'CAP Hodgkin Lymphoma',          organ:'Lymphoma',    category:'Haem'        },
+  { id:'p21', templateId:'lymph_node',                 name:'CAP Lymph Node',                organ:'Lymph Node',  category:'Haem'        },
 ];
 
 // â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface UserStub { id: string; name: string; client: string; }
 const ALL_PATHOLOGISTS: UserStub[] = [
-  { id:'path-1', name:'Dr. Sarah Johnson',   client:'St. Vincent\'s University Hospital'  },
-  { id:'path-2', name:'Dr. Michael Chen',    client:'Mater Misericordiae University Hospital' },
-  { id:'path-3', name:'Dr. Emily Rodriguez', client:'Beaumont Hospital'                   },
-  { id:'path-4', name:'Dr. James Okafor',    client:'St. James\'s Hospital'               },
-  { id:'path-5', name:'Dr. Priya Nair',      client:'Cork University Hospital'            },
-  { id:'path-6', name:'Dr. David Lee',       client:'Mater Misericordiae University Hospital' },
-  { id:'path-7', name:'Dr. Anna Fischer',    client:'Tallaght University Hospital'        },
-  { id:'path-8', name:'Dr. Raj Patel'  ,     client:'St. Vincent\'s University Hospital'  },
+  { id:'PATH-RB-001', name:'Dr. Rossana Babakhani', client:'Riverview Health System'      },
+  { id:'PATH-UK-001', name:'Dr. Paul Carter',        client:'Manchester Foundation Trust'  },
+  { id:'PATH-US-001', name:'Dr. Rachel Kim',         client:'Midwest Pathology Associates' },
+  { id:'PATH-001',    name:'Dr. Pete Nimmo',         client:'Riverview Health System'      },
+  { id:'PATH-UK-002', name:'Dr. Oliver Pemberton',   client:'Manchester Foundation Trust'  },
+  { id:'PATH-US-002', name:'Dr. Marcus Thompson',    client:'Midwest Pathology Associates' },
 ];
 const ALL_ATTENDINGS: UserStub[] = [
-  { id:'att-1',  name:'Dr. Robert Williams',  client:'Blackrock Clinic'                    },
-  { id:'att-2',  name:'Dr. Linda Martinez',   client:'Beacon Hospital'                     },
-  { id:'att-3',  name:'Dr. Kevin Thompson',   client:'St. James\'s Hospital'               },
-  { id:'att-4',  name:'Dr. Susan Clark',      client:'Mater Private Network'               },
-  { id:'att-5',  name:'Dr. Brian Park',       client:'Galway University Hospital'          },
-  { id:'att-6',  name:'Dr. Catherine Moore',  client:'Beacon Hospital'                     },
-  { id:'att-7',  name:'Dr. Thomas Harris',    client:'Blackrock Clinic'                    },
-  { id:'att-8',  name:'Dr. Patricia Allen',   client:'Cork University Hospital'            },
-  { id:'att-9',  name:'Dr. Mark Davis',       client:'St. Vincent\'s University Hospital'  },
-  { id:'att-10', name:'Dr. Nicole Wilson',    client:'Galway University Hospital'          },
+  // Sorted alphabetically by last name — sourced from requestingProvider values in mock case data
+  { id:'att-7',  name:'Dr. Nathan Briggs',     client:'Metro General Hospital'       },
+  { id:'att-11', name:'Dr. Amanda Chen',       client:'Metro General Hospital'       },
+  { id:'att-6',  name:'Dr. Sarah Chen',        client:'Metro General Hospital'       },
+  { id:'att-18', name:'Dr. Michelle Foster',   client:'Metro General Hospital'       },
+  { id:'att-19', name:'Dr. Nancy Graves',      client:'Metro General Hospital'       },
+  { id:'att-1',  name:'Dr. Mazen Iskandar',    client:'Henry Ford Health System'     },
+  { id:'att-23', name:'Dr. Carolyn Johnston',  client:'Metro General Hospital'       },
+  { id:'att-16', name:'Dr. Lisa Kaminski',     client:'Henry Ford Health System'     },
+  { id:'att-14', name:'Dr. Helen Marsden',     client:'Manchester Foundation Trust'  },
+  { id:'att-17', name:'Dr. Mani Menon',        client:'Henry Ford Health System'     },
+  { id:'att-5',  name:'Dr. Patricia Moore',    client:'Metro General Hospital'       },
+  { id:'att-21', name:'Dr. Priya Nair',        client:'Metro General Hospital'       },
+  { id:'att-15', name:'Dr. Kevin Ng',          client:'Metro General Hospital'       },
+  { id:'att-12', name:'Dr. James Nguyen',      client:'Metro General Hospital'       },
+  { id:'att-26', name:'Dr. James Orringer',    client:'Henry Ford Health System'     },
+  { id:'att-20', name:'Dr. Patricia Owens',    client:'Metro General Hospital'       },
+  { id:'att-4',  name:'Dr. James Park',        client:'Metro General Hospital'       },
+  { id:'att-22', name:'Dr. Susan Park',        client:'Metro General Hospital'       },
+  { id:'att-8',  name:'Dr. Harvey Pass',       client:'Henry Ford Health System'     },
+  { id:'att-9',  name:'Dr. Anil Sharma',       client:'Metro General Hospital'       },
+  { id:'att-13', name:'Dr. Karen Shapiro',     client:'Metro General Hospital'       },
+  { id:'att-2',  name:'Mr. Peter Thornton',    client:'Manchester Foundation Trust'  },
+  { id:'att-3',  name:'Dr. Michael Torres',    client:'Riverside Medical Center'     },
+  { id:'att-24', name:'Mr. David Whitmore',    client:'Manchester Foundation Trust'  },
+  { id:'att-25', name:'Mr. James Whitfield',   client:'Manchester Foundation Trust'  },
+  { id:'att-10', name:'Dr. Lisa Wong',         client:'Metro General Hospital'       },
 ];
 
 // â”€â”€â”€ Flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+// Sorted alphabetically. 'STAT' (shorthand) catches all STAT-prefixed flags via name-contains
+// matching in the service. The PRIORITY → STAT chip in the sidebar filters by case priority;
+// these flag entries target case-level flag badges on the case card.
 const ALL_FLAGS = [
-  'RUSH','Frozen Section','QI Review','Clinician Query','Recut Requested',
-  'Additional Levels','Special Stains Pending','IHC Pending','Molecular Pending',
-  'Correlation Required','Second Opinion','Amended Report','Addendum Added',
-  'Tumour Board','MDT Discussion','Conference Case','Teaching Case',
-  'Research Consent','Clinical Trial','Rare Diagnosis',
+  'Actionable Mutation — Oncology Alert',
+  'Amended Report',
+  'Awaiting Attending Sign-off',
+  'BRAF V600E Positive',
+  'BRCA1 Pathogenic Variant',
+  'Close Margin — 3mm',
+  'Colorectal MDT — Mon 13:00',
+  'Colorectal MDT — Wed 14:00',
+  'ER/PR/HER2 Pending',
+  'Frozen Section',
+  'Frozen Section Pending',
+  'Geriatric Patient — 100y',
+  'Gleason Upgrade from Bx',
+  'Gynaecology Oncology',
+  'IHC Panel (PD-L1)',
+  'KRAS Result — Oncology Notified',
+  'Melanoma MDT',
+  'MMR IHC Panel',
+  'Molecular Panel',
+  'Molecular Profiling',
+  'Oncology Awaiting Report',
+  'Oncology Treatment on Hold',
+  'OR Awaiting Result',
+  'Pending Clinical Correlation',
+  'Positive Surgical Margin',
+  'PSMA IHC — Positive',
+  'Second Opinion — MDT Review',
+  'Second Opinion Requested',
+  'Sentinel Node Positive — Completion Dissection?',
+  'STAT',                                   // broad shorthand — matches any STAT-prefixed flag
+  'STAT — Intraoperative Frozen Section',
+  'STAT — Rush Processing',
+  'Thoracic MDT — Fri 09:00',
+  'Thyroid MDT',
+  'Tumor Board — Thu 14:00',
+  'Tumour Perforation — pT4',
+  'Urology MDT',
+  'Urology MDT — Fri 09:00',
+  'VHL Mutation',
 ];
 
-const CASE_STATUS_OPTIONS = ['Grossed','Awaiting Micro','Finalizing','Completed'] as const;
+// Sorted alphabetically. Names in the top group match actual specimenFlag names in mock data
+// (the sf.name === code check in the client-side filter will return results for these).
+// Lower group are real clinical tests — currently no demo cases, but correctly named for future data.
+const ALL_COMP_FLAGS = [
+  // ── Have matching cases in mock data ──────────────────────────────────────
+  'BRAF V600E',
+  'ER/PR/HER2',
+  'HER2 FISH',
+  'IHC Panel (PD-L1)',
+  'MMR IHC Panel',
+  'Molecular Panel',
+  'Molecular Profiling',
+  'VHL Mutation',
+  // ── Standard clinical tests (no demo cases yet) ───────────────────────────
+  'ALK',
+  'EGFR',
+  'Flow Cytometry',
+  'Ki-67',
+  'KRAS/NRAS',
+  'MSI/MMR',
+  'PD-L1 (22C3)',
+  'ROS1',
+  'TMB',
+];
+
+const ALL_CLIENTS = [
+  { id:'c4', name:'Bayview Memorial'                 },
+  { id:'c8', name:'Henry Ford Health System'         },
+  { id:'c6', name:'Manchester Foundation Trust'      },
+  { id:'c1', name:'Metro General Hospital'           },
+  { id:'c7', name:'Midwest Pathology Associates'     },
+  { id:'c2', name:'Riverside Medical Center'         },
+  { id:'c5', name:"St. Catherine's Medical Centre"   },
+  { id:'c3', name:'Westside Community Hospital'      },
+];
+
+const CASE_STATUS_OPTIONS = ['draft','in-progress','pending','pending-review','pending-countersign','finalized','pool','amended'] as const;
 const PRIORITY_OPTIONS    = ['Routine','STAT'] as const;
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -142,7 +242,7 @@ interface SavedSearch { id: string; name: string; filters: FilterState; createdA
 
 const buildSummary = (f: FilterState): string => {
   const parts: string[] = [];
-  if (f.dateFrom || f.dateTo) parts.push(`accession ${fmtDate(f.dateFrom)||'â€¦'} â€“ ${fmtDate(f.dateTo)||'today'}`);
+  if (f.dateFrom || f.dateTo) parts.push(`accession ${fmtDate(f.dateFrom)||'…'} — ${fmtDate(f.dateTo)||'today'}`);
   if (f.patientName)           parts.push(`patient "${f.patientName}"`);
   if (f.accessionNo)           parts.push(`accession "${f.accessionNo}"`);
   if (f.hospitalId)            parts.push(`MRN "${f.hospitalId}"`);
@@ -152,14 +252,14 @@ const buildSummary = (f: FilterState): string => {
   if (f.icdCodes.length)     parts.push(`ICD: ${f.icdCodes.map(s=>`${s.system}:${s.code}`).join(', ')}`);
   if (f.statusList.length)     parts.push(`status: ${f.statusList.join(', ')}`);
   if (f.genderList?.length)    parts.push(`gender: ${f.genderList.join(', ')}`);
-  if (f.dobFrom || f.dobTo)    parts.push(`DOB: ${f.dobFrom||'â€¦'} â†’ ${f.dobTo||'â€¦'}`);
-  if (f.ageMin !== undefined || f.ageMax !== undefined) parts.push(`age: ${f.ageMin??'0'}â€“${f.ageMax??'âˆž'}yrs`);
+  if (f.dobFrom || f.dobTo)    parts.push(`DOB: ${f.dobFrom||'…'} â†’ ${f.dobTo||'…'}`);
+  if (f.ageMin !== undefined || f.ageMax !== undefined) parts.push(`age: ${f.ageMin??'0'}—${f.ageMax??'âˆž'}yrs`);
   if (f.priorityList.length)   parts.push(`priority: ${f.priorityList.join(', ')}`);
   if (f.flagsList.length)      parts.push(`flags: ${f.flagsList.join(', ')}`);
   if (f.synopticIds.length)    parts.push(`synoptic: ${f.synopticIds.map(id=>ALL_SYNOPTICS.find(t=>t.id===id)?.organ??id).join(', ')}`);
   if (f.pathologistIds.length) parts.push(`pathologist: ${f.pathologistIds.map(id=>ALL_PATHOLOGISTS.find(u=>u.id===id)?.name??id).join(', ')}`);
   if (f.attendingIds.length)   parts.push(`attending: ${f.attendingIds.map(id=>ALL_ATTENDINGS.find(u=>u.id===id)?.name??id).join(', ')}`);
-  return parts.length===0 ? 'Showing all cases' : 'Showing cases with '+parts.join(' Â· ');
+  return parts.length===0 ? 'Showing all cases' : 'Showing cases with '+parts.join(' · ');
 };
 
 // â”€â”€â”€ Virtual scroll wrapper removed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -173,7 +273,7 @@ const Chip: React.FC<{ label: string; onRemove: () => void; title?: string; acce
     background:`${accent}33`, border:`1px solid ${accent}80`, fontSize:11, color:'#e2e8f0', cursor:'default' }}>
     {label}
     <button type="button" onClick={e=>{ e.preventDefault(); e.stopPropagation(); onRemove(); }} style={{ border:'none', background:'transparent', color:'#94a3b8', cursor:'pointer', fontSize:14, lineHeight:1, padding:0, display:'flex', alignItems:'center' }}
-      onMouseEnter={e=>e.currentTarget.style.color='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>Ã—</button>
+      onMouseEnter={e=>e.currentTarget.style.color='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>×</button>
   </span>
 );
 
@@ -199,7 +299,7 @@ const SectionLabel: React.FC<{ title: string; active?: boolean }> = ({ title, ac
   }}>{title}</div>
 );
 
-// Browse button â€” opens lookup modal, sits inline with input
+// Browse button ”” opens lookup modal, sits inline with input
 const BrowseBtn: React.FC<{ onClick: () => void; count?: number }> = ({ onClick, count }) => (
   <button type="button" onClick={onClick} style={{
     display:'inline-flex', alignItems:'center', gap:3, padding:'5px 10px', borderRadius:7,
@@ -226,7 +326,7 @@ const DROP_BTN: React.CSSProperties = {
 // â”€â”€â”€ LookupModal and content components imported from Common/LookupModal â”€â”€â”€â”€â”€â”€
 // LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty
 
-// â”€â”€â”€ Synoptic lookup content (local â€” synoptics are search-page-specific) â”€â”€â”€â”€â”€
+// â”€â”€â”€ Synoptic lookup content (local ”” synoptics are search-page-specific) â”€â”€â”€â”€â”€
 
 const SynopticLookupContent: React.FC<{ selected: string[]; onToggle: (id: string) => void }> = ({ selected, onToggle }) => {
   const [q, setQ] = useState('');
@@ -236,7 +336,7 @@ const SynopticLookupContent: React.FC<{ selected: string[]; onToggle: (id: strin
   );
   return (
     <>
-      <LookupSearch value={q} onChange={setQ} placeholder="Search protocolsâ€¦" />
+      <LookupSearch value={q} onChange={setQ} placeholder="Search protocols…" />
       {q.length < 1
         ? categories.map(cat => {
             const items = ALL_SYNOPTICS.filter(s => s.category === cat);
@@ -285,19 +385,19 @@ const UserLookupContent: React.FC<{ users: UserStub[]; selected: string[]; onTog
     return matchName && matchClient;
   });
 
-  const initials = (name: string) => name.replace('Dr. ','').split(' ').map(w => w[0]).join('').slice(0,2);
+  const initials = (name: string) => { const p = name.replace(/^(Dr|Mr|Ms|Mrs|Prof|Mx)\.\s*/i,'').split(' ').filter(Boolean); return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0]?.[0]?.toUpperCase()??'?'; };
 
   return (
     <>
       <div style={{ display:'flex', gap:8, padding:'12px 24px 4px' }}>
         <input
           value={nameQ} onChange={e => setNameQ(e.target.value)}
-          placeholder="Search by nameâ€¦"
+          placeholder="Search by name…"
           style={{ flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none' }}
         />
         <input
           value={clientQ} onChange={e => setClientQ(e.target.value)}
-          placeholder="Search by hospitalâ€¦"
+          placeholder="Search by hospital…"
           style={{ flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none' }}
         />
       </div>
@@ -326,7 +426,7 @@ const FlagsLookupContent: React.FC<{ selected: string[]; onToggle: (f: string) =
   const filtered = q.length < 1 ? ALL_FLAGS : ALL_FLAGS.filter(f => f.toLowerCase().includes(q.toLowerCase()));
   return (
     <>
-      <LookupSearch value={q} onChange={setQ} placeholder="Search flagsâ€¦" />
+      <LookupSearch value={q} onChange={setQ} placeholder="Search flags…" />
       <div style={{ display:'flex', flexWrap:'wrap', gap:6, padding:'4px 24px 20px' }}>
         {filtered.length === 0
           ? <LookupEmpty query={q} />
@@ -367,6 +467,66 @@ const SPECIMEN_TYPE_COLOURS: Record<string, string> = {
   'Other':      '#94a3b8',
 };
 
+const CompFlagsLookupContent: React.FC<{ selected: string[]; onToggle: (f: string) => void }> = ({ selected, onToggle }) => {
+  const [q, setQ] = useState('');
+  const filtered = ALL_COMP_FLAGS.filter(f => q.length < 1 || f.toLowerCase().includes(q.toLowerCase()));
+  const abbr = (name: string) => name.replace(/[^A-Z0-9]/g,'').slice(0,3) || name.slice(0,2).toUpperCase();
+  return (
+    <>
+      <div style={{ padding:'12px 24px 4px' }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by test name…"
+          style={{ width:'100%', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
+            borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none', boxSizing:'border-box' as const }} />
+      </div>
+      {filtered.length === 0
+        ? <LookupEmpty query={q} />
+        : filtered.map(f => {
+            const sel = selected.includes(f);
+            return (
+              <LookupItem key={f} selected={sel} onToggle={() => onToggle(f)}
+                primary={f}
+                secondary="Computational / LIS flag"
+                badge={abbr(f)}
+                badgeColor="#0891b2"
+              />
+            );
+          })
+      }
+    </>
+  );
+};
+
+const ClientLookupContent: React.FC<{ selected: string[]; onToggle: (id: string) => void }> = ({ selected, onToggle }) => {
+  const [nameQ, setNameQ] = useState('');
+  const filtered = ALL_CLIENTS.filter(c =>
+    nameQ.length < 1 || c.name.toLowerCase().includes(nameQ.toLowerCase())
+  );
+  const abbr = (name: string) => name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0,2).toUpperCase();
+  return (
+    <>
+      <div style={{ padding:'12px 24px 4px' }}>
+        <input value={nameQ} onChange={e => setNameQ(e.target.value)} placeholder="Search by facility name…"
+          style={{ width:'100%', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
+            borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none', boxSizing:'border-box' as const }} />
+      </div>
+      {filtered.length === 0
+        ? <LookupEmpty query={nameQ} />
+        : filtered.map(c => {
+            const sel = selected.includes(c.id);
+            return (
+              <LookupItem key={c.id} selected={sel} onToggle={() => onToggle(c.id)}
+                primary={c.name}
+                secondary={c.id.toUpperCase()}
+                badge={abbr(c.name)}
+                badgeColor="#8b5cf6"
+              />
+            );
+          })
+      }
+    </>
+  );
+};
+
 const SpecimenLookupContent: React.FC<{
   specimens: SpecimenEntry[];
   selected:  string[];
@@ -391,17 +551,17 @@ const SpecimenLookupContent: React.FC<{
     );
   })();
 
-  // Which types have results right now â€” drives pill highlight
+  // Which types have results right now ”” drives pill highlight
   const matchedTypes = new Set(searched.map(s => s.type));
 
-  // Final display â€” apply pinned filter on top if set
+  // Final display ”” apply pinned filter on top if set
   const displayed = pinnedType ? searched.filter(s => s.type === pinnedType) : searched;
 
   return (
     <>
-      <LookupSearch value={q} onChange={setQ} placeholder="Search by name, procedure, site, or synonymâ€¦" />
+      <LookupSearch value={q} onChange={setQ} placeholder="Search by name, procedure, site, or synonym…" />
 
-      {/* Pills â€” always single row, horizontal scroll, highlight = has results */}
+      {/* Pills ”” always single row, horizontal scroll, highlight = has results */}
       <div style={{ display:'flex', flexWrap:'nowrap', overflowX:'auto', gap:5, padding:'4px 24px 12px',
         borderBottom:'1px solid rgba(255,255,255,0.06)',
         scrollbarWidth:'none', msOverflowStyle:'none' } as React.CSSProperties}>
@@ -450,7 +610,7 @@ const SpecimenLookupContent: React.FC<{
   );
 };
 
-// â”€â”€â”€ Unified ICD modal â€” tabs shown only if active in config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Unified ICD modal ”” tabs shown only if active in config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type IcdTab = 'ICD-10' | 'ICD-11' | 'ICD-O-topography' | 'ICD-O-morphology';
 
@@ -489,7 +649,7 @@ const IcdModalContent: React.FC<{
 
   return (
     <>
-      {/* Tab bar â€” only shows active systems */}
+      {/* Tab bar ”” only shows active systems */}
       <div style={{ display:'flex', gap:2, padding:'12px 24px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
         {visibleTabs.map(t => (
           <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
@@ -508,15 +668,15 @@ const IcdModalContent: React.FC<{
 };
 
 
-// â”€â”€â”€ SNOMED CT modal â€” Big Four axes as tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ SNOMED CT modal ”” Big Four axes as tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type SnomedAxis = 'Morphology' | 'Body Structure' | 'Procedure' | 'Specimen';
 
 const SNOMED_AXIS_META: { id: SnomedAxis; label: string; accent: string; placeholder: string }[] = [
-  { id:'Morphology',     label:'Morphology',     accent:'#8B5CF6', placeholder:'Search pathological changesâ€¦ e.g. adenocarcinoma' },
-  { id:'Body Structure', label:'Body Structure',  accent:'#0891B2', placeholder:'Search anatomical sitesâ€¦ e.g. breast, colon'     },
-  { id:'Procedure',      label:'Procedure',       accent:'#10B981', placeholder:'Search diagnostic actsâ€¦ e.g. biopsy, resection'  },
-  { id:'Specimen',       label:'Specimen',        accent:'#F59E0B', placeholder:'Search specimen typesâ€¦ e.g. core needle, smear'  },
+  { id:'Morphology',     label:'Morphology',     accent:'#8B5CF6', placeholder:'Search pathological changes… e.g. adenocarcinoma' },
+  { id:'Body Structure', label:'Body Structure',  accent:'#0891B2', placeholder:'Search anatomical sites… e.g. breast, colon'     },
+  { id:'Procedure',      label:'Procedure',       accent:'#10B981', placeholder:'Search diagnostic acts… e.g. biopsy, resection'  },
+  { id:'Specimen',       label:'Specimen',        accent:'#F59E0B', placeholder:'Search specimen types… e.g. core needle, smear'  },
 ];
 
 const SnomedAxisContent: React.FC<{
@@ -533,7 +693,7 @@ const SnomedAxisContent: React.FC<{
   // Reset search when axis tab changes
   useEffect(() => { setQ(''); }, [axis]);
 
-  // Load full axis set once â€” client-side search, no re-fetch on keystroke
+  // Load full axis set once ”” client-side search, no re-fetch on keystroke
   useEffect(() => {
     setLoading(true);
     codeService.search({ system:'SNOMED', category: axis })
@@ -546,7 +706,7 @@ const SnomedAxisContent: React.FC<{
     allCodes.map(c => c.category?.includes('|') ? c.category.split('|')[1] : null).filter(Boolean) as string[]
   ));
 
-  // Displayed results driven purely by search query â€” no pill filter
+  // Displayed results driven purely by search query ”” no pill filter
   const isSearching = q.trim().length >= 1;
   const displayed = isSearching
     ? allCodes.filter(c =>
@@ -556,7 +716,7 @@ const SnomedAxisContent: React.FC<{
       )
     : allCodes;
 
-  // Which subgroups have at least one match â€” drives pill highlight
+  // Which subgroups have at least one match ”” drives pill highlight
   const matchedSubgroups = new Set(
     displayed.map(c => c.category?.includes('|') ? c.category.split('|')[1] : null).filter(Boolean) as string[]
   );
@@ -565,9 +725,9 @@ const SnomedAxisContent: React.FC<{
     <>
       <LookupSearch value={q} onChange={setQ} placeholder={meta.placeholder} />
       {loading
-        ? <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:14 }}>Loadingâ€¦</div>
+        ? <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:14 }}>Loading…</div>
         : <>
-            {/* Subgroup filter pills â€” only shown while searching, clickable to narrow results */}
+            {/* Subgroup filter pills ”” only shown while searching, clickable to narrow results */}
             {isSearching && subgroups.length > 1 && (
               <div style={{ display:'flex', flexWrap:'wrap', gap:5,
                 padding:'4px 24px 10px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
@@ -674,11 +834,11 @@ const CodeLookupContent: React.FC<{
 
   return (
     <>
-      <LookupSearch value={q} onChange={setQ} placeholder={`Search ${system} codes or descriptionsâ€¦`} />
+      <LookupSearch value={q} onChange={setQ} placeholder={`Search ${system} codes or descriptions…`} />
       {loading
-        ? <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:14 }}>Loadingâ€¦</div>
+        ? <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:14 }}>Loading…</div>
         : <>
-            {/* Category filter pills â€” clickable, wrap, highlight active/matched */}
+            {/* Category filter pills ”” clickable, wrap, highlight active/matched */}
             {allCategories.length > 1 && (
               <div style={{ display:'flex', flexWrap:'wrap', gap:5,
                 padding:'4px 24px 12px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
@@ -726,6 +886,7 @@ const CodeLookupContent: React.FC<{
 const SearchPage: React.FC = () => {
   const navigate     = useNavigate();
   const handleLogout = useLogout();
+  const { pushCrumb } = useBreadcrumb();
   const { dictionary: specimenDictionary } = useSpecimenDictionary();
   const { config } = useSystemConfig();
 
@@ -762,7 +923,7 @@ const SearchPage: React.FC = () => {
     try {
       if (new RegExp(config.identifierFormats.accessionPattern, 'i').test(normalizeAccession(v, config.identifierFormats.accessionPattern))) return 'accession';
       if (new RegExp(config.identifierFormats.mrnPattern).test(v))            return 'mrn';
-    } catch { /* invalid regex in config â€” fall through */ }
+    } catch { /* invalid regex in config ”” fall through */ }
     // Name heuristic: contains space or comma, OR is a single alphabetic-only word
     const alphaRatio = (v.match(/[a-zA-Z]/g)?.length ?? 0) / v.length;
     if (alphaRatio > 0.6) return 'name'; // pure alphabetic = treat as name
@@ -775,7 +936,7 @@ const SearchPage: React.FC = () => {
     if (type === 'accession') setAccessionNo(normalizeAccession(val.trim(), config.identifierFormats.accessionPattern));
     else if (type === 'mrn')  setHospitalId(val.trim());
     else if (type === 'name') setPatientName(val.trim());
-    else { // ambiguous â€” populate all three so the search casts wide
+    else { // ambiguous ”” populate all three so the search casts wide
       setAccessionNo(val.trim());
       setHospitalId(val.trim());
       setPatientName(val.trim());
@@ -824,6 +985,10 @@ const SearchPage: React.FC = () => {
   const [flagsList,      setFlagsList]      = useState<string[]>([]);
   const [pathologistIds, setPathologistIds] = useState<string[]>([]);
   const [attendingIds,   setAttendingIds]   = useState<string[]>([]);
+  const [compFlagsList,  setCompFlagsList]  = useState<string[]>([]);
+  const [clientIds,      setClientIds]      = useState<string[]>([]);
+  const [compFlagsModal, setCompFlagsModal] = useState(false);
+  const [clientModal,    setClientModal]    = useState(false);
   const [submittingNames,setSubmittingNames]= useState<string[]>([]);
   const [statusList,     setStatusList]     = useState<string[]>([]);
   const [priorityList,   setPriorityList]   = useState<string[]>([]);
@@ -859,11 +1024,18 @@ const SearchPage: React.FC = () => {
     setSynopticIds(f.synopticIds); setFlagsList(f.flagsList);
     setPathologistIds(f.pathologistIds ?? []); setAttendingIds(f.attendingIds ?? []);
     setSubmittingNames(f.submittingNames); setStatusList(f.statusList); setPriorityList(f.priorityList);
+    // Restore demographics (previously omitted — back-navigation lost these filters)
+    setGenderList(f.genderList ?? []);
+    setDobFrom(f.dobFrom ?? '');
+    setDobTo(f.dobTo ?? '');
+    setAgeMin(f.ageMin !== undefined ? String(f.ageMin) : '');
+    setAgeMax(f.ageMax !== undefined ? String(f.ageMax) : '');
     setResults(snap.results); setHasSearched(snap.hasSearched);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { const t = setTimeout(()=>setIsLoaded(true), 80); return ()=>clearTimeout(t); }, []);
+  useEffect(() => { pushCrumb('Case Search', '/search'); }, [pushCrumb]);
   useEffect(() => { lsSave(savedSearches); }, [savedSearches]);
   useEffect(() => { if (showSaveInput) saveInputRef.current?.focus(); }, [showSaveInput]);
 
@@ -918,7 +1090,13 @@ const SearchPage: React.FC = () => {
     patientName, hospitalId, accessionNo, diagnosisList, specimenList,
     snomedList, icdCodes, synopticIds, flagsList, pathologistIds, attendingIds,
     submittingNames, statusList, priorityList, dateFrom, dateTo,
-    genderList: [], dobFrom: '', dobTo: '', ageMin: undefined, ageMax: undefined,
+    // Previously hardcoded to empty — now reads actual state so session
+    // snapshots and saved searches correctly preserve demographic filters.
+    genderList,
+    dobFrom,
+    dobTo,
+    ageMin: ageMin ? parseInt(ageMin, 10) : undefined,
+    ageMax: ageMax ? parseInt(ageMax, 10) : undefined,
   });
 
   const applyFilters = (f: FilterState) => {
@@ -933,7 +1111,12 @@ const SearchPage: React.FC = () => {
     setPathologistIds(f.pathologistIds ?? []); setAttendingIds(f.attendingIds ?? []);
     setSubmittingNames(f.submittingNames); setStatusList(f.statusList); setPriorityList(f.priorityList);
     setDateFrom(f.dateFrom); setDateTo(f.dateTo);
-    setGenderList([]); setDobFrom(''); setDobTo(''); setAgeMin(''); setAgeMax('');
+    // Restore demographics — previously hardcoded to empty which broke saved-search round-trips
+    setGenderList(f.genderList ?? []);
+    setDobFrom(f.dobFrom ?? '');
+    setDobTo(f.dobTo ?? '');
+    setAgeMin(f.ageMin !== undefined ? String(f.ageMin) : '');
+    setAgeMax(f.ageMax !== undefined ? String(f.ageMax) : '');
   };
 
   const toggle = (val: string, list: string[], setter: (v: string[]) => void) =>
@@ -956,28 +1139,62 @@ const SearchPage: React.FC = () => {
 
   const runSearch = async () => {
     setIsSearching(true);
-    const params: CaseFilterParams = {
-      patientName,
-      hospitalId,
-      accessionNo,
-      diagnosisList,
-      specimenList,
-      snomedCodes:    snomedList.map(s => s.display),
-      icdCodes:       icdCodes.map(s => s.display),
-      statusList:     statusList as CaseFilterParams['statusList'],
-      priorityList:   priorityList as CaseFilterParams['priorityList'],
-      genderList:     genderList.length ? genderList as CaseFilterParams['genderList'] : undefined,
-      dobFrom:        dobFrom || undefined,
-      dobTo:          dobTo   || undefined,
-      ageMin:         ageMin  ? parseInt(ageMin)  : undefined,
-      ageMax:         ageMax  ? parseInt(ageMax)  : undefined,
-    };
-    const result = await caseService.getAll(params);
-    if (result.ok) {
-      setResults(result.data);
-      ssSave({ filters: currentFilters(), results: result.data, hasSearched: true });
+    try {
+      const params: CaseFilterParams = {
+        patientName,
+        hospitalId,
+        accessionNo,
+        dateFrom:            dateFrom || undefined,
+        dateTo:              dateTo   || undefined,
+        diagnosisList,
+        specimenList,
+        // Pass codes (not display text) so service can match c.coding.snomed / c.coding.icd10
+        snomedCodes:         snomedList.map(s => s.code),
+        icdCodes:            icdCodes.map(s => s.code),
+        statusList:          statusList  as CaseFilterParams['statusList'],
+        priorityList:        priorityList as CaseFilterParams['priorityList'],
+        genderList:          genderList.length ? genderList as CaseFilterParams['genderList'] : undefined,
+        dobFrom:             dobFrom || undefined,
+        dobTo:               dobTo   || undefined,
+        ageMin:              ageMin  ? parseInt(ageMin, 10)  : undefined,
+        ageMax:              ageMax  ? parseInt(ageMax, 10)  : undefined,
+        clientIds:           clientIds.length      ? clientIds      : undefined,
+        // Previously omitted — these are the filters that were being tracked in state but never sent
+        flagIds:             flagsList.length      ? flagsList      : undefined,
+        pathologistIds:      pathologistIds.length ? pathologistIds : undefined,
+        // Resolve p01 → 'breast_invasive' templateId before passing so service can match synopticReports
+        synopticProtocolIds: synopticIds.length
+          ? synopticIds.map(id => ALL_SYNOPTICS.find(t => t.id === id)?.templateId ?? '').filter(Boolean)
+          : undefined,
+        // Pass full provider names (not att-1 IDs) — service matches c.order.requestingProvider
+        ...(attendingIds.length && {
+          attendingNames: attendingIds
+            .map(id => ALL_ATTENDINGS.find(u => u.id === id)?.name ?? '')
+            .filter(Boolean) as string[],
+        }),
+      };
+      console.log('[Search] params:', params);
+      const result = await caseService.getAll(params);
+      console.log('[Search] result:', result.ok, result.ok ? result.data?.length : 0, 'cases');
+      if (result.ok) {
+        const filteredData = compFlagsList.length > 0
+          ? result.data.filter((c: PathologyCase) =>
+              compFlagsList.some(code =>
+                ((c as any).specimenFlags ?? []).some((sf: any) =>
+                  sf.lisCode === code || sf.id === code || sf.name === code
+                )
+              )
+            )
+          : result.data;
+        setResults(filteredData);
+        ssSave({ filters: currentFilters(), results: filteredData, hasSearched: true });
+      }
+    } catch (err) {
+      console.error('[SearchPage] runSearch error:', err);
+    } finally {
+      // Always reset — even if caseService throws
+      setIsSearching(false);
     }
-    setIsSearching(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setHasSearched(true); void runSearch(); };
@@ -995,6 +1212,42 @@ const SearchPage: React.FC = () => {
     setDateFrom(daysAgo(30)); setDateTo(today());
     setResults(null); setHasSearched(false); setActiveSavedId('');
     ssClear();
+  };
+
+  const handleExportCSV = () => {
+    if (!results || results.length === 0) return;
+    const headers = [
+      'Accession', 'Patient Name', 'MRN', 'Sex', 'DOB',
+      'Specimen(s)', 'Accession Date', 'Physician', 'Priority', 'Status', 'Flags',
+    ];
+    const rows = results.map((c: any) => [
+      c.accession?.fullAccession ?? '',
+      `${c.patient?.firstName ?? ''} ${c.patient?.lastName ?? ''}`.trim(),
+      c.patient?.mrn ?? '',
+      c.patient?.sex ?? '',
+      c.patient?.dateOfBirth
+        ? new Date(c.patient.dateOfBirth).toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' })
+        : '',
+      (c.specimens ?? []).map((s: any) => s.description ?? s.label ?? '').join('; '),
+      c.specimens?.[0]?.receivedAt
+        ? new Date(c.specimens[0].receivedAt).toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' })
+        : '',
+      c.order?.requestingProvider ?? '',
+      c.order?.priority ?? '',
+      c.status ?? '',
+      (c.caseFlags ?? []).map((f: any) => f.name ?? '').join('; '),
+    ]);
+    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv, ''], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `pathscribe-cases-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleSaveSearch = () => {
@@ -1134,15 +1387,15 @@ const SearchPage: React.FC = () => {
             <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end', maxWidth:560 }}>
               {savedSearches.map(s => (
                 <button key={s.id} type="button" onClick={()=>handleLoadSearch(s.id)} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px 4px 11px', borderRadius:999, cursor:'pointer', fontSize:11, fontWeight:500, background:activeSavedId===s.id?'rgba(139,92,246,0.2)':'rgba(255,255,255,0.05)', border:`1px solid ${activeSavedId===s.id?'#8B5CF6':'rgba(255,255,255,0.1)'}`, color:activeSavedId===s.id?'#c4b5fd':'#94a3b8' }}>
-                  ðŸ”– {s.name}
-                  <span onClick={e=>handleDeleteSearch(s.id,e)} style={{ marginLeft:2, color:'#cbd5e1', fontSize:13, cursor:'pointer', padding:'0 2px' }} onMouseEnter={e=>(e.currentTarget.style.color='#ef4444')} onMouseLeave={e=>(e.currentTarget.style.color='#cbd5e1')}>Ã—</span>
+                  {s.name}
+                  <span onClick={e=>handleDeleteSearch(s.id,e)} style={{ marginLeft:2, color:'#cbd5e1', fontSize:13, cursor:'pointer', padding:'0 2px' }} onMouseEnter={e=>(e.currentTarget.style.color='#ef4444')} onMouseLeave={e=>(e.currentTarget.style.color='#cbd5e1')}>×</span>
                 </button>
               ))}
               {showSaveInput ? (
                 <div style={{ display:'flex', alignItems:'center', gap:5 }}>
                   <input ref={saveInputRef} type="text" value={saveNameInput} onChange={e=>setSaveNameInput(e.target.value)}
                     onKeyDown={e=>{if(e.key==='Enter')handleSaveSearch();if(e.key==='Escape'){setShowSaveInput(false);setSaveNameInput('');}}}
-                    placeholder="Name this searchâ€¦" style={{ padding:'4px 9px', fontSize:11, border:'1px solid rgba(255,255,255,0.15)', borderRadius:7, outline:'none', color:'#e2e8f0', background:'rgba(15,23,42,0.7)', width:145 }} />
+                    placeholder="Name this search…" style={{ padding:'4px 9px', fontSize:11, border:'1px solid rgba(255,255,255,0.15)', borderRadius:7, outline:'none', color:'#e2e8f0', background:'rgba(15,23,42,0.7)', width:145 }} />
                   <button type="button" onClick={handleSaveSearch} style={{ border:'none', background:'#8B5CF6', color:'#fff', borderRadius:7, padding:'4px 10px', fontSize:11, fontWeight:600, cursor:'pointer' }}>Save</button>
                   <button type="button" onClick={()=>{setShowSaveInput(false);setSaveNameInput('');}} style={{ border:'1px solid #e2e8f0', background:'transparent', color:'#94a3b8', borderRadius:7, padding:'4px 8px', fontSize:11, cursor:'pointer' }}>âœ•</button>
                 </div>
@@ -1159,11 +1412,11 @@ const SearchPage: React.FC = () => {
           <div style={{ flex:1, minHeight:0, display:'flex', gap:16, overflow:'hidden' }}>
 
           {/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-          <aside style={{ width:360, flexShrink:0, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-            <form onSubmit={handleSubmit} style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          <aside className="ps-search-sidebar">
+            <form onSubmit={handleSubmit} className="ps-search-form">
 
               {/* Accession Date */}
-              <div style={{ padding:'10px 16px 8px', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
+              <div className="ps-search-date-section">
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
                   <SectionLabel title="Accession Date" active={activeSection==="date"} />
                   <div style={{ display:'flex', gap:3 }}>
@@ -1186,10 +1439,10 @@ const SearchPage: React.FC = () => {
               </div>
 
               {/* Scrollable filters */}
-              <div className="ps-scroll" style={{ flex:1, overflowY:'auto', padding:'8px 12px 0', display:'flex', flexDirection:'column', gap:7, scrollbarWidth:'thin', scrollbarColor:'rgba(148,163,184,0.15) transparent' }}>
+              <div className="ps-search-filter-scroll">
 
                 {/* Identifiers */}
-                {/* Identifiers â€” smart single box */}
+                {/* Identifiers ”” smart single box */}
                 <div onMouseEnter={()=>setActiveSection('id')} onMouseLeave={()=>setActiveSection(s=>s==='id'?'':s)}>
                   <div style={{marginBottom:4}}><SectionLabel title="Identifier" active={activeSection==='id'} /></div>
                   <div style={{ position:'relative' }}>
@@ -1200,7 +1453,7 @@ const SearchPage: React.FC = () => {
                       onChange={e => handleIdentifierChange(e.target.value)}
                       onFocus={onF} onBlur={onB} data-section="id"
                       style={INPUT}
-                      placeholder={`Accession #, patient name, or MRNâ€¦`}
+                      placeholder={`Accession #, patient name, or MRN…`}
                     />
                     {detectedType && identifierQuery && (
                       <div style={{
@@ -1270,7 +1523,7 @@ const SearchPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Status + Priority â€” single row */}
+                {/* Status + Priority ”” single row */}
                 <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <SectionLabel title="Status" active={activeSection==='status'} />
@@ -1282,11 +1535,14 @@ const SearchPage: React.FC = () => {
                     onMouseLeave={()=>setActiveSection(s=>s==='status'||s==='priority'?'':s)}
                     style={{ display:'flex', flexWrap:'wrap', gap:3 }}
                   >
-                    {CASE_STATUS_OPTIONS.map(s=><CheckPill key={s} label={s} checked={statusList.includes(s)} onChange={()=>toggle(s,statusList,setStatusList)} />)}
+                    {CASE_STATUS_OPTIONS.map(s=><CheckPill key={s} label={({'draft':'Grossing','in-progress':'Awting Micro','pending':'Pending','pending-review':'Finalizing','pending-countersign':'Awaiting S/O','finalized':'Completed','pool':'Pool','amended':'Amended'})[s]??s} checked={statusList.includes(s)} onChange={()=>toggle(s,statusList,setStatusList)} />)}
                     <div style={{ width:1, alignSelf:'stretch', background:'rgba(255,255,255,0.1)', margin:'0 2px' }} />
                     {PRIORITY_OPTIONS.map(p=><CheckPill key={p} label={p} checked={priorityList.includes(p)} onChange={()=>toggle(p,priorityList,setPriorityList)} accent={p==='STAT'?'#ef4444':'#0891B2'} />)}
                   </div>
                 </div>
+
+                {/* ── Browse-button sections: 2-column grid ── */}
+                <div className="ps-search-2col">
 
                 {/* Flags */}
                 <div onMouseEnter={()=>setActiveSection('flags')} onMouseLeave={()=>setActiveSection(s=>s==='flags'?'':s)}>
@@ -1324,12 +1580,37 @@ const SearchPage: React.FC = () => {
                   {attendingIds.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>{attendingIds.map(id=>{const u=ALL_ATTENDINGS.find(x=>x.id===id);return u?<Chip key={id} label={u.name.replace('Dr. ','')} onRemove={()=>setAttendingIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
                 </div>
 
+
+                {/* Computational Flags */}
+                <div style={{ marginBottom:4 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                    <SectionLabel title="Comp Flags" active={false} />
+                    <BrowseBtn onClick={()=>setCompFlagsModal(true)} count={compFlagsList.length||undefined} />
+                  </div>
+                  {compFlagsList.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
+                    {compFlagsList.map(f=><Chip key={f} label={f} onRemove={()=>setCompFlagsList(p=>p.filter(x=>x!==f))} accent="#0891b2" />)}
+                  </div>}
+                </div>
+
+                {/* Client */}
+                <div style={{ marginBottom:4 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                    <SectionLabel title="Client" active={false} />
+                    <BrowseBtn onClick={()=>setClientModal(true)} count={clientIds.length||undefined} />
+                  </div>
+                  {clientIds.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
+                    {clientIds.map(id=><Chip key={id} label={ALL_CLIENTS.find(c=>c.id===id)?.name??id} onRemove={()=>setClientIds(p=>p.filter(x=>x!==id))} accent="#8b5cf6" />)}
+                  </div>}
+                </div>
+
+                </div>{/* end ps-search-2col */}
+
                 {/* Specimen */}
                 <div onMouseEnter={()=>setActiveSection('specimen')} onMouseLeave={()=>setActiveSection(s=>s==='specimen'?'':s)}>
                   <div style={{marginBottom:4}}><SectionLabel title="Specimen" active={activeSection==='specimen'} /></div>
                   <div style={{ display:'flex', gap:4 }} ref={specimenRef}>
                     <div style={{ position:'relative', flex:1 }}>
-                      <input type="text" value={specimenQuery} onChange={e=>setSpecimenQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="specimen" style={INPUT} placeholder="Search specimen dictionaryâ€¦"
+                      <input type="text" value={specimenQuery} onChange={e=>setSpecimenQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="specimen" style={INPUT} placeholder="Search specimen dictionary…"
                         onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(specimenQuery.trim())addSpecimen(specimenQuery);}}} />
                       {showSpecimenDrop&&(
                         <div style={DROPDOWN_STYLE}>
@@ -1365,14 +1646,14 @@ const SearchPage: React.FC = () => {
                   <div style={{marginBottom:4}}><SectionLabel title="SNOMED CT" active={activeSection==='snomed'} /></div>
                   <div style={{ display:'flex', gap:4 }} ref={snomedRef}>
                     <div style={{ position:'relative', flex:1 }}>
-                      <input type="text" value={snomedQuery} onChange={e=>setSnomedQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="snomed" style={INPUT} placeholder="Search concept or descriptionâ€¦" />
+                      <input type="text" value={snomedQuery} onChange={e=>setSnomedQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="snomed" style={INPUT} placeholder="Search concept or description…" />
                       {showSnomedDrop&&(
                         <div style={DROPDOWN_STYLE}>
                           {snomedSuggestions.map(s=>(
                             <button key={s.code} type="button" onClick={()=>addSnomed(s)} style={DROP_BTN}
                               onMouseEnter={e=>(e.currentTarget.style.background='rgba(8,145,178,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                               <span style={{ fontFamily:'monospace', color:'#7dd3fc', marginRight:5, fontSize:11 }}>{s.code}</span>
-                              <span style={{ color:'#cbd5e1', fontSize:11 }}>{s.display.substring(0,38)}â€¦</span>
+                              <span style={{ color:'#cbd5e1', fontSize:11 }}>{s.display.substring(0,38)}…</span>
                             </button>
                           ))}
                         </div>
@@ -1387,19 +1668,19 @@ const SearchPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* ICD Codes â€” unified ICD-10 / ICD-11 / ICD-O */}
+                {/* ICD Codes ”” unified ICD-10 / ICD-11 / ICD-O */}
                 <div onMouseEnter={()=>setActiveSection('icd')} onMouseLeave={()=>setActiveSection(s=>s==='icd'?'':s)} style={{ paddingBottom:8 }}>
                   <div style={{marginBottom:4}}><SectionLabel title="ICD Codes" active={activeSection==='icd'} /></div>
                   <div style={{ display:'flex', gap:4 }} ref={icdRef}>
                     <div style={{ position:'relative', flex:1 }}>
-                      <input type="text" value={icdQuery} onChange={e=>setIcdQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="icd" style={INPUT} placeholder="Search ICD-10 code or descriptionâ€¦" />
+                      <input type="text" value={icdQuery} onChange={e=>setIcdQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="icd" style={INPUT} placeholder="Search ICD-10 code or description…" />
                       {showIcdDrop&&(
                         <div className="ps-scroll" style={DROPDOWN_STYLE}>
                           {icdSuggestions.map(s=>(
                             <button key={s.code} type="button" onClick={()=>addIcd(s)} style={DROP_BTN}
                               onMouseEnter={e=>(e.currentTarget.style.background='rgba(8,145,178,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                               <span style={{ fontFamily:'monospace', color:'#c4b5fd', marginRight:5, fontSize:11 }}>{s.code}</span>
-                              <span style={{ color:'#cbd5e1', fontSize:11 }}>{s.display.substring(0,38)}â€¦</span>
+                              <span style={{ color:'#cbd5e1', fontSize:11 }}>{s.display.substring(0,38)}…</span>
                             </button>
                           ))}
                         </div>
@@ -1420,10 +1701,10 @@ const SearchPage: React.FC = () => {
               </div>{/* end scrollable filters */}
 
               {/* Action buttons */}
-              <div style={{ padding:'10px 16px 12px', borderTop:'1px solid rgba(255,255,255,0.05)', flexShrink:0, display:'flex', gap:8 }}>
-                <button type="button" onClick={handleClear} style={{ flex:1, borderRadius:8, border:'1px solid rgba(148,163,184,0.3)', background:'transparent', color:'#64748b', padding:'8px', fontSize:12, cursor:'pointer' }}>Clear</button>
-                <button type="submit" disabled={isSearching} style={{ flex:2.5, borderRadius:8, border:'none', background:isSearching?'#0f172a':'#22c55e', color:isSearching?'#64748b':'#022c22', padding:'8px', fontSize:13, fontWeight:700, cursor:isSearching?'default':'pointer' }}>
-                  {isSearching?'Searchingâ€¦':'Search Cases'}
+              <div className="ps-search-actions">
+                <button type="button" onClick={handleClear} className="ps-search-btn-clear">Clear</button>
+                <button type="submit" disabled={isSearching} className="ps-search-btn-submit">
+                  {isSearching?'Searching…':'Search Cases'}
                 </button>
               </div>
 
@@ -1437,11 +1718,11 @@ const SearchPage: React.FC = () => {
             <div style={{ padding:'9px 20px', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.02)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
               {summary ? (
                 <p style={{ margin:0, fontSize:12, color:'#94a3b8', lineHeight:1.5, flex:1 }}>
-                  <span style={{ color:'#94a3b8', marginRight:6 }}>ðŸ”</span>
-                  {summary.split(' Â· ').map((part,i,arr)=>(
+                  
+                  {summary.split(' · ').map((part,i,arr)=>(
                     <React.Fragment key={i}>
                       <span style={{ color:i===0?'#cbd5e1':'#7dd3fc', fontWeight:i===0?400:500 }}>{part}</span>
-                      {i<arr.length-1&&<span style={{ color:'#1e293b', margin:'0 5px' }}>Â·</span>}
+                      {i<arr.length-1&&<span style={{ color:'#1e293b', margin:'0 5px' }}>·</span>}
                     </React.Fragment>
                   ))}
                 </p>
@@ -1451,12 +1732,18 @@ const SearchPage: React.FC = () => {
               <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
                 {results!==null&&<span style={{ fontSize:12, color:'#94a3b8' }}>{results.length} case{results.length!==1?'s':''}</span>}
                 {results!==null&&results.length>0&&(
-                  <button type="button" style={{ border:'1px solid rgba(148,163,184,0.2)', background:'transparent', color:'#64748b', borderRadius:6, padding:'3px 10px', fontSize:11, cursor:'pointer' }}>Export CSV</button>
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    style={{ border:'1px solid rgba(148,163,184,0.2)', background:'transparent', color:'#64748b', borderRadius:6, padding:'3px 10px', fontSize:11, cursor:'pointer', transition:'all 0.15s' }}
+                    onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(8,145,178,0.5)'; e.currentTarget.style.color='#7dd3fc'; e.currentTarget.style.background='rgba(8,145,178,0.08)'; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(148,163,184,0.2)'; e.currentTarget.style.color='#64748b'; e.currentTarget.style.background='transparent'; }}
+                  >Export CSV</button>
                 )}
               </div>
             </div>
 
-            {/* Result table â€” WorklistTable owns its own internal scroll */}
+            {/* Result table ”” WorklistTable owns its own internal scroll */}
             <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
               {hasSearched
                 ? <WorklistTable key={results?.length ?? 0} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} onBeforeNavigate={(_caseId)=>sessionStorage.setItem('pathscribe:navFrom','search')} />
@@ -1538,6 +1825,40 @@ const SearchPage: React.FC = () => {
         <LookupModal title="Attending Physician" subtitle="Filter by referring or attending physician" selectedCount={attendingIds.length} onClose={()=>setAttendingModal(false)}>
           <UserLookupContent users={ALL_ATTENDINGS} selected={attendingIds} onToggle={id=>toggle(id,attendingIds,setAttendingIds)} accent="#10B981" />
         </LookupModal>
+      )}
+
+      {/* Client browse modal */}
+      {clientModal && (
+        <LookupModalX
+          title="Submitting Client"
+          subtitle="Filter cases by submitting facility"
+          selectedCount={clientIds.length}
+          onClose={() => setClientModal(false)}
+          onClear={() => setClientIds([])}
+          onDone={() => setClientModal(false)}
+        >
+          <ClientLookupContent
+            selected={clientIds}
+            onToggle={id => toggle(id, clientIds, setClientIds)}
+          />
+        </LookupModalX>
+      )}
+
+      {/* Computational Flags browse modal */}
+      {compFlagsModal && (
+        <LookupModalX
+          title="Computational Flags"
+          subtitle="Filter by live LIS test result flags"
+          selectedCount={compFlagsList.length}
+          onClose={() => setCompFlagsModal(false)}
+          onClear={() => setCompFlagsList([])}
+          onDone={() => setCompFlagsModal(false)}
+        >
+          <CompFlagsLookupContent
+            selected={compFlagsList}
+            onToggle={f => toggle(f, compFlagsList, setCompFlagsList)}
+          />
+        </LookupModalX>
       )}
 
       {/* â”€â”€ Profile modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}

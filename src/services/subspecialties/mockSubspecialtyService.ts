@@ -58,7 +58,7 @@ const SEED_SUBSPECIALTIES: Subspecialty[] = [
     description: 'Pulmonary and mediastinal pathology.',
     userIds: [], specimenIds: [], clientIds: [],
     isWorkgroup: false,
-    isWorkgroupEnabled: false, active: false, status: 'Inactive',
+    isWorkgroupEnabled: false, active: true, status: 'Active',
   },
   // ── Workgroup example ─────────────────────────────────────────────────────
   {

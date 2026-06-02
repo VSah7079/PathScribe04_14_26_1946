@@ -7,18 +7,7 @@
 import React from 'react';
 import { Flag } from '@/services/flags/IFlagService';
 import { ComputationalResult, ResultStatus, ActionabilityLevel } from '@/types/smarttag.types';
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { FlagIconGlyph } from '../Flags/flagIcons';
-=======
-import { FlagIconGlyph } from '@/components/Flags/FlagIcons';
->>>>>>> deb5a54 (SEE DEV NOTE IN TEAMS)
-=======
-import { FlagIconGlyph } from '@/components/Flags/FlagIcons';
-=======
-import { FlagIconGlyph } from '../Flags/flagIcons';
->>>>>>> 89dbd2ea88adc76aaa25cd49e285e80115521477
->>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
+import { FlagIconGlyph } from '@/components/Flags/flagIcons';
 
 // ─── Status color (matches ComputationalFlagIcon) ─────────────────────────────
 

@@ -1,33 +1,45 @@
 // src/orchestrator/orchestratorEngine.ts
 // ─────────────────────────────────────────────────────────────
 // Orchestrator Engine — Layer 3 of the Orchestrator stack.
+// Refactored to use IAIProvider for full provider agnosticism.
 //
 // Responsibilities:
-//   1. Load narrativeTemplateConfig and determine enabled sections
-//   2. For each enabled section (in order):
-//        a. Build a section-specific prompt from StructuredContext
-//        b. Call the AI model with streaming enabled
+//   1. Load generation steps from narrativeTemplateConfig
+//   2. For each enabled step (in order):
+//        a. Build a step-specific prompt from StructuredContext
+//        b. Call the active IAIProvider with streaming
 //        c. Forward tokens to StreamingWriter → PathScribeEditor
-//        d. Handle errors, cancellation, and section isolation
-//   3. Expose regenerate(sectionId) for individual section refresh
+//        d. Record to AIAuditLog for CAP/CLIA compliance
+//        e. Handle errors, cancellation, and step isolation
+//   3. Expose regenerateSection() for individual step refresh
 //   4. Expose cancel() to abort in-flight generation
 //
 // The engine is stateless between runs — each call to run() or
 // regenerateSection() creates a fresh execution context.
 // ─────────────────────────────────────────────────────────────
 
-import type { Editor } from '@tiptap/react';
-import type { StructuredContext } from './contextBuilder';
+import type { Editor }           from '@tiptap/react';
+// StructuredContext — inlined (contextBuilder.ts is a future extraction)
+type StructuredContext = {
+  caseId?:     string;
+  patient:    { fullName: string; dateOfBirth: string; sex: string };
+  accession:  { fullAccession: string };
+  order:      { priority: string; requestingProvider: string; clinicalIndication: string };
+  specimens:  Array<{ label: string; type: string; site: string }>;
+  diagnostic: { grossDescription: string; microscopicDescription: string; ancillaryStudies: string };
+  synoptic:   { answers: Array<{ fieldLabel: string; displayValue: string }> };
+  coding:     { icd10: string[]; snomed: string[] };
+};
+import type { IAIProvider }       from '../services/ai/IAIProvider';
+import { AIProviderRegistry }     from '../services/ai/AIProviderRegistry';
+import { AIAuditLog }             from '../services/ai/AIAuditLog';
 import { narrativeTemplateConfig } from '../components/Config/NarrativeTemplates/narrativeTemplateConfig';
-import { StreamingWriter } from '../components/Editor/integration/streamingWriter';
+import { StreamingWriter }         from '../components/Editor/integration/streamingWriter';
 
-// ─────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────
-
-const AI_MODEL   = 'claude-sonnet-4-20250514';
-const MAX_TOKENS = 1024;
-const API_URL    = 'https://api.anthropic.com/v1/messages';
+const SYSTEM_PROMPT =
+  'You are a board-certified pathologist assistant generating structured ' +
+  'pathology report sections. Never invent clinical findings. Use formal ' +
+  'medical prose. Generate only the requested section — no headers, no preamble.';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -41,24 +53,35 @@ export type OrchestratorStatus =
   | 'error';
 
 export interface SectionResult {
-  sectionId: string;
-  sectionTitle: string;
-  status: 'completed' | 'skipped' | 'error' | 'cancelled';
-  error?: string;
+  sectionId:        string;
+  sectionTitle:     string;
+  status:           'completed' | 'skipped' | 'error' | 'cancelled';
+  error?:           string;
+  /** Full generated text for this section (populated in headless mode) */
+  text?:            string;
   tokensGenerated?: number;
+  /** Which provider + model generated this section */
+  providerId?:      string;
+  modelId?:         string;
+  latencyMs?:       number;
 }
 
 export interface OrchestratorResult {
-  status: OrchestratorStatus;
-  sections: SectionResult[];
-  startedAt: string;
+  status:       OrchestratorStatus;
+  sections:     SectionResult[];
+  startedAt:    string;
   completedAt?: string;
-  error?: string;
+  error?:       string;
+  /** Provider used for this run — recorded for audit/display */
+  providerId:   string;
+  modelId:      string;
 }
 
 export interface OrchestratorCallbacks {
   /** Called when a section begins generating */
   onSectionStart?: (sectionId: string, title: string) => void;
+  /** Called per streaming token — use for headless/React-state streaming */
+  onToken?: (sectionId: string, token: string) => void;
   /** Called when a section finishes */
   onSectionComplete?: (sectionId: string, result: SectionResult) => void;
   /** Called when the entire run completes */
@@ -77,7 +100,7 @@ export interface OrchestratorCallbacks {
 
 function buildSectionPrompt(
   _sectionId: string,
-  _sectionTitle: string,
+  sectionTitle: string,
   sectionInstruction: string,
   context: StructuredContext
 ): string {
@@ -140,100 +163,35 @@ function buildSectionPrompt(
 }
 
 // ─────────────────────────────────────────────────────────────
-// streamSection
-// Makes a streaming API call for one section and pipes
-// tokens into the StreamingWriter.
-// ─────────────────────────────────────────────────────────────
-
-async function streamSection(
-  sectionId: string,
-  sectionTitle: string,
-  prompt: string,
-  writer: StreamingWriter,
-  abortSignal: AbortSignal
-): Promise<{ tokensGenerated: number }> {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal: abortSignal,
-    body: JSON.stringify({
-      model:      AI_MODEL,
-      max_tokens: MAX_TOKENS,
-      stream:     true,
-      system:
-        'You are a board-certified pathologist assistant generating structured ' +
-        'pathology report sections. Never invent clinical findings. Use formal ' +
-        'medical prose. Generate only the requested section — no headers, no preamble.',
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errBody = await response.json().catch(() => ({}));
-    throw new Error(
-      (errBody as any)?.error?.message ?? `AI API error ${response.status}`
-    );
-  }
-
-  if (!response.body) throw new Error('No response body from AI API');
-
-  const reader  = response.body.getReader();
-  const decoder = new TextDecoder();
-  let tokensGenerated = 0;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n').filter(l => l.trim());
-
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const data = line.slice(6).trim();
-      if (data === '[DONE]') break;
-
-      try {
-        const parsed = JSON.parse(data);
-
-        // Anthropic SSE event types
-        if (parsed.type === 'content_block_delta') {
-          const token: string = parsed.delta?.text ?? '';
-          if (token) {
-            writer.appendToken(sectionId, token);
-            tokensGenerated += token.length;
-          }
-        }
-
-        if (parsed.type === 'message_stop') break;
-      } catch {
-        // Malformed SSE line — skip
-      }
-    }
-  }
-
-  return { tokensGenerated };
-}
-
-// ─────────────────────────────────────────────────────────────
 // OrchestratorEngine class
 // ─────────────────────────────────────────────────────────────
 
 export class OrchestratorEngine {
-  private editor: Editor;
-  private context: StructuredContext;
+  private editor:    Editor | null | undefined;
+  private context:   StructuredContext;
   private callbacks: OrchestratorCallbacks;
+  private provider:  IAIProvider;
   private abortController: AbortController | null = null;
   private status: OrchestratorStatus = 'idle';
 
+  /**
+   * @param editor     TipTap editor instance — pass null/undefined for headless
+   *                   (React-state) mode; tokens are then delivered via onToken callback.
+   * @param context    Validated StructuredContext from contextBuilder
+   * @param callbacks  Optional progress callbacks
+   * @param provider   IAIProvider to use — defaults to AIProviderRegistry.getActive()
+   *                   Pass a MockProvider explicitly for unit tests.
+   */
   constructor(
-    editor: Editor,
-    context: StructuredContext,
-    callbacks: OrchestratorCallbacks = {}
+    editor:    Editor | null | undefined,
+    context:   StructuredContext,
+    callbacks: OrchestratorCallbacks = {},
+    provider?: IAIProvider,
   ) {
     this.editor    = editor;
     this.context   = context;
     this.callbacks = callbacks;
+    this.provider  = provider ?? AIProviderRegistry.getActive();
   }
 
   // ── run ────────────────────────────────────────────────────
@@ -245,10 +203,9 @@ export class OrchestratorEngine {
     this.setStatus('running');
 
     this.abortController = new AbortController();
-    const writer = new StreamingWriter(this.editor, {
-      clearExisting:    true,
-      respectUserEdits: true,
-    });
+    const writer = this.editor
+      ? new StreamingWriter(this.editor, { clearExisting: true, respectUserEdits: true })
+      : null;
 
     const enabledSections = narrativeTemplateConfig.sections
       .filter(s => s.enabled)
@@ -268,7 +225,7 @@ export class OrchestratorEngine {
 
       this.callbacks.onSectionStart?.(section.id, section.title);
 
-      const started = writer.beginSection(section.id, section.title);
+      const started = writer ? writer.beginSection(section.id, section.title) : true;
 
       if (!started) {
         const result: SectionResult = {
@@ -282,6 +239,8 @@ export class OrchestratorEngine {
         continue;
       }
 
+      let sectionText = '';
+
       try {
         const prompt = buildSectionPrompt(
           section.id,
@@ -290,28 +249,50 @@ export class OrchestratorEngine {
           this.context
         );
 
-        const { tokensGenerated } = await streamSection(
-          section.id,
-          section.title,
-          prompt,
-          writer,
-          this.abortController.signal
+        const genResult = await this.provider.generateStream(
+          {
+            system:      SYSTEM_PROMPT,
+            prompt,
+            maxTokens:   1024,
+            abortSignal: this.abortController.signal,
+          },
+          token => {
+            sectionText += token;
+            writer?.appendToken(section.id, token);
+            this.callbacks.onToken?.(section.id, token);
+          },
         );
 
-        writer.completeSection(section.id);
+        writer?.completeSection(section.id);
 
         const result: SectionResult = {
-          sectionId:    section.id,
-          sectionTitle: section.title,
-          status:       'completed',
-          tokensGenerated,
+          sectionId:       section.id,
+          sectionTitle:    section.title,
+          status:          'completed',
+          text:            sectionText,
+          tokensGenerated: genResult.tokensGenerated,
+          providerId:      genResult.providerId,
+          modelId:         genResult.modelId,
+          latencyMs:       genResult.latencyMs,
         };
         results.push(result);
         this.callbacks.onSectionComplete?.(section.id, result);
 
+        // ── Audit trail ────────────────────────────────────
+        AIAuditLog.record({
+          caseId:          this.context.caseId,
+          sectionId:       section.id,
+          sectionTitle:    section.title,
+          providerId:      genResult.providerId,
+          modelId:         genResult.modelId,
+          status:          'completed',
+          tokensGenerated: genResult.tokensGenerated,
+          latencyMs:       genResult.latencyMs,
+        });
+
       } catch (err: any) {
         if (err?.name === 'AbortError') {
-          writer.cancelSection(section.id);
+          writer?.cancelSection(section.id);
           const result: SectionResult = {
             sectionId:    section.id,
             sectionTitle: section.title,
@@ -322,7 +303,7 @@ export class OrchestratorEngine {
           break;
         }
 
-        writer.cancelSection(section.id);
+        writer?.cancelSection(section.id);
         const errorMsg = err?.message ?? 'Unknown error';
         const result: SectionResult = {
           sectionId:    section.id,
@@ -333,6 +314,18 @@ export class OrchestratorEngine {
         results.push(result);
         this.callbacks.onError?.(section.id, errorMsg);
         this.callbacks.onSectionComplete?.(section.id, result);
+
+        AIAuditLog.record({
+          caseId:          this.context.caseId,
+          sectionId:       section.id,
+          sectionTitle:    section.title,
+          providerId:      this.provider.providerId,
+          modelId:         this.provider.modelId,
+          status:          'error',
+          tokensGenerated: 0,
+          latencyMs:       0,
+          error:           errorMsg,
+        });
         // Continue to next section — section-level isolation
       }
     }
@@ -347,6 +340,8 @@ export class OrchestratorEngine {
       sections:    results,
       startedAt,
       completedAt: new Date().toISOString(),
+      providerId:  this.provider.providerId,
+      modelId:     this.provider.modelId,
     };
 
     this.callbacks.onComplete?.(result);
@@ -365,13 +360,14 @@ export class OrchestratorEngine {
 
     this.abortController = new AbortController();
 
-    const writer = new StreamingWriter(this.editor, {
-      clearExisting:    true,
-      respectUserEdits: false, // override user edits for explicit regen
-    });
+    const writer = this.editor
+      ? new StreamingWriter(this.editor, { clearExisting: true, respectUserEdits: false })
+      : null;
 
     this.callbacks.onSectionStart?.(section.id, section.title);
-    writer.beginSection(section.id, section.title);
+    writer?.beginSection(section.id, section.title);
+
+    let sectionText = '';
 
     try {
       const prompt = buildSectionPrompt(
@@ -381,27 +377,49 @@ export class OrchestratorEngine {
         this.context
       );
 
-      const { tokensGenerated } = await streamSection(
-        section.id,
-        section.title,
-        prompt,
-        writer,
-        this.abortController.signal
+      const genResult = await this.provider.generateStream(
+        {
+          system:      SYSTEM_PROMPT,
+          prompt,
+          maxTokens:   1024,
+          abortSignal: this.abortController.signal,
+        },
+        token => {
+          sectionText += token;
+          writer?.appendToken(section.id, token);
+          this.callbacks.onToken?.(section.id, token);
+        },
       );
 
-      writer.completeSection(section.id);
+      writer?.completeSection(section.id);
 
       const result: SectionResult = {
-        sectionId:    section.id,
-        sectionTitle: section.title,
-        status:       'completed',
-        tokensGenerated,
+        sectionId:       section.id,
+        sectionTitle:    section.title,
+        status:          'completed',
+        text:            sectionText,
+        tokensGenerated: genResult.tokensGenerated,
+        providerId:      genResult.providerId,
+        modelId:         genResult.modelId,
+        latencyMs:       genResult.latencyMs,
       };
+
+      AIAuditLog.record({
+        caseId:          this.context.caseId,
+        sectionId:       section.id,
+        sectionTitle:    section.title,
+        providerId:      genResult.providerId,
+        modelId:         genResult.modelId,
+        status:          'completed',
+        tokensGenerated: genResult.tokensGenerated,
+        latencyMs:       genResult.latencyMs,
+      });
+
       this.callbacks.onSectionComplete?.(section.id, result);
       return result;
 
     } catch (err: any) {
-      writer.cancelSection(section.id);
+      writer?.cancelSection(section.id);
       const errorMsg = err?.message ?? 'Unknown error';
       const result: SectionResult = {
         sectionId:    section.id,
@@ -409,6 +427,19 @@ export class OrchestratorEngine {
         status:       'error',
         error:        errorMsg,
       };
+
+      AIAuditLog.record({
+        caseId:          this.context.caseId,
+        sectionId:       section.id,
+        sectionTitle:    section.title,
+        providerId:      this.provider.providerId,
+        modelId:         this.provider.modelId,
+        status:          'error',
+        tokensGenerated: 0,
+        latencyMs:       0,
+        error:           errorMsg,
+      });
+
       this.callbacks.onError?.(section.id, errorMsg);
       return result;
     }
@@ -422,10 +453,10 @@ export class OrchestratorEngine {
     this.setStatus('cancelled');
   }
 
-  // ── getStatus ──────────────────────────────────────────────
-  getStatus(): OrchestratorStatus {
-    return this.status;
-  }
+  getStatus(): OrchestratorStatus { return this.status; }
+
+  /** Returns the active provider — useful for displaying engine info in the UI */
+  getProvider(): IAIProvider { return this.provider; }
 
   private setStatus(status: OrchestratorStatus): void {
     this.status = status;

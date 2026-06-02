@@ -1,33 +1,22 @@
 /**
  * AIBehaviorSettings.tsx
- * ─────────────────────────────────────────────────────────────────────────────
- * UI for the AI Behavior section of the Configuration → AI tab.
- * Controls confidenceThreshold and autoInsertSuggestions.
- *
- * Drop this into src/components/Config/AI/AIBehaviorSettings.tsx
- * and import it into your existing Config/AI/index.tsx.
- * ─────────────────────────────────────────────────────────────────────────────
+ * src/components/Config/AI/AIBehaviorSettings.tsx
  */
 import React from 'react';
-// Lines 12-13:
-import { aiBehaviorService } from '@/services/aiBehavior/IAIBehaviorService';
-import type { AIBehaviorConfig } from '@/services/aiBehavior/IAIBehaviorService';
+import { aiBehaviorService } from '@/services';
+import type { AIBehaviorConfig } from '@/services';
 
-// Use CSS tokens where possible; JS constants kept for dynamic style logic
-const TEAL   = 'var(--ps-conf-teal)';
-const BORDER = 'var(--ps-conf-border)';
-const TEXT   = 'var(--ps-conf-text)';
-const MUTED  = 'var(--ps-conf-text-2)';
-const GREEN  = 'var(--ps-conf-green)';
-const AMBER  = 'var(--ps-conf-amber)';
-
-// row styling handled by .ps-conf-row CSS class
+// Dynamic color tokens — used only where value changes at runtime
+// (static colours live in pathscribe.css via .ps-ai-* classes)
+const C_TEAL  = '#0891B2';
+const C_GREEN = '#10b981';
+const C_AMBER = '#f59e0b';
 
 export const AIBehaviorSettings: React.FC = () => {
-  const [config,   setConfig]   = React.useState<AIBehaviorConfig | null>(null);
-  const [saved,    setSaved]    = React.useState(false);
-  const [dirty,    setDirty]    = React.useState(false);
-  const [loading,  setLoading]  = React.useState(true);
+  const [config,  setConfig]  = React.useState<AIBehaviorConfig | null>(null);
+  const [saved,   setSaved]   = React.useState(false);
+  const [dirty,   setDirty]   = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     aiBehaviorService.get().then(res => {
@@ -56,90 +45,73 @@ export const AIBehaviorSettings: React.FC = () => {
   };
 
   if (loading || !config) return (
-    <div style={{ padding: '24px 0', color: MUTED, fontSize: 13 }}>Loading AI settings…</div>
+    <div className="ps-ai-loading">Loading AI settings…</div>
   );
 
   const ToggleBtn = ({ field, val, label }: { field: keyof AIBehaviorConfig; val: boolean; label: string }) => (
     <button
-      onClick={() => update({ [field]: val } as any)}
-      style={{
-        padding: '6px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600,
-        cursor: 'pointer', border: `1px solid ${BORDER}`,
-        background: (config[field] as boolean) === val ? TEAL : 'transparent',
-        color:      (config[field] as boolean) === val ? '#fff' : MUTED,
-        transition: 'all 0.15s',
-      }}
+      onClick={() => update({ [field]: val } as Partial<AIBehaviorConfig>)}
+      className={`ps-toggle-btn${(config[field] as boolean) === val ? ' active' : ''}`}
     >{label}</button>
   );
 
-  // Confidence threshold colour feedback
-  const thresholdColor = config.confidenceThreshold >= 85 ? GREEN
-    : config.confidenceThreshold >= 70 ? TEAL
-    : AMBER;
+  // Threshold colour changes dynamically based on value
+  const thresholdColor = config.confidenceThreshold >= 85 ? C_GREEN
+    : config.confidenceThreshold >= 70 ? C_TEAL
+    : C_AMBER;
 
   return (
-    <div style={{ maxWidth: 680 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: TEXT, margin: '0 0 4px' }}>
-          AI Suggestion Behaviour
-        </h3>
-        <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
+    <div className="ps-ai-settings">
+
+      <div className="ps-ai-settings-header">
+        <h3 className="ps-ai-settings-title">AI Suggestion Behaviour</h3>
+        <p className="ps-ai-settings-subtitle">
           Controls how AI-extracted field values are applied to synoptic reports.
         </p>
       </div>
 
-      <div style={{ background: "var(--ps-conf-surface-2)", borderRadius: 10, border: "1px solid var(--ps-conf-border)", padding: "0 24px", marginBottom: 20 }}>
+      {/* ── Auto-insert + Confidence threshold ───────────────────────────── */}
+      <div className="ps-ai-settings-card">
 
-        {/* ── Auto-insert suggestions ─────────────────────────────────────── */}
         <div className="ps-conf-row">
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT, marginBottom: 4 }}>
-              Auto-insert suggestions
-            </div>
-            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>
-              <strong style={{ color: TEXT }}>Off (recommended)</strong> — AI suggestions appear as
-              badges below each field. The pathologist clicks <em>Confirm</em> to accept or
-              <em> Override</em> to reject. Fields stay blank until actively confirmed.
-              Stronger audit trail; each acceptance is a deliberate clinical decision.
+          <div className="ps-ai-row-content">
+            <div className="ps-ai-row-label">Auto-insert suggestions</div>
+            <div className="ps-ai-row-desc">
+              <strong>Off (recommended)</strong> — AI suggestions appear as badges below each
+              field. The pathologist clicks <em>Confirm</em> to accept or <em>Override</em> to
+              reject. Stronger audit trail; each acceptance is a deliberate clinical decision.
               <br /><br />
-              <strong style={{ color: TEXT }}>On</strong> — AI values are written directly into
-              fields when confidence is at or above the threshold. Pathologist reviews and
-              overrides as needed. Faster for high-volume routine cases.
+              <strong>On</strong> — AI values are written directly into fields when confidence
+              is at or above the threshold. Faster for high-volume routine cases.
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginTop: 2 }}>
+          <div className="ps-ai-toggles">
             <ToggleBtn field="autoInsertSuggestions" val={false} label="Off" />
             <ToggleBtn field="autoInsertSuggestions" val={true}  label="On"  />
           </div>
         </div>
 
-        {/* ── Confidence threshold ────────────────────────────────────────── */}
-        <div className="ps-conf-row" style={{ borderBottom: "none", paddingBottom: 20 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT, marginBottom: 4 }}>
-              Confidence threshold
-            </div>
-            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, marginBottom: 12 }}>
+        <div className="ps-conf-row ps-conf-row--last">
+          <div className="ps-ai-row-content">
+            <div className="ps-ai-row-label">Confidence threshold</div>
+            <div className="ps-ai-row-desc">
               Fields where AI confidence is below this threshold show a{' '}
-              <span style={{ color: AMBER, fontWeight: 600 }}>⚠ low confidence</span> badge
+              <span style={{ color: C_AMBER, fontWeight: 600 }}>⚠ low confidence</span> badge
               and are never auto-inserted regardless of the setting above.
-              Fields above the threshold show the confidence % with Confirm / Override.
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="ps-ai-threshold-row">
               <input
                 type="range" min={50} max={99} step={5}
                 value={config.confidenceThreshold}
                 onChange={e => update({ confidenceThreshold: Number(e.target.value) })}
-                style={{ flex: 1, accentColor: TEAL }}
+                className="ps-ai-range"
+                style={{ accentColor: C_TEAL }}
               />
-              <span style={{
-                fontSize: 18, fontWeight: 700, color: thresholdColor,
-                minWidth: 48, textAlign: 'right',
-              }}>
+              <span className="ps-ai-threshold-value" style={{ color: thresholdColor }}>
                 {config.confidenceThreshold}%
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: MUTED, marginTop: 4 }}>
+            <div className="ps-ai-threshold-labels">
               <span>50% — permissive</span>
               <span>75% — recommended</span>
               <span>99% — strict</span>
@@ -148,54 +120,43 @@ export const AIBehaviorSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Additional toggles ──────────────────────────────────────────────── */}
-      <div style={{ background: "var(--ps-conf-surface-2)", borderRadius: 10, border: "1px solid var(--ps-conf-border)", padding: "0 24px", marginBottom: 20 }}>
+      {/* ── Additional toggles ────────────────────────────────────────────── */}
+      <div className="ps-ai-settings-card">
         <div className="ps-conf-row">
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT, marginBottom: 4 }}>Show confidence scores</div>
-            <div style={{ fontSize: 12, color: MUTED }}>Display percentage confidence on each AI suggestion badge in the synoptic editor.</div>
+          <div className="ps-ai-row-content">
+            <div className="ps-ai-row-label">Show confidence scores</div>
+            <div className="ps-ai-row-desc">
+              Display percentage confidence on each AI suggestion badge in the synoptic editor.
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <div className="ps-ai-toggles">
             <ToggleBtn field="showConfidenceScores" val={true}  label="On"  />
             <ToggleBtn field="showConfidenceScores" val={false} label="Off" />
           </div>
         </div>
-        <div className="ps-conf-row" style={{ borderBottom: "none", paddingBottom: 18 }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT, marginBottom: 4 }}>Subspecialty routing</div>
-            <div style={{ fontSize: 12, color: MUTED }}>Filter AI suggestions based on the assigned pathologist's subspecialty to improve relevance.</div>
+        <div className="ps-conf-row ps-conf-row--last">
+          <div className="ps-ai-row-content">
+            <div className="ps-ai-row-label">Subspecialty routing</div>
+            <div className="ps-ai-row-desc">
+              Filter AI suggestions based on the assigned pathologist's subspecialty to improve relevance.
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          <div className="ps-ai-toggles">
             <ToggleBtn field="subspecialtyRouting" val={true}  label="On"  />
             <ToggleBtn field="subspecialtyRouting" val={false} label="Off" />
           </div>
         </div>
       </div>
 
-      {/* ── Actions ──────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <button
-          onClick={handleSave}
-          disabled={!dirty}
-          style={{
-            padding: '10px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-            cursor: dirty ? 'pointer' : 'default', border: 'none',
-            background: dirty ? 'var(--ps-conf-teal)' : 'var(--ps-conf-border)', color: '#fff', transition: 'all 0.2s',
-          }}
-        >
+      {/* ── Actions ──────────────────────────────────────────────────────── */}
+      <div className="ps-ai-actions">
+        <button onClick={handleSave} disabled={!dirty} className="ps-btn-primary">
           {saved ? '✓ Saved' : 'Save settings'}
         </button>
-        <button
-          onClick={handleReset}
-          style={{
-            padding: '10px 16px', borderRadius: 8, fontSize: 13,
-            cursor: 'pointer', border: `1px solid ${BORDER}`,
-            background: 'transparent', color: MUTED,
-          }}
-        >
+        <button onClick={handleReset} className="fm-btn-cancel">
           Reset to defaults
         </button>
-        {saved && <span style={{ fontSize: 12, color: GREEN }}>Settings saved</span>}
+        {saved && <span className="ps-ai-saved-msg" style={{ color: C_GREEN }}>Settings saved</span>}
       </div>
     </div>
   );

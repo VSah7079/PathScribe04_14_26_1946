@@ -25,6 +25,8 @@ export interface StaffUser {
   canViewPediatric?: boolean;
   /** GMC number for UK users */
   gmcNumber?: string;
+  /** Middle name or initial */
+  middleName?: string;
 }
 
 export interface IUserService {

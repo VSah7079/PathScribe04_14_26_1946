@@ -23,6 +23,7 @@ function fromDoc(id: string, data: Record<string, any>): DelegationType {
     description:        data.description        ?? '',
     transfersOwnership: data.transfersOwnership ?? false,
     requiresNote:       data.requiresNote       ?? false,
+    multiAssign:        data.multiAssign        ?? false,
     color:              data.color              ?? '#94a3b8',
     active:             data.active             ?? true,
     isSystem:           data.isSystem           ?? false,
