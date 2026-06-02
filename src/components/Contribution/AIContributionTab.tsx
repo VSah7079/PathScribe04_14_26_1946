@@ -1,6 +1,6 @@
 // src/components/Contribution/AIContributionTab.tsx
 import React, { useState } from "react";
-import '../pathscribe.css';
+import '../../pathscribe.css';
 import { pathscribeTheme as t } from "@theme/pathscribeTheme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

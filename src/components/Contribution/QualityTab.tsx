@@ -1,6 +1,6 @@
 // src/components/Contribution/QualityTab.tsx
 import React, { useState } from "react";
-import '../pathscribe.css';
+import '../../pathscribe.css';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
