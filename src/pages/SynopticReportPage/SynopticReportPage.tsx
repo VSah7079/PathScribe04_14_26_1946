@@ -51,7 +51,10 @@ import '@/pathscribe.css';
 import type { Case } from '@/types/case/Case';
 import { AiReviewModal }  from './modals/AiReviewModal';
 import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
-import CaseTeamModal     from './modals/CaseTeamModal';
+import CaseTeamModal            from './modals/CaseTeamModal';
+import { PreFinalisationModal, type SynopticForReview } from './modals/PreFinalisationModal';
+import { getFieldLabel, type ReportingStandard } from '@/utils/synopticFieldLabels';
+import { ProtocolChangeModal, type ProtocolChange }     from './modals/ProtocolChangeModal';
 import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
 import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '@/constants/computationalActions';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
@@ -497,12 +500,89 @@ const SynopticReportPage: React.FC = () => {
     showToast('Case signed out successfully');
   }, [setCaseSigned, setShowSignOutModal, showToast]);
 
+  // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
+  const buildSynopticsForReview = useCallback((): SynopticForReview[] => {
+    if (!caseData?.synopticReports?.length) return [];
+    return caseData.synopticReports
+      .filter(r => (r as any).status !== 'deferred')
+      .map(report => {
+        const specimen  = caseData.specimens?.find(s => s.id === report.specimenId) as any;
+        const answers   = (report as any).answers ?? {};
+        const fieldKeys = Object.keys(answers);
+        const answeredCount = fieldKeys.filter(k => {
+          const v = answers[k];
+          return v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0);
+        }).length;
+        const std: ReportingStandard =
+          report.templateName?.includes('RCPath') ? 'RCPath' :
+          report.templateName?.includes('RCPA')  ? 'RCPA'  :
+          report.templateName?.includes('WHO')   ? 'WHO'   : 'CAP';
+        const fieldLabels: Record<string, string> = {};
+        fieldKeys.forEach(k => { fieldLabels[k] = getFieldLabel(k, std); });
+        return {
+          instanceId:    report.instanceId,
+          templateName:  report.templateName,
+          specimenId:    report.specimenId,
+          specimenLabel: specimen?.label ?? '?',
+          specimenDesc:  specimen?.specimenType ?? specimen?.description ?? 'Specimen',
+          answers, fieldLabels, fieldOrder: fieldKeys,
+          answeredCount, totalCount: fieldKeys.length,
+          status: (report as any).status,
+        };
+      });
+  }, [caseData]);
+
   const synopticPanelRef = React.useRef<RightSynopticPanelHandle>(null);
   const [missingFields,          setMissingFields]          = React.useState<MissingRequiredField[]>([]);
   const [showMissingWarning,     setShowMissingWarning]     = React.useState(false);
   const [reviewFields,           setReviewFields]           = React.useState<ReviewField[]>([]);
   const [showAiReview,           setShowAiReview]           = React.useState(false);
   const [finalizeAndNextPending, setFinalizeAndNextPending] = React.useState(false);
+
+  // ── Pre-finalisation + protocol review state ───────────────────────
+  const [showPreFinalise,   setShowPreFinalise]   = React.useState(false);
+  const [preFinalSynoptics, setPreFinalSynoptics] = React.useState<SynopticForReview[]>([]);
+  const [showProtoReview,   setShowProtoReview]   = React.useState(false);
+  const [protoChanges,      setProtoChanges]      = React.useState<ProtocolChange[]>([]);
+
+  const handleProtocolChangesDetected = useCallback((changes: ProtocolChange[]) => {
+    if (!changes.length) return;
+    setProtoChanges(changes);
+    setShowProtoReview(true);
+  }, []);
+
+  const handleProtoCommit = useCallback((acceptedIds: string[]) => {
+    setShowProtoReview(false);
+    console.log('[ProtocolChange] Accepted', acceptedIds.length, 'of', protoChanges.length, 'proposed changes');
+  }, [protoChanges.length]);
+
+  const handleRequestFinalize = useCallback((andNext: boolean) => {
+    setFinalizeAndNextPending(andNext);
+    if (!synopticPanelRef.current) {
+      setPreFinalSynoptics(buildSynopticsForReview());
+      setShowPreFinalise(true);
+      return;
+    }
+    const missing = synopticPanelRef.current.validateRequired();
+    if (missing.length > 0) { setMissingFields(missing); setShowMissingWarning(true); return; }
+    const uncertain = synopticPanelRef.current.getUncertainRequiredFields();
+    if (uncertain.length > 0) { setReviewFields(uncertain); setFinalizeAndNextPending(andNext); setShowAiReview(true); return; }
+    const deferred = (caseData?.synopticReports ?? []).filter((r: any) => r.status === 'deferred');
+    if (deferred.length > 0) {
+      const names = deferred.map((r: any) => r.templateName).join(', ');
+      if (!window.confirm(`${deferred.length} synoptic report(s) are marked deferred:\n\n${names}\n\nProceed?`)) return;
+    }
+    setPreFinalSynoptics(buildSynopticsForReview());
+    setShowPreFinalise(true);
+  }, [buildSynopticsForReview, caseData, setMissingFields, setShowMissingWarning, setReviewFields, setShowAiReview, setFinalizeAndNextPending, setPreFinalSynoptics, setShowPreFinalise]);
+
+  const handlePreFinalConfirm = useCallback((_ordered: string[], _excluded: string[]) => {
+    setShowPreFinalise(false);
+    // Credentials already verified inside PreFinalisationModal — finalize directly.
+    // TODO: call finalize service with ordered/excluded instanceIds
+    console.log('[Finalise] ordered:', _ordered, 'excluded:', _excluded);
+  }, []);
+
   const [deferredAmendmentContext, setDeferredAmendmentContext] = React.useState<{ title: string; prefill: string } | null>(null);
 
   const handleFinalizeConfirm = useCallback(() => {
@@ -1137,34 +1217,37 @@ Original report issued pending ancillary studies. This amendment incorporates th
           );
         })()}
 
+        {/* DEV only: simulate microscopic received → triggers protocol review */}
+        {import.meta.env.DEV && caseData && (
+          <div style={{ position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
+            <button
+              onClick={() => handleProtocolChangesDetected([{
+                id: 'demo-proto-1',
+                specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
+                specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
+                specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                currentTemplateId:    'breast_core_general',
+                currentTemplateName:  'Breast Core Biopsy (General)',
+                proposedTemplateId:   'breast_invasive_carcinoma',
+                proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
+                confidence:           92,
+              }])}
+              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b', cursor: 'pointer', fontWeight: 600 }}
+            >
+              ⚡ DEV: Simulate Microscopic Received
+            </button>
+          </div>
+        )}
         {/* Bottom action bar */}
         <BottomActionBar
           caseData={caseData}
           isDirty={hasUnsavedData}
           onSaveDraft={() => { setHasUnsavedData(false); showToast('Draft saved'); }}
           onSaveAndNext={() => { setHasUnsavedData(false); showToast('Draft saved'); navigateToCase('next'); }}
-          onFinalize={() => {
-            if (!synopticPanelRef.current) { setShowFinalizeModal(true); return; }
-            const missing = synopticPanelRef.current.validateRequired();
-            if (missing.length > 0) { setMissingFields(missing); setShowMissingWarning(true); return; }
-            const uncertain = synopticPanelRef.current.getUncertainRequiredFields();
-            if (uncertain.length > 0) { setReviewFields(uncertain); setFinalizeAndNextPending(false); setShowAiReview(true); return; }
-            const deferredReports = (caseData?.synopticReports ?? []).filter((r: any) => r.status === 'deferred');
-            if (deferredReports.length > 0) {
-              const names = deferredReports.map((r: any) => r.templateName).join(', ');
-              if (!window.confirm(`${deferredReports.length} synoptic report(s) are marked deferred and will not be included in this sign-out:\n\n${names}\n\nThese will require an amendment when ancillary results are available.\n\nProceed with sign-out?`)) return;
-            }
-            setShowFinalizeModal(true);
-          }}
-          onFinalizeAndNext={() => {
-            if (!synopticPanelRef.current) { setShowFinalizeModal(true); return; }
-            const missing = synopticPanelRef.current.validateRequired();
-            if (missing.length > 0) { setMissingFields(missing); setShowMissingWarning(true); return; }
-            const uncertain = synopticPanelRef.current.getUncertainRequiredFields();
-            if (uncertain.length > 0) { setReviewFields(uncertain); setFinalizeAndNextPending(true); setShowAiReview(true); return; }
-            setShowFinalizeModal(true);
-          }}
-          onSignOut={() => setShowSignOutModal(true)}
+          onFinalize={() => handleRequestFinalize(false)}
+          onFinalizeAndNext={() => handleRequestFinalize(true)}
+          onSignOut={() => { if (caseData?.reportingMode !== 'copilot') setShowSignOutModal(true); }}
           
           onHistory={() => setIsSimilarCasesOpen(true)}
           onFlags={() => openFlagManager(caseData)}
@@ -1257,6 +1340,22 @@ Original report issued pending ancillary studies. This amendment incorporates th
         </div>
       )}
 
+      {/* Pre-finalisation review — two-pane: specimen list + Q&A preview + signing */}
+      <PreFinalisationModal
+        show={showPreFinalise}
+        caseAccession={caseData?.accession?.fullAccession ?? ''}
+        patientName={`${caseData?.patient?.firstName ?? ''} ${caseData?.patient?.lastName ?? ''}`.trim()}
+        reportingMode={caseData?.reportingMode === 'copilot' ? 'copilot' : 'pathscribe'}
+        synoptics={preFinalSynoptics}
+        userId={(caseData as any)?.order?.assignedTo ?? 'current'}
+        userDisplayName={(caseData as any)?.assignedPathologistName ?? 'Pathologist'}
+        userCredentials=""
+        finalizeAndNext={finalizeAndNextPending}
+        onConfirm={handlePreFinalConfirm}
+        onCancel={() => setShowPreFinalise(false)}
+      />
+
+      {/* Legacy per-synoptic password confirm — kept for deferred/amendment flow */}
       <FinalizeSynopticModal
         show={showFinalizeModal}
         overlayStyle={overlayStyle}
@@ -1267,6 +1366,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
         onClose={() => setShowFinalizeModal(false)}
         onPasswordChange={setFinalizePassword}
         onConfirm={handleFinalizeConfirm}
+      />
+
+      {/* Protocol change review — AI proposes after microscopic received */}
+      <ProtocolChangeModal
+        show={showProtoReview}
+        changes={protoChanges}
+        onCommit={handleProtoCommit}
+        onCancel={() => setShowProtoReview(false)}
       />
 
       <AmendmentModal

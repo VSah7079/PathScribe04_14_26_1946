@@ -20,6 +20,20 @@ import { Flag }           from '@/services/flags/IFlagService';
 import SidecarDrawer      from '../../components/sidecar/SidecarDrawer';
 import { useSidecar }     from '@/contexts/SidecarContext';
 
+const FILTER_TITLES: Record<string, string> = {
+  all:        'Active Cases',
+  urgent:     'Urgent Cases',
+  pool:       'Pool Cases',
+  delegated:  'Delegated to Me',
+  review:     'Needs Review',
+  inprogress: 'In Progress',
+  draft:      'Draft Cases',
+  finalizing: 'Finalizing',
+  amended:    'Amended Cases',
+  completed:  'Completed Today',
+  physician:  'Physician View',
+};
+
 const WorklistPage: React.FC = () => {
   const handleLogout = useLogout();
   const { user } = useAuth();
@@ -540,7 +554,7 @@ const WorklistPage: React.FC = () => {
               {/* Row 1 — Title left, Search right */}
               <div className="ps-wl-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '10px' }}>
                 <h1 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                  Active Cases
+                  {FILTER_TITLES[activeFilter] ?? 'Active Cases'}
                 </h1>
                 <div data-capture-hide="true" style={{ width: '280px', flexShrink: 0 }}>
                   <CaseSearchBar compact />

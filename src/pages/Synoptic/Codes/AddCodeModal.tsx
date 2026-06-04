@@ -548,7 +548,7 @@ Rules:
   const ContextMenu = contextMenu ? (
     <div
       onClick={() => setContextMenu(null)}
-      style={{ position: 'fixed', inset: 0, zIndex: 99999 }}
+      className="ps-overlay" style={{ zIndex: 99999 }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -609,7 +609,7 @@ Rules:
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div data-capture-hide="true" className="fm-overlay" onClick={onClose}>
+    <div data-capture-hide="true" className="ps-overlay" onClick={onClose}>
       <div className="ps-research-modal fm-modal" style={{ maxWidth: 1100, width: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
 
         {/* ── HEADER ── */}

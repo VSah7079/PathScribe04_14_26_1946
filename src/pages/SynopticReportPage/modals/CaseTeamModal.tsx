@@ -134,7 +134,7 @@ const DropZone: React.FC<DropZoneProps> = ({
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="ps-case-team-list">
         {inType.map(p => {
           const removeKey    = `${p.staffId}-${type.id}`;
           const isRemoved    = removedKeys.has(removeKey);
@@ -370,7 +370,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   return (
     <>
       {/* ── Modal shell uses fm-overlay + ps-research-modal pattern ── */}
-      <div className="fm-overlay" onClick={onClose}>
+      <div className="ps-overlay" onClick={onClose}>
         <div onClick={e => e.stopPropagation()} style={{
           width: '100%', maxWidth: 960, height: '88vh',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',

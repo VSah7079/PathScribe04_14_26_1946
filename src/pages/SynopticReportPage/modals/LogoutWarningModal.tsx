@@ -32,7 +32,7 @@ const LogoutWarningModal: React.FC<LogoutWarningModalProps> = ({
           <button className="ps-btn-ghost-dark" onClick={onCancel}>Cancel</button>
           <button
             onClick={onConfirm}
-            style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+            className="ps-btn-danger"
           >
             Logout Anyway
           </button>

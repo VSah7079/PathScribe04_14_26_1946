@@ -280,12 +280,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     <div
       data-enhancement-modal="true"
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 60000,
-        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        paddingTop: '40px', paddingBottom: '40px', overflowY: 'auto',
-      }}
+      className="ps-overlay" style={{ zIndex: 60000, alignItems: 'flex-start', paddingTop: 40, paddingBottom: 40, overflowY: 'auto' }}
     >
       <div
         onClick={e => e.stopPropagation()}

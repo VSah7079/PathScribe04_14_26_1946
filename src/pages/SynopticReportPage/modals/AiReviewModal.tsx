@@ -1,10 +1,7 @@
 /**
  * AiReviewModal — AI Triage / Spell-checker Flow
- * ------------------------------------------------
  * Keyboard: Space/→ = Confirm, O = Override, S = Skip, Esc = Cancel
- * Voice:    "Confirm" / "Override" / "Skip" / "Next" / "Cancel"
  */
-
 import React, { useEffect, useCallback, useState } from 'react';
 import '../../../pathscribe.css';
 
@@ -28,202 +25,131 @@ interface AiReviewModalProps {
   onCancel:        () => void;
 }
 
-const CONF_COLOR = (c: number) =>
+// Dynamic — changes at runtime, must stay inline
+const confColor = (c: number) =>
   c >= 85 ? '#34d399' : c >= 60 ? '#fbbf24' : '#f87171';
 
 export const AiReviewModal: React.FC<AiReviewModalProps> = ({
   fields, finalizeAndNext, onConfirm, onOverride, onSkip, onComplete, onCancel,
 }) => {
-  const [index,     setIndex]     = useState(0);
-  const [skipped,   setSkipped]   = useState<string[]>([]);
-  const [confirmed, setConfirmed] = useState<string[]>([]);
-  const [overridden,setOverridden]= useState<string[]>([]);
+  const [index,      setIndex]     = useState(0);
+  const [skipped,    setSkipped]   = useState<string[]>([]);
+  const [confirmed,  setConfirmed] = useState<string[]>([]);
+  const [overridden, setOverridden]= useState<string[]>([]);
 
   const current = fields[index];
   const total   = fields.length;
   const isDone  = index >= total;
 
   const advance = useCallback(() => {
-    if (index + 1 >= total) {
-      onComplete({ confirmed, overridden, skipped });
-    } else {
-      setIndex(i => i + 1);
-    }
+    if (index + 1 >= total) onComplete({ confirmed, overridden, skipped });
+    else setIndex(i => i + 1);
   }, [index, total, onComplete, confirmed, overridden, skipped]);
 
-  const handleConfirm = useCallback(() => {
-    if (!current) return;
-    onConfirm(current.fieldId);
-    setConfirmed(c => [...c, current.fieldId]);
-    advance();
-  }, [current, onConfirm, advance]);
-
-  const handleOverride = useCallback(() => {
-    if (!current) return;
-    onOverride(current.fieldId);
-    setOverridden(o => [...o, current.fieldId]);
-    advance();
-  }, [current, onOverride, advance]);
-
-  const handleSkip = useCallback(() => {
-    if (!current) return;
-    onSkip(current.fieldId);
-    setSkipped(s => [...s, current.fieldId]);
-    advance();
-  }, [current, onSkip, advance]);
+  const handleConfirm  = useCallback(() => { if (!current) return; onConfirm(current.fieldId);  setConfirmed(c => [...c, current.fieldId]);  advance(); }, [current, onConfirm,  advance]);
+  const handleOverride = useCallback(() => { if (!current) return; onOverride(current.fieldId); setOverridden(o => [...o, current.fieldId]); advance(); }, [current, onOverride, advance]);
+  const handleSkip     = useCallback(() => { if (!current) return; onSkip(current.fieldId);     setSkipped(s => [...s, current.fieldId]);    advance(); }, [current, onSkip,     advance]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const h = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); handleConfirm(); }
-      if (e.key === 'o' || e.key === 'O')           { e.preventDefault(); handleOverride(); }
-      if (e.key === 's' || e.key === 'S')           { e.preventDefault(); handleSkip(); }
-      if (e.key === 'Escape')                        { onCancel(); }
+      if (e.key === 'o' || e.key === 'O') { e.preventDefault(); handleOverride(); }
+      if (e.key === 's' || e.key === 'S') { e.preventDefault(); handleSkip(); }
+      if (e.key === 'Escape') onCancel();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, [handleConfirm, handleOverride, handleSkip, onCancel]);
 
   useEffect(() => {
-    const confirm  = () => handleConfirm();
-    const override = () => handleOverride();
-    const skip     = () => handleSkip();
-    const cancel   = () => onCancel();
-    window.addEventListener('PATHSCRIBE_AI_REVIEW_CONFIRM',  confirm);
-    window.addEventListener('PATHSCRIBE_AI_REVIEW_OVERRIDE', override);
-    window.addEventListener('PATHSCRIBE_AI_REVIEW_SKIP',     skip);
-    window.addEventListener('PATHSCRIBE_AI_REVIEW_CANCEL',   cancel);
+    const c = () => handleConfirm();
+    const o = () => handleOverride();
+    const s = () => handleSkip();
+    const x = () => onCancel();
+    window.addEventListener('PATHSCRIBE_AI_REVIEW_CONFIRM',  c);
+    window.addEventListener('PATHSCRIBE_AI_REVIEW_OVERRIDE', o);
+    window.addEventListener('PATHSCRIBE_AI_REVIEW_SKIP',     s);
+    window.addEventListener('PATHSCRIBE_AI_REVIEW_CANCEL',   x);
     return () => {
-      window.removeEventListener('PATHSCRIBE_AI_REVIEW_CONFIRM',  confirm);
-      window.removeEventListener('PATHSCRIBE_AI_REVIEW_OVERRIDE', override);
-      window.removeEventListener('PATHSCRIBE_AI_REVIEW_SKIP',     skip);
-      window.removeEventListener('PATHSCRIBE_AI_REVIEW_CANCEL',   cancel);
+      window.removeEventListener('PATHSCRIBE_AI_REVIEW_CONFIRM',  c);
+      window.removeEventListener('PATHSCRIBE_AI_REVIEW_OVERRIDE', o);
+      window.removeEventListener('PATHSCRIBE_AI_REVIEW_SKIP',     s);
+      window.removeEventListener('PATHSCRIBE_AI_REVIEW_CANCEL',   x);
     };
   }, [handleConfirm, handleOverride, handleSkip, onCancel]);
 
   if (isDone) return null;
 
   const progress     = Math.round((index / total) * 100);
-  const displayValue = Array.isArray(current.aiValue)
-    ? current.aiValue.join(', ')
-    : current.aiValue;
+  const displayValue = Array.isArray(current.aiValue) ? current.aiValue.join(', ') : current.aiValue;
+  const cc           = confColor(current.confidence);
 
   return (
     <div className="ps-overlay" style={{ zIndex: 10001 }}>
-      <div className="ps-modal-dark" style={{ width: 'min(600px, 94vw)', padding: 0, gap: 0 }}>
+      <div className="ps-modal-dark ps-ai-review-modal">
 
-        {/* Header */}
-        <div style={{
-          padding: '16px 24px',
-          background: 'rgba(8,145,178,0.1)',
-          borderBottom: '1px solid rgba(8,145,178,0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderRadius: '14px 14px 0 0',
-        }}>
+        <div className="ps-ai-review-header">
           <div>
-            <div className="fm-eyebrow" style={{ color: '#38bdf8', marginBottom: 3 }}>
-              ✦ AI Review Mode · {finalizeAndNext ? 'Finalize & Next' : 'Finalize'}
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>
-              Review uncertain AI findings before sign-out
-            </div>
+            <div className="ps-ai-review-eyebrow">✦ AI Review Mode · {finalizeAndNext ? 'Finalise & Next' : 'Finalise'}</div>
+            <div className="ps-ai-review-title">Review uncertain AI findings before sign-out</div>
           </div>
-          <button onClick={onCancel} className="ps-modal-close" style={{ fontSize: 20 }}>×</button>
+          <button onClick={onCancel} className="ps-modal-close">×</button>
         </div>
 
-        {/* Progress bar */}
-        <div style={{ height: 3, background: 'rgba(255,255,255,0.06)' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#0891B2', transition: 'width 0.3s ease' }} />
+        <div className="ps-ai-review-progress-track">
+          <div className="ps-ai-review-progress-fill" style={{ width: `${progress}%` }} />
         </div>
 
-        {/* Field counter */}
-        <div style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <span style={{ fontSize: 12, color: '#cbd5e1' }}>
-            Field <strong style={{ color: '#f1f5f9' }}>{index + 1}</strong> of <strong style={{ color: '#f1f5f9' }}>{total}</strong>
-            {skipped.length > 0 && <span style={{ color: '#f59e0b', marginLeft: 8 }}> · {skipped.length} skipped</span>}
+        <div className="ps-ai-review-counter">
+          <span className="ps-ai-review-counter-text">
+            Field <strong>{index + 1}</strong> of <strong>{total}</strong>
+            {skipped.length > 0 && <span className="ps-ai-review-skipped-count"> · {skipped.length} skipped</span>}
           </span>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {fields.map((_, i) => (
-              <div key={i} style={{
-                width: 6, height: 6, borderRadius: '50%', transition: 'background 0.2s',
+          <div className="ps-ai-review-dots">
+            {fields.map((f, i) => (
+              <div key={i} className="ps-ai-review-dot" style={{
                 background: i < index
-                  ? (skipped.includes(fields[i].fieldId) ? '#f59e0b' : '#10b981')
+                  ? (skipped.includes(f.fieldId) ? '#f59e0b' : '#10b981')
                   : i === index ? '#38bdf8' : 'rgba(255,255,255,0.15)',
               }} />
             ))}
           </div>
         </div>
 
-        {/* Field content */}
-        <div style={{ padding: 24 }}>
-          <div style={{ marginBottom: 6 }}>
-            <span className="fm-eyebrow">{current.sectionTitle}</span>
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
-            {current.fieldLabel}
-          </div>
+        <div className="ps-ai-review-body">
+          <span className="fm-eyebrow">{current.sectionTitle}</span>
+          <div className="ps-ai-review-field-label">{current.fieldLabel}</div>
 
-          {/* AI suggestion card */}
-          <div style={{
-            padding: '14px 16px', borderRadius: 10, marginBottom: 16,
-            background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.2)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#38bdf8' }}>✦ AI Suggestion</span>
-              <span style={{
-                fontSize: 11, fontWeight: 800, padding: '1px 8px', borderRadius: 20,
-                background: CONF_COLOR(current.confidence) + '22',
-                color: CONF_COLOR(current.confidence),
-                border: `1px solid ${CONF_COLOR(current.confidence)}44`,
-              }}>
+          <div className="ps-ai-review-card">
+            <div className="ps-ai-review-card-header">
+              <span className="ps-ai-review-card-eyebrow">✦ AI Suggestion</span>
+              <span className="ps-ai-review-confidence" style={{ color: cc, background: cc + '22', borderColor: cc + '44' }}>
                 {current.confidence}% confidence
               </span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#e2e8f0', marginBottom: 8 }}>
-              {displayValue || '—'}
-            </div>
-            <div style={{ fontSize: 11, color: '#8a9db5', fontStyle: 'italic' }}>
-              {current.source}
-            </div>
+            <div className="ps-ai-review-card-value">{displayValue || '—'}</div>
+            <div className="ps-ai-review-card-source">{current.source}</div>
           </div>
 
-          {/* Keyboard hints */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { key: 'Space / →', label: 'Confirm', color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-              { key: 'O',         label: 'Override', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-              { key: 'S',         label: 'Skip',    color: '#cbd5e1', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.12)' },
-              { key: 'Esc',       label: 'Cancel',  color: '#8a9db5', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
-            ].map(h => (
-              <div key={h.key} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, background: h.bg, border: `1px solid ${h.border}` }}>
-                <kbd style={{ fontSize: 10, fontWeight: 700, color: h.color, fontFamily: 'monospace' }}>{h.key}</kbd>
-                <span style={{ fontSize: 11, color: h.color }}>{h.label}</span>
+          <div className="ps-ai-review-hints">
+            {([
+              { key: 'Space / →', label: 'Confirm', color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)' },
+              { key: 'O',         label: 'Override', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)' },
+              { key: 'S',         label: 'Skip',     color: '#cbd5e1', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.12)' },
+              { key: 'Esc',       label: 'Cancel',   color: '#8a9db5', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
+            ] as const).map(h => (
+              <div key={h.key} className="ps-ai-review-hint" style={{ background: h.bg, borderColor: h.border }}>
+                <kbd className="ps-ai-review-hint-key"   style={{ color: h.color }}>{h.key}</kbd>
+                <span className="ps-ai-review-hint-label" style={{ color: h.color }}>{h.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{
-          padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', gap: 10, justifyContent: 'flex-end',
-          borderRadius: '0 0 14px 14px',
-        }}>
-          <button
-            onClick={handleSkip}
-            className="ps-btn-ghost-dark"
-          >
-            S — Skip
-          </button>
-          <button
-            onClick={handleOverride}
-            style={{ padding: '9px 18px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', border: '1.5px solid rgba(245,158,11,0.3)', color: '#fbbf24', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            O — Override
-          </button>
-          <button
-            onClick={handleConfirm}
-            style={{ padding: '9px 22px', borderRadius: 8, background: '#0891B2', border: 'none', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
+        <div className="ps-modal-dark-footer ps-ai-review-footer">
+          <button onClick={handleSkip}     className="ps-btn-ghost-dark">S — Skip</button>
+          <button onClick={handleOverride} className="ps-btn-amber">O — Override</button>
+          <button onClick={handleConfirm}  className="ps-btn-primary">
             Space — Confirm {index + 1 < total ? '& Next →' : '& Finalise 🔒'}
           </button>
         </div>

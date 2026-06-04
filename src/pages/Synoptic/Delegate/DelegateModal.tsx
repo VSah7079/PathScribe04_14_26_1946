@@ -153,7 +153,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fm-overlay" onClick={onClose}>
+    <div className="ps-overlay" onClick={onClose}>
       <div className="ps-research-modal fm-modal" onClick={e => e.stopPropagation()}>
 
         {/* ── Header ─────────────────────────────────────────── */}

@@ -8325,3 +8325,273 @@
 .ps-hist-card__diagnosis        { font-size: 12px; color: #cbd5e1; margin-top: 4px; }
 .ps-hist-card__open-btn         { margin-top: 6px; border: none; background: rgba(37,99,235,0.15); color: #93c5fd; border-radius: 999px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
 
+
+/* ── ProtocolChangeModal ─────────────────────────────────────────────────── */
+.ps-proto-modal               { width: min(640px, 94vw); padding: 0; gap: 0; }
+.ps-proto-modal-header        { padding: 20px 24px; background: rgba(8,145,178,0.08); border-bottom: 1px solid rgba(8,145,178,0.2); border-radius: 14px 14px 0 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ps-proto-modal-header-left   { flex: 1; }
+.ps-proto-modal-list          { max-height: 54vh; overflow-y: auto; }
+
+.ps-proto-select-all          { display: flex; align-items: center; gap: 10px; padding: 12px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
+.ps-proto-select-all:hover    { background: rgba(255,255,255,0.02); }
+.ps-proto-select-all-label    { font-size: 13px; font-weight: 600; color: #cbd5e1; flex: 1; }
+.ps-proto-select-all-count    { font-size: 12px; color: #64748b; }
+
+.ps-proto-change-checkbox     { width: 16px; height: 16px; accent-color: #0891B2; cursor: pointer; flex-shrink: 0; }
+
+.ps-proto-change-row          { display: flex; align-items: flex-start; gap: 14px; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.15s; }
+.ps-proto-change-row:hover    { background: rgba(255,255,255,0.02); }
+.ps-proto-change-row--selected { background: rgba(8,145,178,0.06); }
+
+.ps-proto-change-body         { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.ps-proto-change-specimen     { display: flex; align-items: center; gap: 8px; }
+.ps-proto-change-specimen-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 5px; background: rgba(8,145,178,0.15); color: #38bdf8; border: 1px solid rgba(8,145,178,0.3); flex-shrink: 0; }
+.ps-proto-change-specimen-desc  { font-size: 12px; color: #94a3b8; }
+
+.ps-proto-change-diff         { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ps-proto-change-diff-label   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; display: block; margin-bottom: 2px; }
+.ps-proto-change-diff-name    { font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 6px; display: block; }
+.ps-proto-change-diff-name--current  { background: rgba(239,68,68,0.08); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); text-decoration: line-through; opacity: 0.8; }
+.ps-proto-change-diff-name--proposed { background: rgba(16,185,129,0.1); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+.ps-proto-change-arrow        { font-size: 16px; color: #475569; flex-shrink: 0; }
+
+.ps-proto-change-reason       { font-size: 12px; color: #64748b; font-style: italic; margin: 0; line-height: 1.5; }
+.ps-proto-change-confidence   { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid; align-self: flex-start; }
+
+/* ── PreFinalisationModal ────────────────────────────────────────────────── */
+.ps-prefin-overlay            { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: stretch; justify-content: center; z-index: 9000; padding: 16px; }
+.ps-prefin-shell              { background: #0f172a; border-radius: 16px; border: 1px solid #334155; width: 100%; max-width: 1200px; display: flex; flex-direction: column; overflow: hidden; }
+
+.ps-prefin-header             { padding: 18px 28px 14px; border-bottom: 1px solid #334155; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-shrink: 0; }
+.ps-prefin-header-left        { flex: 1; }
+.ps-prefin-header-row         { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.ps-prefin-title              { font-size: 18px; font-weight: 700; color: #f1f5f9; margin: 0; }
+.ps-prefin-header-meta        { font-size: 13px; color: #94a3b8; margin: 0; }
+.ps-prefin-header-hint        { font-size: 12px; color: #64748b; text-align: right; line-height: 1.6; flex-shrink: 0; }
+
+.ps-prefin-mode-badge         { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid; flex-shrink: 0; }
+.ps-prefin-mode-badge--copilot    { background: rgba(8,145,178,0.15); color: #38bdf8; border-color: rgba(8,145,178,0.3); }
+.ps-prefin-mode-badge--pathscribe { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(16,185,129,0.3); }
+
+/* Two-pane body */
+.ps-prefin-body               { flex: 1; display: flex; min-height: 0; }
+
+/* LEFT pane */
+.ps-prefin-left               { width: 38%; border-right: 1px solid #334155; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.ps-prefin-specimen-card      { border-radius: 10px; border: 1px solid #334155; background: #1e293b; overflow: hidden; transition: border-color 0.15s, background 0.15s; cursor: grab; }
+.ps-prefin-specimen-card--dragover { border-color: #0891B2; background: rgba(8,145,178,0.08); }
+
+.ps-prefin-specimen-header    { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #334155; background: rgba(255,255,255,0.02); }
+.ps-prefin-specimen-avatar    { width: 28px; height: 28px; border-radius: 50%; background: rgba(8,145,178,0.15); border: 1px solid rgba(8,145,178,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #38bdf8; flex-shrink: 0; }
+.ps-prefin-specimen-name      { font-size: 13px; font-weight: 600; color: #f1f5f9; margin: 0; }
+.ps-prefin-specimen-order     { font-size: 11px; color: #475569; margin: 2px 0 0; }
+
+.ps-prefin-drag-handle        { display: flex; flex-direction: column; gap: 2.5px; opacity: 0.3; cursor: grab; flex-shrink: 0; }
+.ps-prefin-drag-handle-bar    { width: 14px; height: 1.5px; background: currentColor; border-radius: 1px; }
+
+.ps-prefin-synoptic-row          { padding: 10px 12px 10px 14px; border-top: 1px solid #334155; transition: background 0.1s; }
+.ps-prefin-synoptic-row--dragover { background: rgba(8,145,178,0.07); }
+.ps-prefin-synoptic-header       { display: flex; align-items: flex-start; gap: 8px; }
+.ps-prefin-synoptic-info         { flex: 1; min-width: 0; }
+.ps-prefin-synoptic-name         { font-size: 13px; font-weight: 600; color: #f1f5f9; margin: 0; }
+.ps-prefin-synoptic-meta         { font-size: 11px; color: #64748b; margin: 2px 0 0; display: flex; align-items: center; gap: 6px; }
+.ps-prefin-synoptic-excluded-tag { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+
+.ps-prefin-exclude-btn           { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #64748b; cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
+.ps-prefin-exclude-btn--included { border-color: rgba(8,145,178,0.4); background: rgba(8,145,178,0.1); color: #38bdf8; }
+
+.ps-prefin-excluded-note { padding: 10px 12px; border-radius: 8px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); font-size: 12px; color: #92400e; }
+
+/* RIGHT pane */
+.ps-prefin-right              { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.ps-prefin-preview-header     { padding: 10px 16px; border-bottom: 1px solid #334155; background: rgba(255,255,255,0.02); flex-shrink: 0; }
+.ps-prefin-preview-title      { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #475569; }
+.ps-prefin-preview-scroll     { flex: 1; overflow-y: auto; padding: 16px; }
+.ps-prefin-preview-empty      { font-size: 13px; color: #475569; font-style: italic; text-align: center; padding: 40px 16px; }
+.ps-prefin-preview-content    { display: flex; flex-direction: column; gap: 16px; }
+
+.ps-prefin-preview-report        { border-radius: 8px; border: 1px solid #334155; overflow: hidden; background: #1e293b; }
+.ps-prefin-preview-report-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.03); border-bottom: 1px solid #334155; }
+.ps-prefin-preview-specimen-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 5px; background: rgba(8,145,178,0.15); color: #38bdf8; border: 1px solid rgba(8,145,178,0.3); flex-shrink: 0; }
+.ps-prefin-preview-report-name   { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.ps-prefin-preview-report-specimen { font-size: 11px; color: #64748b; margin-top: 1px; }
+.ps-prefin-preview-qa            { padding: 10px 14px; }
+.ps-prefin-preview-qa-row        { display: flex; gap: 0; padding: 4px 0; border-bottom: 0.5px solid #1e293b; }
+.ps-prefin-preview-qa-row--last  { border-bottom: none; }
+.ps-prefin-preview-qa-label      { color: #64748b; flex: 0 0 200px; padding-right: 12px; font-size: 12px; line-height: 1.6; }
+.ps-prefin-preview-qa-value      { color: #f1f5f9; flex: 1; font-size: 13px; line-height: 1.6; }
+.ps-prefin-preview-empty-fields  { font-size: 12px; color: #475569; font-style: italic; padding: 8px 0; }
+
+/* Signing panel */
+.ps-prefin-signing            { background: #1e293b; border-top: 1px solid #334155; padding: 14px 28px; flex-shrink: 0; }
+.ps-prefin-signing-biofail    { font-size: 12px; color: #f59e0b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.ps-prefin-signing-row        { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ps-prefin-signing-identity   { flex: 1; min-width: 200px; }
+.ps-prefin-signing-name       { font-size: 13px; font-weight: 600; color: #f1f5f9; margin: 0 0 2px; }
+.ps-prefin-signing-meta       { font-size: 12px; color: #64748b; margin: 0; }
+.ps-prefin-signing-excluded   { color: #f59e0b; }
+.ps-prefin-signing-next       { color: #0891B2; }
+.ps-prefin-signing-or         { font-size: 12px; color: #64748b; }
+
+.ps-prefin-bio-btn            { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #0891B2; background: rgba(8,145,178,0.15); color: #38bdf8; display: flex; align-items: center; gap: 8px; flex-shrink: 0; transition: all 0.2s; }
+.ps-prefin-bio-btn--verified  { border-color: #10b981; background: rgba(16,185,129,0.15); color: #34d399; }
+
+.ps-prefin-pw-form            { display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
+.ps-prefin-pw-input           { padding: 8px 12px; border-radius: 8px; font-size: 13px; border: 1px solid #334155; background: #0f172a; color: #f1f5f9; width: 160px; outline: none; }
+.ps-prefin-pw-input--error    { border-color: #ef4444; }
+.ps-prefin-pw-error           { font-size: 11px; color: #ef4444; margin: 3px 0 0; }
+
+
+/* ── AiReviewModal ────────────────────────────────────────────────────────── */
+.ps-ai-review-modal         { width: min(600px, 94vw); padding: 0; gap: 0; }
+.ps-ai-review-header        { padding: 16px 24px; background: rgba(8,145,178,0.1); border-bottom: 1px solid rgba(8,145,178,0.2); border-radius: 14px 14px 0 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ps-ai-review-eyebrow       { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #38bdf8; margin-bottom: 3px; }
+.ps-ai-review-title         { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+.ps-ai-review-progress-track { height: 3px; background: rgba(255,255,255,0.06); }
+.ps-ai-review-progress-fill  { height: 100%; background: #0891B2; transition: width 0.3s ease; }
+.ps-ai-review-counter        { padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.ps-ai-review-counter-text   { font-size: 12px; color: #cbd5e1; }
+.ps-ai-review-skipped-count  { color: #f59e0b; margin-left: 8px; }
+.ps-ai-review-dots           { display: flex; gap: 4px; }
+.ps-ai-review-dot            { width: 6px; height: 6px; border-radius: 50%; transition: background 0.2s; }
+.ps-ai-review-body           { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.ps-ai-review-field-label    { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+.ps-ai-review-card           { padding: 14px 16px; border-radius: 10px; background: rgba(8,145,178,0.08); border: 1px solid rgba(8,145,178,0.2); }
+.ps-ai-review-card-header    { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ps-ai-review-card-eyebrow   { font-size: 11px; font-weight: 700; color: #38bdf8; }
+.ps-ai-review-confidence     { font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 20px; border: 1px solid; }
+.ps-ai-review-card-value     { font-size: 16px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+.ps-ai-review-card-source    { font-size: 11px; color: #8a9db5; font-style: italic; }
+.ps-ai-review-hints          { display: flex; gap: 6px; flex-wrap: wrap; }
+.ps-ai-review-hint           { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 6px; border: 1px solid; }
+.ps-ai-review-hint-key       { font-size: 10px; font-weight: 700; font-family: monospace; }
+.ps-ai-review-hint-label     { font-size: 11px; }
+.ps-ai-review-footer         { justify-content: flex-end; gap: 10px; border-radius: 0 0 14px 14px; }
+
+/* ── AmendmentModal ───────────────────────────────────────────────────────── */
+.ps-amendment-mode-row         { display: flex; gap: 8px; }
+.ps-amendment-mode-btn         { padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid; transition: all 0.15s; background: transparent; }
+.ps-amendment-mode-btn--amendment       { color: #d97706; border-color: #d97706; }
+.ps-amendment-mode-btn--amendment.active { background: #d97706; color: #fff; }
+.ps-amendment-mode-btn--addendum         { color: #0891B2; border-color: #0891B2; }
+.ps-amendment-mode-btn--addendum.active  { background: #0891B2; color: #fff; }
+.ps-amendment-deferred-banner  { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: rgba(8,145,178,0.08); border: 1px solid rgba(8,145,178,0.2); border-radius: 8px; }
+.ps-amendment-deferred-icon    { font-size: 16px; flex-shrink: 0; }
+.ps-amendment-deferred-title   { font-size: 12px; font-weight: 700; color: #0891B2; margin-bottom: 2px; }
+.ps-amendment-textarea         { width: 100%; padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; resize: vertical; box-sizing: border-box; outline: none; font-family: inherit; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.15); color: #e2e8f0; }
+
+/* ── CaseSignOutModal / shared modal field patterns ──────────────────────── */
+.ps-modal-dark-emoji       { font-size: 44px; margin-bottom: 4px; text-align: center; }
+.ps-modal-dark-label       { font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px; }
+.ps-modal-dark-input       { width: 100%; padding: 10px 14px; border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; font-family: inherit; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.15); color: #e2e8f0; }
+.ps-modal-dark-input--error { border-color: #ef4444; }
+.ps-modal-dark-fields      { text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.ps-modal-dark-field-error { color: #ef4444; font-size: 12px; margin: 0; }
+
+/* ── Shared button variants ───────────────────────────────────────────────── */
+.ps-btn-danger  { padding: 9px 20px; border-radius: 8px; border: none; background: #dc2626; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ps-btn-green   { padding: 12px; border-radius: 8px; border: none; background: #047857; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; transition: background 0.15s; }
+.ps-btn-green:hover { background: #065f46; }
+.ps-btn-amber   { padding: 9px 18px; border-radius: 8px; background: rgba(245,158,11,0.1); border: 1.5px solid rgba(245,158,11,0.3); color: #fbbf24; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+
+/* ── ClientEditorModal ───────────────────────────────────────────────────── */
+.ps-client-editor-shell         { background: #0f172a; border-radius: 16px; width: 600px; max-width: 92vw; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
+.ps-client-editor-header        { padding: 20px 24px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.ps-client-editor-header-row    { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.ps-client-editor-title         { margin: 0; font-size: 16px; font-weight: 700; color: #e2e8f0; }
+.ps-client-editor-tabs          { display: flex; gap: 0; }
+.ps-client-editor-body          { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.ps-client-editor-form          { display: flex; flex-direction: column; gap: 14px; }
+.ps-client-editor-grid-2        { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ps-client-editor-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 6px; }
+.ps-client-editor-group-label   { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; }
+.ps-client-editor-hint          { font-size: 12px; color: #64748b; margin-top: 4px; }
+.ps-client-editor-field-error   { color: #ef4444; font-size: 11px; margin-top: 3px; }
+.ps-client-editor-footer        { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end; gap: 10px; }
+
+
+/* ── CSS Custom Property colour system ───────────────────────────────────────
+   PathScribe uses data-driven colours for flags, delegation types, synoptic
+   sections, etc. Instead of 3–5 inline style props per element, components
+   set a single custom property and all colour expressions live in CSS.
+
+   Usage in JSX:
+     <div className="ps-hue-card" style={{ '--ps-hue': entity.color } as React.CSSProperties}>
+
+   Replaces patterns like:
+     style={{ background: color+'18', color: color, border: `1px solid ${color}44` }}
+──────────────────────────────────────────────────────────────────────────────── */
+
+/* Entity colour card / badge — uses --ps-hue custom property */
+.ps-hue-card {
+  background: color-mix(in srgb, var(--ps-hue, #0891B2) 10%, transparent);
+  color:      var(--ps-hue, #0891B2);
+  border:     1px solid color-mix(in srgb, var(--ps-hue, #0891B2) 28%, transparent);
+  border-radius: 8px;
+}
+
+/* Inline badge / chip variant */
+.ps-hue-badge {
+  background: color-mix(in srgb, var(--ps-hue, #0891B2) 13%, transparent);
+  color:      var(--ps-hue, #0891B2);
+  border:     1px solid color-mix(in srgb, var(--ps-hue, #0891B2) 26%, transparent);
+  font-size:  11px;
+  font-weight: 700;
+  padding:    2px 8px;
+  border-radius: 10px;
+}
+
+/* Avatar / dot variant */
+.ps-hue-avatar {
+  background: color-mix(in srgb, var(--ps-hue, #0891B2) 20%, transparent);
+  color:      var(--ps-hue, #0891B2);
+  border:     1px solid color-mix(in srgb, var(--ps-hue, #0891B2) 35%, transparent);
+  border-radius: 50%;
+  display:    flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Selected row state */
+.ps-hue-row-selected {
+  background: color-mix(in srgb, var(--ps-hue, #0891B2) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ps-hue, #0891B2) 40%, transparent);
+}
+
+/* Accent text — colour only, no background */
+.ps-hue-text { color: var(--ps-hue, #0891B2); }
+
+/* Dot indicator — e.g. flag/status dot */
+.ps-hue-dot {
+  background:    var(--ps-hue, #0891B2);
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+
+/* ── High-priority modal structural classes ──────────────────────────────────
+   Added during modal CSS audit (batch of 7 high-priority modals) */
+.ps-add-code-shell   { width: min(680px, 96vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+.ps-add-code-body    { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.ps-add-code-row     { display: flex; align-items: center; gap: 8px; }
+.ps-case-team-shell  { width: min(640px, 95vw); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.ps-case-team-body   { flex: 1; overflow-y: auto; padding: 16px 24px; display: flex; flex-direction: column; gap: 16px; }
+.ps-case-team-list   { display: flex; flex-direction: column; gap: 6px; }
+.ps-enh-req-shell    { width: min(680px, 92vw); display: flex; flex-direction: column; }
+.ps-tmpl-req-shell   { width: min(600px, 100%); max-height: 88vh; display: flex; flex-direction: column; }
+.ps-tmpl-req-body    { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.ps-add-syn-shell    { width: min(680px, 96vw); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.ps-add-syn-list     { display: flex; flex-direction: column; gap: 6px; }
+.ps-add-syn-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ps-delegate-list    { display: flex; flex-direction: column; gap: 6px; }
+.ps-delegate-col-header { display: grid; grid-template-columns: 80px 1fr 28px; gap: 8px; padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.ps-review-req-shell  { width: 520px; max-width: 92vw; display: flex; flex-direction: column; overflow: hidden; }
+.ps-review-req-header { padding: 18px 24px 14px; border-bottom: 1px solid rgba(51,65,85,0.9); background: radial-gradient(circle at top left, rgba(139,92,246,0.08), transparent 55%); display: flex; align-items: center; justify-content: space-between; }
+.ps-review-req-body   { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.ps-review-req-notice { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(139,92,246,0.05); border: 1px solid rgba(139,92,246,0.15); border-radius: 8px; }
+.ps-review-req-notice-text { font-size: 11px; color: #a78bfa; }
+.ps-case-team-header  { padding: 18px 24px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.ps-case-team-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+

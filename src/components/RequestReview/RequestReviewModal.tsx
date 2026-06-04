@@ -98,11 +98,11 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
   return ReactDOM.createPortal(
     <div
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(4,10,18,0.82)', backdropFilter: 'blur(6px)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      className="ps-overlay"
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ width: 520, background: '#0b1120', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        className="ps-modal-dark ps-review-req-shell"
       >
         {/* Header */}
         <div style={{ padding: '18px 24px 14px', borderBottom: '1px solid rgba(51,65,85,0.9)', background: 'radial-gradient(circle at top left, rgba(139,92,246,0.08), transparent 55%), #0b1120', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -140,7 +140,7 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Review type */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Review Type</div>
+              <div className="fm-eyebrow">Review Type</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {NOTE_TYPES.map(t => (
                   <button
@@ -156,13 +156,13 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Colleague picker */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Send To</div>
+              <div className="fm-eyebrow">Send To</div>
               <input
                 type="text"
                 placeholder="Search colleagues…"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }}
+                className="ps-modal-dark-input"
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
                 {filtered.map(r => (
@@ -188,13 +188,13 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Optional note */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Additional Context <span style={{ fontWeight: 400, color: '#334155' }}>(optional)</span></div>
+              <div className="fm-eyebrow">Additional Context <span style={{ fontWeight: 400, color: '#334155' }}>(optional)</span></div>
               <textarea
                 placeholder="e.g. Please review the deep margin — uncertain if pT1 or muscularis invasion…"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 rows={3}
-                style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                className="ps-modal-dark-input" style={{ resize: 'vertical' }}
               />
             </div>
 

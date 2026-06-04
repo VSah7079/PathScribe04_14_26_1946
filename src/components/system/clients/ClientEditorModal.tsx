@@ -245,38 +245,25 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
   return (
     <div
-      style={{
-        position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.75)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 1000,
-      }}
+className="ps-overlay" style={{ zIndex: 10000 }}
       onClick={onClose}
     >
       <div
-        style={{
-          background: "#0f172a",
-          borderRadius: "16px",
-          width: "600px",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
-        }}
+className="ps-client-editor-shell"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header + tab bar ── */}
-        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-            <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#e2e8f0" }}>
+        <div className="ps-client-editor-header">
+          <div className="ps-client-editor-header-row">
+            <h2 className="ps-client-editor-title">
               {isEdit ? "Edit Client" : "Add Client"}
             </h2>
             <button
               onClick={onClose}
-              style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer", lineHeight: 1, padding: "2px" }}
+className="ps-modal-close"
             >&#x2715;</button>
           </div>
-          <div style={{ display: "flex", gap: "0" }}>
+          <div className="ps-client-editor-tabs">
             <button style={tabStyle("general")}   onClick={() => setTab("general")}>General</button>
             <button style={tabStyle("hl7")}        onClick={() => setTab("hl7")}>HL7 Integration</button>
             <button style={tabStyle("reporting")}  onClick={() => setTab("reporting")}>Reporting</button>
@@ -285,33 +272,33 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
         </div>
 
         {/* ── Body — all four tabs live inside this scrollable div ── */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+        <div className="ps-client-editor-body">
 
           {/* General */}
           {tab === "general" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="ps-client-editor-form">
               <div style={SECTION}>Client Details</div>
               <div style={grid2}>
                 <Field label="Client Name *" span>
                   <input
-                    style={{ ...INPUT, borderColor: errors.name ? "#ef4444" : "rgba(255,255,255,0.1)" }}
+                    className={`ps-modal-dark-input${errors.name ? " ps-modal-dark-input--error" : ""}`}
                     value={form.name}
                     onChange={(e) => set("name", e.target.value)}
                     onFocus={onF} onBlur={onB}
                     placeholder="e.g. Northwest Oncology Group"
                   />
-                  {errors.name && <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "3px" }}>{errors.name}</div>}
+                  {errors.name && <div className="ps-client-editor-field-error">{errors.name}</div>}
                 </Field>
                 <Field label="Client Code *">
                   <input
-                    style={{ ...INPUT, borderColor: errors.code ? "#ef4444" : "rgba(255,255,255,0.1)", fontFamily: "monospace", textTransform: "uppercase" }}
+                    className={`ps-modal-dark-input${errors.code ? " ps-modal-dark-input--error" : ""}`} style={{ fontFamily: "monospace", textTransform: "uppercase" as const }}
                     value={form.code}
                     onChange={(e) => set("code", e.target.value.toUpperCase())}
                     onFocus={onF} onBlur={onB}
                     placeholder="e.g. NWOG"
                     maxLength={10}
                   />
-                  {errors.code && <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "3px" }}>{errors.code}</div>}
+                  {errors.code && <div className="ps-client-editor-field-error">{errors.code}</div>}
                 </Field>
                 <Field label="Status">
                   <select
@@ -333,14 +320,14 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
                 </Field>
                 <Field label="Contact Email *">
                   <input
-                    style={{ ...INPUT, borderColor: errors.contactEmail ? "#ef4444" : "rgba(255,255,255,0.1)" }}
+                    className={`ps-modal-dark-input${errors.contactEmail ? " ps-modal-dark-input--error" : ""}`}
                     value={form.contactEmail}
                     onChange={(e) => set("contactEmail", e.target.value)}
                     onFocus={onF} onBlur={onB}
                     placeholder="contact@client.com"
                     type="email"
                   />
-                  {errors.contactEmail && <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "3px" }}>{errors.contactEmail}</div>}
+                  {errors.contactEmail && <div className="ps-client-editor-field-error">{errors.contactEmail}</div>}
                 </Field>
                 <Field label="Phone">
                   <input style={INPUT} value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} onFocus={onF} onBlur={onB} placeholder="555-000-0000" />
@@ -354,7 +341,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
           {/* HL7 */}
           {tab === "hl7" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="ps-client-editor-form">
               <div style={SECTION}>HL7 Integration</div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -384,7 +371,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
                       placeholder="CLIENT_CODE"
                     />
                     {(errors as Record<string, string>).hl7 && (
-                      <div style={{ color: "#ef4444", fontSize: "11px", marginTop: "3px" }}>
+                      <div className="ps-client-editor-field-error">
                         {(errors as Record<string, string>).hl7}
                       </div>
                     )}
@@ -411,7 +398,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
           {/* Reporting */}
           {tab === "reporting" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="ps-client-editor-form">
               <div style={SECTION}>Reporting Preferences</div>
               <div style={grid2}>
                 <Field label="Report Format">
@@ -450,7 +437,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
           {/* TAT & Escalation */}
           {tab === "tat" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="ps-client-editor-form">
               <div style={SECTION}>Turnaround Time Targets</div>
               <div style={grid2}>
                 <Field label="First Touch Target (hours)">
@@ -532,7 +519,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
         </div>{/* end body */}
 
         {/* ── Footer ── */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+        <div className="ps-client-editor-footer">
           <button
             onClick={onClose}
             style={{ padding: "9px 20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#64748b", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}

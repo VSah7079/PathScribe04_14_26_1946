@@ -2157,6 +2157,225 @@ const MOCK_CASES: Case[] = [
     coding: { icd10: ['C43.59'], snomed: ['372244006'] },
   },
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // ROSSANA BABAKHANI (PATH-RB-001) — UX/UIUX Workflow Demo Cases
+  // Three cases showing the AI protocol re-evaluation + pre-finalisation flow.
+  //   DEMO-RB-01: Gross submitted, AI assigned synoptic, awaiting microscopic
+  //   DEMO-RB-02: Microscopic received, AI proposes protocol upgrade → use DEV button
+  //   DEMO-RB-03: All sections complete, ready to open PreFinalisationModal
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── DEMO-RB-01: Breast core biopsy — gross done, awaiting microscopic ────
+  {
+    id: 'DEMO-RB-01',
+    accession: { accessionNumber: 'DEMO-01', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-DEMO-01' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-DEMO-RB-01', mrn: 'DEMO100001',
+      firstName: 'Eleanor', lastName: 'Bishop',
+      dateOfBirth: isoYearsAgo(52, 3, 14), sex: 'F',
+      phone: '555-800-0001', email: 'eleanor.bishop@example.org',
+      address: '88 Camelback Rd, Phoenix, AZ 85013',
+    },
+    specimens: [
+      { id: 'DEMO-01-SP-1', label: 'A', description: 'Right breast core biopsy — 12 o\'clock, 2 cm FN', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Pamela Winters',
+      clientId: 'c1', clientName: 'Metro General Hospital',
+      clinicalIndication: 'Screening mammogram abnormality, right breast 12 o\'clock, BIRADS 4B. Ultrasound: 8 mm irregular hypoechoic mass with microlobulated margins. Clinical concern for atypia vs. low-grade malignancy. Core biopsy performed under ultrasound guidance, 3 cores submitted.',
+      receivedDate: isoDaysAgo(1), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received in formalin labelled "right breast core biopsy A" are three tan-white cores of tissue, each measuring approximately 1.5 cm × 0.1 cm × 0.1 cm. All cores are submitted in one cassette. The tissue has a firm consistency without haemorrhage or necrosis.',
+      microscopicDescription: '',
+    },
+    synopticReports: [
+      {
+        instanceId: 'DEMO-01-SYN-01',
+        specimenId: 'DEMO-01-SP-1',
+        templateId: 'breast_core_benign',
+        templateName: 'Breast Core Biopsy (Benign/NOS)',
+        status: 'draft',
+        answers: {},
+        aiSuggestions: {
+          procedure:       { value: 'core_needle_biopsy', confidence: 98, source: 'Gross: "core biopsy performed under ultrasound guidance"', verification: 'unverified' },
+          specimen_site:   { value: 'breast',             confidence: 99, source: 'Specimen label: "right breast core biopsy"', verification: 'unverified' },
+          laterality:      { value: 'right',              confidence: 99, source: 'Specimen label: "right breast"', verification: 'unverified' },
+          clock_position:  { value: '12',                 confidence: 94, source: 'Clinical: "12 o\'clock"', verification: 'unverified' },
+          distance_nipple: { value: '2 cm',               confidence: 87, source: 'Clinical: "2 cm FN"', verification: 'unverified' },
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+    caseFlags: [],
+    specimenFlags: [],
+    reportingMode: 'copilot',
+    coding: {},
+  },
+
+  // ── DEMO-RB-02: Breast core biopsy — micro received, protocol upgrade needed ─
+  // UIUX: Open this case and click "DEV: Simulate Microscopic Received" to trigger
+  //       the ProtocolChangeModal showing the proposed upgrade from NOS → CAP IDC.
+  {
+    id: 'DEMO-RB-02',
+    accession: { accessionNumber: 'DEMO-02', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-DEMO-02' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-DEMO-RB-02', mrn: 'DEMO100002',
+      firstName: 'Celia', lastName: 'Moreau',
+      dateOfBirth: isoYearsAgo(48, 11, 7), sex: 'F',
+      phone: '555-800-0002', email: 'celia.moreau@example.org',
+      address: '14 Biltmore Ave, Phoenix, AZ 85016',
+    },
+    specimens: [
+      { id: 'DEMO-02-SP-1', label: 'A', description: 'Left breast core biopsy — 9 o\'clock, 3 cm FN', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Sandra Okafor',
+      clientId: 'c1', clientName: 'Metro General Hospital',
+      clinicalIndication: 'Screening mammogram: left breast 9 o\'clock, BIRADS 4C. Ultrasound: 11 mm irregular mass with posterior acoustic shadowing and internal vascularity. High suspicion for malignancy. Stereotactic core biopsy, 4 cores.',
+      receivedDate: isoDaysAgo(2), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received in formalin labelled "left breast core biopsy A" are four tan-white cores, each approximately 1.5–1.6 cm × 0.1 cm. Two cores show a firm nodular area measuring approximately 0.4 cm. All cores submitted.',
+      microscopicDescription: 'Sections show invasive ductal carcinoma of no special type (NST), Nottingham grade 2 (tubule formation 3, nuclear pleomorphism 2, mitotic count 1; total 6/9). Tumour cells form infiltrating glands and solid nests within a desmoplastic stroma. Nuclear grade is intermediate. No lymphovascular invasion is identified in the biopsy cores. Background breast parenchyma shows fibrocystic change. ER: Positive (Allred 7/8). PR: Positive (Allred 5/8). HER2: 1+ (negative). Ki-67: 14%.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'DEMO-02-SYN-01',
+        specimenId: 'DEMO-02-SP-1',
+        templateId: 'breast_core_benign',
+        templateName: 'Breast Core Biopsy (Benign/NOS)',
+        status: 'draft',
+        answers: {
+          procedure:       'core_needle_biopsy',
+          specimen_site:   'breast',
+          laterality:      'left',
+          clock_position:  '9',
+          distance_nipple: '3 cm',
+        },
+        aiSuggestions: {
+          procedure:       { value: 'core_needle_biopsy',   confidence: 98, source: 'Gross description', verification: 'verified' },
+          specimen_site:   { value: 'breast',               confidence: 99, source: 'Specimen label', verification: 'verified' },
+          laterality:      { value: 'left',                 confidence: 99, source: 'Specimen label', verification: 'verified' },
+          clock_position:  { value: '9',                    confidence: 96, source: 'Clinical indication', verification: 'verified' },
+        },
+        createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
+    caseFlags: [
+      { id: 'demo-birads-4c', tagClass: 'ADMINISTRATIVE', name: 'BIRADS 4C', lisCode: 'BI4C', color: '#f59e0b', severity: 3, level: 'Case', status: 'Active' },
+    ],
+    specimenFlags: [],
+    reportingMode: 'copilot',
+    coding: {},
+  },
+
+  // ── DEMO-RB-03: Colon polyp — all sections complete, ready to finalise ───
+  // UIUX: Click "Finalise" to open the PreFinalisationModal two-pane review.
+  {
+    id: 'DEMO-RB-03',
+    accession: { accessionNumber: 'DEMO-03', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-DEMO-03' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-DEMO-RB-03', mrn: 'DEMO100003',
+      firstName: 'Martin', lastName: 'Hale',
+      dateOfBirth: isoYearsAgo(67, 5, 22), sex: 'M',
+      phone: '555-800-0003', email: 'martin.hale@example.org',
+      address: '320 Central Ave, Phoenix, AZ 85004',
+    },
+    specimens: [
+      { id: 'DEMO-03-SP-1', label: 'A', description: 'Sigmoid colon polyp — pedunculated, 18 mm', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'DEMO-03-SP-2', label: 'B', description: 'Ascending colon polyp — sessile, 6 mm', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. James Fowler',
+      clientId: 'c1', clientName: 'Metro General Hospital',
+      clinicalIndication: 'Screening colonoscopy. Specimen A: 18 mm pedunculated polyp, sigmoid colon — hot snare polypectomy, retrieved intact. Specimen B: 6 mm sessile polyp, ascending colon — cold snare, retrieved. Background: family history CRC (father), previous adenoma 2021.',
+      receivedDate: isoDaysAgo(1), assignedTo: 'PATH-RB-001', assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Specimen A: A polypoid fragment of colonic mucosa with attached stalk measuring 1.8 × 1.2 × 1.0 cm. The polyp head is tan-brown and lobulated with a stalk 0.4 cm in length. Entirely submitted, 4 levels. Specimen B: A single flat fragment of tan-pink mucosa measuring 0.6 × 0.5 × 0.2 cm. Entirely submitted.',
+      microscopicDescription: 'Specimen A: Tubulo-villous adenoma with low-grade dysplasia. The polyp shows tubular (65%) and villous (35%) architecture. Low-grade dysplastic epithelium lines all glandular structures. The stalk is free of neoplasia; margin is negative. No high-grade dysplasia or carcinoma is identified. Specimen B: Tubular adenoma with low-grade dysplasia, measuring 0.6 cm. No high-grade dysplasia.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'DEMO-03-SYN-01',
+        specimenId: 'DEMO-03-SP-1',
+        templateId: 'colon_polyp',
+        templateName: 'Colorectal Polyp (CAP)',
+        status: 'draft',
+        answers: {
+          procedure:          'polypectomy',
+          specimen_site:      'colon',
+          anatomic_site:      'sigmoid_colon',
+          polyp_size:         '18 mm',
+          polyp_type:         'pedunculated',
+          histologic_type:    'tubulo_villous_adenoma',
+          dysplasia_grade:    'low_grade',
+          villous_component:  '35%',
+          margin_status:      'margins_negative',
+          high_grade_dysplasia: 'not_identified',
+          carcinoma:          'not_identified',
+        },
+        aiSuggestions: {
+          procedure:          { value: 'polypectomy',            confidence: 99, source: 'Clinical: "hot snare polypectomy"', verification: 'verified' },
+          anatomic_site:      { value: 'sigmoid_colon',          confidence: 98, source: 'Clinical: "sigmoid colon"', verification: 'verified' },
+          polyp_size:         { value: '18 mm',                  confidence: 95, source: 'Gross: "1.8 × 1.2 × 1.0 cm"', verification: 'verified' },
+          polyp_type:         { value: 'pedunculated',           confidence: 97, source: 'Clinical: "pedunculated polyp"', verification: 'verified' },
+          histologic_type:    { value: 'tubulo_villous_adenoma', confidence: 94, source: 'Micro: "Tubulo-villous adenoma"', verification: 'verified' },
+          dysplasia_grade:    { value: 'low_grade',              confidence: 96, source: 'Micro: "low-grade dysplasia"', verification: 'verified' },
+          villous_component:  { value: '35%',                    confidence: 89, source: 'Micro: "villous (35%)"', verification: 'verified' },
+          margin_status:      { value: 'margins_negative',       confidence: 93, source: 'Micro: "stalk is free of neoplasia; margin is negative"', verification: 'verified' },
+          high_grade_dysplasia:{ value: 'not_identified',        confidence: 97, source: 'Micro: "No high-grade dysplasia"', verification: 'verified' },
+          carcinoma:          { value: 'not_identified',         confidence: 98, source: 'Micro: "No … carcinoma"', verification: 'verified' },
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+      },
+      {
+        instanceId: 'DEMO-03-SYN-02',
+        specimenId: 'DEMO-03-SP-2',
+        templateId: 'colon_polyp',
+        templateName: 'Colorectal Polyp (CAP)',
+        status: 'draft',
+        answers: {
+          procedure:            'polypectomy',
+          specimen_site:        'colon',
+          anatomic_site:        'ascending_colon',
+          polyp_size:           '6 mm',
+          polyp_type:           'sessile',
+          histologic_type:      'tubular_adenoma',
+          dysplasia_grade:      'low_grade',
+          high_grade_dysplasia: 'not_identified',
+          carcinoma:            'not_identified',
+        },
+        aiSuggestions: {
+          anatomic_site:        { value: 'ascending_colon',  confidence: 97, source: 'Clinical: "ascending colon"', verification: 'verified' },
+          polyp_size:           { value: '6 mm',             confidence: 96, source: 'Gross: "0.6 × 0.5 cm"', verification: 'verified' },
+          polyp_type:           { value: 'sessile',          confidence: 96, source: 'Clinical: "sessile polyp"', verification: 'verified' },
+          histologic_type:      { value: 'tubular_adenoma',  confidence: 95, source: 'Micro: "Tubular adenoma"', verification: 'verified' },
+          dysplasia_grade:      { value: 'low_grade',        confidence: 97, source: 'Micro: "low-grade dysplasia"', verification: 'verified' },
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+    caseFlags: [],
+    specimenFlags: [],
+    reportingMode: 'copilot',
+    coding: { icd10: ['K63.5'], snomed: ['68526002'] },
+  },
+
+
 ];
 
 // ─── Per-case patient history & similar cases ────────────────────────────────
@@ -2173,8 +2392,8 @@ export const mockPatientHistoryMap: Record<string, string> = {
 
   'MPA26-1001-BR':
     "MPA23-0441 (Mar 2023) — Screening mammogram bilateral. BI-RADS 3 left breast — short-interval follow-up advised. | " +
-    "MPA24-1882 (Jun 2024) — Diagnostic mammogram + ultrasound left breast. BI-RADS 4B, 1.4 cm mass 12 o'clock. Core biopsy recommended. | " +
-    "MPA24-3301 (Aug 2024) — Ultrasound-guided core needle biopsy left breast 12 o'clock. Dx: Atypical ductal hyperplasia (ADH). Excision recommended.",
+    "MPA24-1882 (Jun 2024) — Diagnostic mammogram + ultrasound left breast. BI-RADS 4B, 1.4 cm mass 12 o\'clock. Core biopsy recommended. | " +
+    "MPA24-3301 (Aug 2024) — Ultrasound-guided core needle biopsy left breast 12 o\'clock. Dx: Atypical ductal hyperplasia (ADH). Excision recommended.",
   'MPA26-1002-CR':
     "MPA19-0088 (Jan 2019) — Colonoscopy polypectomy, sigmoid colon. Dx: Tubular adenoma, low grade, completely excised. Surveillance in 5 years. | " +
     "MPA22-4401 (Apr 2022) — Colonoscopy biopsy, rectosigmoid junction. Dx: Tubulovillous adenoma with low grade dysplasia. Repeat colonoscopy in 3 years. | " +

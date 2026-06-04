@@ -1,4 +1,5 @@
 import React from 'react';
+import '../../../pathscribe.css';
 
 interface AmendmentModalProps {
   show: boolean;
@@ -20,9 +21,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
   triggeredBySynopticTitle, prefillText,
 }) => {
   React.useEffect(() => {
-    if (show && prefillText && !amendmentText) {
-      onTextChange(prefillText);
-    }
+    if (show && prefillText && !amendmentText) onTextChange(prefillText);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
 
@@ -30,30 +29,20 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
 
   const isAmendment = amendmentMode === 'amendment';
   const canSubmit   = amendmentText.trim().length > 0;
+  // Dynamic — depends on mode at runtime
   const accentColor = isAmendment ? '#d97706' : '#0891B2';
 
   return (
     <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 22000 }} onClick={onClose}>
-      <div
-        className="ps-modal-dark"
-        style={{ width: 'min(540px, 90vw)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Mode switch — hidden when triggered by deferred synoptic */}
+      <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+
         {!triggeredBySynopticTitle && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="ps-amendment-mode-row">
             {(['amendment', 'addendum'] as const).map(mode => (
               <button
                 key={mode}
                 onClick={() => onModeChange(mode)}
-                style={{
-                  padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', border: '1.5px solid',
-                  background: amendmentMode === mode ? (mode === 'amendment' ? '#d97706' : '#0891B2') : 'transparent',
-                  color:      amendmentMode === mode ? '#fff' : (mode === 'amendment' ? '#d97706' : '#0891B2'),
-                  borderColor: mode === 'amendment' ? '#d97706' : '#0891B2',
-                  transition: 'all 0.15s',
-                }}
+                className={`ps-amendment-mode-btn${amendmentMode === mode ? ' active' : ''} ps-amendment-mode-btn--${mode}`}
               >
                 {mode === 'amendment' ? '✏️ Amendment' : '📎 Addendum'}
               </button>
@@ -61,17 +50,11 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
           </div>
         )}
 
-        {/* Deferred synoptic context banner */}
         {triggeredBySynopticTitle && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px',
-            background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.2)', borderRadius: 8,
-          }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>🧪</span>
+          <div className="ps-amendment-deferred-banner">
+            <span className="ps-amendment-deferred-icon">🧪</span>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0891B2', marginBottom: 2 }}>
-                Deferred Synoptic Now Complete
-              </div>
+              <div className="ps-amendment-deferred-title">Deferred Synoptic Now Complete</div>
               <p className="ps-modal-dark-hint" style={{ margin: 0 }}>
                 <strong style={{ color: '#e2e8f0' }}>{triggeredBySynopticTitle}</strong> was deferred at sign-out pending ancillary results.
                 Review the pre-filled amendment text below, edit as needed, and actively submit to issue the amendment.
@@ -104,18 +87,11 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
               : 'Describe the reason for the addendum and any changes required…'
           }
           rows={6}
-          style={{
-            width: '100%', padding: '12px 14px', borderRadius: 8, fontSize: 13,
-            lineHeight: '1.6', resize: 'vertical', boxSizing: 'border-box', outline: 'none',
-            fontFamily: 'inherit', background: 'rgba(255,255,255,0.05)',
-            border: '2px solid rgba(255,255,255,0.15)', color: '#e2e8f0',
-          }}
+          className="ps-amendment-textarea"
         />
 
         <div className="ps-modal-dark-footer" style={{ justifyContent: 'stretch' }}>
-          <button className="ps-btn-ghost-dark" style={{ flex: 1 }} onClick={onClose}>
-            Cancel
-          </button>
+          <button className="ps-btn-ghost-dark" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button
             onClick={onSubmit}
             disabled={!canSubmit}

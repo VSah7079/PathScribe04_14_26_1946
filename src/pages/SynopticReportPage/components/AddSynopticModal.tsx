@@ -125,7 +125,7 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
 
   return (
     <>
-    <div className="fm-overlay" onClick={onClose}>
+    <div className="ps-overlay" onClick={onClose}>
       <div
         className="ps-research-modal"
         style={{ width: 980, height: '80vh', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}

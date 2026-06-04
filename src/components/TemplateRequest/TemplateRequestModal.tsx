@@ -194,10 +194,7 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 30000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-    }}>
+    <div className="ps-overlay" style={{ zIndex: 30000, padding: 24 }}>
       <div style={{
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14,
         width: '100%', maxWidth: 600, maxHeight: '90vh',
