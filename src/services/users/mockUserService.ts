@@ -14,11 +14,14 @@ const SEED_USERS: StaffUser[] = [
   { id: '8',  firstName: 'Lisa',    middleName: '',    lastName: 'Hoffman', credentials: 'MD', email: 'lhoffman@hospital.org', roles: ['Resident'],    npi: '1234567896', license: 'MD-12351', phone: '555-0108', department: 'Anatomic Pathology',  status: 'Active',   voiceProfile: 'EN-US' },
   { id: '9',  firstName: 'Marcus',  lastName: 'Webb',    credentials: 'MD, FCAP',    email: 'mwebb@hospital.org',    roles: ['Pathologist'], npi: '1234567897', license: 'MD-12352', phone: '555-0109', department: 'Hematopathology',      status: 'Active',   voiceProfile: 'EN-US' },
   { id: '10', firstName: 'Priya',   lastName: 'Sharma',  credentials: 'MD',  email: 'psharma@hospital.org',  roles: ['Resident'],    npi: '1234567898', license: 'MD-12353', phone: '555-0110', department: 'Anatomic Pathology',  status: 'Active',   voiceProfile: 'EN-US' },
+  
   // ── US / UK Demo Users ─────────────────────────────────────────────────────
   { id: 'PATH-US-001', firstName: 'Amber',   lastName: 'Fehrs-Battey', credentials: 'MD, FCAP', canViewPediatric: false, email: 'amber.fehrs-battey@mpa.org',  roles: ['Pathologist', 'Admin'], npi: '1234567900', license: 'MD-12360', phone: '313-555-2001', department: 'Surgical Pathology', status: 'Active', voiceProfile: 'EN-US' },
   { id: 'PATH-US-002', firstName: 'J. Mark', lastName: 'Tuthill',      credentials: 'MD, FCAP', canViewPediatric: false,      email: 'mark.tuthill@hfhs.org',       roles: ['Pathologist'], npi: '1234567901', license: 'MD-12361', phone: '313-555-2002', department: 'Pathology Informatics',   status: 'Active', voiceProfile: 'EN-US' },
   { id: 'PATH-UK-001', firstName: 'Paul',    lastName: 'Carter',       credentials: 'MBChB, FRCPath',       email: 'paul.carter@mft.nhs.uk',      roles: ['Pathologist'], npi: '',           license: 'GMC-12362', phone: '+44-161-555-2003', department: 'Histopathology', status: 'Active', voiceProfile: 'EN-GB' },
   { id: 'PATH-UK-002', firstName: 'Oliver',  lastName: 'Pemberton',    credentials: 'MBChB, FRCPath',    email: 'oliver.pemberton@mft.nhs.uk', roles: ['Pathologist'], npi: '',           license: 'GMC-12363', phone: '+44-161-555-2004', department: 'Histopathology', status: 'Active', voiceProfile: 'EN-GB' },
+  { id: 'PATH-RB-001', firstName: 'Rossana', lastName: 'Babakhani',    credentials: '', email: 'rossana.babakhani@pathscribe.ai',
+  roles: ['Pathologist', 'Admin'], npi: '', license: '',  phone: '', department: 'UIUX Review', status: 'Active',  voiceProfile: 'EN-US', canViewPediatric: true },
 ];
 
 // Increment USERS_VERSION whenever SEED_USERS is changed.
