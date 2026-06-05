@@ -25,7 +25,7 @@ const SEED_USERS: StaffUser[] = [
 ];
 
 // Increment USERS_VERSION whenever SEED_USERS is changed.
-const USERS_VERSION = '4'; // bumped: Amber now has dual roles [Pathologist, Admin]
+const USERS_VERSION = '5'; // bumped: Amber now has dual roles [Pathologist, Admin]
 const USERS_VERSION_KEY = 'pathscribe_users_version';
 if (localStorage.getItem(USERS_VERSION_KEY) !== USERS_VERSION) {
   localStorage.removeItem('pathscribe_mock_pathscribe_users');
