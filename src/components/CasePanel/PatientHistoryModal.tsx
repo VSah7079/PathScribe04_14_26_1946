@@ -267,7 +267,7 @@ function FullReport({ item }: { item: ReportItem }) {
         {ai && <ReportField label="AI Match Score" value={`${a.matchPct}%`} />}
       </div>
       <div style={S.divider} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px', marginBottom: 14 }}>
+      <div className="ps-ph-grid-2col">
         <div>
           <div style={S.fieldLabel}>Gross Description</div>
           <div style={{ ...S.fieldValue, lineHeight: 1.7 }}>{ai ? a.gross : h.gross}</div>
@@ -278,13 +278,13 @@ function FullReport({ item }: { item: ReportItem }) {
         </div>
       </div>
       {ai && a.ancillaryStudies && (
-        <div style={{ marginBottom: 14 }}>
+        <div className="ps-ph-field-mb">
           <div style={S.fieldLabel}>Ancillary Studies</div>
           <div style={{ ...S.fieldValue, lineHeight: 1.7 }}>{a.ancillaryStudies}</div>
         </div>
       )}
       {!ai && (
-        <div style={{ marginBottom: 14 }}>
+        <div className="ps-ph-field-mb">
           <div style={S.fieldLabel}>Pathologist Comment</div>
           <div style={{ ...S.fieldValue, lineHeight: 1.7 }}>{h.comment}</div>
         </div>
@@ -292,7 +292,7 @@ function FullReport({ item }: { item: ReportItem }) {
       <div style={S.divider} />
       <div>
         <div style={S.fieldLabel}>Tags</div>
-        <div style={{ marginTop: 4 }}>
+        <div className="ps-ph-field-mt">
           {(ai ? a.tags : h.tags).map(t => (
             <span key={t} style={S.tag}>{t}</span>
           ))}
@@ -456,7 +456,7 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
 
           </div>
         ) : (
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="ps-ph-body-flex">
             {selectedItem && <FullReport item={selectedItem} />}
           </div>
         )}
@@ -470,7 +470,7 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
                 Message to pathologist <span style={{ color: accent }}>{physicianName}</span> · Case <span style={{ color: '#fff' }}>{caseId}</span>
                 <span style={{ marginLeft: 8, fontSize: 10, color: '#f87171' }}>Do not include patient identifiers</span>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="ps-ph-compose-btn-row">
                 <input
                   autoFocus
                   value={composeNote}
@@ -501,7 +501,7 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
               </div>
             </div>
           )}
-          <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="ps-ph-compose-footer">
             <div>
               {!showCompose && (
                 <button
@@ -509,7 +509,8 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
                   onClick={() => view === 'report' && setShowCompose(true)}
                   className="fm-btn-cancel"
                   disabled={view !== 'report'}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  title={view !== 'report' ? 'Select a prior case or AI match to enable messaging' : `Message ${physicianName ?? 'Pathologist'}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: view === 'report' ? 1 : 0.35, cursor: view === 'report' ? 'pointer' : 'not-allowed' }}
                 >
                   ✉ {view === 'report' && physicianName ? `Message ${physicianName}` : 'Message Pathologist'}
                 </button>
@@ -519,7 +520,7 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
               setCrumbs([
                 { label: 'Home', path: '/' },
                 { label: 'Case Report', path: window.location.pathname },
-                { label: 'Patient History', path: window.location.pathname + '#history' },
+                { label: 'Patient History', path: window.location.pathname + '?history=1' },
                 { label: 'Case Search', path: '/search' },
               ]);
               // requestNavigate first — if dirty, shows warning before closing modal

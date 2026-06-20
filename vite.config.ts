@@ -11,7 +11,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-
     resolve: {
       alias: {
         '@components': path.resolve(__dirname, 'src/components'),
@@ -22,45 +21,65 @@ export default defineConfig(({ mode }) => {
         '@contexts':   path.resolve(__dirname, 'src/contexts'),
       },
     },
-
     server: {
       port: 5173,
       host: true,
       allowedHosts: true,
       proxy: {
 
-        // ── Anthropic (Claude) ───────────────────────────────────────────────
+        // ── Anthropic (Claude) ─────────────────────────────────────────────
+        // Client calls: POST /api/ai/anthropic/v1/messages
+        // Forwards to:  https://api.anthropic.com/v1/messages
         '/api/ai/anthropic': {
           target:       'https://api.anthropic.com',
           changeOrigin: true,
           secure:       true,
-          rewrite:      (path: string) => path.replace(/^\/api\/ai\/anthropic/, ''),
+          rewrite:      (p: string) => p.replace(/^\/api\/ai\/anthropic/, ''),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
-              proxyReq.setHeader('x-api-key', env.VITE_AI_API_KEY ?? '');
+              proxyReq.setHeader('x-api-key', env.AI_API_KEY ?? '');
               proxyReq.setHeader('anthropic-version', '2023-06-01');
               proxyReq.removeHeader('origin');
-              // Temporary diagnostics — remove once working
-              console.log('[Proxy → Anthropic] key prefix:', env.VITE_AI_API_KEY?.slice(0, 16) + '...');
-            });
-            proxy.on('proxyRes', (proxyRes) => {
-              console.log('[Proxy ← Anthropic] status:', proxyRes.statusCode);
-            });
-            proxy.on('error', (err) => {
-              console.error('[Proxy ✗ Anthropic] error:', err.message);
             });
           },
         },
 
-        // ── OpenAI ──────────────────────────────────────────────────────────
-        '/api/ai/openai': {
-          target:       'https://api.openai.com',
+        // ── Gemini (Google) ────────────────────────────────────────────────
+        // Client calls: POST /api/ai/gemini/generate?model=gemini-1.5-flash
+        // Forwards to:  https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=...
+        //
+        // Using a clean /generate path avoids the colon in the client URL
+        // (gemini-1.5-flash:generateContent) which confuses Vite's proxy router.
+        // The colon is constructed server-side in the rewrite function instead.
+        '/api/ai/gemini/generate': {
+          target:       'https://generativelanguage.googleapis.com',
           changeOrigin: true,
           secure:       true,
-          rewrite:      (path: string) => path.replace(/^\/api\/ai\/openai/, ''),
+          rewrite: (p: string) => {
+            const url    = new URL(p, 'http://localhost');
+            const model  = url.searchParams.get('model') ?? 'gemini-1.5-flash';
+            const apiKey = env.GEMINI_API_KEY ?? '';
+            return `/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          },
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
-              proxyReq.setHeader('Authorization', 'Bearer ' + (env.VITE_AI_API_KEY ?? ''));
+              proxyReq.removeHeader('origin');
+            });
+          },
+        },
+
+        // ── UMLS / NLM (SNOMED CT, terminology) ───────────────────────────
+        // Client calls: GET /api/terminology/umls/search/current?string=...
+        // Forwards to:  https://uts-ws.nlm.nih.gov/rest/search/current?string=...&apiKey=...
+        '/api/terminology/umls': {
+          target:       'https://uts-ws.nlm.nih.gov',
+          changeOrigin: true,
+          secure:       true,
+          rewrite:      (p: string) => p.replace(/^\/api\/terminology\/umls/, '/rest'),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              const sep = req.url?.includes('?') ? '&' : '?';
+              proxyReq.path += `${sep}apiKey=${env.UMLS_API_KEY ?? ''}`;
               proxyReq.removeHeader('origin');
             });
           },
@@ -68,11 +87,7 @@ export default defineConfig(({ mode }) => {
 
       },
     },
-
     build: {
-      outDir:                'dist',
-      sourcemap:             true,
-      chunkSizeWarningLimit: 800,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -80,16 +95,13 @@ export default defineConfig(({ mode }) => {
               if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
                 return 'vendor-react';
               }
-
               if (id.includes('@tiptap')) {
                 return 'vendor-tiptap';
               }
-
               if (id.includes('xlsx')) {
                 return 'vendor-xlsx';
               }
             }
-
             return undefined;
           },
         },

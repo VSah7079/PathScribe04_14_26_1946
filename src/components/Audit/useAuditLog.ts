@@ -106,7 +106,16 @@ const actionTypeMap: Record<AuditAction, AuditEventCategory> = {
   comp_config_flag_updated:   "system",
   comp_config_flag_deactivated: "system",
   comp_config_protocol_linked:  "system",
-  comp_config_protocol_unlinked: "system",
+  comp_config_protocol_unlinked:  "system",
+  // ── Validation Studies ──
+  validation_study_created:        "user",
+  validation_study_activated:      "user",
+  validation_study_closed:         "user",
+  validation_study_deleted:        "user",
+  validation_report_generated:     "user",
+  validation_routing_rule_added:   "user",
+  validation_routing_rule_updated: "user",
+  validation_routing_rule_deleted: "user",
 };
 
 // ── Payload types per action ──────────────────────────────────────────────────
@@ -147,7 +156,16 @@ export type AuditPayload = {
   comp_config_flag_updated:   { flagId?: string; changes?: string[] };
   comp_config_flag_deactivated: { flagId?: string; flagName?: string };
   comp_config_protocol_linked:  { flagId?: string; protocolId?: string };
-  comp_config_protocol_unlinked: { flagId?: string; protocolId?: string };
+  comp_config_protocol_unlinked:  { flagId?: string; protocolId?: string };
+  // ── Validation Studies ──
+  validation_study_created:        { studyName: string; clientCount: number; pathologistCount: number };
+  validation_study_activated:      { studyName: string; approvedBy: string };
+  validation_study_closed:         { studyName: string; signalCount: number };
+  validation_study_deleted:        { studyName: string };
+  validation_report_generated:     { studyName: string; caseCount: number; acceptanceRate: string };
+  validation_routing_rule_added:   { entityName: string; templateName: string; ruleType: string };
+  validation_routing_rule_updated: { entityName: string; templateName: string };
+  validation_routing_rule_deleted: { entityName: string; ruleType: string };
 };
 
 // ── Detail string builders ────────────────────────────────────────────────────
@@ -293,6 +311,40 @@ function buildDetail<A extends keyof AuditPayload>(action: A, payload: AuditPayl
       const p = payload as AuditPayload["comp_config_protocol_linked"];
       return `Protocol linked to flag ${p.flagId}: protocol ${p.protocolId}`;
     }
+    // ── Validation Studies ──────────────────────────────────────────────
+    case "validation_study_created": {
+      const p = payload as AuditPayload["validation_study_created"];
+      return `Validation study created: "${p.studyName}" — ${p.clientCount} client(s), ${p.pathologistCount} pathologist(s)`;
+    }
+    case "validation_study_activated": {
+      const p = payload as AuditPayload["validation_study_activated"];
+      return `Validation study activated: "${p.studyName}" — approved by ${p.approvedBy}`;
+    }
+    case "validation_study_closed": {
+      const p = payload as AuditPayload["validation_study_closed"];
+      return `Validation study closed: "${p.studyName}" — ${p.signalCount} signals captured`;
+    }
+    case "validation_study_deleted": {
+      const p = payload as AuditPayload["validation_study_deleted"];
+      return `Validation study deleted: "${p.studyName}"`;
+    }
+    case "validation_report_generated": {
+      const p = payload as AuditPayload["validation_report_generated"];
+      return `Validation report generated: "${p.studyName}" — ${p.caseCount} cases, ${p.acceptanceRate} acceptance rate`;
+    }
+    case "validation_routing_rule_added": {
+      const p = payload as AuditPayload["validation_routing_rule_added"];
+      return `Routing rule added: ${p.entityName} → ${p.templateName} (${p.ruleType})`;
+    }
+    case "validation_routing_rule_updated": {
+      const p = payload as AuditPayload["validation_routing_rule_updated"];
+      return `Routing rule updated: ${p.entityName} → ${p.templateName}`;
+    }
+    case "validation_routing_rule_deleted": {
+      const p = payload as AuditPayload["validation_routing_rule_deleted"];
+      return `Routing rule deleted: ${p.entityName} (${p.ruleType})`;
+    }
+
     case "comp_config_protocol_unlinked": {
       const p = payload as AuditPayload["comp_config_protocol_unlinked"];
       return `Protocol unlinked from flag ${p.flagId}: protocol ${p.protocolId}`;

@@ -8,7 +8,6 @@ import { useLogout } from '@hooks/useLogout';
 import WorklistTable      from '../../components/Worklist/WorklistTable';
 import ResourcesModal     from './ResourcesModal';
 import LogoutWarningModal from './LogoutWarningModal';
-import CaseSearchBar from '../../components/Search/CaseSearchBar';
 import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../../constants/systemActions';
 import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '../../constants/computationalActions';
@@ -535,14 +534,14 @@ const WorklistPage: React.FC = () => {
       position: 'relative', width: '100vw', height: 'var(--app-height, var(--app-height, 100vh))',
       backgroundColor: '#000000', color: '#ffffff',
       fontFamily: "'Inter', sans-serif",
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
     }}>
       {/* Backgrounds — self-closing, no scroll contribution */}
       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/main_background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0, filter: 'brightness(0.3) contrast(1.1)' }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, #000000 100%)', zIndex: 1 }} />
 
       {/* All content — fills viewport exactly, no overflow */}
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
 
         {/* Main — fills remaining height */}
         <main style={{ flex: 1, minHeight: 0, padding: 'clamp(8px,1.5vw,12px) clamp(12px,2vw,20px)', display: 'flex', flexDirection: 'column' }}>
@@ -556,13 +555,11 @@ const WorklistPage: React.FC = () => {
                 <h1 style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 900, margin: 0, letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
                   {FILTER_TITLES[activeFilter] ?? 'Active Cases'}
                 </h1>
-                <div data-capture-hide="true" style={{ width: '280px', flexShrink: 0 }}>
-                  <CaseSearchBar compact />
-                </div>
+
               </div>
 
               {/* Row 2 — Mode tiles left, Filter tiles right, same row = visual alignment */}
-              <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: '0', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0', minWidth: 0, paddingTop: '3px' }}>
 
                 {/* Left: LIS Cases + Outreach */}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexShrink: 0 }}>
@@ -574,7 +571,7 @@ const WorklistPage: React.FC = () => {
                       <button
                         title={isActive ? 'Currently in LIS Cases' : 'Switch to LIS Cases'}
                         onClick={() => { setContextFilter('lis'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                        style={{ background: isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)', border: `1.5px solid ${isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.14)'}`, borderRadius: '8px', padding: '6px 10px', backdropFilter: 'blur(10px)', minWidth: '80px', minHeight: '44px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none', transform: isActive ? 'translateY(-1px)' : 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ background: isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)', border: `1.5px solid ${isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.14)'}`, borderRadius: '8px', padding: '6px 10px', backdropFilter: 'blur(10px)', minWidth: '80px', minHeight: '44px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none',  display: 'flex', alignItems: 'center', gap: '8px' }}
                       >
                         <div style={{ flex: '0 0 auto' }}>
                           <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#e2e8f0' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>LIS Cases</div>
@@ -598,7 +595,7 @@ const WorklistPage: React.FC = () => {
                       <button
                         title={isActive ? 'Currently in Outreach Cases' : 'Switch to Outreach Cases'}
                         onClick={() => { setContextFilter('outreach'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                        style={{ background: isActive ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.05)', border: `1.5px solid ${isActive ? '#F59E0B' : 'rgba(245,158,11,0.18)'}`, boxShadow: isActive ? '0 0 12px rgba(245,158,11,0.4)' : 'none', borderRadius: '8px', padding: '6px 10px', backdropFilter: 'blur(10px)', minWidth: '80px', minHeight: '44px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none', transform: isActive ? 'translateY(-1px)' : 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ background: isActive ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.05)', border: `1.5px solid ${isActive ? '#F59E0B' : 'rgba(245,158,11,0.18)'}`, boxShadow: isActive ? '0 0 12px rgba(245,158,11,0.4)' : 'none', borderRadius: '8px', padding: '6px 10px', backdropFilter: 'blur(10px)', minWidth: '80px', minHeight: '44px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none',  display: 'flex', alignItems: 'center', gap: '8px' }}
                       >
                         <div style={{ flex: '0 0 auto' }}>
                           <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? '#F59E0B' : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>Outreach</div>
@@ -616,7 +613,7 @@ const WorklistPage: React.FC = () => {
                 </div>
 
                 {/* Right: filter tiles */}
-                <div className="ps-wl-filter-strip" style={{ display: 'flex', gap: '6px', alignItems: 'stretch', overflowX: 'auto', flexShrink: 1, minWidth: 0, paddingBottom: '2px' }}>
+                <div className="ps-wl-filter-strip" style={{ display: 'flex', gap: '6px', alignItems: 'center', overflowX: 'auto', flexShrink: 1, minWidth: 0, paddingBottom: '2px', paddingTop: '2px' }}>
 
                 {([
                   { key: 'pool',       label: activeFilter === 'pool'       ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Pool Cases',      count: stats.pool,           color: '#F97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(249,115,22,0.18)',  activeBg: 'rgba(249,115,22,0.18)',  activeBorder: '#F97316',  glow: '0 0 12px rgba(249,115,22,0.4)',  sublabel: undefined },
@@ -642,10 +639,10 @@ const WorklistPage: React.FC = () => {
                         borderRadius:   '8px', padding: '6px 12px', backdropFilter: 'blur(10px)',
                         minWidth: '80px', minHeight: '44px', cursor: 'pointer',
                         transition: 'all 0.15s ease', textAlign: 'left' as const, outline: 'none',
-                        transform: isActive ? 'translateY(-1px)' : 'none',
+                        
                       }}
                     >
-                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? tile.color : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: isActive ? tile.color : '#8899aa', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px', lineHeight: 1.3 }}>
                         {tile.label}
                       </div>
                       <div style={{ fontSize: '20px', fontWeight: 800, color: tile.color, lineHeight: 1 }}>
@@ -740,6 +737,7 @@ const WorklistPage: React.FC = () => {
         currentUserId={CURRENT_USER_ID}
         currentUserName={CURRENT_USER_NAME}
         fromFilter="pool"
+        continueToReport={true}
         onAccepted={() => {
           setClaimModal(null);
           caseRouter.listCasesForUser(user?.id ?? 'current').then(setRealCases).catch(() => {});

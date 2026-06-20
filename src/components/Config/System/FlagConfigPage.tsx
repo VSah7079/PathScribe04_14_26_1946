@@ -386,10 +386,16 @@ const FlagConfigPage: React.FC = () => {
       {/* ── Add / Edit Modal ── */}
       {showModal && (
         <div className="ps-conf-backdrop">
-          <div className="ps-conf-modal" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="flag-modal-title" style={{ maxWidth: tagClass === 'COMPUTATIONAL' ? 1060 : 560, width: '100%', transition: 'max-width 0.2s ease', padding: '24px' }}>
-            <h3 style={{ marginTop: 0, fontSize: 16, fontWeight: 700, marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--ps-conf-border)' }}>
-              <span id="flag-modal-title">{editingFlag ? 'Edit Flag' : 'Create Flag'}</span>
-            </h3>
+          <div className="fm-modal fm-modal--config" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="flag-modal-title"
+            style={{ width: tagClass === 'COMPUTATIONAL' ? 'min(1060px, 96vw)' : 'min(600px, 96vw)' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="fm-modal-header">
+              <div>
+                <div className="fm-eyebrow">Configuration · Flags</div>
+                <h2 id="flag-modal-title" className="fm-title" style={{ fontSize: 16 }}>{editingFlag ? 'Edit Flag' : 'Create Flag'}</h2>
+              </div>
+            </div>
+            <div className="ps-client-editor-body">
 
             {/* Tag class toggle */}
             <label className="ps-conf-label">Type</label>
@@ -577,9 +583,13 @@ const FlagConfigPage: React.FC = () => {
             <label className="ps-conf-label" style={{ marginTop: 16 }}>Status</label>
             <Toggle value={active} onChange={setActive} />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingTop: 16, gap: 10, borderTop: '1px solid var(--ps-conf-border)' }}>
-              <button className="ps-conf-btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="ps-conf-btn-primary" onClick={requestSave}>Save</button>
+            </div>{/* /body */}
+            <div className="fm-footer">
+              <span className="fm-footer-status" />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowModal(false)} className="fm-btn-cancel">Cancel</button>
+                <button onClick={requestSave} className="fm-btn-apply">Save</button>
+              </div>
             </div>
           </div>
         </div>
@@ -588,17 +598,24 @@ const FlagConfigPage: React.FC = () => {
       {/* ── Confirm Modal ── */}
       {showConfirm && (
         <div className="ps-conf-backdrop">
-          <div className="ps-conf-modal" style={{ width: 420 }}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700 }}>
-              {editingFlag ? 'Save Changes' : 'Create Flag'}
-            </h2>
-            <div style={{ height: 1, background: 'var(--ps-conf-border)', marginBottom: 16 }} />
-            <p style={{ marginBottom: 24, color: 'var(--ps-conf-text-3)', fontSize: 14 }}>
-              Are you sure you want to apply these changes?
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button className="ps-conf-btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
-              <button className="ps-conf-btn-primary" onClick={confirmSave}>Confirm</button>
+          <div className="fm-modal fm-modal--config" style={{ width: 'min(440px, 96vw)' }} onClick={e => e.stopPropagation()}>
+            <div className="fm-modal-header">
+              <div>
+                <div className="fm-eyebrow">Configuration · Flags</div>
+                <h2 className="fm-title" style={{ fontSize: 16 }}>{editingFlag ? 'Save Changes' : 'Create Flag'}</h2>
+              </div>
+            </div>
+            <div className="ps-client-editor-body">
+              <p style={{ margin: 0, color: '#94a3b8', fontSize: 14 }}>
+                Are you sure you want to apply these changes?
+              </p>
+            </div>
+            <div className="fm-footer">
+              <span className="fm-footer-status" />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowConfirm(false)} className="fm-btn-cancel">Cancel</button>
+                <button onClick={confirmSave} className="fm-btn-apply">Confirm</button>
+              </div>
             </div>
           </div>
         </div>

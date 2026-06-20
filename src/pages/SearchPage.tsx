@@ -1,4 +1,4 @@
-﻿type CodeModalSystem = 'snomed' | 'icd' | 'SNOMED' | 'ICD-10' | 'ICD-11' | 'ICD-O-topography' | 'ICD-O-morphology';
+type CodeModalSystem = 'snomed' | 'icd' | 'SNOMED' | 'ICD-10' | 'ICD-11' | 'ICD-O-topography' | 'ICD-O-morphology';
 
 import React, { useState, useEffect, useRef } from 'react';
 import '../pathscribe.css';
@@ -16,6 +16,7 @@ import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useBreadcrumb }   from '../contexts/BreadcrumbContext';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { normalizeAccession } from '../utils/normalizeAccession';
+import { IDENTIFIER_FORMAT_LIBRARY } from '../types/systemConfig';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -914,29 +915,71 @@ const SearchPage: React.FC = () => {
 
   // Smart identifier box
   const [identifierQuery, setIdentifierQuery] = useState('');
-  type IdentifierType = 'accession' | 'mrn' | 'name' | 'ambiguous' | null;
+  type IdentifierType = 'accession' | 'mrn' | 'slide' | 'requisition' | 'name' | 'ambiguous' | null;
   const [detectedType, setDetectedType] = useState<IdentifierType>(null);
+
+  // Enabled formats from config, falling back to library defaults
+  const enabledFormats = config.identifierFormats?.formats
+    ?? IDENTIFIER_FORMAT_LIBRARY.filter(f => f.enabled);
 
   const detectIdentifierType = (val: string): IdentifierType => {
     if (!val.trim()) return null;
     const v = val.trim();
     try {
-      if (new RegExp(config.identifierFormats.accessionPattern, 'i').test(normalizeAccession(v, config.identifierFormats.accessionPattern))) return 'accession';
-      if (new RegExp(config.identifierFormats.mrnPattern).test(v))            return 'mrn';
-    } catch { /* invalid regex in config ”” fall through */ }
-    // Name heuristic: contains space or comma, OR is a single alphabetic-only word
+      // Slide barcodes first — trigger direct case navigation
+      const slideMatch = enabledFormats.find(
+        f => f.kind === 'slide' && f.enabled && f.tier === 1 &&
+             new RegExp(f.pattern).test(v)
+      );
+      if (slideMatch) return 'slide';
+
+      // Accession number
+      if (new RegExp(config.identifierFormats.accessionPattern, 'i')
+          .test(normalizeAccession(v, config.identifierFormats.accessionPattern)))
+        return 'accession';
+
+      // Patient identifier (MRN / NHS / CHI / IHI etc.)
+      if (new RegExp(config.identifierFormats.mrnPattern).test(v)) return 'mrn';
+
+      // Requisition number
+      const reqMatch = enabledFormats.find(
+        f => f.kind === 'requisition' && f.enabled && new RegExp(f.pattern).test(v)
+      );
+      if (reqMatch) return 'requisition';
+
+    } catch { /* invalid regex — fall through */ }
+
     const alphaRatio = (v.match(/[a-zA-Z]/g)?.length ?? 0) / v.length;
-    if (alphaRatio > 0.6) return 'name'; // pure alphabetic = treat as name
+    if (alphaRatio > 0.6) return 'name';
     if ((v.includes(' ') || v.includes(',')) && alphaRatio > 0.5) return 'name';
     return 'ambiguous';
   };
 
   const applyIdentifier = (val: string, type: IdentifierType) => {
-    setPatientName('');  setHospitalId('');  setAccessionNo('');
-    if (type === 'accession') setAccessionNo(normalizeAccession(val.trim(), config.identifierFormats.accessionPattern));
-    else if (type === 'mrn')  setHospitalId(val.trim());
-    else if (type === 'name') setPatientName(val.trim());
-    else { // ambiguous ”” populate all three so the search casts wide
+    setPatientName(''); setHospitalId(''); setAccessionNo('');
+
+    if (type === 'slide') {
+      // 2D pipe-delimited payload (Epic Beaker etc.)
+      const pipeAcc = val.match(/ACC:([^|]+)/);
+      if (pipeAcc) {
+        const specMatch = val.match(/SPEC:([^|]+)/);
+        navigate(specMatch
+          ? `/case/${pipeAcc[1]}/synoptic?specimen=${specMatch[1]}`
+          : `/case/${pipeAcc[1]}/synoptic`);
+        return;
+      }
+      // 1D slide — extract accession (e.g. S26-4200 from S26-4200-A1-1)
+      const oneD = val.match(/^([A-Za-z]{1,3}\d{2}-\d{4,6})/i);
+      if (oneD) { navigate(`/case/${oneD[1]}/synoptic`); return; }
+      setAccessionNo(val.trim());
+      return;
+    }
+
+    if (type === 'accession')        setAccessionNo(normalizeAccession(val.trim(), config.identifierFormats.accessionPattern));
+    else if (type === 'mrn')         setHospitalId(val.trim());
+    else if (type === 'name')        setPatientName(val.trim());
+    else if (type === 'requisition') setAccessionNo(val.trim());
+    else {
       setAccessionNo(val.trim());
       setHospitalId(val.trim());
       setPatientName(val.trim());
@@ -951,10 +994,12 @@ const SearchPage: React.FC = () => {
   };
 
   const IDENTIFIER_BADGE: Record<NonNullable<IdentifierType>, { label: string; color: string }> = {
-    accession: { label: 'Accession #',  color: '#8B5CF6' },
-    mrn:       { label: 'MRN',          color: '#0891B2' },
-    name:      { label: 'Patient Name', color: '#10B981' },
-    ambiguous: { label: 'All fields',   color: '#F59E0B' },
+    accession:   { label: 'Accession #',   color: '#8B5CF6' },
+    mrn:         { label: 'Patient ID',    color: '#0891B2' },
+    slide:       { label: 'Slide Barcode', color: '#10B981' },
+    requisition: { label: 'Requisition #', color: '#F59E0B' },
+    name:        { label: 'Patient Name',  color: '#10B981' },
+    ambiguous:   { label: 'All fields',    color: '#F59E0B' },
   };
 
   const [dateFrom,     setDateFrom]     = useState(daysAgo(30));

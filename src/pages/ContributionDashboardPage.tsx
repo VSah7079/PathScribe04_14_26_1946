@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import '../pathscribe.css';
 import { useAuth } from "@contexts/AuthContext";
 import { WarningIcon } from "@components/Icons";
-import CaseSearchBar from "@components/Search/CaseSearchBar";
 import FlagRow        from "@components/Dashboards/FlagRow";
 import CaseMixTile    from "@components/Dashboards/CaseMixTile";
 import ProductivityTab from "../components/Contribution/ProductivityTab";
@@ -293,7 +292,6 @@ const ContributionDashboardPage: React.FC = () => {
       </div>
 
       {/* ─── Search ──────────────────────────────────────────────────────── */}
-      <div data-capture-hide="true"><CaseSearchBar /></div>
 
       {/* ─── Tabs ────────────────────────────────────────────────────────── */}
       <div className="ps-contrib-tab-bar">

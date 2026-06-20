@@ -91,9 +91,11 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
 
         {/* Header */}
         <div className="ps-pool-header">
-          <div className="ps-pool-eyebrow">👥 {poolName ?? 'Pool'} — Case Assignment</div>
-          <div className="ps-pool-title">{caseSummary ?? caseId}</div>
-          <div className="ps-pool-subtitle">{caseId}</div>
+          <div className="ps-pool-header-col">
+            <div className="ps-pool-eyebrow">👥 {poolName ?? 'Pool'} — Case Assignment</div>
+            <div className="ps-pool-title">{caseSummary ?? caseId}</div>
+            <div className="ps-pool-subtitle">{caseId}</div>
+          </div>
         </div>
 
         {/* Body */}

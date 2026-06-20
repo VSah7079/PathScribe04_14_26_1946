@@ -6,6 +6,7 @@ import { useMessaging } from '../../contexts/MessagingContext';
 import { EnhancementRequestButton } from '../EnhancementRequest/EnhancementRequestButton';
 import { loadEnhancementConfig } from '../../services/enhancementRequestService';
 import { VoiceToggleButton } from '../Voice/VoiceToggleButton';
+import CaseSearchBar from '../Search/CaseSearchBar';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
 
@@ -67,7 +68,7 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
   const [geminiOk,   setGeminiOk]   = useState<boolean | null>(null);
 
   const aiProvider = import.meta.env.VITE_AI_PROVIDER   ?? 'anthropic';
-  const aiModel    = import.meta.env.VITE_AI_MODEL       ?? 'claude-sonnet-4-20250514';
+  const aiModel    = import.meta.env.VITE_AI_MODEL       ?? 'claude-sonnet-4-6';
   const aiDevMode  = import.meta.env.VITE_AI_DEV_MODE   === 'true';
   const geminiKey  = import.meta.env.VITE_GEMINI_API_KEY ?? '';
   const envMode    = import.meta.env.MODE ?? 'development';
@@ -286,6 +287,11 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>
           {qaEnabled && <span data-voice-target="testing-feedback"><EnhancementRequestButton mode="qa" /></span>}
+        </div>
+
+        {/* Centre — case search */}
+        <div className="ps-nav-centre">
+          <CaseSearchBar compact />
         </div>
 
         {/* Right */}

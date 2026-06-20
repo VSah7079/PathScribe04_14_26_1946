@@ -105,6 +105,7 @@ export type ActionId =
   | 'config.access' | 'config.staff' | 'config.roles' | 'config.subspecialties'
   | 'config.specimens' | 'config.flags' | 'config.ai' | 'config.macros'
   | 'config.shortcuts' | 'config.lis' | 'config.auditLog'
+  | 'config.reportTemplates' | 'config.routingRules' | 'config.validationStudies'
   // ── QC ────────────────────────────────────────────────────────────────────
   | 'qc.configure' | 'qc.viewQueue' | 'qc.claimReview'
   | 'qc.submitReview' | 'qc.escalateDiscordance' | 'qc.viewDashboard' | 'qc.exportReport'
@@ -113,7 +114,14 @@ export type ActionId =
   | 'billing.viewHistory' | 'billing.exportBatch'
   // ── Admin ─────────────────────────────────────────────────────────────────
   | 'admin.dashboard' | 'admin.reports' | 'admin.export'
-  | 'admin.backups' | 'admin.eventLog' | 'admin.impersonate';
+  | 'admin.backups' | 'admin.eventLog' | 'admin.impersonate'
+  | 'admin.validationStudies'
+  // ── AI narrative / orchestration ──────────────────────────────────────────
+  | 'ai.changeReportTemplate' | 'ai.acceptNarrativeSection' | 'ai.regenerateSection'
+  // ── Report template ───────────────────────────────────────────────────────
+  | 'report.selectTemplate' | 'report.overrideTemplate'
+  // ── Specimen LIS ──────────────────────────────────────────────────────────
+  | 'specimen.syncLIS' | 'specimen.editLISStatus';
 
 export interface SystemAction {
   id: ActionId;
@@ -289,7 +297,6 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'case.releaseHold',      label: 'Release Case From Hold',     internalKey: 'F19+PS009' },
       { id: 'case.archive',          label: 'Archive Case',               internalKey: 'F19+PS010' },
       { id: 'case.delete',           label: 'Delete Case',                internalKey: 'F19+PS011', description: 'Admin only' },
-      { id: 'case.delete',           label: 'Delete Case',                internalKey: 'F19+PS011', description: 'Admin only' },
       { id: 'case.viewPediatric',    label: 'View Pediatric Cases',       internalKey: 'F19+PS012', description: 'Requires client authorization' },
     ],
   },
@@ -305,6 +312,8 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'specimen.applyFlag',          label: 'Apply Flag to Specimen',    internalKey: 'F20+PS004' },
       { id: 'specimen.removeFlag',         label: 'Remove Flag from Specimen', internalKey: 'F20+PS005' },
       { id: 'specimen.assignSubspecialty', label: 'Assign to Subspecialty',    internalKey: 'F20+PS006' },
+      { id: 'specimen.syncLIS',           label: 'Sync Specimen to LIS',       internalKey: 'F20+PS007', description: 'Request LIS sync for a locally-created specimen' },
+      { id: 'specimen.editLISStatus',     label: 'Edit LIS Sync Status',       internalKey: 'F20+PS008', description: 'View and update the LIS synchronisation status of a specimen' },
     ],
   },
 
@@ -318,7 +327,9 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'report.deliver',     label: 'Deliver Report to Physician',  internalKey: 'F21+PS003', description: 'Fax or email' },
       { id: 'report.redeliver',   label: 'Re-Deliver Report',            internalKey: 'F21+PS004' },
       { id: 'report.viewHistory', label: 'View Report History',          internalKey: 'F21+PS005' },
-      { id: 'report.download',    label: 'Download Report PDF',          internalKey: 'F21+PS006' },
+      { id: 'report.download',         label: 'Download Report PDF',               internalKey: 'F21+PS006' },
+      { id: 'report.selectTemplate',   label: 'Select Report Template',            internalKey: 'F21+PS007', description: 'View the report template resolved for this case' },
+      { id: 'report.overrideTemplate', label: 'Override Report Template',          internalKey: 'F21+PS008', description: 'Pathologist override of system-resolved report template' },
     ],
   },
 
@@ -331,7 +342,10 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'ai.grossAssist',      label: 'Use AI Gross Description Assist',  internalKey: 'F22+PS002' },
       { id: 'ai.macroSuggest',     label: 'Use AI Macro Suggestion',          internalKey: 'F22+PS003' },
       { id: 'ai.viewConfidence',   label: 'View AI Confidence Scores',        internalKey: 'F22+PS004' },
-      { id: 'ai.override',         label: 'Override AI Suggestion',           internalKey: 'F22+PS005' },
+      { id: 'ai.override',              label: 'Override AI Suggestion',           internalKey: 'F22+PS005' },
+      { id: 'ai.changeReportTemplate',  label: 'Change Report Template',           internalKey: 'F22+PS006', shortcutable: true, description: 'Override the system-resolved report template for this case' },
+      { id: 'ai.acceptNarrativeSection',label: 'Accept Narrative Section',         internalKey: 'F22+PS007', shortcutable: true, description: 'Accept AI-generated narrative section without edits' },
+      { id: 'ai.regenerateSection',     label: 'Regenerate Narrative Section',     internalKey: 'F22+PS008', shortcutable: true, description: 'Trigger AI regeneration of a single narrative section' },
     ],
   },
 
@@ -363,7 +377,10 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'config.macros',         label: 'Manage Macros',                   internalKey: 'F24+PS008' },
       { id: 'config.shortcuts',      label: 'Manage Keyboard Shortcuts',       internalKey: 'F24+PS009' },
       { id: 'config.lis',            label: 'Manage LIS Integration Settings', internalKey: 'F24+PS010' },
-      { id: 'config.auditLog',       label: 'View Audit Log',                  internalKey: 'F24+PS011' },
+      { id: 'config.auditLog',          label: 'View Audit Log',                  internalKey: 'F24+PS011' },
+      { id: 'config.reportTemplates',   label: 'Manage Report Templates',         internalKey: 'F24+PS030' },
+      { id: 'config.routingRules',      label: 'Manage Template Routing Rules',   internalKey: 'F24+PS031', description: 'Client and physician overrides for report template resolution' },
+      { id: 'config.validationStudies', label: 'Manage Validation Studies',       internalKey: 'F24+PS032', description: 'Admin and superadmin only' },
     ],
   },
 
@@ -401,7 +418,8 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'admin.export',      label: 'Export Data',            internalKey: 'F24+PS026' },
       { id: 'admin.backups',     label: 'Manage Backups',         internalKey: 'F24+PS027' },
       { id: 'admin.eventLog',    label: 'View Error / Event Log', internalKey: 'F24+PS028' },
-      { id: 'admin.impersonate', label: 'Impersonate User',       internalKey: 'F24+PS029', description: 'Super admin only' },
+      { id: 'admin.impersonate',        label: 'Impersonate User',              internalKey: 'F24+PS029', description: 'Super admin only' },
+      { id: 'admin.validationStudies',  label: 'View Validation Study Data',    internalKey: 'F24+PS033', description: 'Access aggregate validation study metrics and reports — superadmin only' },
     ],
   },
 
@@ -541,6 +559,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'qc.escalateDiscordance': true, 'qc.viewDashboard': true,
     // AI CoPilot
     'ai.reviewTriage': true, 'ai.codeSuggest': true, 'ai.narrativeGenerate': true,
+    // Orchestration — narrative template selection and section management
+    'ai.changeReportTemplate': true, 'ai.acceptNarrativeSection': true, 'ai.regenerateSection': true,
+    'report.selectTemplate': true, 'report.overrideTemplate': true,
+    // Specimen LIS sync
+    'specimen.syncLIS': true, 'specimen.editLISStatus': true,
     // Delegation
     'delegation.open': true, 'delegation.reassign': true, 'delegation.pool': true,
     'delegation.secondOpinion': true, 'delegation.casualReview': true,
@@ -614,6 +637,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'config.subspecialties': true, 'config.specimens': true, 'config.flags': true,
     'config.ai': true, 'config.macros': true, 'config.shortcuts': true,
     'config.lis': true, 'config.auditLog': true,
+    'config.reportTemplates': true, 'config.routingRules': true,
+    'config.validationStudies': true,
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
@@ -626,6 +651,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'qc.configure': true, 'qc.viewDashboard': true, 'qc.exportReport': true,
     'admin.dashboard': true, 'admin.reports': true, 'admin.export': true,
     'admin.backups': true, 'admin.eventLog': true,
+    'admin.validationStudies': true,
   },
   Physician: {},
 };

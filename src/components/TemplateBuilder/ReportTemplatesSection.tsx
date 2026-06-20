@@ -6,10 +6,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import TemplateListTab from './TemplateListTab';
-import PartLibraryTab  from './PartLibraryTab';
+import TemplateListTab  from './TemplateListTab';
+import PartLibraryTab   from './PartLibraryTab';
+import RoutingRulesTab  from './RoutingRulesTab';
 
-type SubTab = 'templates' | 'parts';
+type SubTab = 'templates' | 'parts' | 'routing';
 
 const ReportTemplatesSection: React.FC = () => {
   const [subTab, setSubTab] = useState<SubTab>('templates');
@@ -40,11 +41,17 @@ const ReportTemplatesSection: React.FC = () => {
         >
           Part Library
         </button>
+        <button
+          onClick={() => setSubTab('routing')}
+          className={`ps-sub-tab-btn${subTab === 'routing' ? ' active' : ''}`}
+        >
+          Routing Rules
+        </button>
       </div>
 
       {/* ── Content ── */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        {subTab === 'templates' ? <TemplateListTab /> : <PartLibraryTab />}
+        {subTab === 'templates' ? <TemplateListTab /> : subTab === 'parts' ? <PartLibraryTab /> : <RoutingRulesTab />}
       </div>
 
     </div>

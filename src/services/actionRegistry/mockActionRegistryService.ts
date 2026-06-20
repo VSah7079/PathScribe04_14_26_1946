@@ -78,6 +78,10 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   'OPEN_ROUTING_RULES', 'TEST_ROUTING', 'OPEN_PARTICIPATION_TYPES',
   'COMP_OPEN_SIDECAR', 'COMP_ORDER_OPEN', 'COMP_ORDER_PLACE', 'COMP_ORDER_CANCEL',
   'FLAG_OPEN_MANAGER', 'FLAG_APPLY_STAT',
+  'TAT_SHOW_FIRST_TOUCH', 'TAT_SHOW_TOTAL_CASE', 'TAT_SHOW_FROZEN_SECTION',
+  'TAT_SHOW_GROSSING', 'TAT_SHOW_SIGN_OUT', 'TAT_SHOW_COLD_ISCHEMIA',
+  'TAT_SHOW_CONSULT_RESPONSE', 'TAT_SHOW_CONSULT_AWAITING',
+  'FOCUS_CASE_SEARCH', 'DELEGATE_CONSULTATION',
   'SAVE_DRAFT', 'DISCARD_CHANGES', 'TEMPLATE_SELECT',
   // Search page
   'SEARCH_EXECUTE', 'SEARCH_CLEAR', 'SEARCH_LOAD_SAVED',
@@ -1249,9 +1253,127 @@ const SEED_ACTIONS: SystemAction[] = [
     isActive: true,
   },
 
-];
+
+
+  // ── Case Search — NavBar identifier search bar ──────────────────────────────
+  {
+    id: 'FOCUS_CASE_SEARCH',
+    label: 'Focus Case Search',
+    category: 'SYSTEM',
+    shortcut: '',
+    internalKey: 'F13+PS011',
+    voiceTriggers: ['search case', 'find case', 'look up case', 'case search', 'search identifier', 'open case search'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── Consultation delegation ───────────────────────────────────────────────────
+  {
+    id: 'DELEGATE_CONSULTATION',
+    label: 'Request Consultation',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F18+PS014',
+    voiceTriggers: ['request consultation', 'request review', 'send for review', 'consult colleague', 'second opinion', 'peer review'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── TAT Trend tile switching — Contribution Dashboard ────────────────────────
+  {
+    id: 'TAT_SHOW_FIRST_TOUCH',
+    label: 'Show First Touch TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS001',
+    voiceTriggers: ['show first touch', 'first touch trend', 'first touch tat'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_TOTAL_CASE',
+    label: 'Show Total Case TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS002',
+    voiceTriggers: ['show total case', 'total case trend', 'total tat'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_FROZEN_SECTION',
+    label: 'Show Frozen Section TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS003',
+    voiceTriggers: ['show frozen section', 'frozen section trend', 'frozen section tat', 'intraop trend'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_GROSSING',
+    label: 'Show Grossing TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS004',
+    voiceTriggers: ['show grossing', 'grossing trend', 'grossing tat'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_SIGN_OUT',
+    label: 'Show Sign-Out TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS005',
+    voiceTriggers: ['show sign out', 'sign out trend', 'sign out tat', 'signout trend'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_COLD_ISCHEMIA',
+    label: 'Show Cold Ischaemia TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS006',
+    voiceTriggers: ['show cold ischemia', 'cold ischemia trend', 'cold ischaemia', 'ischemia trend'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_CONSULT_RESPONSE',
+    label: 'Show My Response Time Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS007',
+    voiceTriggers: ['show my response time', 'response time trend', 'consultation response trend', 'how fast do i respond'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_CONSULT_AWAITING',
+    label: 'Show Awaiting Response Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS008',
+    voiceTriggers: ['show awaiting response', 'awaiting response trend', 'how long am i waiting', 'consultation awaiting'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
 
 // ─────────────────────────────────────────────────────────────────────────────
+];
+
 // Action registry persistence
 // Admins edit shortcuts + voice triggers in the UI — these must survive deploys.
 // Pattern: seed from SEED_ACTIONS, load from localStorage, write back on updateAction.

@@ -4,12 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@contexts/AuthContext";
 import { useLogout } from "@hooks/useLogout";
 import { getAuditLog, clearAuditLog, logEvent } from "../../audit/auditLogger";
+import { useAuditLog } from "./useAuditLog";
 import { AuditEvent } from "../../types/AuditEvent";
 
 export const AuditLogViewer: React.FC = () => {
   const navigate      = useNavigate();
   const { user }      = useAuth();
   const handleLogout  = useLogout();
+  const { log } = useAuditLog();
   const [events,      setEvents]      = useState<AuditEvent[]>([]);
   const [isLoaded,    setIsLoaded]    = useState(false);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
@@ -35,6 +37,7 @@ export const AuditLogViewer: React.FC = () => {
 
   useEffect(() => {
     load();
+    log('audit_log_viewed', {});
     const t = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(t);
   }, []);

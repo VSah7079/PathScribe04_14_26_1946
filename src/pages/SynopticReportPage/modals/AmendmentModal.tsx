@@ -33,7 +33,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
   const accentColor = isAmendment ? '#d97706' : '#0891B2';
 
   return (
-    <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 22000 }} onClick={onClose}>
+    <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 22000 }}>
       <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
 
         {!triggeredBySynopticTitle && (
@@ -55,8 +55,8 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
             <span className="ps-amendment-deferred-icon">🧪</span>
             <div>
               <div className="ps-amendment-deferred-title">Deferred Synoptic Now Complete</div>
-              <p className="ps-modal-dark-hint" style={{ margin: 0 }}>
-                <strong style={{ color: '#e2e8f0' }}>{triggeredBySynopticTitle}</strong> was deferred at sign-out pending ancillary results.
+              <p className="ps-modal-dark-hint ps-modal-dark-hint--no-margin">
+                <strong className="ps-text-light">{triggeredBySynopticTitle}</strong> was deferred at sign-out pending ancillary results.
                 Review the pre-filled amendment text below, edit as needed, and actively submit to issue the amendment.
               </p>
             </div>
@@ -74,7 +74,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
             ? 'An amendment is a corrective change to a finalized report. Describe the error and the correction required.'
             : 'An addendum is an official addition to a finalized report. Describe the reason for the addendum and any changes required.'
           }{' '}
-          Applies to <strong style={{ color: '#e2e8f0' }}>{activeSynopticTitle}</strong>.
+          Applies to <strong className="ps-text-light">{activeSynopticTitle}</strong>.
         </p>
 
         <textarea
@@ -90,19 +90,13 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
           className="ps-amendment-textarea"
         />
 
-        <div className="ps-modal-dark-footer" style={{ justifyContent: 'stretch' }}>
-          <button className="ps-btn-ghost-dark" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
+          <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={onClose}>Cancel</button>
           <button
             onClick={onSubmit}
             disabled={!canSubmit}
-            style={{
-              flex: 1, padding: '11px', borderRadius: 10, border: 'none',
-              fontWeight: 700, fontSize: 14,
-              cursor: canSubmit ? 'pointer' : 'not-allowed',
-              background: canSubmit ? accentColor : 'rgba(255,255,255,0.08)',
-              color: canSubmit ? '#fff' : '#475569',
-              transition: 'background 0.15s',
-            }}
+            className={"ps-amendment-submit" + (canSubmit ? "" : " disabled")}
+            style={{ background: canSubmit ? accentColor : undefined }}
           >
             {isAmendment ? '✏️ Submit Amendment' : '📎 Submit Addendum'}
           </button>

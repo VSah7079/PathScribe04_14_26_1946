@@ -207,9 +207,11 @@ export class OrchestratorEngine {
       ? new StreamingWriter(this.editor, { clearExisting: true, respectUserEdits: true })
       : null;
 
-    const enabledSections = narrativeTemplateConfig.sections
-      .filter(s => s.enabled)
-      .sort((a, b) => a.order - b.order);
+    // Use narrative template sections from context — driven by the resolved
+    // report template for this case (via TemplateRoutingService → buildContext)
+    const enabledSections = (this.context.narrativeTemplate?.sections ?? [])
+      .filter((s: any) => s.enabled)
+      .sort((a: any, b: any) => a.order - b.order);
 
     const results: SectionResult[] = [];
 
@@ -353,7 +355,7 @@ export class OrchestratorEngine {
   // Used when the pathologist clicks "Regenerate" on a section.
 
   async regenerateSection(sectionId: string): Promise<SectionResult> {
-    const section = narrativeTemplateConfig.sections.find(s => s.id === sectionId);
+    const section = (this.context.narrativeTemplate?.sections ?? []).find((s: any) => s.id === sectionId);
     if (!section) {
       return { sectionId, sectionTitle: '(unknown)', status: 'error', error: 'Section not found in template' };
     }

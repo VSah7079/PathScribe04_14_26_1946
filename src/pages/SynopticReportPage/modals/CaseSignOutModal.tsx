@@ -22,18 +22,18 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
 
   return (
     <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 22000 }}>
-      <div className="ps-modal-dark" style={{ textAlign: 'center', width: 'min(480px, 90vw)' }}>
+      <div className="ps-modal-dark ps-modal-dark--sm ps-modal-dark--centered">
 
         <div className="ps-modal-dark-emoji">✍️</div>
 
-        <div className="ps-modal-dark-header" style={{ justifyContent: 'center' }}>
+        <div className="ps-modal-dark-header ps-modal-dark-header--center">
           <span className="ps-modal-dark-title">Sign Out Case</span>
         </div>
 
-        <p className="ps-modal-dark-body" style={{ textAlign: 'center' }}>
-          All synoptic reports for <strong data-phi="accession">Case {accession}</strong> have been finalized.
+        <p className="ps-modal-dark-body ps-modal-dark-body--center">
+          All synoptic reports for <strong className="ps-text-light" data-phi="accession">Case {accession}</strong> have been finalized.
         </p>
-        <p className="ps-modal-dark-hint" style={{ textAlign: 'center' }}>
+        <p className="ps-modal-dark-hint ps-modal-dark-hint--center">
           Enter your username and password to sign out this case from PathScribe.
         </p>
 
@@ -63,9 +63,9 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
           {signOutError && <p className="ps-modal-dark-field-error">{signOutError}</p>}
         </div>
 
-        <div className="ps-modal-dark-footer" style={{ justifyContent: 'stretch' }}>
-          <button className="ps-btn-ghost-dark" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button onClick={onConfirm} className="ps-btn-green" style={{ flex: 1 }}>✍️ Sign Out Case</button>
+        <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
+          <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={onClose}>Cancel</button>
+          <button onClick={onConfirm} className="ps-btn-green ps-modal-dark-footer__flex-btn">✍️ Sign Out Case</button>
         </div>
 
       </div>

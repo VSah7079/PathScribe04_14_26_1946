@@ -34,9 +34,10 @@ export interface SynopticForReview {
   answers:       Record<string, string | string[]>;
   fieldLabels:   Record<string, string>;
   fieldOrder:    string[];
-  answeredCount: number;
-  totalCount:    number;
-  status:        string;
+  answeredCount:   number;
+  totalCount:      number;
+  requiredFields?: string[];   // field keys marked required — empty fields here block sign-out
+  status:          string;
 }
 
 interface StagedSpecimen {
@@ -49,9 +50,10 @@ interface StagedSpecimen {
 interface StagedSynoptic {
   instanceId:    string;
   templateName:  string;
-  answeredCount: number;
-  totalCount:    number;
-  excluded:      boolean;
+  answeredCount:   number;
+  totalCount:      number;
+  requiredFields?: string[];
+  excluded:        boolean;
   answers:       Record<string, string | string[]>;
   fieldLabels:   Record<string, string>;
   fieldOrder:    string[];
@@ -61,14 +63,15 @@ interface Props {
   show:             boolean;
   caseAccession:    string;
   patientName:      string;
-  reportingMode:    'copilot' | 'pathscribe';
+  reportingMode:    'assisted' | 'pathscribe';
   synoptics:        SynopticForReview[];
   userId:           string;
   userDisplayName:  string;
   userCredentials:  string;
-  finalizeAndNext?: boolean;
-  onConfirm:        (orderedInstanceIds: string[], excludedInstanceIds: string[]) => void;
-  onCancel:         () => void;
+  finalizeAndNext?:  boolean;
+  onJumpToField?:    (instanceId: string, fieldKey: string) => void;
+  onConfirm:         (orderedInstanceIds: string[], excludedInstanceIds: string[]) => void;
+  onCancel:          () => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -87,8 +90,9 @@ function buildStaged(synoptics: SynopticForReview[]): StagedSpecimen[] {
     map.get(syn.specimenId)!.synoptics.push({
       instanceId:    syn.instanceId,
       templateName:  syn.templateName,
-      answeredCount: syn.answeredCount,
-      totalCount:    syn.totalCount,
+      answeredCount:   syn.answeredCount,
+      totalCount:      syn.totalCount,
+      requiredFields:  syn.requiredFields ?? [],
       excluded:      false,
       answers:       syn.answers,
       fieldLabels:   syn.fieldLabels,
@@ -272,7 +276,7 @@ const DragHandle = () => (
 export const PreFinalisationModal: React.FC<Props> = ({
   show, caseAccession, patientName, reportingMode,
   synoptics, userId, userDisplayName, userCredentials,
-  finalizeAndNext = false, onConfirm, onCancel,
+  finalizeAndNext = false, onJumpToField, onConfirm, onCancel,
 }) => {
   const [staged, setStaged] = React.useState<StagedSpecimen[]>([]);
   const [dragSrc, setDragSrc] = React.useState<{ type: 'specimen' | 'synoptic'; si: number; syi: number } | null>(null);
@@ -391,6 +395,43 @@ export const PreFinalisationModal: React.FC<Props> = ({
                               {syn.answeredCount}/{syn.totalCount} fields
                               {syn.excluded && <span className="ps-prefin-synoptic-excluded-tag">Excluded</span>}
                             </p>
+                            {!syn.excluded && (() => {
+                              const emptyRequired = (syn.requiredFields ?? []).filter(k => {
+                                const v = syn.answers[k];
+                                return v === '' || v === null || v === undefined || (Array.isArray(v) && v.length === 0);
+                              });
+                              const emptyOptional = syn.fieldOrder.filter(k => {
+                                const v = syn.answers[k];
+                                const isEmpty = v === '' || v === null || v === undefined || (Array.isArray(v) && v.length === 0);
+                                return isEmpty && !(syn.requiredFields ?? []).includes(k);
+                              });
+                              return (
+                                <>
+                                  {emptyRequired.length > 0 && (
+                                    <div className="ps-prefin-fields-warn ps-prefin-fields-warn--required">
+                                      <span>🔴 {emptyRequired.length} required field{emptyRequired.length !== 1 ? 's' : ''} incomplete — sign-out blocked</span>
+                                      {onJumpToField && (
+                                        <div className="ps-prefin-field-list">
+                                          {emptyRequired.map(k => (
+                                            <button key={k} className="ps-prefin-field-jump-btn"
+                                              onClick={() => { onJumpToField!(syn.instanceId, k); onCancel(); }}>
+                                              ↗ {syn.fieldLabels[k] ?? k}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {emptyOptional.length > 0 && emptyRequired.length === 0 && (
+                                    <p className="ps-prefin-fields-warn ps-prefin-fields-warn--optional">
+                                      ⚠ {emptyOptional.length} optional field{emptyOptional.length !== 1 ? 's' : ''} empty:&nbsp;
+                                      {emptyOptional.slice(0, 3).map(k => syn.fieldLabels[k] || k).join(', ')}
+                                      {emptyOptional.length > 3 && ` +${emptyOptional.length - 3} more`}
+                                    </p>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                           <button
                             onClick={() => toggleExclude(si, syi)}
@@ -406,8 +447,8 @@ export const PreFinalisationModal: React.FC<Props> = ({
               );
             })}
 
-            {/* Excluded addendum note — Copilot only */}
-            {reportingMode === 'copilot' && excludedCount > 0 && (
+            {/* Excluded addendum note — Assisted mode only */}
+            {reportingMode === 'assisted' && excludedCount > 0 && (
               <div className="ps-prefin-excluded-note">
                 <strong>{excludedCount} synoptic{excludedCount > 1 ? 's' : ''} excluded.</strong>{' '}
                 Retained in PathScribe — transmit via addendum when ready.

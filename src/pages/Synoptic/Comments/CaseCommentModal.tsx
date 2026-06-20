@@ -13,10 +13,7 @@ interface CaseCommentModalProps {
 }
 
 const CaseCommentModal: React.FC<CaseCommentModalProps> = ({
-  accession,
-  caseComments,
-  onChangeAttending,
-  onClose,
+  accession, caseComments, onChangeAttending, onClose,
 }) => (
   <CommentModalShell
     title="📋 Case Comment"
@@ -24,65 +21,21 @@ const CaseCommentModal: React.FC<CaseCommentModalProps> = ({
     onClose={onClose}
     footerLeft="TODO: Role Dictionary — will show your role's editable comment and other roles read-only."
   >
-
     {/* ── Attending (editable) ── */}
     <div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '10px',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="ps-cmnt-role-header">
         <span
-          style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '2px 10px',
-            borderRadius: '10px',
-            background: ROLE_META.attending.bg,
-            color: ROLE_META.attending.color,
-            border: `1px solid ${ROLE_META.attending.border}`,
-          }}
+          className="ps-cmnt-badge"
+          style={{ background: ROLE_META.attending.bg, color: ROLE_META.attending.color, border: `1px solid ${ROLE_META.attending.border}` }}
         >
           {ROLE_META.attending.label}
         </span>
-
-        <span style={{ fontSize: '11px', color: '#94a3b8' }}>— your comment</span>
-
+        <span className="ps-cmnt-role-note">— your comment</span>
         {(!caseComments?.attending || caseComments.attending === '<p></p>')
-          ? (
-            <span
-              style={{
-                fontSize: '11px',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                background: '#fef3c7',
-                color: '#92400e',
-                fontWeight: 600,
-              }}
-            >
-              No comment yet — start typing below
-            </span>
-          )
-          : (
-            <span
-              style={{
-                fontSize: '11px',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                background: '#d1fae5',
-                color: '#065f46',
-                fontWeight: 600,
-              }}
-            >
-              ✓ Comment saved — click to edit
-            </span>
-          )}
+          ? <span className="ps-cmnt-status-empty">No comment yet — start typing below</span>
+          : <span className="ps-cmnt-status-saved">✓ Comment saved — click to edit</span>
+        }
       </div>
-
       <PathScribeEditor
         key="modal-case-comment-attending"
         content={caseComments?.attending ?? ''}
@@ -96,86 +49,27 @@ const CaseCommentModal: React.FC<CaseCommentModalProps> = ({
     </div>
 
     {/* ── Resident (read-only collapsible) ── */}
-    <OtherRoleComment
-      meta={ROLE_META.resident}
-      content={caseComments?.resident ?? ''}
-      hasContent={!!(caseComments?.resident && caseComments.resident !== '<p></p>')}
-    />
-
-  </CommentModalShell>
-);
-
-/* ────────────────────────────────────────────────────────────────
-   OtherRoleComment Component
-   Read-only collapsible panel showing another role's case comment.
-   ──────────────────────────────────────────────────────────────── */
-
-interface OtherRoleCommentProps {
-  meta: { label: string; color: string; bg: string; border: string };
-  content: string;
-  hasContent: boolean;
-}
-
-const OtherRoleComment: React.FC<OtherRoleCommentProps> = ({
-  meta,
-  content,
-  hasContent,
-}) => (
-  <div style={{ marginTop: '24px' }}>
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '10px',
-        flexWrap: 'wrap',
-      }}
-    >
-      <span
-        style={{
-          fontSize: '11px',
-          fontWeight: 700,
-          padding: '2px 10px',
-          borderRadius: '10px',
-          background: meta.bg,
-          color: meta.color,
-          border: `1px solid ${meta.border}`,
-        }}
-      >
-        {meta.label}
-      </span>
-
-      <span style={{ fontSize: '11px', color: '#94a3b8' }}>— read-only</span>
-
-      {!hasContent && (
+    <div className="ps-cmnt-other-wrap">
+      <div className="ps-cmnt-role-header">
         <span
-          style={{
-            fontSize: '11px',
-            padding: '2px 8px',
-            borderRadius: '10px',
-            background: '#fee2e2',
-            color: '#991b1b',
-            fontWeight: 600,
-          }}
+          className="ps-cmnt-badge"
+          style={{ background: ROLE_META.resident.bg, color: ROLE_META.resident.color, border: `1px solid ${ROLE_META.resident.border}` }}
         >
-          No comment from this role
+          {ROLE_META.resident.label}
         </span>
+        <span className="ps-cmnt-role-note">— read-only</span>
+        {!(caseComments?.resident && caseComments.resident !== '<p></p>') && (
+          <span className="ps-cmnt-status-none">No comment from this role</span>
+        )}
+      </div>
+      {caseComments?.resident && caseComments.resident !== '<p></p>' && (
+        <div
+          style={{ border: `1px solid ${ROLE_META.resident.border}`, background: ROLE_META.resident.bg, padding: '12px', borderRadius: '6px', fontSize: '13px' }}
+          dangerouslySetInnerHTML={{ __html: caseComments.resident }}
+        />
       )}
     </div>
-
-    {hasContent && (
-      <div
-        style={{
-          border: `1px solid ${meta.border}`,
-          background: meta.bg,
-          padding: '12px',
-          borderRadius: '6px',
-          fontSize: '13px',
-        }}
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-    )}
-  </div>
+  </CommentModalShell>
 );
 
 export { CaseCommentModal };

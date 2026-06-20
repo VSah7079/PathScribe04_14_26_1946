@@ -1,52 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import '../../../pathscribe.css';
-import FlagConfigPage    from './FlagConfigPage';
-import SpecimenDictionary from './SpecimenDictionary';
-import SubspecialtiesSection from './SubspecialtiesSection';
-// REMOVED: import SystemShortcuts from './SystemShortcutsSection';
-import FontsSection      from './FontsSection';
-import LISSection        from './LISSection';
-import RetentionSection  from './RetentionSection';
-import { ClientDictionaryPage } from '../../../pages/system/ClientDictionaryPage';
-import IdentifierFormatsSection from './IdentifierFormatsSection';
-import GoverningBodiesSection  from './GoverningBodiesSection';
-import DelegationTypeSection   from './DelegationTypeSection';
+import FlagConfigPage            from './FlagConfigPage';
+import SpecimenDictionary        from './SpecimenDictionary';
+import SubspecialtiesSection     from './SubspecialtiesSection';
+import FontsSection              from './FontsSection';
+import LISSection                from './LISSection';
+import RetentionSection          from './RetentionSection';
+import { ClientDictionaryPage }  from '../../../pages/system/ClientDictionaryPage';
+import IdentifierFormatsSection  from './IdentifierFormatsSection';
+import GoverningBodiesSection    from './GoverningBodiesSection';
+import DelegationTypeSection     from './DelegationTypeSection';
 import ParticipationTypesSection from './ParticipationTypesSection';
-import CaseRoutingSection   from './CaseRoutingSection';
-import RoutingRulesSection  from './RoutingRulesSection';
+import CaseRoutingSection        from './CaseRoutingSection';
+import RoutingRulesSection       from './RoutingRulesSection';
 import TerminologyServicesSection from '../Terminology/TerminologyServicesSection';
+import TATConfigSection          from './TATConfigSection'; // ← create this component
 
-// ─── Section registry ─────────────────────────────────────────────────────────
+// ── Section registry ──────────────────────────────────────────────────────────
 
-// 1. Updated: Removed 'shortcuts'
-type SystemSection = 'flags' | 'subspecialties' | 'specimens' | 'fonts' | 'lis' | 'retention' | 'clients' | 'identifiers' | 'governing_bodies' | 'delegation_types' | 'participation_types' | 'case_routing' | 'routing_rules' | 'terminology';
+type SystemSection =
+  | 'flags'
+  | 'subspecialties'
+  | 'specimens'
+  | 'fonts'
+  | 'lis'
+  | 'retention'
+  | 'clients'
+  | 'identifiers'
+  | 'governing_bodies'
+  | 'delegation_types'
+  | 'participation_types'
+  | 'case_routing'
+  | 'routing_rules'
+  | 'terminology'
+  | 'tat_config';   // ← new
 
+// Alphabetical by label
 const SECTIONS: { id: SystemSection; emoji: string; label: string }[] = [
-  { id: 'flags',            emoji: '🚩',  label: 'Flags'               },
-  { id: 'subspecialties',   emoji: '🩺',  label: 'Subspecialties'      },
-  { id: 'specimens',        emoji: '🔬',  label: 'Specimen Dictionary'  },
-  // REMOVED: Keyboard Shortcuts entry
-  { id: 'fonts',            emoji: '🔤',  label: 'Approved Fonts'       },
-  { id: 'lis',              emoji: '🔗',  label: 'LIS Integration'      },
-  { id: 'retention',        emoji: '🗄️', label: 'Data Retention'       },
-  { id: 'clients',          emoji: '🏥',  label: 'Client Dictionary'    },
-  { id: 'identifiers',      emoji: '🔍',  label: 'Identifier Formats'   },
-  { id: 'governing_bodies', emoji: '📋',  label: 'Governing Bodies'     },
-  { id: 'delegation_types', emoji: '🔀',  label: 'Delegation Types'     },
-  { id: 'participation_types', emoji: '👥',  label: 'Participation Types'  },
-  { id: 'case_routing',       emoji: '🔀',  label: 'Case Routing'         },
-  { id: 'routing_rules',      emoji: '📋',  label: 'Routing Rules'        },
-  { id: 'terminology',      emoji: '🔌',  label: 'Terminology Services' },
+  { id: 'fonts',               emoji: '🔤', label: 'Approved Fonts'        },
+  { id: 'case_routing',        emoji: '🔀', label: 'Case Routing'          },
+  { id: 'clients',             emoji: '🏥', label: 'Client Dictionary'     },
+  { id: 'retention',           emoji: '🗄️', label: 'Data Retention'        },
+  { id: 'delegation_types',    emoji: '🔀', label: 'Delegation Types'      },
+  { id: 'flags',               emoji: '🚩', label: 'Flags'                 },
+  { id: 'governing_bodies',    emoji: '📋', label: 'Governing Bodies'      },
+  { id: 'identifiers',         emoji: '🔍', label: 'Identifier Formats'    },
+  { id: 'lis',                 emoji: '🔗', label: 'LIS Integration'       },
+  { id: 'participation_types', emoji: '👥', label: 'Participation Types'   },
+  { id: 'routing_rules',       emoji: '📋', label: 'Routing Rules'         },
+  { id: 'specimens',           emoji: '🔬', label: 'Specimen Dictionary'   },
+  { id: 'subspecialties',      emoji: '🩺', label: 'Subspecialties'        },
+  { id: 'tat_config',          emoji: '⏱️', label: 'TAT Configuration'     }, // ← new
+  { id: 'terminology',         emoji: '🔌', label: 'Terminology Services'  },
 ];
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 const SystemTab: React.FC = () => {
   const location = useLocation();
   const [active, setActive] = useState<SystemSection>(() => {
     const section = new URLSearchParams(location.search).get('section') as SystemSection | null;
-    return section && SECTIONS.some(s => s.id === section) ? section : 'flags';
+    return section && SECTIONS.some(s => s.id === section) ? section : SECTIONS[0].id;
   });
 
   // Re-activate if URL changes (e.g. deep-link navigation)
@@ -57,26 +72,26 @@ const SystemTab: React.FC = () => {
 
   const renderSection = () => {
     switch (active) {
-      case 'flags':         return <FlagConfigPage />;
-      case 'subspecialties': return <SubspecialtiesSection />;
-      case 'specimens':     return <SpecimenDictionary />;
-      // REMOVED: case 'shortcuts'
-      case 'fonts':     return <FontsSection />;
-      case 'lis':       return <LISSection />;
-      case 'retention': return <RetentionSection />;
-      case 'clients':   return <ClientDictionaryPage />;
-      case 'identifiers': return <IdentifierFormatsSection />;
-      case 'governing_bodies': return <GoverningBodiesSection isSuperAdmin={true} />; 
-      case 'delegation_types': return <DelegationTypeSection />;
+      case 'flags':               return <FlagConfigPage />;
+      case 'subspecialties':      return <SubspecialtiesSection />;
+      case 'specimens':           return <SpecimenDictionary />;
+      case 'fonts':               return <FontsSection />;
+      case 'lis':                 return <LISSection />;
+      case 'retention':           return <RetentionSection />;
+      case 'clients':             return <ClientDictionaryPage />;
+      case 'identifiers':         return <IdentifierFormatsSection />;
+      case 'governing_bodies':    return <GoverningBodiesSection isSuperAdmin={true} />;
+      case 'delegation_types':    return <DelegationTypeSection />;
       case 'participation_types': return <ParticipationTypesSection />;
-      case 'case_routing':       return <CaseRoutingSection />;
-      case 'routing_rules':      return <RoutingRulesSection />;
-      case 'terminology':      return <TerminologyServicesSection isSuperAdmin={true} />;
-      default:          return null;
+      case 'case_routing':        return <CaseRoutingSection />;
+      case 'routing_rules':       return <RoutingRulesSection />;
+      case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
+      case 'tat_config':          return <TATConfigSection />;  // ← new
+      default:                    return null;
     }
   };
 
-  // ── Voice sub-navigation ─────────────────────────────────────────────────
+  // ── Voice sub-navigation ───────────────────────────────────────────────────
   React.useEffect(() => {
     const handler = (e: CustomEvent) => {
       const section = e.detail?.section as SystemSection;
@@ -100,8 +115,8 @@ const SystemTab: React.FC = () => {
             style={{
               width: '100%', textAlign: 'left', padding: '10px 14px',
               background: active === s.id ? 'rgba(138,180,248,0.15)' : 'transparent',
-              color: active === s.id ? '#8AB4F8' : '#9AA0A6',
-              border: `1px solid ${active === s.id ? 'rgba(138,180,248,0.35)' : 'transparent'}`,
+              color:      active === s.id ? '#8AB4F8' : '#9AA0A6',
+              border:    `1px solid ${active === s.id ? 'rgba(138,180,248,0.35)' : 'transparent'}`,
               borderRadius: '8px', fontSize: '13px',
               fontWeight: active === s.id ? 600 : 500,
               cursor: 'pointer', marginBottom: '4px', transition: 'all 0.15s',
@@ -122,5 +137,3 @@ const SystemTab: React.FC = () => {
 };
 
 export default SystemTab;
-
-

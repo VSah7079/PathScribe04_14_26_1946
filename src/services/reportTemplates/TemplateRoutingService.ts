@@ -18,6 +18,10 @@ export interface TemplateRoutingInput {
   subspecialtyId?: string;
   /** CAP / RCPath synoptic template IDs from synopticReports[].templateId */
   synopticTemplateIds?: string[];
+  /** Performing/receiving client ID — enables client-specific template overrides */
+  performingClientId?: string;
+  /** Ordering physician ID — enables physician-preference overrides */
+  orderingPhysicianId?: string;
 }
 
 export interface TemplateRoutingResult {
@@ -28,7 +32,7 @@ export interface TemplateRoutingResult {
   /** All qualifying template IDs in priority order */
   candidates: string[];
   /** How the template was resolved */
-  resolvedBy: 'cap-protocol' | 'subspecialty' | 'gold-standard';
+  resolvedBy: 'cap-protocol' | 'client-override' | 'physician-preference' | 'subspecialty' | 'gold-standard';
 }
 
 // ── CAP synoptic template → Case Report Template ─────────────────────────────
@@ -89,10 +93,64 @@ const SUBSPECIALTY_TO_REPORT: Record<string, string> = {
   'oncology-pool': 'tmpl-gold-standard',
 };
 
+// ── Client-specific template overrides ───────────────────────────────────────
+// Key = clientId from order.clientId
+// Value = Case Report Template ID
+// Used when a specific client always requires a particular template format
+// regardless of specimen type (e.g. a paediatric hospital always uses a
+// custom paediatric template).
+// Admins manage this via System → Template Routing Rules (future Config screen).
+
+const CLIENT_TO_REPORT: Record<string, string> = {
+  // Example: 'CLIENT-PAED': 'tmpl-paediatric',
+  // Add client-specific overrides here or load from config
+};
+
+// ── Physician preference overrides ───────────────────────────────────────────
+// Key = requestingProvider / physician ID
+// Value = Case Report Template ID
+// Rarely needed — most routing should be by protocol or subspecialty.
+
+const PHYSICIAN_TO_REPORT: Record<string, string> = {
+  // Example: 'PATH-UK-001': 'tmpl-breast',
+};
+
 // ── Resolver ─────────────────────────────────────────────────────────────────
+// Two versions:
+//   resolveReportTemplate()      — sync, uses hardcoded maps (build-time default)
+//   resolveReportTemplateAsync() — async, loads admin rules from service first
 
 export function resolveReportTemplate(input: TemplateRoutingInput): TemplateRoutingResult {
   const candidates = new Set<string>();
+
+  // Pass 0 — Client-specific override (highest priority)
+  // Merges hardcoded map with admin-defined overrides from service
+  const clientMap    = { ...CLIENT_TO_REPORT,    ...((input as any)._clientOverrides    ?? {}) };
+  const physicianMap = { ...PHYSICIAN_TO_REPORT, ...((input as any)._physicianOverrides ?? {}) };
+  if (input.performingClientId) {
+    const clientMapped = clientMap[input.performingClientId];
+    if (clientMapped) {
+      return {
+        templateId:  clientMapped,
+        ambiguous:   false,
+        candidates:  [clientMapped],
+        resolvedBy: 'client-override',
+      };
+    }
+  }
+
+  // Pass 0b — Physician preference
+  if (input.orderingPhysicianId) {
+    const physicianMapped = physicianMap[input.orderingPhysicianId];
+    if (physicianMapped) {
+      return {
+        templateId:  physicianMapped,
+        ambiguous:   false,
+        candidates:  [physicianMapped],
+        resolvedBy: 'physician-preference',
+      };
+    }
+  }
 
   // Pass 1 — CAP protocol (most specific)
   for (const capId of (input.synopticTemplateIds ?? [])) {
@@ -130,4 +188,32 @@ export function resolveReportTemplate(input: TemplateRoutingInput): TemplateRout
     candidates:  ['tmpl-gold-standard'],
     resolvedBy: 'gold-standard',
   };
+}
+
+/**
+ * Async version — loads admin-defined routing rules from the service,
+ * merges them with the hardcoded maps, then resolves.
+ * Use this in contextBuilder.ts for runtime resolution.
+ */
+export async function resolveReportTemplateAsync(
+  input: TemplateRoutingInput
+): Promise<TemplateRoutingResult> {
+  try {
+    const { mockRoutingRuleService } = await import('../routingRules/mockRoutingRuleService');
+    const [clientMapResult, physicianMapResult] = await Promise.all([
+      mockRoutingRuleService.getClientMap(),
+      mockRoutingRuleService.getPhysicianMap(),
+    ]);
+    const clientOverrides    = (clientMapResult as any).ok    ? (clientMapResult as any).data    : {};
+    const physicianOverrides = (physicianMapResult as any).ok ? (physicianMapResult as any).data : {};
+    // Merge admin rules into the hardcoded maps (admin rules take precedence)
+    return resolveReportTemplate({
+      ...input,
+      _clientOverrides:    clientOverrides,
+      _physicianOverrides: physicianOverrides,
+    } as any);
+  } catch {
+    // Fall back to sync resolution if service unavailable
+    return resolveReportTemplate(input);
+  }
 }

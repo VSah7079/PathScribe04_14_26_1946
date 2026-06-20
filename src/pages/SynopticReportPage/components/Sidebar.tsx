@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/UI/ConfirmModal';
 import type { Case } from '@/types/case/Case';
+import type { SpecimenLisStatus } from '@/types/case/Specimen';
 
 interface SidebarProps {
   caseData: Case | null;
@@ -10,6 +11,8 @@ interface SidebarProps {
   activeSpecimenId?: string;
   onSelectSpecimen?: (specimenId: string) => void;
   onAddSynoptic?: () => void;
+  onEditSpecimen?: (specimenId: string) => void;
+  onAddSpecimen?: () => void;
   onOpenCaseComment?: () => void;
   onOpenSpecimenComment?: (specimenId: string) => void;
   hasCaseComment?: boolean;
@@ -32,11 +35,27 @@ const StatusDot: React.FC<{ status: DotStatus }> = ({ status }) => {
   );
 };
 
+// ── LIS status badge ─────────────────────────────────────────────────────────
+const LIS_BADGE: Record<Exclude<SpecimenLisStatus, 'lis_owned' | 'local_only'>, { label: string; className: string }> = {
+  pending_sync:  { label: 'Not in LIS',    className: 'ps-sp-lis-badge ps-sp-lis-badge--pending'  },
+  sync_sent:     { label: 'Awaiting LIS',  className: 'ps-sp-lis-badge ps-sp-lis-badge--sent'     },
+  sync_rejected: { label: 'LIS Rejected',  className: 'ps-sp-lis-badge ps-sp-lis-badge--rejected' },
+};
+
+const LisStatusBadge: React.FC<{ status?: SpecimenLisStatus }> = ({ status }) => {
+  if (!status || status === 'lis_owned' || status === 'local_only') return null;
+  const badge = LIS_BADGE[status as keyof typeof LIS_BADGE];
+  if (!badge) return null;
+  return <span className={badge.className}>{badge.label}</span>;
+};
+
 const Sidebar: React.FC<SidebarProps> = ({
   caseData,
   activeSpecimenId,
   onSelectSpecimen,
   onAddSynoptic,
+  onEditSpecimen,
+  onAddSpecimen,
   onOpenCaseComment,
   onOpenSpecimenComment,
   hasCaseComment = false,
@@ -171,6 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <span className="ps-syn-specimen-label-letter">{specimen.label}:</span>{' '}
                       {specimen.description}
                     </div>
+                    <LisStatusBadge status={specimen.lisStatus} />
                   </div>
 
                   <span
@@ -182,6 +202,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                       color:   specimenComments[specimen.id] && specimenComments[specimen.id] !== '<p></p>' ? '#38bdf8' : '#94a3b8',
                     }}
                   >💬</span>
+
+                  <span
+                    className="ps-specimen-edit-btn"
+                    onClick={e => { e.stopPropagation(); onEditSpecimen?.(specimen.id); }}
+                    title="Edit specimen details"
+                  >✏️</span>
 
                   <StatusDot status={specimenDot} />
                 </div>
@@ -232,6 +258,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           <button className="ps-syn-add-btn" onClick={() => onAddSynoptic?.()}>
             <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Synoptic Report
+          </button>
+
+          <button className="ps-syn-add-btn ps-syn-add-btn--specimen" onClick={() => onAddSpecimen?.()}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Specimen
           </button>
 
         </div>

@@ -19,9 +19,30 @@ import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
 import DemoResetTab    from '../components/Config/System/DemoResetTab';
-import ReportTemplatesSection from '../components/TemplateBuilder/ReportTemplatesSection';
+import ReportTemplatesSection    from '../components/TemplateBuilder/ReportTemplatesSection';
+import ValidationStudiesSection from '../components/ValidationStudies/ValidationStudiesSection';
 
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'templates', 'demo'] as const;
+// ── Admin permission check ────────────────────────────────────────────────────
+// Validation Studies tab is only visible to admin/superadmin roles.
+// Uses the same localStorage-based role check as AI Behavior tab.
+function useIsAdmin(): boolean {
+  try {
+    const raw  = localStorage.getItem('pathscribe-user');
+    const user = raw ? JSON.parse(raw) : null;
+    if (!user) return false;
+    return ['admin', 'pathologist-admin', 'superadmin'].includes(user.role ?? '');
+  } catch { return false; }
+}
+
+function useIsSuperAdmin(): boolean {
+  try {
+    const raw  = localStorage.getItem('pathscribe-user');
+    const user = raw ? JSON.parse(raw) : null;
+    return user?.role === 'superadmin';
+  } catch { return false; }
+}
+
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'templates', 'validation', 'demo'] as const;
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
@@ -33,7 +54,8 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'actions',   label: 'Action Registry'    },
   { id: 'macros',    label: 'Macros'             },
   { id: 'templates', label: 'Report Templates'   },
-  { id: 'demo',      label: '⟳ Demo Reset'       },
+  { id: 'validation', label: 'Validation Studies' },
+  { id: 'demo',       label: '⟳ Demo Reset'         },
 ];
 
 function getTabFromSearch(search: string): TabId {
@@ -49,6 +71,8 @@ const ConfigurationPage: React.FC = () => {
   const [activeTab,   setActiveTab]   = useState<TabId>(() => getTabFromSearch(location.search));
   const [isLoaded,    setIsLoaded]    = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const isAdmin      = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
 
   useEffect(() => { setActiveTab(getTabFromSearch(location.search)); }, [location.search]);
   useEffect(() => { const t = setTimeout(() => setIsLoaded(true), 100); return () => clearTimeout(t); }, []);
@@ -105,7 +129,14 @@ const ConfigurationPage: React.FC = () => {
       case 'actions':   return <ActionsTab />;
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
-      case 'templates': return <ReportTemplatesSection />;
+      case 'templates':  return <ReportTemplatesSection />;
+      case 'validation': return isAdmin
+        ? <ValidationStudiesSection isSuperAdmin={isSuperAdmin} />
+        : <div style={{ padding: '48px', textAlign: 'center', color: '#475569' }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔒</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Admin access required</div>
+            <div style={{ fontSize: '12px', color: '#334155', marginTop: '6px' }}>Validation Studies is available to administrators only.</div>
+          </div>;
       case 'demo':      return <DemoResetTab />;
       default:          return null;
     }
@@ -136,7 +167,10 @@ const ConfigurationPage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '4px', marginBottom: '0', borderBottom: '1px solid #1e293b' }}>
-          {TAB_LABELS.map(tab => (
+          {TAB_LABELS.filter(tab => {
+            if (tab.id === 'validation') return isAdmin; // admin, pathologist-admin, superadmin
+            return true;
+          }).map(tab => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}

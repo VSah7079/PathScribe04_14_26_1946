@@ -286,6 +286,86 @@ const POOL_CASES: Case[] = [
     synopticReports: [{ instanceId: `O26-0014-SP-A_breast_${iid()}`, specimenId: 'O26-0014-SP-A', templateId: 'breast_biopsy', templateName: 'CAP Breast — Core Needle Biopsy', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
   } as any,
+
+  // O26-0015: Liver core biopsy — Pool, already grossed, awaiting pickup
+  {
+    id: 'O26-0015', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0015', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0015' },
+    originHospitalId: 'HOSP-001', status: 'pool' as any,
+    patient: { id: 'OPAT-015', mrn: '500004', firstName: 'Daniel', lastName: 'Okafor', dateOfBirth: isoYearsAgo(58, 2, 9), sex: 'M' },
+    specimens: [
+      { id: 'O26-0015-SP-A', label: 'A', description: 'Liver core biopsy — right lobe, ultrasound-guided', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Helen Marsh',
+      clientId: 'c1', clientName: "St. Catherine's University Hospital",
+      clinicalIndication: 'Abnormal liver function tests with hepatomegaly on imaging. MRI: multiple hypervascular lesions, largest 3.4 cm segment VI. Rule out metastatic disease vs. primary hepatocellular carcinoma.',
+      receivedDate: isoDaysAgo(0),
+      assignedTo: undefined as any,
+      assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received fresh in formalin labeled "A: liver biopsy" is one core of tan-brown tissue measuring 1.8 cm in length and 0.1 cm in diameter. The core is intact and submitted entirely in one cassette (A1).',
+      microscopicDescription: '', ancillaryStudies: '',
+    },
+    synopticReports: [{ instanceId: `O26-0015-SP-A_liver_${iid()}`, specimenId: 'O26-0015-SP-A', templateId: 'liver_biopsy', templateName: 'CAP Liver — Core Biopsy', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+  } as any,
+
+  // O26-0016: Gastric resection — Pool, already grossed, multi-specimen, STAT
+  {
+    id: 'O26-0016', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0016', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0016' },
+    originHospitalId: 'HOSP-002', status: 'pool' as any,
+    patient: { id: 'OPAT-016', mrn: '500005', firstName: 'Margaret', lastName: 'Whitfield', dateOfBirth: isoYearsAgo(67, 11, 23), sex: 'F' },
+    specimens: [
+      { id: 'O26-0016-SP-A', label: 'A', description: 'Subtotal gastrectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0016-SP-B', label: 'B', description: 'Greater curvature lymph nodes', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0016-SP-C', label: 'C', description: 'Lesser curvature lymph nodes', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'STAT',
+      requestingProvider: 'Mr. Oliver Bancroft',
+      clientId: 'c4', clientName: 'Royal Manchester Centre',
+      clinicalIndication: 'Gastric adenocarcinoma, antrum. Endoscopic biopsy: intestinal-type adenocarcinoma. CT staging: T3N1M0, no distant disease. Subtotal gastrectomy with D2 lymphadenectomy.',
+      receivedDate: isoDaysAgo(0),
+      assignedTo: undefined as any,
+      assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received fresh labeled "A: subtotal gastrectomy" is a partial stomach measuring 14.0 x 8.5 x 2.0 cm. The greater curvature measures 16.5 cm and the lesser curvature measures 9.0 cm. On the mucosal surface at the antrum there is an ulcerated, firm, white-tan mass measuring 4.1 x 3.6 x 1.2 cm, located 2.0 cm from the distal (duodenal) margin and 9.5 cm from the proximal margin. The mass appears to invade through the muscularis propria on sectioning. Representative sections submitted. "B: greater curvature lymph nodes" received fresh consists of adipose tissue containing 6 grossly identified lymph nodes ranging 0.4–1.8 cm, entirely submitted. "C: lesser curvature lymph nodes" received fresh consists of adipose tissue containing 4 grossly identified lymph nodes ranging 0.3–1.1 cm, entirely submitted.',
+      microscopicDescription: '', ancillaryStudies: '',
+    },
+    synopticReports: [{ instanceId: `O26-0016-SP-A_gastric_${iid()}`, specimenId: 'O26-0016-SP-A', templateId: 'gastric_resection', templateName: 'CAP Stomach — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+  } as any,
+
+  // O26-0017: Soft tissue / sarcoma excision — Pool, already grossed
+  {
+    id: 'O26-0017', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0017', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0017' },
+    originHospitalId: 'HOSP-003', status: 'pool' as any,
+    patient: { id: 'OPAT-017', mrn: '500006', firstName: 'Patricia', lastName: 'Dunmore', dateOfBirth: isoYearsAgo(45, 4, 30), sex: 'F' },
+    specimens: [
+      { id: 'O26-0017-SP-A', label: 'A', description: 'Left thigh mass, wide local excision', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Victor Anand',
+      clientId: 'c2', clientName: 'Westside Surgical Centre',
+      clinicalIndication: 'Enlarging left thigh mass. MRI: 7.2 cm deep soft tissue mass, heterogeneous enhancement, suspicious for sarcoma. Core biopsy: spindle cell neoplasm, favor sarcoma. Wide local excision with 2 cm margins.',
+      receivedDate: isoDaysAgo(1),
+      assignedTo: undefined as any,
+      assignedParticipationTypeId: 'primary',
+    },
+    diagnostic: {
+      grossDescription: 'Received fresh labeled "A: left thigh mass" is an ellipse of skin and underlying soft tissue measuring 14.0 x 9.5 x 6.0 cm. The overlying skin measures 13.0 x 8.0 cm and is unremarkable. On sectioning, there is a well-circumscribed but unencapsulated tan-yellow, fleshy mass measuring 7.2 x 6.8 x 5.5 cm within the deep soft tissue, with the closest margin (deep) measuring 0.8 cm. The mass has a variegated cut surface with focal hemorrhage. Margins inked and sectioned per protocol; representative sections submitted in cassettes A1–A8.',
+      microscopicDescription: '', ancillaryStudies: '',
+    },
+    synopticReports: [{ instanceId: `O26-0017-SP-A_softtissue_${iid()}`, specimenId: 'O26-0017-SP-A', templateId: 'soft_tissue_resection', templateName: 'CAP Soft Tissue — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+  } as any,
 ];
 
 // ─── Seed ─────────────────────────────────────────────────────

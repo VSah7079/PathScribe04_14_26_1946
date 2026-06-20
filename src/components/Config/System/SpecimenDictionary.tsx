@@ -4,14 +4,13 @@ import { useSpecimens } from "../../../contexts/useSpecimens";
 import { useSubspecialties } from "../../../contexts/useSubspecialties";
 import { Specimen } from "../../Config/Models/specimenTypes";
 import * as XLSX from "xlsx";
-import { overlay, modalBox, modalHeaderStyle, modalFooterStyle, cancelButtonStyle, applyButtonStyle } from "../../Common/modalStyles";
 
 // ─── Shared inline style constants ────────────────────────────────────────────
 const FIELD: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6 };
 const LABEL: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em" };
 const INPUT: React.CSSProperties = { padding: "9px 12px", fontSize: 13, color: "#e5e7eb", background: "#0f0f0f", border: "1px solid #374151", borderRadius: 7, outline: "none", width: "100%", boxSizing: "border-box" };
 const TEXTAREA: React.CSSProperties = { ...INPUT, resize: "vertical", minHeight: 72 } as React.CSSProperties;
-const SELECT: React.CSSProperties = { ...INPUT, cursor: "pointer", appearance: "none", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 36 } as React.CSSProperties;
+const SELECT: React.CSSProperties = { ...INPUT, cursor: "pointer" };
 
 // ─── Subspecialty badge colours ───────────────────────────────────────────────
 const SUB_STYLES: Record<string, { borderColor: string; color: string; background: string }> = {
@@ -219,9 +218,7 @@ export const SpecimenDictionary = () => {
             + Upload Spreadsheet
             <input type="file" hidden accept=".csv,.xlsx" onChange={(e) => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); }} />
           </label>
-          <button onClick={() => openEditor("add")} style={{ padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", background: "#1a6080", border: "1px solid #2a7a9a", borderRadius: 8, cursor: "pointer" }}>
-            + Add Specimen
-          </button>
+          <button className="ps-section-add-btn" onClick={() => openEditor("add")}>+ Add Specimen</button>
         </div>
       </div>
 
@@ -234,7 +231,7 @@ export const SpecimenDictionary = () => {
         />
         <select
           value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}
-          style={{ padding: "9px 36px 9px 14px", fontSize: 13, fontWeight: 600, color: "#d1d5db", background: "#0f0f0f", border: "1px solid #1f2937", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
+          className="ps-conf-select"
         >
           <option value="All">All</option>
           <option value="Active">Active</option>
@@ -314,9 +311,15 @@ export const SpecimenDictionary = () => {
 
       {/* Add / Edit Modal */}
       {showEditorModal && (
-        <div style={overlay}>
-          <div style={modalBox}>
-            <div style={modalHeaderStyle}>{editorMode === "edit" ? "Edit Specimen" : "Add Specimen"}</div>
+        <div className="ps-conf-backdrop">
+          <div className="fm-modal fm-modal--config" style={{ width: 'min(560px, 96vw)' }} onClick={e => e.stopPropagation()}>
+            <div className="fm-modal-header">
+              <div>
+                <div className="fm-eyebrow">Configuration · Specimen Dictionary</div>
+                <h2 className="fm-title" style={{ fontSize: 16 }}>{editorMode === "edit" ? "Edit Specimen" : "Add Specimen"}</h2>
+              </div>
+            </div>
+            <div className="ps-client-editor-body">
 
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
 
@@ -348,7 +351,7 @@ export const SpecimenDictionary = () => {
               <div style={FIELD}>
                 <label style={LABEL}>Subspecialty</label>
                 <select
-                  style={SELECT}
+                  className="ps-conf-select"
                   value={draft.subspecialtyId ?? ""}
                   onChange={(e) => {
                     const sub = subspecialties.find((s) => s.id === e.target.value);
@@ -368,14 +371,16 @@ export const SpecimenDictionary = () => {
 
             </div>
 
-            <div style={modalFooterStyle}>
-              <button style={cancelButtonStyle} onClick={() => setShowEditorModal(false)}>Cancel</button>
-              <button
-                style={{ ...applyButtonStyle, opacity: draft.name.trim() === "" ? 0.4 : 1, cursor: draft.name.trim() === "" ? "not-allowed" : "pointer" }}
-                onClick={handleSave}
-              >
-                {editorMode === "edit" ? "Save Changes" : "Add Specimen"}
-              </button>
+            </div>
+            <div className="fm-footer">
+              <span className="fm-footer-status" />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowEditorModal(false)} className="fm-btn-cancel">Cancel</button>
+                <button onClick={handleSave} className="fm-btn-apply"
+                  style={{ opacity: draft.name.trim() === "" ? 0.4 : 1, cursor: draft.name.trim() === "" ? "not-allowed" : "pointer" }}>
+                  {editorMode === "edit" ? "Save Changes" : "Add Specimen"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -383,11 +388,15 @@ export const SpecimenDictionary = () => {
 
       {/* Upload Preview Modal */}
       {showUploadModal && (
-        <div style={overlay}>
-          <div style={modalBox}>
-            <div style={{ fontSize: 18, fontWeight: 600, color: "#e5e5e5", paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid #2a2a2a" }}>
-              Upload Preview — Specimens
+        <div className="ps-conf-backdrop">
+          <div className="fm-modal fm-modal--config" style={{ width: 'min(560px, 96vw)' }} onClick={e => e.stopPropagation()}>
+            <div className="fm-modal-header">
+              <div>
+                <div className="fm-eyebrow">Configuration · Specimen Dictionary</div>
+                <h2 className="fm-title" style={{ fontSize: 16 }}>Upload Preview — Specimens</h2>
+              </div>
             </div>
+            <div className="ps-client-editor-body">
             <div style={{ marginBottom: 14, color: "#ccc", fontSize: 13 }}>
               <span style={{ marginRight: 20 }}>New: <strong style={{ color: "#7ec89a" }}>{uploadSummary.newCount}</strong></span>
               <span>Updates: <strong style={{ color: "#e0b96a" }}>{uploadSummary.updateCount}</strong></span>
@@ -417,9 +426,13 @@ export const SpecimenDictionary = () => {
                 </tbody>
               </table>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16, paddingTop: 12, borderTop: "1px solid #2a2a2a" }}>
-              <button onClick={() => { setShowUploadModal(false); setUploadPreview([]); setUploadSummary({ newCount: 0, updateCount: 0 }); }} style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, color: "#ccc", background: "#2a2a2a", border: "1px solid #444", borderRadius: 7, cursor: "pointer" }}>Cancel</button>
-              <button onClick={handleApplyUpload} style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, color: "#fff", background: "#1a6080", border: "1px solid #2a7a9a", borderRadius: 7, cursor: "pointer" }}>Apply Changes</button>
+            </div>
+            <div className="fm-footer">
+              <span className="fm-footer-status" />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setShowUploadModal(false); setUploadPreview([]); setUploadSummary({ newCount: 0, updateCount: 0 }); }} className="fm-btn-cancel">Cancel</button>
+                <button onClick={handleApplyUpload} className="fm-btn-apply">Apply Changes</button>
+              </div>
             </div>
           </div>
         </div>

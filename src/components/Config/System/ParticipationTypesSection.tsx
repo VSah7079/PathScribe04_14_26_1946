@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
-import { overlay, modalBox, modalHeaderStyle, modalFooterStyle, cancelButtonStyle, applyButtonStyle } from '../../Common/modalStyles';
+import TypeModal from './TypeModal';
 import { storageGet, storageSet } from '../../../services/mockStorage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export function loadParticipationTypes(): ParticipationType[] {
   return [...missing, ...migrated];
 }
 
+
 function saveParticipationTypes(types: ParticipationType[]) {
   storageSet(STORAGE_KEY, types);
 }
@@ -151,148 +152,6 @@ const emptyDraft: Draft = {
   color: '#8AB4F8', active: true,
 };
 
-const TypeModal: React.FC<{
-  mode: 'add' | 'edit';
-  type?: ParticipationType;
-  onSave: (draft: Draft) => void;
-  onClose: () => void;
-}> = ({ mode, type, onSave, onClose }) => {
-  const [draft, setDraft] = useState<Draft>(
-    type ? {
-      label: type.label, abbreviation: type.abbreviation, description: type.description,
-      canFinalize: type.canFinalize, requiresCountersign: type.requiresCountersign,
-      canBeAssignedTemplate: type.canBeAssignedTemplate, canViewWholeCase: type.canViewWholeCase,
-      allowsMultiple: type.allowsMultiple ?? false,
-      color: type.color, active: type.active,
-    } : { ...emptyDraft }
-  );
-  const [error, setError] = useState('');
-
-  const handleSave = () => {
-    if (!draft.label.trim()) { setError('Label is required'); return; }
-    if (!draft.abbreviation.trim()) { setError('Abbreviation is required'); return; }
-    onSave(draft);
-  };
-
-  const isBuiltIn = type?.builtIn ?? false;
-
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...modalBox, maxWidth: 520, maxHeight: '92vh',
-        padding: 0, display: 'flex', flexDirection: 'column',
-        background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14,
-      }}>
-        {/* Header */}
-        <div style={{ ...modalHeaderStyle, padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <span>{mode === 'add' ? 'Add Participation Type' : `Edit — ${type?.label}`}</span>
-          {isBuiltIn && (
-            <span style={{ fontSize: 10, color: '#6b7280', padding: '2px 8px', borderRadius: 4, border: '1px solid #374151', marginLeft: 10 }}>built-in</span>
-          )}
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flex: 1 }}>
-
-          {isBuiltIn && (
-            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(138,180,248,0.06)', border: '1px solid rgba(138,180,248,0.15)', fontSize: 12, color: '#8AB4F8' }}>
-              ℹ Built-in types cannot be deleted but you can change their label, colour, and active status.
-            </div>
-          )}
-
-          {/* Label + Abbreviation + Colour */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ ...FIELD, flex: 1 }}>
-              <label style={LABEL}>Label <span style={{ color: '#ef4444' }}>*</span></label>
-              <input value={draft.label} onChange={e => { setDraft(d => ({ ...d, label: e.target.value })); setError(''); }}
-                placeholder="e.g. Consultant" style={{ ...INPUT, borderColor: error && !draft.label ? '#ef4444' : '#374151' }} />
-            </div>
-            <div style={{ ...FIELD, width: 120 }}>
-              <label style={LABEL}>Abbreviation <span style={{ color: '#ef4444' }}>*</span></label>
-              <input value={draft.abbreviation} onChange={e => { setDraft(d => ({ ...d, abbreviation: e.target.value })); setError(''); }}
-                placeholder="e.g. Consult" style={{ ...INPUT, borderColor: error && !draft.abbreviation ? '#ef4444' : '#374151' }} />
-            </div>
-            <div style={{ ...FIELD, width: 48, alignItems: 'center' }}>
-              <label style={{ ...LABEL, textAlign: 'center' }}>Colour</label>
-              <input type="color" value={draft.color} onChange={e => setDraft(d => ({ ...d, color: e.target.value }))}
-                style={{ width: 44, height: 38, borderRadius: 6, border: 'none', cursor: 'pointer', background: 'none' }} />
-            </div>
-          </div>
-
-          {/* Preview chip */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 11, color: '#6b7280' }}>Preview:</span>
-            <span style={{ display: 'inline-block', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: draft.color + '22', color: draft.color, border: `1px solid ${draft.color}44` }}>
-              {draft.abbreviation || 'Abbrev'}
-            </span>
-            <span style={{ display: 'inline-block', padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: draft.color + '22', color: draft.color, border: `1px solid ${draft.color}44` }}>
-              {draft.label || 'Label'}
-            </span>
-          </div>
-
-          {/* Description */}
-          <div style={FIELD}>
-            <label style={LABEL}>Description</label>
-            <input value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
-              placeholder="Describe when this participation type applies…" style={INPUT} />
-          </div>
-
-          {/* Permission toggles */}
-          <div style={FIELD}>
-            <label style={LABEL}>Capabilities</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {([
-                { key: 'canFinalize',           label: 'Can Finalise',          desc: 'Can sign out and finalise a case independently',                       disabled: isBuiltIn },
-                { key: 'requiresCountersign',   label: 'Requires Countersign',  desc: 'Work must be reviewed and countersigned by a more senior participant',  disabled: isBuiltIn },
-                { key: 'canBeAssignedTemplate', label: 'Template Assignment',   desc: 'Can be assigned a specific synoptic template on a case',                disabled: isBuiltIn },
-                { key: 'canViewWholeCase',      label: 'Full Case View',        desc: 'Can view the entire case, not just assigned specimens or synoptics',     disabled: isBuiltIn },
-                { key: 'allowsMultiple',        label: 'Multiple Participants', desc: 'Multiple people can hold this role on the same case simultaneously',    disabled: false },
-              ] as const).map(({ key, label, desc, disabled }) => (
-                <label key={key} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 12, cursor: disabled ? 'default' : 'pointer',
-                  padding: '10px 12px', borderRadius: 8,
-                  background: draft[key] ? 'rgba(138,180,248,0.06)' : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${draft[key] ? 'rgba(138,180,248,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                  opacity: disabled ? 0.6 : 1,
-                }}>
-                  <input type="checkbox" checked={!!draft[key]} disabled={disabled}
-                    onChange={e => !disabled && setDraft(d => ({ ...d, [key]: e.target.checked }))}
-                    style={{ width: 16, height: 16, accentColor: '#8AB4F8', cursor: disabled ? 'default' : 'pointer', marginTop: 2 }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{label}</div>
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{desc}</div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Active toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div onClick={() => setDraft(d => ({ ...d, active: !d.active }))}
-              style={{ width: 44, height: 24, borderRadius: 12, cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, background: draft.active ? '#22c55e' : '#374151', boxShadow: draft.active ? '0 0 8px #22c55e55' : 'none' }}>
-              <div style={{ position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', left: draft.active ? 23 : 3, boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: draft.active ? '#22c55e' : '#6b7280' }}>{draft.active ? 'Active' : 'Inactive'}</span>
-          </div>
-
-          {error && <div style={{ fontSize: 12, color: '#ef4444' }}>{error}</div>}
-        </div>
-
-        {/* Footer */}
-        <div style={{ ...modalFooterStyle, padding: '12px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-          <button style={cancelButtonStyle} onClick={onClose}>Cancel</button>
-          <button style={applyButtonStyle} onClick={handleSave}>
-            {mode === 'add' ? 'Add Type' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── Main Section ─────────────────────────────────────────────────────────────
-
 const ParticipationTypesSection: React.FC = () => {
   const [types,  setTypes]  = useState<ParticipationType[]>(loadParticipationTypes);
   const [search, setSearch] = useState('');
@@ -321,7 +180,6 @@ const ParticipationTypesSection: React.FC = () => {
     return matchSearch && matchFilter;
   });
 
-  const chevron = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`;
 
   return (
     <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto' }}>
@@ -335,10 +193,7 @@ const ParticipationTypesSection: React.FC = () => {
             Roles are then assigned which types they can serve as.
           </p>
         </div>
-        <button
-          onClick={() => setModal({ mode: 'add' })}
-          style={{ padding: '8px 18px', fontSize: 13, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg, #1a6080, #0d4a63)', border: '1px solid #2a7a9a', borderRadius: 8, cursor: 'pointer', boxShadow: '0 0 16px rgba(0,163,196,0.2)', whiteSpace: 'nowrap' }}
-        >
+        <button className="ps-section-add-btn" onClick={() => setModal({ mode: 'add' })}>
           + Add Type
         </button>
       </div>
@@ -348,7 +203,7 @@ const ParticipationTypesSection: React.FC = () => {
         <input type="text" placeholder="Search participation types…" value={search} onChange={e => setSearch(e.target.value)}
           style={{ flex: 1, padding: '9px 16px', fontSize: 13, color: '#d1d5db', background: '#0f0f0f', border: '1px solid #1f2937', borderRadius: 8, outline: 'none' }} />
         <select value={filter} onChange={e => setFilter(e.target.value as any)}
-          style={{ padding: '9px 36px 9px 14px', fontSize: 13, fontWeight: 600, color: '#d1d5db', background: '#0f0f0f', border: '1px solid #1f2937', borderRadius: 8, outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: chevron, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}>
+          className="ps-conf-select">
           <option value="all">All</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>

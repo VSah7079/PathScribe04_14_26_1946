@@ -256,17 +256,34 @@ const SpecimenChip: React.FC<{
 
 /**
  * StatusDot: A simple colored circle representing the case status.
+ *
+ * Pool cases get an additional sub-indicator alongside the orange dot —
+ * 'pool' alone doesn't distinguish a case that's just been logged (no
+ * gross description yet) from one that's already been grossed and is
+ * sitting ready for pickup. Without this, testers/pathologists had no way
+ * to tell the two apart without opening each case individually.
  */
-const StatusDot: React.FC<{ status: string }> = React.memo(({ status }) => {
+const StatusDot: React.FC<{ status: string; isGrossed?: boolean }> = React.memo(({ status, isGrossed }) => {
   const s = getStatusStyle(status);
   const label = status.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
-  
+  const isPool = status === 'pool';
+
   return (
-    <span
-      title={`Status: ${label}`}
-      className="wl-status-dot"
-      style={{ background: s.color, boxShadow: `0 0 4px ${s.color}66` }}
-    />
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span
+        title={`Status: ${label}`}
+        className="wl-status-dot"
+        style={{ background: s.color, boxShadow: `0 0 4px ${s.color}66` }}
+      />
+      {isPool && (
+        <span
+          title={isGrossed ? 'Grossed — ready for pickup' : 'New — awaiting Gross'}
+          className={`wl-pool-substate${isGrossed ? ' wl-pool-substate--grossed' : ' wl-pool-substate--new'}`}
+        >
+          {isGrossed ? 'Grossed' : 'New'}
+        </span>
+      )}
+    </span>
   );
 });
 
@@ -819,11 +836,14 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     // Use definition tagClass first, then the flag's own tagClass as fallback
     const effectiveTagClass = def?.tagClass ?? (appliedFlag as any).tagClass;
 
-    if (effectiveTagClass === 'COMPUTATIONAL' && def) {
+    if (effectiveTagClass === 'COMPUTATIONAL') {
+      // Use the matched definition if available, otherwise treat the applied
+      // flag itself as the definition (handles empty flagDefinitions prop).
+      const compDef = def ?? appliedFlag;
       return (
         <ComputationalFlagIcon
-          key={`comp-${def.id}-${idx}`}
-          flag={def}
+          key={`comp-${compDef.id ?? idx}-${idx}`}
+          flag={compDef}
           caseId={caseId}
           size={26}
           onSelect={(flag) => { openOverlay(flag, caseId); }}
@@ -1225,7 +1245,10 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
                     {/* Status dot */}
                     <td className="wl-td-status">
-                      <StatusDot status={c.status} />
+                      <StatusDot
+                        status={c.status}
+                        isGrossed={!!(c as any)?.diagnostic?.grossDescription?.trim()}
+                      />
                     </td>
                   </tr>
                 );

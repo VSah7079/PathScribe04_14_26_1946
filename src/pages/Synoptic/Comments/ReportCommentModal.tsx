@@ -23,13 +23,13 @@ const ReportCommentModal: React.FC<ReportCommentModalProps> = ({
     <CommentModalShell
       title={`💬 ${titleName}`}
       subtitle={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {parts.length > 1 && <span style={{ color: '#94a3b8' }}>{parts.slice(1).join(' › ')}</span>}
+        <div className="ps-cmnt-subtitle-row">
+          {parts.length > 1 && <span className="ps-cmnt-subtitle-context">{parts.slice(1).join(' › ')}</span>}
           {isFinalized
-            ? <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#f1f5f9', color: '#94a3b8', fontWeight: 600 }}>🔒 Finalized — read only</span>
+            ? <span className="ps-cmnt-status-finalized">🔒 Finalized — read only</span>
             : isEmpty
-              ? <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#fef3c7', color: '#92400e', fontWeight: 600 }}>No comment yet — start typing below</span>
-              : <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#d1fae5', color: '#065f46', fontWeight: 600 }}>✓ Comment saved — click to edit</span>
+              ? <span className="ps-cmnt-status-empty">No comment yet — start typing below</span>
+              : <span className="ps-cmnt-status-saved">✓ Comment saved — click to edit</span>
           }
         </div>
       }

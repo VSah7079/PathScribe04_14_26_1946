@@ -26,9 +26,9 @@ export type AiProviderId =
 
 export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }[]> = {
   anthropic: [
-    { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4 (recommended)' },
-    { id: 'claude-opus-4-20250514',   label: 'Claude Opus 4 (highest accuracy)' },
-    { id: 'claude-haiku-4-5-20251001',label: 'Claude Haiku 4.5 (fastest)' },
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4 (recommended)' },
+    { id: 'claude-opus-4-8',   label: 'Claude Opus 4 (highest accuracy)' },
+    { id: 'claude-haiku-4-5',label: 'Claude Haiku 4.5 (fastest)' },
   ],
   openai: [
     { id: 'gpt-4o',        label: 'GPT-4o (recommended)' },
@@ -40,8 +40,8 @@ export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }
     { id: 'gpt-4-turbo', label: 'GPT-4 Turbo (Azure)' },
   ],
   aws_bedrock: [
-    { id: 'anthropic.claude-sonnet-4-20250514-v1:0', label: 'Claude Sonnet 4 via Bedrock' },
-    { id: 'anthropic.claude-opus-4-20250514-v1:0',   label: 'Claude Opus 4 via Bedrock' },
+    { id: 'anthropic.claude-sonnet-4-6-v1:0', label: 'Claude Sonnet 4 via Bedrock' },
+    { id: 'anthropic.claude-opus-4-8-v1:0',   label: 'Claude Opus 4 via Bedrock' },
     { id: 'amazon.nova-pro-v1:0',                    label: 'Amazon Nova Pro' },
   ],
   mock: [
@@ -107,7 +107,7 @@ export interface AiProviderConfig {
 // VITE_ prefix makes them available to the Vite build.
 //
 //   VITE_AI_PROVIDER=anthropic
-//   VITE_AI_MODEL=claude-sonnet-4-20250514
+//   VITE_AI_MODEL=claude-sonnet-4-6
 //   VITE_AI_PROXY_URL=/api/ai
 //   VITE_AI_DEV_MODE=true          # enables direct browser→API calls
 //   VITE_AI_API_KEY=sk-ant-...     # only used when DEV_MODE=true
@@ -122,7 +122,7 @@ function envDefaults(): AiProviderConfig {
 
   return {
     providerId,
-    modelId:              import.meta.env.VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-20250514',
+    modelId:              import.meta.env.VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-6',
     proxyUrl:             import.meta.env.VITE_AI_PROXY_URL ?? '/api/ai',
     apiKey:               isDevMode ? (import.meta.env.VITE_AI_API_KEY ?? '') : undefined,
     azureDeploymentName:  import.meta.env.VITE_AI_AZURE_DEPLOYMENT,

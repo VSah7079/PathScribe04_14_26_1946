@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@contexts/AuthContext";
 import { useLogout } from '@hooks/useLogout';
 import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
-import CaseSearchBar from '../components/Search/CaseSearchBar';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -104,11 +103,6 @@ const cards = [
       {/* UI Content */}
       <div className="ps-page-content">
         
-
-        {/* Case Search Bar */}
-        <div className="ps-search-strip">
-          <CaseSearchBar />
-        </div>
 
         <main className="ps-home-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 var(--ps-layout-padding-x)', overflow: 'auto' }}>
           <header style={{ marginBottom: '32px' }}>

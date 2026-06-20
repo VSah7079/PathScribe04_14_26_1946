@@ -81,6 +81,23 @@ function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<s
 
 // UNIQUE_USERS is derived from loaded data — see useMemo below
 
+// ── Role-based access helpers ─────────────────────────────────────────────────
+
+const VALIDATION_EVENTS = new Set([
+  'validation_study_created', 'validation_study_activated',
+  'validation_study_closed',  'validation_study_deleted',
+  'validation_report_generated',
+  'validation_routing_rule_added', 'validation_routing_rule_updated',
+  'validation_routing_rule_deleted',
+]);
+
+function getRole(): string {
+  try {
+    const raw = localStorage.getItem('pathscribe-user');
+    return raw ? (JSON.parse(raw)?.role ?? 'pathologist') : 'pathologist';
+  } catch { return 'pathologist'; }
+}
+
 
 // ── Component ────────────────────────────────────────────────────────────────
 const AuditLogPage: React.FC = () => {
@@ -91,6 +108,13 @@ const AuditLogPage: React.FC = () => {
   const [errorLogs,       setErrorLogs]       = useState<ErrorLog[]>([]);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
   const [activeTab,       setActiveTab]       = useState<ActiveTab>('audit');
+
+  // ── Role-based access ─────────────────────────────────────────────────────
+  const storedUser    = (() => { try { const r = localStorage.getItem('pathscribe-user'); return r ? JSON.parse(r) : null; } catch { return null; } })();
+  const role          = getRole();
+  const isSuperAdmin  = role === 'superadmin';
+  const isAdmin       = ['admin', 'pathologist-admin', 'superadmin'].includes(role);
+  const isPathologist = role === 'pathologist';
 
   // Audit filters
   const [typeFilter,  setTypeFilter]  = useState<'all' | 'ai' | 'user' | 'system'>('all');
@@ -116,9 +140,25 @@ const AuditLogPage: React.FC = () => {
 
   // ── Filtering ────────────────────────────────────────────────────────────
 
-  const filteredAuditLogs = auditLogs.filter(log => {
+
+  // ── Role-based scoping ───────────────────────────────────────────────────────
+  // Applied before user-defined filters.
+  const roleFilteredLogs = auditLogs.filter(log => {
+    // Validation study events hidden from all except admin/superadmin
+    if (!isAdmin && VALIDATION_EVENTS.has(log.event)) return false;
+    // Pathologists: case audit is a shared clinical record — show all case events
+    // Hide system/config events from other users that have no caseId
+    if (isPathologist) {
+      if (log.caseId) return true;
+      if (log.user === storedUser?.name || log.user === storedUser?.email) return true;
+      return false;
+    }
+    return true;
+  });
+
+  const filteredAuditLogs = roleFilteredLogs.filter(log => {
     if (typeFilter !== 'all' && log.type !== typeFilter) return false;
-    if (userFilter !== 'all' && log.user !== userFilter) return false;
+    if (isSuperAdmin && userFilter !== 'all' && log.user !== userFilter) return false;
     const logDate = parseDateStr(log.timestamp);
     if (dateRange === 'custom') {
       if (dateFrom && logDate < new Date(dateFrom))                    return false;
@@ -194,6 +234,11 @@ const AuditLogPage: React.FC = () => {
             <div>
               <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '4px' }}>System Logs</h1>
               <p style={{ fontSize: '14px', color: '#94a3b8' }}>Complete record of AI actions, user changes, system events and errors</p>
+              {isPathologist && (
+                <div style={{ marginTop: 10, fontSize: 12, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6, padding: '6px 12px', display: 'inline-block' }}>
+                  Showing your case activity only — validation study events are not visible to pathologists
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
               {(['audit', 'errors'] as const).map(tab => (
@@ -208,10 +253,10 @@ const AuditLogPage: React.FC = () => {
           {/* Stats */}
           {(() => {
             const stats = activeTab === 'audit' ? [
-              { label: 'Total Events',  value: auditLogs.length,                                  color: '#0891B2', icon: '📋' },
-              { label: 'AI Actions',    value: auditLogs.filter(l => l.type === 'ai').length,     color: '#8B5CF6', icon: '🤖' },
-              { label: 'User Changes',  value: auditLogs.filter(l => l.type === 'user').length,   color: '#10B981', icon: '👤' },
-              { label: 'System Events', value: auditLogs.filter(l => l.type === 'system').length, color: '#94a3b8', icon: '⚙️' },
+              { label: 'Total Events',  value: roleFilteredLogs.length,                                  color: '#0891B2', icon: '📋' },
+              { label: 'AI Actions',    value: roleFilteredLogs.filter(l => l.type === 'ai').length,     color: '#8B5CF6', icon: '🤖' },
+              { label: 'User Changes',  value: roleFilteredLogs.filter(l => l.type === 'user').length,   color: '#10B981', icon: '👤' },
+              { label: 'System Events', value: roleFilteredLogs.filter(l => l.type === 'system').length, color: '#94a3b8', icon: '⚙️' },
             ] : [
               { label: 'Total Errors', value: errorLogs.length,                                        color: '#ef4444', icon: '🚨' },
               { label: 'Open Issues',  value: errorLogs.filter(e => !e.resolved).length,               color: '#f59e0b', icon: '🔓' },
@@ -245,12 +290,14 @@ const AuditLogPage: React.FC = () => {
                   ))}
                 </div>
                 <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }} />
-                {/* User */}
+                {/* User filter — superadmin only to prevent bias in validation studies */}
+                {isSuperAdmin && (
                 <select value={userFilter} onChange={e => setUserFilter(e.target.value)} style={{ ...sel, minWidth: '170px' }}>
-                  {['all', ...Array.from(new Set(auditLogs.map(l => l.user))).sort()].map(u => (
+                  {['all', ...Array.from(new Set(roleFilteredLogs.map(l => l.user))).sort()].map(u => (
                     <option key={u} value={u}>{u === 'all' ? 'All Users' : u}</option>
                   ))}
                 </select>
+                )}
                 {/* Date range */}
                 <select value={dateRange} onChange={e => setDateRange(e.target.value)} style={sel}>
                   <option value="today">Today</option>
@@ -311,7 +358,7 @@ const AuditLogPage: React.FC = () => {
                 </div>
               </div>
               </div>{/* end ps-table-scroll-wrap */}
-              <div style={{ marginTop: '6px', fontSize: '12px', color: '#475569', textAlign: 'right', flexShrink: 0 }}>Showing {filteredAuditLogs.length} of {auditLogs.length} events</div>
+              <div style={{ marginTop: '6px', fontSize: '12px', color: '#475569', textAlign: 'right', flexShrink: 0 }}>Showing {filteredAuditLogs.length} of {roleFilteredLogs.length} events</div>
             </>
           )}
 

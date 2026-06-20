@@ -21,17 +21,17 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
 
   return (
     <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 22000 }}>
-      <div className="ps-modal-dark" style={{ textAlign: 'center', width: 'min(440px, 90vw)' }}>
+      <div className="ps-modal-dark ps-modal-dark--narrow ps-modal-dark--centered">
 
-        <div style={{ fontSize: 40, marginBottom: 4 }}>🔒</div>
+        <div className="ps-modal-dark-emoji">🔒</div>
 
-        <div className="ps-modal-dark-header" style={{ justifyContent: 'center' }}>
+        <div className="ps-modal-dark-header ps-modal-dark-header--center">
           <span className="ps-modal-dark-title">
             Finalize {activeSynoptic?.title ?? 'Synoptic Report'}
           </span>
         </div>
 
-        <p className="ps-modal-dark-body" style={{ textAlign: 'center' }}>
+        <p className="ps-modal-dark-body ps-modal-dark-body--center">
           Finalizing this report locks it for editing and creates an audit entry.
           <br />Enter your password to confirm.
         </p>
@@ -43,30 +43,22 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
           onChange={e => onPasswordChange(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && onConfirm()}
           placeholder="Your password"
-          style={{
-            width: '100%', padding: '10px 14px', borderRadius: 8, fontSize: 14,
-            boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
-            background: 'rgba(255,255,255,0.05)',
-            border: `2px solid ${finalizeError ? '#ef4444' : 'rgba(255,255,255,0.15)'}`,
-            color: '#e2e8f0',
-          }}
+          className={"ps-modal-dark-input" + (finalizeError ? " ps-modal-dark-input--error" : "")}
         />
 
         {finalizeError && (
-          <p style={{ color: '#ef4444', fontSize: 12, margin: '0', textAlign: 'left' }}>
+          <p className="ps-modal-dark-field-error">
             {finalizeError}
           </p>
         )}
 
-        <div className="ps-modal-dark-footer" style={{ justifyContent: 'stretch' }}>
-          <button className="ps-btn-ghost-dark" style={{ flex: 1 }} onClick={onClose}>
+        <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
+          <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={onClose}>
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            style={{ flex: 1, padding: '9px 20px', borderRadius: 8, border: 'none', background: '#0891B2', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#0E7490'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#0891B2'; }}
+            className="ps-btn-primary ps-modal-dark-footer__flex-btn"
           >
             🔒 Confirm &amp; Finalize{finalizeAndNext ? ' →' : ''}
           </button>

@@ -1,5 +1,5 @@
 // src/services/ai/providers/ClaudeProvider.ts
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Anthropic Claude implementation of IAIProvider.
 // Wraps the Anthropic Messages API with:
 //   • Full SSE streaming support
@@ -7,10 +7,11 @@
 //   • Latency measurement
 //   • Clean error typing
 //
-// API keys are NEVER handled here — they come from the backend
-// proxy in production (VITE_AI_PROXY_URL) or VITE_AI_API_KEY
-// in local dev mode only.
-// ─────────────────────────────────────────────────────────────
+// Routes through the Vite dev proxy (/api/ai/anthropic → api.anthropic.com)
+// to avoid CORS — Anthropic blocks direct browser-to-API calls entirely.
+// The proxy injects x-api-key and anthropic-version headers server-side.
+// See vite.config.ts → server.proxy['/api/ai/anthropic']
+// ─────────────────────────────────────────────────────────────────────────────
 
 import type {
   IAIProvider,
@@ -21,7 +22,13 @@ import type {
 } from '../IAIProvider';
 
 const DEFAULT_MAX_TOKENS = 1024;
-const ANTHROPIC_API_URL  = 'https://api.anthropic.com/v1/messages';
+
+// ── Route through Vite proxy — never call api.anthropic.com directly ─────────
+// Direct browser → Anthropic calls are blocked by CORS.
+// Proxy config: vite.config.ts → server.proxy['/api/ai/anthropic']
+//   Rewrites /api/ai/anthropic/v1/messages → /v1/messages on api.anthropic.com
+//   Injects x-api-key and anthropic-version headers server-side.
+const ANTHROPIC_PROXY_URL = '/api/ai/anthropic/v1/messages';
 
 const DEFAULT_SYSTEM =
   'You are a board-certified pathologist assistant generating structured ' +
@@ -38,7 +45,7 @@ export class ClaudeProvider implements IAIProvider {
     this.displayName = `Anthropic (Claude) · ${modelId}`;
   }
 
-  // ── generate (non-streaming) ──────────────────────────────
+  // ── generate (non-streaming) ──────────────────────────────────────────────
 
   async generate(request: AIGenerationRequest): Promise<AIGenerationResult> {
     const startMs  = Date.now();
@@ -51,12 +58,12 @@ export class ClaudeProvider implements IAIProvider {
 
     return {
       ...streamResult,
-      text:     tokens.join(''),
+      text:      tokens.join(''),
       latencyMs: Date.now() - startMs,
     };
   }
 
-  // ── generateStream ────────────────────────────────────────
+  // ── generateStream ────────────────────────────────────────────────────────
 
   async generateStream(
     request: AIGenerationRequest,
@@ -64,7 +71,7 @@ export class ClaudeProvider implements IAIProvider {
   ): Promise<AIGenerationResult> {
     const startMs = Date.now();
 
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await fetch(ANTHROPIC_PROXY_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       signal:  request.abortSignal,
@@ -129,12 +136,12 @@ export class ClaudeProvider implements IAIProvider {
     };
   }
 
-  // ── testConnection ────────────────────────────────────────
+  // ── testConnection ────────────────────────────────────────────────────────
 
   async testConnection(): Promise<AIConnectionTest> {
     const startMs = Date.now();
     try {
-      const response = await fetch(ANTHROPIC_API_URL, {
+      const response = await fetch(ANTHROPIC_PROXY_URL, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({

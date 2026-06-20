@@ -12,6 +12,8 @@ interface HeaderBarProps {
   onSignOut:     () => void;
   onNavigate:    (path: string) => void;
   aiConfidence?: number; // 0–100
+  /** Compact single-strip mode — used in Report Draft to maximise editor space */
+  compact?:      boolean;
 }
 
 type StepStatus = 'completed' | 'current' | 'pending' | 'alert';
@@ -35,7 +37,7 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiConfidence }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiConfidence, compact = false }) => {
   const isOrchestration = getOrchestratorMode();
 
   const accession = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '—';
@@ -58,6 +60,80 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
     { id: 3, label: 'Synoptic',       status: 'current'   },
     { id: 4, label: finalStepLabel,   status: 'pending'   },
   ];
+
+  // ── Compact mode — single 36px strip for Report Draft ──────────────────
+  if (compact) {
+    const orchStage = (caseData as any)?.orchStage ?? '';
+    const stageMap: Record<string, number> = {
+      received: 0, grossing: 1, gross_complete: 1,
+      micro_pending: 2, micro_complete: 2,
+      draft_generated: 3, signed_out: 4,
+    };
+    const currentStageIdx = stageMap[orchStage] ?? 0;
+    const stages = ['Grossing', 'Processing', 'Synoptic', finalStepLabel];
+
+    return (
+      <div className="ps-hb-compact">
+        {/* Left: accession + patient + priority */}
+        <div className="ps-hb-compact-left">
+          <span className="ps-hb-compact-acc">{accession}</span>
+          <span className="ps-hb-compact-sep">·</span>
+          <span className="ps-hb-compact-patient">{patient}</span>
+          {caseData?.patient?.dateOfBirth && (
+            <>
+              <span className="ps-hb-compact-sep">·</span>
+              <span className="ps-hb-compact-meta">
+                DOB {dob} · {sex}
+              </span>
+            </>
+          )}
+          {caseData?.patient?.mrn && (
+            <>
+              <span className="ps-hb-compact-sep">·</span>
+              <span className="ps-hb-compact-meta">MRN {mrn}</span>
+            </>
+          )}
+          {(caseData?.order as any)?.priority && (
+            <span className={`ps-hb-compact-priority${(caseData?.order as any)?.priority === 'STAT' ? ' ps-hb-compact-priority--stat' : ' ps-hb-compact-priority--routine'}`}>
+              {(caseData?.order as any)?.priority}
+            </span>
+          )}
+        </div>
+
+        {/* Centre: workflow stage dots */}
+        <div className="ps-hb-compact-stages">
+          {stages.map((label, i) => (
+            <React.Fragment key={label}>
+              <div className="ps-hb-compact-stage">
+                <span className={`ps-hb-compact-dot${i < currentStageIdx ? ' done' : i === currentStageIdx ? ' active' : ''}`}>
+                  {i < currentStageIdx ? '✓' : i + 1}
+                </span>
+                <span className={`ps-hb-compact-stage-lbl${i === currentStageIdx ? ' active' : ''}`}>{label}</span>
+              </div>
+              {i < stages.length - 1 && (
+                <div className={`ps-hb-compact-connector${i < currentStageIdx ? ' done' : ''}`} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Right: AI confidence + breadcrumb nav */}
+        <div className="ps-hb-compact-right">
+          {aiConfidence !== undefined && (
+            <span className="ps-hb-compact-conf">
+              <span className="ps-hb-compact-conf-pct">{aiConfidence}%</span>
+              <span className="ps-hb-compact-conf-label">AI</span>
+            </span>
+          )}
+          <button
+            className="ps-hb-compact-nav-btn"
+            onClick={() => onNavigate('/worklist')}
+            title="Back to worklist"
+          >← Worklist</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ps-hb">

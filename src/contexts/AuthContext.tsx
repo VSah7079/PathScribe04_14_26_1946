@@ -6,9 +6,21 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "pathologist" | "admin" | "pathologist-admin";
+  role: "pathologist" | "admin" | "pathologist-admin" | "superadmin";
   initials: string;
   voiceProfile: VoiceProfileId;
+  // ── Signature block fields ────────────────────────────────────────────────
+  // Resolved from the StaffUser record at login (see resolveStaffFields).
+  // `name` above is already a combined display string from the credentials
+  // table; these additional fields let report signature blocks build a
+  // precise formal name + credentials + signature image without needing
+  // a separate staff lookup at sign-out time.
+  credentials?: string;
+  signatureUrl?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  canViewPediatric?: boolean;
 }
 
 interface AuthContextType {
@@ -51,9 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Resolve extra fields from userService (canViewPediatric, credentials)
+  // Resolve extra fields from userService (canViewPediatric, credentials,
+  // signatureUrl, and name parts — used by report signature blocks)
   // Option C: canViewPediatric lives on the StaffUser record, not the role
-  const resolveStaffFields = async (userId: string): Promise<{ canViewPediatric: boolean; credentials?: string }> => {
+  const resolveStaffFields = async (userId: string): Promise<{
+    canViewPediatric: boolean;
+    credentials?: string;
+    signatureUrl?: string;
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+  }> => {
     try {
       const { userService } = await import('../services');
       const res = await userService.getAll();
@@ -62,7 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (staffUser) {
           return {
             canViewPediatric: staffUser.canViewPediatric ?? false,
-            credentials: staffUser.credentials ?? undefined,
+            credentials:      staffUser.credentials ?? undefined,
+            signatureUrl:     staffUser.signatureUrl ?? undefined,
+            firstName:        staffUser.firstName ?? undefined,
+            middleName:       (staffUser as any).middleName ?? undefined,
+            lastName:         staffUser.lastName ?? undefined,
           };
         }
       }
@@ -84,17 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       //   "admin"             → configuration + user management only
       //   "pathologist-admin" → both (route guards should treat as both)
       const credentials = [
-        { email: "pete.nimmo@pathscribe.ai",           password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "pathologist" as const, initials: "PN", voiceProfile: "EN-US" },
-        { email: "demo@pathscribe.ai",                 password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "pathologist" as const, initials: "PN", voiceProfile: "EN-US" },
-        { email: "sarah.johnson@demo.pathscribe.ai",   password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-SJ-001", name: "Dr. Sarah Johnson",    role: "pathologist" as const, initials: "SJ", voiceProfile: "EN-US" },
+        { email: "pete.nimmo@pathscribe.ai",           password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "superadmin"  as const, initials: "PN", voiceProfile: "EN-US" },
+        { email: "demo@pathscribe.ai",                 password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "superadmin"  as const, initials: "PN", voiceProfile: "EN-US" },
+        { email: "sarah.johnson@demo.pathscribe.ai",   password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-SJ-001", name: "Dr. Sarah Johnson",    role: "superadmin"  as const, initials: "SJ", voiceProfile: "EN-US" },
         { email: "admin@pathscribe.ai",                password: "ZBs=inBiC6^N*XYwH3v^",   id: "u3",          name: "System Admin",         role: "admin"       as const, initials: "SA", voiceProfile: "EN-US" },
         { email: "paul.carter@mft.nhs.uk",             password: "Pathscribe_TempPass2026!", id: "PATH-UK-001", name: "Paul Carter",          role: "pathologist" as const, initials: "PC", voiceProfile: "EN-GB" },
-        { email: "oliver.pemberton@mft.nhs.uk",        password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-UK-002", name: "Dr. Oliver Pemberton", role: "pathologist" as const, initials: "OP", voiceProfile: "EN-GB" },
-        { email: "amber.fehrs@demo.pathscribe.ai",     password: "One_Amazing_Person!",      id: "PATH-US-001", name: "Amber Fehrs-Battey",   role: "pathologist" as const, initials: "AF", voiceProfile: "EN-US" },
-        { email: "mark.tuthill@hfhs-demo.pathscribe.ai", password: "One_Amazing_Doctor!",   id: "PATH-US-002", name: "Dr. J. Mark Tuthill",  role: "pathologist"        as const, initials: "MT", voiceProfile: "EN-US" },
+        { email: "oliver.pemberton@mft.nhs.uk",        password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-UK-002", name: "Dr. Oliver Pemberton", role: "superadmin"  as const, initials: "OP", voiceProfile: "EN-GB" },
+        { email: "amber.fehrs@demo.pathscribe.ai",     password: "One_Amazing_Person!",      id: "PATH-US-001", name: "Amber Fehrs-Battey",   role: "superadmin"  as const, initials: "AF", voiceProfile: "EN-US" },
+        { email: "mark.tuthill@hfhs-demo.pathscribe.ai", password: "One_Amazing_Doctor!",   id: "PATH-US-002", name: "Dr. J. Mark Tuthill",  role: "superadmin"         as const, initials: "MT", voiceProfile: "EN-US" },
         // ── UX Review account — full pathologist + admin access ──────────────────
         { email: (import.meta.env.VITE_BABAKHANI_EMAIL ?? "rossana.babakhani@pathscribe.ai").toLowerCase(),
-                                                            password: "Review_PathScribe_2026!", id: "PATH-RB-001", name: "Rossana Babakhani",     role: "pathologist-admin" as const, initials: "RB", voiceProfile: "EN-US" },
+                                                            password: "Review_PathScribe_2026!", id: "PATH-RB-001", name: "Rossana Babakhani",     role: "superadmin"        as const, initials: "RB", voiceProfile: "EN-US" },
       ];
 
       // Find matching credential

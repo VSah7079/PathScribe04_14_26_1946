@@ -5,9 +5,9 @@
  * ICD-10, ICD-11, and ICD-O fall back to the curated mock seed data since
  * those require separate NLM endpoints or licensed data files.
  *
- * API key is embedded for demo purposes — regenerate after demo session.
- * In production this should move to VITE_UMLS_KEY env variable or a
- * server-side proxy so the key is not exposed in the bundle.
+ * All requests are routed through /api/terminology/umls (Vite proxy in dev,
+ * Vercel serverless in production). The UMLS_API_KEY is injected server-side
+ * and never appears in the browser bundle.
  *
  * UTS REST API docs: https://documentation.uts.nlm.nih.gov/rest/home.html
  * ─────────────────────────────────────────────────────────────────────────────
@@ -18,38 +18,35 @@ import type { ClinicalCode, CodeSearchParams, CodeSystem,
               IcdOSubtype, ICodeService }                  from './ICodeService';
 import { mockCodeService }                                 from './mockCodeService';
 
-// ─── API Key ──────────────────────────────────────────────────────────────────
-// Embedded for demo — regenerate at uts.nlm.nih.gov after Paul's session.
-const UMLS_API_KEY = import.meta.env.VITE_UMLS_KEY ?? 'a29978e5-905a-4b4e-af8d-2c7ec4bd90d7';
+// ─── Base URL ──────────────────────────────────────────────────────────────────
+// The proxy at /api/terminology/umls rewrites to uts-ws.nlm.nih.gov/rest
+// and appends ?apiKey=<UMLS_API_KEY> server-side.
+// No API key is needed or read on the client.
+const UTS_BASE = '/api/terminology/umls';
 
-const UTS_BASE = 'https://uts-ws.nlm.nih.gov/rest';
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const ok  = <T>(data: T): ServiceResult<T>   => ({ ok: true,  data });
-
-
-// Map UTS source abbreviations to our system labels
 const SNOMED_SOURCE = 'SNOMEDCT_US';
 
-// ─── UTS response types ───────────────────────────────────────────────────────
+// ─── UTS response types ────────────────────────────────────────────────────────
 
 interface UtsResult {
-  ui:          string;  // SNOMED concept ID
-  name:        string;  // preferred term
-  rootSource:  string;  // e.g. 'SNOMEDCT_US'
-  uri?:        string;
+  ui:         string;   // SNOMED concept ID
+  name:       string;   // preferred term
+  rootSource: string;   // e.g. 'SNOMEDCT_US'
+  uri?:       string;
 }
 
 interface UtsSearchResponse {
   result: {
-    results:   UtsResult[];
+    results:    UtsResult[];
     pageNumber: number;
     pageSize:   number;
   };
 }
 
-// ─── Category inference ───────────────────────────────────────────────────────
+// ─── Category inference ────────────────────────────────────────────────────────
 // UTS doesn't return PathScribe categories — we infer from the concept name.
 
 const CATEGORY_RULES: Array<{ pattern: RegExp; category: string }> = [
@@ -77,21 +74,14 @@ function inferCategory(name: string): string {
   return 'Morphology|Other';
 }
 
-// ─── SNOMED search via UTS ────────────────────────────────────────────────────
+// ─── SNOMED search via UTS proxy ───────────────────────────────────────────────
 
 async function searchSnomed(query: string, pageSize = 25): Promise<ClinicalCode[]> {
-  if (!UMLS_API_KEY) {
-    console.warn('[umlsCodeService] No API key — falling back to mock SNOMED data');
-    const fallback = await mockCodeService.search({ system: 'SNOMED', query });
-    return fallback.ok ? fallback.data : [];
-  }
-
   const params = new URLSearchParams({
     string:       query,
     sabs:         SNOMED_SOURCE,
     returnIdType: 'code',
     pageSize:     String(pageSize),
-    apiKey:       UMLS_API_KEY,
   });
 
   try {
@@ -100,8 +90,7 @@ async function searchSnomed(query: string, pageSize = 25): Promise<ClinicalCode[
     });
 
     if (!response.ok) {
-      console.error(`[umlsCodeService] UTS API error ${response.status}`);
-      // Fall back to mock on API error
+      console.error(`[umlsCodeService] UTS proxy error ${response.status}`);
       const fallback = await mockCodeService.search({ system: 'SNOMED', query });
       return fallback.ok ? fallback.data : [];
     }
@@ -122,29 +111,26 @@ async function searchSnomed(query: string, pageSize = 25): Promise<ClinicalCode[
 
   } catch (e) {
     console.error('[umlsCodeService] Network error:', e);
-    // Fall back to mock on network error
     const fallback = await mockCodeService.search({ system: 'SNOMED', query });
     return fallback.ok ? fallback.data : [];
   }
 }
 
-// ─── Service ──────────────────────────────────────────────────────────────────
+// ─── Service ───────────────────────────────────────────────────────────────────
 
 export const umlsCodeService: ICodeService = {
 
   async search(params: CodeSearchParams): Promise<ServiceResult<ClinicalCode[]>> {
-    // Only SNOMED uses the live UTS API — everything else uses mock data
     if (params.system === 'SNOMED') {
       const query = params.query?.trim() ?? '';
 
-      // If no query, return local seed data (browse mode)
+      // No query — return local seed data (browse mode)
       if (!query) {
         return mockCodeService.search(params);
       }
 
       const results = await searchSnomed(query);
 
-      // Apply category filter if provided
       const filtered = params.category
         ? results.filter(c =>
             c.category?.startsWith(params.category + '|') ||
@@ -160,12 +146,10 @@ export const umlsCodeService: ICodeService = {
   },
 
   async getByCode(system: CodeSystem, code: string): Promise<ServiceResult<ClinicalCode>> {
-    // For SNOMED, try the UTS concept endpoint first
-    if (system === 'SNOMED' && UMLS_API_KEY) {
+    if (system === 'SNOMED') {
       try {
-        const params = new URLSearchParams({ apiKey: UMLS_API_KEY });
         const response = await fetch(
-          `${UTS_BASE}/content/current/source/${SNOMED_SOURCE}/${code}?${params}`,
+          `${UTS_BASE}/content/current/source/${SNOMED_SOURCE}/${code}`,
           { headers: { 'Accept': 'application/json' } }
         );
 
@@ -183,7 +167,7 @@ export const umlsCodeService: ICodeService = {
             });
           }
         }
-      } catch (e) {
+      } catch {
         // Fall through to mock
       }
     }

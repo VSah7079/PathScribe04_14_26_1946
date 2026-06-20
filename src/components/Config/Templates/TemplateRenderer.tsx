@@ -536,7 +536,7 @@ export const TemplateRenderer: React.FC = () => {
             </div>
 
             {section.questions.map((q: Question) => (
-              <div key={q.id} style={{
+              <div key={q.id} data-field-key={q.id} style={{
                 marginBottom: '16px', padding: '16px',
                 borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)',
                 background: 'rgba(255,255,255,0.03)',
@@ -562,6 +562,7 @@ export const TemplateRenderer: React.FC = () => {
                           type="radio" name={q.id} value={opt.id}
                           checked={answers[q.id] === opt.id}
                           onChange={() => handleSingleChange(q.id, opt.id)}
+                          data-field-key={q.id}
                           style={{ accentColor: '#0891B2', width: '14px', height: '14px' }}
                         />
                         <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{opt.label}</span>
@@ -587,6 +588,7 @@ export const TemplateRenderer: React.FC = () => {
                           <input
                             type="checkbox" value={opt.id} checked={checked}
                             onChange={() => handleMultiChange(q.id, opt.id)}
+                            data-field-key={q.id}
                             style={{ accentColor: '#0891B2', width: '14px', height: '14px' }}
                           />
                           <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{opt.label}</span>
@@ -603,6 +605,8 @@ export const TemplateRenderer: React.FC = () => {
                     value={(answers[q.id] as string) || ''}
                     onChange={e => handleTextChange(q.id, e.target.value)}
                     placeholder="Enter value…"
+                    data-field-key={q.id}
+                    id={q.id}
                     style={{ ...inputBase, width: '100%', marginTop: '8px', boxSizing: 'border-box' }}
                   />
                 )}

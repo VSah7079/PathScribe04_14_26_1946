@@ -12,8 +12,10 @@
 // ─────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import AddSynopticModal from './components/AddSynopticModal';
+import AddSynopticModal       from './components/AddSynopticModal';
+import SpecimenEditModal      from './modals/SpecimenEditModal';
 import NavBar             from '@/components/NavBar/NavBar';
 import HeaderBar          from './components/HeaderBar';
 import Sidebar            from './components/Sidebar';
@@ -60,12 +62,14 @@ import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '@/constants/computationalAct
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 
 // ── Orchestrator ───────────────────────────────────────────────
-import OrchestratorReportPanel, { textToHtml } from './components/OrchestratorReportPanel';
-import type { OrchestratorSection } from './components/OrchestratorReportPanel';
+import OrchestratorSectionEditor, { textToHtml } from './components/OrchestratorSectionEditor';
+import type { OrchestratorSection } from './components/OrchestratorSectionEditor';
+import ReportPreviewRenderer from '@/pages/ReportPreview/ReportPreviewRenderer';
 import SequencerPanel from './components/SequencerPanel';
 import { OrchestratorEngine } from '@/orchestrator/orchestratorEngine';
 import type { OrchestratorCallbacks } from '@/orchestrator/orchestratorEngine';
 import { buildContext } from '@/lib/contextBuilder';
+import { getNarrativeConfigForTemplate } from '@/components/Config/NarrativeTemplates/narrativeTemplateRegistry';
 
 // ─── Shared overlay style (passed to all modals) ──────────────
 const overlayStyle: React.CSSProperties = {
@@ -77,6 +81,7 @@ const overlayStyle: React.CSSProperties = {
 
 const SynopticReportPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
+  const { user: signingUser } = useAuth();
   const { log }   = useAuditLog();
   const navigate   = useNavigate();
   const location   = useLocation();
@@ -96,8 +101,20 @@ const SynopticReportPage: React.FC = () => {
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
   const [isLoaded, setIsLoaded]     = useState(false);
+  const [caseNotFound, setCaseNotFound] = useState(false);
   const [activeTab, setActiveTab]       = useState('tumor');
   const { isDirty: hasUnsavedData, setDirty: setHasUnsavedData, pendingPath, confirmNavigate: confirmContextNavigate, cancelNavigate: cancelContextNavigate } = useDirtyState();
+  const [dirtySections, setDirtySections] = useState<Set<string>>(new Set());
+
+  const markDirty = React.useCallback((section: string) => {
+    setHasUnsavedData(true);
+    setDirtySections(prev => new Set(prev).add(section));
+  }, [setHasUnsavedData]);
+
+  const clearDirty = React.useCallback(() => {
+    setHasUnsavedData(false);
+    setDirtySections(new Set());
+  }, [setHasUnsavedData]);
   const [activeSpecimenId, setActiveSpecimenId] = useState<string>('');
   const [showCaseCommentModal, setShowCaseCommentModal] = useState(false);
   const [showSpecimenCommentModal, setShowSpecimenCommentModal] = useState(false);
@@ -105,9 +122,11 @@ const SynopticReportPage: React.FC = () => {
   const [hasCaseComment, setHasCaseComment] = useState(false);
   const [caseCommentAttending, setCaseCommentAttending] = useState('');
   const [specimenComments, setSpecimenComments] = useState<Record<string, string>>({});
-  const [showAddSynopticModal, setShowAddSynopticModal] = useState(false);
+  const [showAddSynopticModal,  setShowAddSynopticModal]  = useState(false);
+  const [showSpecimenEdit,      setShowSpecimenEdit]      = useState(false);
+  const [editingSpecimen,       setEditingSpecimen]        = useState<import('@/types/case/Specimen').Specimen | null>(null);
   const [activeReportInstanceId, setActiveReportInstanceId] = useState<string>('');
-  const [isAlertExpanded, setIsAlertExpanded] = useState(true);
+  const [isAlertExpanded, setIsAlertExpanded] = useState(false);
   const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState(false);
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [panelMode, setPanelMode] = useState<null | 'expanded'>(null);
@@ -116,7 +135,9 @@ const SynopticReportPage: React.FC = () => {
   const [worklistIndex, setWorklistIndex] = useState(0);
   const [alertFieldId, setAlertFieldId] = useState<string | null>(null);
   const [availableProtocols, setAvailableProtocols] = useState<{id:string;name:string}[]>([]);
-  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [pendingNavigation,  setPendingNavigation]  = useState<string | null>(null);
+  // For orchestration mode: tab switch that needs unsaved-draft confirmation
+  const [pendingTabSwitch,   setPendingTabSwitch]   = useState<string | null>(null);
   const [showDelegateModal, setShowDelegateModal]   = useState(false);
   const [delegateReturnTo,  setDelegateReturnTo]    = useState<'team' | null>(null);
   const [showTeamModal,     setShowTeamModal]       = useState(false);
@@ -174,17 +195,171 @@ const SynopticReportPage: React.FC = () => {
   // LIS cases (S26-*, no reportingMode) must NOT default to orchestration mode.
   const isOrchestrationMode = !!(caseId?.startsWith('O26-'));
 
+  // ── Three-column Orchestration layout state ─────────────────────────────────
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+
+  // ── User-configurable tab width — persisted across sessions ────────────────
+  const [tabWidthChars, setTabWidthChars] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('pathscribe-tab-width');
+      return saved ? parseInt(saved, 10) : 4;
+    } catch { return 4; }
+  });
+  const handleTabWidthChange = useCallback((chars: number) => {
+    setTabWidthChars(chars);
+    try { localStorage.setItem('pathscribe-tab-width', String(chars)); } catch { /* ignore */ }
+  }, []);
+
+  // ── Print the formatted centre pane report ───────────────────────────────
+  // Grabs the rendered .rp-page DOM node and prints it in a clean window.
+  const handleOrchPrint = useCallback(() => {
+    const pageEl = document.querySelector('.rp-page') as HTMLElement | null;
+    if (!pageEl) { window.print(); return; }
+    const accession = caseData?.accession?.fullAccession
+      ?? caseData?.accession?.accessionNumber ?? '';
+    const patient = caseData?.patient
+      ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
+    const win = window.open('', '_blank', 'width=900,height=1100');
+    if (!win) { window.print(); return; }
+    win.document.write(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/>
+<title>${accession} — PathScribe Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt;
+         line-height: 1.6; color: #1a1a1a; background: white; }
+  @page { size: A4; margin: 18mm 20mm 22mm 20mm;
+    @top-left   { content: "${accession}"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @top-right  { content: "CONFIDENTIAL — CLINICAL RECORD"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+  }
+  .rp-section-badge { display: none; }
+  .rp-section-heading { font-size: 11pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; border-left: 3px solid #333; padding: 6px 0 6px 10px;
+    margin-bottom: 8pt; }
+  .rp-section-body { font-size: 11pt; line-height: 1.7; padding-left: 13px; }
+  .rp-section-body p { margin-bottom: 6pt; orphans: 3; widows: 3; }
+  .rp-section { margin-bottom: 18pt; }
+  .rp-footer-conf, .rp-footer { font-size: 8pt; }
+</style></head><body>${pageEl.outerHTML}</body></html>`);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); win.close(); };
+  }, [caseData]);
+
   useEffect(() => {
     localStorage.setItem('ps_sidebar_collapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // If mode changes to copilot while on draft tab, move to report tab
+  // LIS cases must never show the draft tab — reset if somehow set
   useEffect(() => {
     if (!isOrchestrationMode && leftTab === 'draft') setLeftTab('report');
-  }, [isOrchestrationMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOrchestrationMode, leftTab]);
   
   const [orchSections,    setOrchSections]    = useState<OrchestratorSection[]>([]);
-  const [isOrchestrating, setIsOrchestrating] = useState(false);
+
+  // Must be after isOrchestrationMode, leftTab, hasUnsavedData AND orchSections
+  const safeSetLeftTab = React.useCallback((tab: string) => {
+    if (
+      isOrchestrationMode &&
+      leftTab === 'draft' &&
+      hasUnsavedData &&
+      orchSections.some(s => s.text)
+    ) {
+      setPendingTabSwitch(tab);
+    } else {
+      setLeftTab(tab as any);
+    }
+  }, [isOrchestrationMode, leftTab, hasUnsavedData, orchSections]);
+
+  // Restore orchSections — checks localStorage AND the loaded caseData.
+  // Runs whenever caseId OR caseData changes, so it can't be silently
+  // overwritten by a later caseData load that doesn't carry orchSections.
+  // localStorage (most recent local edits) takes priority over caseData
+  // (server/mock-service state), since the pathologist's last edits are
+  // the most current source of truth.
+  useEffect(() => {
+    if (!caseId) return;
+
+    let restored: OrchestratorSection[] | null = null;
+
+    // 1. Try localStorage first — most recent local draft
+    try {
+      const stored = localStorage.getItem(`ps_orch_sections_${caseId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          restored = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse orchSections from localStorage:', e);
+    }
+
+    // 2. Fall back to caseData.orchSections (from mock service / server)
+    if (!restored) {
+      const fromCase = (caseData as any)?.orchSections;
+      if (Array.isArray(fromCase) && fromCase.length > 0) {
+        restored = fromCase;
+      }
+    }
+
+    if (restored) {
+      setOrchSections(restored);
+    }
+  // Re-run when caseData arrives (it loads asynchronously after caseId is known)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId, caseData?.id]);
+
+  // Default activeSectionId to the first section once sections load
+  useEffect(() => {
+    if (!activeSectionId && orchSections.length > 0) {
+      setActiveSectionId(orchSections[0].id);
+    }
+  }, [orchSections, activeSectionId]);
+
+
+  // Sync orchSections → caseData.diagnostic so LeftReportPanel (Full Report)
+  // always reflects the current draft without requiring a manual save.
+  useEffect(() => {
+    if (!isOrchestrationMode || orchSections.length === 0) return;
+    const find = (id: string) => orchSections.find(s => s.id === id)?.text ?? '';
+    // Map known section IDs to diagnostic fields; fall back to concatenated narrative
+    const grossText  = find('gross_description') || find('gross');
+    const microText  = find('microscopic') || find('microscopic_description');
+    const ancText    = find('ancillary_studies') || find('ancillary');
+    // Full narrative: all sections joined for LeftReportPanel's report body
+    const fullNarrative = orchSections.map(s => `<h3>${s.label}</h3>${s.text}`).join('');
+    setCaseData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        diagnostic: {
+          ...prev.diagnostic,
+          grossDescription:       grossText       || prev.diagnostic?.grossDescription       || '',
+          microscopicDescription: microText       || prev.diagnostic?.microscopicDescription || '',
+          ancillaryStudies:       ancText         || prev.diagnostic?.ancillaryStudies       || '',
+          reportNarrative:        fullNarrative,
+        },
+      };
+    });
+  }, [orchSections, isOrchestrationMode]); // eslint-disable-line
+  const [isOrchestrating,      setIsOrchestrating]      = useState(false);
+  const [resolvedTemplateId,   setResolvedTemplateId]   = useState<string>('tmpl-gold-standard');
+  const [resolvedTemplateName, setResolvedTemplateName] = useState<string>('Gold Standard — General Surgical Pathology');
+  const [resolvedBy,           setResolvedBy]           = useState<string>('gold-standard');
+  const [overrideTemplateId,   setOverrideTemplateId]   = useState<string | null>(null);
+
+  // ── Centre pane header state — template picker, lifted here so it can be
+  //    shared between both layout instances (primary + expanded) ───────────
+  const [centreTemplates, setCentreTemplates] = useState<{ id: string; name: string; specialty?: string }[]>([]);
+  const [showCentreTemplatePicker, setShowCentreTemplatePicker] = useState(false);
+  useEffect(() => {
+    import('@/services/reportTemplates/mockReportTemplateService').then(({ mockReportTemplateService }) => {
+      (mockReportTemplateService as any).getAll?.().then((r: any) => {
+        if (r?.ok) setCentreTemplates(r.data ?? []);
+      }).catch(() => {});
+    });
+  }, []);
   const [lastGeneratedAt, setLastGeneratedAt] = useState<Date | null>(null);
   const abortRef  = React.useRef<AbortController | null>(null);
 
@@ -236,18 +411,24 @@ const SynopticReportPage: React.FC = () => {
 
     setHasUnsavedData(false);
     caseRouter.getCase(caseId).then(c => {
-      setCaseData(c ?? null);
-      if (c?.specimens?.length) setActiveSpecimenId(c.specimens[0].id);
-      if (c?.synopticReports?.length) setActiveReportInstanceId(c.synopticReports[0].instanceId);
+      if (!c) { setCaseNotFound(true); setIsLoaded(true); return; }
+      setCaseData(c);
+      if (c.specimens?.length) setActiveSpecimenId(c.specimens[0].id);
+      if (c.synopticReports?.length) setActiveReportInstanceId(c.synopticReports[0].instanceId);
       import('@/services/templates/templateService').then(m =>
         m.listTemplates('published').then(templates =>
           setAvailableProtocols(templates.map((t: any) => ({ id: t.id, name: t.name })))
         )
       );
-      const stored = c?.id ? localStorage.getItem(`ps_case_comment_${c.id}`) : null;
+      const stored = c.id ? localStorage.getItem(`ps_case_comment_${c.id}`) : null;
       if (stored) { setCaseCommentAttending(stored); setHasCaseComment(true); }
+      // Reopen Patient History modal if navigated back via breadcrumb (?history=1)
+      if (new URLSearchParams(window.location.search).get('history') === '1') {
+        setIsSimilarCasesOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
       setIsLoaded(true);
-    }).catch(() => setIsLoaded(true));
+    }).catch(() => { setCaseNotFound(true); setIsLoaded(true); });
   }, [caseId]);
 
   // Track when dirty state was first set relative to case load
@@ -399,6 +580,154 @@ const SynopticReportPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
+  // ── Keyboard shortcuts for Report Draft (Orchestration mode) ──────────────
+  useEffect(() => {
+    if (!isOrchestrationMode) return;
+    const handler = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      const tag  = (e.target as HTMLElement)?.tagName;
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+      // Ctrl+S — Save Draft
+      if (ctrl && e.key === 's' && leftTab === 'draft') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_SAVE_DRAFT'));
+        return;
+      }
+      // Ctrl+G — Generate Report
+      if (ctrl && e.key === 'g' && leftTab === 'draft') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_GENERATE_REPORT'));
+        return;
+      }
+      // Ctrl+Shift+D — Switch to Report Draft
+      if (ctrl && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        setLeftTab('draft');
+        return;
+      }
+      // Ctrl+Shift+F — Switch to Full Report
+      if (ctrl && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        safeSetLeftTab('report');
+        return;
+      }
+      // Ctrl+Shift+Q — Switch to Sequencer
+      if (ctrl && e.shiftKey && e.key === 'Q') {
+        e.preventDefault();
+        setLeftTab('sequencer');
+        return;
+      }
+      // Alt+1–4 — Jump to section by number (fires custom event for OrchestratorSectionEditor)
+      if (e.altKey && !inInput && leftTab === 'draft') {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= 9) {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: num - 1 } }));
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOrchestrationMode, leftTab, safeSetLeftTab]);
+
+  // ── Voice actions for Report Draft ──────────────────────────────────────────
+  useEffect(() => {
+    if (!isOrchestrationMode) return;
+    const actions = [
+      { id: 'orch_open_draft',     phrases: ['open report draft', 'show report draft', 'go to draft'],              handler: () => setLeftTab('draft')        },
+      { id: 'orch_open_report',    phrases: ['open full report', 'show full report', 'view report'],                  handler: () => safeSetLeftTab('report')   },
+      { id: 'orch_open_sequencer', phrases: ['open sequencer', 'show sequencer', 'synoptic fields'],                  handler: () => setLeftTab('sequencer')    },
+      { id: 'orch_save_draft',     phrases: ['save draft', 'save report', 'save my work'],                           handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_SAVE_DRAFT'))        },
+      { id: 'orch_generate',       phrases: ['generate report', 'generate narrative', 'create report', 'generate'],  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_GENERATE_REPORT'))    },
+      { id: 'orch_regen',          phrases: ['regenerate report', 'regenerate all', 'redo report'],                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_REGEN_ALL'))                       },
+      { id: 'orch_next_section',   phrases: ['next section', 'go to next section'],                                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_NEXT_SECTION'))                   },
+      { id: 'orch_prev_section',   phrases: ['previous section', 'go back', 'prior section'],                         handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_PREV_SECTION'))                   },
+      { id: 'orch_section_1',      phrases: ['go to section one', 'section one', 'first section'],                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 0 } })) },
+      { id: 'orch_section_2',      phrases: ['go to section two', 'section two', 'second section'],                  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 1 } })) },
+      { id: 'orch_section_3',      phrases: ['go to section three', 'section three', 'third section'],               handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 2 } })) },
+      { id: 'orch_section_4',      phrases: ['go to section four', 'section four', 'fourth section'],                handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_JUMP_SECTION', { detail: { index: 3 } })) },
+
+      // ── Dictation actions ────────────────────────────────────────────────
+      // "Dictate [section name]" → jump cursor + register dictation target.
+      // Pathologist then activates the NavBar mic to start speaking.
+      // Section names are matched by partial label — "dictate gross" matches
+      // "Specimen & Gross Description", "dictate admin" matches "Administrative
+      // & Clinical Header", etc.
+      { id: 'orch_dictate_admin',    phrases: ['dictate administrative', 'dictate admin', 'dictate clinical header', 'dictate header'],
+        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 0 } })) },
+      { id: 'orch_dictate_gross',    phrases: ['dictate gross', 'dictate gross description', 'dictate specimen', 'dictate macroscopic'],
+        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 1 } })) },
+      { id: 'orch_dictate_synoptic', phrases: ['dictate synoptic', 'dictate synoptic summary', 'dictate summary'],
+        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 2 } })) },
+      { id: 'orch_dictate_diagnosis', phrases: ['dictate diagnosis', 'dictate ancillary', 'dictate final diagnosis', 'dictate conclusion'],
+        handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 3 } })) },
+      // Generic — "dictate section two" etc mirrors existing jump pattern
+      { id: 'orch_dictate_section_1', phrases: ['dictate section one', 'dictate first section'],   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 0 } })) },
+      { id: 'orch_dictate_section_2', phrases: ['dictate section two', 'dictate second section'],  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 1 } })) },
+      { id: 'orch_dictate_section_3', phrases: ['dictate section three', 'dictate third section'], handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 2 } })) },
+      { id: 'orch_dictate_section_4', phrases: ['dictate section four', 'dictate fourth section'], handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_DICTATE_SECTION', { detail: { sectionIndex: 3 } })) },
+      { id: 'orch_dark_mode',      phrases: ['dark mode', 'toggle dark mode', 'night mode'],                          handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_TOGGLE_DARK'))                     },
+    ];
+
+    const eventListeners: [string, EventListener][] = [];
+    actions.forEach(a => {
+      (mockActionRegistryService as any).registerAction?.({
+        id: a.id, label: a.phrases[0], phrases: a.phrases,
+        event: `PATHSCRIBE_${a.id.toUpperCase()}`, context: 'ORCHESTRATOR', category: 'Report Draft',
+      });
+      const listener = a.handler as EventListener;
+      window.addEventListener(`PATHSCRIBE_${a.id.toUpperCase()}`, listener);
+      eventListeners.push([`PATHSCRIBE_${a.id.toUpperCase()}`, listener]);
+    });
+
+    return () => eventListeners.forEach(([event, fn]) => window.removeEventListener(event, fn));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrchestrationMode, leftTab]);
+
+  // ── Handle popup blocked (Citrix/VDI/browser policy) ───────────────────────
+  useEffect(() => {
+    if (!isOrchestrationMode) return;
+    const handler = (e: Event) => {
+      const url = (e as CustomEvent).detail?.url ?? '/report-preview';
+      // Show a non-intrusive toast with actionable options
+      showToast(
+        '📋 Preview window was blocked. ' +
+        'Allow popups for this site in your browser settings, ' +
+        'or use the Synoptic Reporting tab to view the formatted report.'
+      );
+      console.info('[PathScribe] Preview window blocked by browser/Citrix policy.', { url });
+    };
+    window.addEventListener('PATHSCRIBE_PREVIEW_BLOCKED', handler);
+    return () => window.removeEventListener('PATHSCRIBE_PREVIEW_BLOCKED', handler);
+  }, [isOrchestrationMode, showToast]);
+
+  // ── Wire ORCH keyboard/voice events to page-level handlers ────────────────
+  useEffect(() => {
+    if (!isOrchestrationMode) return;
+    const saveDraft = async () => {
+      if (caseData?.id) {
+        try {
+          await caseRouter.updateCase(caseData.id, { orchSections, updatedAt: new Date().toISOString() } as any);
+          localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
+        } catch (e) { console.error(e); }
+      }
+      clearDirty();
+      showToast('Draft saved');
+    };
+    const generateReport = () => {
+      // Fire the same event that Generate Report button uses
+      window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_START_GENERATE'));
+    };
+    window.addEventListener('PATHSCRIBE_ORCH_SAVE_DRAFT',    saveDraft    as EventListener);
+    window.addEventListener('PATHSCRIBE_ORCH_GENERATE_REPORT', generateReport as EventListener);
+    return () => {
+      window.removeEventListener('PATHSCRIBE_ORCH_SAVE_DRAFT',    saveDraft    as EventListener);
+      window.removeEventListener('PATHSCRIBE_ORCH_GENERATE_REPORT', generateReport as EventListener);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrchestrationMode, caseData?.id, orchSections]);
+
   const { selectedFlag, isOpen } = useSidecar();
   React.useEffect(() => {
     if (isOpen && selectedFlag) setLeftTab('results');
@@ -430,14 +759,13 @@ const SynopticReportPage: React.FC = () => {
       return;
     }
     if (key !== initialFlagsKey.current) {
-      setHasUnsavedData(true);
+      markDirty('Flags');
       initialFlagsKey.current = key;
     }
   }); // intentionally no dep array — runs after every render but only acts when key changes
 
-  React.useEffect(() => {
-    if (hasUnsavedData && leftTab === "results") setLeftTab("report");
-  }, [hasUnsavedData, leftTab]);
+  // Note: computational tab (results) is freely accessible regardless of unsaved state.
+  // The unsaved state warning fires at finalize/navigate time instead.
 
   const guard = useCallback((path: string, state?: object) => {
     // Remap /worklist → /search when the user arrived from a search result
@@ -447,6 +775,21 @@ const SynopticReportPage: React.FC = () => {
     if (shouldWarnDirty()) { setPendingNavigation(dest); return; }
     navigate(dest, state ? { state } : undefined);
   }, [shouldWarnDirty, navSource, navigate]);
+
+  // ── Jump to field — Cannot Finalise + PreFinalisationModal ─────────────────
+  // Uses the existing scrollToField/alertFieldId mechanism in RightSynopticPanel
+  // which has fieldRefs wired to actual DOM elements via useImperativeHandle.
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const { fieldKey } = (e as CustomEvent).detail ?? {};
+      if (!fieldKey) return;
+      setLeftTab('draft');
+      // Small delay to let the tab switch render before scrolling
+      setTimeout(() => setAlertFieldId(fieldKey), 100);
+    };
+    window.addEventListener('PATHSCRIBE_JUMP_TO_FIELD', handler);
+    return () => window.removeEventListener('PATHSCRIBE_JUMP_TO_FIELD', handler);
+  }, []);
 
   React.useEffect(() => {
     const openTeam = () => setShowTeamModal(true);
@@ -527,6 +870,7 @@ const SynopticReportPage: React.FC = () => {
           specimenDesc:  specimen?.specimenType ?? specimen?.description ?? 'Specimen',
           answers, fieldLabels, fieldOrder: fieldKeys,
           answeredCount, totalCount: fieldKeys.length,
+          requiredFields: (report as any).requiredFields ?? [],
           status: (report as any).status,
         };
       });
@@ -570,7 +914,8 @@ const SynopticReportPage: React.FC = () => {
     const deferred = (caseData?.synopticReports ?? []).filter((r: any) => r.status === 'deferred');
     if (deferred.length > 0) {
       const names = deferred.map((r: any) => r.templateName).join(', ');
-      if (!window.confirm(`${deferred.length} synoptic report(s) are marked deferred:\n\n${names}\n\nProceed?`)) return;
+      // Note: deferred check handled by PreFinalisationModal advisory panel
+      console.info('[Finalise] Deferred synoptics:', names);
     }
     setPreFinalSynoptics(buildSynopticsForReview());
     setShowPreFinalise(true);
@@ -591,6 +936,43 @@ const SynopticReportPage: React.FC = () => {
       console.info('[PathScribe] Finalization sweep:', verificationSummary);
     }
     setShowFinalizeModal(false);
+
+    // ── Level 1 AI learning — capture narrative edit signals ──────────────────
+    // Record the diff between AI-generated text and pathologist's final version
+    // for each orchestration section. Stored for future few-shot / fine-tuning.
+    if (isOrchestrationMode && orchSections.length > 0) {
+      import('@/services/narrativeSignals/mockNarrativeSignalService').then(
+        async ({ mockNarrativeSignalService, computeEditRatio }) => {
+          const { deidentifySignal } = await import('@/services/narrativeSignals/deidentification');
+          const signals = orchSections
+            .filter(s => s.aiGenerated || s.text)
+            .map(s => {
+              const editRatio = computeEditRatio(s.aiGenerated, s.text);
+              const deid      = deidentifySignal(s.aiGenerated, s.text, editRatio);
+              return {
+                caseId:             caseData?.id ?? '',
+                accessionNumber:    caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '',
+                reportTemplateId:   (caseData as any)?.resolvedReportTemplateId ?? 'tmpl-gold-standard',
+                templateName:       s.label,
+                sectionId:          s.id,
+                sectionTitle:       s.label,
+                aiGeneratedClean:   deid.aiGeneratedClean,
+                finalTextClean:     deid.finalTextClean,
+                structuralEditType: deid.structuralEditType,
+                replacementCount:   deid.replacementCount,
+                editRatio,
+                wasAccepted:        s.aiGenerated === s.text && !!s.aiGenerated,
+                subspecialtyId:     (caseData as any)?.subspecialtyId,
+                studyId:            (caseData as any)?.activeStudyId,
+              };
+            });
+          mockNarrativeSignalService.recordSignals(signals).then(() => {
+            console.info(`[PathScribe] Recorded ${signals.length} de-identified signal(s)`);
+          });
+        }
+      ).catch(console.error);
+    }
+
     const activeReport = caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any;
     if (caseData?.status === 'finalized' && activeReport?.status === 'deferred') {
       const completedFields = Object.entries(activeReport.answers ?? {})
@@ -610,7 +992,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
     } else {
       showToast('Report finalized');
     }
-  }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal]);
+  }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal, isOrchestrationMode, orchSections]);
 
   const handleAmendmentSubmit = useCallback(() => {
     setShowAmendmentModal(false);
@@ -660,11 +1042,47 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
   const handleGenerateReport = useCallback(async () => {
     if (!caseData) return;
-    const engine = new OrchestratorEngine(undefined, buildContext(caseData, null) as any, buildOrchCallbacks());
-    engineRef.current = engine;
     setIsOrchestrating(true);
     setLeftTab('draft');
     try {
+      // Build context async — resolves routing rules from service
+      const ctx = await buildContext(caseData, null, signingUser);
+
+      // If the pathologist has overridden the template via Change ▾, fully
+      // re-resolve name + sections for the override — NOT just the bare
+      // templateId. OrchestratorEngine reads narrativeTemplate.sections
+      // directly (it never looks at templateId), so swapping only the ID
+      // while leaving the original template's sections in place silently
+      // generated the WRONG report content while showing the WRONG name —
+      // a real correctness bug, not just a display issue.
+      let finalCtx = ctx;
+      if (overrideTemplateId && overrideTemplateId !== ctx.narrativeTemplate.templateId) {
+        const overrideConfig = getNarrativeConfigForTemplate(overrideTemplateId);
+        finalCtx = {
+          ...ctx,
+          narrativeTemplate: {
+            templateId:          overrideConfig.templateId,
+            templateName:        overrideConfig.name,
+            orchestratorEnabled: overrideConfig.orchestratorEnabled,
+            sections: overrideConfig.sections
+              .slice()
+              .sort((a: any, b: any) => a.order - b.order)
+              .map((s: any) => ({
+                id: s.id, title: s.title, order: s.order,
+                enabled: s.enabled, aiInstruction: s.aiInstruction,
+              })),
+          },
+        };
+      }
+
+      // Capture resolved template for display — uses finalCtx so an active
+      // override is reflected in the centre pane header, not the original
+      // auto-resolved template's name.
+      setResolvedTemplateId(finalCtx.narrativeTemplate.templateId);
+      setResolvedTemplateName(finalCtx.narrativeTemplate.templateName);
+      setResolvedBy(overrideTemplateId ? 'pathologist-override' : ((ctx as any).routingResolvedBy ?? 'gold-standard'));
+      const engine = new OrchestratorEngine(undefined, finalCtx as any, buildOrchCallbacks());
+      engineRef.current = engine;
       await engine.run();
     } catch (e: any) {
       if (e?.name !== 'AbortError') showToast(`Generation failed: ${e?.message ?? 'Unknown'}`);
@@ -672,7 +1090,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
       engineRef.current = null;
       abortRef.current  = null;
     }
-  }, [caseData, buildOrchCallbacks, showToast]);
+  }, [caseData, buildOrchCallbacks, showToast, overrideTemplateId]);
 
   const handleAbortGenerate = useCallback(() => {
     engineRef.current?.cancel();
@@ -684,10 +1102,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
   const handleRegenerateSection = useCallback(async (sectionId: string) => {
     if (!caseData || isOrchestrating) return;
-    const engine = new OrchestratorEngine(undefined, buildContext(caseData, null) as any, buildOrchCallbacks());
-    engineRef.current = engine;
     setIsOrchestrating(true);
     try {
+      const ctx    = await buildContext(caseData, null, signingUser);
+      const engine = new OrchestratorEngine(undefined, ctx as any, buildOrchCallbacks());
+      engineRef.current = engine;
       await engine.regenerateSection(sectionId);
     } catch (e: any) {
       if (e?.name !== 'AbortError') showToast(`Regeneration failed: ${e?.message ?? 'Unknown'}`);
@@ -701,6 +1120,24 @@ Original report issued pending ancillary studies. This amendment incorporates th
   // ─────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────
+  // ── Case not found ─────────────────────────────────────────────────────────
+  if (isLoaded && caseNotFound) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0b1120', gap: 16 }}>
+        <div style={{ fontSize: 48 }}>🔍</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#e2e8f0' }}>Case not found</div>
+        <div style={{ fontSize: 14, color: '#64748b' }}>No case exists with ID <code style={{ color: '#38bdf8' }}>{caseId}</code></div>
+        <button
+          onClick={() => navigate('/')}
+          className="ps-btn-primary"
+          style={{ marginTop: 8 }}
+        >
+          ← Back to Worklist
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -718,8 +1155,9 @@ Original report issued pending ancillary studies. This amendment incorporates th
       }}
     >
       {/* Background */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/main_background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0, filter: 'brightness(0.3) contrast(1.1)' }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/main_background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%)', zIndex: 2 }} />
 
       {/* Toast */}
       <SaveToast message={toastMsg} visible={toastVisible} />
@@ -734,12 +1172,13 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onProfileClick={() => setIsProfileOpen(!isProfileOpen)}
         />
 
-        {/* HeaderBar */}
+        {/* HeaderBar — compact single-strip when in Report Draft (maximises editor space) */}
         <HeaderBar
           caseData={caseData}
           onNavigate={guard}
           onSignOut={() => setShowSignOutModal(true)}
           aiConfidence={92}
+          compact={isOrchestrationMode && leftTab === 'draft'}
         />
 
         {/* Alert bar */}
@@ -755,12 +1194,27 @@ Original report issued pending ancillary studies. This amendment incorporates th
           return (
             <div style={{ background: '#fef3c7', borderTop: 'none', borderBottom: '1px solid #fde047', flexShrink: 0 }}>
               <div
-                onClick={() => setAlertFieldId('scroll_to_unanswered')}
+                onClick={() => {
+                  if (isOrchestrationMode && leftTab === 'draft') {
+                    // Switch to Full Report (shows synoptic panel) then scroll to first required field
+                    // If unsaved draft, confirm first
+                    if (hasUnsavedData && orchSections.some(s => s.text)) {
+                      setPendingTabSwitch('report_and_scroll');
+                    } else {
+                      setLeftTab('report');
+                      setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
+                    }
+                  } else {
+                    setAlertFieldId('scroll_to_unanswered');
+                  }
+                }}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 40px', cursor: 'pointer', userSelect: 'none' as const }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: '#92400e', fontSize: '12px' }}>
                   ⚠️ Alert — Some required fields are incomplete.{' '}
-                  <span style={{ textDecoration: 'underline', fontWeight: 700 }}>Click to review →</span>
+                  <span style={{ textDecoration: 'underline', fontWeight: 700 }}>
+                    {isOrchestrationMode && leftTab === 'draft' ? 'Review required fields →' : 'Click to review →'}
+                  </span>
                 </div>
                 <span
                   style={{ fontSize: '12px', color: '#92400e', transform: isAlertExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', cursor: 'pointer' }}
@@ -788,6 +1242,15 @@ Original report issued pending ancillary studies. This amendment incorporates th
               activeSpecimenId={activeSpecimenId}
               onSelectSpecimen={setActiveSpecimenId}
               onAddSynoptic={() => setShowAddSynopticModal(true)}
+              onEditSpecimen={(specimenId) => {
+                const sp = caseData?.specimens?.find(s => s.id === specimenId);
+                setEditingSpecimen(sp ?? null);
+                setShowSpecimenEdit(true);
+              }}
+              onAddSpecimen={() => {
+                setEditingSpecimen(null);
+                setShowSpecimenEdit(true);
+              }}
               onOpenCaseComment={() => setShowCaseCommentModal(true)}
               onOpenSpecimenComment={(id) => { setActiveSpecimenCommentId(id); setShowSpecimenCommentModal(true); }}
               hasCaseComment={hasCaseComment}
@@ -802,7 +1265,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 const remaining = (caseData.synopticReports ?? []).filter(r => r.instanceId !== instanceId);
                 const updated: Case = { ...caseData, synopticReports: remaining, updatedAt: new Date().toISOString() };
                 setCaseData(updated);
-                setHasUnsavedData(true);
+                markDirty('Synoptic reports');
                 if (activeReportInstanceId === instanceId) {
                   setActiveReportInstanceId(remaining[0]?.instanceId ?? '');
                   setActiveSpecimenId(remaining[0]?.specimenId ?? '');
@@ -865,9 +1328,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
               {(['draft', 'report', 'results'] as const)
                 .filter(tab => tab !== 'draft' || isOrchestrationMode)
                 .map(tab => {
-                const label = tab === 'draft' ? '✍️ Report Draft' : tab === 'report' ? '📋 Full Report' : '⚗️ Computational';
+                const label = tab === 'draft' ? '✍️ Report Draft' : tab === 'report' ? '📑 Synoptic Reporting' : '⚗️ Computational';
                 const isActive = leftTab === tab;
                 const hasResult = tab === 'results' && caseComputationalFlags.length > 0;
+                const st2 = caseData?.status ?? 'draft';
+                const dot2Color = st2 === 'finalized' ? '#10b981'
+                  : st2 === 'pending-review' || st2 === 'pending-countersign' ? '#f59e0b'
+                  : st2 === 'in-progress' ? '#60a5fa'
+                  : '#3b82f6'; // draft = blue
                 return (
                   <button
                     key={tab}
@@ -886,6 +1354,17 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; }}
                   >
                     {label}
+                    {tab === 'draft' && isOrchestrationMode && (
+                      <span
+                        title={`Report status: ${String(st2)}`}
+                        style={{
+                          display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                          background: dot2Color, flexShrink: 0,
+                          border: `1.5px solid ${dot2Color}`,
+                          boxShadow: `0 0 5px ${dot2Color}`,
+                        }}
+                      />
+                    )}
                     {hasResult && (
                       <span style={{
                         fontSize: 10, fontWeight: 600,
@@ -900,8 +1379,32 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 );
               })}
 
-              {/* Sequencer — modal trigger, visually distinct from tabs */}
-              <div style={{ marginLeft: 'auto', padding: '0 10px', display: 'flex', alignItems: 'center' }}>
+              {/* Sequencer + DEV tools — right side of tab bar.
+                  Hidden in Orchestration draft mode — these move into the
+                  centre Full Report pane's own header there instead, since
+                  they're document-level controls, not tab-bar navigation. */}
+              {!(isOrchestrationMode && leftTab === 'draft') && (
+              <div style={{ marginLeft: 'auto', padding: '0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {import.meta.env.DEV && caseData && (
+                  <button
+                    onClick={() => handleProtocolChangesDetected([{
+                      id: 'demo-proto-1',
+                      specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
+                      specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
+                      specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                      currentTemplateId:    'breast_core_general',
+                      currentTemplateName:  'Breast Core Biopsy (General)',
+                      proposedTemplateId:   'breast_invasive_carcinoma',
+                      proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                      reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
+                      confidence:           92,
+                    }])}
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+                    title="DEV: Simulate microscopic slide received"
+                  >
+                    ⚡ Sim Microscopic
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSequencer(true)}
                   title="Open report sequencer"
@@ -919,35 +1422,166 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   🔀 Sequencer ↗
                 </button>
               </div>
+              )}
+
             </div>
 
             {/* Tab content */}
             <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-              {/* Report Draft — Orchestrator output */}
-              <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none', flexDirection: 'column' }}>
-                <OrchestratorReportPanel
-                  sections={orchSections}
-                  isGenerating={isOrchestrating}
-                  lastGeneratedAt={lastGeneratedAt}
-                  onSectionChange={(id, html) => setOrchSections(prev =>
-                    prev.map(s => s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s)
-                  )}
-                  onAcceptDraft={id => setOrchSections(prev =>
-                    prev.map(s => s.id === id && s.pendingDraft != null
-                      ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
-                      : s)
-                  )}
-                  onKeepVersion={id => setOrchSections(prev =>
-                    prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
-                  )}
-                  onRegenerateSection={handleRegenerateSection}
-                />
+              {/* Report Draft — three-column Orchestration layout (O26- cases only)
+                  Navigator (foldable) | Full Report (centre, read-only) | Section Editor (right)
+                  All three share activeSectionId — clicking in any pane updates the other two. */}
+              {isOrchestrationMode && (
+              <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none', background: '#0b1120' }}>
+
+                {/* ── CENTRE: Full Report — read-only formatted preview ───────
+                    Has its own sticky header for document-level controls:
+                    template identity/selector, Sim Microscopic, Sequencer,
+                    Print. These are properties of the DOCUMENT, not the
+                    editor — they don't belong in the right-hand editor's
+                    toolbar, which is reserved for editing actions only. */}
+                <div className="ps-ose-centre-pane-wrap">
+                  <div className="ps-ose-centre-header">
+                    <div className="ps-ose-centre-header-left">
+                      <span className="ps-ose-centre-tmpl-name">{resolvedTemplateName ?? 'Gold Standard — General Surgical Pathology'}</span>
+                      <span className="ps-ose-centre-tmpl-by">
+                        {overrideTemplateId ? 'pathologist override' : `by ${(resolvedBy ?? 'gold-standard').replace(/-/g, ' ')}`}
+                      </span>
+                      <div className="ps-ose-tmpl-change-wrap">
+                        <button className="ps-ose-centre-btn" onClick={() => setShowCentreTemplatePicker(v => !v)}>Change ▾</button>
+                        {showCentreTemplatePicker && (
+                          <div className="ps-ose-tmpl-picker">
+                            <div className="ps-ose-tmpl-picker-title">Select report template</div>
+                            {orchSections.some(s => s.text) && (
+                              <div className="ps-ose-tmpl-picker-warn">⚠️ Changing template will regenerate all sections.</div>
+                            )}
+                            {centreTemplates.map(t => (
+                              <div
+                                key={t.id}
+                                className={`ps-ose-tmpl-option${(overrideTemplateId ?? '') === t.id ? ' ps-ose-tmpl-option--active' : ''}`}
+                                onClick={() => { setOverrideTemplateId(t.id); setShowCentreTemplatePicker(false); }}
+                              >
+                                <span className="ps-ose-tmpl-option-name">{t.name}</span>
+                                {t.specialty && <span className="ps-ose-tmpl-option-meta">{t.specialty}</span>}
+                              </div>
+                            ))}
+                            <div className="ps-ose-tmpl-option" onClick={() => { setOverrideTemplateId(null); setShowCentreTemplatePicker(false); }}>
+                              <span className="ps-ose-tmpl-option-name">↺ System-resolved</span>
+                              <span className="ps-ose-tmpl-option-meta">{resolvedTemplateName ?? 'Gold Standard'}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ps-ose-centre-header-right">
+                      {import.meta.env.DEV && caseData && (
+                        <button
+                          className="ps-ose-centre-btn ps-ose-centre-btn--sim"
+                          onClick={() => handleProtocolChangesDetected([{
+                            id: 'demo-proto-1',
+                            specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
+                            specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
+                            specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                            currentTemplateId:    'breast_core_general',
+                            currentTemplateName:  'Breast Core Biopsy (General)',
+                            proposedTemplateId:   'breast_invasive_carcinoma',
+                            proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                            reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
+                            confidence:           92,
+                          }])}
+                          title="DEV: Simulate microscopic slide received"
+                        >⚡ Sim Microscopic</button>
+                      )}
+                      <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title="Open report sequencer">
+                        🔀 Sequencer ↗
+                      </button>
+                      <button className="ps-ose-centre-btn" onClick={handleOrchPrint} title="Print report">
+                        🖨 Print
+                      </button>
+                    </div>
+                  </div>
+                  <div className="ps-ose-centre-pane">
+                    <ReportPreviewRenderer
+                      sections={orchSections}
+                      caseData={caseData}
+                      templateName={resolvedTemplateName}
+                      resolvedBy={resolvedBy}
+                      activeSectionId={activeSectionId}
+                      onSectionClick={setActiveSectionId}
+                    />
+                  </div>
+                </div>
+
+                {/* ── RIGHT: Section editor ────────────────────────────────── */}
+                <div className="ps-ose-right-pane">
+                  <OrchestratorSectionEditor
+                    tabWidthChars={tabWidthChars}
+                    onTabWidthChange={handleTabWidthChange}
+                    sections={orchSections}
+                    isGenerating={isOrchestrating}
+                    lastGeneratedAt={lastGeneratedAt}
+                    caseData={caseData}
+                    resolvedTemplateName={resolvedTemplateName}
+                    resolvedBy={resolvedBy}
+                    overrideTemplateId={overrideTemplateId}
+                    onOverrideTemplate={setOverrideTemplateId}
+                    activeSectionId={activeSectionId}
+                    onActiveSectionChange={setActiveSectionId}
+                    onSectionChange={(id, html) => {
+                      const updated = orchSections.map(s =>
+                        s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s
+                      );
+                      setOrchSections(updated);
+                    }}
+                    onAcceptSection={(id, finalText) => setOrchSections(prev =>
+                      prev.map(s => s.id === id
+                        ? { ...s, text: finalText, userEdited: true } // explicit Accept — always commits, no text-equality guessing
+                        : s)
+                    )}
+                    onAcceptDraft={id => setOrchSections(prev =>
+                      prev.map(s => s.id === id && s.pendingDraft != null
+                        ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
+                        : s)
+                    )}
+                    onKeepVersion={id => setOrchSections(prev =>
+                      prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
+                    )}
+                    onRegenerateSection={handleRegenerateSection}
+                    onAcceptAll={() => setOrchSections(prev =>
+                      prev.map(s =>
+                        s.aiGenerated && !s.userEdited && !s.committed
+                          ? { ...s, userEdited: true }
+                          : s
+                      )
+                    )}
+                  />
+                </div>
               </div>
+              )}
 
               {/* Sequencer — now a modal, triggered by tab button */}
               <SequencerPanel
                 show={showSequencer}
                 onClose={() => setShowSequencer(false)}
+                onSave={(specimenOrder, synopticOrders) => {
+                  setCaseData(prev => {
+                    if (!prev) return prev;
+                    // Reorder specimens
+                    const specimenMap = Object.fromEntries((prev.specimens ?? []).map(s => [s.id, s]));
+                    const reorderedSpecimens = specimenOrder.map(id => specimenMap[id]).filter(Boolean);
+                    // Reorder synoptic reports within each specimen
+                    const synopticMap = Object.fromEntries(((prev as any).synopticReports ?? []).map((r: any) => [r.instanceId, r]));
+                    const reorderedReports: any[] = [];
+                    specimenOrder.forEach(spId => {
+                      (synopticOrders[spId] ?? []).forEach(instId => {
+                        if (synopticMap[instId]) reorderedReports.push(synopticMap[instId]);
+                      });
+                    });
+                    return { ...prev, specimens: reorderedSpecimens, synopticReports: reorderedReports } as any;
+                  });
+                  markDirty('Report sequence');
+                  showToast('Sequence saved');
+                }}
                 caseData={caseData}
                 activeReportInstanceId={activeReportInstanceId}
                 onSelectReport={(instanceId, specimenId) => {
@@ -983,8 +1617,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
             </div>
           </div>
 
-          {/* Expand button */}
-          <div style={{ position: 'relative', width: 0, zIndex: 200, display: 'flex', alignItems: 'center' }}>
+          {/* Expand button — hidden in orchestration draft mode */}
+          <div style={{ position: 'relative', width: 0, zIndex: 200, display: isOrchestrationMode && leftTab === 'draft' ? 'none' : 'flex', alignItems: 'center' }}>
             <button
               onClick={() => setPanelMode(m => m ? null : 'expanded')}
               title="Full-screen review mode"
@@ -1001,8 +1635,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
             >⤢</button>
           </div>
 
-          {/* Right panel */}
-          <div style={{ flex: 1, minWidth: 0, background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Right panel — hidden in orchestration draft mode (Sequencer provides synoptic access) */}
+          <div style={{
+            flex: isOrchestrationMode && leftTab === 'draft' ? '0 0 0px' : 1,
+            minWidth: 0,
+            background: 'rgba(15,23,42,0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            visibility: isOrchestrationMode && leftTab === 'draft' ? 'hidden' : 'visible',
+          }}>
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <RightSynopticPanel
                 ref={synopticPanelRef}
@@ -1010,7 +1652,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 activeTab={activeTab}
                 activeReportInstanceId={activeReportInstanceId}
                 onReportInstanceChange={setActiveReportInstanceId}
-                onCaseUpdate={(updated) => { setCaseData(updated); setHasUnsavedData(true); }}
+                onCaseUpdate={(updated) => { setCaseData(updated); markDirty('Synoptic fields'); }}
                 isDirty={hasUnsavedData}
                 scrollToField={alertFieldId}
                 onScrollComplete={() => setAlertFieldId(null)}
@@ -1105,7 +1747,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, background: 'rgba(10,16,32,0.6)' }}>
                     {(['draft', 'sequencer', 'report', 'results'] as const).map(tab => {
                       const isActive = leftTab === tab;
-                      const label    = tab === 'draft' ? '✍️ Report Draft' : tab === 'sequencer' ? '🔀 Sequencer' : tab === 'report' ? '📋 Full Report' : '⚗️ Computational';
+                      const label    = tab === 'draft' ? '✍️ Report Draft' : tab === 'sequencer' ? '🔀 Sequencer' : tab === 'report' ? '📑 Synoptic Reporting' : '⚗️ Computational';
+                      // Status dot for Full Report tab — colour reflects case status
+                      const st = caseData?.status ?? 'draft';
+                      const statusDotColor = st === 'finalized' ? '#10b981'
+                        : st === 'pending-review' || st === 'pending-countersign' ? '#f59e0b'
+                        : st === 'in-progress' ? '#60a5fa'
+                        : '#3b82f6'; // draft = blue
+                      const statusLabel = String(st);
                       return (
                         <button key={tab} onClick={() => setLeftTab(tab)} style={{
                           padding: '9px 18px', fontSize: 12,
@@ -1120,6 +1769,20 @@ Original report issued pending ancillary studies. This amendment incorporates th
                           onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; }}
                         >
                           {label}
+                          {/* Status dot on Full Report tab — after label, visible on all states */}
+                          {tab === 'report' && (
+                            <span
+                              title={`Report status: ${statusLabel}`}
+                              style={{
+                                display: 'inline-block',
+                                width: 8, height: 8, borderRadius: '50%',
+                                background: statusDotColor,
+                                border: `1.5px solid ${statusDotColor}`,
+                                flexShrink: 0,
+                                boxShadow: `0 0 5px ${statusDotColor}`,
+                              }}
+                            />
+                          )}
                           {tab === 'results' && caseComputationalFlags.length > 0 && (
                             <span style={{
                               fontSize: 10, fontWeight: 600,
@@ -1133,29 +1796,145 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     })}
                   </div>
                   <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none', flexDirection: 'column' }}>
-                      <OrchestratorReportPanel
-                        sections={orchSections}
-                        isGenerating={isOrchestrating}
-                        lastGeneratedAt={lastGeneratedAt}
-                        onSectionChange={(id, html) => setOrchSections(prev =>
-                          prev.map(s => s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s)
-                        )}
-                        onAcceptDraft={id => setOrchSections(prev =>
-                          prev.map(s => s.id === id && s.pendingDraft != null
-                            ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
-                            : s)
-                        )}
-                        onKeepVersion={id => setOrchSections(prev =>
-                          prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
-                        )}
-                        onRegenerateSection={handleRegenerateSection}
-                      />
+                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none' }}>
+                      <div className="ps-ose-centre-pane-wrap">
+                        <div className="ps-ose-centre-header">
+                          <div className="ps-ose-centre-header-left">
+                            <span className="ps-ose-centre-tmpl-name">{resolvedTemplateName ?? 'Gold Standard — General Surgical Pathology'}</span>
+                            <span className="ps-ose-centre-tmpl-by">
+                              {overrideTemplateId ? 'pathologist override' : `by ${(resolvedBy ?? 'gold-standard').replace(/-/g, ' ')}`}
+                            </span>
+                            <div className="ps-ose-tmpl-change-wrap">
+                              <button className="ps-ose-centre-btn" onClick={() => setShowCentreTemplatePicker(v => !v)}>Change ▾</button>
+                              {showCentreTemplatePicker && (
+                                <div className="ps-ose-tmpl-picker">
+                                  <div className="ps-ose-tmpl-picker-title">Select report template</div>
+                                  {orchSections.some(s => s.text) && (
+                                    <div className="ps-ose-tmpl-picker-warn">⚠️ Changing template will regenerate all sections.</div>
+                                  )}
+                                  {centreTemplates.map(t => (
+                                    <div
+                                      key={t.id}
+                                      className={`ps-ose-tmpl-option${(overrideTemplateId ?? '') === t.id ? ' ps-ose-tmpl-option--active' : ''}`}
+                                      onClick={() => { setOverrideTemplateId(t.id); setShowCentreTemplatePicker(false); }}
+                                    >
+                                      <span className="ps-ose-tmpl-option-name">{t.name}</span>
+                                      {t.specialty && <span className="ps-ose-tmpl-option-meta">{t.specialty}</span>}
+                                    </div>
+                                  ))}
+                                  <div className="ps-ose-tmpl-option" onClick={() => { setOverrideTemplateId(null); setShowCentreTemplatePicker(false); }}>
+                                    <span className="ps-ose-tmpl-option-name">↺ System-resolved</span>
+                                    <span className="ps-ose-tmpl-option-meta">{resolvedTemplateName ?? 'Gold Standard'}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ps-ose-centre-header-right">
+                            {import.meta.env.DEV && caseData && (
+                              <button
+                                className="ps-ose-centre-btn ps-ose-centre-btn--sim"
+                                onClick={() => handleProtocolChangesDetected([{
+                                  id: 'demo-proto-1',
+                                  specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
+                                  specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
+                                  specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                                  currentTemplateId:    'breast_core_general',
+                                  currentTemplateName:  'Breast Core Biopsy (General)',
+                                  proposedTemplateId:   'breast_invasive_carcinoma',
+                                  proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                                  reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
+                                  confidence:           92,
+                                }])}
+                                title="DEV: Simulate microscopic slide received"
+                              >⚡ Sim Microscopic</button>
+                            )}
+                            <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title="Open report sequencer">
+                              🔀 Sequencer ↗
+                            </button>
+                            <button className="ps-ose-centre-btn" onClick={handleOrchPrint} title="Print report">
+                              🖨 Print
+                            </button>
+                          </div>
+                        </div>
+                        <div className="ps-ose-centre-pane">
+                          <ReportPreviewRenderer
+                            sections={orchSections}
+                            caseData={caseData}
+                            templateName={resolvedTemplateName}
+                            resolvedBy={resolvedBy}
+                            activeSectionId={activeSectionId}
+                            onSectionClick={setActiveSectionId}
+                          />
+                        </div>
+                      </div>
+                      <div className="ps-ose-right-pane">
+                        <OrchestratorSectionEditor
+                    tabWidthChars={tabWidthChars}
+                    onTabWidthChange={handleTabWidthChange}
+                          sections={orchSections}
+                          isGenerating={isOrchestrating}
+                          lastGeneratedAt={lastGeneratedAt}
+                          caseData={caseData}
+                          resolvedTemplateName={resolvedTemplateName}
+                          resolvedBy={resolvedBy}
+                          overrideTemplateId={overrideTemplateId}
+                          onOverrideTemplate={setOverrideTemplateId}
+                          activeSectionId={activeSectionId}
+                          onActiveSectionChange={setActiveSectionId}
+                          onSectionChange={(id, html) => {
+                            const updated = orchSections.map(s =>
+                              s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s
+                            );
+                            setOrchSections(updated);
+                          }}
+                          onAcceptSection={(id, finalText) => setOrchSections(prev =>
+                            prev.map(s => s.id === id
+                              ? { ...s, text: finalText, userEdited: true }
+                              : s)
+                          )}
+                          onAcceptDraft={id => setOrchSections(prev =>
+                            prev.map(s => s.id === id && s.pendingDraft != null
+                              ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
+                              : s)
+                          )}
+                          onKeepVersion={id => setOrchSections(prev =>
+                            prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
+                          )}
+                          onRegenerateSection={handleRegenerateSection}
+                          onAcceptAll={() => setOrchSections(prev =>
+                            prev.map(s =>
+                              s.aiGenerated && !s.userEdited && !s.committed
+                                ? { ...s, userEdited: true }
+                                : s
+                            )
+                          )}
+                        />
+                      </div>
                     </div>
                     <div style={{ position: 'absolute', inset: 0, display: leftTab === 'sequencer' ? 'flex' : 'none', flexDirection: 'column' }}>
                       <SequencerPanel
                         show={leftTab === 'sequencer'}
                         onClose={() => setLeftTab('report')}
+                        onSave={(specimenOrder, synopticOrders) => {
+                  setCaseData(prev => {
+                    if (!prev) return prev;
+                    // Reorder specimens
+                    const specimenMap = Object.fromEntries((prev.specimens ?? []).map(s => [s.id, s]));
+                    const reorderedSpecimens = specimenOrder.map(id => specimenMap[id]).filter(Boolean);
+                    // Reorder synoptic reports within each specimen
+                    const synopticMap = Object.fromEntries(((prev as any).synopticReports ?? []).map((r: any) => [r.instanceId, r]));
+                    const reorderedReports: any[] = [];
+                    specimenOrder.forEach(spId => {
+                      (synopticOrders[spId] ?? []).forEach(instId => {
+                        if (synopticMap[instId]) reorderedReports.push(synopticMap[instId]);
+                      });
+                    });
+                    return { ...prev, specimens: reorderedSpecimens, synopticReports: reorderedReports } as any;
+                  });
+                  markDirty('Report sequence');
+                  showToast('Sequence saved');
+                }}
                         caseData={caseData}
                         activeReportInstanceId={activeReportInstanceId}
                         onSelectReport={(instanceId, specimenId) => {
@@ -1206,7 +1985,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     activeTab={activeTab}
                     activeReportInstanceId={activeReportInstanceId}
                     onReportInstanceChange={setActiveReportInstanceId}
-                    onCaseUpdate={(updated) => { setCaseData(updated); setHasUnsavedData(true); }}
+                    onCaseUpdate={(updated) => { setCaseData(updated); markDirty('Synoptic fields'); }}
                     scrollToField={alertFieldId}
                     onScrollComplete={() => setAlertFieldId(null)}
                     onHighlight={setHighlightText}
@@ -1217,43 +1996,57 @@ Original report issued pending ancillary studies. This amendment incorporates th
           );
         })()}
 
-        {/* DEV only: simulate microscopic received → triggers protocol review */}
-        {import.meta.env.DEV && caseData && (
-          <div style={{ position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
-            <button
-              onClick={() => handleProtocolChangesDetected([{
-                id: 'demo-proto-1',
-                specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
-                specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
-                specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
-                currentTemplateId:    'breast_core_general',
-                currentTemplateName:  'Breast Core Biopsy (General)',
-                proposedTemplateId:   'breast_invasive_carcinoma',
-                proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
-                reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
-                confidence:           92,
-              }])}
-              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b', cursor: 'pointer', fontWeight: 600 }}
-            >
-              ⚡ DEV: Simulate Microscopic Received
-            </button>
-          </div>
-        )}
         {/* Bottom action bar */}
         <BottomActionBar
           caseData={caseData}
           isDirty={hasUnsavedData}
-          onSaveDraft={() => { setHasUnsavedData(false); showToast('Draft saved'); }}
-          onSaveAndNext={() => { setHasUnsavedData(false); showToast('Draft saved'); navigateToCase('next'); }}
+          onSaveDraft={async () => {
+            if (isOrchestrationMode && caseData?.id) {
+              try {
+                await caseRouter.updateCase(caseData.id, {
+                  orchSections,
+                  updatedAt: new Date().toISOString(),
+                } as any);
+                // Also persist to localStorage as immediate backup
+                localStorage.setItem(
+                  `ps_orch_sections_${caseData.id}`,
+                  JSON.stringify(orchSections)
+                );
+              } catch (e) {
+                console.error('Failed to persist orchSections:', e);
+              }
+            }
+            clearDirty();
+            showToast('Draft saved');
+          }}
+          onSaveAndNext={async () => {
+            if (isOrchestrationMode && caseData?.id) {
+              try {
+                await caseRouter.updateCase(caseData.id, {
+                  orchSections,
+                  updatedAt: new Date().toISOString(),
+                } as any);
+                localStorage.setItem(
+                  `ps_orch_sections_${caseData.id}`,
+                  JSON.stringify(orchSections)
+                );
+              } catch (e) {
+                console.error('Failed to persist orchSections:', e);
+              }
+            }
+            clearDirty();
+            showToast('Draft saved');
+            navigateToCase('next');
+          }}
           onFinalize={() => handleRequestFinalize(false)}
           onFinalizeAndNext={() => handleRequestFinalize(true)}
-          onSignOut={() => { if (caseData?.reportingMode !== 'copilot') setShowSignOutModal(true); }}
+          onSignOut={() => { if (caseData?.reportingMode !== 'assisted') setShowSignOutModal(true); }}
           
           onHistory={() => setIsSimilarCasesOpen(true)}
-          onFlags={() => openFlagManager(caseData)}
+          onFlags={() => { openFlagManager(caseData); log('flag_manager_opened', { caseId: caseId ?? '' }); }}
           onDelegate={() => setShowDelegateModal(true)}
-          onTeam={() => setShowTeamModal(true)}
-          onCodes={() => setShowCodesModal(true)}
+          onTeam={() => { setShowTeamModal(true); log('team_modal_opened', { caseId: caseId ?? '' }); }}
+          onCodes={() => { setShowCodesModal(true); log('codes_modal_opened', { caseId: caseId ?? '' }); }}
           onNextCase={() => { if (shouldWarnDirty()) { setPendingNavigation('next'); } else { navigateToCase('next'); } }}
           onPreviousCase={() => { if (shouldWarnDirty()) { setPendingNavigation('prev'); } else { navigateToCase('prev'); } }}
           onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
@@ -1294,45 +2087,43 @@ Original report issued pending ancillary studies. This amendment incorporates th
       )}
 
       {showMissingWarning && (
-        <div
-          onClick={() => setShowMissingWarning(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: 520, background: '#0f172a', borderRadius: 16, border: '1px solid rgba(239,68,68,0.3)', boxShadow: '0 25px 60px rgba(0,0,0,0.6)', overflow: 'hidden' }}
-          >
-            <div style={{ padding: '18px 24px', background: 'rgba(239,68,68,0.08)', borderBottom: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 22 }}>⚠️</span>
+        <div className="ps-cannot-fin-overlay" onClick={() => setShowMissingWarning(false)}>
+          <div className="ps-cannot-fin-modal" onClick={e => e.stopPropagation()}>
+            <div className="ps-cannot-fin-header">
+              <span className="ps-cannot-fin-header-icon">⚠️</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Cannot Finalise</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Required Fields Incomplete</div>
+                <div className="ps-cannot-fin-header-tag">Cannot Finalise</div>
+                <div className="ps-cannot-fin-header-title">Required Fields Incomplete</div>
               </div>
             </div>
-            <div style={{ padding: '20px 24px' }}>
-              <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
+            <div className="ps-cannot-fin-body">
+              <p className="ps-cannot-fin-desc">
                 The following required fields must be completed before this report can be finalised:
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
+              <div className="ps-cannot-fin-list">
                 {missingFields.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 8 }}>
-                    <span style={{ fontSize: 14, color: '#f87171', flexShrink: 0 }}>✗</span>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#fca5a5' }}>{f.fieldLabel}</div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>{f.sectionTitle}</div>
+                  <button
+                    key={i}
+                    className="ps-cannot-fin-card"
+                    title="Click to jump to this field"
+                    onClick={() => {
+                      setShowMissingWarning(false);
+                      if (isOrchestrationMode) setLeftTab('draft');
+                      setTimeout(() => setAlertFieldId(f.fieldId), 100);
+                    }}
+                  >
+                    <span className="ps-cannot-fin-card-x">✗</span>
+                    <div className="ps-cannot-fin-card-body">
+                      <div className="ps-cannot-fin-card-label">{f.fieldLabel}</div>
+                      <div className="ps-cannot-fin-card-section">{f.sectionTitle}</div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
-            <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>{missingFields.length} field{missingFields.length !== 1 ? 's' : ''} need attention</span>
-              <button
-                onClick={() => setShowMissingWarning(false)}
-                style={{ padding: '9px 20px', borderRadius: 8, background: '#0891B2', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'background 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#0e7490')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#0891B2')}
-              >
+            <div className="ps-cannot-fin-footer">
+              <span className="ps-cannot-fin-footer-count">{missingFields.length} field{missingFields.length !== 1 ? 's' : ''} need attention</span>
+              <button className="ps-btn-primary" onClick={() => setShowMissingWarning(false)}>
                 Return and Fix
               </button>
             </div>
@@ -1343,9 +2134,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
       {/* Pre-finalisation review — two-pane: specimen list + Q&A preview + signing */}
       <PreFinalisationModal
         show={showPreFinalise}
+        onJumpToField={(instanceId, fieldKey) => {
+          setShowPreFinalise(false);
+          setLeftTab('draft');
+          setTimeout(() => setAlertFieldId(fieldKey), 100);
+        }}
         caseAccession={caseData?.accession?.fullAccession ?? ''}
         patientName={`${caseData?.patient?.firstName ?? ''} ${caseData?.patient?.lastName ?? ''}`.trim()}
-        reportingMode={caseData?.reportingMode === 'copilot' ? 'copilot' : 'pathscribe'}
+        reportingMode={caseData?.reportingMode === 'assisted' ? 'assisted' : 'pathscribe'}
         synoptics={preFinalSynoptics}
         userId={(caseData as any)?.order?.assignedTo ?? 'current'}
         userDisplayName={(caseData as any)?.assignedPathologistName ?? 'Pathologist'}
@@ -1397,6 +2193,32 @@ Original report issued pending ancillary studies. This amendment incorporates th
         onConfirm={() => { setShowLogoutModal(false); handleLogout(); }}
       />
 
+      {showSpecimenEdit && caseData && (
+        <SpecimenEditModal
+          specimen={editingSpecimen}
+          nextLabel={String.fromCharCode(65 + (caseData.specimens?.length ?? 0))}
+          existingSpecimens={caseData.specimens ?? []}
+          isOrchestrationMode={isOrchestrationMode}
+          onClose={() => { setShowSpecimenEdit(false); setEditingSpecimen(null); }}
+          onSave={(saved) => {
+            setCaseData(prev => {
+              if (!prev) return prev;
+              const existing = (prev.specimens ?? []).findIndex(s => s.id === saved.id);
+              const next = existing >= 0
+                ? (prev.specimens ?? []).map(s => s.id === saved.id ? saved : s)
+                : [...(prev.specimens ?? []), saved];
+              const updated = { ...prev, specimens: next };
+              // Persist to mock/Firestore via existing updateCase — no new service needed
+              caseRouter.updateCase(prev.id, { specimens: next }).catch(console.error);
+              return updated;
+            });
+            markDirty('Specimens');
+            setShowSpecimenEdit(false);
+            setEditingSpecimen(null);
+          }}
+        />
+      )}
+
       {showAddSynopticModal && (
         <AddSynopticModal
           caseData={caseData}
@@ -1404,7 +2226,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onClose={() => setShowAddSynopticModal(false)}
           onAdd={(newInstances, updatedCase) => {
             setCaseData(updatedCase);
-            setHasUnsavedData(true);
+            markDirty('Synoptic reports');
             setActiveReportInstanceId(newInstances[0].instanceId);
             setActiveSpecimenId(newInstances[0].specimenId);
           }}
@@ -1419,7 +2241,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
             setCaseCommentAttending(html);
             setHasCaseComment(!!html && html !== '<p></p>');
             if (caseData?.id) localStorage.setItem(`ps_case_comment_${caseData.id}`, html);
-            setHasUnsavedData(true);
+            markDirty('Case comment');
           }}
           onClose={() => setShowCaseCommentModal(false)}
         />
@@ -1437,7 +2259,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           isFinalized={false}
           onChange={(html) => {
             setSpecimenComments(prev => ({ ...prev, [activeSpecimenCommentId]: html }));
-            setHasUnsavedData(true);
+            markDirty('Specimen comment');
           }}
           onClose={() => setShowSpecimenCommentModal(false)}
         />
@@ -1489,7 +2311,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 snomed: [...((prev as any).coding?.snomed ?? []), ...newSnomed],
               },
             } : prev);
-            setHasUnsavedData(true);
+            markDirty('Codes');
             setShowCodesModal(false);
           }}
           onClose={() => setShowCodesModal(false)}
@@ -1528,7 +2350,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         <CaseTeamModal
           caseData={caseData}
           onClose={() => setShowTeamModal(false)}
-          onUpdated={(updated) => { setCaseData(updated); setHasUnsavedData(true); }}
+          onUpdated={(updated) => { setCaseData(updated); markDirty('Case data'); }}
           onDelegate={() => { setShowTeamModal(false); setDelegateReturnTo('team'); setShowDelegateModal(true); }}
         />
       )}
@@ -1556,15 +2378,79 @@ Original report issued pending ancillary studies. This amendment incorporates th
         />
       )}
 
+      {/* Tab-switch unsaved draft confirmation — orchestration mode only */}
+      {pendingTabSwitch && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 60000,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#1e293b', border: '1px solid rgba(148,163,184,0.2)',
+            borderRadius: 12, padding: '28px 32px', maxWidth: 420, width: '90%',
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
+              Unsaved draft changes
+            </div>
+            <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24, lineHeight: 1.6 }}>
+              You have unsaved changes in the report draft. Would you like to save before switching tabs?
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setPendingTabSwitch(null)}
+                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 6, color: '#64748b', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  const dest = pendingTabSwitch;
+                  setPendingTabSwitch(null);
+                  // Discard and switch
+                  clearDirty();
+                  const tab = dest === 'report_and_scroll' ? 'report' : dest as any;
+                  setLeftTab(tab);
+                  if (dest === 'report_and_scroll') {
+                    setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
+                  }
+                }}
+                style={{ padding: '8px 16px', background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 6, color: '#cbd5e1', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >Discard &amp; Switch</button>
+              <button
+                onClick={async () => {
+                  // Save then switch
+                  const dest = pendingTabSwitch;
+                  setPendingTabSwitch(null);
+                  if (caseData?.id) {
+                    try {
+                      await caseRouter.updateCase(caseData.id, { orchSections, updatedAt: new Date().toISOString() } as any);
+                      localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
+                    } catch (e) { console.error(e); }
+                  }
+                  clearDirty();
+                  showToast('Draft saved');
+                  const tab = dest === 'report_and_scroll' ? 'report' : dest as any;
+                  setLeftTab(tab);
+                  if (dest === 'report_and_scroll') {
+                    setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
+                  }
+                }}
+                style={{ padding: '8px 16px', background: 'rgba(8,145,178,0.2)', border: '1px solid rgba(8,145,178,0.4)', borderRadius: 6, color: '#38bdf8', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              >Save &amp; Switch</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <UnsavedWarningModal
         show={!!pendingNavigation || !!pendingPath}
         overlayStyle={overlayStyle}
+        dirtySections={Array.from(dirtySections)}
         onCancel={() => {
           setPendingNavigation(null);
           cancelContextNavigate();
         }}
-        onConfirm={() => {
-          setHasUnsavedData(false);
+        onSaveAndLeave={() => {
+          clearDirty();
+          showToast('Draft saved');
           if (pendingPath) confirmContextNavigate();
           const dest = pendingNavigation;
           setPendingNavigation(null);
@@ -1574,7 +2460,19 @@ Original report issued pending ancillary studies. This amendment incorporates th
             if (backPath === '/search') sessionStorage.setItem('pathscribe:searchReturn', '1');
             navigate(backPath);
           }
-          // backPath is '/search' or '/worklist' depending on navSource
+          else if (dest) navigate(dest);
+        }}
+        onConfirm={() => {
+          clearDirty();
+          if (pendingPath) confirmContextNavigate();
+          const dest = pendingNavigation;
+          setPendingNavigation(null);
+          if (dest === 'next') navigateToCase('next');
+          else if (dest === 'prev') navigateToCase('prev');
+          else if (dest === '__back__') {
+            if (backPath === '/search') sessionStorage.setItem('pathscribe:searchReturn', '1');
+            navigate(backPath);
+          }
           else if (dest) navigate(dest);
         }}
       />

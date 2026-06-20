@@ -19,6 +19,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
@@ -640,7 +641,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   return ReactDOM.createPortal(
     <div
       onClick={onClose}
-      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:22000, display:'flex', alignItems:'center', justifyContent:'center' }}
+      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:31000, display:'flex', alignItems:'center', justifyContent:'center' }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -824,6 +825,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
   const userId = user?.id ?? 'u1';
+  const { log } = useAuditLog();
 
   // ─── Load inbox ─────────────────────────────────────────────────────────────
   const loadInbox = useCallback(async () => {
@@ -891,6 +893,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     const result = await messageService.reply(selectedMsgId, userId, user?.name ?? 'Dr. Sarah Johnson', inputText);
     if (result.ok) {
       setMessages(prev => prev.map(m => m.id === selectedMsgId ? result.data : m));
+      const msg = messages.find(m => m.id === selectedMsgId);
+      if (msg) log('message_sent', { recipientId: msg.senderId ?? '', recipientName: msg.senderName ?? '', isUrgent: false });
     }
     setInputText('');
     setIsDirty(false);
@@ -909,7 +913,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
         timestamp:     new Date(),
         isUrgent:      isUrgentNew,
       });
-      if (result.ok) setMessages(prev => [result.data, ...prev]);
+      if (result.ok) {
+        setMessages(prev => [result.data, ...prev]);
+        log('message_sent', { recipientId: recipient.id, recipientName: recipient.name, isUrgent: isUrgentNew });
+      }
     }
     setNewRecipients([]); setNewToInput(''); setNewSubject(''); setNewBody('');
     setIsUrgentNew(false); setIsDirty(false); setIsComposing(false);
@@ -1428,6 +1435,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
       {/* Secure Email Modal */}
       <SecureEmailModal
+        onSent={(to, subject) => log('secure_email_sent', { recipientEmail: to, subject })}
         isOpen={secureEmailOpen}
         fromName={user?.name ?? 'Dr. Paul Carter'}
         fromEmail={user?.id === 'PATH-UK-001' ? 'paul.carter@mft.nhs.uk' : 'pathscribe@hospital.org'}

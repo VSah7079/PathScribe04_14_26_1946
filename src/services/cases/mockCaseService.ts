@@ -30,6 +30,8 @@ const MOCK_CASES: Case[] = [
   // ── Case 1: Breast Invasive — multi-report, in-progress ──────────────────
   {
     id: 'S26-4401-BX-001',
+    order: { requisitionNumber: 'REQ-2026-44001', externalOrderId: 'EXT-LAB-0441', labNumber: 'BLK-SP1-A1', blockId: 'BLK-SP1-A1', referralNumber: null },
+    identifiers: ['SLD-BC2026001A', 'SLD-BC2026001B'],
     accession: { accessionNumber: '4401', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4401-BX-001' },
     originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
     patient: {
@@ -118,6 +120,8 @@ const MOCK_CASES: Case[] = [
   // ── Case 2: Colorectal — sigmoid resection, partially filled ─────────────
   {
     id: 'S26-4402-COLON-RES',
+    order: { requisitionNumber: 'REQ-2026-44002', externalOrderId: 'EXT-LAB-0442', labNumber: 'BLK-SP1-B1', blockId: 'BLK-SP1-B1', referralNumber: 'REF-GI-2026-001' },
+    identifiers: ['SLD-CR2026002A'],
     accession: { accessionNumber: '4402', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4402-COLON-RES' },
     originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
     patient: {
@@ -199,6 +203,8 @@ const MOCK_CASES: Case[] = [
   // ── Case 3: Lung — right upper lobe lobectomy, draft ─────────────────────
   {
     id: 'S26-4403',
+    order: { requisitionNumber: 'REQ-2026-44003', externalOrderId: 'EXT-LAB-0443', labNumber: 'BLK-SP2-A1', blockId: 'BLK-SP2-A1', referralNumber: null },
+    identifiers: ['SLD-PR2026003A', 'SLD-PR2026003B', 'SLD-PR2026003C'],
     accession: { accessionNumber: '4403', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4403' },
     originHospitalId: 'HOSP-002', originEnterpriseId: 'ENT-ACME',
     patient: {
@@ -1391,6 +1397,8 @@ const MOCK_CASES: Case[] = [
   // ── UK Pool Cases — Manchester University NHS Foundation Trust ───────────────
   {
     id: 'MFT26-8807-POOL',
+    order: { requisitionNumber: 'REQ-MFT-2026-8807', externalOrderId: 'EXT-NHS-88070', labNumber: 'BLK-SP1-C1', blockId: 'BLK-SP1-C1', referralNumber: 'REF-GI-MFT-001' },
+    identifiers: ['SLD-MFT2026807A'],
     accession: { accessionNumber: '8807', accessionPrefix: 'MFT', accessionYear: 2026, fullAccession: 'MFT26-8807-POOL' },
     originHospitalId: 'HOSP-MFT', originEnterpriseId: 'ENT-MFT',
     patient: { id: 'PAT-UK-007', mrn: '200007', firstName: 'Susan', lastName: 'Hargreaves', dateOfBirth: isoYearsAgo(62, 5, 14), sex: 'F', phone: '0161 890 1234', email: 's.hargreaves@nhs.net', address: '19 Portland Street, Manchester, M1 3HU', nhsNumber: '345 891 2345' },
@@ -3268,6 +3276,88 @@ export const MOCK_PRIOR_PATHOLOGY: Record<string, PatientHistoryCase[]> = {
       _templateId: 'breast_invasive', _grade: 1, _erPositive: false, _her2Positive: false,
     },
   ],
+
+  // ── UK patients (NHS) ─────────────────────────────────────────────────────
+
+  // Susan Hargreaves — MRN 200007
+  '200007': [
+    {
+      id: 'S22-44811',
+      date: 'Sep 14, 2022',
+      diagnosis: 'Invasive Ductal Carcinoma, Grade 2',
+      site: 'Left breast, upper outer quadrant',
+      procedure: 'Wide local excision',
+      physician: 'Dr. O. Pemberton',
+      receptors: 'ER+, PR+, HER2–',
+      ki67: '18%',
+      margins: 'Clear (> 2 mm)',
+      nodes: '0/3 sentinel nodes involved',
+      gross: 'Wide local excision specimen 45 × 38 × 22 mm. Central firm grey-white stellate lesion 18 mm diameter.',
+      microscopic: 'Invasive ductal carcinoma NST, Nottingham grade 2 (tubule 3, nuclear 2, mitosis 1 = 6). ER 8/8 Allred, PR 6/8, HER2 score 1+. No LVI. Margins clear > 2 mm.',
+      comment: 'Grade 2 invasive ductal carcinoma, ER/PR positive, HER2 negative. Clear margins. Sentinel nodes negative. Recommend adjuvant endocrine therapy; oncology referral made.',
+      tags: ['IDC', 'Grade 2', 'ER+', 'PR+', 'HER2–', 'Clear margins', 'Node negative'],
+      _templateId: 'breast_invasive', _grade: 2, _erPositive: true, _her2Positive: false,
+    },
+    {
+      id: 'S20-19032',
+      date: 'Mar 5, 2020',
+      diagnosis: 'Fibroadenoma with Mild Epithelial Hyperplasia',
+      site: 'Right breast, 9 o\'clock position',
+      procedure: 'Ultrasound-guided core biopsy',
+      physician: 'Dr. O. Pemberton',
+      receptors: 'N/A',
+      ki67: '< 3%',
+      margins: 'N/A (core biopsy)',
+      nodes: 'Not sampled',
+      gross: 'Four cores of grey-tan fibrous tissue submitted in formalin.',
+      microscopic: 'Sections show a fibroepithelial lesion with bland biphasic architecture consistent with fibroadenoma. Mild usual-type epithelial hyperplasia. No atypia or in situ carcinoma.',
+      comment: 'Benign fibroadenoma. Concordant with imaging (B2). Clinical follow-up as per local protocol.',
+      tags: ['Fibroadenoma', 'Benign', 'B2', 'No atypia'],
+      _templateId: 'breast_invasive', _grade: 1, _erPositive: false, _her2Positive: false,
+    },
+  ],
+
+  // Alan Butterworth — MRN 200008
+  '200008': [
+    {
+      id: 'S23-31042',
+      date: 'Jul 28, 2023',
+      diagnosis: 'Adenocarcinoma of the Prostate, Gleason 3+4=7',
+      site: 'Prostate, bilateral cores',
+      procedure: 'TRUS-guided biopsy (12 cores)',
+      physician: 'Dr. M. Webb',
+      receptors: 'N/A',
+      ki67: '12%',
+      margins: 'N/A (biopsy)',
+      nodes: 'Not sampled',
+      gross: '12 labelled core biopsy fragments in formalin, right and left sides designated separately.',
+      microscopic: 'Adenocarcinoma, Gleason pattern 3+4=7 (Grade Group 2). Perineural invasion present right side. No seminal vesicle involvement. Cancer present in 5 of 6 right cores, 2 of 6 left cores.',
+      comment: 'Gleason 3+4 prostate adenocarcinoma, bilateral, Grade Group 2. PSA 8.4 ng/mL. Recommend urology multidisciplinary team discussion for treatment planning.',
+      tags: ['Prostate', 'Adenocarcinoma', 'Gleason 3+4', 'Grade Group 2', 'Perineural invasion'],
+      _templateId: 'prostate_biopsy', _grade: 2, _erPositive: false, _her2Positive: false,
+    },
+  ],
+
+  // Dorothy Whitworth — MRN 200009
+  '200009': [
+    {
+      id: 'S21-28774',
+      date: 'Nov 11, 2021',
+      diagnosis: 'Tubulovillous Adenoma with High Grade Dysplasia',
+      site: 'Sigmoid colon',
+      procedure: 'Colonoscopic polypectomy',
+      physician: 'Dr. A. Patel',
+      receptors: 'N/A',
+      ki67: '35%',
+      margins: 'Involved at diathermy margin',
+      nodes: 'Not sampled',
+      gross: 'Polypectomy specimen 22 mm. Lobulated surface, stalk present 4 mm.',
+      microscopic: 'Tubulovillous adenoma (60% villous) with foci of high grade dysplasia. No invasive carcinoma. Diathermy margin involved by adenoma.',
+      comment: 'Tubulovillous adenoma with high grade dysplasia. Margin involved — recommend endoscopic re-assessment at 3 months. Surveillance colonoscopy 1 year.',
+      tags: ['Tubulovillous adenoma', 'HGD', 'Sigmoid', 'Margin involved'],
+      _templateId: 'colon_resection', _grade: 2, _erPositive: false, _her2Positive: false,
+    },
+  ],
 };
 
 // ─── AI Similar Case Matching ─────────────────────────────────────────────────
@@ -3467,9 +3557,11 @@ export async function findSimilarCases(
   const history = MOCK_PRIOR_PATHOLOGY[mrn];
   if (!history || history.length === 0) return [];
 
-  // Use the most recent malignant case as the anchor for matching
+  // Use the most recent malignant case as the anchor for matching.
+  // Priority: high-grade malignancy > any malignancy > most recent entry.
   const anchor =
-    history.find(h => h._templateId === 'breast_invasive' && (h._grade ?? 0) >= 2) ??
+    history.find(h => (h._grade ?? 0) >= 2) ??
+    history.find(h => h._templateId && !h._templateId.includes('benign')) ??
     history[0];
 
   const results: AiMatchedCase[] = [];

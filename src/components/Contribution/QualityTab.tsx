@@ -1,6 +1,8 @@
 // src/components/Contribution/QualityTab.tsx
 import React, { useState } from "react";
 import '../../pathscribe.css';
+import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
@@ -13,6 +15,8 @@ type DateRange  = "30d" | "90d" | "ytd";
 type Section    = "discordant" | "amended" | "tat" | "tatClient";
 type TatSubView = "firstTouch" | "total";
 type MetricView = "firstTouch" | "total";
+// All supported TAT types — mirrors TATEntry.type in the config system
+type TatTileKey = "firstTouch" | "totalCase" | "frozenSection" | "grossing" | "signOut" | "coldIschemia" | "consultResponse" | "consultAwaiting";
 
 interface DiscordantCase {
   id: string; caseType: string; frozenDx: string; finalDx: string;
@@ -37,13 +41,17 @@ interface ClientTatRow {
   breaches: { firstTouch: number; total: number };
 }
 interface TatTrendMonth {
-  month: string; firstTouch: number; total: number; cases: number;
+  month:           string;
+  cases:           number;
+  firstTouch:      number;  // hrs
+  totalCase:       number;
+  frozenSection:   number;
+  grossing:        number;
+  signOut:         number;
+  coldIschemia:    number;
+  consultResponse: number;  // hrs — how fast I respond to review requests
+  consultAwaiting: number;  // hrs — how long I wait for responses
 }
-interface ClientTatConfig {
-  label: string; targetFirst: number; targetTotal: number;
-  peerFirst: number; peerTotal: number;
-}
-
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const mockDiscordant: DiscordantCase[] = [
@@ -94,80 +102,51 @@ const mockTatByClient: ClientTatRow[] = [
 const peerAvgTotal = 26.9;
 
 const mockSummary = {
-  discordant:         mockDiscordant.length,
-  amended:            mockAmended.length,
-  firstTouchBreaches: mockFirstTouchOutliers.length,
-  totalTatBreaches:   mockTotalTATOutliers.length,
-  concordanceRate:    94.2,
+  discordant:           mockDiscordant.length,
+  amended:              mockAmended.length,
+  concordanceRate:      94.2,
+  // TAT breach counts per type — in production from ITATResultService
+  firstTouchBreaches:   mockFirstTouchOutliers.length,
+  totalCaseBreaches:    mockTotalTATOutliers.length,
+  frozenSectionBreaches: 2,
+  grossingBreaches:      1,
+  signOutBreaches:          3,
+  coldIschemiaBreaches:     0,
+  consultResponseBreaches:  2,
+  consultAwaitingBreaches:  1,
 };
 
-// ─── TAT Trend data ───────────────────────────────────────────────────────────
+// ─── TAT Trend data — one series per enabled TAT type ───────────────────────
+// Targets and peer values are aggregated across configured clients.
+// In production these come from ITATConfigService + ITATResultService.
 
-const CLIENT_CONFIG: Record<string, ClientTatConfig> = {
-  all: { label: 'All Clients',             targetFirst: 5,  targetTotal: 30, peerFirst: 3.8, peerTotal: 24.2 },
-  c1:  { label: 'MGH — Metro General',     targetFirst: 4,  targetTotal: 24, peerFirst: 3.1, peerTotal: 21.4 },
-  c4:  { label: 'WSC — Westview Surgery',  targetFirst: 6,  targetTotal: 36, peerFirst: 5.2, peerTotal: 31.0 },
-  c2:  { label: 'RMC — Riverside Medical', targetFirst: 8,  targetTotal: 48, peerFirst: 7.4, peerTotal: 42.0 },
+interface TatTypeTarget { target: number; peer: number; }
+
+const TAT_TYPE_TARGETS: Record<TatTileKey, TatTypeTarget> = {
+  firstTouch:      { target: 5,   peer: 3.8  },
+  totalCase:       { target: 30,  peer: 24.2 },
+  frozenSection:   { target: 0.5, peer: 0.38 },
+  grossing:        { target: 4,   peer: 3.2  },
+  signOut:         { target: 24,  peer: 21.4 },
+  coldIschemia:    { target: 0.5, peer: 0.42 },
+  consultResponse: { target: 48,  peer: 36   },  // 48h default (Pathologist role)
+  consultAwaiting: { target: 48,  peer: 40   },  // 48h before chasing
 };
 
-const TREND_DATA: Record<string, TatTrendMonth[]> = {
-  all: [
-    { month: "Sep '24", firstTouch: 3.2, total: 22.4, cases: 310 },
-    { month: "Oct '24", firstTouch: 3.6, total: 24.1, cases: 334 },
-    { month: "Nov '24", firstTouch: 4.1, total: 26.8, cases: 298 },
-    { month: "Dec '24", firstTouch: 3.8, total: 25.3, cases: 261 },
-    { month: "Jan '25", firstTouch: 3.3, total: 22.9, cases: 305 },
-    { month: "Feb '25", firstTouch: 3.7, total: 24.6, cases: 318 },
-    { month: "Mar '25", firstTouch: 4.2, total: 27.1, cases: 341 },
-    { month: "Apr '25", firstTouch: 3.5, total: 23.8, cases: 352 },
-    { month: "May '25", firstTouch: 3.1, total: 22.1, cases: 346 },
-    { month: "Jun '25", firstTouch: 3.4, total: 24.0, cases: 368 },
-    { month: "Jul '25", firstTouch: 2.9, total: 21.6, cases: 341 },
-    { month: "Aug '25", firstTouch: 2.4, total: 18.2, cases: 387 },
-  ],
-  c1: [
-    { month: "Sep '24", firstTouch: 2.1, total: 16.8, cases: 98  },
-    { month: "Oct '24", firstTouch: 2.8, total: 19.2, cases: 112 },
-    { month: "Nov '24", firstTouch: 3.1, total: 22.4, cases: 89  },
-    { month: "Dec '24", firstTouch: 2.6, total: 20.1, cases: 76  },
-    { month: "Jan '25", firstTouch: 2.2, total: 17.6, cases: 94  },
-    { month: "Feb '25", firstTouch: 2.9, total: 21.3, cases: 108 },
-    { month: "Mar '25", firstTouch: 3.4, total: 23.8, cases: 115 },
-    { month: "Apr '25", firstTouch: 2.7, total: 19.9, cases: 121 },
-    { month: "May '25", firstTouch: 2.3, total: 18.4, cases: 118 },
-    { month: "Jun '25", firstTouch: 2.6, total: 20.7, cases: 128 },
-    { month: "Jul '25", firstTouch: 2.2, total: 17.9, cases: 115 },
-    { month: "Aug '25", firstTouch: 2.4, total: 18.2, cases: 132 },
-  ],
-  c4: [
-    { month: "Sep '24", firstTouch: 4.2, total: 28.1, cases: 74  },
-    { month: "Oct '24", firstTouch: 4.8, total: 30.4, cases: 81  },
-    { month: "Nov '24", firstTouch: 5.6, total: 33.2, cases: 68  },
-    { month: "Dec '24", firstTouch: 5.1, total: 31.7, cases: 54  },
-    { month: "Jan '25", firstTouch: 4.4, total: 28.9, cases: 71  },
-    { month: "Feb '25", firstTouch: 4.9, total: 30.8, cases: 78  },
-    { month: "Mar '25", firstTouch: 5.8, total: 34.1, cases: 84  },
-    { month: "Apr '25", firstTouch: 4.6, total: 29.6, cases: 88  },
-    { month: "May '25", firstTouch: 4.1, total: 27.8, cases: 86  },
-    { month: "Jun '25", firstTouch: 4.5, total: 29.9, cases: 94  },
-    { month: "Jul '25", firstTouch: 3.9, total: 27.2, cases: 88  },
-    { month: "Aug '25", firstTouch: 4.8, total: 28.6, cases: 96  },
-  ],
-  c2: [
-    { month: "Sep '24", firstTouch: 5.8, total: 38.4, cases: 138 },
-    { month: "Oct '24", firstTouch: 6.4, total: 41.2, cases: 141 },
-    { month: "Nov '24", firstTouch: 7.2, total: 44.8, cases: 141 },
-    { month: "Dec '24", firstTouch: 6.9, total: 43.1, cases: 131 },
-    { month: "Jan '25", firstTouch: 6.1, total: 39.6, cases: 140 },
-    { month: "Feb '25", firstTouch: 6.7, total: 42.4, cases: 132 },
-    { month: "Mar '25", firstTouch: 7.4, total: 45.8, cases: 142 },
-    { month: "Apr '25", firstTouch: 6.3, total: 40.7, cases: 143 },
-    { month: "May '25", firstTouch: 5.9, total: 38.9, cases: 142 },
-    { month: "Jun '25", firstTouch: 6.2, total: 41.1, cases: 146 },
-    { month: "Jul '25", firstTouch: 5.8, total: 38.6, cases: 138 },
-    { month: "Aug '25", firstTouch: 6.2, total: 39.1, cases: 159 },
-  ],
-};
+const TREND_DATA: TatTrendMonth[] = [
+  { month: "Sep '24", cases: 310, firstTouch: 3.2, totalCase: 22.4, frozenSection: 0.41, grossing: 3.1, signOut: 20.8, coldIschemia: 0.44, consultResponse: 38.2, consultAwaiting: 42.1 },
+  { month: "Oct '24", cases: 334, firstTouch: 3.6, totalCase: 24.1, frozenSection: 0.38, grossing: 3.4, signOut: 22.6, coldIschemia: 0.41, consultResponse: 41.5, consultAwaiting: 45.2 },,
+  { month: "Nov '24", cases: 298, firstTouch: 4.1, totalCase: 26.8, frozenSection: 0.46, grossing: 3.8, signOut: 25.1, coldIschemia: 0.48, consultResponse: 52.1, consultAwaiting: 58.4 },,
+  { month: "Dec '24", cases: 261, firstTouch: 3.8, totalCase: 25.3, frozenSection: 0.43, grossing: 3.6, signOut: 23.7, coldIschemia: 0.45, consultResponse: 44.8, consultAwaiting: 49.1 },,
+  { month: "Jan '25", cases: 305, firstTouch: 3.3, totalCase: 22.9, frozenSection: 0.39, grossing: 3.2, signOut: 21.4, coldIschemia: 0.42, consultResponse: 36.4, consultAwaiting: 40.2 },,
+  { month: "Feb '25", cases: 318, firstTouch: 3.7, totalCase: 24.6, frozenSection: 0.42, grossing: 3.5, signOut: 23.1, coldIschemia: 0.44, consultResponse: 39.7, consultAwaiting: 43.8 },,
+  { month: "Mar '25", cases: 341, firstTouch: 4.2, totalCase: 27.1, frozenSection: 0.47, grossing: 3.9, signOut: 25.4, coldIschemia: 0.49, consultResponse: 55.2, consultAwaiting: 61.3 },,
+  { month: "Apr '25", cases: 352, firstTouch: 3.5, totalCase: 23.8, frozenSection: 0.40, grossing: 3.3, signOut: 22.2, coldIschemia: 0.43, consultResponse: 42.1, consultAwaiting: 46.5 },,
+  { month: "May '25", cases: 346, firstTouch: 3.1, totalCase: 22.1, frozenSection: 0.37, grossing: 3.0, signOut: 20.6, coldIschemia: 0.40, consultResponse: 34.8, consultAwaiting: 38.2 },,
+  { month: "Jun '25", cases: 368, firstTouch: 3.4, totalCase: 24.0, frozenSection: 0.41, grossing: 3.3, signOut: 22.5, coldIschemia: 0.43, consultResponse: 38.6, consultAwaiting: 42.4 },,
+  { month: "Jul '25", cases: 341, firstTouch: 2.9, totalCase: 21.6, frozenSection: 0.36, grossing: 2.9, signOut: 20.1, coldIschemia: 0.38, consultResponse: 31.2, consultAwaiting: 35.8 },,
+  { month: "Aug '25", cases: 387, firstTouch: 2.4, totalCase: 18.2, frozenSection: 0.32, grossing: 2.6, signOut: 17.8, coldIschemia: 0.34, consultResponse: 28.4, consultAwaiting: 32.1 },,
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -183,13 +162,35 @@ const deltaLabel = (mine: number, peer: number) => {
   return { text: `${faster ? '↓' : '↑'} ${Math.abs(diff).toFixed(1)}h vs peers`, color: faster ? '#10b981' : '#f59e0b' };
 };
 
-// Summary tile colour map
-const SUMMARY_TILES = [
-  { label: "Discordant Cases",   key: "discordant"         as const, unit: "",  color: "#f97316", icon: "⚠️" },
-  { label: "Amended Reports",    key: "amended"            as const, unit: "",  color: "#FDD663", icon: "✏️" },
-  { label: "1st Touch Breaches", key: "firstTouchBreaches" as const, unit: "",  color: "#f59e0b", icon: "⚡" },
-  { label: "Total TAT Breaches", key: "totalTatBreaches"   as const, unit: "",  color: "#f97316", icon: "⏱️" },
-  { label: "Concordance Rate",   key: "concordanceRate"    as const, unit: "%", color: "#10b981", icon: "✓"  },
+// ─── Enabled TAT types — in production from ITATConfigService ────────────────
+// One entry per type configured in TAT Configuration for this pathologist.
+// Comment out any type not yet enabled to demo a partial configuration.
+
+interface TatTypeConfig {
+  key:        TatTileKey;
+  label:      string;
+  icon:       string;
+  color:      string;
+  summaryKey: keyof typeof mockSummary;
+  dataKey:    keyof Omit<TatTrendMonth, 'month' | 'cases'>;
+}
+
+const ENABLED_TAT_TYPES: TatTypeConfig[] = [
+  { key: "firstTouch",    label: "1st Touch",      icon: "⚡", color: "#f59e0b", summaryKey: "firstTouchBreaches",    dataKey: "firstTouch"    },
+  { key: "totalCase",     label: "Total Case",      icon: "✓",  color: "#f97316", summaryKey: "totalCaseBreaches",     dataKey: "totalCase"     },
+  { key: "frozenSection", label: "Frozen Section",  icon: "🧊", color: "#7dd3fc", summaryKey: "frozenSectionBreaches", dataKey: "frozenSection" },
+  { key: "grossing",      label: "Grossing",        icon: "🔬", color: "#a78bfa", summaryKey: "grossingBreaches",      dataKey: "grossing"      },
+  { key: "signOut",       label: "Sign-out",        icon: "📋", color: "#34d399", summaryKey: "signOutBreaches",       dataKey: "signOut"       },
+  { key: "coldIschemia",  label: "Cold Ischemia",   icon: "❄️", color: "#93c5fd", summaryKey: "coldIschemiaBreaches",  dataKey: "coldIschemia"    },
+  { key: "consultResponse", label: "My Response Time", icon: "💬", color: "#f472b6", summaryKey: "consultResponseBreaches", dataKey: "consultResponse" },
+  { key: "consultAwaiting", label: "Awaiting Response", icon: "⏳", color: "#fb923c", summaryKey: "consultAwaitingBreaches", dataKey: "consultAwaiting" },
+];
+
+// Fixed (non-TAT) summary tiles — always present
+const FIXED_SUMMARY_TILES = [
+  { label: "Discordant Cases", key: "discordant"      as const, unit: "", color: "#f97316", icon: "⚠️" },
+  { label: "Amended Reports",  key: "amended"         as const, unit: "", color: "#FDD663", icon: "✏️" },
+  { label: "Concordance Rate", key: "concordanceRate" as const, unit: "%",color: "#10b981", icon: "✓"  },
 ];
 
 // ─── Custom Reference Line Label — callout with leader line ──────────────────
@@ -256,6 +257,11 @@ const TatTooltip = ({ active, payload, label, data, cfg }: any) => {
   const ft    = payload.find((p: any) => p.dataKey === 'firstTouch');
   const tt    = payload.find((p: any) => p.dataKey === 'total');
   const cases = (data as TatTrendMonth[]).find(d => d.month === label)?.cases ?? 0;
+  React.useEffect(() => {
+    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.CONTRIBUTION);
+    return () => mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
+  }, []);
+
   return (
     <div className="ps-tat-trend__tooltip">
       <div className="ps-tat-trend__tooltip-header">{label} · {cases} cases</div>
@@ -283,33 +289,42 @@ const QualityTab: React.FC = () => {
 
   // TAT trend: 30d=last 1 month, 90d=last 3 months, ytd=all 12
   const trendSlice = dateRange === "30d" ? -1 : dateRange === "90d" ? -3 : undefined;
-  const trendData  = (clientId: string) => {
-    const d = TREND_DATA[clientId] ?? TREND_DATA.all;
-    return trendSlice !== undefined ? d.slice(trendSlice) : d;
-  };
+  const trendRows = trendSlice !== undefined ? TREND_DATA.slice(trendSlice) : TREND_DATA;
 
-  // Reactive summary counts that update with the filter
+  // Reactive summary counts that update with the date filter
   const summaryData = {
-    discordant:         filteredDiscordant.length,
-    amended:            filteredAmended.length,
-    firstTouchBreaches: filteredFirstTouch.length,
-    totalTatBreaches:   filteredTotalTAT.length,
-    concordanceRate:    mockSummary.concordanceRate,
+    discordant:            filteredDiscordant.length,
+    amended:               filteredAmended.length,
+    concordanceRate:       mockSummary.concordanceRate,
+    firstTouchBreaches:    filteredFirstTouch.length,
+    totalCaseBreaches:     filteredTotalTAT.length,
+    frozenSectionBreaches: mockSummary.frozenSectionBreaches,
+    grossingBreaches:      mockSummary.grossingBreaches,
+    signOutBreaches:       mockSummary.signOutBreaches,
+    coldIschemiaBreaches:  mockSummary.coldIschemiaBreaches,
   };
-  const [tatSubView,  setTatSubView]  = useState<TatSubView>("firstTouch");
-  const [metric,      setMetric]      = useState<MetricView>("total");
-  const [trendClient, setTrendClient] = useState<string>("all");
+  const [tatSubView,    setTatSubView]    = useState<TatSubView>("firstTouch");
+  const [metric,        setMetric]        = useState<MetricView>("total");
+  const [activeTatTile, setActiveTatTile] = useState<TatTileKey | null>('firstTouch');
 
-  const trendCfg  = CLIENT_CONFIG[trendClient];
-  const trendRows = trendData(trendClient);
-  const yMax      = Math.ceil(Math.max(trendCfg.targetTotal, ...trendRows.map(d => d.total)) * 1.15);
+  // ── Voice: TAT tile switching ─────────────────────────────────────────────
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const key = (e as CustomEvent).detail?.key as TatTileKey;
+      if (key && ENABLED_TAT_TYPES.some(t => t.key === key)) setActiveTatTile(key);
+    };
+    window.addEventListener('PATHSCRIBE_TAT_TILE', handler);
+    return () => window.removeEventListener('PATHSCRIBE_TAT_TILE', handler);
+  }, []);
 
   return (
     <div className="ps-quality-container">
 
-      {/* ── Summary tiles ── */}
+      {/* ── Summary tiles — fixed tiles + one per enabled TAT type ── */}
       <div className="ps-quality-summary-grid">
-        {SUMMARY_TILES.map(s => (
+
+        {/* Fixed tiles — Discordant, Amended, Concordance */}
+        {FIXED_SUMMARY_TILES.map(s => (
           <div key={s.label} className="ps-quality-summary-tile">
             <div className="ps-quality-summary-tile__header">
               <span className="ps-quality-summary-tile__label">{s.label}</span>
@@ -324,22 +339,167 @@ const QualityTab: React.FC = () => {
             <div className="ps-quality-summary-tile__period">Last {dateRange}</div>
           </div>
         ))}
+
+        {/* TAT tiles — one per enabled TAT type, clickable to drill into trend */}
+        {ENABLED_TAT_TYPES.map(t => {
+          const isActive = activeTatTile === t.key;
+          return (
+            <div
+              key={t.key}
+              className={`ps-quality-summary-tile ps-quality-summary-tile--clickable${isActive ? " ps-quality-summary-tile--active" : ""}`}
+              onClick={() => setActiveTatTile(prev => prev === t.key ? null : t.key)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="ps-quality-summary-tile__header">
+                <span className="ps-quality-summary-tile__label">{t.label}</span>
+                <span>{t.icon}</span>
+              </div>
+              <div className="ps-quality-summary-tile__value-row">
+                <span className="ps-quality-summary-tile__value" style={{ color: t.color }}>
+                  {summaryData[t.summaryKey]}
+                </span>
+              </div>
+              <div className="ps-quality-summary-tile__period">
+                <span style={{ color: isActive ? t.color : '#475569', fontSize: '10px', fontWeight: 600 }}>
+                  {isActive ? '▲ Showing trend' : 'Click for trend'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
       </div>
 
-      {/* ── Section nav + date range ── */}
+      {/* ── TAT trend date range selector ── */}
+      <div className="ps-quality-tat-range">
+        <span className="ps-quality-tat-range__label">Trend period:</span>
+        {(["30d", "90d", "ytd"] as DateRange[]).map(r => (
+          <button key={r} className={`ps-quality-btn${dateRange === r ? " active" : ""}`} onClick={() => setDateRange(r)}>
+            {r === "30d" ? "30 Days" : r === "90d" ? "90 Days" : "1 Year"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAT Trend — shown when a TAT tile is selected ── */}
+      {activeTatTile !== null && (() => {
+        const tatCfg  = ENABLED_TAT_TYPES.find(t => t.key === activeTatTile)!;
+        const targets = TAT_TYPE_TARGETS[activeTatTile];
+        const dataKey = tatCfg.dataKey;
+        const isMin   = activeTatTile === 'frozenSection' || activeTatTile === 'coldIschemia';
+        const fmt     = (v: number) => isMin ? `${Math.round(v * 60)}m` : `${v}h`;
+        const yMax    = Math.ceil(Math.max(targets.target, ...trendRows.map(d => d[dataKey] as number)) * 1.35);
+        const avg12   = +(TREND_DATA.reduce((s, d) => s + (d[dataKey] as number), 0) / TREND_DATA.length).toFixed(2);
+        const vsTarget = +(avg12 - targets.target).toFixed(2);
+        const vsPeer   = +(avg12 - targets.peer).toFixed(2);
+
+        const YBTick = ({ x, y, payload }: any) => {
+          if (!payload?.value) return null;
+          const isJan = String(payload.value).startsWith("Jan");
+          return (
+            <g transform={`translate(${x},${y})`}>
+              {isJan && <line y1={-300} y2={0} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />}
+              <text x={0} y={16} textAnchor="middle" fontSize={11} fill="#64748b">{payload.value}</text>
+            </g>
+          );
+        };
+
+        return (
+          <div className="ps-tat-trend">
+            <div className="ps-tat-trend__header">
+              <div>
+                <div className="ps-tat-trend__title">
+                  {tatCfg.icon} {tatCfg.label} TAT Trend — Last 12 Months
+                </div>
+                <div className="ps-tat-trend__subtitle">
+                  Monthly average vs target {fmt(targets.target)} and peer avg {fmt(targets.peer)}
+                </div>
+                <div className="ps-tat-trend__summary-row">
+                  <span className="ps-tat-trend__summary-group">
+                    <span className="ps-tat-trend__summary-label">12-mo avg</span>
+                    <span className="ps-tat-trend__summary-pill" style={{ background: `${tatCfg.color}1a`, color: tatCfg.color, border: `1px solid ${tatCfg.color}44` }}>
+                      {tatCfg.icon} {fmt(avg12)}
+                    </span>
+                  </span>
+                  <span className="ps-tat-trend__summary-divider">|</span>
+                  <span className="ps-tat-trend__summary-group">
+                    <span className="ps-tat-trend__summary-label">vs target</span>
+                    <span className="ps-tat-trend__summary-delta" style={{ color: vsTarget < 0 ? '#10b981' : '#ef4444' }}>
+                      {vsTarget < 0 ? '↓' : '↑'} {fmt(Math.abs(vsTarget))}
+                    </span>
+                  </span>
+                  <span className="ps-tat-trend__summary-divider">|</span>
+                  <span className="ps-tat-trend__summary-group">
+                    <span className="ps-tat-trend__summary-label">vs peers</span>
+                    <span className="ps-tat-trend__summary-delta" style={{ color: vsPeer < 0 ? '#10b981' : '#f59e0b' }}>
+                      {vsPeer < 0 ? '↓' : '↑'} {fmt(Math.abs(vsPeer))}
+                    </span>
+                  </span>
+                  <span className="ps-tat-trend__summary-divider">|</span>
+                  <button
+                    onClick={() => setActiveTatTile(null)}
+                    style={{ fontSize: '11px', color: '#475569', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', marginLeft: '4px' }}
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="ps-tat-trend__legend">
+              <div className="ps-tat-trend__legend-item" style={{ color: tatCfg.color }}>
+                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke={tatCfg.color} strokeWidth="2" /></svg>
+                {tatCfg.label} avg
+              </div>
+              <div className="ps-tat-trend__legend-item ps-tat-trend__legend-item--red">
+                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4 3" /></svg>
+                Target ({fmt(targets.target)})
+              </div>
+              <div className="ps-tat-trend__legend-item ps-tat-trend__legend-item--purple">
+                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="2 3" /></svg>
+                Peer avg ({fmt(targets.peer)})
+              </div>
+            </div>
+
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendRows} margin={{ top: 8, right: 24, left: 0, bottom: 16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="month" tick={<YBTick />} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} height={32} />
+                <YAxis domain={[0, yMax]} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false}
+                  tickFormatter={(v: number) => fmt(v)} width={46} />
+                <Tooltip content={({ active, payload, label }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const val   = payload[0]?.value as number;
+                  const cases = trendRows.find(d => d.month === label)?.cases ?? 0;
+                  const over  = val > targets.target;
+                  return (
+                    <div className="ps-tat-trend__tooltip">
+                      <div className="ps-tat-trend__tooltip-header">{label} · {cases} cases</div>
+                      <div style={{ color: tatCfg.color }}>{tatCfg.label}: {fmt(val)}</div>
+                      <div className="ps-tat-trend__tooltip-footer" style={{ color: over ? '#ef4444' : '#10b981' }}>
+                        {over ? `▲ ${fmt(+(val - targets.target).toFixed(2))} over target` : '✓ Within target'}
+                      </div>
+                    </div>
+                  );
+                }} />
+                <ReferenceLine y={targets.target} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1.5}
+                  label={<RefLineLabel value={`target ${fmt(targets.target)}`} color="#ef4444" side="left" nudge={-18} />} />
+                <ReferenceLine y={targets.peer} stroke="#a78bfa" strokeDasharray="2 3" strokeWidth={1.5}
+                  label={<RefLineLabel value={`peer ${fmt(targets.peer)}`} color="#a78bfa" side="right" nudge={8} />} />
+                <Line type="monotone" dataKey={dataKey as string} stroke={tatCfg.color} strokeWidth={2.5}
+                  dot={{ r: 3, fill: tatCfg.color, strokeWidth: 0 }} activeDot={{ r: 5, fill: tatCfg.color }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
+
+      {/* ── Section nav (date range moved above TAT trend) ── */}
       <div className="ps-quality-nav">
         <div className="ps-quality-nav__left">
           <button className={`ps-quality-btn${section === "discordant" ? " active" : ""}`} onClick={() => setSection("discordant")}>Frozen vs Final</button>
           <button className={`ps-quality-btn${section === "amended"    ? " active" : ""}`} onClick={() => setSection("amended")}>Amended Reports</button>
           <button className={`ps-quality-btn${section === "tat"        ? " active" : ""}`} onClick={() => setSection("tat")}>TAT Outliers</button>
           <button className={`ps-quality-btn${section === "tatClient"  ? " active" : ""}`} onClick={() => setSection("tatClient")}>TAT by Client</button>
-        </div>
-        <div className="ps-quality-nav__right">
-          {(["30d", "90d", "ytd"] as DateRange[]).map(r => (
-            <button key={r} className={`ps-quality-btn${dateRange === r ? " active" : ""}`} onClick={() => setDateRange(r)}>
-              {r.toUpperCase()}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -555,175 +715,6 @@ const QualityTab: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* ── TAT Trend — 12-month chart, always visible ── */}
-      {(() => {
-        const cfg  = CLIENT_CONFIG[trendClient];
-        const trendRows = trendData(trendClient);
-        const yMax = Math.ceil(Math.max(cfg.targetTotal, ...trendRows.map(d => d.total)) * 1.15);
-
-        // 12-month averages
-        const avgFirst = +(trendRows.reduce((s, d) => s + d.firstTouch, 0) / trendRows.length).toFixed(1);
-        const avgTotal = +(trendRows.reduce((s, d) => s + d.total,      0) / trendRows.length).toFixed(1);
-
-        // vs target (negative = under target = good)
-        const vsTargetFirst = +(avgFirst - cfg.targetFirst).toFixed(1);
-        const vsTargetTotal = +(avgTotal - cfg.targetTotal).toFixed(1);
-
-        // vs peer (negative = faster than peers = good)
-        const vsPeerFirst = +(avgFirst - cfg.peerFirst).toFixed(1);
-        const vsPeerTotal = +(avgTotal - cfg.peerTotal).toFixed(1);
-
-        const pill = (val: number, good: 'under' | 'over') => {
-          const positive = good === 'under' ? val < 0 : val > 0;
-          return {
-            color: val === 0 ? '#64748b' : positive ? '#10b981' : '#f59e0b',
-            arrow: val === 0 ? '–' : val < 0 ? '↓' : '↑',
-          };
-        };
-
-        // Custom X axis tick — only print year label when month transitions (Jan)
-        const YearBoundaryTick = ({ x, y, payload }: any) => {
-          const label   = payload.value as string;          // e.g. "Jan '25"
-          const isJan   = label.startsWith("Jan");
-          const month   = label.split(" '")[0];             // "Jan"
-          const year    = isJan ? `'${label.split("'")[1]}` : null;
-          return (
-            <g transform={`translate(${x},${y})`}>
-              <text x={0} y={0} dy={12} textAnchor="middle" fontSize={13} fill="#cbd5e1" fontWeight={600}>
-                {month}
-              </text>
-              {year && (
-                <text x={0} y={0} dy={24} textAnchor="middle" fontSize={10} fill="#7dd3fc" fontWeight={700}>
-                  {year}
-                </text>
-              )}
-            </g>
-          );
-        };
-
-        const ftTarget  = pill(vsTargetFirst, 'under');
-        const ttTarget  = pill(vsTargetTotal, 'under');
-        const ftPeer    = pill(vsPeerFirst,   'under');
-        const ttPeer    = pill(vsPeerTotal,   'under');
-
-        return (
-          <div className="ps-tat-trend">
-
-            <div className="ps-tat-trend__header">
-              <div>
-                <div className="ps-tat-trend__title">TAT Trend — Last 12 Months</div>
-                <div className="ps-tat-trend__subtitle">
-                  Average first-touch and total TAT per month vs target and peer group
-                </div>
-
-                {/* 12-month summary pills */}
-                <div className="ps-tat-trend__summary-row">
-                  {/* Averages */}
-                  <span className="ps-tat-trend__summary-group">
-                    <span className="ps-tat-trend__summary-label">12-mo avg</span>
-                    <span className="ps-tat-trend__summary-pill ps-tat-trend__summary-pill--teal">⚡ {avgFirst}h</span>
-                    <span className="ps-tat-trend__summary-pill ps-tat-trend__summary-pill--amber">✓ {avgTotal}h</span>
-                  </span>
-
-                  <span className="ps-tat-trend__summary-divider">|</span>
-
-                  {/* vs target */}
-                  <span className="ps-tat-trend__summary-group">
-                    <span className="ps-tat-trend__summary-label">vs target</span>
-                    <span className="ps-tat-trend__summary-delta" style={{ color: ftTarget.color }}>
-                      {ftTarget.arrow} {Math.abs(vsTargetFirst)}h
-                    </span>
-                    <span className="ps-tat-trend__summary-delta" style={{ color: ttTarget.color }}>
-                      {ttTarget.arrow} {Math.abs(vsTargetTotal)}h
-                    </span>
-                  </span>
-
-                  <span className="ps-tat-trend__summary-divider">|</span>
-
-                  {/* vs peers */}
-                  <span className="ps-tat-trend__summary-group">
-                    <span className="ps-tat-trend__summary-label">vs peers</span>
-                    <span className="ps-tat-trend__summary-delta" style={{ color: ftPeer.color }}>
-                      {ftPeer.arrow} {Math.abs(vsPeerFirst)}h
-                    </span>
-                    <span className="ps-tat-trend__summary-delta" style={{ color: ttPeer.color }}>
-                      {ttPeer.arrow} {Math.abs(vsPeerTotal)}h
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              <div className="ps-tat-trend__switcher">
-                {Object.entries(CLIENT_CONFIG).map(([key]) => (
-                  <button
-                    key={key}
-                    onClick={() => setTrendClient(key)}
-                    className={`ps-tat-trend__client-btn${trendClient === key ? " active" : ""}`}
-                  >
-                    {key === "all" ? "All Clients" : key.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="ps-tat-trend__legend">
-              <div className="ps-tat-trend__legend-item ps-tat-trend__legend-item--teal">
-                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#7dd3fc" strokeWidth="2" /></svg>
-                ⚡ First Touch avg
-              </div>
-              <div className="ps-tat-trend__legend-item ps-tat-trend__legend-item--amber">
-                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#fcd34d" strokeWidth="2" /></svg>
-                ✓ Total Case avg
-              </div>
-              <div className="ps-tat-trend__legend-item ps-tat-trend__legend-item--red">
-                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4 3" /></svg>
-                Target
-              </div>
-              <div className="ps-tat-trend__legend-item ps-tat-trend__legend-item--purple">
-                <svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="2 3" /></svg>
-                Peer avg
-              </div>
-            </div>
-
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={trendRows} margin={{ top: 8, right: 24, left: 0, bottom: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis
-                  dataKey="month"
-                  tick={<YearBoundaryTick />}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
-                  tickLine={false}
-                  height={40}
-                />
-                <YAxis
-                  domain={[0, yMax]}
-                  tick={{ fontSize: 13, fill: '#64748b' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) => `${v}h`}
-                  width={42}
-                />
-                <Tooltip content={<TatTooltip data={trendRows} cfg={cfg} />} />
-
-                <ReferenceLine y={cfg.targetFirst} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1.5}
-                  label={<RefLineLabel value={`⚡ ${cfg.targetFirst}h target`} color="#ef4444" side="left"  nudge={-18} />} />
-                <ReferenceLine y={cfg.targetTotal} stroke="#ef4444" strokeDasharray="4 3" strokeWidth={1.5}
-                  label={<RefLineLabel value={`✓ ${cfg.targetTotal}h target`}  color="#ef4444" side="left"  nudge={-18} />} />
-                <ReferenceLine y={cfg.peerFirst}   stroke="#a78bfa" strokeDasharray="2 3" strokeWidth={1.5}
-                  label={<RefLineLabel value={`⚡ peer ${cfg.peerFirst}h`}      color="#a78bfa" side="right" nudge={8}   />} />
-                <ReferenceLine y={cfg.peerTotal}   stroke="#a78bfa" strokeDasharray="2 3" strokeWidth={1.5}
-                  label={<RefLineLabel value={`✓ peer ${cfg.peerTotal}h`}       color="#a78bfa" side="right" nudge={8}   />} />
-
-                <Line type="monotone" dataKey="firstTouch" stroke="#7dd3fc" strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#7dd3fc', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#7dd3fc' }} />
-                <Line type="monotone" dataKey="total" stroke="#fcd34d" strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#fcd34d', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#fcd34d' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        );
-      })()}
 
     </div>
   );

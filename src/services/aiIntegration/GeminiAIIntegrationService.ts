@@ -12,6 +12,25 @@
 import { IAIIntegrationService, AIProcessingOptions, AiFieldSuggestionResult } from './IAIIntegrationService';
 import { callAi } from './aiProviderService';
 import { ServiceResult, VoiceMacro } from '../../types';
+import { spellLangForJurisdiction } from '../../utils/formatDate';
+import type { Jurisdiction } from '../../types/systemConfig';
+
+// ── Spelling check types ────────────────────────────────────────────────────
+
+export interface SpellingFlag {
+  /** The exact substring as it appears in the source text */
+  original: string;
+  /** Suggested correction */
+  suggestion: string;
+  /** Brief reason — e.g. "misspelling", "US spelling in en-GB report" */
+  reason: string;
+}
+
+export interface SpellCheckResult {
+  flags: SpellingFlag[];
+  /** Text with all suggested corrections applied, for one-click "Apply all" */
+  correctedText: string;
+}
 
 export class GeminiAIIntegrationService implements IAIIntegrationService {
   // apiKey kept in constructor signature for backwards compatibility,
@@ -20,13 +39,21 @@ export class GeminiAIIntegrationService implements IAIIntegrationService {
   constructor(_apiKey?: string) {}
 
   // ── Transcript refinement ───────────────────────────────────
+  // jurisdiction is optional for backwards compatibility with existing call
+  // sites that haven't been updated yet — falls back to en-US conventions
+  // (matching the prior hardcoded behaviour) when omitted.
   async refineTranscript(
     text: string,
-    options?: AIProcessingOptions
+    options?: AIProcessingOptions & { jurisdiction?: Jurisdiction }
   ): Promise<ServiceResult<string>> {
     try {
+      const spellLang = spellLangForJurisdiction(options?.jurisdiction as Jurisdiction);
+      const localeNote = spellLang.startsWith('en-GB')
+        ? 'Use British English spelling conventions (e.g. "haemorrhage", "oesophagus", "anaesthesia", "colour").'
+        : 'Use American English spelling conventions (e.g. "hemorrhage", "esophagus", "anesthesia", "color").';
+
       const { text: refined } = await callAi({
-        system: 'You are an expert Pathology Transcription Assistant. Correct phonetic errors, format measurements, and use proper pathology capitalisation. Return ONLY the refined text.',
+        system: `You are an expert Pathology Transcription Assistant. Correct phonetic errors, format measurements, and use proper pathology capitalisation. ${localeNote} Return ONLY the refined text.`,
         prompt: `Context: ${options?.context ?? 'Pathology Report'}\nRaw Text: "${text}"`,
         maxTokens: 500,
       });
@@ -99,6 +126,70 @@ Rules:
     try {
       const { text } = await callAi({ system, prompt, maxTokens: 1000 });
       return { success: true, data: text };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ── Spelling check — Accept-time pass ───────────────────────
+  // Called when the pathologist Accepts a section (or Accept All), not on
+  // every keystroke — this is a deliberate, infrequent check, not live typing
+  // feedback. Scoped tightly to spelling only (not grammar/style) so it
+  // doesn't second-guess clinical phrasing choices. Locale-aware: flags
+  // wrong-locale spelling (e.g. "hemorrhage" in a UK report) as well as
+  // genuine misspellings and likely dictation/typo errors in medical terms.
+  //
+  // Returns an empty flags array (not an error) when the text is clean —
+  // callers should treat "no flags" as the success/common case.
+  async checkSpelling(
+    text: string,
+    jurisdiction?: Jurisdiction
+  ): Promise<ServiceResult<SpellCheckResult>> {
+    // Strip HTML tags before sending to the model — we only want to check
+    // the visible text, and don't want the model trying to "fix" markup.
+    const plainText = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!plainText) {
+      return { success: true, data: { flags: [], correctedText: text } };
+    }
+
+    const spellLang  = spellLangForJurisdiction(jurisdiction as Jurisdiction);
+    const localeNote = spellLang.startsWith('en-GB')
+      ? 'This report should use British English spelling (e.g. "haemorrhage" not "hemorrhage", "oesophagus" not "esophagus", "anaesthesia" not "anesthesia", "colour" not "color"). Flag any American spellings as locale errors.'
+      : 'This report should use American English spelling (e.g. "hemorrhage" not "haemorrhage", "esophagus" not "oesophagus", "anesthesia" not "anaesthesia", "color" not "colour"). Flag any British spellings as locale errors.';
+
+    try {
+      const { text: raw } = await callAi({
+        system: `You are a meticulous medical proofreader specialising in anatomic pathology reports. Your ONLY job is to find spelling errors — genuine misspellings and wrong-locale spelling variants. ${localeNote}
+
+Do NOT flag:
+- Grammar, punctuation, or style choices
+- Correctly-spelled medical/pathology terminology (e.g. "hemicolectomy", "adenocarcinoma", "lymphadenectomy" are correct — do not flag legitimate medical vocabulary as unfamiliar)
+- Abbreviations, measurements, or specimen labels (A, B, C; cm; mm; pT3N1, etc.)
+- Patient names or proper nouns
+
+Return ONLY valid JSON, no markdown, no preamble, in this exact shape:
+{"flags":[{"original":"exact text as it appears","suggestion":"corrected text","reason":"brief reason"}]}
+
+If there are no spelling errors, return {"flags":[]}.`,
+        prompt: `Check this pathology report text for spelling errors:\n\n"${plainText}"`,
+        maxTokens: 800,
+      });
+
+      const clean  = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      const flags: SpellingFlag[] = Array.isArray(parsed?.flags) ? parsed.flags : [];
+
+      // Build a corrected version of the ORIGINAL (HTML-bearing) text by
+      // applying each flagged substring replacement — preserves markup
+      // since we only replace the flagged plain-text substrings within it.
+      let correctedText = text;
+      for (const flag of flags) {
+        if (flag.original && flag.suggestion && flag.original !== flag.suggestion) {
+          correctedText = correctedText.split(flag.original).join(flag.suggestion);
+        }
+      }
+
+      return { success: true, data: { flags, correctedText } };
     } catch (error: any) {
       return { success: false, error: error.message };
     }

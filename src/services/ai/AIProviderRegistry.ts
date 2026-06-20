@@ -67,7 +67,7 @@ export class AIProviderRegistry {
       case 'mock':
         return new MockProvider(0); // instant for test
       case 'anthropic':
-        return new ClaudeProvider(modelId ?? 'claude-sonnet-4-20250514');
+        return new ClaudeProvider(modelId ?? 'claude-sonnet-4-6');
       default:
         return new MockProvider(0);
     }

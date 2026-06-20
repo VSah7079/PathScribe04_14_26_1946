@@ -161,10 +161,10 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
           <div>
             <div className="fm-eyebrow">Case Action · Delegation</div>
             <div className="fm-title-row">
-              <span style={{ fontSize: 20 }}>👤</span>
+              <span className="fm-del-persona-icon">👤</span>
               <h2 className="fm-title">Delegate Case</h2>
               {selectedDelegType && (
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: 'rgba(8,145,178,0.12)', color: '#38bdf8', border: '1px solid rgba(8,145,178,0.2)' }}>
+                <span className="fm-del-mode-badge">
                   {selectedDelegType.label}
                 </span>
               )}
@@ -182,9 +182,9 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
         <div className="fm-body">
 
           {/* Panel 1 — Delegation Type */}
-          <div className="fm-left" style={{ width: 420 }}>
-            <div className="fm-section-label" style={{ padding: '0 16px', marginBottom: 8 }}>Delegation Type</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 8px' }}>
+          <div className="fm-left fm-del-left-panel">
+            <div className="fm-section-label fm-del-slabel-padded">Delegation Type</div>
+            <div className="fm-del-type-list">
               {delegationTypes.map(dt => {
                 const isSelected = delegationType === dt.id;
                 return (
@@ -195,23 +195,23 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                       if (!isSelected) setSelectedInstanceId(null);
                     }}
                     className={'fm-flag-card' + (isSelected ? ' applied' : '')}
-                    style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', cursor: 'pointer', gap: 6, padding: '10px 12px', alignItems: 'flex-start', width: '100%' }}
+                    className="fm-del-type-btn"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                    <div className="fm-del-type-btn-row">
                       <span
                         className="fm-code-chip"
                         style={{ fontSize: 9, letterSpacing: '0.03em', background: isSelected ? dt.color + '22' : undefined, color: isSelected ? dt.color : undefined, flexShrink: 0 }}
                       >
                         {dt.id.replace('_', ' ')}
                       </span>
-                      <span className="fm-flag-name" style={{ flex: 1 }}>{dt.label}</span>
-                      {isSelected && <span style={{ color: '#34d399', fontSize: 13, fontWeight: 700 }}>✓</span>}
+                      <span className="fm-flag-name fm-del-flex1">{dt.label}</span>
+                      {isSelected && <span className="fm-del-type-check">✓</span>}
                     </div>
-                    <div className="fm-flag-desc" style={{ paddingLeft: 0, whiteSpace: 'normal', lineHeight: 1.35 }}>
+                    <div className="fm-flag-desc fm-del-desc-text">
                       {dt.description}
                     </div>
                     {dt.transfersOwnership && (
-                      <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>transfers ownership</span>
+                      <span className="fm-del-ownership-warn">transfers ownership</span>
                     )}
                   </button>
                 );
@@ -220,8 +220,8 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
 
             {/* Synoptic picker */}
             {delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && (
-              <div style={{ marginTop: 12, padding: '0 8px' }}>
-                <div className="fm-section-label" style={{ marginBottom: 6 }}>Select Synoptic</div>
+              <div className="fm-del-synoptic-section">
+                <div className="fm-section-label fm-del-slabel-mb6">Select Synoptic</div>
                 {synopticInstances.map(inst => {
                   const isSel = selectedInstanceId === inst.instanceId;
                   return (
@@ -229,7 +229,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                       key={inst.instanceId}
                       className={'fm-flag-card' + (isSel ? ' applied' : '')}
                       onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
-                      style={{ cursor: 'pointer', marginBottom: 4, flexDirection: 'column', alignItems: 'flex-start', padding: '8px 12px' }}
+                      className="fm-del-synoptic-row"
                     >
                       <span className="fm-flag-name">{inst.specimenDescription}</span>
                       <span className="fm-flag-desc">{inst.templateName}</span>
@@ -242,47 +242,47 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
 
           {/* Panel 2 — Delegate To */}
           <div className="fm-middle">
-            <div className="fm-section-label" style={{ padding: '0 16px', marginBottom: 8 }}>Delegate To</div>
+            <div className="fm-section-label fm-del-slabel-padded">Delegate To</div>
 
             <button
               className={'fm-target-row' + (tab === 'individuals' ? ' active' : '')}
               onClick={() => { setTab('individuals'); setSelectedId(null); }}
             >
-              <span style={{ fontSize: 15 }}>👤</span>
-              <span style={{ flex: 1 }}>Individual</span>
+              <span className="fm-del-tab-icon">👤</span>
+              <span className="fm-del-tab-label">Individual</span>
             </button>
 
             <button
               className={'fm-target-row' + (tab === 'pools' ? ' active' : '')}
               onClick={() => { setTab('pools'); setSelectedId(null); }}
             >
-              <span style={{ fontSize: 15 }}>👥</span>
-              <span style={{ flex: 1 }}>Pool / Queue</span>
+              <span className="fm-del-tab-icon">👥</span>
+              <span className="fm-del-tab-label">Pool / Queue</span>
             </button>
 
             <div className="fm-divider" />
 
             {/* Selected summary */}
             {selectedLabel && (
-              <div style={{ padding: '12px 16px' }}>
-                <div className="fm-section-label" style={{ marginBottom: 6 }}>Selected</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#38bdf8' }}>{selectedLabel}</div>
+              <div className="fm-del-selected-box">
+                <div className="fm-section-label fm-del-slabel-mb6">Selected</div>
+                <div className="fm-del-selected-name">{selectedLabel}</div>
                 {selectedStaff && (
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{selectedStaff.role}</div>
+                  <div className="fm-del-selected-role">{selectedStaff.role}</div>
                 )}
               </div>
             )}
 
             {/* Note field if required */}
             {selectedDelegType?.requiresNote && (
-              <div style={{ padding: '0 12px', marginTop: 8 }}>
-                <div className="fm-section-label" style={{ marginBottom: 4 }}>Note (required)</div>
+              <div className="fm-del-note-section">
+                <div className="fm-section-label fm-del-slabel-mb4">Note (required)</div>
                 <input
                   type="text"
                   placeholder="Add a note…"
                   value={note}
                   onChange={e => setNote(e.target.value)}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 6, fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+                  className="fm-del-note-textarea"
                 />
               </div>
             )}
@@ -291,9 +291,9 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
           {/* Panel 3 — Search & Results */}
           <div className="fm-right">
 
-            <div style={{ padding: '12px 14px 10px' }}>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none', display: 'flex' }}>
+            <div className="fm-del-search-wrap">
+              <div className="fm-del-search-rel">
+                <span className="fm-del-search-icon">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                     <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
                     <path d="M10 10l4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
@@ -313,13 +313,14 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 28px', gap: 12, padding: '4px 12px 6px', borderBottom: '1px solid rgba(30,41,59,0.9)', flexShrink: 0 }}>
+            <div className="fm-del-col-headers fm-del-col-headers--3col">
               <span className="fm-col-label">ROLE</span>
               <span className="fm-col-label">{tab === 'individuals' ? 'NAME' : 'NAME · MEMBERS'}</span>
+              <span className="fm-col-label">DEPARTMENT</span>
               <span />
             </div>
 
-            <div className="fm-flag-list" style={{ paddingLeft: 0, paddingRight: 0 }}>
+            <div className="fm-flag-list fm-del-flag-list">
               {loading && (
                 <div className="fm-empty"><div className="fm-empty-hint">Loading…</div></div>
               )}
@@ -334,17 +335,21 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                           key={s.id}
                           className={'fm-flag-card' + (isSelected ? ' applied' : '')}
                           onClick={() => setSelectedId(isSelected ? null : s.id)}
-                          style={{ gridTemplateColumns: '80px 1fr 28px' }}
+                          className="fm-del-row-grid"
                         >
-                          <span className="fm-code-chip" style={{ width: 80, minWidth: 80, flexShrink: 0, textAlign: 'center', fontSize: 9, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="fm-code-chip fm-del-role-chip">
                             {s.role}
                           </span>
                           <div className="fm-flag-info">
                             <div className="fm-flag-name-row">
                               <span className="fm-flag-name">{s.name}</span>
+                              {(s as any).credentials && <span className="fm-del-cred">{(s as any).credentials}</span>}
                             </div>
                           </div>
-                          <span style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', color: isSelected ? '#34d399' : '#0891B2' }}>
+                          <span className="fm-del-dept">
+                            {(s as any).department ?? '—'}
+                          </span>
+                          <span className={`fm-del-check-col${isSelected ? ' fm-del-check-col--selected' : ' fm-del-check-col--default'}`}>
                             {isSelected
                               ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5l4 4.5-4 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -365,16 +370,16 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                           key={pool.id}
                           className={'fm-flag-card' + (isSelected ? ' applied' : '')}
                           onClick={() => setSelectedId(isSelected ? null : pool.id)}
-                          style={{ gridTemplateColumns: '80px 1fr 28px' }}
+                          className="fm-del-row-grid"
                         >
-                          <span className="fm-code-chip" style={{ width: 80, minWidth: 80, textAlign: 'center', fontSize: 10 }}>POOL</span>
+                          <span className="fm-code-chip fm-del-pool-chip">POOL</span>
                           <div className="fm-flag-info">
                             <div className="fm-flag-name-row">
                               <span className="fm-flag-name">{pool.name}</span>
                             </div>
                             <div className="fm-flag-desc">{pool.memberCount} members available</div>
                           </div>
-                          <span style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', color: isSelected ? '#34d399' : '#0891B2' }}>
+                          <span className={`fm-del-check-col${isSelected ? ' fm-del-check-col--selected' : ' fm-del-check-col--default'}`}>
                             {isSelected
                               ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5l4 4.5-4 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -398,7 +403,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                 : `Delegating to ${selectedLabel} · ${selectedDelegType?.label}`
             }
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="fm-del-footer-row">
             <button className="fm-btn-cancel" onClick={onClose}>Cancel</button>
             <button
               className="fm-btn-save"

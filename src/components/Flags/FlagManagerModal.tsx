@@ -9,6 +9,8 @@
 // Gradients match the Patient History modal (.ps-research-* system).
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import ReactDOM from 'react-dom';
+import { useAuditLog } from '@/components/Audit/useAuditLog';
 import "../../pathscribe.css";
 import type { FlagDefinition } from "../../types/FlagDefinition";
 
@@ -164,6 +166,9 @@ const FlagManagerModal: React.FC<Props> = ({
   type UndoEntry = { id: string; inst: any; specimenId: string | undefined; timer: ReturnType<typeof setTimeout> };
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [, setPendingOps] = useState<PendingOp[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const { log } = useAuditLog();
+  const [showDirtyWarn, setShowDirtyWarn] = useState(false);
 
   const allIds  = localCase.specimens.map((s: any) => s.id);
   const allOn   = allIds.length > 0 && allIds.every((id: string) => spIds.has(id));
@@ -186,6 +191,9 @@ const FlagManagerModal: React.FC<Props> = ({
 
   // ── local state helpers ───────────────────────────────────────────────────────
   const addFlagLocally = useCallback((defId: string, specimenId?: string) => {
+    setIsDirty(true);
+    const def = flagDefinitions.find(f => f.id === defId);
+    if (def) log('flag_applied', { caseId: caseData?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const inst: FlagInstance = {
       id: `local-${Date.now()}-${Math.random()}`,
       flagDefinitionId: defId,
@@ -214,6 +222,10 @@ const FlagManagerModal: React.FC<Props> = ({
   }, []);
 
   const removeFlagLocally = useCallback((instanceId: string, specimenId?: string) => {
+    setIsDirty(true);
+    const inst = [...(localCase?.caseFlags ?? []), ...(localCase?.specimenFlags?.flatMap(sf => sf.flags) ?? [])].find(f => f.instanceId === instanceId);
+    const def  = inst ? flagDefinitions.find(f => f.id === inst.flagDefinitionId) : undefined;
+    if (def) log('flag_removed', { caseId: caseData?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const now = new Date().toISOString();
     setLocalCase(prev => {
       const next = deepClone(prev);
@@ -307,11 +319,17 @@ const FlagManagerModal: React.FC<Props> = ({
   }, [flagDefinitions, localCase.specimens, doRemoveSingle, doRemoveAll]);
 
   // ── save / cancel ─────────────────────────────────────────────────────────────
-  const handleClose = useCallback(() => {
-    // Clear any pending undo timers on close
+  const handleClose = useCallback((force = false) => {
+    if (!force && isDirty) { setShowDirtyWarn(true); return; }
     undoStack.forEach(e => clearTimeout(e.timer));
+    setIsDirty(false);
     onClose();
-  }, [onClose, undoStack]);
+  }, [onClose, undoStack, isDirty]);
+
+  const handleDirtyConfirm = useCallback(() => {
+    setShowDirtyWarn(false);
+    handleClose(true);
+  }, [handleClose]);
 
   // ── catalog ───────────────────────────────────────────────────────────────────
   const catalog = useMemo(() => {
@@ -343,8 +361,6 @@ const FlagManagerModal: React.FC<Props> = ({
       return activeInst(sp?.flags ?? []).some((f: FlagInstance) => f.flagDefinitionId === defId);
     });
   }, [caseOn, localCase, spIds]);
-
-  const isDirty = false; // Immediate save — no pending ops
 
   // ── voice listeners ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -435,7 +451,7 @@ const FlagManagerModal: React.FC<Props> = ({
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
-      <div data-capture-hide="true" className="fm-overlay" onClick={handleClose}>
+      <div data-capture-hide="true" className="fm-overlay">
         <div
           className="ps-research-modal fm-modal"
           onClick={e => e.stopPropagation()}
@@ -676,6 +692,23 @@ const FlagManagerModal: React.FC<Props> = ({
           onAll={() => scopeDialog.onConfirm(true)}
           onCancel={() => setScopeDialog(null)}
         />
+      )}
+      {/* ── Dirty-state warning ── */}
+      {showDirtyWarn && ReactDOM.createPortal(
+        <div className="ps-overlay" style={{ zIndex: 32000 }}>
+          <div className="ps-modal-dark ps-modal-dark--sm">
+            <div className="ps-modal-dark-header">
+              <span className="ps-modal-dark-emoji">⚠️</span>
+              <span className="ps-modal-dark-title">Discard changes?</span>
+            </div>
+            <p className="ps-modal-dark-body">You have unsaved flag changes. Closing will discard them.</p>
+            <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
+              <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={() => setShowDirtyWarn(false)}>Keep editing</button>
+              <button className="ps-btn-red ps-modal-dark-footer__flex-btn" onClick={handleDirtyConfirm}>Discard changes</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

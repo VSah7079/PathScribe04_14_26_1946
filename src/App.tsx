@@ -55,6 +55,10 @@ const PatientReportPage = lazy(() =>
   import("./components/PatientReportPage/PatientReportPage")
 );
 
+const ReportPreviewPage = lazy(() =>
+  import('./pages/ReportPreview/ReportPreviewPage')
+);
+
 const SynopticEditor = lazy(() =>
   import("./components/Config/Protocols/SynopticEditor")
 );
@@ -149,6 +153,12 @@ const App: React.FC = () => (
                             element={<FullReportPage />}
                           />
                         </Route>
+
+                        {/* ── Report Preview — detachable live preview window ── */}
+                        <Route
+                          path="/report-preview/:caseId"
+                          element={<ReportPreviewPage />}
+                        />
 
                         {/* ── Report Part Builder — full-screen canvas for one part ── */}
                         <Route

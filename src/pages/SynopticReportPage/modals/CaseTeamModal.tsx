@@ -26,7 +26,8 @@ interface CaseParticipant {
 }
 import { mockCaseService }               from '@/services/cases/mockCaseService';
 import { userService, roleService }      from '@/services';
-import { loadParticipationTypes, ParticipationType } from '@/components/Config/System/ParticipationTypesSection';
+import { mockParticipationTypeService } from '@/services/participationTypes/mockParticipationTypeService';
+import type { ParticipationTypeRecord as ParticipationType } from '@/services/participationTypes/IParticipationTypeService';
 import type { StaffUser }                from '@/services/users/IUserService';
 import type { Role }                     from '@/services/roles/IRoleService';
 import { useAuth }                       from '@/contexts/AuthContext';
@@ -243,13 +244,12 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
-    Promise.all([userService.getAll(), roleService.getAll()]).then(([usersRes, rolesRes]) => {
+    Promise.all([userService.getAll(), roleService.getAll(), mockParticipationTypeService.getActive()]).then(([usersRes, rolesRes, typesRes]) => {
       const users     = usersRes.ok ? usersRes.data : [];
       const rolesData = rolesRes.ok ? rolesRes.data : [];
       setStaffList(users);
       setRoles(rolesData);
-      const types    = loadParticipationTypes().filter((t: ParticipationType) => t.active);
-      setAllTypes(types);
+      setAllTypes(typesRes.ok ? typesRes.data : []);
       const existing: CaseParticipant[] = (caseData as any).participants ?? [];
       const assignedId = caseData.order?.assignedTo;
       if (assignedId && !existing.find(p => p.staffId === assignedId && p.status === 'active')) {

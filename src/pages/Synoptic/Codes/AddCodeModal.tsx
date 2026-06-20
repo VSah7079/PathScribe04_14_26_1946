@@ -458,7 +458,7 @@ Rules:
 
   // Grabber icon SVG
   const IcoGrab = () => (
-    <svg width="10" height="14" viewBox="0 0 10 14" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="none" className="acd-drag-handle">
       <circle cx="3" cy="2.5" r="1.2" fill="currentColor"/>
       <circle cx="7" cy="2.5" r="1.2" fill="currentColor"/>
       <circle cx="3" cy="7"   r="1.2" fill="currentColor"/>
@@ -494,12 +494,12 @@ Rules:
       >
         {/* Grabber — only shown when not deleted */}
         {!entry.pendingDelete && (
-          <span style={{ display: 'flex', alignItems: 'center', marginRight: 2, color: '#94a3b8' }}>
+          <span className="acd-icon-wrap">
             <IcoGrab />
           </span>
         )}
         <span className={`fm-flag-chip-name${entry.pendingDelete ? ' strikethrough' : ''}`}>
-          <span style={{ fontSize: 10, fontFamily: 'monospace', opacity: 0.65, marginRight: 4 }}>{entry.code}</span>
+          <span className="acd-code-mono">{entry.code}</span>
           {entry.display}
         </span>
         {entry.pendingDelete ? (
@@ -548,7 +548,7 @@ Rules:
   const ContextMenu = contextMenu ? (
     <div
       onClick={() => setContextMenu(null)}
-      className="ps-overlay" style={{ zIndex: 99999 }}
+      className="ps-overlay" style={{ zIndex: 39000 }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -565,7 +565,7 @@ Rules:
           zIndex: 100000,
         }}
       >
-        <div style={{ padding: '8px 12px 6px', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <div className="acd-ctx-menu-label">
           Move to
         </div>
 
@@ -573,7 +573,7 @@ Rules:
         {contextMenu.entry.specimenIndex !== null && (
           <button
             onClick={() => moveCode(contextMenu.entry, null)}
-            style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#e2e8f0', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+            className="acd-ctx-menu-btn"
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,145,178,0.15)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'none')}
           >
@@ -589,13 +589,13 @@ Rules:
             <button
               key={sp.index}
               onClick={() => moveCode(contextMenu.entry, sp.index)}
-              style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#e2e8f0', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              className="acd-ctx-menu-btn"
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,145,178,0.15)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}
             >
               <IcoSpec />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ color: '#38bdf8', fontWeight: 600 }}>Sp {sp.id}:</span> {sp.name}
+              <span className="acd-sp-label">
+                <span className="acd-sp-label-prefix">Sp {sp.id}:</span> {sp.name}
               </span>
             </button>
           ))
@@ -609,8 +609,8 @@ Rules:
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div data-capture-hide="true" className="ps-overlay" onClick={onClose}>
-      <div className="ps-research-modal fm-modal" style={{ maxWidth: 1100, width: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+    <div data-capture-hide="true" className="ps-overlay">
+      <div className="ps-research-modal fm-modal acd-modal-inner" onClick={e => e.stopPropagation()}>
 
         {/* ── HEADER ── */}
         <div className="ps-research-header">
@@ -624,19 +624,19 @@ Rules:
               )}
             </div>
           </div>
-          <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1, flexShrink: 0 }} aria-label="Close" onClick={onClose}
+          <button className="acd-close-btn" aria-label="Close" onClick={onClose}
             onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
           >✕</button>
         </div>
 
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="acd-body">
 
           {/* ── LEFT PANEL ── */}
-          <div className="fm-left-panel" style={{ minWidth: 260, maxWidth: 300, borderRight: '1px solid rgba(255,255,255,0.08)', overflowY: 'auto', padding: '16px 16px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Applied Codes</div>
+          <div className="fm-left-panel acd-left">
+            <div className="acd-left-title">Applied Codes</div>
             {dragCode && (
-              <div style={{ fontSize: 10, color: '#38bdf8', marginBottom: 8, fontStyle: 'italic' }}>
+              <div className="acd-left-hint">
                 Drop on a target to move · Right-click for menu
               </div>
             )}
@@ -648,7 +648,7 @@ Rules:
                 onClick={() => setTarget(null)}
               >
                 <IcoCase />
-                <span style={{ flex: 1 }}>Case Level</span>
+                <span className="acd-case-label-flex">Case Level</span>
                 {activeCaseApplied.length > 0 && (
                   <span className="fm-count-badge">{activeCaseApplied.length}</span>
                 )}
@@ -672,8 +672,8 @@ Rules:
                     onClick={() => setTarget(sp.index)}
                   >
                     <IcoSpec />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>
-                      <span style={{ color: '#38bdf8', fontWeight: 600 }}>Sp {sp.id}:</span>{' '}{sp.name}
+                    <span className="acd-sp-row-label">
+                      <span className="acd-sp-label-prefix">Sp {sp.id}:</span>{'  '}{sp.name}
                     </span>
                     {activeCount > 0 && (
                       <span className="fm-count-badge">{activeCount}</span>
@@ -689,11 +689,11 @@ Rules:
           </div>
 
           {/* ── RIGHT PANEL ── */}
-          <div className="fm-right-panel" style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '16px 20px', overflowY: 'auto' }}>
+          <div className="fm-right-panel acd-right">
 
             {/* AI Suggest button */}
             {caseText && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div className="acd-ai-header-row">
                 <button
                   onClick={generateAiCodes}
                   disabled={aiLoading}
@@ -706,7 +706,7 @@ Rules:
                     cursor: aiLoading ? 'wait' : 'pointer', transition: 'all 0.15s',
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>✦</span>
+                  <span className="acd-ai-sparkle">✦</span>
                   {aiLoading ? 'AI thinking…'
                     : aiRan && synopticDerivedCodes?.length ? '↻ Re-run (Synoptic)'
                     : aiRan && narrativeText ? '↻ Re-run (Narrative)'
@@ -714,20 +714,20 @@ Rules:
                     : narrativeText ? '✦ AI Suggest (Narrative)'
                     : '✦ AI Suggest Codes'}
                 </button>
-                {aiError && <span style={{ fontSize: 11, color: '#f87171' }}>⚠ {aiError}</span>}
+                {aiError && <span className="acd-ai-error">⚠ {aiError}</span>}
               </div>
             )}
 
             {/* AI Suggestions panel */}
             {aiSuggestions.length > 0 && (
-              <div style={{ marginBottom: 12, border: '1px solid rgba(8,145,178,0.3)', borderRadius: 8, overflow: 'hidden' }}>
+              <div className="acd-ai-panel">
                 <div
                   onClick={() => setAiPanelCollapsed(c => !c)}
-                  style={{ padding: '8px 14px', background: 'rgba(8,145,178,0.12)', fontSize: 12, fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
+                  className="acd-ai-panel-header"
                 >
                   <span>✦</span>
-                  <span style={{ flex: 1 }}>AI Suggested Codes — review and apply</span>
-                  <span style={{ fontSize: 11, opacity: 0.7 }}>
+                  <span className="acd-ai-panel-label">AI Suggested Codes — review and apply</span>
+                  <span className="acd-ai-panel-count">
                     {aiSuggestions
                       .filter((s, i, a) => a.findIndex(x => x.code === s.code) === i)
                       .filter(s => !existingCodes.some(ec => ec.code === s.code && ec.system === s.system))
@@ -754,10 +754,10 @@ Rules:
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(8,145,178,0.08)'; }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                     >
-                      <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 4, flexShrink: 0 }}>
+                      <span className="acd-code-badge">
                         {sug.code}
                       </span>
-                      <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0, background: 'rgba(8,145,178,0.1)', padding: '2px 7px', borderRadius: 4 }}>
+                      <span className="acd-system-badge">
                         {sug.system}
                       </span>
                       <span style={{ flex: 1, fontSize: 13, color: isActive ? '#64748b' : '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -767,14 +767,14 @@ Rules:
                         {sug.confidence}%
                       </span>
                       {sug.rvu != null && (
-                        <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0, fontFamily: 'monospace' }}>
+                        <span className="acd-already-added">
                           {sug.rvu} RVU
                         </span>
                       )}
                       {isActive ? (
-                        <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                        <span className="acd-added-check">✓</span>
                       ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', color: '#38bdf8', flexShrink: 0 }} title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+                        <span className="acd-add-btn" title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
                       )}
                     </div>
                   );
@@ -783,7 +783,7 @@ Rules:
             )}
 
             {/* System tabs */}
-            <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+            <div className="acd-filter-row">
               {SYSTEMS.map(s => (
                 <button key={s.id} onClick={() => { setSystem(s.id); setQuery(''); setFocused(-1); inputRef.current?.focus(); }}
                   style={{
@@ -798,7 +798,7 @@ Rules:
 
             {/* Hierarchy filters — SNOMED only */}
             {system === 'SNOMED' && (
-              <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+              <div className="acd-filter-row">
                 {SNOMED_FILTERS.map(f => (
                   <button key={f.id} onClick={() => setSnomedFilter(f.id)} title={f.hint}
                     style={{
@@ -814,16 +814,16 @@ Rules:
             )}
 
             {/* Target indicator */}
-            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+            <div className="acd-hint-text">
               Applying to:{' '}
-              <strong style={{ color: '#e2e8f0' }}>
+              <strong className="acd-hint-strong">
                 {target === null ? 'Case Level' : `Specimen ${allSpecimens.find(s => s.index === target)?.id ?? target + 1}`}
               </strong>
-              <span style={{ marginLeft: 6, opacity: 0.6 }}>— click a row on the left to change</span>
+              <span className="acd-hint-muted">— click a row on the left to change</span>
             </div>
 
             {/* Search */}
-            <div className="fm-search-wrap" style={{ marginBottom: 12 }}>
+            <div className="fm-search-wrap acd-search-mb">
               <IcoSearch />
               <input
                 ref={inputRef}
@@ -840,7 +840,7 @@ Rules:
             </div>
 
             {/* Results */}
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="acd-list-scroll">
               {loading ? (
                 <div className="fm-empty">
                   <div className="fm-empty-hint">Searching {sysInfo.label}…</div>
@@ -881,9 +881,9 @@ Rules:
                       {r.display}
                     </span>
                     {isActive ? (
-                      <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, textAlign: 'right' }}>✓ Applied</span>
+                      <span className="acd-added-text">✓ Applied</span>
                     ) : (
-                      <span className="fm-apply-btn" style={{ textAlign: 'right', display: 'inline-flex', alignItems: 'center' }} title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+                      <span className="fm-apply-btn acd-apply-btn-right" title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
                     )}
                   </div>
                 );
@@ -903,7 +903,7 @@ Rules:
               : 'No changes'
             }
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="acd-footer-row">
             <button className="fm-btn-cancel" onClick={onClose}>Cancel</button>
             <button
               className="fm-btn-save"

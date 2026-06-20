@@ -22,11 +22,7 @@ const OtherRoleComment: React.FC<{
       >
         <span
           className="ps-other-comment__badge"
-          style={{
-            background: hasContent ? 'white' : '#e2e8f0',
-            color:      hasContent ? meta.color : '#94a3b8',
-            border:     `1px solid ${hasContent ? meta.border : '#e2e8f0'}`,
-          }}
+          style={{ background: hasContent ? 'white' : '#e2e8f0', color: hasContent ? meta.color : '#94a3b8', border: `1px solid ${hasContent ? meta.border : '#e2e8f0'}` }}
         >
           {meta.label}
         </span>
