@@ -7,19 +7,21 @@
 // Priority order (matches TemplateRoutingService):
 //   Pass 0  — Client override   (clientId → templateId)
 //   Pass 0b — Physician pref    (physicianId → templateId)
-//   Pass 1  — CAP protocol      (hardcoded in TemplateRoutingService)
+//   Pass 1  — CAP protocol      (admin-defined rules below, merged with the
+//                                 hardcoded fallback map in TemplateRoutingService —
+//                                 admin rules take precedence)
 //   Pass 2  — Subspecialty      (hardcoded in TemplateRoutingService)
 //   Pass 3  — Gold standard     (universal fallback)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ServiceResult, ID } from '../types';
 
-export type RoutingRuleType = 'client' | 'physician';
+export type RoutingRuleType = 'client' | 'physician' | 'cap-protocol';
 
 export interface RoutingRule {
   id:           ID;
   type:         RoutingRuleType;
-  /** clientId or physicianId */
+  /** clientId, physicianId, or CAP/RCPath synoptic protocol ID, depending on type */
   entityId:     string;
   /** Cached display name — avoids async lookup */
   entityName:   string;
@@ -45,4 +47,6 @@ export interface IRoutingRuleService {
   /** Returns the map used by TemplateRoutingService — { entityId: templateId } */
   getClientMap():                         Promise<ServiceResult<Record<string, string>>>;
   getPhysicianMap():                      Promise<ServiceResult<Record<string, string>>>;
+  /** Admin-defined CAP/RCPath protocol → template overrides — { protocolId: templateId } */
+  getCapProtocolMap():                    Promise<ServiceResult<Record<string, string>>>;
 }

@@ -40,7 +40,7 @@ interface Props {
 // ── Primitive field components ─────────────────────────────────
 
 const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div style={S.label}>{children}</div>
+  <div className="ps-tinsp-label">{children}</div>
 );
 
 const TextInput: React.FC<{
@@ -53,7 +53,7 @@ const TextInput: React.FC<{
     value={value}
     onChange={e => onChange(e.target.value)}
     placeholder={placeholder}
-    style={{ ...S.input, fontFamily: mono ? 'monospace' : undefined }}
+    className={`ps-tinsp-input${mono ? ' ps-tinsp-input--mono' : ''}`}
   />
 );
 
@@ -68,8 +68,8 @@ const Textarea: React.FC<{
     value={value}
     onChange={e => onChange(e.target.value)}
     placeholder={placeholder}
-    style={{ ...S.input, height, resize: 'vertical', lineHeight: 1.5,
-      fontFamily: mono ? 'monospace' : undefined }}
+    style={{ height }}
+    className={`ps-tinsp-input ps-tinsp-textarea${mono ? ' ps-tinsp-input--mono' : ''}`}
   />
 );
 
@@ -78,24 +78,14 @@ const Toggle: React.FC<{
   onChange: (v: boolean) => void;
   label: string;
 }> = ({ checked, onChange, label }) => (
-  <label style={S.toggleRow}>
+  <label className="ps-tinsp-toggle-row">
     <div
       onClick={() => onChange(!checked)}
-      style={{
-        width: 32, height: 18, borderRadius: 9,
-        background: checked ? '#0e9f6e' : '#1e293b',
-        position: 'relative', cursor: 'pointer', flexShrink: 0,
-        transition: 'background 0.15s',
-        border: `1px solid ${checked ? '#0e9f6e' : '#334155'}`,
-      }}
+      className={`ps-tinsp-toggle-track${checked ? ' ps-tinsp-toggle-track--on' : ''}`}
     >
-      <div style={{
-        position: 'absolute', top: 2, left: checked ? 14 : 2,
-        width: 12, height: 12, borderRadius: '50%',
-        background: '#f1f5f9', transition: 'left 0.15s',
-      }} />
+      <div className={`ps-tinsp-toggle-thumb${checked ? ' ps-tinsp-toggle-thumb--on' : ''}`} />
     </div>
-    <span style={S.toggleLabel}>{label}</span>
+    <span className="ps-tinsp-toggle-label">{label}</span>
   </label>
 );
 
@@ -108,18 +98,18 @@ const Sel: React.FC<{
   <select
     value={value}
     onChange={e => onChange(e.target.value)}
-    style={{ ...S.select, width: fullWidth ? '100%' : undefined }}
+    className={`ps-tinsp-select${fullWidth ? ' ps-tinsp-select--full' : ''}`}
   >
     {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
   </select>
 );
 
 const Div: React.FC<{ label: string }> = ({ label }) => (
-  <div style={S.divider}>{label}</div>
+  <div className="ps-tinsp-divider">{label}</div>
 );
 
-const Row: React.FC<{ children: React.ReactNode; gap?: number }> = ({ children, gap = 6 }) => (
-  <div style={{ display: 'flex', gap, alignItems: 'center', marginTop: 6 }}>{children}</div>
+const Row: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="ps-tinsp-row">{children}</div>
 );
 
 // ── Conditional expression builder ─────────────────────────────
@@ -147,25 +137,25 @@ const ExpressionBuilder: React.FC<{
   const rm  = (i: number) => onChange({ ...expression, clauses: expression.clauses.filter((_, idx) => idx !== i) });
 
   return (
-    <div style={S.exprBox}>
-      <div style={S.exprHeader}>
-        <span style={S.exprTitle}>{title}</span>
+    <div className="ps-tinsp-expr-box">
+      <div className="ps-tinsp-expr-header">
+        <span className="ps-tinsp-expr-title">{title}</span>
         <Sel value={expression.logic} onChange={v => onChange({ ...expression, logic: v as 'AND' | 'OR' })}
           options={[{ value: 'AND', label: 'ALL (AND)' }, { value: 'OR', label: 'ANY (OR)' }]} />
       </div>
       {expression.clauses.map((c, i) => (
-        <div key={i} style={S.clauseRow}>
+        <div key={i} className="ps-tinsp-clause-row">
           <input value={c.field} onChange={e => upd(i, { field: e.target.value })}
-            placeholder="context.field" style={{ ...S.input, fontFamily: 'monospace', flex: 1, minWidth: 80 }} />
+            placeholder="context.field" className="ps-tinsp-input ps-tinsp-input--mono ps-tinsp-col" style={{ minWidth: 80 }} />
           <Sel value={c.operator} onChange={v => upd(i, { operator: v as ExpressionOperator })} options={OPERATORS} />
           {!['notEmpty','isEmpty'].includes(c.operator) && (
             <input value={String(c.value ?? '')} onChange={e => upd(i, { value: e.target.value })}
-              placeholder="value" style={{ ...S.input, flex: 1, minWidth: 60 }} />
+              placeholder="value" className="ps-tinsp-input ps-tinsp-col" style={{ minWidth: 60 }} />
           )}
-          <button onClick={() => rm(i)} style={S.rmBtn}>✕</button>
+          <button onClick={() => rm(i)} className="ps-tinsp-rm-btn">✕</button>
         </div>
       ))}
-      <button onClick={add} style={S.addBtn}>+ Add condition</button>
+      <button onClick={add} className="ps-tinsp-add-btn">+ Add condition</button>
     </div>
   );
 };
@@ -176,7 +166,7 @@ const AiConfigEditor: React.FC<{
   config: AiGenerationConfig;
   onChange: (c: AiGenerationConfig) => void;
 }> = ({ config, onChange }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+  <div className="ps-tinsp-stack">
     <Toggle checked={config.enabled} onChange={v => onChange({ ...config, enabled: v })}
       label="Enable AI generation for this section" />
     {config.enabled && (<>
@@ -185,12 +175,12 @@ const AiConfigEditor: React.FC<{
         onChange={v => onChange({ ...config, systemInstruction: v })}
         placeholder="Describe what the AI should write for this section…" />
       <Row>
-        <div style={{ flex: 1 }}>
+        <div className="ps-tinsp-col">
           <Label>Max tokens</Label>
           <TextInput value={String(config.maxTokens ?? 1024)}
             onChange={v => onChange({ ...config, maxTokens: parseInt(v) || 1024 })} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="ps-tinsp-col">
           <Label>Temperature</Label>
           <TextInput value={String(config.temperature ?? 0.3)}
             onChange={v => onChange({ ...config, temperature: parseFloat(v) || 0.3 })} />
@@ -215,7 +205,7 @@ const TextFieldEditor: React.FC<{ node: TextFieldNode; u: (n: TemplateNode) => v
   <Label>Validation regex</Label>
   <TextInput value={node.validationRegex ?? ''} onChange={v => u({ ...node, validationRegex: v })} placeholder="Optional" mono />
   <Row>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Max length</Label>
       <TextInput value={String(node.maxLength ?? '')} onChange={v => u({ ...node, maxLength: parseInt(v) || undefined })} placeholder="∞" />
     </div>
@@ -224,17 +214,17 @@ const TextFieldEditor: React.FC<{ node: TextFieldNode; u: (n: TemplateNode) => v
 
 const ParagraphEditor: React.FC<{ node: ParagraphNode; u: (n: TemplateNode) => void }> = ({ node, u }) => (<>
   <Div label="Data Paragraph" />
-  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, lineHeight: 1.5, padding: '8px', background: '#1e293b', borderRadius: 5, border: '1px solid #334155' }}>
-    💡 A <strong style={{ color: '#e2e8f0' }}>Data Paragraph</strong> is a slot filled automatically from case data at report time. Set the binding key to the context field you want (e.g. <code style={{ color: '#7dd3fc' }}>diagnostic.grossDescription</code>).<br /><br />
-    For text you <strong style={{ color: '#e2e8f0' }}>type yourself</strong> — disclaimers, standard phrases — use a <strong style={{ color: '#0891b2' }}>Rich Text Block</strong> instead.
+  <div className="ps-tinsp-hint-box">
+    💡 A <strong className="ps-tinsp-hint-strong">Data Paragraph</strong> is a slot filled automatically from case data at report time. Set the binding key to the context field you want (e.g. <code className="ps-tinsp-hint-mono">diagnostic.grossDescription</code>).<br /><br />
+    For text you <strong className="ps-tinsp-hint-strong">type yourself</strong> — disclaimers, standard phrases — use a <strong className="ps-tinsp-hint-accent">Rich Text Block</strong> instead.
   </div>
   <Label>Binding key (case data source)</Label>
   <TextInput value={node.bindingKey} onChange={v => u({ ...node, bindingKey: v })} placeholder="diagnostic.grossDescription" mono />
-  <div style={{ marginTop: 4, marginBottom: 4 }}>
-    <a href="#" onClick={e => { e.preventDefault(); }} style={{ fontSize: 10, color: '#7dd3fc' }}>
+  <div className="ps-tinsp-bindkeys-wrap">
+    <a href="#" onClick={e => { e.preventDefault(); }} className="ps-tinsp-bindkeys-link">
       Common binding keys ↓
     </a>
-    <div style={{ fontSize: 9, color: '#64748b', marginTop: 4, lineHeight: 1.6, fontFamily: 'monospace' }}>
+    <div className="ps-tinsp-bindkeys-list">
       diagnostic.grossDescription<br />
       diagnostic.microscopicDescription<br />
       diagnostic.ancillaryStudies<br />
@@ -243,7 +233,7 @@ const ParagraphEditor: React.FC<{ node: ParagraphNode; u: (n: TemplateNode) => v
       specimen.grossDescription
     </div>
   </div>
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+  <div className="ps-tinsp-toggle-stack--symmetric ps-tinsp-stack">
     <Toggle checked={node.richText ?? true}    onChange={v => u({ ...node, richText: v })}   label="Rich text (bold, italic, lists)" />
     <Toggle checked={node.aiWritable ?? true}  onChange={v => u({ ...node, aiWritable: v })} label="AI can write to this field" />
   </div>
@@ -254,8 +244,8 @@ const ParagraphEditor: React.FC<{ node: ParagraphNode; u: (n: TemplateNode) => v
 
 const RichTextBlockEditor: React.FC<{ node: RichTextBlockNode; u: (n: TemplateNode) => void }> = ({ node, u }) => (<>
   <Div label="Rich Text Block" />
-  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, lineHeight: 1.5, padding: '8px', background: '#1e293b', borderRadius: 5, border: '1px solid #334155' }}>
-    💡 A <strong style={{ color: '#e2e8f0' }}>Rich Text Block</strong> contains prose you type directly — it is the same in every report. Use it for disclaimers, standard statements, or any fixed text.
+  <div className="ps-tinsp-hint-box">
+    💡 A <strong className="ps-tinsp-hint-strong">Rich Text Block</strong> contains prose you type directly — it is the same in every report. Use it for disclaimers, standard statements, or any fixed text.
   </div>
   <Label>Content</Label>
   <Textarea
@@ -284,81 +274,77 @@ const POSITION_OPTIONS = [
   { value: 'none',     label: 'None — value only, no label printed' },
 ];
 
-const LabelConfigEditor: React.FC<{ config: LabelConfig; onChange: (c: LabelConfig) => void }> = ({ config, onChange }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-    <Label>Label position</Label>
-    <Sel value={config.position} onChange={v => onChange({ ...config, position: v as LabelConfig['position'] })}
-      options={POSITION_OPTIONS} fullWidth />
+const LabelConfigEditor: React.FC<{ config: LabelConfig; onChange: (c: LabelConfig) => void }> = ({ config, onChange }) => {
+  // Dynamic preview values (arbitrary fontSize + boolean-derived states) are
+  // passed through as CSS custom properties so the actual property/value
+  // pairs stay defined in pathscribe.css rather than as inline style rules.
+  const previewVars: React.CSSProperties = {
+    ['--lc-fontsize' as string]: `${config.fontSize ?? (config.position === 'above' ? 12 : 11)}px`,
+    ['--lc-weight' as string]: config.weight === 'bold' ? 700 : 600,
+    ['--lc-decoration' as string]: config.decoration === 'underline' ? 'underline' : 'none',
+    ['--lc-transform' as string]: config.transform === 'uppercase' ? 'uppercase' : config.transform === 'capitalize' ? 'capitalize' : 'none',
+  };
 
-    {config.position !== 'none' && (<>
-      <Label>Text transform</Label>
-      <Sel value={config.transform ?? 'uppercase'} onChange={v => onChange({ ...config, transform: v as LabelConfig['transform'] })}
-        options={[
-          { value: 'uppercase',  label: 'UPPERCASE' },
-          { value: 'capitalize', label: 'Capitalize' },
-          { value: 'none',       label: 'As typed' },
-        ]} fullWidth />
+  return (
+    <div className="ps-tinsp-stack">
+      <Label>Label position</Label>
+      <Sel value={config.position} onChange={v => onChange({ ...config, position: v as LabelConfig['position'] })}
+        options={POSITION_OPTIONS} fullWidth />
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <Toggle
-          checked={config.weight === 'bold'}
-          onChange={v => onChange({ ...config, weight: v ? 'bold' : 'normal' })}
-          label="Bold"
+      {config.position !== 'none' && (<>
+        <Label>Text transform</Label>
+        <Sel value={config.transform ?? 'uppercase'} onChange={v => onChange({ ...config, transform: v as LabelConfig['transform'] })}
+          options={[
+            { value: 'uppercase',  label: 'UPPERCASE' },
+            { value: 'capitalize', label: 'Capitalize' },
+            { value: 'none',       label: 'As typed' },
+          ]} fullWidth />
+
+        <div className="ps-tinsp-row" style={{ marginTop: 4 }}>
+          <Toggle
+            checked={config.weight === 'bold'}
+            onChange={v => onChange({ ...config, weight: v ? 'bold' : 'normal' })}
+            label="Bold"
+          />
+          <Toggle
+            checked={config.decoration === 'underline'}
+            onChange={v => onChange({ ...config, decoration: v ? 'underline' : 'none' })}
+            label="Underline"
+          />
+        </div>
+
+        <Label>Font size (px)</Label>
+        <TextInput
+          value={String(config.fontSize ?? (config.position === 'above' ? 12 : 11))}
+          onChange={v => onChange({ ...config, fontSize: parseInt(v) || 11 })}
+          placeholder={config.position === 'above' ? '12' : '11'}
         />
-        <Toggle
-          checked={config.decoration === 'underline'}
-          onChange={v => onChange({ ...config, decoration: v ? 'underline' : 'none' })}
-          label="Underline"
-        />
-      </div>
 
-      <Label>Font size (px)</Label>
-      <TextInput
-        value={String(config.fontSize ?? (config.position === 'above' ? 12 : 11))}
-        onChange={v => onChange({ ...config, fontSize: parseInt(v) || 11 })}
-        placeholder={config.position === 'above' ? '12' : '11'}
-      />
-
-      {/* Live preview */}
-      <div style={{ marginTop: 8, padding: '8px 10px', background: '#ffffff', borderRadius: 5, border: '1px solid #e2e8f0' }}>
-        <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Preview</div>
-        {config.position === 'above' ? (
-          <>
-            <div style={{
-              fontSize: config.fontSize ?? 12,
-              fontWeight: config.weight === 'bold' ? 700 : 600,
-              textDecoration: config.decoration === 'underline' ? 'underline' : 'none',
-              textTransform: config.transform === 'uppercase' ? 'uppercase' : config.transform === 'capitalize' ? 'capitalize' : 'none',
-              color: '#475569', marginBottom: 2,
-            }}>
-              Field label
+        {/* Live preview */}
+        <div className="ps-tinsp-preview-box" style={previewVars}>
+          <div className="ps-tinsp-preview-caption">Preview</div>
+          {config.position === 'above' ? (
+            <>
+              <div className="ps-tinsp-preview-label">Field label</div>
+              <div className="ps-tinsp-preview-value">Value text here</div>
+            </>
+          ) : (
+            <div className="ps-tinsp-preview-row">
+              <span className="ps-tinsp-preview-label">Field label</span>
+              <span className="ps-tinsp-preview-value">Value text here</span>
             </div>
-            <div style={{ fontSize: 13, color: '#0f172a' }}>Value text here</div>
-          </>
-        ) : (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-            <span style={{
-              fontSize: config.fontSize ?? 11,
-              fontWeight: config.weight === 'bold' ? 700 : 600,
-              textDecoration: config.decoration === 'underline' ? 'underline' : 'none',
-              textTransform: config.transform === 'uppercase' ? 'uppercase' : config.transform === 'capitalize' ? 'capitalize' : 'none',
-              color: '#475569', flexShrink: 0,
-            }}>
-              Field label
-            </span>
-            <span style={{ fontSize: 13, color: '#0f172a' }}>Value text here</span>
-          </div>
-        )}
-      </div>
-    </>)}
-  </div>
-);
+          )}
+        </div>
+      </>)}
+    </div>
+  );
+};
 
 const DropdownEditor: React.FC<{ node: DropdownNode; u: (n: TemplateNode) => void }> = ({ node, u }) => (<>
   <Div label="Dropdown" />
   <Label>Binding key</Label>
   <TextInput value={node.bindingKey} onChange={v => u({ ...node, bindingKey: v })} placeholder="synoptic.grade" mono />
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+  <div className="ps-tinsp-toggle-stack--symmetric ps-tinsp-stack">
     <Toggle checked={node.multi ?? false}          onChange={v => u({ ...node, multi: v })}          label="Multi-select" />
     <Toggle checked={node.allowFreeText ?? false}  onChange={v => u({ ...node, allowFreeText: v })}  label="Allow free text" />
   </div>
@@ -379,21 +365,21 @@ const NumberEditor: React.FC<{ node: NumberNode; u: (n: TemplateNode) => void }>
   <Label>Binding key</Label>
   <TextInput value={node.bindingKey} onChange={v => u({ ...node, bindingKey: v })} placeholder="synoptic.size" mono />
   <Row>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Unit</Label>
       <TextInput value={node.unit ?? ''} onChange={v => u({ ...node, unit: v })} placeholder="mm" />
     </div>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Decimal places</Label>
       <TextInput value={String(node.decimalPlaces ?? '')} onChange={v => u({ ...node, decimalPlaces: parseInt(v) || undefined })} placeholder="1" />
     </div>
   </Row>
   <Row>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Min</Label>
       <TextInput value={String(node.min ?? '')} onChange={v => u({ ...node, min: parseFloat(v) || undefined })} placeholder="0" />
     </div>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Max</Label>
       <TextInput value={String(node.max ?? '')} onChange={v => u({ ...node, max: parseFloat(v) || undefined })} placeholder="∞" />
     </div>
@@ -415,7 +401,7 @@ const DateEditor: React.FC<{ node: DateNode; u: (n: TemplateNode) => void }> = (
       { value: 'datetime', label: 'Date + time' },
       { value: 'year',     label: 'Year only' },
     ]} fullWidth />
-  <div style={{ marginTop: 8 }}>
+  <div className="ps-tinsp-toggle-stack">
     <Toggle checked={node.defaultToToday ?? false} onChange={v => u({ ...node, defaultToToday: v })} label="Default to today" />
   </div>
 </>);
@@ -449,10 +435,10 @@ const StaticLabelEditor: React.FC<{ node: StaticLabelNode; u: (n: TemplateNode) 
       { value: 'body',    label: 'Body text' },
       { value: 'caption', label: 'Caption / footnote' },
     ]} fullWidth />
-  <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+  <Row>
     <Toggle checked={node.bold ?? false}   onChange={v => u({ ...node, bold: v })}   label="Bold" />
     <Toggle checked={node.italic ?? false} onChange={v => u({ ...node, italic: v })} label="Italic" />
-  </div>
+  </Row>
 </>);
 
 // ── Structure ──────────────────────────────────────────────────
@@ -461,7 +447,7 @@ const SectionEditor: React.FC<{ node: SectionNode; u: (n: TemplateNode) => void 
   <Div label="Section" />
   <Label>Print heading</Label>
   <TextInput value={node.printHeading ?? ''} onChange={v => u({ ...node, printHeading: v })} placeholder="e.g. Gross Description" />
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+  <div className="ps-tinsp-toggle-stack">
     <Toggle checked={node.collapsible ?? true}       onChange={v => u({ ...node, collapsible: v })}       label="Collapsible in editor" />
     <Toggle checked={node.defaultCollapsed ?? false} onChange={v => u({ ...node, defaultCollapsed: v })} label="Start collapsed" />
   </div>
@@ -481,11 +467,11 @@ const RepeatGroupEditor: React.FC<{ node: RepeatGroupNode; u: (n: TemplateNode) 
   <Label>Item alias (used in child binding keys)</Label>
   <TextInput value={node.itemAlias ?? 'item'} onChange={v => u({ ...node, itemAlias: v })} placeholder="specimen" mono />
   <Row>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Min items</Label>
       <TextInput value={String(node.minItems ?? '')} onChange={v => u({ ...node, minItems: parseInt(v) || undefined })} placeholder="0" />
     </div>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Max items</Label>
       <TextInput value={String(node.maxItems ?? '')} onChange={v => u({ ...node, maxItems: parseInt(v) || undefined })} placeholder="∞" />
     </div>
@@ -495,16 +481,11 @@ const RepeatGroupEditor: React.FC<{ node: RepeatGroupNode; u: (n: TemplateNode) 
 const ColumnLayoutEditor: React.FC<{ node: ColumnLayoutNode; u: (n: TemplateNode) => void }> = ({ node, u }) => (<>
   <Div label="Column Layout" />
   <Label>Number of columns</Label>
-  <div style={{ display: 'flex', gap: 6 }}>
+  <div className="ps-tinsp-colbtn-row">
     {([2, 3, 4] as const).map(n => (
-      <button key={n} onClick={() => u({ ...node, numColumns: n })} style={{
-        flex: 1, padding: '8px 4px', borderRadius: 6, cursor: 'pointer',
-        border: `1.5px solid ${node.numColumns === n ? '#0891b2' : '#334155'}`,
-        background: node.numColumns === n ? 'rgba(8,145,178,0.15)' : '#1e293b',
-        color: node.numColumns === n ? '#0891b2' : '#64748b',
-        fontSize: 11, fontWeight: 700,
-      }}>
-        <div style={{ fontSize: 16, marginBottom: 3 }}>
+      <button key={n} onClick={() => u({ ...node, numColumns: n })}
+        className={`ps-tinsp-colbtn${node.numColumns === n ? ' ps-tinsp-colbtn--active' : ''}`}>
+        <div className="ps-tinsp-colbtn-icon">
           {n === 2 ? '⫿' : n === 3 ? '|||' : '||||'}
         </div>
         {n} col{n > 1 ? 's' : ''}
@@ -513,7 +494,7 @@ const ColumnLayoutEditor: React.FC<{ node: ColumnLayoutNode; u: (n: TemplateNode
   </div>
   <Label>Column gap (px)</Label>
   <TextInput value={String(node.columnGap ?? 16)} onChange={v => u({ ...node, columnGap: parseInt(v) || 16 })} placeholder="16" />
-  <div style={{ fontSize: 10, color: '#334155', marginTop: 6 }}>
+  <div className="ps-tinsp-hint-line">
     Drop field components into each column slot on the canvas.
     Each column is {Math.round(100 / node.numColumns)}% wide.
   </div>
@@ -564,7 +545,7 @@ const IfBlockEditor: React.FC<{ node: IfBlockNode; u: (n: TemplateNode) => void 
   />
   <div style={{ marginTop: 8 }}>
     <Label>Else branch</Label>
-    <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>
+    <div className="ps-tinsp-hint-line--block">
       Drop components into the Else zone on the canvas when one is added via the inspector.
       Else children: {(node.elseChildren ?? []).length} component(s).
     </div>
@@ -577,10 +558,10 @@ const SwitchBlockEditor: React.FC<{ node: SwitchBlockNode; u: (n: TemplateNode) 
   <TextInput value={node.switchOn} onChange={v => u({ ...node, switchOn: v })} placeholder="primarySynoptic.answers.grade" mono />
   <Div label="Cases" />
   {node.cases.map((c, i) => (
-    <div key={c.id} style={{ ...S.exprBox, marginBottom: 6 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Case {i + 1}</span>
-        <button onClick={() => u({ ...node, cases: node.cases.filter((_, idx) => idx !== i) })} style={S.rmBtn}>✕</button>
+    <div key={c.id} className="ps-tinsp-expr-box ps-tinsp-expr-box--spaced">
+      <div className="ps-tinsp-case-head">
+        <span className="ps-tinsp-case-title">Case {i + 1}</span>
+        <button onClick={() => u({ ...node, cases: node.cases.filter((_, idx) => idx !== i) })} className="ps-tinsp-rm-btn">✕</button>
       </div>
       <Label>Label</Label>
       <TextInput value={c.label} onChange={v => u({ ...node, cases: node.cases.map((x, idx) => idx === i ? { ...x, label: v } : x) })} />
@@ -591,7 +572,7 @@ const SwitchBlockEditor: React.FC<{ node: SwitchBlockNode; u: (n: TemplateNode) 
       />
     </div>
   ))}
-  <button style={S.addBtn} onClick={() => u({ ...node, cases: [...node.cases, {
+  <button className="ps-tinsp-add-btn" onClick={() => u({ ...node, cases: [...node.cases, {
     id: crypto.randomUUID(), label: `Case ${node.cases.length + 1}`,
     when: { logic: 'AND', clauses: [] }, children: [],
   }] })}>
@@ -604,7 +585,7 @@ const ExpressionValueEditor: React.FC<{ node: ExpressionValueNode; u: (n: Templa
   <Label>Template string</Label>
   <Textarea value={node.template} onChange={v => u({ ...node, template: v })}
     placeholder="{{patient.name}}, {{patient.age}} years old" height={56} mono />
-  <div style={{ fontSize: 10, color: '#334155', marginTop: 4 }}>
+  <div className="ps-tinsp-hint-line">
     Use {'{{field.path}}'} syntax. References dot-notation paths into StructuredContext.
   </div>
   <Label>Fallback (shown when expression is empty)</Label>
@@ -625,7 +606,7 @@ const HeaderEditor: React.FC<{ node: HeaderNode; u: (n: TemplateNode) => void }>
   <Label>Height (pts)</Label>
   <TextInput value={String(node.height ?? 90)} onChange={v => u({ ...node, height: parseInt(v) || 90 })} placeholder="90" />
   <Div label="Content" />
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+  <div className="ps-tinsp-toggle-stack--flush ps-tinsp-stack">
     <Toggle checked={node.showLogo ?? true}        onChange={v => u({ ...node, showLogo: v })}        label="Show institution logo" />
     <Toggle checked={node.showAccession ?? true}   onChange={v => u({ ...node, showAccession: v })}   label="Show accession number" />
     <Toggle checked={node.showPatientName ?? true} onChange={v => u({ ...node, showPatientName: v })} label="Show patient name" />
@@ -647,7 +628,7 @@ const FooterEditor: React.FC<{ node: FooterNode; u: (n: TemplateNode) => void }>
   <Label>Height (pts)</Label>
   <TextInput value={String(node.height ?? 40)} onChange={v => u({ ...node, height: parseInt(v) || 40 })} placeholder="40" />
   <Div label="Content" />
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+  <div className="ps-tinsp-toggle-stack--flush ps-tinsp-stack">
     <Toggle checked={node.showPageNumbers ?? true} onChange={v => u({ ...node, showPageNumbers: v })} label="Show page numbers" />
   </div>
   {node.showPageNumbers && (<>
@@ -679,11 +660,11 @@ const ImageEmbedEditor: React.FC<{ node: ImageEmbedNode; u: (n: TemplateNode) =>
       { value: 'full',   label: 'Full width' },
     ]} fullWidth />
   <Row>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Width (px)</Label>
       <TextInput value={String(node.width ?? '')} onChange={v => u({ ...node, width: parseInt(v) || undefined })} placeholder="auto" />
     </div>
-    <div style={{ flex: 1 }}>
+    <div className="ps-tinsp-col">
       <Label>Height (px)</Label>
       <TextInput value={String(node.height ?? '')} onChange={v => u({ ...node, height: parseInt(v) || undefined })} placeholder="auto" />
     </div>
@@ -695,11 +676,11 @@ const ImageEmbedEditor: React.FC<{ node: ImageEmbedNode; u: (n: TemplateNode) =>
 export const TemplateInspector: React.FC<Props> = ({ node, onUpdate }) => {
   if (!node) {
     return (
-      <aside style={S.inspector}>
-        <div style={S.header}><span style={S.title}>Inspector</span></div>
-        <div style={S.empty}>
-          <div style={{ fontSize: 28, opacity: 0.15 }}>⊙</div>
-          <div style={{ fontSize: 12, color: '#334155', marginTop: 8 }}>Select a component to inspect</div>
+      <aside className="ps-tinsp-panel">
+        <div className="ps-tinsp-header"><span className="ps-tinsp-title">Inspector</span></div>
+        <div className="ps-tinsp-empty">
+          <div className="ps-tinsp-empty-icon">⊙</div>
+          <div className="ps-tinsp-empty-text">Select a component to inspect</div>
         </div>
       </aside>
     );
@@ -708,13 +689,13 @@ export const TemplateInspector: React.FC<Props> = ({ node, onUpdate }) => {
   const u = onUpdate;
 
   return (
-    <aside style={S.inspector}>
-      <div style={S.header}>
-        <span style={S.title}>Inspector</span>
-        <span style={S.typeTag}>{node.type}</span>
+    <aside className="ps-tinsp-panel">
+      <div className="ps-tinsp-header">
+        <span className="ps-tinsp-title">Inspector</span>
+        <span className="ps-tinsp-type-tag">{node.type}</span>
       </div>
 
-      <div style={S.body}>
+      <div className="ps-tinsp-body">
         {/* ── Base fields (all types) ── */}
         <Div label="General" />
         <Label>Label</Label>
@@ -723,22 +704,22 @@ export const TemplateInspector: React.FC<Props> = ({ node, onUpdate }) => {
         {/* Column width — drag handle on canvas is the primary way;
             this is the fallback for precise control */}
         <Label>Width</Label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div className="ps-tinsp-width-row">
           <input
             type="range" min={1} max={12} step={1}
             value={node.colSpan ?? 12}
             onChange={e => u({ ...node, colSpan: parseInt(e.target.value) })}
-            style={{ flex: 1, accentColor: '#0891b2' }}
+            className="ps-tinsp-range"
           />
-          <span style={{ fontSize: 11, color: '#64748b', minWidth: 40, textAlign: 'right' }}>
+          <span className="ps-tinsp-width-pct">
             {Math.round(((node.colSpan ?? 12) / 12) * 100)}%
           </span>
         </div>
-        <div style={{ fontSize: 10, color: '#1e293b', marginBottom: 8 }}>
+        <div className="ps-tinsp-width-hint">
           Drag the right edge of the component on the canvas to resize it visually.
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '8px 0' }}>
+        <div className="ps-tinsp-toggle-stack--symmetric ps-tinsp-stack">
           <Toggle checked={node.required ?? false}        onChange={v => u({ ...node, required: v })}        label="Required" />
           <Toggle checked={node.hideIfEmpty ?? false}     onChange={v => u({ ...node, hideIfEmpty: v })}     label="Hide if empty" />
           <Toggle checked={node.fhirExport ?? false}      onChange={v => u({ ...node, fhirExport: v })}      label="FHIR export" />
@@ -792,27 +773,4 @@ export const TemplateInspector: React.FC<Props> = ({ node, onUpdate }) => {
       </div>
     </aside>
   );
-};
-
-// ── Styles ─────────────────────────────────────────────────────
-
-const S: Record<string, React.CSSProperties> = {
-  inspector:  { width: 280, minWidth: 280, background: '#0d1117', borderLeft: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 },
-  header:     { padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  title:      { fontSize: 11, fontWeight: 700, color: '#f1f5f9', letterSpacing: '0.06em', textTransform: 'uppercase' },
-  typeTag:    { fontSize: 10, color: '#475569', fontFamily: 'monospace', background: '#1e293b', padding: '2px 6px', borderRadius: 4 },
-  body:       { flex: 1, overflowY: 'auto', padding: '10px 14px 24px' },
-  empty:      { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  label:      { fontSize: 10, fontWeight: 600, color: '#475569', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: 10, marginBottom: 4 },
-  divider:    { fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#334155', marginTop: 16, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #1e293b' },
-  input:      { width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#cbd5e1', fontSize: 12, padding: '6px 8px', boxSizing: 'border-box', outline: 'none' },
-  select:     { background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#cbd5e1', fontSize: 11, padding: '5px 6px', outline: 'none', cursor: 'pointer' },
-  toggleRow:  { display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' },
-  toggleLabel:{ fontSize: 12, color: '#94a3b8' },
-  exprBox:    { background: '#111827', border: '1px solid #1e293b', borderRadius: 6, padding: '10px', display: 'flex', flexDirection: 'column', gap: 6 },
-  exprHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  exprTitle:  { fontSize: 11, fontWeight: 600, color: '#64748b' },
-  clauseRow:  { display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' },
-  rmBtn:      { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 11, padding: '2px 4px', flexShrink: 0 },
-  addBtn:     { background: 'none', border: '1px dashed #334155', color: '#475569', cursor: 'pointer', fontSize: 11, padding: '5px 8px', borderRadius: 4, width: '100%', marginTop: 4 },
 };

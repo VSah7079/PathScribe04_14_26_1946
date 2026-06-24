@@ -556,7 +556,7 @@ const TATConfigSection: React.FC = () => {
       if (res.ok) {
         setAllClients(
           res.data
-            .filter((c: any) => c.status !== 'inactive')
+            .filter((c: any) => c.status !== 'Inactive') // was 'inactive' (lowercase) — Client.status is 'Active'|'Inactive' (capitalized), so this never matched and inactive clients incorrectly appeared in the dropdown
             .map((c: any) => ({ id: c.id, name: c.name }))
         );
       }

@@ -13,7 +13,7 @@ import {
 type Severity   = "low" | "medium" | "high";
 type DateRange  = "30d" | "90d" | "ytd";
 type Section    = "discordant" | "amended" | "tat" | "tatClient";
-type TatSubView = "firstTouch" | "total";
+type TatSubView = TatTileKey;
 type MetricView = "firstTouch" | "total";
 // All supported TAT types — mirrors TATEntry.type in the config system
 type TatTileKey = "firstTouch" | "totalCase" | "frozenSection" | "grossing" | "signOut" | "coldIschemia" | "consultResponse" | "consultAwaiting";
@@ -32,6 +32,10 @@ interface FirstTouchOutlier {
 interface TotalTATOutlier {
   id: string; caseType: string; date: string;
   tatHrs: number; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number;
+}
+interface GenericTatOutlier {
+  id: string; caseType: string; date: string;
+  actualHrs: number; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number;
 }
 interface ClientTatRow {
   id: string; name: string; code: string;
@@ -93,6 +97,45 @@ const mockTotalTATOutliers: TotalTATOutlier[] = [
   { id: "PSA-2024-0995", caseType: "Bone Marrow Bx",    date: "Apr 28", tatHrs: 74.4, targetHrs: 48, overByHrs: 26.4, clientCode: "RMC", daysAgo: 118 },
 ];
 
+const mockFrozenSectionOutliers: GenericTatOutlier[] = [
+  { id: "PSA-2024-1196", caseType: "Breast Margin",     date: "Aug 13", actualHrs: 0.78, targetHrs: 0.5, overByHrs: 0.28, clientCode: "MGH", daysAgo: 12  },
+  { id: "PSA-2024-1182", caseType: "Sentinel Node",      date: "Aug 9",  actualHrs: 0.65, targetHrs: 0.5, overByHrs: 0.15, clientCode: "RMC", daysAgo: 16  },
+  { id: "PSA-2024-1149", caseType: "Thyroid Margin",     date: "Jul 30", actualHrs: 0.91, targetHrs: 0.5, overByHrs: 0.41, clientCode: "MGH", daysAgo: 26  },
+  { id: "PSA-2024-1087", caseType: "GI Margin",          date: "Jun 26", actualHrs: 0.62, targetHrs: 0.5, overByHrs: 0.12, clientCode: "WSC", daysAgo: 60  },
+  { id: "PSA-2024-1011", caseType: "Lung Margin",        date: "May 4",  actualHrs: 0.84, targetHrs: 0.5, overByHrs: 0.34, clientCode: "MGH", daysAgo: 113 },
+];
+
+const mockGrossingOutliers: GenericTatOutlier[] = [
+  { id: "PSA-2024-1191", caseType: "Whipple Resection",  date: "Aug 12", actualHrs: 7.8, targetHrs: 4, overByHrs: 3.8, clientCode: "MGH", daysAgo: 13  },
+  { id: "PSA-2024-1167", caseType: "Colon Resection",    date: "Aug 5",  actualHrs: 6.2, targetHrs: 4, overByHrs: 2.2, clientCode: "RMC", daysAgo: 20  },
+  { id: "PSA-2024-1120", caseType: "Hysterectomy",       date: "Jul 14", actualHrs: 5.4, targetHrs: 4, overByHrs: 1.4, clientCode: "WSC", daysAgo: 42  },
+  { id: "PSA-2024-1066", caseType: "Liver Resection",    date: "Jun 6",  actualHrs: 9.1, targetHrs: 4, overByHrs: 5.1, clientCode: "MGH", daysAgo: 80  },
+];
+
+const mockSignOutOutliers: GenericTatOutlier[] = [
+  { id: "PSA-2024-1189", caseType: "Prostate Bx",        date: "Aug 11", actualHrs: 29.6, targetHrs: 24, overByHrs: 5.6,  clientCode: "RMC", daysAgo: 14  },
+  { id: "PSA-2024-1158", caseType: "Lymph Node Panel",   date: "Aug 1",  actualHrs: 38.2, targetHrs: 24, overByHrs: 14.2, clientCode: "MGH", daysAgo: 24  },
+  { id: "PSA-2024-1108", caseType: "Skin Excision",      date: "Jul 8",  actualHrs: 31.4, targetHrs: 24, overByHrs: 7.4,  clientCode: "WSC", daysAgo: 48  },
+  { id: "PSA-2024-1042", caseType: "Renal Biopsy",       date: "May 14", actualHrs: 41.0, targetHrs: 24, overByHrs: 17.0, clientCode: "MGH", daysAgo: 103 },
+];
+
+const mockColdIschemiaOutliers: GenericTatOutlier[] = [
+  { id: "PSA-2024-1194", caseType: "Breast Resection",   date: "Aug 13", actualHrs: 0.72, targetHrs: 0.5, overByHrs: 0.22, clientCode: "MGH", daysAgo: 12  },
+  { id: "PSA-2024-1163", caseType: "Liver Wedge",        date: "Aug 3",  actualHrs: 0.95, targetHrs: 0.5, overByHrs: 0.45, clientCode: "RMC", daysAgo: 22  },
+  { id: "PSA-2024-1095", caseType: "Kidney Resection",    date: "Jun 30", actualHrs: 0.68, targetHrs: 0.5, overByHrs: 0.18, clientCode: "WSC", daysAgo: 56  },
+];
+
+const mockConsultResponseOutliers: GenericTatOutlier[] = [
+  { id: "PSA-2024-1180", caseType: "Soft Tissue Mass",   date: "Aug 9",  actualHrs: 58.2, targetHrs: 48, overByHrs: 10.2, clientCode: "MGH", daysAgo: 16  },
+  { id: "PSA-2024-1126", caseType: "Thyroid FNA",        date: "Jul 17", actualHrs: 71.4, targetHrs: 48, overByHrs: 23.4, clientCode: "RMC", daysAgo: 39  },
+  { id: "PSA-2024-1059", caseType: "Lung Wedge",         date: "Jun 9",  actualHrs: 90.6, targetHrs: 48, overByHrs: 42.6, clientCode: "WSC", daysAgo: 77  },
+];
+
+const mockConsultAwaitingOutliers: GenericTatOutlier[] = [
+  { id: "PSA-2024-1175", caseType: "Bone Marrow",        date: "Aug 7",  actualHrs: 62.0, targetHrs: 48, overByHrs: 14.0, clientCode: "RMC", daysAgo: 18  },
+  { id: "PSA-2024-1114", caseType: "Brain Biopsy",       date: "Jul 10", actualHrs: 96.5, targetHrs: 48, overByHrs: 48.5, clientCode: "MGH", daysAgo: 46  },
+];
+
 const mockTatByClient: ClientTatRow[] = [
   { id: 'c1', name: 'Metro General Hospital',   code: 'MGH', target: { firstTouch: 4,  total: 24 }, mine: { firstTouch: 2.4, total: 18.2 }, peer: { firstTouch: 3.1, total: 21.4 }, breaches: { firstTouch: 2, total: 1 } },
   { id: 'c4', name: 'Westview Surgery Center',  code: 'WSC', target: { firstTouch: 6,  total: 36 }, mine: { firstTouch: 4.8, total: 28.6 }, peer: { firstTouch: 5.2, total: 31.0 }, breaches: { firstTouch: 0, total: 1 } },
@@ -135,18 +178,52 @@ const TAT_TYPE_TARGETS: Record<TatTileKey, TatTypeTarget> = {
 
 const TREND_DATA: TatTrendMonth[] = [
   { month: "Sep '24", cases: 310, firstTouch: 3.2, totalCase: 22.4, frozenSection: 0.41, grossing: 3.1, signOut: 20.8, coldIschemia: 0.44, consultResponse: 38.2, consultAwaiting: 42.1 },
-  { month: "Oct '24", cases: 334, firstTouch: 3.6, totalCase: 24.1, frozenSection: 0.38, grossing: 3.4, signOut: 22.6, coldIschemia: 0.41, consultResponse: 41.5, consultAwaiting: 45.2 },,
-  { month: "Nov '24", cases: 298, firstTouch: 4.1, totalCase: 26.8, frozenSection: 0.46, grossing: 3.8, signOut: 25.1, coldIschemia: 0.48, consultResponse: 52.1, consultAwaiting: 58.4 },,
-  { month: "Dec '24", cases: 261, firstTouch: 3.8, totalCase: 25.3, frozenSection: 0.43, grossing: 3.6, signOut: 23.7, coldIschemia: 0.45, consultResponse: 44.8, consultAwaiting: 49.1 },,
-  { month: "Jan '25", cases: 305, firstTouch: 3.3, totalCase: 22.9, frozenSection: 0.39, grossing: 3.2, signOut: 21.4, coldIschemia: 0.42, consultResponse: 36.4, consultAwaiting: 40.2 },,
-  { month: "Feb '25", cases: 318, firstTouch: 3.7, totalCase: 24.6, frozenSection: 0.42, grossing: 3.5, signOut: 23.1, coldIschemia: 0.44, consultResponse: 39.7, consultAwaiting: 43.8 },,
-  { month: "Mar '25", cases: 341, firstTouch: 4.2, totalCase: 27.1, frozenSection: 0.47, grossing: 3.9, signOut: 25.4, coldIschemia: 0.49, consultResponse: 55.2, consultAwaiting: 61.3 },,
-  { month: "Apr '25", cases: 352, firstTouch: 3.5, totalCase: 23.8, frozenSection: 0.40, grossing: 3.3, signOut: 22.2, coldIschemia: 0.43, consultResponse: 42.1, consultAwaiting: 46.5 },,
-  { month: "May '25", cases: 346, firstTouch: 3.1, totalCase: 22.1, frozenSection: 0.37, grossing: 3.0, signOut: 20.6, coldIschemia: 0.40, consultResponse: 34.8, consultAwaiting: 38.2 },,
-  { month: "Jun '25", cases: 368, firstTouch: 3.4, totalCase: 24.0, frozenSection: 0.41, grossing: 3.3, signOut: 22.5, coldIschemia: 0.43, consultResponse: 38.6, consultAwaiting: 42.4 },,
-  { month: "Jul '25", cases: 341, firstTouch: 2.9, totalCase: 21.6, frozenSection: 0.36, grossing: 2.9, signOut: 20.1, coldIschemia: 0.38, consultResponse: 31.2, consultAwaiting: 35.8 },,
-  { month: "Aug '25", cases: 387, firstTouch: 2.4, totalCase: 18.2, frozenSection: 0.32, grossing: 2.6, signOut: 17.8, coldIschemia: 0.34, consultResponse: 28.4, consultAwaiting: 32.1 },,
+  { month: "Oct '24", cases: 334, firstTouch: 3.6, totalCase: 24.1, frozenSection: 0.38, grossing: 3.4, signOut: 22.6, coldIschemia: 0.41, consultResponse: 41.5, consultAwaiting: 45.2 },
+  { month: "Nov '24", cases: 298, firstTouch: 4.1, totalCase: 26.8, frozenSection: 0.46, grossing: 3.8, signOut: 25.1, coldIschemia: 0.48, consultResponse: 52.1, consultAwaiting: 58.4 },
+  { month: "Dec '24", cases: 261, firstTouch: 3.8, totalCase: 25.3, frozenSection: 0.43, grossing: 3.6, signOut: 23.7, coldIschemia: 0.45, consultResponse: 44.8, consultAwaiting: 49.1 },
+  { month: "Jan '25", cases: 305, firstTouch: 3.3, totalCase: 22.9, frozenSection: 0.39, grossing: 3.2, signOut: 21.4, coldIschemia: 0.42, consultResponse: 36.4, consultAwaiting: 40.2 },
+  { month: "Feb '25", cases: 318, firstTouch: 3.7, totalCase: 24.6, frozenSection: 0.42, grossing: 3.5, signOut: 23.1, coldIschemia: 0.44, consultResponse: 39.7, consultAwaiting: 43.8 },
+  { month: "Mar '25", cases: 341, firstTouch: 4.2, totalCase: 27.1, frozenSection: 0.47, grossing: 3.9, signOut: 25.4, coldIschemia: 0.49, consultResponse: 55.2, consultAwaiting: 61.3 },
+  { month: "Apr '25", cases: 352, firstTouch: 3.5, totalCase: 23.8, frozenSection: 0.40, grossing: 3.3, signOut: 22.2, coldIschemia: 0.43, consultResponse: 42.1, consultAwaiting: 46.5 },
+  { month: "May '25", cases: 346, firstTouch: 3.1, totalCase: 22.1, frozenSection: 0.37, grossing: 3.0, signOut: 20.6, coldIschemia: 0.40, consultResponse: 34.8, consultAwaiting: 38.2 },
+  { month: "Jun '25", cases: 368, firstTouch: 3.4, totalCase: 24.0, frozenSection: 0.41, grossing: 3.3, signOut: 22.5, coldIschemia: 0.43, consultResponse: 38.6, consultAwaiting: 42.4 },
+  { month: "Jul '25", cases: 341, firstTouch: 2.9, totalCase: 21.6, frozenSection: 0.36, grossing: 2.9, signOut: 20.1, coldIschemia: 0.38, consultResponse: 31.2, consultAwaiting: 35.8 },
+  { month: "Aug '25", cases: 387, firstTouch: 2.4, totalCase: 18.2, frozenSection: 0.32, grossing: 2.6, signOut: 17.8, coldIschemia: 0.34, consultResponse: 28.4, consultAwaiting: 32.1 },
 ];
+
+// 30-day view: the underlying data is monthly, so synthesize 4 weekly points
+// trending from last month's value toward this month's, anchored to real
+// calendar dates computed from "today" (so labels stay current automatically).
+function formatWeekLabel(d: Date): string {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function generateLast4Weeks(): TatTrendMonth[] {
+  const latest = TREND_DATA[TREND_DATA.length - 1];
+  const prev   = TREND_DATA[TREND_DATA.length - 2] ?? latest;
+  const weights = [0.15, 0.45, 0.75, 1]; // oldest week → newest week, trending prev → latest
+  const today = new Date();
+  const weeks: TatTrendMonth[] = [];
+  for (let i = 3; i >= 0; i--) {
+    const weekEnding = new Date(today);
+    weekEnding.setDate(today.getDate() - i * 7);
+    const w = weights[3 - i];
+    const lerp = (a: number, b: number) => +(a + (b - a) * w).toFixed(2);
+    weeks.push({
+      month:           formatWeekLabel(weekEnding),
+      cases:           Math.round(lerp(prev.cases, latest.cases) / 4.345),
+      firstTouch:      lerp(prev.firstTouch, latest.firstTouch),
+      totalCase:       lerp(prev.totalCase, latest.totalCase),
+      frozenSection:   lerp(prev.frozenSection, latest.frozenSection),
+      grossing:        lerp(prev.grossing, latest.grossing),
+      signOut:         lerp(prev.signOut, latest.signOut),
+      coldIschemia:    lerp(prev.coldIschemia, latest.coldIschemia),
+      consultResponse: lerp(prev.consultResponse, latest.consultResponse),
+      consultAwaiting: lerp(prev.consultAwaiting, latest.consultAwaiting),
+    });
+  }
+  return weeks;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -286,10 +363,18 @@ const QualityTab: React.FC = () => {
   const filteredAmended    = mockAmended.filter(r => r.daysAgo <= cutoff);
   const filteredFirstTouch = mockFirstTouchOutliers.filter(r => r.daysAgo <= cutoff);
   const filteredTotalTAT   = mockTotalTATOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredFrozenSection   = mockFrozenSectionOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredGrossing        = mockGrossingOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredSignOut         = mockSignOutOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredColdIschemia    = mockColdIschemiaOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredConsultResponse = mockConsultResponseOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredConsultAwaiting = mockConsultAwaitingOutliers.filter(r => r.daysAgo <= cutoff);
 
-  // TAT trend: 30d=last 1 month, 90d=last 3 months, ytd=all 12
-  const trendSlice = dateRange === "30d" ? -1 : dateRange === "90d" ? -3 : undefined;
-  const trendRows = trendSlice !== undefined ? TREND_DATA.slice(trendSlice) : TREND_DATA;
+  // TAT trend: 30d=last 4 weeks (synthesized weekly), 90d=last 3 months, ytd=all 12
+  const trendSlice = dateRange === "90d" ? -3 : undefined;
+  const trendRows = dateRange === "30d"
+    ? generateLast4Weeks()
+    : trendSlice !== undefined ? TREND_DATA.slice(trendSlice) : TREND_DATA;
 
   // Reactive summary counts that update with the date filter
   const summaryData = {
@@ -388,7 +473,9 @@ const QualityTab: React.FC = () => {
         const isMin   = activeTatTile === 'frozenSection' || activeTatTile === 'coldIschemia';
         const fmt     = (v: number) => isMin ? `${Math.round(v * 60)}m` : `${v}h`;
         const yMax    = Math.ceil(Math.max(targets.target, ...trendRows.map(d => d[dataKey] as number)) * 1.35);
-        const avg12   = +(TREND_DATA.reduce((s, d) => s + (d[dataKey] as number), 0) / TREND_DATA.length).toFixed(2);
+        const periodLabel      = dateRange === "30d" ? "4-week" : dateRange === "90d" ? "90-day" : "12-mo";
+        const periodTitleLabel = dateRange === "30d" ? "Last 4 Weeks" : dateRange === "90d" ? "Last 90 Days" : "Last 12 Months";
+        const avg12   = +(trendRows.reduce((s, d) => s + (d[dataKey] as number), 0) / trendRows.length).toFixed(2);
         const vsTarget = +(avg12 - targets.target).toFixed(2);
         const vsPeer   = +(avg12 - targets.peer).toFixed(2);
 
@@ -408,14 +495,14 @@ const QualityTab: React.FC = () => {
             <div className="ps-tat-trend__header">
               <div>
                 <div className="ps-tat-trend__title">
-                  {tatCfg.icon} {tatCfg.label} TAT Trend — Last 12 Months
+                  {tatCfg.icon} {tatCfg.label} TAT Trend — {periodTitleLabel}
                 </div>
                 <div className="ps-tat-trend__subtitle">
                   Monthly average vs target {fmt(targets.target)} and peer avg {fmt(targets.peer)}
                 </div>
                 <div className="ps-tat-trend__summary-row">
                   <span className="ps-tat-trend__summary-group">
-                    <span className="ps-tat-trend__summary-label">12-mo avg</span>
+                    <span className="ps-tat-trend__summary-label">{periodLabel} avg</span>
                     <span className="ps-tat-trend__summary-pill" style={{ background: `${tatCfg.color}1a`, color: tatCfg.color, border: `1px solid ${tatCfg.color}44` }}>
                       {tatCfg.icon} {fmt(avg12)}
                     </span>
@@ -561,86 +648,75 @@ const QualityTab: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAT Outliers — split sub-views ── */}
-      {section === "tat" && (
-        <div className="ps-quality-tat-outliers">
+      {/* ── TAT Outliers — split sub-views, one per TAT category ── */}
+      {section === "tat" && (() => {
+        const OUTLIER_CONFIG: Record<TatTileKey, {
+          data: Array<{ id: string; caseType: string; date: string; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number } & Record<string, any>>;
+          valueLabel: string;
+          subtitle: string;
+          isMin: boolean;
+        }> = {
+          firstTouch:      { data: filteredFirstTouch,         valueLabel: "First Opened",        subtitle: "Cases not opened within the client's first-touch TAT threshold", isMin: false },
+          totalCase:       { data: filteredTotalTAT,           valueLabel: "Actual TAT",           subtitle: "Cases where receivedDate \u2192 finalizedAt exceeded the client's total TAT target", isMin: false },
+          frozenSection:   { data: filteredFrozenSection,      valueLabel: "Frozen Section TAT",   subtitle: "Intraoperative frozen section results exceeding the turnaround target", isMin: true  },
+          grossing:        { data: filteredGrossing,           valueLabel: "Grossing TAT",         subtitle: "Specimens exceeding the gross-to-description turnaround target", isMin: false },
+          signOut:         { data: filteredSignOut,            valueLabel: "Sign-out TAT",         subtitle: "Cases exceeding the gross-to-final-signout turnaround target", isMin: false },
+          coldIschemia:    { data: filteredColdIschemia,       valueLabel: "Cold Ischemia Time",   subtitle: "Vessel-clamp-to-fixation time exceeding the target window", isMin: true  },
+          consultResponse: { data: filteredConsultResponse,    valueLabel: "Response Time",        subtitle: "Consult / review requests you took longer than target to respond to", isMin: false },
+          consultAwaiting: { data: filteredConsultAwaiting,    valueLabel: "Wait Time",             subtitle: "Consult / review requests where you're still waiting on a colleague's response", isMin: false },
+        };
+        const getActual = (row: Record<string, any>) => row.actualHrs ?? row.firstTouchHrs ?? row.tatHrs;
+        const fmtVal = (v: number, isMin: boolean) => isMin ? `${Math.round(v * 60)}m` : `${v}h`;
 
-          <div className="ps-quality-sub-toggle">
-            <button className={`ps-quality-sub-btn${tatSubView === "firstTouch" ? " active" : ""}`} onClick={() => setTatSubView("firstTouch")}>
-              ⚡ First Touch Breaches
-              {mockFirstTouchOutliers.length > 0 && <span className="ps-quality-sub-btn__badge">{mockFirstTouchOutliers.length}</span>}
-            </button>
-            <button className={`ps-quality-sub-btn${tatSubView === "total" ? " active" : ""}`} onClick={() => setTatSubView("total")}>
-              ✓ Total TAT Breaches
-              {mockTotalTATOutliers.length > 0 && <span className="ps-quality-sub-btn__badge">{mockTotalTATOutliers.length}</span>}
-            </button>
+        return (
+          <div className="ps-quality-tat-outliers">
+            <div className="ps-quality-sub-toggle">
+              {ENABLED_TAT_TYPES.map(t => (
+                <button key={t.key} className={`ps-quality-sub-btn${tatSubView === t.key ? " active" : ""}`} onClick={() => setTatSubView(t.key)}>
+                  {t.icon} {t.label} Breaches
+                  {OUTLIER_CONFIG[t.key].data.length > 0 && <span className="ps-quality-sub-btn__badge">{OUTLIER_CONFIG[t.key].data.length}</span>}
+                </button>
+              ))}
+            </div>
+
+            {ENABLED_TAT_TYPES.map(t => {
+              if (tatSubView !== t.key) return null;
+              const cfg = OUTLIER_CONFIG[t.key];
+              return (
+                <div className="ps-quality-card" key={t.key}>
+                  <div className="ps-quality-card__header">
+                    <div className="ps-quality-card__title">{t.icon} {t.label} Breaches</div>
+                    <div className="ps-quality-card__subtitle">{cfg.subtitle}</div>
+                  </div>
+                  {cfg.data.length === 0
+                    ? <div className="ps-quality-empty">✓ No {t.label.toLowerCase()} breaches this period</div>
+                    : (
+                      <table className="ps-quality-table">
+                        <thead>
+                          <tr>{["Case", "Type", "Client", cfg.valueLabel, "Target", "Over By", "Date"].map(h => <th key={h} className="ps-quality-th">{h}</th>)}</tr>
+                        </thead>
+                        <tbody>
+                          {cfg.data.map(c => (
+                            <tr key={c.id}>
+                              <td className="ps-quality-td ps-quality-td--accent">{c.id}</td>
+                              <td className="ps-quality-td">{c.caseType}</td>
+                              <td className="ps-quality-td"><span className="ps-client-code-badge">{c.clientCode}</span></td>
+                              <td className="ps-quality-td ps-quality-td--warning">{fmtVal(getActual(c), cfg.isMin)}</td>
+                              <td className="ps-quality-td ps-quality-td--muted">{fmtVal(c.targetHrs, cfg.isMin)}</td>
+                              <td className="ps-quality-td"><span className="ps-quality-over-by">+{fmtVal(c.overByHrs, cfg.isMin)}</span></td>
+                              <td className="ps-quality-td ps-quality-td--muted">{c.date}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  }
+                </div>
+              );
+            })}
           </div>
-
-          {tatSubView === "firstTouch" && (
-            <div className="ps-quality-card">
-              <div className="ps-quality-card__header">
-                <div className="ps-quality-card__title">⚡ First Touch Breaches</div>
-                <div className="ps-quality-card__subtitle">Cases not opened within the client's first-touch TAT threshold</div>
-              </div>
-              {filteredFirstTouch.length === 0
-                ? <div className="ps-quality-empty">✓ No first-touch breaches this period</div>
-                : (
-                  <table className="ps-quality-table">
-                    <thead>
-                      <tr>{["Case", "Type", "Client", "First Opened", "Target", "Over By", "Date"].map(h => <th key={h} className="ps-quality-th">{h}</th>)}</tr>
-                    </thead>
-                    <tbody>
-                      {filteredFirstTouch.map(c => (
-                        <tr key={c.id}>
-                          <td className="ps-quality-td ps-quality-td--accent">{c.id}</td>
-                          <td className="ps-quality-td">{c.caseType}</td>
-                          <td className="ps-quality-td"><span className="ps-client-code-badge">{c.clientCode}</span></td>
-                          <td className="ps-quality-td ps-quality-td--warning">{c.firstTouchHrs}h</td>
-                          <td className="ps-quality-td ps-quality-td--muted">{c.targetHrs}h</td>
-                          <td className="ps-quality-td"><span className="ps-quality-over-by">+{c.overByHrs}h</span></td>
-                          <td className="ps-quality-td ps-quality-td--muted">{c.date}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              }
-            </div>
-          )}
-
-          {tatSubView === "total" && (
-            <div className="ps-quality-card">
-              <div className="ps-quality-card__header">
-                <div className="ps-quality-card__title">✓ Total TAT Breaches</div>
-                <div className="ps-quality-card__subtitle">Cases where receivedDate → finalizedAt exceeded the client's total TAT target</div>
-              </div>
-              {filteredTotalTAT.length === 0
-                ? <div className="ps-quality-empty">✓ No total TAT breaches this period</div>
-                : (
-                  <table className="ps-quality-table">
-                    <thead>
-                      <tr>{["Case", "Type", "Client", "Actual TAT", "Target", "Over By", "Date"].map(h => <th key={h} className="ps-quality-th">{h}</th>)}</tr>
-                    </thead>
-                    <tbody>
-                      {filteredTotalTAT.map(c => (
-                        <tr key={c.id}>
-                          <td className="ps-quality-td ps-quality-td--accent">{c.id}</td>
-                          <td className="ps-quality-td">{c.caseType}</td>
-                          <td className="ps-quality-td"><span className="ps-client-code-badge">{c.clientCode}</span></td>
-                          <td className="ps-quality-td ps-quality-td--warning">{c.tatHrs}h</td>
-                          <td className="ps-quality-td ps-quality-td--muted">{c.targetHrs}h</td>
-                          <td className="ps-quality-td"><span className="ps-quality-over-by">+{c.overByHrs}h</span></td>
-                          <td className="ps-quality-td ps-quality-td--muted">{c.date}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              }
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── TAT by Client ── */}
       {section === "tatClient" && (

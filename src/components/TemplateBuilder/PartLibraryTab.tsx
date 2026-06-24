@@ -40,54 +40,54 @@ const PartCard: React.FC<{
 
   return (
     <div
-      className={`ps-part-card${confirmArchive ? ' confirm-active' : ''}`}
+      className={`ps-plib-card${confirmArchive ? ' confirm-active' : ''}`}
       onMouseLeave={() => setConfirmArchive(false)}
     >
       {/* Type icon */}
-      <div className={`ps-part-card__icon ps-part-card__icon--${part.partType}`}>
+      <div className={`ps-plib-card__icon ps-plib-card__icon--${part.partType}`}>
         {tc.icon}
       </div>
 
       {/* Info */}
-      <div className="ps-part-card__info">
-        <div className="ps-part-card__name-row">
-          <span className="ps-part-card__name">{part.name}</span>
-          <span className={`ps-part-card__badge ps-part-card__badge--${part.status}`}>
+      <div className="ps-plib-card__info">
+        <div className="ps-plib-card__name-row">
+          <span className="ps-plib-card__name">{part.name}</span>
+          <span className={`ps-plib-card__badge ps-plib-card__badge--${part.status}`}>
             {part.status}
           </span>
           {isProtected && (
-            <span className="ps-part-card__badge ps-part-card__badge--builtin">BUILT-IN</span>
+            <span className="ps-plib-card__badge ps-plib-card__badge--builtin">BUILT-IN</span>
           )}
         </div>
-        <div className="ps-part-card__desc">
+        <div className="ps-plib-card__desc">
           {tc.label} · {part.specialty}{part.subspecialty ? ` — ${part.subspecialty}` : ''}
           {part.description && ` · ${part.description}`}
         </div>
       </div>
 
       {/* Actions — shown on :hover or when confirm-active via CSS */}
-      <div className="ps-part-card__actions">
+      <div className="ps-plib-card__actions">
         {!isProtected && (
-          <button onClick={onEdit} className="ps-part-card__btn ps-part-card__btn--primary">
+          <button onClick={onEdit} className="ps-plib-card__btn ps-plib-card__btn--primary">
             Edit
           </button>
         )}
         <button
           onClick={onDuplicate}
           disabled={isDuplicating}
-          className="ps-part-card__btn ps-part-card__btn--secondary"
+          className="ps-plib-card__btn ps-plib-card__btn--secondary"
         >
           {isDuplicating ? 'Duplicating…' : 'Duplicate'}
         </button>
         {!isProtected && (
           confirmArchive ? (
             <>
-              <span className="ps-part-card__confirm-text">Archive?</span>
-              <button onClick={onArchive}                    className="ps-part-card__btn ps-part-card__btn--danger">Yes</button>
-              <button onClick={() => setConfirmArchive(false)} className="ps-part-card__btn ps-part-card__btn--cancel">No</button>
+              <span className="ps-plib-card__confirm-text">Archive?</span>
+              <button onClick={onArchive}                    className="ps-plib-card__btn ps-plib-card__btn--danger">Yes</button>
+              <button onClick={() => setConfirmArchive(false)} className="ps-plib-card__btn ps-plib-card__btn--cancel">No</button>
             </>
           ) : (
-            <button onClick={() => setConfirmArchive(true)} className="ps-part-card__btn ps-part-card__btn--cancel">
+            <button onClick={() => setConfirmArchive(true)} className="ps-plib-card__btn ps-plib-card__btn--cancel">
               Archive
             </button>
           )
@@ -142,18 +142,18 @@ const PartLibraryTab: React.FC = () => {
   };
 
   return (
-    <div className="ps-part-lib">
+    <div className="ps-plib">
 
       {/* Header */}
-      <div className="ps-part-lib__header">
+      <div className="ps-plib__header">
         <div>
-          <h2 className="ps-part-lib__title">Part Library</h2>
-          <p className="ps-part-lib__subtitle">
+          <h2 className="ps-plib__title">Part Library</h2>
+          <p className="ps-plib__subtitle">
             Reusable report parts — headers, footers and body sections assembled into templates
           </p>
         </div>
         <button
-          className="ps-part-lib__new-btn"
+          className="ps-plib__new-btn"
           onClick={() => navigate('/admin/parts/new')}
         >
           + New Part
@@ -162,27 +162,27 @@ const PartLibraryTab: React.FC = () => {
 
       {/* Error */}
       {error && (
-        <div className="ps-part-lib__error">
+        <div className="ps-plib__error">
           {error}
-          <button className="ps-part-lib__error-dismiss" onClick={() => setError(null)}>✕</button>
+          <button className="ps-plib__error-dismiss" onClick={() => setError(null)}>✕</button>
         </div>
       )}
 
       {/* Filter bar */}
-      <div className="ps-part-lib__filters">
-        <div className="ps-part-lib__filter-group">
+      <div className="ps-plib__filters">
+        <div className="ps-plib__filter-group">
           {(['all', 'header', 'body', 'footer'] as const).map(f => (
             <button
               key={f}
               onClick={() => setTypeFilter(f)}
-              className={`ps-part-lib__filter-btn${typeFilter === f ? ' active' : ''}`}
+              className={`ps-plib__filter-btn${typeFilter === f ? ' active' : ''}`}
             >
               {f === 'all' ? 'All' : `${TYPE_CONFIG[f].icon} ${TYPE_CONFIG[f].label}s`}
             </button>
           ))}
         </div>
         <input
-          className="ps-part-lib__search"
+          className="ps-plib__search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search parts…"
@@ -191,7 +191,7 @@ const PartLibraryTab: React.FC = () => {
 
       {/* Content */}
       {loading ? (
-        <div className="ps-part-lib__loading">Loading parts…</div>
+        <div className="ps-plib__loading">Loading parts…</div>
       ) : (
         (['header', 'body', 'footer'] as ReportPartType[]).map(type => {
           if (typeFilter !== 'all' && typeFilter !== type) return null;
@@ -200,18 +200,18 @@ const PartLibraryTab: React.FC = () => {
 
           return (
             <div key={type}>
-              <div className={`ps-part-lib__group-header ps-part-lib__group-header--${type}`}>
-                <span className={`ps-part-lib__group-icon ps-part-lib__group-icon--${type}`}>
+              <div className={`ps-plib__group-header ps-plib__group-header--${type}`}>
+                <span className={`ps-plib__group-icon ps-plib__group-icon--${type}`}>
                   {tc.icon}
                 </span>
-                <span className={`ps-part-lib__group-label ps-part-lib__group-label--${type}`}>
+                <span className={`ps-plib__group-label ps-plib__group-label--${type}`}>
                   {tc.label}s
                 </span>
-                <span className="ps-part-lib__group-count">{group.length}</span>
+                <span className="ps-plib__group-count">{group.length}</span>
               </div>
 
               {group.length === 0 ? (
-                <div className="ps-part-lib__empty">
+                <div className="ps-plib__empty">
                   No {tc.label.toLowerCase()} parts yet
                 </div>
               ) : (

@@ -3,7 +3,7 @@
 // Page size is sticky across sessions via localStorage.
 import React, { useEffect, useState } from 'react';
 import type { ReportTemplate as OldTemplate, TemplateNode } from '../../types/template';
-import type { StructuredContext } from '../../lib/contextBuilder';
+import type { StructuredContext } from '../../orchestrator/contextBuilder';
 
 // ── Page sizes ─────────────────────────────────────────────────
 const MM = 96 / 25.4;
@@ -92,6 +92,13 @@ function evalCond(expr: { logic: 'AND'|'OR'; clauses: { field: string; operator:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function dig(ctx: StructuredContext, key: string): any { let v: any = ctx; for (const p of key.split('.')) v = v?.[p]; return v; }
 
+/** 'lymphovascularInvasion' → 'Lymphovascular Invasion' */
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^./, c => c.toUpperCase());
+}
+
 function resolveField(node: TemplateNode, ctx: StructuredContext): string {
   switch (node.type) {
     case 'expression-value': return resolveExpr(node.template, ctx) || (node.fallback ?? '—');
@@ -128,17 +135,19 @@ const FieldTable: React.FC<{ nodes: TemplateNode[]; ctx: StructuredContext }> = 
   }
   if (cur.length) rows.push(cur);
   return (
-    <div style={{ marginBottom: 5 }}>
+    <div className="ps-tpp-field-table">
       {rows.map((row, ri) => (
-        <div key={ri} style={{ display: 'grid', gridTemplateColumns: row.map(n => `${n.colSpan ?? 12}fr`).join(' '),
-          gap: '0 20px', background: ri % 2 ? 'rgba(0,0,0,0.018)' : 'transparent', padding: '3px 0' }}>
+        <div key={ri}
+          // gridTemplateColumns is computed per-row from each node's arbitrary colSpan — stays inline.
+          style={{ gridTemplateColumns: row.map(n => `${n.colSpan ?? 12}fr`).join(' ') }}
+          className={`ps-tpp-field-row${ri % 2 ? ' ps-tpp-field-row--alt' : ''}`}
+        >
           {row.map(n => (
-            <div key={n.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', minWidth: 0 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#64748b', textTransform: 'uppercase',
-                letterSpacing: '0.04em', flexShrink: 0, maxWidth: '42%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div key={n.id} className="ps-tpp-field-cell">
+              <span className="ps-tpp-field-label">
                 {n.label}
               </span>
-              <span style={{ fontSize: 12, color: '#0f172a', lineHeight: 1.4, flex: 1, minWidth: 0 }}>
+              <span className="ps-tpp-field-value">
                 {resolveField(n, ctx)}
               </span>
             </div>
@@ -156,39 +165,40 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
   if (isField(node)) return <FieldTable nodes={[node]} ctx={ctx} />;
   switch (node.type) {
     case 'static-label': {
-      const base: Record<string, React.CSSProperties> = {
-        h1: { fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '10px 0 3px' },
-        h2: { fontSize: 13, fontWeight: 700, color: '#1e293b', margin: '8px 0 3px' },
-        h3: { fontSize: 12, fontWeight: 600, color: '#334155', margin: '6px 0 2px' },
-        body: { fontSize: 12, color: '#1e293b', margin: '2px 0' },
-        caption: { fontSize: 10, color: '#64748b', margin: '2px 0', fontStyle: 'italic' },
-      };
-      return <div style={{ ...base[node.variant ?? 'body'],
-        fontWeight: node.bold ? 700 : base[node.variant ?? 'body']?.fontWeight,
-        fontStyle: node.italic ? 'italic' : undefined }}>{node.text}</div>;
+      const variant = node.variant ?? 'body';
+      return <div className={[
+        'ps-tpp-static-label',
+        `ps-tpp-static-label--${variant}`,
+        node.bold ? 'ps-tpp-static-label--bold' : '',
+        node.italic ? 'ps-tpp-static-label--italic' : '',
+      ].filter(Boolean).join(' ')}>{node.text}</div>;
     }
     case 'paragraph': {
       let val = dig(ctx, node.bindingKey);
       const text = typeof val === 'string' ? val : '';
       if (!text && node.hideIfEmpty) return null;
       return (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{node.label}</div>
-          <div style={{ fontSize: 12, color: '#0f172a', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-            {text || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No content</span>}
+        <div className="ps-tpp-paragraph">
+          <div className="ps-tpp-paragraph-label">{node.label}</div>
+          <div className="ps-tpp-paragraph-text">
+            {text || <span className="ps-tpp-no-content">No content</span>}
           </div>
         </div>
       );
     }
     case 'rich-text-block':
-      return <div style={{ fontSize: node.fontSize ?? 12, textAlign: node.textAlign ?? 'left', color: '#0f172a', lineHeight: 1.7, marginBottom: 8 }}>
-        {node.content || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No content</span>}
+      return <div
+        // fontSize/textAlign are per-node user-configured values — stay inline.
+        style={{ fontSize: node.fontSize ?? 12, textAlign: node.textAlign ?? 'left' }}
+        className="ps-tpp-richtext"
+      >
+        {node.content || <span className="ps-tpp-no-content">No content</span>}
       </div>;
     case 'section': {
       const heading = node.printHeading || node.label;
       return (
-        <div style={{ marginBottom: 14 }}>
-          {heading && <div style={{ fontSize: 10, fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1.5px solid #e2e8f0', paddingBottom: 4, marginBottom: 8 }}>{heading}</div>}
+        <div className="ps-tpp-section">
+          {heading && <div className="ps-tpp-section-heading">{heading}</div>}
           <GroupedChildren children={node.children} ctx={ctx} pageNum={pageNum} totalPages={totalPages} />
         </div>
       );
@@ -196,10 +206,10 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
     case 'repeat-group': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items: any[] = (ctx as any)[node.iterateOver] ?? [];
-      if (!items.length) return <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginBottom: 8 }}>No items</div>;
+      if (!items.length) return <div className="ps-tpp-no-items">No items</div>;
       return <div>{items.map((item, i) => {
         const ic = { ...ctx, [node.itemAlias ?? 'item']: item, specimen: item } as StructuredContext;
-        return <div key={i} style={{ marginBottom: 12 }}><GroupedChildren children={node.children} ctx={ic} pageNum={pageNum} totalPages={totalPages} /></div>;
+        return <div key={i} className="ps-tpp-repeat-item"><GroupedChildren children={node.children} ctx={ic} pageNum={pageNum} totalPages={totalPages} /></div>;
       })}</div>;
     }
     case 'if-block': {
@@ -218,14 +228,13 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
       // break-inside:avoid on each child wrapper prevents a node from being
       // split mid-content across a column break.
       return (
-        <div style={{
-          columnCount:  node.numColumns,
-          columnGap:    `${node.columnGap ?? 16}px`,
-          columnRule:   '1px solid #e2e8f0',
-          marginBottom: 10,
-        }}>
+        <div
+          // columnCount/columnGap are per-node user-configured values — stay inline.
+          style={{ columnCount: node.numColumns, columnGap: `${node.columnGap ?? 16}px` }}
+          className="ps-tpp-col-layout"
+        >
           {node.children.map(child => (
-            <div key={child.id} style={{ breakInside: 'avoid', marginBottom: 6 }}>
+            <div key={child.id} className="ps-tpp-col-layout-child">
               <ContentNode node={child} ctx={ctx} pageNum={pageNum} totalPages={totalPages} />
             </div>
           ))}
@@ -233,35 +242,70 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
       );
     case 'image-embed':
       return (
-        <div style={{ textAlign: node.alignment === 'center' ? 'center' : node.alignment === 'right' ? 'right' : 'left', margin: '6px 0' }}>
-          {node.src ? <img src={node.src} alt={node.alt ?? ''} width={node.width ?? 80} height={node.height ?? 80} style={{ objectFit: 'contain' }} />
-            : <div style={{ width: node.width ?? 80, height: node.height ?? 80, background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8' }}>Image</div>}
-          {node.caption && <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{node.caption}</div>}
+        <div
+          // textAlign is a per-node user-configured alignment — stays inline.
+          style={{ textAlign: node.alignment === 'center' ? 'center' : node.alignment === 'right' ? 'right' : 'left' }}
+          className="ps-tpp-image-wrap"
+        >
+          {node.src ? <img src={node.src} alt={node.alt ?? ''} width={node.width ?? 80} height={node.height ?? 80} className="ps-tpp-image" />
+            : <div
+                // width/height are per-node user-configured placeholder dimensions — stay inline.
+                style={{ width: node.width ?? 80, height: node.height ?? 80 }}
+                className="ps-tpp-image-placeholder"
+              >Image</div>}
+          {node.caption && <div className="ps-tpp-image-caption">{node.caption}</div>}
         </div>
       );
     case 'header':
       return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 8, marginBottom: 10, borderBottom: '2.5px solid #0891b2' }}>
+        <div className="ps-tpp-print-header">
           <div>
-            {node.showLogo && <div style={{ fontSize: 15, fontWeight: 800, color: '#0891b2' }}>PathScribe Laboratory</div>}
-            <div style={{ fontSize: 10, color: '#475569', marginTop: 1 }}>Department of Anatomic Pathology</div>
+            {node.showLogo && <div className="ps-tpp-print-header-logo">PathScribe Laboratory</div>}
+            <div className="ps-tpp-print-header-sub">Department of Anatomic Pathology</div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            {node.showAccession && <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{MOCK_CTX.order.fullAccession}</div>}
-            {node.showPatientName && <div style={{ fontSize: 11, color: '#334155' }}>{MOCK_CTX.patient.name}</div>}
-            <div style={{ fontSize: 10, color: '#475569', marginTop: 1 }}>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+          <div className="ps-tpp-print-header-right">
+            {node.showAccession && <div className="ps-tpp-print-header-accession">{MOCK_CTX.order.fullAccession}</div>}
+            {node.showPatientName && <div className="ps-tpp-print-header-patient">{MOCK_CTX.patient.name}</div>}
+            <div className="ps-tpp-print-header-sub">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
           </div>
         </div>
       );
     case 'footer':
       return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, marginTop: 10, borderTop: '1px solid #e2e8f0', fontSize: 9, color: '#64748b' }}>
+        <div className="ps-tpp-print-footer">
           <span>{MOCK_CTX.patient.name} · DOB {MOCK_CTX.patient.dob} · {MOCK_CTX.order.fullAccession}</span>
           {node.showPageNumbers && <span>Page {pageNum} of {totalPages}</span>}
         </div>
       );
+    case 'synoptic-block': {
+      // Renders the primary synoptic report's resolved answers as a
+      // two-column key/value table. This node type isn't part of the
+      // formal TemplateNode union (it's added to std_body_synoptic via
+      // an `as unknown as TemplateNode` cast) — previously there was no
+      // render case for it at all, so the Synoptic Summary part was
+      // silently blank in every preview despite being included in every
+      // seeded template's assembly.
+      const primary = (ctx as any).primarySynoptic ?? (ctx as any).synopticReports?.[0] ?? null;
+      const answers: Record<string, string> = primary?.answers ?? {};
+      const entries = Object.entries(answers);
+      if (entries.length === 0) {
+        return <div className="ps-tpp-no-content">No synoptic data recorded</div>;
+      }
+      return (
+        <div className="ps-tpp-field-table">
+          {entries.map(([key, value]) => (
+            <div key={key} className="ps-tpp-field-row">
+              <div className="ps-tpp-field-cell">
+                <span className="ps-tpp-field-label">{humanizeKey(key)}</span>
+                <span className="ps-tpp-field-value">{String(value)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
     case 'template-ref':
-      return <div style={{ padding: '6px 10px', background: '#eff6ff', border: '1px dashed #93c5fd', borderRadius: 4, fontSize: 10, color: '#3b82f6' }}>⊞ {node.refTemplateName || node.refTemplateId}</div>;
+      return <div className="ps-tpp-template-ref">⊞ {node.refTemplateName || node.refTemplateId}</div>;
     default: return null;
   }
 };
@@ -283,17 +327,19 @@ const Ruler: React.FC<{ widthPx: number; mL: number; mR: number }> = ({ widthPx,
   const bodyMm = Math.round((widthPx - mL - mR) / MM);
   for (let i = 0; i <= bodyMm; i += 10) {
     ticks.push(
-      <div key={i} style={{ position: 'absolute', left: mL + i * MM, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ width: 1, height: i % 50 === 0 ? 8 : 4, background: '#94a3b8' }} />
-        {i % 50 === 0 && i > 0 && <span style={{ fontSize: 8, color: '#64748b', marginTop: 1 }}>{i}</span>}
+      // left position is a computed tick offset — stays inline.
+      <div key={i} style={{ left: mL + i * MM }} className="ps-tpp-ruler-tick">
+        <div className={`ps-tpp-ruler-tick-bar${i % 50 === 0 ? ' ps-tpp-ruler-tick-bar--major' : ''}`} />
+        {i % 50 === 0 && i > 0 && <span className="ps-tpp-ruler-tick-label">{i}</span>}
       </div>
     );
   }
   return (
-    <div style={{ width: widthPx, height: 20, background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', position: 'relative', flexShrink: 0 }}>
+    // width is the computed page width in px — stays inline.
+    <div style={{ width: widthPx }} className="ps-tpp-ruler">
       {ticks}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: mL, height: '100%', background: 'rgba(8,145,178,0.06)', borderRight: '1px dashed #bae6fd' }} />
-      <div style={{ position: 'absolute', right: 0, top: 0, width: mR, height: '100%', background: 'rgba(8,145,178,0.06)', borderLeft: '1px dashed #bae6fd' }} />
+      <div style={{ width: mL }} className="ps-tpp-ruler-margin ps-tpp-ruler-margin--left" />
+      <div style={{ width: mR }} className="ps-tpp-ruler-margin ps-tpp-ruler-margin--right" />
     </div>
   );
 };
@@ -370,12 +416,10 @@ const PageCard: React.FC<{
 }> = ({ sections, headers, footers, pageNum, totalPages, widthPx, heightPx, margins, ctx }) => {
   const [mL, mR, mT, mB] = [mm(margins.left), mm(margins.right), mm(margins.top), mm(margins.bottom)];
   return (
-    <div style={{ width: widthPx, minHeight: heightPx, background: '#fff', borderRadius: 2,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)',
-      position: 'relative', display: 'flex', flexDirection: 'column',
-      fontFamily: "'Georgia','Times New Roman',serif" }}>
+    // width/minHeight are computed page dimensions (from mm + scale) — stay inline.
+    <div style={{ width: widthPx, minHeight: heightPx }} className="ps-tpp-page-card">
       {totalPages > 1 && (
-        <div style={{ position: 'absolute', top: -22, right: 0, fontSize: 10, color: '#9ca3af', letterSpacing: '0.04em' }}>
+        <div className="ps-tpp-page-num">
           Page {pageNum} of {totalPages}
         </div>
       )}
@@ -385,7 +429,7 @@ const PageCard: React.FC<{
           : (h as import('../../types/template').HeaderNode).scope !== 'page1')
           .map(h => <ContentNode key={h.id} node={h} ctx={ctx} pageNum={pageNum} totalPages={totalPages} />)}
       </div>
-      <div style={{ flex: 1, paddingLeft: mL, paddingRight: mR }}>
+      <div className="ps-tpp-page-body" style={{ paddingLeft: mL, paddingRight: mR }}>
         {sections.flat().map(n => <ContentNode key={n.id} node={n} ctx={ctx} pageNum={pageNum} totalPages={totalPages} />)}
       </div>
       <div style={{ paddingLeft: mL, paddingRight: mR, paddingBottom: mB }}>
@@ -439,28 +483,28 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
   const { pages } = usePagination(bodyNodes, ph, headerH, footerH, mT, mB);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#374151' }}>
+    <div className="ps-tpp-overlay">
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px', height: 48, background: '#1f2937', borderBottom: '1px solid #374151', flexShrink: 0 }}>
+      <div className="ps-tpp-toolbar">
         <select value={pageSizeId} onChange={e => handlePageSizeChange(e.target.value)}
-          style={{ background: '#374151', border: '1px solid #4b5563', color: '#f9fafb', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer' }}>
+          className="ps-tpp-toolbar-select">
           {PAGE_SIZES.map(p => <option key={p.id} value={p.id}>{p.label} — {p.region}</option>)}
         </select>
-        <span style={{ fontSize: 11, color: '#9ca3af' }}>{ps.widthMm} × {ps.heightMm} mm</span>
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: '#9ca3af' }}>{pages.length} page{pages.length !== 1 ? 's' : ''}</span>
-        <button onClick={() => setSettingsOpen(o => !o)} style={{ background: '#374151', border: '1px solid #4b5563', color: '#d1d5db', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer' }}>⚙ Margins</button>
-        <button onClick={() => setShowCtx(s => !s)} style={{ background: '#374151', border: '1px solid #4b5563', color: '#d1d5db', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer' }}>{showCtx ? 'Hide' : 'Context JSON'}</button>
-        <button onClick={onClose} style={{ background: '#0891b2', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 14px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Close</button>
+        <span className="ps-tpp-toolbar-dim">{ps.widthMm} × {ps.heightMm} mm</span>
+        <div className="ps-tpp-toolbar-spacer" />
+        <span className="ps-tpp-toolbar-dim">{pages.length} page{pages.length !== 1 ? 's' : ''}</span>
+        <button onClick={() => setSettingsOpen(o => !o)} className="ps-tpp-toolbar-btn">⚙ Margins</button>
+        <button onClick={() => setShowCtx(s => !s)} className="ps-tpp-toolbar-btn">{showCtx ? 'Hide' : 'Context JSON'}</button>
+        <button onClick={onClose} className="ps-tpp-toolbar-btn ps-tpp-toolbar-btn--close">Close</button>
       </div>
 
       {/* Margin settings */}
       {settingsOpen && (
-        <div style={{ background: '#1f2937', borderBottom: '1px solid #374151', padding: '10px 20px', display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>MARGINS (mm)</span>
+        <div className="ps-tpp-margins-panel">
+          <span className="ps-tpp-margins-label">MARGINS (mm)</span>
           {(['top','right','bottom','left'] as (keyof Margins)[]).map(side => (
-            <label key={side} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#d1d5db' }}>
+            <label key={side} className="ps-tpp-margin-field">
               {side.charAt(0).toUpperCase() + side.slice(1)}
               <input type="number" value={margins[side]} min={5} max={50}
                 onChange={e => setMargins(m => {
@@ -468,7 +512,7 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
                     localStorage.setItem('ps_preview_margins', JSON.stringify(next));
                     return next;
                   })}
-                style={{ width: 48, background: '#374151', border: '1px solid #4b5563', color: '#f9fafb', borderRadius: 4, padding: '3px 6px', fontSize: 11 }} />
+                className="ps-tpp-margin-input" />
             </label>
           ))}
         </div>
@@ -476,24 +520,24 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
 
       {/* Context JSON */}
       {showCtx && (
-        <div style={{ background: '#111827', borderBottom: '1px solid #374151', padding: '12px 20px', maxHeight: 200, overflowY: 'auto', flexShrink: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Mock Context — Eleanor Whitmore · Breast NST</div>
-          <pre style={{ fontSize: 9, color: '#9ca3af', margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(ctx, null, 2)}</pre>
+        <div className="ps-tpp-ctx-panel">
+          <div className="ps-tpp-ctx-title">Mock Context — Eleanor Whitmore · Breast NST</div>
+          <pre className="ps-tpp-ctx-json">{JSON.stringify(ctx, null, 2)}</pre>
         </div>
       )}
 
       {/* Document area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div className="ps-tpp-doc-area">
 
         {/* Ruler */}
-        <div style={{ width: pw, marginBottom: 8 }}>
+        <div style={{ width: pw }} className="ps-tpp-ruler-wrap">
           <Ruler widthPx={pw} mL={mL} mR={mR} />
         </div>
 
         {/* Hidden measurement div — off-screen, at page body width */}
         <div id="preview-measure-root"
-          style={{ position: 'fixed', left: -9999, top: 0, width: pw - mL - mR,
-            visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+          style={{ width: pw - mL - mR }}
+          className="ps-tpp-measure-root">
           {bodyNodes.map(n => (
             <div key={n.id}><ContentNode node={n} ctx={ctx} /></div>
           ))}
@@ -501,7 +545,7 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
 
         {/* Pages */}
         {pages.map((pageSections, pi) => (
-          <div key={pi} style={{ marginBottom: 28, position: 'relative' }}>
+          <div key={pi} className="ps-tpp-page-wrap">
             <PageCard
               sections={pageSections} headers={headers} footers={footers}
               pageNum={pi + 1} totalPages={pages.length}
@@ -510,7 +554,7 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
           </div>
         ))}
 
-        <div style={{ height: 48 }} />
+        <div className="ps-tpp-doc-bottom-spacer" />
       </div>
     </div>
   );

@@ -21,6 +21,8 @@ import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
 import DemoResetTab    from '../components/Config/System/DemoResetTab';
 import ReportTemplatesSection    from '../components/TemplateBuilder/ReportTemplatesSection';
 import ValidationStudiesSection from '../components/ValidationStudies/ValidationStudiesSection';
+import ConfigSearchBar from '../components/Config/Search/ConfigSearchBar';
+import '../pathscribe.css';
 
 // ── Admin permission check ────────────────────────────────────────────────────
 // Validation Studies tab is only visible to admin/superadmin roles.
@@ -163,7 +165,8 @@ const ConfigurationPage: React.FC = () => {
       }}>
         <div style={{ marginBottom: '28px' }}>
           <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>Configuration</h1>
-          <p style={{ fontSize: '13px', color: '#94a3b8' }}>Control AI behavior, templates, users, and system settings</p>
+          <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>Control AI behavior, templates, users, and system settings</p>
+          <ConfigSearchBar onNavigate={tabId => handleTabChange(tabId)} />
         </div>
 
         <div style={{ display: 'flex', gap: '4px', marginBottom: '0', borderBottom: '1px solid #1e293b' }}>

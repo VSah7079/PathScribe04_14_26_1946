@@ -120,6 +120,7 @@ export const TemplateBuilderPage: React.FC = () => {
   const [metaOpen, setMetaOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const [nameActive, setNameActive] = useState(false);
 
   return (
     <div style={styles.root}>
@@ -134,11 +135,25 @@ export const TemplateBuilderPage: React.FC = () => {
             ←
           </button>
           <div style={styles.templateMeta}>
-            <input
-              value={template.name}
-              onChange={e => markUnsaved({ ...template, name: e.target.value })}
-              style={styles.templateName}
-            />
+            <div
+              style={styles.templateNameWrap}
+              onMouseEnter={() => setNameActive(true)}
+              onMouseLeave={() => setNameActive(false)}
+            >
+              <input
+                value={template.name}
+                onChange={e => markUnsaved({ ...template, name: e.target.value })}
+                onFocus={() => setNameActive(true)}
+                onBlur={() => setNameActive(false)}
+                style={{
+                  ...styles.templateName,
+                  background: nameActive ? 'rgba(255,255,255,0.04)' : 'transparent',
+                  borderColor: nameActive ? '#334155' : 'transparent',
+                }}
+                title="Click to edit template name"
+              />
+              {nameActive && <span style={styles.templateNamePencil}>✎</span>}
+            </div>
             <span style={styles.templateSpecialty}>
               {template.specialty || 'No specialty set'}
             </span>
@@ -377,17 +392,35 @@ const styles: Record<string, React.CSSProperties> = {
   templateMeta: {
     minWidth: 0,
   },
+  templateNameWrap: {
+    position: 'relative',
+    display: 'inline-block',
+    maxWidth: 480,
+    width: '100%',
+  },
   templateName: {
     background: 'transparent',
-    border: 'none',
+    border: '1px solid transparent',
+    borderRadius: 4,
     color: '#f1f5f9',
     fontSize: 14,
     fontWeight: 600,
     outline: 'none',
-    padding: '0 2px',
+    padding: '2px 22px 2px 6px',
     display: 'block',
     width: '100%',
-    maxWidth: 300,
+    maxWidth: 480,
+    cursor: 'text',
+    transition: 'background 0.12s, border-color 0.12s',
+  },
+  templateNamePencil: {
+    position: 'absolute',
+    right: 6,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontSize: 11,
+    color: '#475569',
+    pointerEvents: 'none',
   },
   templateSpecialty: {
     fontSize: 10,

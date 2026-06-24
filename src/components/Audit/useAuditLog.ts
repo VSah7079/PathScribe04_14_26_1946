@@ -65,7 +65,22 @@ export type AuditAction =
   | "comp_config_flag_updated"
   | "comp_config_flag_deactivated"
   | "comp_config_protocol_linked"
-  | "comp_config_protocol_unlinked";
+  | "comp_config_protocol_unlinked"
+  // ── Validation Studies ──
+  | "validation_study_created"
+  | "validation_study_activated"
+  | "validation_study_closed"
+  | "validation_study_deleted"
+  | "validation_report_generated"
+  | "validation_routing_rule_added"
+  | "validation_routing_rule_updated"
+  | "validation_routing_rule_deleted"
+  // ── Synoptic Report Page ──
+  | "case_finalized"
+  | "protocol_change_committed"
+  | "flag_manager_opened"
+  | "team_modal_opened"
+  | "codes_modal_opened";
 
 // ── Event type mapping ────────────────────────────────────────────────────────
 // Maps each AuditAction to the high-level AuditEventCategory used by your
@@ -116,6 +131,12 @@ const actionTypeMap: Record<AuditAction, AuditEventCategory> = {
   validation_routing_rule_added:   "user",
   validation_routing_rule_updated: "user",
   validation_routing_rule_deleted: "user",
+  // ── Synoptic Report Page ──
+  case_finalized:             "user",
+  protocol_change_committed:  "user",
+  flag_manager_opened:        "user",
+  team_modal_opened:          "user",
+  codes_modal_opened:         "user",
 };
 
 // ── Payload types per action ──────────────────────────────────────────────────
@@ -166,6 +187,12 @@ export type AuditPayload = {
   validation_routing_rule_added:   { entityName: string; templateName: string; ruleType: string };
   validation_routing_rule_updated: { entityName: string; templateName: string };
   validation_routing_rule_deleted: { entityName: string; ruleType: string };
+  // ── Synoptic Report Page ──
+  case_finalized:             { caseId: string; accession?: string; finalizedBy: string; excludedCount: number };
+  protocol_change_committed: { caseId: string; acceptedCount: number; totalProposed: number };
+  flag_manager_opened:       { caseId: string };
+  team_modal_opened:         { caseId: string };
+  codes_modal_opened:        { caseId: string };
 };
 
 // ── Detail string builders ────────────────────────────────────────────────────
@@ -348,6 +375,29 @@ function buildDetail<A extends keyof AuditPayload>(action: A, payload: AuditPayl
     case "comp_config_protocol_unlinked": {
       const p = payload as AuditPayload["comp_config_protocol_unlinked"];
       return `Protocol unlinked from flag ${p.flagId}: protocol ${p.protocolId}`;
+    }
+
+    // ── Synoptic Report Page ────────────────────────────────────────────
+    case "case_finalized": {
+      const p = payload as AuditPayload["case_finalized"];
+      return `Case finalized: ${p.accession ?? p.caseId} by ${p.finalizedBy}` +
+        (p.excludedCount > 0 ? ` — ${p.excludedCount} synoptic instance(s) excluded/deferred` : "");
+    }
+    case "protocol_change_committed": {
+      const p = payload as AuditPayload["protocol_change_committed"];
+      return `Protocol changes committed — case ${p.caseId}: ${p.acceptedCount} of ${p.totalProposed} proposed change(s) accepted`;
+    }
+    case "flag_manager_opened": {
+      const p = payload as AuditPayload["flag_manager_opened"];
+      return `Flag manager opened — case ${p.caseId}`;
+    }
+    case "team_modal_opened": {
+      const p = payload as AuditPayload["team_modal_opened"];
+      return `Team modal opened — case ${p.caseId}`;
+    }
+    case "codes_modal_opened": {
+      const p = payload as AuditPayload["codes_modal_opened"];
+      return `Codes modal opened — case ${p.caseId}`;
     }
 
     default:

@@ -29,6 +29,14 @@ export interface AssignmentEvent {
 export interface OrderMetadata {
   priority: "Routine" | "STAT" | "ASAP" | "Critical";
   requestingProvider?: string;
+  /**
+   * Stable physician ID, distinct from requestingProvider (which is a
+   * display name). Feeds TemplateRoutingService's Pass 0b (Physician
+   * Preference) and should match the ID space used by the Physician
+   * Preferences admin screen (mockPhysicianService). Prefer this field over
+   * requestingProvider wherever it's available — see contextBuilder.ts.
+   */
+  orderingPhysicianId?: string;
   /** ID reference to the Client Dictionary — the institution that sent the specimen */
   clientId?: string;
   /** Cached display name — avoids async lookup on every render */
@@ -131,6 +139,15 @@ export interface SynopticReportInstance {
 // ─────────────────────────────────────────────────────────────
 export interface Case {
   id: string;
+
+  /**
+   * Subspecialty identifier for this case (e.g. 'breast', 'gi', 'thoracic',
+   * 'uro', 'derm'). Optional — feeds TemplateRoutingService's Pass 2
+   * (Subspecialty Fallback). When not set, contextBuilder.ts derives a
+   * best-effort value from the case's synoptic protocol ID instead; see
+   * PROTOCOL_TO_SUBSPECIALTY in TemplateRoutingService.ts.
+   */
+  subspecialtyId?: string;
 
   // ── Multi-report synoptic system ──────────────────────────
   // Each entry is one template instance attached to one specimen.

@@ -70,4 +70,10 @@ export const mockRoutingRuleService: IRoutingRuleService = {
     rules.forEach(r => { map[r.entityId] = r.templateId; });
     return ok(map);
   },
+  async getCapProtocolMap() {
+    const rules = load().filter(r => r.type === 'cap-protocol' && r.active);
+    const map: Record<string, string> = {};
+    rules.forEach(r => { map[r.entityId] = r.templateId; });
+    return ok(map);
+  },
 };

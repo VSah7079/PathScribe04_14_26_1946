@@ -136,15 +136,7 @@ const DropZone: React.FC<DropZoneProps> = ({ parentId, insertIndex, onDrop, isAc
       onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={e => { e.preventDefault(); e.stopPropagation(); setOver(false); onDrop(parentId, insertIndex, e); }}
-      style={{
-        height: over ? 32 : 6,
-        margin: '1px 0',
-        borderRadius: 4,
-        background: over ? 'rgba(14,159,110,0.18)' : 'transparent',
-        border: over ? '1.5px dashed #0e9f6e' : '1.5px solid transparent',
-        transition: 'all 0.12s',
-        display: isActive ? 'block' : 'none',
-      }}
+      className={`ps-tc-dropzone${isActive ? ' ps-tc-dropzone--active' : ''}${over ? ' ps-tc-dropzone--over' : ''}`}
     />
   );
 };
@@ -254,21 +246,13 @@ const NodeCard: React.FC<NodeCardProps> = ({
   return (
     <div
       ref={wrapRef}
-      style={{
-        gridColumn: `span ${colSpan}`,
-        position: 'relative',
-        outline: showGrid ? `1px dashed rgba(8,145,178,0.2)` : undefined,
-        outlineOffset: 1,
-      }}
+      // gridColumn is a per-node computed layout value (arbitrary 1–12 span) — stays inline.
+      style={{ gridColumn: `span ${colSpan}` }}
+      className={`ps-tc-node-wrap${showGrid ? ' ps-tc-node-wrap--grid' : ''}`}
     >
       {/* ── Width label shown when grid is on ── */}
       {showGrid && colSpan < 12 && (
-        <div style={{
-          position: 'absolute', top: -14, right: 4,
-          fontSize: 8, color: 'rgba(8,145,178,0.6)',
-          fontWeight: 700, letterSpacing: '0.04em', pointerEvents: 'none',
-          background: '#fff', padding: '0 3px', borderRadius: 2,
-        }}>
+        <div className="ps-tc-width-label">
           {colSpan}/12
         </div>
       )}
@@ -282,104 +266,43 @@ const NodeCard: React.FC<NodeCardProps> = ({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => onSelect(node.id)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 10px 6px 0',
-          borderRadius: 6,
-          border: isSelected
-            ? `1.5px solid ${color}bb`
-            : `1.5px solid ${color}30`,
-          background: isSelected
-            ? `${color}18`
-            : hovered
-            ? `${color}0e`
-            : `${color}08`,
-          cursor: 'grab',
-          transition: 'all 0.1s',
-          marginBottom: 3,
-          opacity: isDragging ? 0.4 : 1,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: isSelected
-            ? `0 1px 4px ${color}22`
-            : '0 1px 2px rgba(0,0,0,0.06)',
-        }}
+        style={{ ['--node-color' as string]: color }}
+        className={[
+          'ps-tc-node-row',
+          isSelected ? 'ps-tc-node-row--selected' : hovered ? 'ps-tc-node-row--hovered' : '',
+          isDragging ? 'ps-tc-node-row--dragging' : '',
+        ].filter(Boolean).join(' ')}
       >
         {/* Left accent strip */}
-        <div style={{
-          position: 'absolute',
-          left: 0, top: 0, bottom: 0,
-          width: 3,
-          background: isSelected ? color : `${color}60`,
-          borderRadius: '6px 0 0 6px',
-          transition: 'background 0.1s',
-        }} />
+        <div className={`ps-tc-node-accent${isSelected ? ' ps-tc-node-accent--selected' : ''}`} />
 
         {/* Padding spacer to account for accent strip */}
-        <div style={{ width: 6, flexShrink: 0 }} />
+        <div className="ps-tc-node-spacer" />
         {/* Expand toggle for containers */}
         {isContainer && (
           <button
             onClick={e => { e.stopPropagation(); setExpanded(x => !x); }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: color,
-              cursor: 'pointer',
-              padding: '0 2px',
-              fontSize: 10,
-              lineHeight: 1,
-              flexShrink: 0,
-              opacity: 0.7,
-            }}
+            className="ps-tc-node-expand-btn"
           >
             {expanded ? '▾' : '▸'}
           </button>
         )}
-        {!isContainer && <div style={{ width: 14, flexShrink: 0 }} />}
+        {!isContainer && <div className="ps-tc-node-spacer-wide" />}
 
         {/* Icon */}
-        <div style={{
-          width: 24,
-          height: 24,
-          borderRadius: 5,
-          background: color + '22',
-          color: color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 11,
-          fontWeight: 700,
-          flexShrink: 0,
-        }}>
+        <div className="ps-tc-node-icon">
           {icon}
         </div>
 
         {/* Label + property chips */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: isSelected ? color : '#1e293b',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
+        <div className="ps-tc-node-label-col">
+          <span className={`ps-tc-node-label${isSelected ? ' ps-tc-node-label--selected' : ''}`}>
             {node.label}
           </span>
           {propertyChips.length > 0 && (
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <div className="ps-tc-node-chips">
               {propertyChips.map(chip => (
-                <span key={chip} style={{
-                  fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
-                  // WCAG: #374151 on light tinted bg ≈ 9:1 ✓
-                  background: color + '20',
-                  color: '#374151',
-                  border: `1px solid ${color}40`,
-                  letterSpacing: '0.03em', whiteSpace: 'nowrap',
-                }}>
+                <span key={chip} className="ps-tc-node-chip">
                   {chip}
                 </span>
               ))}
@@ -389,29 +312,14 @@ const NodeCard: React.FC<NodeCardProps> = ({
 
         {/* AI badge — WCAG: #065f46 on #d1fae5 = 7.5:1 ✓ */}
         {hasBadge && (
-          <span style={{
-            fontSize: 9,
-            fontWeight: 700,
-            padding: '1px 5px',
-            borderRadius: 3,
-            background: '#d1fae5',
-            color: '#065f46',
-            border: '1px solid #6ee7b7',
-            letterSpacing: '0.04em',
-            flexShrink: 0,
-          }}>
+          <span className="ps-tc-badge ps-tc-badge--ai">
             AI
           </span>
         )}
 
         {/* showWhen badge — WCAG: #713f12 on #fef3c7 = 8.1:1 ✓ */}
         {node.showWhen && (
-          <span style={{
-            fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
-            background: '#fef3c7', color: '#713f12',
-            border: '1px solid #fcd34d',
-            flexShrink: 0,
-          }}>
+          <span className="ps-tc-badge ps-tc-badge--if">
             IF
           </span>
         )}
@@ -420,17 +328,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
         {hovered && (
           <button
             onClick={e => { e.stopPropagation(); onDelete(node.id); }}
-            style={{
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              color: '#dc2626',
-              cursor: 'pointer',
-              padding: '2px 5px',
-              fontSize: 10,
-              borderRadius: 3,
-              lineHeight: 1,
-              flexShrink: 0,
-            }}
+            className="ps-tc-node-delete-btn"
             title="Remove"
           >
             ✕
@@ -442,23 +340,10 @@ const NodeCard: React.FC<NodeCardProps> = ({
       <div
         onMouseDown={handleResizeMouseDown}
         title="Drag to resize column width"
-        style={{
-          position: 'absolute',
-          top: 0, right: -3,
-          width: 8, height: '100%',
-          cursor: 'col-resize',
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: hovered || isSelected ? 1 : 0,
-          transition: 'opacity 0.15s',
-        }}
+        style={{ ['--node-color' as string]: color }}
+        className={`ps-tc-resize-handle${hovered || isSelected ? ' ps-tc-resize-handle--visible' : ''}`}
       >
-        <div style={{
-          width: 3, height: 24, borderRadius: 2,
-          background: isSelected ? color : '#475569',
-        }} />
+        <div className={`ps-tc-resize-bar${isSelected ? ' ps-tc-resize-bar--selected' : ''}`} />
       </div>
 
       {/* Children — column-layout: flat ordered list matching the flowing
@@ -468,42 +353,27 @@ const NodeCard: React.FC<NodeCardProps> = ({
       {isContainer && expanded && node.type === 'column-layout' && (() => {
         const colNode = node as import('../../types/template').ColumnLayoutNode;
         const numCols = colNode.numColumns;
-        const colColor = '#0e9f6e';
         return (
-          <div style={{ marginLeft: 8, marginTop: 4 }}>
+          <div className="ps-tc-collayout">
 
             {/* ── Column-count indicator ─────────────────────────── */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 8px', marginBottom: 5,
-              background: 'rgba(14,159,110,0.07)',
-              border: '1px solid rgba(14,159,110,0.18)',
-              borderRadius: 4,
-            }}>
+            <div className="ps-tc-collayout-indicator">
               {/* Mini column-stripe diagram */}
               {Array.from({ length: numCols }).map((_, i) => (
                 <React.Fragment key={i}>
-                  <div style={{ flex: 1, height: 4, borderRadius: 2,
-                    background: 'rgba(14,159,110,0.35)' }} />
+                  <div className="ps-tc-collayout-stripe" />
                   {i < numCols - 1 && (
-                    <div style={{ width: 1, height: 14,
-                      background: 'rgba(14,159,110,0.25)' }} />
+                    <div className="ps-tc-collayout-divider" />
                   )}
                 </React.Fragment>
               ))}
-              <span style={{ fontSize: 9, fontWeight: 700, color: colColor,
-                marginLeft: 6, flexShrink: 0, letterSpacing: '0.04em' }}>
+              <span className="ps-tc-collayout-label">
                 {numCols} col · flows ↓→
               </span>
             </div>
 
             {/* ── Flat ordered child list ────────────────────────── */}
-            <div style={{
-              padding: '4px 6px',
-              background: 'rgba(14,159,110,0.03)',
-              border: `1px dashed rgba(14,159,110,0.2)`,
-              borderRadius: 4,
-            }}>
+            <div className="ps-tc-collayout-list">
               <DropZone parentId={node.id} insertIndex={0}
                 onDrop={onDrop} isActive={isDragging} />
               {colNode.children.map((child, i) => (
@@ -518,8 +388,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
                 </React.Fragment>
               ))}
               {colNode.children.length === 0 && (
-                <div style={{ fontSize: 10, color: colColor, textAlign: 'center',
-                  padding: '10px 0', fontStyle: 'italic', opacity: 0.65 }}>
+                <div className="ps-tc-collayout-empty">
                   Drop content here — flows across {numCols} columns in preview
                 </div>
               )}
@@ -530,23 +399,17 @@ const NodeCard: React.FC<NodeCardProps> = ({
 
       {/* Children — 12-column grid for all other containers */}
       {isContainer && expanded && node.type !== 'column-layout' && (
-        <div style={{
-          marginLeft: 16,
-          paddingLeft: 8,
-          borderLeft: `2px solid ${color}40`,
-        }}>
+        <div
+          style={{ ['--node-color' as string]: color }}
+          className="ps-tc-grid-children"
+        >
           {/* Full-width drop zone at top */}
-          <div style={{ gridColumn: 'span 12' }}>
+          <div className="ps-tc-grid-span-12">
             <DropZone parentId={node.id} insertIndex={0} onDrop={onDrop} isActive={isDragging} />
           </div>
 
           {/* 12-col grid wraps child cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, 1fr)',
-            gap: '2px 4px',
-            position: 'relative',
-          }}>
+          <div className="ps-tc-grid-12">
 
             {children.map((child, i) => (
               <React.Fragment key={child.id}>
@@ -560,7 +423,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
                   onDelete={onDelete}
                 />
                 {/* Drop zone after each child — spans full width to keep insertion clear */}
-                <div style={{ gridColumn: 'span 12' }}>
+                <div className="ps-tc-grid-span-12">
                   <DropZone parentId={node.id} insertIndex={i + 1} onDrop={onDrop} isActive={isDragging} />
                 </div>
               </React.Fragment>
@@ -568,12 +431,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
           </div>
 
           {children.length === 0 && (
-            <div style={{
-              padding: '10px 12px', fontSize: 11, color: '#94a3b8',
-              fontStyle: 'italic', textAlign: 'center',
-              border: '1.5px dashed #e2e8f0', borderRadius: 5,
-              background: '#f8fafc', margin: '4px 0',
-            }}>
+            <div className="ps-tc-grid-empty">
               Drop components here
             </div>
           )}
@@ -647,14 +505,14 @@ export const TemplateCanvas: React.FC<Props> = ({
     <GridContext.Provider value={showGrid}>
     <UpdateContext.Provider value={handleColSpanUpdate}>
     <div
-      style={styles.canvasSurround}
+      className="ps-tc-canvas-surround"
       onDragEnter={() => { dragCounter.current++; setIsDragging(true); }}
       onDragLeave={() => { dragCounter.current--; if (dragCounter.current === 0) setIsDragging(false); }}
       onDragOver={e => e.preventDefault()}
       onDrop={() => { dragCounter.current = 0; setIsDragging(false); }}
     >
       {/* ── Document page ── */}
-      <div style={styles.page}>
+      <div className="ps-tc-page">
 
         {/* Page 1 Header — only shown for header parts or generic templates */}
         {partType !== 'body' && partType !== 'footer' && (
@@ -662,7 +520,7 @@ export const TemplateCanvas: React.FC<Props> = ({
             nodes={nodes.filter(n => n.type === 'header' && (n as import('../../types/template').HeaderNode).scope !== 'pages2plus')}
             zoneNodes={nodes} selectedId={selectedId} isDragging={isDragging}
             onSelect={onSelect} onDrop={handleDrop} onDelete={handleDelete}
-            zoneStyle={styles.headerZone} insertOffset={0}
+            zoneVariant="header" insertOffset={0}
           />
         )}
 
@@ -672,20 +530,14 @@ export const TemplateCanvas: React.FC<Props> = ({
             nodes={nodes.filter(n => n.type === 'header' && (n as import('../../types/template').HeaderNode).scope === 'pages2plus')}
             zoneNodes={nodes} selectedId={selectedId} isDragging={isDragging}
             onSelect={onSelect} onDrop={handleDrop} onDelete={handleDelete}
-            zoneStyle={{ ...styles.headerZone, background: '#eef2ff', borderTop: '1px solid #c7d2fe', borderBottom: '1px solid #c7d2fe' }}
+            zoneVariant="header--p2plus"
             insertOffset={1}
           />
         )}
 
         {/* Body — whole area always droppable */}
         <div
-          style={{
-            ...styles.body,
-            backgroundImage: showGrid
-              ? 'radial-gradient(circle, rgba(0,0,0,0.22) 1.5px, transparent 1.5px)'
-              : 'none',
-            backgroundSize: showGrid ? '24px 24px' : 'auto',
-          }}
+          className={`ps-tc-body${showGrid ? ' ps-tc-body--grid' : ''}`}
           onDragOver={e => e.preventDefault()}
           onDrop={e => {
             const bodyNodes = nodes.filter(n => n.type !== 'header' && n.type !== 'footer');
@@ -694,19 +546,12 @@ export const TemplateCanvas: React.FC<Props> = ({
         >
           {/* Empty state — full area drop target */}
           {nodes.filter(n => n.type !== 'header' && n.type !== 'footer').length === 0 && (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', padding: '60px 20px', gap: 8,
-              border: `2px dashed ${isDragging ? '#0891b2' : '#cbd5e1'}`,
-              borderRadius: 8, margin: 8,
-              background: isDragging ? 'rgba(8,145,178,0.04)' : 'transparent',
-              transition: 'all 0.15s',
-            }}>
-              <div style={{ fontSize: 32, color: isDragging ? '#0891b2' : '#94a3b8', opacity: 0.5 }}>⊞</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: isDragging ? '#0891b2' : '#475569' }}>
+            <div className={`ps-tc-body-empty${isDragging ? ' ps-tc-body-empty--dragging' : ''}`}>
+              <div className="ps-tc-body-empty-icon">⊞</div>
+              <div className="ps-tc-body-empty-title">
                 {isDragging ? '↓ Release to drop here' : 'Drag components here'}
               </div>
-              {!isDragging && <div style={{ fontSize: 11, color: '#64748b', textAlign: 'center', maxWidth: 260 }}>
+              {!isDragging && <div className="ps-tc-body-empty-sub">
                 Drag any item from the left panel. Drop it anywhere in this area.
               </div>}
             </div>
@@ -732,7 +577,7 @@ export const TemplateCanvas: React.FC<Props> = ({
               return (
                 <React.Fragment key={`row-${ri}`}>
                   <DropZone parentId={null} insertIndex={firstIdx} onDrop={handleDrop} isActive={isDragging} />
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '0 6px', marginBottom: 3 }}>
+                  <div className="ps-tc-row-grid">
                     {row.map(node => (
                       <NodeCard key={node.id} node={node} depth={0}
                         selectedId={selectedId} isDragging={isDragging}
@@ -740,15 +585,10 @@ export const TemplateCanvas: React.FC<Props> = ({
                       />
                     ))}
                     {free > 0 && free < 12 && (
-                      <div style={{
-                        gridColumn: `span ${free}`, minHeight: 40,
-                        border: `1.5px dashed ${isDragging ? '#0891b2' : '#e2e8f0'}`,
-                        borderRadius: 6, display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontSize: 10,
-                        color: isDragging ? '#0891b2' : '#94a3b8',
-                        background: isDragging ? 'rgba(8,145,178,0.05)' : 'transparent',
-                        cursor: isDragging ? 'copy' : 'default', transition: 'all 0.15s',
-                      }}
+                      // gridColumn span is a per-row computed layout value — stays inline.
+                      <div
+                        style={{ gridColumn: `span ${free}` }}
+                        className={`ps-tc-free-slot${isDragging ? ' ps-tc-free-slot--dragging' : ''}`}
                         onDragOver={e => e.preventDefault()}
                         onDrop={e => { e.stopPropagation(); handleDrop(null, lastIdx + 1, e); }}
                       >
@@ -775,7 +615,7 @@ export const TemplateCanvas: React.FC<Props> = ({
             nodes={nodes.filter(n => n.type === 'footer' && (n as import('../../types/template').FooterNode).scope === 'pages2plus')}
             zoneNodes={nodes} selectedId={selectedId} isDragging={isDragging}
             onSelect={onSelect} onDrop={handleDrop} onDelete={handleDelete}
-            zoneStyle={{ ...styles.footerZone, background: '#eef2ff', borderTop: '1px solid #c7d2fe', borderBottom: '1px solid #c7d2fe' }}
+            zoneVariant="footer--p2plus"
             insertOffset={nodes.length - 2}
           />
         )}
@@ -786,7 +626,7 @@ export const TemplateCanvas: React.FC<Props> = ({
             nodes={nodes.filter(n => n.type === 'footer' && (n as import('../../types/template').FooterNode).scope !== 'pages2plus')}
             zoneNodes={nodes} selectedId={selectedId} isDragging={isDragging}
             onSelect={onSelect} onDrop={handleDrop} onDelete={handleDelete}
-            zoneStyle={styles.footerZone} insertOffset={nodes.length - 1}
+            zoneVariant="footer" insertOffset={nodes.length - 1}
           />
         )}
       </div>
@@ -801,11 +641,7 @@ export const TemplateCanvas: React.FC<Props> = ({
 // active toggle properties that are otherwise invisible on the canvas.
 
 const ZoneChip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span style={{
-    fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-    background: 'rgba(8,145,178,0.12)', color: '#0891b2',
-    letterSpacing: '0.03em', whiteSpace: 'nowrap',
-  }}>
+  <span className="ps-tc-zone-chip">
     {children}
   </span>
 );
@@ -822,24 +658,21 @@ interface PageZoneProps {
   onSelect: (id: string) => void;
   onDrop: (parentId: string | null, insertIndex: number, e: React.DragEvent) => void;
   onDelete: (id: string) => void;
-  zoneStyle: React.CSSProperties;
+  /** 'header' | 'footer' base zone styling, optionally with a '--p2plus' modifier */
+  zoneVariant: 'header' | 'footer' | 'header--p2plus' | 'footer--p2plus';
   insertOffset: number;
 }
 
 const PageZone: React.FC<PageZoneProps> = ({
   label, hint, nodes, zoneNodes: _zoneNodes, selectedId, isDragging,
-  onSelect, onDrop, onDelete, zoneStyle, insertOffset,
+  onSelect, onDrop, onDelete, zoneVariant, insertOffset,
 }) => {
   const [zoneOver, setZoneOver] = useState(false);
   const isEmpty = nodes.length === 0;
 
   return (
     <div
-      style={{
-        ...zoneStyle,
-        background: zoneOver && isDragging ? 'rgba(8,145,178,0.06)' : zoneStyle.background,
-        borderColor: zoneOver && isDragging ? '#0891b2' : (zoneStyle.borderColor as string),
-      }}
+      className={`ps-tc-zone ps-tc-zone--${zoneVariant}${zoneOver && isDragging ? ' ps-tc-zone--drag-over' : ''}`}
       onDragOver={e => { e.preventDefault(); e.stopPropagation(); setZoneOver(true); }}
       onDragLeave={() => setZoneOver(false)}
       onDrop={e => {
@@ -848,24 +681,24 @@ const PageZone: React.FC<PageZoneProps> = ({
         onDrop(null, insertOffset, e);
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <div style={styles.zoneLabel}>{label}</div>
+      <div className="ps-tc-zone-label-row">
+        <div className="ps-tc-zone-label">{label}</div>
         {/* Surface active toggle properties from the first header/footer node */}
         {nodes[0] && nodes[0].type === 'header' && (
-          <div style={{ display: 'flex', gap: 3 }}>
+          <div className="ps-tc-zone-chips">
             {(nodes[0] as import('../../types/template').HeaderNode).showLogo        && <ZoneChip>Logo</ZoneChip>}
             {(nodes[0] as import('../../types/template').HeaderNode).showAccession   && <ZoneChip>Accession #</ZoneChip>}
             {(nodes[0] as import('../../types/template').HeaderNode).showPatientName && <ZoneChip>Patient name</ZoneChip>}
           </div>
         )}
         {nodes[0] && nodes[0].type === 'footer' && (
-          <div style={{ display: 'flex', gap: 3 }}>
+          <div className="ps-tc-zone-chips">
             {(nodes[0] as import('../../types/template').FooterNode).showPageNumbers && <ZoneChip>Page numbers</ZoneChip>}
           </div>
         )}
       </div>
       {isEmpty ? (
-        <div style={styles.zoneHint}>{hint}</div>
+        <div className="ps-tc-zone-hint">{hint}</div>
       ) : (
         nodes.map((node, i) => (
           <React.Fragment key={node.id}>
@@ -889,92 +722,4 @@ const PageZone: React.FC<PageZoneProps> = ({
       )}
     </div>
   );
-};
-
-const styles: Record<string, React.CSSProperties> = {
-  canvasSurround: {
-    flex: 1,
-    overflowY: 'auto',
-    background: '#1e2535',
-    padding: '32px 40px',
-    minHeight: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  page: {
-    width: '100%',
-    maxWidth: 820,
-    minHeight: 1000,
-    background: '#ffffff',
-    borderRadius: 3,
-    boxShadow: '0 4px 6px rgba(0,0,0,0.3), 0 20px 60px rgba(0,0,0,0.4)',
-    display: 'flex',
-    flexDirection: 'column',
-    // No overflow:hidden — it clips backgroundImage on child divs
-  },
-  headerZone: {
-    minHeight: 72,
-    padding: '10px 24px',
-    borderBottom: '1.5px dashed #cbd5e1',
-    background: '#f8fafc',
-    position: 'relative',
-    borderColor: '#cbd5e1',
-    transition: 'background 0.15s, border-color 0.15s',
-  },
-  body: {
-    flex: 1,
-    padding: '20px 24px',
-    minHeight: 600,
-  },
-  footerZone: {
-    minHeight: 56,
-    padding: '10px 24px',
-    borderTop: '1.5px dashed #cbd5e1',
-    background: '#f8fafc',
-    position: 'relative',
-    borderColor: '#cbd5e1',
-    transition: 'background 0.15s, border-color 0.15s',
-  },
-  zoneLabel: {
-    fontSize: 9,
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    // WCAG: #475569 on #f8fafc = 5.9:1 ✓
-    color: '#475569',
-    marginBottom: 6,
-  },
-  zoneHint: {
-    fontSize: 11,
-    // WCAG: #64748b on #f8fafc = 4.6:1 ✓
-    color: '#64748b',
-    fontStyle: 'italic',
-  },
-  emptyBody: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-    gap: 8,
-  },
-  emptyIcon: {
-    fontSize: 32,
-    opacity: 0.25,
-    color: '#475569',
-  },
-  emptyTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    // WCAG: #475569 on white = 5.9:1 ✓
-    color: '#475569',
-  },
-  emptySub: {
-    fontSize: 11,
-    // WCAG: #64748b on white = 4.6:1 ✓
-    color: '#64748b',
-    textAlign: 'center',
-    maxWidth: 280,
-  },
 };

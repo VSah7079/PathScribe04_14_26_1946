@@ -19,10 +19,10 @@ const svc = mockReportPartService;
 
 // ── Type config ────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<ReportPartType, { label: string; icon: string; color: string }> = {
-  header: { label: 'Header Part',  icon: '▲', color: '#1e40af' },
-  footer: { label: 'Footer Part',  icon: '▼', color: '#7c3aed' },
-  body:   { label: 'Body Part',    icon: '▬', color: '#166534' },
+const TYPE_CONFIG: Record<ReportPartType, { label: string; icon: string }> = {
+  header: { label: 'Header Part',  icon: '▲' },
+  footer: { label: 'Footer Part',  icon: '▼' },
+  body:   { label: 'Body Part',    icon: '▬' },
 };
 
 // ── Save state ─────────────────────────────────────────────────
@@ -118,15 +118,13 @@ const PartBuilderPage: React.FC = () => {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', fontSize: 14, color: '#94a3b8', background: '#f8fafc' }}>
+    <div className="ps-partb-loading">
       Loading part…
     </div>
   );
 
   if (!part) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', fontSize: 14, color: '#ef4444', background: '#f8fafc' }}>
+    <div className="ps-partb-loading ps-partb-loading--error">
       Part not found.
     </div>
   );
@@ -134,33 +132,28 @@ const PartBuilderPage: React.FC = () => {
   const tc = TYPE_CONFIG[part.partType];
 
   return (
-    <div style={S.root}>
+    <div className="ps-partb-root">
       {/* ── Topbar ── */}
-      <header style={S.topbar}>
-        <div style={S.topLeft}>
-          <button onClick={() => navigate(-1)} style={S.backBtn}>←</button>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: `${tc.color}15`, color: tc.color,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, flexShrink: 0,
-          }}>
+      <header className="ps-partb-topbar">
+        <div className="ps-partb-top-left">
+          <button onClick={() => navigate(-1)} className="ps-partb-back-btn">←</button>
+          <div className={`ps-partb-type-chip ps-partb-type-chip--${part.partType}`}>
             {tc.icon}
           </div>
-          <div>
+          <div className="ps-partb-name-block">
             <input
               value={part.name}
               onChange={e => markUnsaved({ ...part, name: e.target.value })}
-              style={S.nameInput}
+              className="ps-partb-name-input"
             />
-            <div style={{ fontSize: 10, color: '#94a3b8' }}>
+            <div className="ps-partb-name-sub">
               {tc.label} · {part.specialty}
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#94a3b8' }}>
+        <div className="ps-partb-top-right">
+          <span className="ps-partb-save-indicator">
             {saveState === 'saving' ? '⟳ Saving…'
               : saveState === 'saved' ? '✓ Saved'
               : saveState === 'unsaved' ? '● Unsaved'
@@ -168,17 +161,11 @@ const PartBuilderPage: React.FC = () => {
           </span>
           <button
             onClick={() => setShowGrid(g => !g)}
-            style={{
-              ...S.btn,
-              background: showGrid ? '#0891b2' : undefined,
-              color: showGrid ? '#fff' : undefined,
-              border: showGrid ? '1px solid #0891b2' : '1px solid #475569',
-              fontWeight: showGrid ? 700 : 500,
-            }}
+            className={`ps-partb-btn${showGrid ? ' ps-partb-btn--grid-on' : ''}`}
           >
             ⊞ {showGrid ? 'Grid on' : 'Grid off'}
           </button>
-          <button onClick={() => setMetaOpen(o => !o)} style={S.btn}>
+          <button onClick={() => setMetaOpen(o => !o)} className="ps-partb-btn">
             Settings
           </button>
           <button
@@ -187,12 +174,7 @@ const PartBuilderPage: React.FC = () => {
               if (r.ok) setPart(r.data);
             }}
             disabled={part.status === 'published'}
-            style={{
-              ...S.btn,
-              background: part.status === 'published' ? '#e2e8f0' : '#0891b2',
-              color: part.status === 'published' ? '#94a3b8' : '#fff',
-              border: 'none',
-            }}
+            className={`ps-partb-btn${part.status === 'published' ? ' ps-partb-btn--published' : ' ps-partb-btn--publish'}`}
           >
             {part.status === 'published' ? 'Published' : 'Publish'}
           </button>
@@ -201,31 +183,31 @@ const PartBuilderPage: React.FC = () => {
 
       {/* ── Settings panel ── */}
       {metaOpen && (
-        <div style={S.metaPanel}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="ps-partb-meta-panel">
+          <div className="ps-partb-meta-grid">
             {(['header','body','footer'] as ReportPartType[]).map(type => (
-              <label key={type} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <label key={type} className="ps-partb-meta-radio">
                 <input type="radio" name="partType" value={type} checked={part.partType === type}
                   onChange={() => markUnsaved({ ...part, partType: type })} />
-                <span style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 600 }}>
+                <span className="ps-partb-meta-radio-label">
                   {TYPE_CONFIG[type].icon} {TYPE_CONFIG[type].label}
                 </span>
               </label>
             ))}
             <div>
-              <div style={S.metaLabel}>Specialty</div>
+              <div className="ps-partb-meta-label">Specialty</div>
               <input value={part.specialty} onChange={e => markUnsaved({ ...part, specialty: e.target.value })}
-                placeholder="General" style={S.metaInput} />
+                placeholder="General" className="ps-partb-meta-input" />
             </div>
             <div>
-              <div style={S.metaLabel}>Description</div>
+              <div className="ps-partb-meta-label">Description</div>
               <input value={part.description ?? ''} onChange={e => markUnsaved({ ...part, description: e.target.value })}
-                placeholder="What this part contains" style={S.metaInput} />
+                placeholder="What this part contains" className="ps-partb-meta-input" />
             </div>
             <div>
-              <div style={S.metaLabel}>Standard</div>
+              <div className="ps-partb-meta-label">Standard</div>
               <select value={part.standard ?? ''} onChange={e => markUnsaved({ ...part, standard: e.target.value as ReportPart['standard'] })}
-                style={S.metaSelect}>
+                className="ps-partb-meta-select">
                 <option value="">None</option>
                 <option value="CAP">CAP</option>
                 <option value="RCPath">RCPath</option>
@@ -237,17 +219,17 @@ const PartBuilderPage: React.FC = () => {
       )}
 
       {/* ── 3-panel layout ── */}
-      <div style={S.body}>
+      <div className="ps-partb-body">
         <TemplatePalette />
 
-        <div style={S.canvasWrapper}>
-          <div style={S.canvasToolbar}>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+        <div className="ps-partb-canvas-wrapper">
+          <div className="ps-partb-canvas-toolbar">
+            <span className="ps-partb-canvas-count">
               {countNodes(part.nodes)} component{countNodes(part.nodes) !== 1 ? 's' : ''}
             </span>
             {selectedId && (
               <button onClick={() => setSelectedId(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 11 }}>
+                className="ps-partb-clear-selection">
                 Clear selection
               </button>
             )}
@@ -274,18 +256,16 @@ const NewPartTypePicker: React.FC<{
   onPick: (type: ReportPartType) => void;
   onBack: () => void;
 }> = ({ onPick, onBack }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', height: '100vh', background: '#f8fafc',
-    fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", gap: 32 }}>
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+  <div className="ps-partb-picker-shell">
+    <div className="ps-partb-picker-intro">
+      <div className="ps-partb-picker-title">
         What kind of part are you creating?
       </div>
-      <div style={{ fontSize: 13, color: '#64748b' }}>
+      <div className="ps-partb-picker-sub">
         Parts are reusable building blocks assembled into report templates.
       </div>
     </div>
-    <div style={{ display: 'flex', gap: 16 }}>
+    <div className="ps-partb-picker-cards">
       {(['header', 'body', 'footer'] as ReportPartType[]).map(type => {
         const tc = TYPE_CONFIG[type];
         const descriptions: Record<ReportPartType, string> = {
@@ -294,35 +274,21 @@ const NewPartTypePicker: React.FC<{
           footer: 'Page numbers, confidentiality notice, patient identity line. Appears at the bottom of pages.',
         };
         return (
-          <button key={type} onClick={() => onPick(type)} style={{
-            width: 200, padding: '28px 20px', borderRadius: 14, border: `2px solid ${tc.color}30`,
-            background: '#fff', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = tc.color;
-              e.currentTarget.style.background = `${tc.color}08`;
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = `${tc.color}30`;
-              e.currentTarget.style.background = '#fff';
-              e.currentTarget.style.transform = 'none';
-            }}
+          <button key={type} onClick={() => onPick(type)}
+            className={`ps-partb-picker-card ps-partb-picker-card--${type}`}
           >
-            <div style={{ fontSize: 28, marginBottom: 12, color: tc.color }}>{tc.icon}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            <div className={`ps-partb-picker-card-icon ps-partb-picker-card-icon--${type}`}>{tc.icon}</div>
+            <div className="ps-partb-picker-card-title">
               {tc.label}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
+            <div className="ps-partb-picker-card-desc">
               {descriptions[type]}
             </div>
           </button>
         );
       })}
     </div>
-    <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#94a3b8',
-      cursor: 'pointer', fontSize: 13, textDecoration: 'underline' }}>
+    <button onClick={onBack} className="ps-partb-picker-back">
       ← Back
     </button>
   </div>
@@ -347,42 +313,5 @@ function countNodes(nodes: TemplateNode[]): number {
   }
   return c;
 }
-
-// ── Styles ─────────────────────────────────────────────────────
-
-const S: Record<string, React.CSSProperties> = {
-  root:         { display: 'flex', flexDirection: 'column', height: '100vh',
-                  background: '#0f172a', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
-                  color: '#cbd5e1', overflow: 'hidden' },
-  topbar:       { display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '0 16px', height: 52, background: '#0d1117',
-                  borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, gap: 16 },
-  topLeft:      { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
-  backBtn:      { background: 'none', border: '1px solid #1e293b', color: '#475569',
-                  cursor: 'pointer', borderRadius: 6, width: 30, height: 30,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, flexShrink: 0 },
-  nameInput:    { background: 'transparent', border: 'none', color: '#f1f5f9',
-                  fontSize: 14, fontWeight: 600, outline: 'none', padding: '0 2px',
-                  display: 'block', width: '100%', maxWidth: 340 },
-  btn:          { background: '#1e293b', border: '1px solid #475569', color: '#e2e8f0',
-                  cursor: 'pointer', borderRadius: 6, padding: '5px 12px',
-                  fontSize: 12, fontWeight: 500 },
-  metaPanel:    { background: '#0d1117', borderBottom: '1px solid rgba(255,255,255,0.07)',
-                  padding: '12px 20px', flexShrink: 0 },
-  metaLabel:    { fontSize: 10, fontWeight: 600, color: '#475569', letterSpacing: '0.04em',
-                  textTransform: 'uppercase', marginBottom: 4 },
-  metaInput:    { width: '100%', background: '#1e293b', border: '1px solid #334155',
-                  borderRadius: 5, color: '#cbd5e1', fontSize: 12, padding: '6px 8px',
-                  boxSizing: 'border-box', outline: 'none' },
-  metaSelect:   { width: '100%', background: '#1e293b', border: '1px solid #334155',
-                  borderRadius: 5, color: '#cbd5e1', fontSize: 12, padding: '6px 8px', outline: 'none' },
-  body:         { display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' },
-  canvasWrapper:{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0,
-                  overflow: 'hidden', background: '#1e2535' },
-  canvasToolbar:{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '6px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  background: '#1a2030', flexShrink: 0 },
-};
 
 export default PartBuilderPage;

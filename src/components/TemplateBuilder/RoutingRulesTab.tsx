@@ -15,10 +15,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import '@/pathscribe.css';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { mockRoutingRuleService }       from '@/services/routingRules/mockRoutingRuleService';
-import { resolveReportTemplate }        from '@/services/reportTemplates/TemplateRoutingService';
+import { resolveReportTemplate, traceReportTemplateResolution } from '@/services/reportTemplates/TemplateRoutingService';
 import { mockReportTemplateService }    from '@/services/reportTemplates/mockReportTemplateService';
 import { mockClientService }            from '@/services/clients/mockClientService';
 import { mockPhysicianService }         from '@/services/physicians/mockPhysicianService';
+import { listTemplates as listSynopticProtocols } from '@/services/templates/templateService';
 import type { RoutingRule, RoutingRuleType } from '@/services/routingRules/IRoutingRuleService';
 import type { ReportTemplate }          from '@/types/reportPart';
 import type { Client }                  from '@/services/clients/IClientService';
@@ -32,17 +33,20 @@ const RuleModal: React.FC<{
   templates:  ReportTemplate[];
   clients:    Client[];
   physicians: Physician[];
+  protocols:  { id: string; name: string; status: string }[];
   onSave:     (rule: Partial<RoutingRule>) => void;
   onClose:    () => void;
-}> = ({ type, rule, templates, clients, physicians, onSave, onClose }) => {
+}> = ({ type, rule, templates, clients, physicians, protocols, onSave, onClose }) => {
   const [entityId,    setEntityId]    = useState(rule?.entityId    ?? '');
   const [templateId,  setTemplateId]  = useState(rule?.templateId  ?? '');
   const [note,        setNote]        = useState(rule?.note        ?? '');
 
-  const entityLabel  = type === 'client' ? 'Client' : 'Physician';
-  const entityList   = type === 'client'
+  const entityLabel = type === 'client' ? 'Client' : type === 'physician' ? 'Physician' : 'CAP Protocol';
+  const entityList  = type === 'client'
     ? clients.map(c => ({ id: c.id as string, name: `${c.name} (${c.code})` }))
-    : physicians.map(p => ({ id: p.id as string, name: `${p.lastName}, ${p.firstName} — ${p.specialty}` }));
+    : type === 'physician'
+    ? physicians.map(p => ({ id: p.id as string, name: `${p.lastName}, ${p.firstName} — ${p.specialty}` }))
+    : protocols.map(p => ({ id: p.id, name: `${p.name}${p.status !== 'published' ? ` (${p.status})` : ''}` }));
 
   const selectedEntity   = entityList.find(e => e.id === entityId);
   const selectedTemplate = templates.find(t => t.id === templateId);
@@ -59,7 +63,7 @@ const RuleModal: React.FC<{
           <button className="ps-research-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="ps-modal-dark-body" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '20px 24px' }}>
+        <div className="ps-modal-dark-body ps-rr-modal-body">
           <div>
             <div className="ps-conf-label">{entityLabel}</div>
             <select
@@ -176,32 +180,46 @@ const TestPanel: React.FC<{
   clients:    Client[];
   physicians: Physician[];
   rules:      RoutingRule[];
-}> = ({ templates, clients, physicians, rules }) => {
+  result:     any;
+  onResult:   (r: any) => void;
+}> = ({ templates, clients, physicians, rules, result, onResult }) => {
   const [synopticId,   setSynopticId]   = useState('');
   const [subspecialty, setSubspecialty] = useState('');
   const [clientId,     setClientId]     = useState('');
   const [physicianId,  setPhysicianId]  = useState('');
-  const [result,       setResult]       = useState<any>(null);
+  const [protocols,    setProtocols]    = useState<{ id: string; name: string; status: string }[]>([]);
+
+  // Pull the real, current CAP/RCPath synoptic protocol list rather than a
+  // hardcoded copy — guarantees the picker can never offer an ID that the
+  // routing maps don't actually recognise (the exact bug we found and fixed
+  // earlier tonight, caused by a free-text field accepting any string).
+  useEffect(() => {
+    listSynopticProtocols().then(setProtocols).catch(() => setProtocols([]));
+  }, []);
 
   const test = () => {
     // Build dynamic override maps from active rules
     const clientMap:    Record<string, string> = {};
     const physicianMap: Record<string, string> = {};
+    const capMap:       Record<string, string> = {};
     rules.filter(r => r.active).forEach(r => {
-      if (r.type === 'client')    clientMap[r.entityId]    = r.templateId;
-      if (r.type === 'physician') physicianMap[r.entityId] = r.templateId;
+      if (r.type === 'client')       clientMap[r.entityId] = r.templateId;
+      if (r.type === 'physician')    physicianMap[r.entityId] = r.templateId;
+      if (r.type === 'cap-protocol') capMap[r.entityId] = r.templateId;
     });
 
-    const resolved = resolveReportTemplate({
+    const trace = traceReportTemplateResolution({
       synopticTemplateIds:  synopticId.trim() ? [synopticId.trim()] : [],
       subspecialtyId:       subspecialty || undefined,
       performingClientId:   clientId     || undefined,
       orderingPhysicianId:  physicianId  || undefined,
-      _clientOverrides:     clientMap,
-      _physicianOverrides:  physicianMap,
+      _clientOverrides:      clientMap,
+      _physicianOverrides:   physicianMap,
+      _capProtocolOverrides: capMap,
     } as any);
+    const resolved = trace.result;
     const template = templates.find(t => t.id === resolved.templateId);
-    setResult({ ...resolved, templateName: template?.name ?? resolved.templateId });
+    onResult({ ...resolved, templateName: template?.name ?? resolved.templateId, passes: trace.passes });
   };
 
   const PASS_LABELS: Record<string, string> = {
@@ -210,14 +228,6 @@ const TestPanel: React.FC<{
     'cap-protocol':       'Pass 1 — CAP protocol match',
     'subspecialty':       'Pass 2 — Subspecialty fallback',
     'gold-standard':      'Pass 3 — Gold standard fallback',
-  };
-
-  const PASS_COLORS: Record<string, string> = {
-    'client-override':      '#f59e0b',
-    'physician-preference': '#a78bfa',
-    'cap-protocol':         '#10b981',
-    'subspecialty':         '#38bdf8',
-    'gold-standard':        '#64748b',
   };
 
   return (
@@ -230,7 +240,12 @@ const TestPanel: React.FC<{
       <div className="ps-rr-test-fields">
         <div>
           <div className="ps-conf-label">CAP Synoptic Template ID</div>
-          <input className="ps-conf-input" value={synopticId} onChange={e => setSynopticId(e.target.value)} placeholder="e.g. cap-breast-invasive-resection" />
+          <select className="ps-conf-select" value={synopticId} onChange={e => setSynopticId(e.target.value)}>
+            <option value="">— None —</option>
+            {protocols.map(p => (
+              <option key={p.id} value={p.id}>{p.name}{p.status !== 'published' ? ` (${p.status})` : ''}</option>
+            ))}
+          </select>
         </div>
         <div>
           <div className="ps-conf-label">Subspecialty</div>
@@ -257,7 +272,7 @@ const TestPanel: React.FC<{
         </div>
       </div>
 
-      <button className="ps-btn-primary" onClick={test} style={{ marginTop: 8 }}>
+      <button className="ps-btn-primary ps-rr-test-btn" onClick={test}>
         Test Routing →
       </button>
 
@@ -265,8 +280,7 @@ const TestPanel: React.FC<{
         <div className="ps-rr-result">
           <div className="ps-rr-result-template">{result.templateName}</div>
           <div
-            className="ps-rr-result-pass"
-            style={{ color: PASS_COLORS[result.resolvedBy] ?? '#64748b' }}
+            className={`ps-rr-result-pass ps-rr-pass--${result.resolvedBy ?? 'default'}`}
           >
             {PASS_LABELS[result.resolvedBy] ?? result.resolvedBy}
           </div>
@@ -285,25 +299,29 @@ const TestPanel: React.FC<{
 
 const RoutingRulesTab: React.FC = () => {
   const [rules,      setRules]      = useState<RoutingRule[]>([]);
+  const [result,     setResult]     = useState<any>(null);
   const [templates,  setTemplates]  = useState<ReportTemplate[]>([]);
   const [clients,    setClients]    = useState<Client[]>([]);
   const [physicians, setPhysicians] = useState<Physician[]>([]);
+  const [protocols,  setProtocols]  = useState<{ id: string; name: string; status: string }[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [modal,      setModal]      = useState<{ type: RoutingRuleType; rule?: RoutingRule } | null>(null);
   const { log } = useAuditLog();
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [rulesRes, templatesRes, clientsRes, physiciansRes] = await Promise.all([
+    const [rulesRes, templatesRes, clientsRes, physiciansRes, protocolsRes] = await Promise.all([
       mockRoutingRuleService.getAll(),
       mockReportTemplateService.getAll(),
       mockClientService.getAll(),
       mockPhysicianService.getAll(),
+      listSynopticProtocols().catch(() => []),
     ]);
     if ((rulesRes as any).ok)      setRules((rulesRes as any).data);
     if ((templatesRes as any).ok)  setTemplates((templatesRes as any).data);
     if ((clientsRes as any).ok)    setClients((clientsRes as any).data.filter((c: Client) => c.status === 'Active'));
     if ((physiciansRes as any).ok) setPhysicians((physiciansRes as any).data.filter((p: Physician) => p.status === 'Active'));
+    setProtocols(protocolsRes as any);
     setLoading(false);
   }, []);
 
@@ -342,6 +360,7 @@ const RoutingRulesTab: React.FC = () => {
 
   const clientRules    = rules.filter(r => r.type === 'client');
   const physicianRules = rules.filter(r => r.type === 'physician');
+  const capRules       = rules.filter(r => r.type === 'cap-protocol');
 
   if (loading) return <div className="ps-conf-loading">Loading routing rules…</div>;
 
@@ -366,25 +385,40 @@ const RoutingRulesTab: React.FC = () => {
           <div className="ps-rr-priority">
             <div className="ps-rr-priority-title">Resolution priority</div>
             {[
-              { pass: '0',   label: 'Client override',       color: '#f59e0b' },
-              { pass: '0b',  label: 'Physician preference',  color: '#a78bfa' },
-              { pass: '1',   label: 'CAP protocol match',    color: '#10b981' },
-              { pass: '2',   label: 'Subspecialty fallback', color: '#38bdf8' },
-              { pass: '3',   label: 'Gold standard',         color: '#64748b' },
-            ].map(p => (
-              <div key={p.pass} className="ps-rr-priority-row">
-                <span className="ps-rr-priority-pass" style={{ color: p.color }}>Pass {p.pass}</span>
-                <span className="ps-rr-priority-label">{p.label}</span>
-                {['0','0b'].includes(p.pass) && <span className="ps-rr-priority-admin">← admin-defined</span>}
-              </div>
-            ))}
+              { pass: '0',   key: 'client-override',      label: 'Client override' },
+              { pass: '0b',  key: 'physician-preference',  label: 'Physician preference' },
+              { pass: '1',   key: 'cap-protocol',          label: 'CAP protocol match' },
+              { pass: '2',   key: 'subspecialty',          label: 'Subspecialty fallback' },
+              { pass: '3',   key: 'gold-standard',         label: 'Gold standard' },
+            ].map(p => {
+              const trace = (result?.passes ?? []).find((tr: any) => tr.pass === p.key);
+              const matched = !!trace?.matched;
+              const unreached = !!trace && !trace.reached;
+              return (
+                <div
+                  key={p.pass}
+                  className={[
+                    'ps-rr-priority-row',
+                    matched ? 'ps-rr-priority-row--matched' : '',
+                    unreached ? 'ps-rr-priority-row--unreached' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <span className={`ps-rr-priority-pass ps-rr-pass--${p.key}`}>Pass {p.pass}</span>
+                  <span className="ps-rr-priority-label">{p.label}</span>
+                  {trace && <span className="ps-rr-priority-result">{trace.detail}</span>}
+                  {['0','0b'].includes(p.pass) && <span className="ps-rr-priority-admin">← admin-defined</span>}
+                  {p.pass === '1' && <span className="ps-rr-priority-admin">← admin-extensible</span>}
+                  {matched && <span className="ps-rr-priority-check" title="This pass resolved the last test run">✓</span>}
+                </div>
+              );
+            })}
           </div>
 
           {/* Client overrides */}
           <div className="ps-rr-section">
             <div className="ps-rr-section-header">
               <span className="ps-rr-section-title">Client Overrides</span>
-              <span className="ps-rr-section-pass" style={{ color: '#f59e0b' }}>Pass 0</span>
+              <span className="ps-rr-section-pass ps-rr-pass--client-override">Pass 0</span>
               <button className="ps-section-add-btn" onClick={() => setModal({ type: 'client' })}>
                 + Add Client Rule
               </button>
@@ -401,11 +435,36 @@ const RoutingRulesTab: React.FC = () => {
             ))}
           </div>
 
+          {/* CAP protocol mappings */}
+          <div className="ps-rr-section">
+            <div className="ps-rr-section-header">
+              <span className="ps-rr-section-title">CAP Protocol Mappings</span>
+              <span className="ps-rr-section-pass ps-rr-pass--cap-protocol">Pass 1</span>
+              <button className="ps-section-add-btn" onClick={() => setModal({ type: 'cap-protocol' })}>
+                + Add Protocol Mapping
+              </button>
+            </div>
+            <div className="ps-rr-note ps-rr-note--spaced">
+              These supplement — and take precedence over — the built-in protocol mapping table. Use
+              this to map a new or changed CAP/RCPath protocol to a template without a code deploy.
+            </div>
+            {capRules.length === 0 ? (
+              <div className="ps-rr-empty">No admin-defined protocol mappings — routing uses the built-in mapping table only.</div>
+            ) : capRules.map(r => (
+              <RuleRow
+                key={r.id} rule={r}
+                onEdit={() => setModal({ type: 'cap-protocol', rule: r })}
+                onDelete={() => handleDelete(r.id)}
+                onToggle={() => handleToggle(r)}
+              />
+            ))}
+          </div>
+
           {/* Physician preferences */}
           <div className="ps-rr-section">
             <div className="ps-rr-section-header">
               <span className="ps-rr-section-title">Physician Preferences</span>
-              <span className="ps-rr-section-pass" style={{ color: '#a78bfa' }}>Pass 0b</span>
+              <span className="ps-rr-section-pass ps-rr-pass--physician-preference">Pass 0b</span>
               <button className="ps-section-add-btn" onClick={() => setModal({ type: 'physician' })}>
                 + Add Physician Rule
               </button>
@@ -429,6 +488,8 @@ const RoutingRulesTab: React.FC = () => {
           clients={clients}
           physicians={physicians}
           rules={rules}
+          result={result}
+          onResult={setResult}
         />
       </div>
 
@@ -439,6 +500,7 @@ const RoutingRulesTab: React.FC = () => {
           templates={templates}
           clients={clients}
           physicians={physicians}
+          protocols={protocols}
           onSave={handleSave}
           onClose={() => setModal(null)}
         />

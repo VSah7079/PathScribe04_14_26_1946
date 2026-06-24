@@ -16,19 +16,10 @@ const ReportTemplatesSection: React.FC = () => {
   const [subTab, setSubTab] = useState<SubTab>('templates');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
+    <div className="ps-rts-root">
 
       {/* ── Sub-tab pill toggle ── */}
-      <div style={{
-        display:    'flex',
-        gap:        '3px',
-        marginBottom: '20px',
-        padding:    '3px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        border:     '1px solid #1e293b',
-        borderRadius: '8px',
-        alignSelf:  'flex-start',
-      }}>
+      <div className="ps-rts-subtabs">
         <button
           onClick={() => setSubTab('templates')}
           className={`ps-sub-tab-btn${subTab === 'templates' ? ' active' : ''}`}
@@ -50,7 +41,7 @@ const ReportTemplatesSection: React.FC = () => {
       </div>
 
       {/* ── Content ── */}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div className="ps-rts-content">
         {subTab === 'templates' ? <TemplateListTab /> : subTab === 'parts' ? <PartLibraryTab /> : <RoutingRulesTab />}
       </div>
 

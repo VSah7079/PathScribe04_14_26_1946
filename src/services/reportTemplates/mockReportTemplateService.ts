@@ -604,6 +604,30 @@ export const mockReportTemplateService: IReportTemplateService = {
     return ok(undefined);
   },
 
+  // archive() — soft-delete: sets status to 'archived' rather than removing
+  // the record. Use this (not remove()) for any template that has ever been
+  // published, since a real report may have been generated using it and
+  // its structure must remain inspectable for as long as that report exists.
+  // remove() should only ever be called on a template still in 'draft'
+  // status — i.e. one that could never have produced a real report.
+  async archive(id: ID) {
+    await delay();
+    const idx = TEMPLATES.findIndex(t => t.id === id);
+    if (idx === -1) return err<ReportTemplate>(`Template ${id} not found`);
+    if (id === STANDARD_TEMPLATE_ID) {
+      return err<ReportTemplate>('The Gold Standard template cannot be archived — it is the universal routing fallback (Pass 3). Designate a different template as Gold Standard first.');
+    }
+    const updated: ReportTemplate = {
+      ...TEMPLATES[idx],
+      status:    'archived' as const,
+      updatedAt: new Date().toISOString(),
+    };
+    TEMPLATES = TEMPLATES.map(t => t.id === id ? updated : t);
+    persist(TEMPLATES);
+    _notifyTemplateListeners();
+    return ok({ ...updated });
+  },
+
   // publish() — sets status to 'published' (used by TemplateAssemblyPage)
   async publish(id: ID) {
     await delay();

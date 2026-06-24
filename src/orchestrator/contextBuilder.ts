@@ -13,13 +13,35 @@
 //   • Resolves synoptic answer IDs → human-readable labels
 //   • Strips PII that is not clinically relevant to narrative generation
 //   • Output shape is stable — Orchestrator Engine depends on it
+//   • Routing resolution failures degrade to gold-standard + a warning —
+//     report generation must never hard-fail because routing had a hiccup
 // ─────────────────────────────────────────────────────────────
 
 import type { Case, DiagnosticMetadata } from '../types/case/Case';
-import type { User } from '../contexts/AuthContext';
 import type { EditorTemplate, EditorField, EditorSection } from '../components/Config/Protocols/SynopticEditor';
-import { resolveReportTemplateAsync } from '../services/reportTemplates/TemplateRoutingService';
-import { getNarrativeConfigForTemplate } from '../components/Config/NarrativeTemplates/narrativeTemplateRegistry';
+import { resolveReportTemplateAsync, deriveSubspecialtyFromProtocols, type TemplateRoutingResult } from '../services/reportTemplates/TemplateRoutingService';
+import type { ReportTemplate } from '../types/reportPart';
+import type { SectionNode, TemplateNode } from '../types/template';
+import { mockReportTemplateService } from '../services/reportTemplates/mockReportTemplateService';
+import { mockReportPartService } from '../services/reportParts/mockReportPartService';
+
+// narrativeTemplateRegistry.ts is retired as of this change (see
+// NEXT_SESSION_BRIEF §1a). It is no longer imported anywhere in this file —
+// do not reintroduce it, even as a fallback. The gold-standard template is
+// now resolved through the same real Parts/Assembly path as every other
+// template, not through the old static registry.
+
+// ─────────────────────────────────────────────────────────────
+// Minimal shape for the signed-in pathologist, used for sign-off
+// context. Loosely typed pending the real User type from AuthContext —
+// only the fields actually needed here are declared.
+// ─────────────────────────────────────────────────────────────
+
+export interface SigningUser {
+  id?: string;
+  name?: string;
+  credentials?: string;
+}
 
 // ─────────────────────────────────────────────────────────────
 // Output shape — StructuredContext
@@ -33,27 +55,6 @@ export interface PatientContext {
   dateOfBirth: string;
   sex: string;
   fullName: string;
-}
-
-/**
- * The pathologist signing/finalising this report. Populated from the
- * authenticated User (see AuthContext.tsx) at the point buildContext() is
- * called — NOT from caseData, since the signer is a property of the
- * session, not the case itself.
- *
- * Template expression nodes reference this as {{pathologist.fullName}},
- * {{pathologist.credentials}}, etc. signatureUrl/hasSignatureImage let a
- * signature-block template node render the uploaded image when present and
- * gracefully fall back to typed name + credentials when it isn't.
- */
-export interface PathologistContext {
-  id: string;
-  fullName: string;
-  credentials: string;
-  signatureUrl: string | null;
-  hasSignatureImage: boolean;
-  /** ISO timestamp — when this context (and therefore the signature) was built */
-  signedAt: string;
 }
 
 export interface SpecimenContext {
@@ -128,13 +129,45 @@ export interface NarrativeSectionContext {
   order: number;
   enabled: boolean;
   aiInstruction: string;
+  /** ReportPart this section's SectionNode came from — traceability for debugging routing/assembly issues */
+  sourcePartId?: string;
+}
+
+/**
+ * One resolved, enabled body-role assembly slot, with its Part's full node
+ * tree attached. This is the raw material a template-aware renderer needs
+ * to reproduce labelConfig / showWhen / column layouts / repeat-groups —
+ * none of which a flat NarrativeSectionContext list can carry, since most
+ * body Parts (demographics, specimens, synoptic summary, sign-off) are not
+ * AI-narrative sections at all. See NEXT_SESSION_BRIEF follow-up note on
+ * ReportPreviewRenderer.tsx for why both shapes are exposed here.
+ */
+export interface BodyPartAssembly {
+  slotId: string;
+  partId: string;
+  partName: string;
+  order: number;
+  nodes: TemplateNode[];
 }
 
 export interface TemplateContext {
   templateId: string;
   templateName: string;
   orchestratorEnabled: boolean;
+  /** AI-generation sections only — feeds OrchestratorEngine. Derived from
+   *  SectionNodes with ai.enabled === true, found anywhere in the resolved
+   *  body Parts' node trees. */
   sections: NarrativeSectionContext[];
+  /** Every enabled body-role Part in assembly order, full node tree intact.
+   *  Feeds the report renderer once it's updated to walk real node trees
+   *  instead of a flat AI-section list (see brief follow-up). */
+  bodyAssembly: BodyPartAssembly[];
+}
+
+export interface SignOffContext {
+  pathologistId: string;
+  pathologistName: string;
+  credentials: string;
 }
 
 export interface StructuredContext {
@@ -148,7 +181,6 @@ export interface StructuredContext {
   reportingMode: string;
 
   patient: PatientContext;
-  pathologist: PathologistContext;
   accession: AccessionContext;
   order: OrderContext;
   specimens: SpecimenContext[];
@@ -156,6 +188,14 @@ export interface StructuredContext {
   coding: CodingContext;
   synoptic: SynopticContext;
   narrativeTemplate: TemplateContext;
+  signOff: SignOffContext;
+
+  /** How narrativeTemplate.templateId was resolved — see TemplateRoutingService */
+  routingResolvedBy: TemplateRoutingResult['resolvedBy'];
+  /** True when routing matched multiple candidate templates (multi-organ case) */
+  routingAmbiguous: boolean;
+  /** All qualifying template IDs in priority order, when ambiguous */
+  routingCandidateTemplateIds: string[];
 
   /** Validation warnings — non-fatal issues found during build */
   warnings: string[];
@@ -221,20 +261,124 @@ function resolveAnswers(
 }
 
 // ─────────────────────────────────────────────────────────────
+// Real Parts/Assembly resolution — replaces narrativeTemplateRegistry
+//
+// Fetches the resolved ReportTemplate, walks its enabled body-role
+// assembly slots in assembly order, fetches each referenced ReportPart,
+// and derives:
+//   • sections     — every SectionNode with ai.enabled === true, in
+//                     document order, for the Orchestrator Engine to
+//                     generate prose for.
+//   • bodyAssembly — the full node tree for every enabled body Part,
+//                     for a template-aware renderer to walk directly.
+//
+// No fallback to the old registry, ever. A fetch failure here degrades
+// to resolving 'tmpl-gold-standard' through this exact same function —
+// consistent with the existing routing-failure degradation pattern
+// below, and confirming gold-standard is real Parts/Assembly too, not
+// a hardcoded special case.
+// ─────────────────────────────────────────────────────────────
+
+function isSectionNode(n: TemplateNode): n is SectionNode {
+  return n.type === 'section';
+}
+
+function hasChildren(n: TemplateNode): n is TemplateNode & { children: TemplateNode[] } {
+  return Array.isArray((n as { children?: unknown }).children);
+}
+
+/** Recursively collects every SectionNode with ai.enabled === true, in document order. */
+function collectAiSections(nodes: TemplateNode[]): SectionNode[] {
+  const found: SectionNode[] = [];
+  for (const n of nodes) {
+    if (isSectionNode(n)) {
+      if (n.ai?.enabled) found.push(n);
+      found.push(...collectAiSections(n.children));
+    } else if (hasChildren(n)) {
+      found.push(...collectAiSections(n.children));
+    }
+  }
+  return found;
+}
+
+interface ResolvedTemplateSections {
+  template: ReportTemplate | null;
+  sections: NarrativeSectionContext[];
+  bodyAssembly: BodyPartAssembly[];
+}
+
+async function resolveTemplateSections(templateId: string): Promise<ResolvedTemplateSections> {
+  const templateRes = await mockReportTemplateService.getById(templateId);
+  if (!templateRes.ok) {
+    throw new Error(`Report template '${templateId}' not found: ${templateRes.error}`);
+  }
+  const template = templateRes.data;
+
+  const bodySlots = (template.assembly ?? [])
+    .filter(s => s.enabled && s.role === 'body')
+    .slice()
+    .sort((a, b) => a.order - b.order);
+
+  if (bodySlots.length === 0) {
+    return { template, sections: [], bodyAssembly: [] };
+  }
+
+  const partsRes = await mockReportPartService.getByIds(bodySlots.map(s => s.partId));
+  if (!partsRes.ok) {
+    throw new Error(`Failed to load report parts for template '${templateId}': ${partsRes.error}`);
+  }
+  const partsById = new Map(partsRes.data.map(p => [p.id, p] as const));
+
+  const bodyAssembly: BodyPartAssembly[] = [];
+  const sections: NarrativeSectionContext[] = [];
+  let sectionOrder = 0;
+
+  for (const slot of bodySlots) {
+    const part = partsById.get(slot.partId);
+    if (!part) continue; // referenced part missing/archived — skip the slot, don't hard-fail the report
+
+    bodyAssembly.push({
+      slotId:   slot.slotId,
+      partId:   part.id,
+      partName: part.name,
+      order:    slot.order,
+      nodes:    part.nodes ?? [],
+    });
+
+    for (const sec of collectAiSections(part.nodes ?? [])) {
+      sections.push({
+        id:            sec.id,
+        title:         sec.printHeading ?? sec.label,
+        order:         sectionOrder++,
+        enabled:       true,
+        aiInstruction: sec.ai?.systemInstruction ?? '',
+        sourcePartId:  part.id,
+      });
+    }
+  }
+
+  return { template, sections, bodyAssembly };
+}
+
+// ─────────────────────────────────────────────────────────────
 // buildContext — main export
 // ─────────────────────────────────────────────────────────────
 
 export async function buildContext(
   caseData: Case,
   synopticTemplate: EditorTemplate | null,
-  // The pathologist signing/finalising this report — used to populate the
-  // pathologist context for signature-block template nodes. Optional and
-  // defaults to null so existing call sites that haven't been updated yet
-  // keep working; a missing signer just means MISSING sentinels are used
-  // and a warning is recorded, same pattern as every other optional field
-  // in this file.
-  signingUser: User | null = null
-): StructuredContext {
+  signingUser?: SigningUser | null,
+  /**
+   * Pathologist's manual template override (Change ▾ in the UI). When set
+   * and different from the auto-resolved template, this ID is used instead
+   * — resolved through the exact same real Parts/Assembly path, not a
+   * second copy of the logic at the call site. Previously SynopticReportPage
+   * re-derived narrativeTemplate itself via the now-retired registry for
+   * this case; that divergent path is gone — this is the only place
+   * template→sections resolution happens.
+   */
+  templateIdOverride?: string,
+): Promise<StructuredContext> {
   const warnings: string[] = [];
   const rawAnswers = caseData.synopticAnswers ?? {};
 
@@ -249,25 +393,6 @@ export async function buildContext(
     fullName:    patient
       ? [patient.firstName, patient.lastName].filter(Boolean).join(' ') || MISSING
       : MISSING,
-  };
-
-  // ── Pathologist (signer) ──────────────────────────────────
-  // Comes from the authenticated session, not caseData — the signer is
-  // who is finalising the report right now, not anything stored on the case.
-  if (!signingUser) warnings.push('No signing pathologist provided — signature block will be incomplete');
-
-  const pathologistFullName = signingUser
-    ? [signingUser.firstName, signingUser.middleName, signingUser.lastName].filter(Boolean).join(' ')
-      || signingUser.name // fall back to the combined display name if parts aren't available
-    : MISSING;
-
-  const pathologistContext: PathologistContext = {
-    id:                signingUser?.id ?? MISSING,
-    fullName:          pathologistFullName || MISSING,
-    credentials:       safe(signingUser?.credentials),
-    signatureUrl:      signingUser?.signatureUrl ?? null,
-    hasSignatureImage: !!signingUser?.signatureUrl,
-    signedAt:          new Date().toISOString(),
   };
 
   // ── Accession ─────────────────────────────────────────────
@@ -349,45 +474,94 @@ export async function buildContext(
     answers:      resolvedAnswers,
   };
 
-  // ── Narrative template ────────────────────────────────────
-  // Resolve the correct report template based on:
-  //   1. CAP synoptic template IDs on this case
-  //   2. Subspecialty fallback
-  //   3. Gold standard universal fallback
-  const synopticTemplateIds = (caseData.synopticReports ?? [])
-    .map((r: any) => r.templateId)
-    .filter(Boolean) as string[];
+  // ── Narrative template — resolved via TemplateRoutingService ──
+  // Pass 0 (Client Override) uses order.clientId — a real, stable ID.
+  // Pass 0b (Physician Preference) now prefers order.orderingPhysicianId —
+  // a real, stable ID matching the Physician Preferences admin screen — and
+  // falls back to order.requestingProvider (a display name) only when that
+  // field hasn't been populated upstream yet for this case.
+  // Pass 2 (Subspecialty Fallback) now prefers Case.subspecialtyId when set,
+  // and falls back to deriving a subspecialty from the case's synoptic
+  // protocol ID(s) when it isn't — see PROTOCOL_TO_SUBSPECIALTY in
+  // TemplateRoutingService.ts. Cases with neither subspecialtyId nor a
+  // recognized protocol still fall through cleanly to Pass 3 (Gold Standard).
+  const synopticTemplateIds = Array.from(new Set([
+    ...((caseData.synopticReports ?? []).map(r => r.templateId).filter(Boolean)),
+    ...(caseData.synopticTemplateId ? [caseData.synopticTemplateId] : []),
+  ]));
 
-  const routing = await resolveReportTemplateAsync({
-    subspecialtyId:    (caseData as any).subspecialtyId,
-    synopticTemplateIds,
-    performingClientId: (caseData.order as any)?.clientId,
-    orderingPhysicianId: (caseData.order as any)?.requestingProvider,
-  });
+  const subspecialtyId = caseData.subspecialtyId
+    ?? deriveSubspecialtyFromProtocols(synopticTemplateIds);
 
-  const narrativeConfig = getNarrativeConfigForTemplate(routing.templateId);
+  let routingResult: TemplateRoutingResult;
+  try {
+    routingResult = await resolveReportTemplateAsync({
+      synopticTemplateIds,
+      performingClientId:  caseData.order?.clientId,
+      orderingPhysicianId: caseData.order?.orderingPhysicianId ?? caseData.order?.requestingProvider,
+      subspecialtyId,
+    });
+  } catch (e) {
+    // Routing must never hard-fail report generation — degrade to
+    // gold-standard and surface the problem as a warning instead.
+    warnings.push(`Template routing failed (${(e as Error)?.message ?? 'unknown error'}) — using gold-standard template`);
+    routingResult = {
+      templateId: 'tmpl-gold-standard',
+      ambiguous:  false,
+      candidates: ['tmpl-gold-standard'],
+      resolvedBy: 'gold-standard',
+    };
+  }
 
-  if (routing.ambiguous) {
+  if (routingResult.ambiguous) {
     warnings.push(
-      `Multiple report templates qualify for this case: ${routing.candidates.join(', ')}. ` +
-      `Using "${routing.templateId}" — pathologist may override via Sequencer.`
+      `Template routing matched multiple candidate templates (${routingResult.candidates.join(', ')}) — ` +
+      `using ${routingResult.templateId}. Multi-organ case may need the pathologist to confirm via Change ▾.`
     );
   }
 
+  const effectiveTemplateId = templateIdOverride ?? routingResult.templateId;
+  if (templateIdOverride && templateIdOverride !== routingResult.templateId) {
+    warnings.push(
+      `Pathologist override: using template '${templateIdOverride}' instead of auto-resolved '${routingResult.templateId}'`
+    );
+  }
+
+  let resolved: ResolvedTemplateSections;
+  try {
+    resolved = await resolveTemplateSections(effectiveTemplateId);
+  } catch (e) {
+    warnings.push(
+      `Template/Part resolution failed for '${effectiveTemplateId}' ` +
+      `(${(e as Error)?.message ?? 'unknown error'}) — falling back to gold-standard template`
+    );
+    try {
+      resolved = await resolveTemplateSections('tmpl-gold-standard');
+    } catch (e2) {
+      // Both the routed template AND gold-standard failed to resolve via
+      // Parts/Assembly (e.g. mock service unavailable). There is no
+      // further fallback — surface an empty narrative rather than silently
+      // reintroducing the retired registry.
+      warnings.push(
+        `Gold-standard template also failed to resolve (${(e2 as Error)?.message ?? 'unknown error'}) — narrative will be empty`
+      );
+      resolved = { template: null, sections: [], bodyAssembly: [] };
+    }
+  }
+
   const templateContext: TemplateContext = {
-    templateId:          narrativeConfig.templateId,
-    templateName:        narrativeConfig.name,
-    orchestratorEnabled: narrativeConfig.orchestratorEnabled,
-    sections: narrativeConfig.sections
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .map(s => ({
-        id:            s.id,
-        title:         s.title,
-        order:         s.order,
-        enabled:       s.enabled,
-        aiInstruction: s.aiInstruction,
-      })),
+    templateId:           resolved.template?.id   ?? effectiveTemplateId,
+    templateName:         resolved.template?.name ?? effectiveTemplateId,
+    orchestratorEnabled:  resolved.template?.orchestrationEnabled ?? false,
+    sections:             resolved.sections,
+    bodyAssembly:         resolved.bodyAssembly,
+  };
+
+  // ── Sign-off ───────────────────────────────────────────────
+  const signOffContext: SignOffContext = {
+    pathologistId:   safe(signingUser?.id),
+    pathologistName: safe(signingUser?.name),
+    credentials:     safe(signingUser?.credentials),
   };
 
   return {
@@ -395,7 +569,6 @@ export async function buildContext(
     caseId:           caseData.id,
     reportingMode:    caseData.reportingMode ?? 'pathscribe',
     patient:          patientContext,
-    pathologist:      pathologistContext,
     accession:        accessionContext,
     order:            orderContext,
     specimens,
@@ -403,6 +576,10 @@ export async function buildContext(
     coding:           codingContext,
     synoptic:         synopticContext,
     narrativeTemplate: templateContext,
+    signOff:          signOffContext,
+    routingResolvedBy:           routingResult.resolvedBy,
+    routingAmbiguous:             routingResult.ambiguous,
+    routingCandidateTemplateIds: routingResult.candidates,
     warnings,
   };
 }

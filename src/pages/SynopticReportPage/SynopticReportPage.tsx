@@ -51,6 +51,7 @@ import { useLogout } from '@/hooks/useLogout';
 import '@/pathscribe.css';
 
 import type { Case } from '@/types/case/Case';
+import type { CaseStatus } from '@/types/case/CaseStatus';
 import { AiReviewModal }  from './modals/AiReviewModal';
 import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
 import CaseTeamModal            from './modals/CaseTeamModal';
@@ -64,12 +65,12 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 // ── Orchestrator ───────────────────────────────────────────────
 import OrchestratorSectionEditor, { textToHtml } from './components/OrchestratorSectionEditor';
 import type { OrchestratorSection } from './components/OrchestratorSectionEditor';
-import ReportPreviewRenderer from '@/pages/ReportPreview/ReportPreviewRenderer';
+import ReportPreviewRenderer, { getInstitution, buildRenderScope } from '@/pages/ReportPreview/ReportPreviewRenderer';
 import SequencerPanel from './components/SequencerPanel';
 import { OrchestratorEngine } from '@/orchestrator/orchestratorEngine';
 import type { OrchestratorCallbacks } from '@/orchestrator/orchestratorEngine';
-import { buildContext } from '@/lib/contextBuilder';
-import { getNarrativeConfigForTemplate } from '@/components/Config/NarrativeTemplates/narrativeTemplateRegistry';
+import { buildContext } from '@/orchestrator/contextBuilder';
+import type { StructuredContext } from '@/orchestrator/contextBuilder';
 
 // ─── Shared overlay style (passed to all modals) ──────────────
 const overlayStyle: React.CSSProperties = {
@@ -78,6 +79,21 @@ const overlayStyle: React.CSSProperties = {
   zIndex: 25000,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
+
+// Report PDF generation — Firebase Cloud Function (Python/ReportLab), see
+// functions-render-report/main.py. Not secret (it's a function URL, not a
+// key), so VITE_-prefixed is fine here — unlike the API key issue found
+// and fixed elsewhere in this codebase.
+//
+// Local default is 'http://localhost:8080/' — NOT '.../render_report'.
+// `functions-framework --target=render_report --port=8080` serves the
+// target function at the root of that port; --target only selects which
+// Python function runs, it isn't a URL path segment. Once deployed to
+// Firebase, set VITE_REPORT_PDF_ENDPOINT to the full URL Firebase gives
+// you for the function (the function name is already part of that
+// hostname/path) — don't append /render_report to it either.
+const REPORT_PDF_ENDPOINT =
+  (import.meta as any).env?.VITE_REPORT_PDF_ENDPOINT ?? 'http://localhost:8080/';
 
 const SynopticReportPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
@@ -211,40 +227,11 @@ const SynopticReportPage: React.FC = () => {
   }, []);
 
   // ── Print the formatted centre pane report ───────────────────────────────
-  // Grabs the rendered .rp-page DOM node and prints it in a clean window.
-  const handleOrchPrint = useCallback(() => {
-    const pageEl = document.querySelector('.rp-page') as HTMLElement | null;
-    if (!pageEl) { window.print(); return; }
-    const accession = caseData?.accession?.fullAccession
-      ?? caseData?.accession?.accessionNumber ?? '';
-    const patient = caseData?.patient
-      ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
-    const win = window.open('', '_blank', 'width=900,height=1100');
-    if (!win) { window.print(); return; }
-    win.document.write(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/>
-<title>${accession} — PathScribe Report</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt;
-         line-height: 1.6; color: #1a1a1a; background: white; }
-  @page { size: A4; margin: 18mm 20mm 22mm 20mm;
-    @top-left   { content: "${accession}"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
-    @top-right  { content: "CONFIDENTIAL — CLINICAL RECORD"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
-    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
-  }
-  .rp-section-badge { display: none; }
-  .rp-section-heading { font-size: 11pt; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.06em; border-left: 3px solid #333; padding: 6px 0 6px 10px;
-    margin-bottom: 8pt; }
-  .rp-section-body { font-size: 11pt; line-height: 1.7; padding-left: 13px; }
-  .rp-section-body p { margin-bottom: 6pt; orphans: 3; widows: 3; }
-  .rp-section { margin-bottom: 18pt; }
-  .rp-footer-conf, .rp-footer { font-size: 8pt; }
-</style></head><body>${pageEl.outerHTML}</body></html>`);
-    win.document.close();
-    win.onload = () => { win.focus(); win.print(); win.close(); };
-  }, [caseData]);
+  // handleOrchPrint itself is defined further down, after orchSections,
+  // resolvedContext, resolvedTemplateName, resolvedBy, and showToast are
+  // all declared — it depends on every one of them, so it can't live here
+  // (its dependency array would reference consts not yet initialized in
+  // this render pass).
 
   useEffect(() => {
     localStorage.setItem('ps_sidebar_collapsed', String(sidebarCollapsed));
@@ -256,6 +243,14 @@ const SynopticReportPage: React.FC = () => {
   }, [isOrchestrationMode, leftTab]);
   
   const [orchSections,    setOrchSections]    = useState<OrchestratorSection[]>([]);
+  // Holds the StructuredContext from the most recent buildContext() call —
+  // ReportPreviewRenderer needs narrativeTemplate.bodyAssembly (the real
+  // Parts/Assembly tree) and synoptic.answers to render the structural body
+  // Parts that orchSections never carried (see contextBuilder.ts /
+  // ReportPreviewRenderer.tsx changes). Previously this was a disposable
+  // local variable inside handleGenerateReport — those Parts had nowhere
+  // to be read from after the function returned.
+  const [resolvedContext, setResolvedContext] = useState<StructuredContext | null>(null);
 
   // Must be after isOrchestrationMode, leftTab, hasUnsavedData AND orchSections
   const safeSetLeftTab = React.useCallback((tab: string) => {
@@ -348,6 +343,42 @@ const SynopticReportPage: React.FC = () => {
   const [resolvedTemplateName, setResolvedTemplateName] = useState<string>('Gold Standard — General Surgical Pathology');
   const [resolvedBy,           setResolvedBy]           = useState<string>('gold-standard');
   const [overrideTemplateId,   setOverrideTemplateId]   = useState<string | null>(null);
+
+  // ── Auto-resolve StructuredContext on load ──────────────────────────────
+  // Bug found in testing: bodyAssembly (which gates whether the report
+  // preview/print shows anything) previously only got populated by
+  // clicking "Generate Report" in the current session. But orchSections
+  // (AI text) can also arrive via the restoration effect above, from a
+  // PRIOR session — so a case could have real generated text sitting in
+  // orchSections while bodyAssembly was still empty, showing "No report
+  // sections yet" despite there being content. Resolving context as soon
+  // as the case loads — independent of AI generation — fixes that, and is
+  // also the architecturally correct behaviour: most body Parts
+  // (demographics, specimens, sign-off) are auto-populated from data and
+  // were never meant to be gated behind an AI-generation button at all.
+  useEffect(() => {
+    if (!caseData || !isOrchestrationMode) return;
+    let cancelled = false;
+    buildContext(caseData, null, signingUser, overrideTemplateId || undefined)
+      .then(ctx => {
+        if (cancelled) return;
+        setResolvedContext(ctx);
+        // Only set these on initial load if generation hasn't already run
+        // this session — don't clobber a result handleGenerateReport just
+        // produced with the same auto-resolve values.
+        setResolvedTemplateId(prev => prev === 'tmpl-gold-standard' ? ctx.narrativeTemplate.templateId : prev);
+        setResolvedTemplateName(curr =>
+          curr === 'Gold Standard — General Surgical Pathology' ? ctx.narrativeTemplate.templateName : curr
+        );
+      })
+      .catch(e => {
+        if (!cancelled) console.warn('Auto-resolve of StructuredContext failed on load:', e);
+      });
+    return () => { cancelled = true; };
+    // caseData.id (not the whole object) — caseData can get new object
+    // identity on unrelated updates without this needing to re-resolve.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseData?.id, isOrchestrationMode, overrideTemplateId]);
 
   // ── Centre pane header state — template picker, lifted here so it can be
   //    shared between both layout instances (primary + expanded) ───────────
@@ -470,6 +501,116 @@ const SynopticReportPage: React.FC = () => {
   } = useSynopticModals();
 
   const { toastMsg, toastVisible, showToast } = useSynopticToast();
+
+  // ── Print the formatted centre pane report ───────────────────────────────
+  // Calls the render_report Cloud Function (Python/ReportLab) for a real
+  // structured PDF, built from the same resolvedContext/orchSections the
+  // on-screen preview renders — falls back to the old DOM-print path if
+  // the function call fails for any reason. Relocated here (was near the
+  // top of the component) because it depends on orchSections,
+  // resolvedContext, resolvedTemplateName, resolvedBy, and showToast, none
+  // of which exist yet earlier in this render pass.
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handleOrchPrint = useCallback(async () => {
+    if (!caseData) { window.print(); return; }
+    setIsPrinting(true);
+    const accession = caseData.accession?.fullAccession
+      ?? caseData.accession?.accessionNumber ?? '';
+    try {
+      const patient = caseData.patient
+        ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
+      const payload = {
+        templateName: resolvedTemplateName,
+        resolvedBy,
+        institution: getInstitution(caseData.originHospitalId),
+        caseHeader: {
+          accession,
+          patient,
+          mrn: caseData.patient?.mrn ?? '',
+          dob: caseData.patient?.dateOfBirth
+            ? new Date(caseData.patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+            : '',
+          referring: caseData.order?.clientName ?? '',
+          clinician: caseData.order?.requestingProvider ?? '',
+        },
+        // Same data ReportPreviewRenderer already renders on screen — the
+        // PDF and the live preview are built from one resolved context,
+        // not two independently-derived views of the case.
+        bodyAssembly:    resolvedContext?.narrativeTemplate.bodyAssembly ?? [],
+        sections:        orchSections,
+        renderScope:     buildRenderScope(caseData),
+        synopticAnswers: resolvedContext?.synoptic.answers ?? [],
+      };
+
+      const resp = await fetch(REPORT_PDF_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        throw new Error(`Report PDF generation failed (${resp.status})`);
+      }
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        // Popup blocked — download directly rather than leaving the
+        // pathologist with no way to get the PDF at all.
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${accession || 'report'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Revoke once the new tab/download has had time to load the blob —
+      // too soon and an opened tab can lose the document mid-render.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (e: any) {
+      showToast(`PDF generation failed (${e?.message ?? 'unknown error'}) — printing from screen instead`);
+      // Fall back to the old DOM-print path rather than leaving the
+      // pathologist with no way to print if the Cloud Function is down.
+      const pageEl = document.querySelector('.rp-page') as HTMLElement | null;
+      if (!pageEl) { window.print(); return; }
+      // Size to most of the available screen rather than a small fixed
+      // popup — Chrome's print preview renders inside this window, so a
+      // cramped window makes the preview look cramped too, right when the
+      // pathologist is checking the report's actual printed appearance.
+      const winWidth  = Math.round(window.screen.availWidth  * 0.9);
+      const winHeight = Math.round(window.screen.availHeight * 0.9);
+      const winLeft   = Math.round((window.screen.availWidth  - winWidth)  / 2);
+      const winTop    = Math.round((window.screen.availHeight - winHeight) / 2);
+      const win = window.open('', '_blank', `width=${winWidth},height=${winHeight},left=${winLeft},top=${winTop}`);
+      if (!win) { window.print(); return; }
+      win.document.write(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/>
+<title>${accession} — PathScribe Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt;
+         line-height: 1.6; color: #1a1a1a; background: white; }
+  @page { size: A4; margin: 18mm 20mm 22mm 20mm;
+    @top-left   { content: "${accession}"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @top-right  { content: "CONFIDENTIAL — CLINICAL RECORD"; font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #666; font-family: Arial, sans-serif; }
+  }
+  .rp-section-badge { display: none; }
+  .rp-section-heading { font-size: 11pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; border-left: 3px solid #333; padding: 6px 0 6px 10px;
+    margin-bottom: 8pt; }
+  .rp-section-body { font-size: 11pt; line-height: 1.7; padding-left: 13px; }
+  .rp-section-body p { margin-bottom: 6pt; orphans: 3; widows: 3; }
+  .rp-section { margin-bottom: 18pt; }
+  .rp-footer-conf, .rp-footer { font-size: 8pt; }
+</style></head><body>${pageEl.outerHTML}</body></html>`);
+      win.document.close();
+      win.onload = () => { win.focus(); win.print(); win.close(); };
+    } finally {
+      setIsPrinting(false);
+    }
+  }, [caseData, resolvedContext, orchSections, resolvedTemplateName, resolvedBy, showToast]);
 
   const caseComputationalFlags = React.useMemo(() => {
     if (!caseData) return [];
@@ -895,10 +1036,98 @@ const SynopticReportPage: React.FC = () => {
     setShowProtoReview(true);
   }, []);
 
+  // ── Real finalization logic — shared by both finalize entry points ────────
+  // Previously: handlePreFinalConfirm only console.log'd and closed the
+  // modal — no status change, no persistence, no audit event. The OTHER
+  // finalize path (handleFinalizeConfirm, reached via the AI Review →
+  // FinalizeModal route when uncertain fields exist) had real logic
+  // (signal capture, deferred-amendment handling) but ALSO never actually
+  // set status: 'finalized' or persisted anything via caseRouter.updateCase.
+  // Both paths must finalize identically — this is the one real
+  // implementation both call.
+  const finalizeCase = useCallback(async (
+    excludedInstanceIds: string[] = []
+  ): Promise<void> => {
+    if (!caseData) return;
+
+    const finalizedAt = new Date().toISOString();
+
+    try {
+      // CaseRouter.updateCase is deliberately Promise<void> — it writes to
+      // the owning service and logs an independent audit event per source
+      // system, by design (see CaseRouter's class doc comment). It never
+      // returns the updated record. Since we already have everything we
+      // just sent, merge it locally rather than waiting on a return value
+      // that was never going to arrive.
+      const patch = {
+        status: 'finalized' as CaseStatus,
+        finalizedAt,
+        finalizedBy: signingUser?.id ?? null,
+        // Excluded synoptic instances (from the Pre-Finalisation Review's
+        // drag-to-exclude interaction) are marked deferred rather than
+        // dropped, so they remain visible/amendable later.
+        synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
+          excludedInstanceIds.includes(r.instanceId)
+            ? { ...r, status: 'deferred' }
+            : r
+        ),
+      };
+
+      await caseRouter.updateCase(caseData.id, patch as any);
+
+      const updated = { ...caseData, ...patch } as typeof caseData;
+      setCaseData(updated);
+
+      log('case_finalized', {
+        caseId: caseData.id,
+        accession: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber,
+        finalizedBy: signingUser?.id ?? 'unknown',
+        excludedCount: excludedInstanceIds.length,
+      });
+
+      showToast('Report finalized');
+    } catch (err) {
+      console.error('[Finalise] Failed to persist finalization:', err);
+      showToast('Finalization failed — please try again');
+    }
+  }, [caseData, signingUser, log, showToast]);
+
   const handleProtoCommit = useCallback((acceptedIds: string[]) => {
     setShowProtoReview(false);
-    console.log('[ProtocolChange] Accepted', acceptedIds.length, 'of', protoChanges.length, 'proposed changes');
-  }, [protoChanges.length]);
+    // ⚠️ FIELD NAMES UNVERIFIED — ProtocolChange's actual shape lives in
+    // ProtocolChangeModal.tsx, which was not available when this was
+    // written. `instanceId`, `proposedTemplateId`, `proposedTemplateName`,
+    // and `proposedAnswers` are my best guess based on context (this is a
+    // protocol UPGRADE proposal, so it should carry a target template +
+    // proposed answer set) but have NOT been confirmed against the real
+    // type. CHECK ProtocolChangeModal.tsx before relying on this — if the
+    // field names differ, this will silently no-op (TypeScript would
+    // normally catch this, but `as any` below suppresses that check).
+    if (acceptedIds.length > 0 && caseData) {
+      const accepted = protoChanges.filter(c => acceptedIds.includes((c as any).id));
+      const patch = {
+        synopticReports: (caseData.synopticReports ?? []).map((r: any) => {
+          const change = accepted.find((c: any) => c.instanceId === r.instanceId);
+          if (!change) return r;
+          return {
+            ...r,
+            templateId:   (change as any).proposedTemplateId ?? r.templateId,
+            templateName: (change as any).proposedTemplateName ?? r.templateName,
+            answers:      (change as any).proposedAnswers ?? r.answers,
+          };
+        }),
+      };
+
+      caseRouter.updateCase(caseData.id, patch as any).then(() => {
+        setCaseData({ ...caseData, ...patch } as typeof caseData);
+        log('protocol_change_committed', {
+          caseId: caseData.id,
+          acceptedCount: acceptedIds.length,
+          totalProposed: protoChanges.length,
+        });
+      }).catch(console.error);
+    }
+  }, [protoChanges, caseData, log]);
 
   const handleRequestFinalize = useCallback((andNext: boolean) => {
     setFinalizeAndNextPending(andNext);
@@ -923,10 +1152,12 @@ const SynopticReportPage: React.FC = () => {
 
   const handlePreFinalConfirm = useCallback((_ordered: string[], _excluded: string[]) => {
     setShowPreFinalise(false);
-    // Credentials already verified inside PreFinalisationModal — finalize directly.
-    // TODO: call finalize service with ordered/excluded instanceIds
-    console.log('[Finalise] ordered:', _ordered, 'excluded:', _excluded);
-  }, []);
+    // Credentials already verified inside PreFinalisationModal.
+    // _ordered is the pathologist's final section/synoptic ordering choice
+    // from the drag-to-reorder interaction — display order only, not
+    // persisted here since it doesn't affect report content or status.
+    finalizeCase(_excluded);
+  }, [finalizeCase]);
 
   const [deferredAmendmentContext, setDeferredAmendmentContext] = React.useState<{ title: string; prefill: string } | null>(null);
 
@@ -944,6 +1175,30 @@ const SynopticReportPage: React.FC = () => {
       import('@/services/narrativeSignals/mockNarrativeSignalService').then(
         async ({ mockNarrativeSignalService, computeEditRatio }) => {
           const { deidentifySignal } = await import('@/services/narrativeSignals/deidentification');
+
+          // ── Resolve the active study (if any) covering this case ───────────
+          // Previously: studyId always read (caseData as any)?.activeStudyId,
+          // a field NOTHING in the codebase ever sets — every real signal got
+          // studyId: undefined regardless of whether an active study's scope
+          // actually covered this case/pathologist/subspecialty. The matching
+          // logic already existed (getStudyForCase), it was just never called
+          // anywhere. Calling it here, at signal-capture time, is correct
+          // because study membership is evaluated per-case at the moment of
+          // finalization, not stored ahead of time.
+          let resolvedStudyId: string | undefined;
+          try {
+            const { mockValidationStudyService } = await import('@/services/validationStudies/mockValidationStudyService');
+            const clientId       = (caseData?.order as any)?.clientId ?? '';
+            const pathologistId  = signingUser?.id ?? '';
+            const subspecialtyId = (caseData as any)?.subspecialtyId;
+            const studyResult = await mockValidationStudyService.getStudyForCase(clientId, pathologistId, subspecialtyId);
+            if ((studyResult as any).ok && (studyResult as any).data) {
+              resolvedStudyId = (studyResult as any).data.id;
+            }
+          } catch (e) {
+            console.error('[PathScribe] Study lookup failed — signals will record without studyId:', e);
+          }
+
           const signals = orchSections
             .filter(s => s.aiGenerated || s.text)
             .map(s => {
@@ -963,11 +1218,11 @@ const SynopticReportPage: React.FC = () => {
                 editRatio,
                 wasAccepted:        s.aiGenerated === s.text && !!s.aiGenerated,
                 subspecialtyId:     (caseData as any)?.subspecialtyId,
-                studyId:            (caseData as any)?.activeStudyId,
+                studyId:            resolvedStudyId,
               };
             });
           mockNarrativeSignalService.recordSignals(signals).then(() => {
-            console.info(`[PathScribe] Recorded ${signals.length} de-identified signal(s)`);
+            console.info(`[PathScribe] Recorded ${signals.length} de-identified signal(s)${resolvedStudyId ? ` for study ${resolvedStudyId}` : ' (no active study match)'}`);
           });
         }
       ).catch(console.error);
@@ -975,6 +1230,10 @@ const SynopticReportPage: React.FC = () => {
 
     const activeReport = caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any;
     if (caseData?.status === 'finalized' && activeReport?.status === 'deferred') {
+      // Case is ALREADY finalized — this is the amendment path for a
+      // deferred synoptic now being completed, not a first-time finalize.
+      // Do not re-run finalizeCase() here; that would double-log the
+      // case_finalized audit event for a case that's already finalized.
       const completedFields = Object.entries(activeReport.answers ?? {})
         .filter(([, v]) => v && (Array.isArray(v) ? (v as string[]).length > 0 : (v as string).trim()))
         .map(([k]) => k).join(', ');
@@ -990,9 +1249,12 @@ Original report issued pending ancillary studies. This amendment incorporates th
       setAmendmentMode('amendment');
       setShowAmendmentModal(true);
     } else {
-      showToast('Report finalized');
+      // Genuine first-time finalize — actually persist the status change
+      // and audit event. Previously this branch only showed a toast with
+      // no underlying state change at all.
+      finalizeCase();
     }
-  }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal, isOrchestrationMode, orchSections]);
+  }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal, isOrchestrationMode, orchSections, finalizeCase]);
 
   const handleAmendmentSubmit = useCallback(() => {
     setShowAmendmentModal(false);
@@ -1045,43 +1307,22 @@ Original report issued pending ancillary studies. This amendment incorporates th
     setIsOrchestrating(true);
     setLeftTab('draft');
     try {
-      // Build context async — resolves routing rules from service
-      const ctx = await buildContext(caseData, null, signingUser);
+      // Build context async — resolves routing rules from service.
+      // If the pathologist has overridden the template via Change ▾, pass
+      // it straight through — buildContext resolves the override via the
+      // same real Parts/Assembly path as auto-routing, so there is exactly
+      // one place template→sections resolution happens, not two kept "in
+      // sync." (Previously this block re-derived narrativeTemplate here via
+      // the registry directly — that divergent path is gone.)
+      const ctx = await buildContext(caseData, null, signingUser, overrideTemplateId || undefined);
+      setResolvedContext(ctx);
 
-      // If the pathologist has overridden the template via Change ▾, fully
-      // re-resolve name + sections for the override — NOT just the bare
-      // templateId. OrchestratorEngine reads narrativeTemplate.sections
-      // directly (it never looks at templateId), so swapping only the ID
-      // while leaving the original template's sections in place silently
-      // generated the WRONG report content while showing the WRONG name —
-      // a real correctness bug, not just a display issue.
-      let finalCtx = ctx;
-      if (overrideTemplateId && overrideTemplateId !== ctx.narrativeTemplate.templateId) {
-        const overrideConfig = getNarrativeConfigForTemplate(overrideTemplateId);
-        finalCtx = {
-          ...ctx,
-          narrativeTemplate: {
-            templateId:          overrideConfig.templateId,
-            templateName:        overrideConfig.name,
-            orchestratorEnabled: overrideConfig.orchestratorEnabled,
-            sections: overrideConfig.sections
-              .slice()
-              .sort((a: any, b: any) => a.order - b.order)
-              .map((s: any) => ({
-                id: s.id, title: s.title, order: s.order,
-                enabled: s.enabled, aiInstruction: s.aiInstruction,
-              })),
-          },
-        };
-      }
-
-      // Capture resolved template for display — uses finalCtx so an active
-      // override is reflected in the centre pane header, not the original
-      // auto-resolved template's name.
-      setResolvedTemplateId(finalCtx.narrativeTemplate.templateId);
-      setResolvedTemplateName(finalCtx.narrativeTemplate.templateName);
-      setResolvedBy(overrideTemplateId ? 'pathologist-override' : ((ctx as any).routingResolvedBy ?? 'gold-standard'));
-      const engine = new OrchestratorEngine(undefined, finalCtx as any, buildOrchCallbacks());
+      // Capture resolved template for display — reflects an active
+      // override in the centre pane header, not the auto-resolved name.
+      setResolvedTemplateId(ctx.narrativeTemplate.templateId);
+      setResolvedTemplateName(ctx.narrativeTemplate.templateName);
+      setResolvedBy(overrideTemplateId ? 'pathologist-override' : (ctx.routingResolvedBy ?? 'gold-standard'));
+      const engine = new OrchestratorEngine(undefined, ctx as any, buildOrchCallbacks());
       engineRef.current = engine;
       await engine.run();
     } catch (e: any) {
@@ -1104,7 +1345,12 @@ Original report issued pending ancillary studies. This amendment incorporates th
     if (!caseData || isOrchestrating) return;
     setIsOrchestrating(true);
     try {
-      const ctx    = await buildContext(caseData, null, signingUser);
+      // Must pass overrideTemplateId here too — regenerating a single
+      // section after a pathologist override previously fell back to the
+      // auto-resolved template silently, generating against the wrong
+      // section's instructions. Same root cause as handleGenerateReport.
+      const ctx    = await buildContext(caseData, null, signingUser, overrideTemplateId || undefined);
+      setResolvedContext(ctx);
       const engine = new OrchestratorEngine(undefined, ctx as any, buildOrchCallbacks());
       engineRef.current = engine;
       await engine.regenerateSection(sectionId);
@@ -1115,7 +1361,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
       engineRef.current = null;
       abortRef.current  = null;
     }
-  }, [caseData, isOrchestrating, buildOrchCallbacks, showToast]);
+  }, [caseData, isOrchestrating, buildOrchCallbacks, showToast, overrideTemplateId]);
 
   // ─────────────────────────────────────────────────────────
   // Render
@@ -1332,8 +1578,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 const isActive = leftTab === tab;
                 const hasResult = tab === 'results' && caseComputationalFlags.length > 0;
                 const st2 = caseData?.status ?? 'draft';
+                // 'pending-countersign' is a per-synoptic-instance status (SynopticReportInstance),
+                // not a CaseStatus value — check whether any instance on this case needs it.
+                const needsCountersign2 = (caseData?.synopticReports ?? []).some(r => r.status === 'pending-countersign');
                 const dot2Color = st2 === 'finalized' ? '#10b981'
-                  : st2 === 'pending-review' || st2 === 'pending-countersign' ? '#f59e0b'
+                  : st2 === 'pending-review' || needsCountersign2 ? '#f59e0b'
                   : st2 === 'in-progress' ? '#60a5fa'
                   : '#3b82f6'; // draft = blue
                 return (
@@ -1503,6 +1752,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   <div className="ps-ose-centre-pane">
                     <ReportPreviewRenderer
                       sections={orchSections}
+                      bodyAssembly={resolvedContext?.narrativeTemplate.bodyAssembly ?? []}
+                      structuredContext={resolvedContext}
                       caseData={caseData}
                       templateName={resolvedTemplateName}
                       resolvedBy={resolvedBy}
@@ -1750,8 +2001,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       const label    = tab === 'draft' ? '✍️ Report Draft' : tab === 'sequencer' ? '🔀 Sequencer' : tab === 'report' ? '📑 Synoptic Reporting' : '⚗️ Computational';
                       // Status dot for Full Report tab — colour reflects case status
                       const st = caseData?.status ?? 'draft';
+                      // 'pending-countersign' is a per-synoptic-instance status (SynopticReportInstance),
+                      // not a CaseStatus value — check whether any instance on this case needs it.
+                      const needsCountersign = (caseData?.synopticReports ?? []).some(r => r.status === 'pending-countersign');
                       const statusDotColor = st === 'finalized' ? '#10b981'
-                        : st === 'pending-review' || st === 'pending-countersign' ? '#f59e0b'
+                        : st === 'pending-review' || needsCountersign ? '#f59e0b'
                         : st === 'in-progress' ? '#60a5fa'
                         : '#3b82f6'; // draft = blue
                       const statusLabel = String(st);
@@ -1860,6 +2114,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                         <div className="ps-ose-centre-pane">
                           <ReportPreviewRenderer
                             sections={orchSections}
+                            bodyAssembly={resolvedContext?.narrativeTemplate.bodyAssembly ?? []}
+                            structuredContext={resolvedContext}
                             caseData={caseData}
                             templateName={resolvedTemplateName}
                             resolvedBy={resolvedBy}
@@ -2040,7 +2296,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           }}
           onFinalize={() => handleRequestFinalize(false)}
           onFinalizeAndNext={() => handleRequestFinalize(true)}
-          onSignOut={() => { if (caseData?.reportingMode !== 'assisted') setShowSignOutModal(true); }}
+          onSignOut={() => { if (caseData?.reportingMode !== 'copilot') setShowSignOutModal(true); }}
           
           onHistory={() => setIsSimilarCasesOpen(true)}
           onFlags={() => { openFlagManager(caseData); log('flag_manager_opened', { caseId: caseId ?? '' }); }}
@@ -2141,7 +2397,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         }}
         caseAccession={caseData?.accession?.fullAccession ?? ''}
         patientName={`${caseData?.patient?.firstName ?? ''} ${caseData?.patient?.lastName ?? ''}`.trim()}
-        reportingMode={caseData?.reportingMode === 'assisted' ? 'assisted' : 'pathscribe'}
+        reportingMode={caseData?.reportingMode === 'copilot' ? 'assisted' : 'pathscribe'}
         synoptics={preFinalSynoptics}
         userId={(caseData as any)?.order?.assignedTo ?? 'current'}
         userDisplayName={(caseData as any)?.assignedPathologistName ?? 'Pathologist'}

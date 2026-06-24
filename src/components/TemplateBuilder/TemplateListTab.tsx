@@ -92,14 +92,16 @@ const TemplateRow: React.FC<{
           {!isStandard && (
             confirmDelete ? (
               <>
-                <span className="tmpl-delete-confirm-label">Delete?</span>
+                <span className="tmpl-delete-confirm-label">{template.status === 'draft' ? 'Delete?' : 'Archive?'}</span>
                 <button onClick={onDelete} disabled={isDeleting} className="tmpl-row-btn tmpl-row-btn--confirm-delete">
                   {isDeleting ? '…' : 'Yes'}
                 </button>
                 <button onClick={() => setConfirmDelete(false)} className="tmpl-row-btn">No</button>
               </>
             ) : (
-              <button onClick={() => setConfirmDelete(true)} className="tmpl-row-btn tmpl-row-btn--delete">Delete</button>
+              <button onClick={() => setConfirmDelete(true)} className="tmpl-row-btn tmpl-row-btn--delete">
+                {template.status === 'draft' ? 'Delete' : 'Archive'}
+              </button>
             )
           )}
         </div>
@@ -164,7 +166,14 @@ const TemplateListTab: React.FC = () => {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      const result = await svc.remove(id);
+      const target = templates.find(t => t.id === id);
+      // Only a template that's still a pure Draft could never have produced
+      // a real generated report — safe to hard-delete. Anything that has
+      // ever been Published must be archived instead, so its structure
+      // remains inspectable for as long as a report generated from it exists.
+      const result = target?.status === 'draft'
+        ? await svc.remove(id)
+        : await svc.archive(id);
       if (result.ok === false) setError(result.error);
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? 'Failed to delete');
