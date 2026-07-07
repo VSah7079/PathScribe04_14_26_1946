@@ -27,6 +27,8 @@ import type { Case } from '@/types/case/Case';
 import { mockMacroService } from '@/services/macros/mockMacroService';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { PathScribeAIService, type SpellingFlag } from '@/services/aiIntegration/GeminiAIIntegrationService';
+import { clientService } from '@/services';
+import type { Jurisdiction } from '@/types/systemConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,8 +81,47 @@ const STATUS_META: Record<SectionStatus, { color: string; title: string; icon: s
 
 export function textToHtml(text: string): string {
   if (!text.trim()) return '';
-  if (text.trimStart().startsWith('<')) return text;
-  return '<p>' + text.split(/\n\n+/).filter(Boolean).join('</p><p>') + '</p>';
+  const trimmed = text.trimStart();
+  // Previously: `if (trimmed.startsWith('<')) return text;` — this blindly
+  // trusted a leading '<' as proof the ENTIRE string was already valid,
+  // well-formed HTML. That's true for normal already-converted section
+  // text, but if any upstream code ever concatenates onto an
+  // already-wrapped string (e.g. "<p>...</p>" + new raw tokens), the
+  // result still starts with '<' and was passed straight through
+  // unwrapped — including the stray trailing fragment outside any tag,
+  // which ProseMirror's HTML parser can then mis-parse or drop content
+  // around. Belt-and-braces fix (the real fix is not letting that
+  // concatenation happen upstream — see onSectionStart in
+  // SynopticReportPage.tsx): only take the fast path when the string is a
+  // SEQUENCE of balanced block-level tags with nothing stray outside them.
+  if (trimmed.startsWith('<') && isWellFormedBlockHtml(trimmed)) return text;
+  // Fallback: treat as plain/markdown-ish text. Strip any stray tags that
+  // may have leaked in from a corrupted concatenation rather than
+  // rendering them as literal text, then paragraph-split as before.
+  const stripped = trimmed.replace(/<\/?[a-zA-Z][^>]*>/g, '');
+  return '<p>' + stripped.split(/\n\n+/).filter(Boolean).join('</p><p>') + '</p>';
+}
+
+// Cheap structural check — not a full HTML validator, just enough to catch
+// the "valid HTML followed by stray bare text" shape that the regenerate
+// concatenation bug produced (e.g. "<p>...</p>**"). True only if every
+// top-level block tag closes and there is no non-whitespace content
+// outside of tags.
+function isWellFormedBlockHtml(html: string): boolean {
+  let depth = 0;
+  let lastIndex = 0;
+  const tagRe = /<\/?[a-zA-Z][^>]*>/g;
+  let match: RegExpExecArray | null;
+  while ((match = tagRe.exec(html))) {
+    const between = html.slice(lastIndex, match.index);
+    if (depth === 0 && between.trim()) return false; // bare text outside any tag
+    if (match[0].startsWith('</')) depth--;
+    else if (!match[0].endsWith('/>')) depth++;
+    lastIndex = tagRe.lastIndex;
+  }
+  const trailing = html.slice(lastIndex);
+  if (trailing.trim()) return false; // stray text after the last tag closes
+  return depth === 0;
 }
 
 // ── Spell-check review popover ────────────────────────────────────────────────
@@ -315,6 +356,46 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     onSectionChange(section.id, editor.getHTML());
   }, [caseData, onSectionChange]);
 
+  // ── Case's real jurisdiction, for spell-check ─────────────────────────────────
+  // Resolved from the case's own Submitting Client, not the system-wide
+  // SystemConfig.jurisdiction default — that field is a single global
+  // value nothing meaningfully sets (see Client.jurisdiction, the real
+  // per-case mechanism, added earlier this session). A Fenwick case
+  // should get British spelling regardless of what the system default
+  // happens to be; a Metro General case should get US spelling. Falls
+  // back to the system default only when the client can't be resolved
+  // (e.g. clientId missing, or the lookup fails) — same fail-safe
+  // posture as everywhere else this session, not a fail-open guess.
+  //
+  // clientName/clientLocaleLabel are kept alongside caseJurisdiction
+  // purely for the visible badge below — deliberate design decision
+  // (see conversation): the report conforms to the receiving
+  // institution's convention regardless of who wrote it, same as a
+  // specialist's consult letter follows the referring GP's own
+  // conventions. The real risk in that design isn't that it's wrong,
+  // it's that it's a silent surprise to the pathologist writing the
+  // report — this badge is the fix for that, not a reversal of the
+  // decision.
+  const [caseJurisdiction, setCaseJurisdiction] = useState<Jurisdiction | undefined>(undefined);
+  const [jurisdictionClientName, setJurisdictionClientName] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const clientId = caseData?.order?.clientId;
+    if (!clientId) { setCaseJurisdiction(undefined); setJurisdictionClientName(undefined); return; }
+    let cancelled = false;
+    clientService.getById(clientId).then(res => {
+      if (cancelled) return;
+      setCaseJurisdiction(res.ok ? res.data.jurisdiction : undefined);
+      setJurisdictionClientName(res.ok ? res.data.name : undefined);
+    });
+    return () => { cancelled = true; };
+  }, [caseData?.order?.clientId]);
+
+  const effectiveJurisdiction = caseJurisdiction ?? systemConfig?.jurisdiction;
+  const spellLocaleLabel = effectiveJurisdiction === 'US' ? 'American English'
+    : effectiveJurisdiction ? 'British English' // GB_EW/GB_SCT/IE all resolve to en-GB spelling; CA/AU/NZ not yet distinguished here
+    : undefined;
+
   // ── Accept with spell check ───────────────────────────────────────────────────
   // Runs a locale-aware spelling check before committing the Accept. If the
   // check finds nothing, accept proceeds immediately (no added friction for
@@ -324,7 +405,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   const handleAcceptWithSpellCheck = useCallback(async (section: OrchestratorSection) => {
     setSpellCheckLoading(section.id);
     try {
-      const result = await aiService.checkSpelling(section.text, systemConfig?.jurisdiction);
+      const result = await aiService.checkSpelling(section.text, effectiveJurisdiction);
       const commit = (finalText: string) => {
         if (onAcceptSection) onAcceptSection(section.id, finalText);
         else onSectionChange(section.id, finalText); // fallback for parents not yet wired
@@ -344,7 +425,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     } finally {
       setSpellCheckLoading(null);
     }
-  }, [aiService, systemConfig?.jurisdiction, onSectionChange, onAcceptSection]);
+  }, [aiService, effectiveJurisdiction, onSectionChange, onAcceptSection]);
 
   // Resolve the current flag in an active review: apply the suggestion,
   // keep the original wording, or just move on (skip = same as keep, but
@@ -598,29 +679,48 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
         {/* Single row: [Tabs/Page — left] [Jump to — center] [counts/actions — right] */}
         <div className="ps-ose-summary-row">
 
-          {/* Group 1: Tabs / Page toggle — left justified */}
-          <div className="ps-ose-view-toggle">
-            <button
-              className={`ps-ose-view-toggle-btn${viewMode === 'tabs' ? ' ps-ose-view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('tabs')}
-              title="Tab view — one section at a time"
-            >⊟ Tabs</button>
-            <button
-              className={`ps-ose-view-toggle-btn${viewMode === 'page' ? ' ps-ose-view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('page')}
-              title="Page view — all sections scrollable"
-            >☰ Page</button>
+          {/* Group 1: jurisdiction badge + Tabs / Page toggle — left justified */}
+          <div className="ps-ose-group-left">
+            {spellLocaleLabel && (
+              <span
+                className="ps-ose-jurisdiction-badge"
+                title={jurisdictionClientName
+                  ? `Spelling and terminology on this report follow ${jurisdictionClientName}'s convention, not the reviewing pathologist's own — the report has to conform to the receiving institution's record system.`
+                  : 'No Submitting Client resolved for this case — using the system default convention.'}
+              >
+                ✎ {spellLocaleLabel}{jurisdictionClientName ? ` — ${jurisdictionClientName}` : ''}
+              </span>
+            )}
+            <div className="ps-ose-view-toggle">
+              <button
+                className={`ps-ose-view-toggle-btn${viewMode === 'tabs' ? ' ps-ose-view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('tabs')}
+                title="Tab view — one section at a time"
+              >⊟ Tabs</button>
+              <button
+                className={`ps-ose-view-toggle-btn${viewMode === 'page' ? ' ps-ose-view-toggle-btn--active' : ''}`}
+                onClick={() => setViewMode('page')}
+                title="Page view — all sections scrollable"
+              >☰ Page</button>
+            </div>
           </div>
 
           {/* Group 2: Jump to — center */}
           <div className="ps-ose-summary-centre">
             <span className="ps-ose-jumpto-label">Jump to:</span>
-            <button className="ps-ose-jumpto-btn ps-ose-jumpto-btn--unanswered" onClick={jumpToNextEmpty}>
+            <button
+              className="ps-ose-jumpto-btn ps-ose-jumpto-btn--unanswered"
+              onClick={jumpToNextEmpty}
+              disabled={totalSections - sections.filter(s => s.text).length === 0}
+              title={totalSections === 0 ? 'No sections yet — run Generate Report' : undefined}
+            >
               → Next Empty {totalSections - sections.filter(s => s.text).length > 0 ? `(${totalSections - sections.filter(s => s.text).length})` : '✓'}
             </button>
             <button
               className={`ps-ose-jumpto-btn ps-ose-jumpto-btn--required${requiredDone < requiredSections.length ? ' ps-ose-jumpto-btn--required-pending' : ''}`}
               onClick={jumpToNextRequired}
+              disabled={requiredSections.length - requiredDone === 0}
+              title={requiredSections.length === 0 ? 'No required sections yet — run Generate Report' : undefined}
             >
               → Next Required {requiredSections.length - requiredDone > 0 ? `(${requiredSections.length - requiredDone})` : '✓'}
             </button>

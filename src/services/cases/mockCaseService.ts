@@ -6,9 +6,12 @@
 
 import { ICaseService } from "./ICaseService";
 import { callAi } from '../aiIntegration/aiProviderService';
-import { Case } from "../../types/case/Case";
+import { Case, ProtocolChange } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
 import { storageSet } from "../mockStorage";
+import type { SynopticEvaluationInput, SynopticEvaluationResult } from '../ai/IAIIntegrationService';
+import type { GrossingEvaluationInput, GrossingEvaluationResult, GrossingTemplateAssignment } from '../grossing/IGrossingEvaluationService';
+import { applyCaseFilters } from './caseFilterUtils';
 
 const STORAGE_KEY = 'cases';
 
@@ -30,7 +33,6 @@ const MOCK_CASES: Case[] = [
   // ── Case 1: Breast Invasive — multi-report, in-progress ──────────────────
   {
     id: 'S26-4401-BX-001',
-    order: { requisitionNumber: 'REQ-2026-44001', externalOrderId: 'EXT-LAB-0441', labNumber: 'BLK-SP1-A1', blockId: 'BLK-SP1-A1', referralNumber: null },
     identifiers: ['SLD-BC2026001A', 'SLD-BC2026001B'],
     accession: { accessionNumber: '4401', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4401-BX-001' },
     originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
@@ -42,10 +44,38 @@ const MOCK_CASES: Case[] = [
       address: '14 Maple Ave, Phoenix, AZ 85001',
     },
     specimens: [
-      { id: 'S26-4401-SP-1', label: 'A', description: 'Left breast mastectomy', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
+      { id: 'S26-4401-SP-1', label: 'A', description: 'Left breast mastectomy', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [],
+        comments: [
+          { id: 'cmt-demo-sp-lis-001', authorId: 'lis-system', authorName: 'Metro General LIS',
+            text: '<p>Specimen orientation: superior suture short, lateral suture long \u2014 per OR communication.</p>',
+            createdAt: isoDaysAgo(3), origin: 'lis' },
+        ],
+      },
       { id: 'S26-4401-SP-2', label: 'B', description: 'Left axillary sentinel lymph node', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
     ],
-    order: { priority: 'Routine', requestingProvider: 'Dr. Sarah Chen', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: 'Invasive ductal carcinoma, left breast 10 o\'clock, ER+/PR+/HER2 2+. Proceeding to mastectomy following multidisciplinary tumour board recommendation.', receivedDate: isoDaysAgo(3), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    order: { priority: 'Routine', requestingProvider: 'Dr. Sarah Chen', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: 'Invasive ductal carcinoma, left breast 10 o\'clock, ER+/PR+/HER2 2+. Proceeding to mastectomy following multidisciplinary tumour board recommendation.', receivedDate: isoDaysAgo(3), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary',
+      // Example data added to demonstrate the LIS/PathScribe comment
+      // origin distinction — this is an LIS-mode (S26-) case, exactly
+      // where that distinction actually matters. The 'lis' comment
+      // simulates something received from the owning LIS; the
+      // 'pathscribe' one simulates a reply typed in PathScribe, shown
+      // with a non-default sync status (acknowledged) so both ends of
+      // that state range are visible without needing to actually wait
+      // for a real sync cycle.
+      caseComments: [
+        {
+          id: 'cmt-demo-lis-001', authorId: 'lis-system', authorName: 'Metro General LIS',
+          text: '<p>Requisition received with verbal order for STAT sentinel node frozen section — confirmed with Dr. Chen\u2019s office 8:15am.</p>',
+          createdAt: isoDaysAgo(3), origin: 'lis',
+        },
+        {
+          id: 'cmt-demo-ps-001', authorId: 'PATH-001', authorName: 'Pete Nimmo',
+          text: '<p>Frozen section performed and reported to OR at 9:40am — margins clear, proceeding with planned mastectomy.</p>',
+          createdAt: isoDaysAgo(2), origin: 'pathscribe', syncStatus: 'acknowledged',
+        },
+      ],
+      requisitionNumber: 'REQ-2026-44001', externalOrderId: 'EXT-LAB-0441', labNumber: 'BLK-SP1-A1', blockId: 'BLK-SP1-A1', referralNumber: null,
+    },
     diagnostic: {
       grossDescription: 'Received fresh labeled "left breast mastectomy" is a 487g specimen, 18.0 × 14.0 × 4.5 cm. The overlying skin ellipse measures 16.0 × 7.0 cm and is unremarkable. Sectioning reveals a firm, stellate, tan-white mass measuring 2.3 × 1.8 × 1.5 cm in the upper outer quadrant, 3.0 cm from the nipple and 2.0 cm from the deep margin. No satellite nodules identified. Remaining breast tissue is fibrofatty.',
       microscopicDescription: 'Sections show invasive carcinoma of no special type (NST), Nottingham grade 2 (tubules 3, nuclei 2, mitoses 1; total score 6). The invasive component measures 2.3 cm. Lymphovascular invasion is not identified. DCIS of intermediate nuclear grade, cribriform pattern, is present at the periphery of the invasive carcinoma, spanning approximately 4 mm. All margins are negative; closest margin is the deep margin at 2.0 mm.',
@@ -120,7 +150,6 @@ const MOCK_CASES: Case[] = [
   // ── Case 2: Colorectal — sigmoid resection, partially filled ─────────────
   {
     id: 'S26-4402-COLON-RES',
-    order: { requisitionNumber: 'REQ-2026-44002', externalOrderId: 'EXT-LAB-0442', labNumber: 'BLK-SP1-B1', blockId: 'BLK-SP1-B1', referralNumber: 'REF-GI-2026-001' },
     identifiers: ['SLD-CR2026002A'],
     accession: { accessionNumber: '4402', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4402-COLON-RES' },
     originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
@@ -135,7 +164,8 @@ const MOCK_CASES: Case[] = [
       { id: 'S26-4402-SP-1', label: 'A', description: 'Sigmoid colon resection', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
       { id: 'S26-4402-SP-2', label: 'B', description: 'Apical lymph node', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
     ],
-    order: { priority: 'STAT', requestingProvider: 'Dr. Michael Torres', clientId: 'c2', clientName: 'Riverside Medical Center', clinicalIndication: 'Sigmoid colon adenocarcinoma diagnosed on colonoscopy biopsy. CT staging: T3N1M0. Proceeding to laparoscopic sigmoid resection.', receivedDate: isoDaysAgo(2), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    order: { priority: 'STAT', requestingProvider: 'Dr. Michael Torres', clientId: 'c2', clientName: 'Riverside Medical Center', clinicalIndication: 'Sigmoid colon adenocarcinoma diagnosed on colonoscopy biopsy. CT staging: T3N1M0. Proceeding to laparoscopic sigmoid resection.', receivedDate: isoDaysAgo(2), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary',
+      requisitionNumber: 'REQ-2026-44002', externalOrderId: 'EXT-LAB-0442', labNumber: 'BLK-SP1-B1', blockId: 'BLK-SP1-B1', referralNumber: 'REF-GI-2026-001' },
     diagnostic: {
       grossDescription: 'Received fresh labeled "sigmoid colon resection" is a segment of sigmoid colon measuring 22.0 cm in length. The serosal surface is smooth and glistening. A fungating, ulcerating tumor measuring 4.5 × 3.2 cm is present on the anterior wall, 9.0 cm from the distal margin and 11.0 cm from the proximal margin. The tumor invades through the muscularis propria into pericolorectal adipose tissue. The circumferential resection margin is 3 mm from the tumor.',
       microscopicDescription: 'Sections show moderately differentiated adenocarcinoma (low grade) infiltrating through the muscularis propria into pericolorectal adipose tissue (pT3). Perineural invasion is present. Lymphovascular invasion is not identified. All surgical margins (proximal, distal, radial) are uninvolved; the closest margin (radial) is 3 mm. 18 lymph nodes identified in the pericolorectal fat; 3 of 18 are positive for metastatic carcinoma, all without extranodal extension (pN1b).',
@@ -203,7 +233,6 @@ const MOCK_CASES: Case[] = [
   // ── Case 3: Lung — right upper lobe lobectomy, draft ─────────────────────
   {
     id: 'S26-4403',
-    order: { requisitionNumber: 'REQ-2026-44003', externalOrderId: 'EXT-LAB-0443', labNumber: 'BLK-SP2-A1', blockId: 'BLK-SP2-A1', referralNumber: null },
     identifiers: ['SLD-PR2026003A', 'SLD-PR2026003B', 'SLD-PR2026003C'],
     accession: { accessionNumber: '4403', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4403' },
     originHospitalId: 'HOSP-002', originEnterpriseId: 'ENT-ACME',
@@ -219,7 +248,8 @@ const MOCK_CASES: Case[] = [
       { id: 'S26-4403-SP-2', label: 'B', description: 'Station 4R mediastinal lymph nodes', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
       { id: 'S26-4403-SP-3', label: 'C', description: 'Station 7 subcarinal lymph nodes', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
     ],
-    order: { priority: 'STAT', requestingProvider: 'Dr. James Park', clientId: 'c3', clientName: 'Northside Clinic', clinicalIndication: '2.3 cm right upper lobe solid nodule, PET-avid (SUVmax 8.4). CT-guided biopsy: adenocarcinoma. EGFR/ALK negative. Proceeding to VATS right upper lobectomy.', receivedDate: isoDaysAgo(1), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    order: { priority: 'STAT', requestingProvider: 'Dr. James Park', clientId: 'c3', clientName: 'Northside Clinic', clinicalIndication: '2.3 cm right upper lobe solid nodule, PET-avid (SUVmax 8.4). CT-guided biopsy: adenocarcinoma. EGFR/ALK negative. Proceeding to VATS right upper lobectomy.', receivedDate: isoDaysAgo(1), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary',
+      requisitionNumber: 'REQ-2026-44003', externalOrderId: 'EXT-LAB-0443', labNumber: 'BLK-SP2-A1', blockId: 'BLK-SP2-A1', referralNumber: null },
     diagnostic: {
       grossDescription: 'Received fresh labeled "right upper lobe" is a lobectomy specimen, 14.0 × 10.0 × 3.5 cm, weighing 180g. The pleural surface is smooth. Sectioning reveals a firm, tan-white, spiculated mass measuring 2.3 × 2.1 × 1.9 cm in the posterior segment, 1.5 cm from the bronchial margin and 0.3 cm from the pleural surface. The remaining lung parenchyma shows mild emphysematous change.',
       microscopicDescription: 'Sections show acinar-predominant adenocarcinoma, IASLC/ATS/ERS grade 2 (moderately differentiated). The invasive component measures 2.3 cm. Visceral pleural invasion is present (PL1, elastic layer). Lymphovascular invasion is not identified. The bronchial margin is negative (1.5 cm). Specimens B and C: 0 of 5 lymph nodes positive for metastatic carcinoma.',
@@ -1397,13 +1427,13 @@ const MOCK_CASES: Case[] = [
   // ── UK Pool Cases — Manchester University NHS Foundation Trust ───────────────
   {
     id: 'MFT26-8807-POOL',
-    order: { requisitionNumber: 'REQ-MFT-2026-8807', externalOrderId: 'EXT-NHS-88070', labNumber: 'BLK-SP1-C1', blockId: 'BLK-SP1-C1', referralNumber: 'REF-GI-MFT-001' },
     identifiers: ['SLD-MFT2026807A'],
     accession: { accessionNumber: '8807', accessionPrefix: 'MFT', accessionYear: 2026, fullAccession: 'MFT26-8807-POOL' },
     originHospitalId: 'HOSP-MFT', originEnterpriseId: 'ENT-MFT',
     patient: { id: 'PAT-UK-007', mrn: '200007', firstName: 'Susan', lastName: 'Hargreaves', dateOfBirth: isoYearsAgo(62, 5, 14), sex: 'F', phone: '0161 890 1234', email: 's.hargreaves@nhs.net', address: '19 Portland Street, Manchester, M1 3HU', nhsNumber: '345 891 2345' },
     specimens: [{ id: 'MFT26-8807-SP-1', label: 'A', description: 'Sigmoid colon biopsy — three fragments', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] }],
-    order: { priority: 'Routine', requestingProvider: 'Dr. Helen Marsden', clientId: 'c-mft-03', clientName: 'North Manchester General Hospital', clinicalIndication: 'Change in bowel habit. Colonoscopy: 18mm sessile polyp sigmoid colon. Biopsy taken.', receivedDate: isoDaysAgo(0), assignedTo: null },
+    order: { priority: 'Routine', requestingProvider: 'Dr. Helen Marsden', clientId: 'c-mft-03', clientName: 'North Manchester General Hospital', clinicalIndication: 'Change in bowel habit. Colonoscopy: 18mm sessile polyp sigmoid colon. Biopsy taken.', receivedDate: isoDaysAgo(0), assignedTo: null,
+      requisitionNumber: 'REQ-MFT-2026-8807', externalOrderId: 'EXT-NHS-88070', labNumber: 'BLK-SP1-C1', blockId: 'BLK-SP1-C1', referralNumber: 'REF-GI-MFT-001' },
     diagnostic: { grossDescription: 'Received in formalin labelled "sigmoid colon biopsy" are three tan-pink fragments measuring 0.3–0.7 cm.', microscopicDescription: '', ancillaryStudies: '' },
     synopticReports: [],
     status: 'pool' as CaseStatus,
@@ -2666,6 +2696,318 @@ Rules:
   }
 }
 
+// ─── evaluateSynopticAssignment ──────────────────────────────────────────────
+// Orchestration Stage 1/2: evaluates whether each specimen's currently-
+// assigned diagnostic Synoptic Template(s) still fit the case, given
+// clinical text and (where available) structured Grossing answers. Same
+// real pattern as generateAiSuggestionsForReport directly above — calls
+// callAi() directly, not IAIIntegrationService (see the note on that
+// interface's matching method for why). Types imported from there
+// type-only purely to avoid duplicating the shape.
+//
+// Returns ProtocolChange[] via the action field ('replace'|'add'|'remove')
+// — never mutates case data directly. Caller is responsible for routing
+// the result through the existing Protocol Change Review modal /
+// handleProtoCommit for pathologist accept/reject, same as every other
+// AI suggestion in this system.
+
+export async function evaluateSynopticAssignment(
+  input: SynopticEvaluationInput
+): Promise<SynopticEvaluationResult> {
+  const warnings: string[] = [];
+
+  if (input.availableTemplates.length === 0) {
+    warnings.push('No candidate Synoptic Templates were provided — cannot propose add/replace changes without real template IDs to ground against. Returning no changes.');
+    return { changes: [], warnings };
+  }
+
+  const templateList = input.availableTemplates
+    .map(t => `- ${t.id} | ${t.name} | category: ${t.category}`)
+    .join('\n');
+
+  const specimenBlocks = input.specimens.map(spec => {
+    const currentLines = spec.currentSynoptics.length
+      ? spec.currentSynoptics.map(s => `  - templateId: ${s.templateId} (${s.templateName}), instanceId: ${s.instanceId}`).join('\n')
+      : '  (none currently assigned)';
+
+    const grossingLines = spec.grossingAnswers?.length
+      ? spec.grossingAnswers.map(a => `  - ${a.fieldLabel}: ${a.displayValue}`).join('\n')
+      : '  (no structured Grossing answers available for this specimen)';
+
+    return `SPECIMEN ${spec.specimenId} (${spec.specimenLabel}): ${spec.specimenDesc}
+  Currently assigned diagnostic synoptic(s):
+${currentLines}
+  Structured Grossing answers for this specimen:
+${grossingLines}`;
+  }).join('\n\n');
+
+  const prompt = `You are a pathology AI assistant evaluating whether each specimen's currently-assigned diagnostic Synoptic Template still fits the case findings.
+
+CASE-LEVEL TEXT:
+GROSS DESCRIPTION: ${input.caseText.gross || '—'}
+MICROSCOPIC DESCRIPTION: ${input.caseText.microscopic || '—'}
+ANCILLARY STUDIES: ${input.caseText.ancillary || '—'}
+
+${specimenBlocks}
+
+CANDIDATE SYNOPTIC TEMPLATES (use ONLY these IDs for currentTemplateId/proposedTemplateId — never invent an ID not in this list):
+${templateList}
+
+For each specimen, decide one of:
+- "replace": findings suggest a DIFFERENT template than currently assigned
+- "add": findings suggest a template is needed but none is currently assigned
+- "remove": a currently-assigned template is no longer appropriate
+- Omit the specimen entirely if its current assignment still fits — do not propose a change just to have one.
+
+Return ONLY a JSON array (no markdown, no preamble) of proposed changes, each shaped exactly as:
+[
+  {
+    "specimenId": "...",
+    "action": "replace" | "add" | "remove",
+    "currentInstanceId": "...",
+    "currentTemplateId": "...",
+    "proposedTemplateId": "...",
+    "reason": "short clinical justification, referencing the specific finding",
+    "confidence": 0-100
+  }
+]
+Omit currentInstanceId/currentTemplateId for "add" (nothing currently exists). Omit proposedTemplateId for "remove" (nothing replaces it).
+
+Rules:
+- Only propose a change when there is clear textual or structured-answer support — do not invent findings.
+- Do not return confidence below 50.
+- proposedTemplateId and currentTemplateId MUST be one of the candidate IDs listed above, exactly as written.
+- If no specimen needs a change, return an empty array: []`;
+
+  try {
+    const { text: raw } = await callAi({
+      system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
+      prompt,
+    });
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean) as Array<{
+      specimenId: string;
+      action: 'replace' | 'add' | 'remove';
+      currentInstanceId?: string;
+      currentTemplateId?: string;
+      proposedTemplateId?: string;
+      reason: string;
+      confidence: number;
+    }>;
+
+    const templateNameById = new Map(input.availableTemplates.map(t => [t.id, t.name]));
+
+    const changes = parsed
+      // Defensive filter — drop anything referencing a template ID we
+      // didn't actually offer, rather than trusting the model followed
+      // the instruction. Same "don't trust, verify" posture as every
+      // other AI-output path in this app.
+      .filter(c => {
+        const proposedValid = !c.proposedTemplateId || templateNameById.has(c.proposedTemplateId);
+        const currentValid  = !c.currentTemplateId  || templateNameById.has(c.currentTemplateId);
+        if (!proposedValid || !currentValid) {
+          warnings.push(`Dropped a proposed change for specimen ${c.specimenId} — referenced a template ID not in the candidate list`);
+          return false;
+        }
+        return true;
+      })
+      .map((c, idx): ProtocolChange => {
+        const spec = input.specimens.find(s => s.specimenId === c.specimenId);
+        const currentMatch = spec?.currentSynoptics.find(
+          cs => cs.instanceId === c.currentInstanceId || cs.templateId === c.currentTemplateId
+        );
+        return {
+          id:                    `ai-eval-${Date.now()}-${idx}`,
+          specimenId:            c.specimenId,
+          specimenLabel:         spec?.specimenLabel ?? c.specimenId,
+          specimenDesc:          spec?.specimenDesc ?? '',
+          action:                c.action,
+          currentInstanceId:     currentMatch?.instanceId,
+          currentTemplateId:     c.currentTemplateId,
+          currentTemplateName:   currentMatch?.templateName ?? (c.currentTemplateId ? templateNameById.get(c.currentTemplateId) : undefined),
+          proposedTemplateId:    c.proposedTemplateId,
+          proposedTemplateName:  c.proposedTemplateId ? templateNameById.get(c.proposedTemplateId) : undefined,
+          reason:                c.reason,
+          confidence:            c.confidence,
+        };
+      });
+
+    return { changes, warnings };
+  } catch (e) {
+    console.error('[PathScribe] Synoptic assignment evaluation failed:', e);
+    warnings.push(`Synoptic assignment evaluation failed (${(e as Error)?.message ?? 'unknown error'}) — no changes proposed`);
+    return { changes: [], warnings };
+  }
+}
+
+// ─── evaluateGrossingTemplateAssignment ──────────────────────────────────────
+// Orchestration Stage 0: at accession, evaluates each specimen and assigns
+// the most appropriate Grossing Template (Route A/B/C). Follows
+// evaluateSynopticAssignment()'s exact pattern directly above — builds a
+// prompt, calls callAi(), parses into a typed result, defensively drops
+// any templateId the model invents that wasn't in the candidate list.
+//
+// Fail-open per S0-FR-05: if the AI call throws, OR a specimen's chosen
+// template comes back below confidenceThreshold (default 60), that
+// specimen falls back to DEFAULT_GROSSING_TEMPLATE_ID rather than being
+// left with no assignment at all — a PA with a conservative default
+// template is a better outcome than a PA with nothing to work from.
+//
+// Returns GrossingTemplateAssignment[] via GrossingEvaluationResult —
+// never creates GrossingReportInstance objects itself. Caller (the future
+// accession-time call site / Accession page) is responsible for turning
+// each assignment into a GrossingReportInstance with status 'draft', same
+// division of responsibility as evaluateSynopticAssignment vs.
+// handleGrossComplete.
+
+const DEFAULT_GROSSING_TEMPLATE_ID = 'grossing_standard_tissue';
+const DEFAULT_GROSSING_CONFIDENCE_THRESHOLD = 60;
+
+export async function evaluateGrossingTemplateAssignment(
+  input: GrossingEvaluationInput
+): Promise<GrossingEvaluationResult> {
+  const warnings: string[] = [];
+  const threshold = input.confidenceThreshold ?? DEFAULT_GROSSING_CONFIDENCE_THRESHOLD;
+  const templateNameById = new Map(input.availableTemplates.map(t => [t.id, t.name]));
+
+  const fallback = (specimenId: string, reasonSuffix: string): GrossingTemplateAssignment => ({
+    specimenId,
+    templateId: DEFAULT_GROSSING_TEMPLATE_ID,
+    templateName: templateNameById.get(DEFAULT_GROSSING_TEMPLATE_ID) ?? 'Standard Tissue Grossing (Gold Standard) — Route A',
+    confidence: 0,
+    reason: `Fell back to default Grossing Template — ${reasonSuffix}`,
+    belowThreshold: true,
+  });
+
+  if (input.availableTemplates.length === 0 || !templateNameById.has(DEFAULT_GROSSING_TEMPLATE_ID)) {
+    warnings.push('No candidate Grossing Templates were provided (or the default template ID was not among them) — cannot propose assignments without real template IDs to ground against. Returning no assignments.');
+    return { assignments: [], warnings };
+  }
+
+  // ── Pass G0: client-specific overrides bypass the AI entirely (S0-CF-11) ──
+  const overriddenSpecimenIds = new Set<string>();
+  const overrideAssignments: GrossingTemplateAssignment[] = [];
+  const clientId = input.caseContext?.clientId;
+  if (clientId && input.routingOverrides?.length) {
+    for (const spec of input.specimens) {
+      const match = input.routingOverrides.find(
+        o => o.clientId === clientId && spec.specimenType && o.specimenType === spec.specimenType
+      );
+      if (match && templateNameById.has(match.grossingTemplateId)) {
+        overriddenSpecimenIds.add(spec.specimenId);
+        overrideAssignments.push({
+          specimenId: spec.specimenId,
+          templateId: match.grossingTemplateId,
+          templateName: templateNameById.get(match.grossingTemplateId)!,
+          confidence: 100,
+          reason: `Pass G0 override — client ${clientId} always uses this template for specimen type "${match.specimenType}"`,
+          fromOverride: true,
+        });
+      }
+    }
+  }
+
+  const remainingSpecimens = input.specimens.filter(s => !overriddenSpecimenIds.has(s.specimenId));
+  if (remainingSpecimens.length === 0) {
+    return { assignments: overrideAssignments, warnings };
+  }
+
+  const templateList = input.availableTemplates
+    .map(t => `- ${t.id} | ${t.name} | category: ${t.category}`)
+    .join('\n');
+
+  const overrideNote = overrideAssignments.length
+    ? `\nNOTE: The following specimens already have an administratively forced template via a client override and are NOT in your list below — do not propose anything for them: ${overrideAssignments.map(a => a.specimenId).join(', ')}\n`
+    : '';
+
+  const specimenBlocks = remainingSpecimens.map(spec => {
+    const detailLines = [
+      spec.specimenType ? `  Structured specimen type: ${spec.specimenType}` : null,
+      spec.bodySite ? `  Body site: ${spec.bodySite}` : null,
+      spec.laterality ? `  Laterality: ${spec.laterality}` : null,
+    ].filter(Boolean).join('\n');
+    return `SPECIMEN ${spec.specimenId} (${spec.specimenLabel}): ${spec.specimenDesc}${detailLines ? '\n' + detailLines : ''}`;
+  }).join('\n\n');
+
+  const prompt = `You are a pathology AI assistant assigning the correct Grossing Template (Route A/B/C) to each specimen at accession time, before any PA has examined the specimen at the bench.
+
+CLINICAL INDICATION: ${input.clinicalIndication || '—'}
+${input.caseContext?.patientAge != null ? `PATIENT AGE: ${input.caseContext.patientAge}\n` : ''}${input.caseContext?.caseType ? `CASE TYPE: ${input.caseContext.caseType}\n` : ''}
+${specimenBlocks}
+${overrideNote}
+ROUTE CLASSIFICATION GUIDANCE (clinical reasoning, not rigid rules):
+- Route A (grossing_standard_tissue): solid tissue biopsy or resection — will be sectioned, measured, inked, submitted. e.g. core needle biopsy, excisional biopsy, lumpectomy, colectomy, hysterectomy, lobectomy, radical prostatectomy, lymph node dissection, skin excision.
+- Route B (grossing_fluid_cytology): fluid, wash, or cytological specimen — processed for cell block/smear, not sectioning. e.g. pleural fluid, peritoneal lavage, BAL, urine cytology, CSF, ascites, pericardial fluid, thyroid FNA, bronchial wash.
+- Route C (grossing_histology_only): previously processed specimen needing histology prep only, no grossing steps — minimal PA handling. e.g. outside consultation slides with no block, previously embedded tissue for re-cut/re-stain, decalcified bone already grossed elsewhere, EM specimen.
+
+CANDIDATE GROSSING TEMPLATES (use ONLY these IDs — never invent an ID not in this list):
+${templateList}
+
+Return ONLY a JSON array (no markdown, no preamble), one entry per specimen listed above, shaped exactly as:
+[
+  {
+    "specimenId": "...",
+    "templateId": "...",
+    "reason": "short plain-language justification referencing the specific specimen detail",
+    "confidence": 0-100
+  }
+]
+
+Rules:
+- templateId MUST be one of the candidate IDs listed above, exactly as written.
+- Every specimen listed above MUST get exactly one entry — do not omit any, do not invent extra specimens.
+- If a single specimen plausibly spans more than one Route, pick the Route that matches its PRIMARY handling need and note the ambiguity in "reason" — do not propose multiple templates for one specimen.`;
+
+  try {
+    const { text: raw } = await callAi({
+      system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
+      prompt,
+    });
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean) as Array<{
+      specimenId: string;
+      templateId: string;
+      reason: string;
+      confidence: number;
+    }>;
+
+    const bySpecimenId = new Map(parsed.map(p => [p.specimenId, p]));
+    const aiAssignments: GrossingTemplateAssignment[] = remainingSpecimens.map(spec => {
+      const p = bySpecimenId.get(spec.specimenId);
+
+      if (!p) {
+        warnings.push(`AI did not return an assignment for specimen ${spec.specimenId} — fell back to default Grossing Template`);
+        return fallback(spec.specimenId, 'no assignment returned by AI');
+      }
+
+      if (!templateNameById.has(p.templateId)) {
+        warnings.push(`AI proposed templateId "${p.templateId}" for specimen ${spec.specimenId}, which is not in the candidate list — fell back to default Grossing Template`);
+        return fallback(spec.specimenId, `invalid template ID "${p.templateId}" returned`);
+      }
+
+      if (p.confidence < threshold) {
+        warnings.push(`AI assignment for specimen ${spec.specimenId} (${templateNameById.get(p.templateId)}, confidence ${p.confidence}) was below the ${threshold}% threshold — fell back to default Grossing Template. Original AI reasoning: ${p.reason}`);
+        return fallback(spec.specimenId, `AI confidence ${p.confidence} below ${threshold}% threshold`);
+      }
+
+      return {
+        specimenId: spec.specimenId,
+        templateId: p.templateId,
+        templateName: templateNameById.get(p.templateId)!,
+        confidence: p.confidence,
+        reason: p.reason,
+      };
+    });
+
+    return { assignments: [...overrideAssignments, ...aiAssignments], warnings };
+  } catch (e) {
+    console.error('[PathScribe] Grossing template assignment evaluation failed:', e);
+    warnings.push(`Grossing template assignment evaluation failed (${(e as Error)?.message ?? 'unknown error'}) — all remaining specimens fell back to default Grossing Template`);
+    const failOpenAssignments = remainingSpecimens.map(spec => fallback(spec.specimenId, 'evaluation call failed'));
+    return { assignments: [...overrideAssignments, ...failOpenAssignments], warnings };
+  }
+}
+
 // ─── Migrate stored cases: backfill aiSuggestions from MOCK_CASES ────────────
 // Runs once after load. If a stored synopticReport instance is missing
 // aiSuggestions, it copies them from the matching MOCK_CASES entry.
@@ -3655,203 +3997,13 @@ export const mockCaseService: ICaseService = {
   },
 
   async getAll(params?) {
-    const ALL_CLIENTS_MAP: Record<string,string> = {
-      'c1':'Metro General','c2':'Riverside','c3':'Westside','c4':'Bayview',
-      'c5':'Catherine','c6':'Manchester','c7':'Midwest','c8':'Henry Ford'
-    };
     await delay();
     // Safety net: if CASES is empty, attempt re-seed from MOCK_CASES
     if (CASES.length === 0) {
       console.warn('[mockCaseService] CASES empty — re-seeding from MOCK_CASES');
       CASES.push(...MOCK_CASES.map(c => ({ ...c })));
     }
-    let results = [...CASES];
-    console.log('[mockCaseService.getAll] total cases:', CASES.length, '| params:', JSON.stringify(params).slice(0, 200));
-
-    // ── Worklist-style filters ─────────────────────────────────────────────
-    if (params?.status) {
-      const statuses = Array.isArray(params.status) ? params.status : [params.status];
-      results = results.filter(c => statuses.includes((c as any).status));
-    }
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      results = results.filter(c =>
-        c.accession?.fullAccession?.toLowerCase().includes(q) ||
-        `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q)
-      );
-    }
-    if (params?.specialty) {
-      results = results.filter(c => (c as any).specialty === params.specialty);
-    }
-
-    // ── SearchPage CaseFilterParams ────────────────────────────────────────
-    if (params?.statusList?.length) {
-      const sl = (params.statusList as string[]).map((s: string) => s.toLowerCase());
-      results = results.filter(c => sl.includes(((c as any).status ?? '').toLowerCase()));
-    }
-    if (params?.priorityList?.length) {
-      const pl = (params.priorityList as string[]).map((s: string) => s.toLowerCase());
-      results = results.filter(c => {
-        const priority = ((c as any).priority ?? 'routine').toLowerCase();
-        return pl.some((p: string) => priority.includes(p.toLowerCase()));
-      });
-    }
-    if (params?.dateFrom || params?.dateTo) {
-      const from = params?.dateFrom ? new Date(params.dateFrom as string).getTime() : 0;
-      const to   = params?.dateTo   ? new Date(params.dateTo as string).getTime() + 86400000 : Infinity;
-      results = results.filter(c => {
-        // Use first specimen receivedAt as the case accession date
-        const specimens = (c as any).specimens ?? [];
-        const raw = specimens[0]?.receivedAt ?? specimens[0]?.collectedAt ?? (c as any).createdAt ?? '';
-        const d = raw ? new Date(raw).getTime() : NaN;
-        if (isNaN(d)) return true; // don't exclude cases with no date
-        return d >= from && d <= to;
-      });
-    }
-    if (params?.patientName) {
-      const q = (params.patientName as string).toLowerCase();
-      results = results.filter(c =>
-        `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q)
-      );
-    }
-    if (params?.accessionNo) {
-      const q = (params.accessionNo as string).toLowerCase();
-      results = results.filter(c =>
-        c.accession?.fullAccession?.toLowerCase().includes(q)
-      );
-    }
-    if (params?.genderList?.length) {
-      // Normalise both sides so 'M'|'male'|'Male' all resolve to 'male',
-      // 'F'|'female'|'Female' to 'female', etc.
-      // Case data stores single-letter codes ('M','F'); SearchPage sends full words ('Male','Female').
-      const toFull = (s: string): string => {
-        const l = s.toLowerCase();
-        if (l === 'm' || l === 'male')       return 'male';
-        if (l === 'f' || l === 'female')     return 'female';
-        if (l === 'x' || l === 'non-binary') return 'non-binary';
-        if (l === 'u' || l === 'unknown')    return 'unknown';
-        if (l === 'o' || l === 'other')      return 'other';
-        return l;
-      };
-      const gl = (params.genderList as string[]).map(toFull);
-      // Use c.patient.sex (the actual field) — NOT c.patient.gender (does not exist)
-      results = results.filter(c => gl.includes(toFull(c.patient?.sex ?? '')));
-    }
-
-    // Age range — no stored 'age' field; compute from patient.dateOfBirth at query time
-    if (params?.ageMin !== undefined || params?.ageMax !== undefined) {
-      const minAge = params.ageMin ?? 0;
-      const maxAge = params.ageMax ?? 150;
-      const now = new Date();
-      results = results.filter(c => {
-        const dob = c.patient?.dateOfBirth;
-        if (!dob) return true; // don't exclude cases with no DOB on record
-        const birth = new Date(dob);
-        const age =
-          now.getFullYear() - birth.getFullYear() -
-          (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
-        return age >= minAge && age <= maxAge;
-      });
-    }
-
-    // DOB date range (separate from accession dateFrom/dateTo)
-    if (params?.dobFrom || params?.dobTo) {
-      const from = params.dobFrom ? new Date(params.dobFrom as string).getTime() : 0;
-      const to   = params.dobTo   ? new Date(params.dobTo   as string).getTime() + 86_400_000 : Infinity;
-      results = results.filter(c => {
-        const dob = c.patient?.dateOfBirth;
-        if (!dob) return true;
-        const d = new Date(dob).getTime();
-        return !isNaN(d) && d >= from && d <= to;
-      });
-    }
-    if (params?.specimenList?.length) {
-      const sl = params.specimenList as string[];
-      results = results.filter(c =>
-        (c.specimens ?? []).some((sp: any) =>
-          sl.some((s: string) => (sp.description ?? sp.label ?? '').toLowerCase().includes(s.toLowerCase()))
-        )
-      );
-    }
-    if (params?.diagnosisList?.length) {
-      const dl = params.diagnosisList as string[];
-      results = results.filter(c =>
-        dl.some((d: string) =>
-          ((c as any).diagnosis ?? '').toLowerCase().includes(d.toLowerCase()) ||
-          ((c as any).microscopicDescription ?? '').toLowerCase().includes(d.toLowerCase())
-        )
-      );
-    }
-    if (params?.pathologistIds?.length) {
-      const ids = params.pathologistIds as string[];
-      results = results.filter(c => ids.includes(c.order?.assignedTo ?? ''));
-    }
-    if (params?.synopticProtocolIds?.length) {
-      // SearchPage passes resolved templateIds (e.g. 'breast_invasive'), not the UI p01 keys.
-      // Match against synopticReports[].templateId — specimens never had a synopticTemplateId field.
-      const ids = (params.synopticProtocolIds as string[]).map((s: string) => s.toLowerCase());
-      results = results.filter(c =>
-        ((c as any).synopticReports ?? []).some((sr: any) => {
-          const t = (sr.templateId ?? '').toLowerCase();
-          // Exact match OR common-prefix match (lung_adeno ↔ lung_resection, melanoma_resection ↔ skin_melanoma_bx)
-          return ids.some((id: string) => t === id || t.startsWith(id.replace(/_[^_]+$/, '_')));
-        })
-      );
-    }
-    if (params?.flagIds?.length) {
-      // SearchPage sends flag display names (e.g. 'STAT — Rush Processing'), not ID keys.
-      // Use case-insensitive name-contains so 'STAT' matches 'STAT — Rush Processing'.
-      const search = (params.flagIds as string[]).map((s: string) => s.toLowerCase());
-      results = results.filter(c =>
-        ((c as any).caseFlags ?? []).some((f: any) =>
-          search.some((s: string) =>
-            (f.name ?? '').toLowerCase().includes(s) || s.includes((f.name ?? '').toLowerCase())
-          )
-        )
-      );
-    }
-
-    if (params?.clientIds?.length) {
-      const ids = params.clientIds as string[];
-      results = results.filter(c =>
-        ids.includes((c as any).order?.clientId ?? '') ||
-        ids.some((id: string) => (c as any).order?.clientName?.toLowerCase().includes(
-          ALL_CLIENTS_MAP[id]?.toLowerCase() ?? ''
-        ))
-      );
-    }
-
-    // SNOMED CT — SearchPage now passes s.code (e.g. '413448000'); match c.coding.snomed[]
-    if ((params as any)?.snomedCodes?.length) {
-      const codes: string[] = (params as any).snomedCodes;
-      results = results.filter(c => {
-        const caseCodes: string[] = (c as any).coding?.snomed ?? [];
-        return codes.some((code: string) => caseCodes.includes(code));
-      });
-    }
-
-    // ICD-10/11 — SearchPage now passes s.code (e.g. 'C50.412'); match c.coding.icd10[]
-    if ((params as any)?.icdCodes?.length) {
-      const codes: string[] = (params as any).icdCodes;
-      results = results.filter(c => {
-        const caseCodes: string[] = (c as any).coding?.icd10 ?? [];
-        // Trim trailing sub-category so 'C50' matches 'C50.412'
-        return codes.some((code: string) =>
-          caseCodes.some((cc: string) => cc.startsWith(code) || code.startsWith(cc))
-        );
-      });
-    }
-
-    // Attending / Requesting Provider — SearchPage maps attendingId → full name before passing
-    if ((params as any)?.attendingNames?.length) {
-      const strip = (s: string) => s.toLowerCase().replace(/^(dr\.|mr\.|ms\.|mrs\.)\s*/i, '').trim();
-      const names: string[] = ((params as any).attendingNames as string[]).map(strip);
-      results = results.filter(c => {
-        const prov = strip(c.order?.requestingProvider ?? '');
-        return names.some((n: string) => prov.includes(n) || n.includes(prov));
-      });
-    }
-
+    const results = applyCaseFilters(CASES, params);
     return { ok: true, data: results as any[] };
   },
 
@@ -3859,22 +4011,18 @@ export const mockCaseService: ICaseService = {
     await delay();
     if (!userId || userId === 'all' || userId === 'current') return CASES;
 
-    const USER_HOSPITAL_MAP: Record<string, string> = {
-      'PATH-001':    'HOSP-001',
-      'PATH-UK-001': 'HOSP-MFT',
-      'PATH-UK-002': 'HOSP-MFT',
-      'PATH-US-001': 'HOSP-MPA',
-      'PATH-US-002': 'HOSP-HFHS',
-      'PATH-RB-001': 'HOSP-001',   // Rossana Babakhani
-    };
-
-    const userHospital = USER_HOSPITAL_MAP[userId];
-
+    // The hardcoded USER_HOSPITAL_MAP that used to live here (six pathologist
+    // IDs → hospital ID, retired June 2026) only ever filtered pool-case
+    // visibility in this one list — it was never enforced on getCase() or
+    // getAll(), so it wasn't a real access boundary. The actual organisation
+    // wall now lives in CaseRouter.ts (caseAccessControl.ts), applied
+    // uniformly across getCase/getAll/listCasesForUser rather than
+    // duplicated per-service. This method keeps its workflow-level logic
+    // (assigned-to-me, or unclaimed pool work) and lets CaseRouter apply the
+    // tenant boundary on top of whatever this returns.
     return CASES.filter(c => {
-      // Directly assigned to this user (pediatric cases stay assigned — shown redacted in WorklistTable)
       if (c.order?.assignedTo === userId) return true;
-      // Pool cases from the same institution
-      if ((c as any).status === 'pool' && userHospital && c.originHospitalId === userHospital) return true;
+      if ((c as any).status === 'pool') return true;
       return false;
     });
   },
@@ -3886,5 +4034,16 @@ export const mockCaseService: ICaseService = {
       CASES[index] = { ...CASES[index], ...updates, updatedAt: new Date().toISOString() };
       storageSet(STORAGE_KEY, CASES);
     }
+  },
+
+  // Added for ICaseService interface completeness alongside the Accession
+  // page (Stage 0 Requirements §6.1). Not the primary path for LIS cases
+  // in production — those arrive via FHIR ServiceRequest ingestion — but
+  // implemented so this service satisfies the interface and the mock
+  // environment doesn't throw if ever called.
+  async createCase(caseData: Case): Promise<void> {
+    await delay();
+    CASES.push(caseData);
+    storageSet(STORAGE_KEY, CASES);
   },
 };

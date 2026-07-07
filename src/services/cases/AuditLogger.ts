@@ -19,6 +19,7 @@ export type AuditEventType =
   | 'case.read'
   | 'case.list'
   | 'case.write'
+  | 'case.create'
   | 'case.delete';
 
 export interface AuditEvent {

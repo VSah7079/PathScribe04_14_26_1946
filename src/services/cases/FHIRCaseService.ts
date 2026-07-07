@@ -196,6 +196,20 @@ export const fhirCaseService: ICaseService = {
     );
   },
 
+  // ── createCase ────────────────────────────────────────────────────────────
+  // Same read-only posture as updateCase above. LIS cases originate from the
+  // Trust's own systems via FHIR ServiceRequest/DiagnosticReport ingestion —
+  // PathScribe's Accession page (Stage 0) only creates Orchestration (O26-)
+  // cases, which CaseRouter routes to firestoreCaseService instead. This
+  // stub exists purely to satisfy the ICaseService contract.
+  async createCase(caseData: Case): Promise<void> {
+    audit.log({ eventType: 'case.create', caseId: caseData.id, userId: 'system', outcome: 'failure' });
+    console.warn(
+      `FHIRCaseService.createCase: write suppressed for ${caseData.id}. ` +
+      'FHIR is read-only from PathScribe — Orchestration case creation routes through firestoreCaseService.'
+    );
+  },
+
   async getCase(caseId: string, userId = 'current'): Promise<Case | null> {
     try {
       // Search DiagnosticReport by accession identifier

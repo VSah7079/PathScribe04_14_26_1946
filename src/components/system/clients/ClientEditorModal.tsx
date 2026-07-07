@@ -3,43 +3,35 @@
  * Located at: src/components/system/clients/ClientEditorModal.tsx
  *
  * Add / Edit modal for a single client.
- * Props match exactly what ClientDictionaryPage passes:
- *   isOpen       -- boolean
- *   onClose      -- () => void
- *   clientId     -- string | null  (null = add mode, string = edit mode)
- *   addClient    -- (input: ClientInput) => Client
- *   updateClient -- (id: string, input: Partial<ClientInput>) => void
+ * Props:
+ *   isOpen  -- boolean
+ *   onClose -- () => void
+ *   client  -- Client | undefined (undefined = add mode, Client = edit mode)
+ *   onSave  -- (input: ClientInput) => void — parent owns the actual
+ *              clientService.add/update call, same convention as
+ *              PhysiciansSection.tsx / SpecimenCategoriesSection.tsx
  */
 
 import React, { useState, useEffect } from "react";
 import '../../../pathscribe.css';
-import {
-  Client,
-  ClientInput,
-  useClientDictionary,
-} from "../../../contexts/useClientDictionary";
+import type { Client, ClientInput } from "../../../services/clients/IClientService";
+import { JURISDICTION_LABELS, type Jurisdiction } from "../../../types/systemConfig";
+import { SUFFIX_PRESETS, isPresetSuffix } from "../../../utils/personName";
 
 interface ClientEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  clientId: string | null;
-  addClient: (input: ClientInput) => Client;
-  updateClient: (id: string, input: Partial<ClientInput>) => void;
+  /** Existing client to edit, or undefined to add a new one. Passed
+   *  directly rather than a clientId + internal lookup — matches
+   *  PhysiciansSection/SpecimenCategoriesSection's convention, and
+   *  removes the dependency on the retiring useClientDictionary context. */
+  client?: Client;
+  onSave: (input: ClientInput) => void;
+  /** Full client list, used to populate the Parent Institution dropdown
+   *  when Type is set to Internal — e.g. picking which NHS Trust a
+   *  hospital is an affiliate of. */
+  allClients: Client[];
 }
-
-// ─── TAT extension type ────────────────────────────────────────────────────────
-// TAT fields extend ClientInput locally.
-// Also add tatFirstTouchHours, tatTotalHours, escalationTargets,
-// escalationPriority to the ClientInput type in useClientDictionary context.
-
-type EscalationTarget = 'pathGroup' | 'admin' | 'referrer';
-
-type ExtendedClientInput = ClientInput & {
-  tatFirstTouchHours?: number | null;
-  tatTotalHours?:      number | null;
-  escalationTargets?:  EscalationTarget[];
-  escalationPriority?: 'high' | 'critical';
-};
 
 // ─── Static data (extracted to avoid inline type assertions in JSX) ───────────
 
@@ -50,6 +42,7 @@ const REPORTING_OPTIONS: ReportingOption[] = [
   ['copyToReferring', 'Copy report to referring physician'],
 ];
 
+type EscalationTarget = 'pathGroup' | 'admin' | 'referrer';
 type EscalationOption = [EscalationTarget, string];
 
 const ESCALATION_TARGETS: EscalationOption[] = [
@@ -60,15 +53,22 @@ const ESCALATION_TARGETS: EscalationOption[] = [
 
 // ─── Blank form state ─────────────────────────────────────────────────────────
 
-const blank = (): ExtendedClientInput => ({
+const blank = (): ClientInput => ({
   name: "",
-  clientType: "external" as const,
+  clientType: "external",
+  jurisdiction: "US",
+  specimenLabelStyle: "alpha-specimen",
   code: "",
-  contactName: "",
-  contactEmail: "",
-  contactPhone: "",
+  contactNamePrefix: "",
+  contactGivenNames: "",
+  contactFamilyNames: "",
+  contactPreferredName: "",
+  contactNameSuffix: "",
+  email: "",
+  phone: "",
+  fax: "",
   address: "",
-  active: true,
+  status: "Active",
   hl7: {
     sendingFacility: "pathscribe",
     receivingFacility: "",
@@ -81,6 +81,8 @@ const blank = (): ExtendedClientInput => ({
     autoRelease: false,
     copyToReferring: false,
   },
+  pediatricAgeThreshold: null,
+  authorizedPediatricPathologistIds: [],
   tatFirstTouchHours: null,
   tatTotalHours:      null,
   escalationTargets:  [],
@@ -154,45 +156,38 @@ type Tab = "general" | "hl7" | "reporting" | "tat";
 export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
   isOpen,
   onClose,
-  clientId,
-  addClient,
-  updateClient,
+  client,
+  onSave,
+  allClients,
 }) => {
-  const { getClient } = useClientDictionary();
-  const isEdit = clientId !== null;
+  const isEdit = !!client;
 
-  const [form, setForm] = useState<ExtendedClientInput>(blank);
+  const [form, setForm] = useState<ClientInput>(blank);
   const [tab,  setTab]  = useState<Tab>("general");
   const [errors, setErrors] = useState<Partial<Record<keyof ClientInput, string>>>({});
   const [saved, setSaved]   = useState(false);
+  const [contactSuffixCustom, setContactSuffixCustom] = useState(!isPresetSuffix(form.contactNameSuffix));
 
   useEffect(() => {
     if (!isOpen) return;
-    if (isEdit && clientId) {
-      const existing = getClient(clientId);
-      if (existing) {
-        const { id, createdAt, updatedAt, ...input } = existing;
-        setForm({
-          ...input,
-          tatFirstTouchHours: (existing as any).tatFirstTouchHours ?? null,
-          tatTotalHours:      (existing as any).tatTotalHours      ?? null,
-          escalationTargets:  (existing as any).escalationTargets  ?? [],
-          escalationPriority: (existing as any).escalationPriority ?? 'high',
-        });
-      }
+    if (client) {
+      const { id, createdAt, updatedAt, ...input } = client;
+      setForm(input);
+      setContactSuffixCustom(!isPresetSuffix(client.contactNameSuffix));
     } else {
       setForm(blank());
+      setContactSuffixCustom(false);
     }
     setTab("general");
     setErrors({});
     setSaved(false);
-  }, [isOpen, clientId]);
+  }, [isOpen, client]);
 
   if (!isOpen) return null;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const set = (key: keyof ExtendedClientInput, val: unknown) =>
+  const set = (key: keyof ClientInput, val: unknown) =>
     setForm((f) => ({ ...f, [key]: val }));
 
   const setHL7 = (key: keyof Client["hl7"], val: unknown) =>
@@ -207,8 +202,8 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
     const e: typeof errors = {};
     if (!form.name.trim()) e.name = "Client name is required";
     if (!form.code.trim()) e.code = "Client code is required";
-    if (!form.contactEmail.trim() || !form.contactEmail.includes("@"))
-      e.contactEmail = "Valid email required";
+    if (!form.email.trim() || !form.email.includes("@"))
+      e.email = "Valid email required";
     if (form.hl7.enabled && !form.hl7.receivingFacility.trim())
       (e as Record<string, string>).hl7 = "Receiving facility is required when HL7 is enabled";
     setErrors(e);
@@ -219,11 +214,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
   const handleSubmit = () => {
     if (!validate()) return;
-    if (isEdit && clientId) {
-      updateClient(clientId, form);
-    } else {
-      addClient(form);
-    }
+    onSave(form);
     setSaved(true);
     setTimeout(() => { onClose(); }, 800);
   };
@@ -303,34 +294,124 @@ className="ps-modal-close"
                 <Field label="Status">
                   <select
                     style={INPUT}
-                    value={form.active ? "active" : "inactive"}
-                    onChange={(e) => set("active", e.target.value === "active")}
+                    value={form.status}
+                    onChange={(e) => set("status", e.target.value)}
                     onFocus={onF} onBlur={onB}
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    {/* Unverified is only ever set by order-intake auto-creation,
+                        not a state an admin manually assigns — so it's shown
+                        here (read-only-ish, via disabled) only when already set,
+                        rather than offered as a normal choice. */}
+                    {form.status === 'Unverified' && <option value="Unverified" disabled>Unverified (verify via table action)</option>}
                   </select>
                 </Field>
+                <Field label="Type">
+                  <select
+                    style={INPUT}
+                    value={form.clientType}
+                    onChange={(e) => set("clientType", e.target.value)}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    <option value="external">External — independent submitting practice</option>
+                    <option value="internal">Internal — affiliated site of this institution</option>
+                  </select>
+                </Field>
+                <Field label="Jurisdiction">
+                  <select
+                    style={INPUT}
+                    value={form.jurisdiction}
+                    onChange={(e) => set("jurisdiction", e.target.value)}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    {(Object.entries(JURISDICTION_LABELS) as [Jurisdiction, string][]).map(([code, label]) => (
+                      <option key={code} value={code}>{label}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Specimen / Block Labeling">
+                  <select
+                    style={INPUT}
+                    value={form.specimenLabelStyle ?? 'alpha-specimen'}
+                    onChange={(e) => set("specimenLabelStyle", e.target.value)}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    <option value="alpha-specimen">Specimen A, B, C / Block A1, A2, A3</option>
+                    <option value="numeric-specimen">Specimen 1, 2, 3 / Block 1A, 1B, 1C</option>
+                  </select>
+                </Field>
+                {form.clientType === 'internal' && (
+                  <Field label="Parent Institution">
+                    <select
+                      style={INPUT}
+                      value={form.parentId ?? ''}
+                      onChange={(e) => set("parentId", e.target.value || undefined)}
+                      onFocus={onF} onBlur={onB}
+                    >
+                      <option value="">None — this is the top-level institution</option>
+                      {allClients
+                        .filter(c => c.clientType === 'internal' && c.id !== client?.id)
+                        .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </Field>
+                )}
               </div>
 
               <div style={SECTION}>Contact</div>
               <div style={grid2}>
-                <Field label="Contact Name">
-                  <input style={INPUT} value={form.contactName} onChange={(e) => set("contactName", e.target.value)} onFocus={onF} onBlur={onB} placeholder="Dr. Jane Smith" />
+                <Field label="Contact Prefix">
+                  <select style={INPUT} value={form.contactNamePrefix ?? ''} onChange={(e) => set("contactNamePrefix", e.target.value)} onFocus={onF} onBlur={onB}>
+                    <option value="">None</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Mx.">Mx.</option>
+                    <option value="Dr.">Dr.</option>
+                  </select>
                 </Field>
-                <Field label="Contact Email *">
+                <Field label="Contact Suffix">
+                  {contactSuffixCustom ? (
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input style={INPUT} value={form.contactNameSuffix ?? ''} onChange={(e) => set("contactNameSuffix", e.target.value)} onFocus={onF} onBlur={onB} placeholder="e.g. Esq., MD" />
+                      <button type="button" onClick={() => { setContactSuffixCustom(false); set("contactNameSuffix", ""); }}
+                        style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 11, cursor: "pointer", whiteSpace: "nowrap", textDecoration: "underline" }}>
+                        Use list
+                      </button>
+                    </div>
+                  ) : (
+                    <select style={INPUT} value={form.contactNameSuffix ?? ''} onChange={(e) => {
+                      if (e.target.value === "__other__") { setContactSuffixCustom(true); set("contactNameSuffix", ""); }
+                      else set("contactNameSuffix", e.target.value);
+                    }} onFocus={onF} onBlur={onB}>
+                      <option value="">None</option>
+                      {SUFFIX_PRESETS.map(s => <option key={s} value={s}>{s}</option>)}
+                      <option value="__other__">Other…</option>
+                    </select>
+                  )}
+                </Field>
+                <Field label="Contact Given Name(s)">
+                  <input style={INPUT} value={form.contactGivenNames ?? ''} onChange={(e) => set("contactGivenNames", e.target.value)} onFocus={onF} onBlur={onB} placeholder="e.g. Jane" />
+                </Field>
+                <Field label="Contact Family Name(s)">
+                  <input style={INPUT} value={form.contactFamilyNames ?? ''} onChange={(e) => set("contactFamilyNames", e.target.value)} onFocus={onF} onBlur={onB} placeholder="e.g. Smith" />
+                </Field>
+                <Field label="Contact Preferred Name" span>
+                  <input style={INPUT} value={form.contactPreferredName ?? ''} onChange={(e) => set("contactPreferredName", e.target.value)} onFocus={onF} onBlur={onB} placeholder="Optional — what to call them" />
+                </Field>
+                <Field label="Email *">
                   <input
-                    className={`ps-modal-dark-input${errors.contactEmail ? " ps-modal-dark-input--error" : ""}`}
-                    value={form.contactEmail}
-                    onChange={(e) => set("contactEmail", e.target.value)}
+                    className={`ps-modal-dark-input${errors.email ? " ps-modal-dark-input--error" : ""}`}
+                    value={form.email}
+                    onChange={(e) => set("email", e.target.value)}
                     onFocus={onF} onBlur={onB}
                     placeholder="contact@client.com"
                     type="email"
                   />
-                  {errors.contactEmail && <div className="ps-client-editor-field-error">{errors.contactEmail}</div>}
+                  {errors.email && <div className="ps-client-editor-field-error">{errors.email}</div>}
                 </Field>
                 <Field label="Phone">
-                  <input style={INPUT} value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} onFocus={onF} onBlur={onB} placeholder="555-000-0000" />
+                  <input style={INPUT} value={form.phone} onChange={(e) => set("phone", e.target.value)} onFocus={onF} onBlur={onB} placeholder="555-000-0000" />
                 </Field>
                 <Field label="Address" span>
                   <input style={INPUT} value={form.address} onChange={(e) => set("address", e.target.value)} onFocus={onF} onBlur={onB} placeholder="123 Main St, City, State ZIP" />

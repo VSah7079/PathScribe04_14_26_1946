@@ -41,6 +41,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   updateDoc,
   query,
   where,
@@ -219,6 +220,42 @@ export const firestoreCaseService: ICaseService = {
       audit.log({ eventType: 'case.write', caseId, userId: 'system', outcome: 'failure' });
       console.error('firestoreCaseService.updateCase', err);
       throw new Error(`firestoreCaseService.updateCase failed for ${caseId}`);
+    }
+  },
+
+  // ── createCase ─────────────────────────────────────────────────────────────
+  // Added for the Accession page (Stage 0 Requirements §6.1).
+  //
+  // ⚠ OPEN CONFLICT — flagging rather than silently resolving: this file's
+  // own header says Firestore is "READ for clinical case data (LIS owns
+  // it — Cloud Function writes)", and updateCase above actively BLOCKS
+  // client writes to patient/specimens/accession/order as LIS_OWNED_FIELDS.
+  // But Orchestration (O26-) cases — the only case type the Accession page
+  // creates — have no LIS sync at all; PathScribe IS the system of record
+  // for their patient/specimen/accession data from the moment of
+  // accession. createCase below writes the full document unguarded
+  // (setDoc, not updateDoc — there are no "LIS-owned fields" to protect
+  // on a document that doesn't exist yet), but updateCase's guard will
+  // still block any LATER edit to an Orchestration case's patient/
+  // specimens/accession/order through this same service, which may not be
+  // what you want for a case PathScribe itself originated. Worth deciding
+  // explicitly whether LIS_OWNED_FIELDS should be conditional on how the
+  // case originated, rather than applying unconditionally to every
+  // caseId routed here.
+  async createCase(caseData: Case): Promise<void> {
+    const db = getFirestore();
+    const { id, ...data } = caseData;
+    try {
+      await setDoc(doc(db, COLLECTION_NAME, id), {
+        ...data,
+        createdAt: caseData.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      audit.log({ eventType: 'case.create', caseId: id, userId: 'system', outcome: 'success' });
+    } catch (err) {
+      audit.log({ eventType: 'case.create', caseId: id, userId: 'system', outcome: 'failure' });
+      console.error('firestoreCaseService.createCase', err);
+      throw new Error(`firestoreCaseService.createCase failed for ${id}`);
     }
   },
 };

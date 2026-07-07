@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import '../../../pathscribe.css';
 import FlagConfigPage            from './FlagConfigPage';
-import SpecimenDictionary        from './SpecimenDictionary';
+import SpecimenDictionarySection from './SpecimenDictionarySection';
+import StainDictionarySection from './StainDictionarySection';
+import ProtocolDictionarySection from './ProtocolDictionarySection';
+import SpecimenCategoriesSection from './SpecimenCategoriesSection';
 import SubspecialtiesSection     from './SubspecialtiesSection';
 import FontsSection              from './FontsSection';
 import LISSection                from './LISSection';
 import RetentionSection          from './RetentionSection';
 import { ClientDictionaryPage }  from '../../../pages/system/ClientDictionaryPage';
+import PhysiciansSection         from './PhysiciansSection'; // ← was never registered here despite existing
+import DeficienciesSection       from './DeficienciesSection';
 import IdentifierFormatsSection  from './IdentifierFormatsSection';
 import GoverningBodiesSection    from './GoverningBodiesSection';
 import DelegationTypeSection     from './DelegationTypeSection';
@@ -23,10 +28,15 @@ type SystemSection =
   | 'flags'
   | 'subspecialties'
   | 'specimens'
+  | 'stains'
+  | 'specimen_categories'
   | 'fonts'
   | 'lis'
   | 'retention'
   | 'clients'
+  | 'physicians'
+  | 'protocols'
+  | 'deficiencies'
   | 'identifiers'
   | 'governing_bodies'
   | 'delegation_types'
@@ -48,8 +58,13 @@ const SECTIONS: { id: SystemSection; emoji: string; label: string }[] = [
   { id: 'identifiers',         emoji: '🔍', label: 'Identifier Formats'    },
   { id: 'lis',                 emoji: '🔗', label: 'LIS Integration'       },
   { id: 'participation_types', emoji: '👥', label: 'Participation Types'   },
+  { id: 'physicians',          emoji: '🩻', label: 'Physicians'            },
+  { id: 'protocols',           emoji: '🧬', label: 'Protocol Dictionary'   },
   { id: 'routing_rules',       emoji: '📋', label: 'Routing Rules'         },
+  { id: 'specimen_categories', emoji: '🗂️', label: 'Specimen Categories'   },
+  { id: 'deficiencies',        emoji: '⚠️', label: 'Specimen Deficiencies' },
   { id: 'specimens',           emoji: '🔬', label: 'Specimen Dictionary'   },
+  { id: 'stains',              emoji: '🧪', label: 'Stain Dictionary'      },
   { id: 'subspecialties',      emoji: '🩺', label: 'Subspecialties'        },
   { id: 'tat_config',          emoji: '⏱️', label: 'TAT Configuration'     }, // ← new
   { id: 'terminology',         emoji: '🔌', label: 'Terminology Services'  },
@@ -74,7 +89,10 @@ const SystemTab: React.FC = () => {
     switch (active) {
       case 'flags':               return <FlagConfigPage />;
       case 'subspecialties':      return <SubspecialtiesSection />;
-      case 'specimens':           return <SpecimenDictionary />;
+      case 'specimens':           return <SpecimenDictionarySection />;
+      case 'stains':              return <StainDictionarySection />;
+      case 'protocols':           return <ProtocolDictionarySection />;
+      case 'specimen_categories': return <SpecimenCategoriesSection />;
       case 'fonts':               return <FontsSection />;
       case 'lis':                 return <LISSection />;
       case 'retention':           return <RetentionSection />;
@@ -83,6 +101,8 @@ const SystemTab: React.FC = () => {
       case 'governing_bodies':    return <GoverningBodiesSection isSuperAdmin={true} />;
       case 'delegation_types':    return <DelegationTypeSection />;
       case 'participation_types': return <ParticipationTypesSection />;
+      case 'physicians':          return <PhysiciansSection />;
+      case 'deficiencies':        return <DeficienciesSection />;
       case 'case_routing':        return <CaseRoutingSection />;
       case 'routing_rules':       return <RoutingRulesSection />;
       case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
@@ -102,25 +122,15 @@ const SystemTab: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', gap: '20px' }}>
+    <div className="ps-confsys-shell">
 
-      {/* ── Sidebar nav ── */}
-      <div style={{ width: '210px', flexShrink: 0, paddingTop: '4px' }}>
+      {/* ── Sidebar nav — sticky, own scroll if the list itself is tall ── */}
+      <div className="ps-confsys-sidebar">
         {SECTIONS.map(s => (
           <button
             key={s.id}
             onClick={() => setActive(s.id)}
-            onMouseEnter={e => { if (active !== s.id) e.currentTarget.style.color = '#DEE4E7'; }}
-            onMouseLeave={e => { if (active !== s.id) e.currentTarget.style.color = '#9AA0A6'; }}
-            style={{
-              width: '100%', textAlign: 'left', padding: '10px 14px',
-              background: active === s.id ? 'rgba(138,180,248,0.15)' : 'transparent',
-              color:      active === s.id ? '#8AB4F8' : '#9AA0A6',
-              border:    `1px solid ${active === s.id ? 'rgba(138,180,248,0.35)' : 'transparent'}`,
-              borderRadius: '8px', fontSize: '13px',
-              fontWeight: active === s.id ? 600 : 500,
-              cursor: 'pointer', marginBottom: '4px', transition: 'all 0.15s',
-            }}
+            className={`ps-confsys-nav-btn${active === s.id ? ' ps-confsys-nav-btn--active' : ''}`}
           >
             {s.emoji} {s.label}
           </button>
@@ -128,7 +138,7 @@ const SystemTab: React.FC = () => {
       </div>
 
       {/* ── Section content ── */}
-      <div style={{ flex: 1, minWidth: 0, paddingRight: 20, boxSizing: 'border-box' }}>
+      <div className="ps-confsys-content">
         {renderSection()}
       </div>
 

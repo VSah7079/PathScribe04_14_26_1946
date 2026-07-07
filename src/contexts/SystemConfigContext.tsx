@@ -59,8 +59,19 @@ const DEFAULT_HOSPITAL_CONFIG: HospitalConfig = {
 
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 
-const LS_VERSION = 'v1';
-const LS_KEY     = `pathscribe_system_config_${LS_VERSION}`;
+// v2: UK accession + NHS Number formats now enabled by default (see
+// DEFAULT_SYSTEM_CONFIG's own comment) — bumped so existing sessions with
+// a persisted v1 config actually pick up the new default instead of the
+// shallow merge below silently keeping their old US-only identifierFormats
+// forever.
+const LS_VERSION = 'v2';
+// Exported so other modules that read the persisted config directly from
+// localStorage (outside React context — e.g. firestoreCodeService.ts,
+// which needs to work from seed scripts too) use the real, current key
+// rather than hardcoding their own copy of it. That's exactly how
+// firestoreCodeService.ts silently broke when LS_VERSION bumped to v2 —
+// it had its own hardcoded 'pathscribe_system_config_v1' string.
+export const LS_KEY = `pathscribe_system_config_${LS_VERSION}`;
 const LS_ENT_KEY = `pathscribe_enterprise_config_${LS_VERSION}`;
 const LS_HSP_KEY = `pathscribe_hospital_config_${LS_VERSION}`;
 

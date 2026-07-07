@@ -1,0 +1,138 @@
+{
+  "id": "grossing_histology_only",
+  "name": "Histology-Only / Direct Triage (Gold Standard) — Route C",
+  "source": "Custom",
+  "version": "1.0.0",
+  "category": "GROSSING",
+  "sections": [
+    {
+      "id": "identification_logistics",
+      "title": "Specimen Identification & Logistics",
+      "fields": [
+        {
+          "id": "label_id_verified",
+          "label": "Specimen Label/Identification Verified?",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "label_verified_yes", "label": "Yes", "snomed": "", "icd": "" },
+            { "id": "label_verified_no", "label": "No — Reject/Hold (specify discrepancy in comment)", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "histology_only_type",
+          "label": "Histology-Only Type",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "triage_predissected_biopsy", "label": "Pre-Dissected Biopsy (Core/Punch)", "snomed": "", "icd": "" },
+            { "id": "triage_outside_block_consult", "label": "Outside Facility Block/Consult", "snomed": "", "icd": "" },
+            { "id": "triage_unstained_recut", "label": "Unstained Slides for H&E Recut", "snomed": "", "icd": "" },
+            { "id": "triage_technical_only", "label": "Direct Technical Component Only", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "outside_facility_id",
+          "label": "Outside Facility / Accession ID",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Required when Histology-Only Type is an outside block/consult. e.g. \"Facility Name, ID: 99-X\"",
+          "visibleWhen": { "fieldId": "histology_only_type", "answerId": "triage_outside_block_consult" }
+        }
+      ]
+    },
+    {
+      "id": "physical_verification",
+      "title": "Physical Verification Check",
+      "fields": [
+        {
+          "id": "blocks_received_count",
+          "label": "Number of Pre-Embedded Blocks Received",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "slides_received_count",
+          "label": "Number of Unstained Slides Received",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "embedded_tissue_visibility",
+          "label": "Embedded Tissue Visibility",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "tissue_visible_paraffin", "label": "Tissue visible in paraffin matrix", "snomed": "", "icd": "" },
+            { "id": "paraffin_blank_block", "label": "Paraffin blank block", "snomed": "", "icd": "" },
+            { "id": "not_applicable_slides_only", "label": "Not Applicable (Slides Only)", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "tissue_submission",
+      "title": "Submission & Block/Slide Key",
+      "fields": [
+        {
+          "id": "submission_status",
+          "label": "Submission Status",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "submission_direct_triage", "label": "Direct Triage (No Grossing Required)", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "cassette_key",
+          "label": "Block/Slide Key / Summary",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "One line per block/slide set received. Format: ID \u2014 Origin/Description. e.g. \"A1: Outside Block Recut [Facility Name ID: 99-X]\""
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

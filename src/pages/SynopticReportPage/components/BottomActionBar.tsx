@@ -26,6 +26,33 @@ interface BottomActionBarProps {
   onGenerateReport?: () => void;
   isGenerating?: boolean;
   onAbortGenerate?: () => void;
+  /**
+   * Stage 1 trigger — PA marks Grossing finalized, fires
+   * evaluateSynopticAssignment. Shown INSTEAD OF Generate Report/Save
+   * Draft/Finalize/Finalize & Next while grossing is still in progress
+   * (same slot, mutually exclusive — see showGrossComplete below), not
+   * alongside them. None of those actions make sense yet at this stage:
+   * there's no synoptic data to save, generate from, or finalize until
+   * Stage 1 has run.
+   */
+  /**
+   * Stage 1 trigger — single action, dynamic meaning. Fires on both first
+   * finalize ("Gross Complete") and re-finalize after a correction
+   * ("Update Gross") — same handler either way, see
+   * SynopticReportPage.tsx's handleGrossComplete. There is no separate
+   * "unlock"/"reopen" action: editing an already-finalized Grossing
+   * instance's answers is itself what brings this button back (handled
+   * reactively in the page, not here).
+   */
+  onGrossComplete?: () => void;
+  /**
+   * True while a Stage 1 evaluation is running OR its resulting Protocol
+   * Change Review modal is still open and unresolved. Disables Finalize/
+   * Finalize & Next/Sign Out while true — a case should not be signable
+   * while its synoptic assignment might be stale relative to a just-
+   * edited Gross.
+   */
+  synopticFitPending?: boolean;
 }
 
 const ActionButton: React.FC<{
@@ -35,7 +62,8 @@ const ActionButton: React.FC<{
   color: string;
   hoverColor?: string;
   title?: string;
-}> = ({ onClick, children, variant, color, hoverColor, title }) => {
+  disabled?: boolean;
+}> = ({ onClick, children, variant, color, hoverColor, title, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const baseStyle: React.CSSProperties = {
@@ -43,27 +71,30 @@ const ActionButton: React.FC<{
     borderRadius: '7px',
     fontWeight:   700,
     fontSize:     '12px',
-    cursor:       'pointer',
+    cursor:       disabled ? 'not-allowed' : 'pointer',
     whiteSpace:   'nowrap',
     transition:   'all 0.15s ease',
-    border:       `1.5px solid ${isHovered && variant === 'solid' ? (hoverColor || color) : color}`,
-    background:   variant === 'solid'
-      ? (isHovered ? (hoverColor || color) : color)
-      : (isHovered ? `${color}22` : 'transparent'),
-    color:        variant === 'solid' ? 'white' : color,
+    border:       `1.5px solid ${disabled ? '#475569' : (isHovered && variant === 'solid' ? (hoverColor || color) : color)}`,
+    background:   disabled
+      ? 'transparent'
+      : variant === 'solid'
+        ? (isHovered ? (hoverColor || color) : color)
+        : (isHovered ? `${color}22` : 'transparent'),
+    color:        disabled ? '#475569' : (variant === 'solid' ? 'white' : color),
+    opacity:      disabled ? 0.6 : 1,
     display:      'flex',
     alignItems:   'center',
     gap:          '5px',
-    transform:    isHovered ? 'translateY(1px)' : 'translateY(0)',
-    boxShadow:    isHovered ? `0 2px 8px ${color}44` : 'none',
+    transform:    (!disabled && isHovered) ? 'translateY(1px)' : 'translateY(0)',
+    boxShadow:    (!disabled && isHovered) ? `0 2px 8px ${color}44` : 'none',
     lineHeight:   '1.2',            // explicit line-height prevents height variation from emoji/# chars
     height:       '32px',           // fixed height so ALL buttons are identical regardless of content
     boxSizing:    'border-box' as const,
   };
 
   return (
-    <button onClick={onClick} style={baseStyle} title={title}
-      onMouseEnter={() => setIsHovered(true)}
+    <button onClick={disabled ? undefined : onClick} disabled={disabled} style={baseStyle} title={title}
+      onMouseEnter={() => !disabled && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}>
       {children}
     </button>
@@ -93,6 +124,8 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onGenerateReport,
   isGenerating = false,
   onAbortGenerate,
+  onGrossComplete,
+  synopticFitPending = false,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -148,6 +181,23 @@ useEffect(() => {
   const allFinalized = (caseData?.synopticReports?.length ?? 0) > 0 &&
     caseData!.synopticReports!.every(r => r.status === 'finalized');
 
+  // Stage 1 gate: grossing is still in progress if any GrossingReportInstance
+  // is still 'draft'. While true, none of Generate Report/Save Draft/
+  // Finalize/Finalize & Next make sense — there's no synoptic data yet for
+  // any of them to act on. This is a real gap this component had before:
+  // it didn't know about 'accessioned'/'gross-complete' statuses at all, so
+  // Finalize/Finalize & Next would have shown immediately and incorrectly
+  // for a case still sitting at the PA bench.
+  const hasUnfinishedGrossing = (caseData?.grossingReports ?? []).some((g: any) => g.status === 'draft');
+  const showGrossComplete = !isPool && !isFinalized && hasUnfinishedGrossing;
+  // Dynamic label/icon: "Update Gross" if any of the draft instances about
+  // to be finalized were previously finalized before (i.e. this is a
+  // correction, not a first pass) — previouslyFinalized survives the
+  // automatic draft-revert-on-edit, so this stays accurate even after
+  // that revert. See GrossingReportInstance.previouslyFinalized in Case.ts.
+  const isUpdateGross = (caseData?.grossingReports ?? [])
+    .some((g: any) => g.status === 'draft' && g.previouslyFinalized);
+
   return (
     <>
     <div style={{
@@ -184,8 +234,28 @@ useEffect(() => {
           </ActionButton>
         )}
 
-        {/* Normal reporting actions — hidden for pool cases */}
-        {!isPool && !isFinalized && (
+        {/* Stage 1 — grossing still in progress: ONLY this button shows.
+            Mutually exclusive with the Generate Report/Save/Finalize bucket
+            below, not alongside it — see showGrossComplete above. */}
+        {/* Stage 1 — grossing still in progress (first time or correction):
+            ONLY this button shows. Mutually exclusive with the Generate
+            Report/Save/Finalize bucket below, not alongside it. */}
+        {showGrossComplete && (
+          <ActionButton
+            onClick={() => onGrossComplete?.()}
+            variant="solid"
+            color={isUpdateGross ? '#f59e0b' : '#34d399'}
+            hoverColor={isUpdateGross ? '#d97706' : '#10b981'}
+            title={isUpdateGross
+              ? 'Re-finalize corrected Grossing — re-evaluates AI synoptic assignment, requires a reason for the audit trail'
+              : 'Mark grossing complete — triggers AI evaluation of diagnostic synoptic assignment'}
+          >
+            {isUpdateGross ? '✏️ Update Gross' : '✅ Gross Complete'}
+          </ActionButton>
+        )}
+
+        {/* Normal reporting actions — hidden for pool cases AND while grossing is still in progress */}
+        {!isPool && !isFinalized && !showGrossComplete && (
           <>
             {/* Generate Report — shown when Orchestrator is wired */}
             {onGenerateReport && (
@@ -205,12 +275,41 @@ useEffect(() => {
             <ActionButton onClick={onSaveDraft} variant="outline" color={isDirty ? '#38bdf8' : '#94a3b8'} title="Save draft">💾 Save Draft</ActionButton>
             <ActionButton onClick={onSaveAndNext} variant="outline" color={isDirty ? '#38bdf8' : '#94a3b8'} title="Save and go to next case">💾 Save &amp; Next</ActionButton>
             <Divider />
-            <ActionButton onClick={onFinalize} variant="outline" color="#34d399" title="Finalize this report">🔒 Finalize</ActionButton>
-            <ActionButton onClick={onFinalizeAndNext} variant="outline" color="#34d399" title="Finalize and go to next case">🔒 Finalize &amp; Next</ActionButton>
+            <ActionButton
+              onClick={onFinalize}
+              variant="outline"
+              color="#34d399"
+              disabled={synopticFitPending}
+              title={synopticFitPending
+                ? 'Disabled — Stage 1 synoptic assignment evaluation in progress or awaiting review'
+                : 'Finalize this report'}
+            >
+              🔒 Finalize
+            </ActionButton>
+            <ActionButton
+              onClick={onFinalizeAndNext}
+              variant="outline"
+              color="#34d399"
+              disabled={synopticFitPending}
+              title={synopticFitPending
+                ? 'Disabled — Stage 1 synoptic assignment evaluation in progress or awaiting review'
+                : 'Finalize and go to next case'}
+            >
+              🔒 Finalize &amp; Next
+            </ActionButton>
           </>
         )}
         {!isPool && (allFinalized || isFinalized) && status !== 'finalized' && (
-          <ActionButton onClick={onSignOut} variant="solid" color="#047857" hoverColor="#065f46">✍️ Sign Out Case</ActionButton>
+          <ActionButton
+            onClick={onSignOut}
+            variant="solid"
+            color="#047857"
+            hoverColor="#065f46"
+            disabled={synopticFitPending}
+            title={synopticFitPending ? 'Disabled — Stage 1 synoptic assignment evaluation in progress or awaiting review' : undefined}
+          >
+            ✍️ Sign Out Case
+          </ActionButton>
         )}
       </div>
     </div>

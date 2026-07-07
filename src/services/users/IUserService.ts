@@ -23,6 +23,50 @@ export interface StaffUser {
   /** Option C — user-level pediatric qualification flag.
    * Must also be on the client's authorizedPediatricPathologistIds list. */
   canViewPediatric?: boolean;
+  /**
+   * User-level flag granting visibility into Orchestration/Outreach cases
+   * (O26- prefix, routed by CaseRouter to the PathScribe Firestore service)
+   * across Search and Worklist. Unlike canViewPediatric, this is a single
+   * flag with no second authorization layer — Orchestration cases aren't
+   * tied to a per-client list, so there's no equivalent of "Option C" here.
+   * Defaults to false/undefined — must be explicitly granted.
+   */
+  canViewOrchestration?: boolean;
+  /**
+   * The Organisation (services/organisation/organisationService.ts) this
+   * staff member belongs to — the actual tenant/enterprise boundary.
+   * Added June 2026 to close a real access-control gap: before this,
+   * NOTHING tied a user to an organisation at all. The only "hospital
+   * scoping" that existed was a hardcoded USER_HOSPITAL_MAP buried inside
+   * mockCaseService.ts's listCasesForUser(), which only filtered which
+   * pool cases appeared in a worklist list view — it was never enforced
+   * on getCase()/getAll(), meaning any user with a case ID (via search,
+   * a shared link, etc.) could open a case from any hospital regardless
+   * of that map. That map is retired; this field plus
+   * services/auth/caseAccessControl.ts is the real enforcement,
+   * applied in getCase()/getAll()/listCasesForUser() on both case
+   * services, not just one list view.
+   *
+   * Undefined/null = no organisation = no case access (deny by default),
+   * except for role: 'superadmin' sessions, which bypass this check
+   * entirely — the standard "platform admin" pattern for a genuine
+   * PathScribe-internal support role that legitimately needs cross-tenant
+   * visibility, as opposed to an ordinary user's home organisation.
+   *
+   * Case data today only carries Organisation-level granularity
+   * (Case.originHospitalId legacy-maps 1:1 to an Organisation, not a
+   * specific Site — see getOrganisationByHospitalId's own comment) — so
+   * "can this user see this case" currently is exactly "does the case's
+   * organisation match the user's organisation." A user with access to
+   * their organisation sees all of that organisation's cases, which is
+   * the correct default per the enterprise-wide-within-your-own-org
+   * requirement. True sub-organisation (single-site-only) restriction
+   * would need Case to carry a real Site.id instead of the legacy
+   * Organisation-granularity hospital ID — a separate, deeper migration,
+   * not built here; flagged so this isn't mistaken for finer-grained
+   * access control than actually exists.
+   */
+  organisationId?: string;
   /** GMC number for UK users */
   gmcNumber?: string;
   /** Middle name or initial */

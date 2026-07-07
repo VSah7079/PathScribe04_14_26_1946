@@ -4,9 +4,12 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import '../../pathscribe.css';
-// Confirmed path: src/services/specimens/mockSpecimenService.ts
-import { mockSpecimenService } from '@/services/specimens/mockSpecimenService';
-import type { Specimen } from '@/services/specimens/ISpecimenService';
+// Migrated June 2026 from the dead services/specimens/mockSpecimenService.ts
+// (zero real callers except this file — confirmed, then this file itself
+// turned up as the one real caller a case-sensitive grep had missed) onto
+// the real Specimen Dictionary service.
+import { specimenDictionaryService } from '@/services';
+import type { SpecimenEntry } from '@/components/Config/System/specimenTypes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,8 +84,9 @@ const synopticDataset: WorkflowDataset = {
   trendSubtitle: "AI suggestion acceptance rate over the selected period",
   summary: { totalAssisted: 92, totalCases: 128, avgConfidence: 91.4 },
   // breakdown is intentionally empty here — for the synoptic workflow this is
-  // replaced at render time with categories derived live from mockSpecimenService
-  // (grouped by subspecialtyId), not a hardcoded list. See useSynopticBreakdown below.
+  // replaced at render time with categories derived live from the real
+  // Specimen Dictionary (grouped by subspecialty name), not a hardcoded list.
+  // See deriveBreakdownFromSpecimens below.
   breakdown: [],
   overridden: [
     { id: "PSA-2024-1195", caseType: "Breast Core Bx",   aiSuggestion: "Benign fibrocystic change",   finalDiagnosis: "Atypical ductal hyperplasia", reason: "Clinical context",     date: "Aug 13", daysAgo: 12  },
@@ -148,8 +152,8 @@ const narrativeDataset: WorkflowDataset = {
   monthlyShape: [58, 60, 59, 63, 65, 67, 69, 71, 70, 73, 75, 76],
 };
 
-// Display labels for known subspecialtyId values from the specimen dictionary.
-// Falls back to a humanized version of the raw id for anything not listed here,
+// Display labels for known subspecialty values from the specimen dictionary.
+// Falls back to a humanized version of the raw name for anything not listed here,
 // so a newly-added subspecialty never silently disappears from the breakdown.
 const SUBSPECIALTY_LABELS: Record<string, string> = {
   gi:     "GI",
@@ -176,11 +180,11 @@ function humanizeSubspecialtyId(id: string): string {
   return id.charAt(0).toUpperCase() + id.slice(1);
 }
 
-function deriveBreakdownFromSpecimens(specimens: Specimen[]): BreakdownRow[] {
-  const groups = new Map<string, number>(); // subspecialtyId -> active specimen-type count
+function deriveBreakdownFromSpecimens(specimens: SpecimenEntry[]): BreakdownRow[] {
+  const groups = new Map<string, number>(); // subspecialty name -> active specimen-type count
   for (const s of specimens) {
-    if (s.status !== "Active") continue;
-    const key = s.subspecialtyId ?? "";
+    if (!s.active) continue;
+    const key = (s.subspecialty ?? "").toLowerCase();
     groups.set(key, (groups.get(key) ?? 0) + 1);
   }
   return Array.from(groups.entries())
@@ -240,10 +244,10 @@ const AIContributionTab: React.FC = () => {
   const [section,   setSection]   = useState<Section>("acceptance");
   const [dateRange, setDateRange] = useState<DateRange>("30d");
 
-  const [specimens, setSpecimens] = useState<Specimen[] | null>(null);
+  const [specimens, setSpecimens] = useState<SpecimenEntry[] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    mockSpecimenService.getAll().then(result => {
+    specimenDictionaryService.getAll().then(result => {
       if (!cancelled && result.ok) setSpecimens(result.data);
     });
     return () => { cancelled = true; };

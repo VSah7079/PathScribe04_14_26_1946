@@ -12,22 +12,25 @@
  */
 
 import { useState, useMemo } from "react";
-import '../../../pathscribe.css'; // Note: if this file is at src/pages/system/ level, change to '../../pathscribe.css'
-import { Client } from "../../../contexts/useClientDictionary";
+import '../../../pathscribe.css';
+import type { Client } from "../../../services/clients/IClientService";
+import { JURISDICTION_LABELS } from "../../../types/systemConfig";
 
 interface ClientTableProps {
   clients: Client[];
   onEdit: (clientId: string) => void;
   onToggleActive: (id: string, active: boolean) => void;
+  onVerify: (id: string) => void;
 }
 
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "unverified";
 type TypeFilter = "all" | "internal" | "external";
 
 export const ClientTable: React.FC<ClientTableProps> = ({
   clients,
   onEdit,
   onToggleActive,
+  onVerify,
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -37,15 +40,16 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return clients.filter((c) => {
-      if (statusFilter === "active" && !c.active) return false;
-      if (statusFilter === "inactive" && c.active) return false;
+      if (statusFilter === "active" && c.status !== "Active") return false;
+      if (statusFilter === "inactive" && c.status !== "Inactive") return false;
+      if (statusFilter === "unverified" && c.status !== "Unverified") return false;
       if (typeFilter !== "all" && c.clientType !== typeFilter) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
         c.code.toLowerCase().includes(q) ||
-        c.contactName.toLowerCase().includes(q) ||
-        c.contactEmail.toLowerCase().includes(q) ||
+        (c.contactName ?? '').toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
         (c.hl7.receivingFacility ?? "").toLowerCase().includes(q)
       );
     });
@@ -139,7 +143,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 
         {/* Status filter tabs */}
         <div style={{ display: "flex", gap: "6px" }}>
-          {(["all", "active", "inactive"] as StatusFilter[]).map((f) => (
+          {(["all", "active", "inactive", "unverified"] as StatusFilter[]).map((f) => (
             <button
               key={f}
               style={filterTab(statusFilter === f)}
@@ -243,26 +247,29 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                         : { background: "rgba(8,145,178,0.15)", color: "#38bdf8" }) }}>
                       {client.clientType === "internal" ? "Internal" : "External"}
                     </span>
+                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 3 }}>
+                      {JURISDICTION_LABELS[client.jurisdiction] ?? client.jurisdiction}
+                    </div>
                   </td>
 
                   {/* CONTACT */}
                   <td style={{ padding: "10px 14px" }}>
-                    <div style={{ color: "#e2e8f0", fontSize: 12, fontWeight: 500 }}>{client.contactName}</div>
-                    <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 0, minWidth: "100%" }}>{client.contactEmail}</div>
+                    <div style={{ color: "#e2e8f0", fontSize: 12, fontWeight: 500 }}>{client.contactName || '—'}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 0, minWidth: "100%" }}>{client.email}</div>
                   </td>
 
                   {/* TAT */}
                   <td style={{ padding: "10px 14px" }}>
-                    {(client as any).tatFirstTouchHours != null || (client as any).tatTotalHours != null ? (
+                    {client.tatFirstTouchHours != null || client.tatTotalHours != null ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                        {(client as any).tatFirstTouchHours != null && (
+                        {client.tatFirstTouchHours != null && (
                           <span style={{ fontSize: 11, color: "#38bdf8" }}>
-                            {(client as any).tatFirstTouchHours}h 1st touch
+                            {client.tatFirstTouchHours}h 1st touch
                           </span>
                         )}
-                        {(client as any).tatTotalHours != null && (
+                        {client.tatTotalHours != null && (
                           <span style={{ fontSize: 11, color: "#34d399" }}>
-                            {(client as any).tatTotalHours}h total
+                            {client.tatTotalHours}h total
                           </span>
                         )}
                       </div>
@@ -273,32 +280,51 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 
                   {/* STATUS */}
                   <td style={{ padding: "10px 14px" }}>
-                    {client.active ? (
+                    {client.status === 'Active' && (
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10,
                         background: "rgba(16,185,129,0.15)", color: "#34d399" }}>Active</span>
-                    ) : (
+                    )}
+                    {client.status === 'Inactive' && (
                       <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10,
                         background: "rgba(239,68,68,0.15)", color: "#f87171" }}>Inactive</span>
+                    )}
+                    {client.status === 'Unverified' && (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 10,
+                        background: "rgba(245,158,11,0.15)", color: "#fbbf24" }}>Unverified</span>
+                    )}
+                    {client.autoCreated && (
+                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 3 }} title={client.autoCreatedNote}>
+                        Auto-created{client.autoCreatedAt ? ` ${client.autoCreatedAt}` : ''}
+                      </div>
                     )}
                   </td>
 
                   {/* Actions */}
                   <td style={{ padding: "10px 16px 10px 8px" }}>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      {client.status === 'Unverified' && (
+                        <button
+                          className="ps-conf-btn-secondary"
+                          onClick={() => onVerify(client.id)}
+                          style={{ padding: "4px 10px", fontSize: 11, color: "#34d399", borderColor: "rgba(34,197,94,0.35)" }}
+                        >Verify</button>
+                      )}
                       <button
                         className="ps-conf-btn-secondary"
                         onClick={() => onEdit(client.id)}
                         style={{ padding: "5px 12px", fontSize: 12 }}
                       >Edit</button>
-                      <button
-                        className="ps-conf-btn-secondary"
-                        onClick={() => onToggleActive(client.id, !client.active)}
-                        title={client.active ? "Deactivate client" : "Reactivate client"}
-                        style={{ padding: "4px 10px", fontSize: 11,
-                          color: client.active ? "#f87171" : "#34d399",
-                          borderColor: client.active ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)",
-                        }}
-                      >{client.active ? "Deactivate" : "Activate"}</button>
+                      {client.status !== 'Unverified' && (
+                        <button
+                          className="ps-conf-btn-secondary"
+                          onClick={() => onToggleActive(client.id, client.status !== 'Active')}
+                          title={client.status === 'Active' ? "Deactivate client" : "Reactivate client"}
+                          style={{ padding: "4px 10px", fontSize: 11,
+                            color: client.status === 'Active' ? "#f87171" : "#34d399",
+                            borderColor: client.status === 'Active' ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)",
+                          }}
+                        >{client.status === 'Active' ? "Deactivate" : "Activate"}</button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -770,6 +770,15 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const { requestNavigate } = useDirtyState();
 
   const guardedNavigate = React.useCallback((path: string) => {
+    // Tell SearchPage to restore its previous results/filters when
+    // navigating back to it — mirrors the exact same one-line pattern
+    // SynopticReportPage.tsx's own guard() function already uses for its
+    // internal "back to search" actions. Without this, only those
+    // specific in-page actions set the flag; breadcrumb clicks, nav-bar
+    // buttons, and the logo (which all route through this one shared
+    // guardedNavigate) bypassed it entirely, silently dropping the
+    // search session every time.
+    if (path === '/search') sessionStorage.setItem('pathscribe:searchReturn', '1');
     requestNavigate(path, (p) => navigate(p));
   }, [navigate, requestNavigate]);
   const PAGE_LABELS: Record<string, string> = {

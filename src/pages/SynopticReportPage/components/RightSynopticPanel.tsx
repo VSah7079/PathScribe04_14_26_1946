@@ -182,9 +182,15 @@ const FieldRow: React.FC<FieldRowProps> = ({
         {/* AI confidence badge + Confirm/Override */}
         {ai && (
           <>
-            <span style={{ ...confBadgeStyle, cursor: 'default' }}>
-              {vStatus === 'verified' ? '✓ AI Confirmed' : vStatus === 'disputed' ? '✎ Overridden' : `${conf}%`}
-            </span>
+            {/* The low-confidence warning badge above already states the
+                percentage — skip the plain duplicate badge for unverified
+                below-threshold fields so the same number doesn't appear
+                twice in the row. */}
+            {!(belowThreshold && vStatus === 'unverified') && (
+              <span style={{ ...confBadgeStyle, cursor: 'default' }}>
+                {vStatus === 'verified' ? '✓ AI Confirmed' : vStatus === 'disputed' ? '✎ Overridden' : `${conf}%`}
+              </span>
+            )}
             {vStatus === 'unverified' && (
               <>
                 <button
@@ -349,6 +355,13 @@ interface RightSynopticPanelProps {
   onReportInstanceChange?: (id: string) => void;
   onCaseUpdate?: (updated: Case) => void;
   isDirty?: boolean;
+  /**
+   * Either the legacy sentinel 'scroll_to_unanswered' (jump to whatever the
+   * first missing required field currently is), or a real field ID to jump
+   * to that specific field directly. Any other truthy value is treated as
+   * a field ID lookup, falling back to the legacy behavior if no field
+   * with that ID is found.
+   */
   scrollToField?: string | null;
   onScrollComplete?: () => void;
   onHighlight?: (source: string | null) => void;
@@ -611,8 +624,39 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   }), [aiSuggestions, answers, templateDetail, caseData, activeReportInstanceId, confidenceThreshold]);
 
   // ── Scroll to missing field ───────────────────────────────────────────────
+  // `scrollToField` historically only worked as a truthy TRIGGER, not an
+  // actual field ID — any value (including a real field ID passed by a
+  // caller expecting targeted navigation) fell through to "jump to
+  // whatever the first unanswered required field is," ignoring the value
+  // entirely. That's correct behavior for the legacy
+  // 'scroll_to_unanswered' sentinel (used by the "Click to review →" alert
+  // banner, which genuinely means "first missing required field, whichever
+  // one that is") but silently wrong for any caller passing a specific
+  // field ID expecting to land on THAT field — e.g. the AI confidence
+  // badge's "click to review the flagged field," which always landed on
+  // the first unanswered required field instead, regardless of which
+  // field was actually flagged.
   useEffect(() => {
     if (!scrollToField || !templateDetail) return;
+
+    if (scrollToField !== 'scroll_to_unanswered') {
+      // Treat as a real field ID — jump to that specific field, wherever
+      // it lives, using the same pulse/focus/scroll behavior as every
+      // other targeted jump (jumpToField) rather than a one-off outline.
+      for (const sec of templateDetail.template.sections) {
+        if (!isVisible(sec.visibleWhen, answers)) continue;
+        const match = sec.fields.find((f: any) => f.id === scrollToField);
+        if (match) {
+          jumpToField(match.id, sec.id);
+          onScrollComplete?.();
+          return;
+        }
+      }
+      // ID not found (stale reference, template changed since the badge
+      // computed it, etc.) — fall through to the legacy behavior below
+      // rather than silently doing nothing.
+    }
+
     for (const sec of templateDetail.template.sections) {
       if (!isVisible(sec.visibleWhen, answers)) continue;
       const hasUnanswered = sec.fields.some((f: any) => f.required && isVisible(f.visibleWhen, answers) && !answers[f.id]);
@@ -869,7 +913,16 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               field={f}
               value={answers[f.id] ?? ''}
               onChange={setAnswer}
-              aiSuggestion={aboveThreshold ? sug : undefined}
+              // Previously: `aboveThreshold ? sug : undefined` — stripped
+              // the suggestion entirely for low-confidence fields, which
+              // also strips the Confirm/Override buttons (they're gated on
+              // `aiSuggestion` being present inside FieldRow). That left
+              // exactly the fields most in need of an explicit human
+              // decision with no way to record one — only a passive
+              // warning badge. Pass the suggestion through unconditionally
+              // so low-confidence fields get the warning badge AND the
+              // Confirm/Override buttons together, not instead of them.
+              aiSuggestion={sug}
               belowThreshold={!!belowThresh}
               belowThresholdConf={belowThresh ? sug!.confidence : undefined}
               belowThresholdSource={belowThresh ? sug!.source : undefined}

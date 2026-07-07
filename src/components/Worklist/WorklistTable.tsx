@@ -1,9 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { messageService, clientService, auditService } from "@/services";
+import { messageService, clientService, auditService, specimenDeficiencyService } from "@/services";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
+import { formatDate as formatDateLocale, localeForJurisdiction } from '@/utils/formatDate';
+import type { Jurisdiction } from '@/types/systemConfig';
 import '../../pathscribe.css';
 import { Case } from "../../types/case/Case";
 import { Flag } from '../../services/flags/IFlagService';
@@ -43,6 +45,13 @@ interface WorklistTableProps {
   onDisplayOrder?: (ids: string[]) => void;
   /** Flag definitions from IFlagService — used to identify Computational flags. */
   flagDefinitions?: Flag[];
+  /**
+   * When true, always render the card layout regardless of window width —
+   * used by SearchPage, which wants cards unconditionally rather than the
+   * window-width-driven table/card switch Worklist uses. Left undefined/
+   * false leaves Worklist's existing behavior completely untouched.
+   */
+  forceCardView?: boolean;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -79,16 +88,15 @@ const FLAG_PALETTE: Record<string, { bg: string; border: string; dot: string }> 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATE & TIME HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-
-const formatDate = (iso?: string): string => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${mm}/${dd}/${yyyy}`;
-};
+// formatDate() used to be a bespoke local function here, hardcoded to
+// MM/DD/YYYY regardless of jurisdiction — meaning every date in the
+// worklist rendered US-format even for UK clients. Removed in favor of
+// the real jurisdiction-aware utils/formatDate.ts (which already existed,
+// fully built, but had zero callers anywhere in the app before this).
+// The actual per-case locale resolution (formatDateForClient) is defined
+// inside the component body below, since it needs the per-client
+// jurisdiction map that's only available once clientService.getAll() has
+// loaded.
 
 const getAgeLabel = (dobStr: string): string => {
   const dob = new Date(dobStr);
@@ -183,6 +191,12 @@ const getStatusStyle = (status: string) => {
   switch (status) {
     case 'draft':
       return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', border: 'rgba(148,163,184,0.4)' }; // slate  — matches Draft tile
+    case 'accessioned':
+      return { bg: 'rgba(56,189,248,0.15)',  color: '#38BDF8', border: 'rgba(56,189,248,0.3)'  }; // sky    — matches Awaiting Grossing tile
+    case 'gross-complete':
+      return { bg: 'rgba(20,184,166,0.15)',  color: '#14B8A6', border: 'rgba(20,184,166,0.3)'  }; // teal/jade — matches Gross Complete tile, distinct from in-progress's teal
+    case 'intraoperative-complete':
+      return { bg: 'rgba(168,85,247,0.15)',  color: '#A855F7', border: 'rgba(168,85,247,0.3)'  }; // purple — case-level milestone, no dedicated tile
     case 'in-progress':
       return { bg: 'rgba(8,145,178,0.15)',   color: '#0891B2', border: 'rgba(8,145,178,0.3)'   }; // teal   — matches In Progress tile
     case 'pending-review':
@@ -234,7 +248,7 @@ const FlagChip: React.FC<{ flag: any; isSpecimen?: boolean }> = React.memo(({ fl
           fill="none"
         />
       </svg>
-      {label}
+      <span className="wl-flag-chip__label">{label}</span>
     </span>
   );
 });
@@ -262,6 +276,12 @@ const SpecimenChip: React.FC<{
  * gross description yet) from one that's already been grossed and is
  * sitting ready for pickup. Without this, testers/pathologists had no way
  * to tell the two apart without opening each case individually.
+ *
+ * isGrossed should be derived from grossingReports[] (any instance with
+ * status 'finalized'), not the legacy Copilot-mode diagnostic.grossDescription
+ * field — that field predates the Orchestration Stage 0/1 grossing model and
+ * won't reflect PA grossing-bench completion for Orchestration cases. See
+ * GrossingReportInstance in Case.ts.
  */
 const StatusDot: React.FC<{ status: string; isGrossed?: boolean }> = React.memo(({ status, isGrossed }) => {
   const s = getStatusStyle(status);
@@ -311,6 +331,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   onFirstCaseId,
   onDisplayOrder,
   flagDefinitions = [],
+  forceCardView = false,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -350,7 +371,47 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   }, []);
 
   const pedRequestSent = pedBlockedCase ? pedRequestedIds.has(pedBlockedCase.id) : false;
+
+  // ── Orchestration access state ──────────────────────────────────────────
+  // Structurally mirrors the pediatric block above — same request/audit/
+  // persistence shape — but kept as its own state rather than unified into
+  // one generic "restricted access" type, since the two restrictions carry
+  // genuinely different data (age/clientId vs. nothing) and different grant
+  // paths (per-client authorized-pathologist list vs. a Role flag). A
+  // separate, clearly-named localStorage key avoids any collision or
+  // migration risk with existing pediatric request state.
+  const [orchBlockedCase, setOrchBlockedCase] = React.useState<{id:string}|null>(null);
+
+  const [orchRequestedIds, setOrchRequestedIds] = React.useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('pathscribe_orch_requested');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const markOrchRequested = React.useCallback((caseId: string) => {
+    setOrchRequestedIds(prev => {
+      const next = new Set(prev).add(caseId);
+      localStorage.setItem('pathscribe_orch_requested', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const orchRequestSent = orchBlockedCase ? orchRequestedIds.has(orchBlockedCase.id) : false;
+
+  const isOrchRestricted = React.useCallback((c: any): boolean => {
+    if ((c?.reportingMode) !== 'orchestrator') return false; // not an Orchestration case — no gate applies
+    return !((user as any)?.canViewOrchestration ?? false);
+  }, [user]);
+
+  // Combined check used at every PHI-redaction point in the table/card
+  // rendering below — defined after isPedRestricted/isOrchRestricted, see
+  // below, so it can safely reference both.
   const [clientThresholds, setClientThresholds] = React.useState<Record<string, any>>({});
+  // Per-client jurisdiction → locale, resolved from the same clientService
+  // fetch below rather than a second round-trip. Keyed by clientId directly
+  // to `${clientId}_locale`, matching the existing map's key-suffix
+  // convention (`${clientId}_authorized`) rather than a separate map.
 
   const loadClientThresholds = React.useCallback(() => {
     clientService.getAll().then(res => {
@@ -359,6 +420,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       res.data.forEach((c: any) => {
         map[c.id] = c.pediatricAgeThreshold ?? null;
         map[`${c.id}_authorized`] = c.authorizedPediatricPathologistIds ?? [];
+        map[`${c.id}_locale`] = localeForJurisdiction((c.jurisdiction as Jurisdiction) ?? 'US');
       });
       setClientThresholds(map);
     }).catch(() => {});
@@ -367,6 +429,16 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   React.useEffect(() => {
     loadClientThresholds();
   }, [loadClientThresholds]);
+
+  // Resolves a case's date display to its client's jurisdiction — e.g. a
+  // Fenwick NHS Trust case renders DD/MM/YYYY, a Metro General case
+  // renders MM/DD/YYYY, in the same worklist at the same time. Falls back
+  // to en-US (unchanged prior behavior) when the client hasn't loaded yet
+  // or the case has no clientId.
+  const formatDate = React.useCallback((iso?: string, clientId?: string): string => {
+    const locale = clientId ? (clientThresholds[`${clientId}_locale`] ?? 'en-US') : 'en-US';
+    return formatDateLocale(iso, locale);
+  }, [clientThresholds]);
 
   // Reload when tab becomes visible — picks up client changes made in config
   React.useEffect(() => {
@@ -390,6 +462,20 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       : [];
     return !authorizedIds.includes((user as any)?.id ?? '');
   }, [user, clientThresholds]);
+
+  // Combined check used at every PHI-redaction point in the table/card
+  // rendering below, plus a discriminator for which copy/modal to show.
+  // Pediatric takes precedence when a case somehow matches both (shouldn't
+  // happen in practice — Orchestration cases are PathScribe-native, not
+  // submitted by an LIS client with a pediatric policy — but precedence
+  // must be defined, not left to fall through unpredictably).
+  const restrictionKind = React.useCallback((c: any): 'pediatric' | 'orchestration' | null => {
+    if (isPedRestricted(c)) return 'pediatric';
+    if (isOrchRestricted(c)) return 'orchestration';
+    return null;
+  }, [isPedRestricted, isOrchRestricted]);
+
+  const isRestricted = React.useCallback((c: any): boolean => restrictionKind(c) !== null, [restrictionKind]);
   
   // Ref for the scrollable container to implement infinite scroll
   const scrollRef  = useRef<HTMLDivElement>(null);
@@ -400,13 +486,22 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // ─────────────────────────────────────────────────────────────────────────────
   // RESPONSIVE: must be declared early — referenced by useEffects below
   // ─────────────────────────────────────────────────────────────────────────────
+  // Previously tracked window.innerWidth directly — meant the card/table
+  // view switch only ever responded to the actual browser window resizing,
+  // never to this component's OWN allotted width changing for some other
+  // reason (e.g. a sibling filter sidebar collapsing/expanding on the
+  // Search page, which changes how much width THIS panel gets without the
+  // window itself changing size at all). A ResizeObserver on the
+  // component's own root container responds to either cause through one
+  // mechanism, and SearchPage.tsx doesn't need to know or care which case
+  // it is.
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   useEffect(() => {
     const handler = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
-  const isTablet = viewportWidth < 1024;
+  const isTablet = forceCardView || viewportWidth < 1024;
 
   // Stable refs for parent callbacks — prevents them from being dependency array
   // triggers that cause infinite re-render loops when parents pass inline functions.
@@ -421,6 +516,21 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   
   // Hover state for row highlighting
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  // Cases with at least one open OR pending-verification specimen
+  // deficiency — a corrective action that hasn't been confirmed
+  // effective yet still represents unfinished quality work, so it
+  // stays flagged here too, not just genuinely-open items. Only
+  // 'closed' clears the flag. This is just a signal pointing at the
+  // dedicated Deficiencies work queue (src/pages/DeficienciesPage.tsx),
+  // not where resolution happens — see that page's own header comment
+  // for why deficiency resolution is deliberately independent of any
+  // single case's lifecycle.
+  const [caseIdsWithOpenDeficiency, setCaseIdsWithOpenDeficiency] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    specimenDeficiencyService.getAll().then(res => {
+      if (res.ok) setCaseIdsWithOpenDeficiency(new Set(res.data.filter(d => d.status !== 'closed').map(d => d.caseId)));
+    });
+  }, []);
 
   /**
    * Reset pagination whenever the filter changes to ensure the user 
@@ -523,10 +633,13 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
   /**
    * isUrgentCase:
-   * Returns true if the case is marked as 'STAT' in the order priority.
+   * Returns true if the case is marked 'STAT' or 'Rush' in the order
+   * priority — both jump the queue ahead of Routine for sorting/grouping
+   * purposes. Visual treatment (badge color) still distinguishes the two
+   * at render time; this check is only about queue position.
    */
   const isUrgentCase = useCallback((c: Case) => {
-    return c.order?.priority === 'STAT';
+    return c.order?.priority === 'STAT' || (c.order as any)?.priority === 'Rush';
   }, []);
 
   /**
@@ -676,6 +789,23 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
           type: 'system',
           event: 'Pediatric Access Denied',
           detail: `Case ${id} opened by ${(user as any)?.name ?? 'Unknown'} — blocked: patient age ${age} below client pediatric threshold. User lacks canViewPediatric permission.`,
+          user: (user as any)?.name ?? 'Unknown',
+          caseId: id,
+          confidence: null,
+        }).catch(() => {});
+        return;
+      }
+
+      // Orchestration restricted — same precedence/early-return pattern as
+      // pediatric above; checked separately (not merged into one branch)
+      // because the resulting modal/message needs different copy and no
+      // age/clientId payload.
+      if (isOrchRestricted(c as any)) {
+        setOrchBlockedCase({ id });
+        auditService.logEvent({
+          type: 'system',
+          event: 'Orchestration Access Denied',
+          detail: `Case ${id} opened by ${(user as any)?.name ?? 'Unknown'} — blocked: case belongs to Orchestration/Outreach. User lacks canViewOrchestration permission.`,
           user: (user as any)?.name ?? 'Unknown',
           caseId: id,
           confidence: null,
@@ -939,12 +1069,15 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                 // Case card
                 const c = row as Case;
                 const isUrgent = isUrgentCase(c);
+                const isRush = (c.order as any)?.priority === 'Rush';
+                const hasOpenDeficiency = caseIdsWithOpenDeficiency.has(c.id);
                 const isSelected = selectedCaseId ? c.id === selectedCaseId : false;
                 const statusStyle = getStatusStyle(c.status);
                 const statusLabel = c.status.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
 
                 let cardClass = 'wl-card';
                 if (isSelected) cardClass += ' wl-card--selected';
+                else if (isRush) cardClass += ' wl-card--rush';
                 else if (isUrgent) cardClass += ' wl-card--urgent';
 
                 return (
@@ -959,6 +1092,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     <div className="wl-card__header">
                       <div className="wl-card__id-group">
                         {isUrgent && <UrgentDot />}
+                        {hasOpenDeficiency && <span className="wl-card__deficiency-dot" title="Open specimen deficiency — see Deficiencies queue">⚠</span>}
                         <div>
                           {c.originHospitalId && c.originHospitalId !== 'HOSP-001' && (
                             <div
@@ -988,21 +1122,27 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       <div>
                         <div className="wl-card__field-label">Patient</div>
                         <div className="wl-card__field-value" data-phi="name">
-                          {isPedRestricted(c)
-                            ? <span className="wl-ped-name">🔒 Restricted Patient</span>
+                          {isRestricted(c)
+                            ? <span className="wl-ped-name">🔒 Restricted {restrictionKind(c) === 'pediatric' ? 'Patient' : 'Case'}</span>
                             : <>{c.patient.lastName}, {c.patient.firstName}</>}
                         </div>
-                        {isPedRestricted(c) ? (
+                        {isRestricted(c) ? (
                           <div className="wl-ped-hint">
-                            {pedRequestedIds.has(c.id) ? (
-                              <span className="wl-ped-badge">⏳ Access requested</span>
-                            ) : 'Click to request pediatric access'}
+                            {restrictionKind(c) === 'pediatric' ? (
+                              pedRequestedIds.has(c.id) ? (
+                                <span className="wl-ped-badge">⏳ Access requested</span>
+                              ) : 'Click to request pediatric access'
+                            ) : (
+                              orchRequestedIds.has(c.id) ? (
+                                <span className="wl-ped-badge">⏳ Access requested</span>
+                              ) : 'Click to request Orchestration access'
+                            )}
                           </div>
                         ) : (
                           <div className="wl-card__field-sub" data-phi="dob">
                             {c.patient.sex?.charAt(0) ?? '—'}
                             {' · '}
-                            {formatDate(c.patient.dateOfBirth)}
+                            {formatDate(c.patient.dateOfBirth, c.order?.clientId)}
                             {' '}
                             ({c.patient.dateOfBirth ? getAgeLabel(c.patient.dateOfBirth) : '—'})
                             <span className="wl-mrn-inline" data-phi="mrn">· MRN {c.patient.mrn ?? '—'}</span>
@@ -1013,14 +1153,14 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       {/* Accession + Physician */}
                       <div>
                         <div className="wl-card__field-label">Accession · Physician</div>
-                        <div className="wl-card__field-sub">{formatDate(c.order?.receivedDate)}</div>
+                        <div className="wl-card__field-sub">{formatDate(c.order?.receivedDate, c.order?.clientId)}</div>
                         <div className="wl-card__field-sub">
                           {c.order?.requestingProvider ?? '—'}
                         </div>
                       </div>
 
                       {/* Specimens — full width */}
-                      {!isPedRestricted(c) && c.specimens && c.specimens.length > 0 && (
+                      {!isRestricted(c) && c.specimens && c.specimens.length > 0 && (
                         <div className="wl-card__body-full">
                           <div className="wl-card__field-label">Specimen{c.specimens.length > 1 ? 's' : ''}</div>
                           <div className="wl-card__chips">
@@ -1031,8 +1171,19 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         </div>
                       )}
 
-                      {/* Flags — full width, only if present */}
-                      {!isPedRestricted(c) && ((c.caseFlags?.length ?? 0) + (c.specimenFlags?.length ?? 0)) > 0 && (
+                      {/* Flags — full width, only if present. Unlike
+                          specimens (which truncate their description text
+                          via max-width+ellipsis), flag chips previously had
+                          no max-width at all — a single long flag label
+                          could expand the chip wide enough to push past the
+                          card's edge, regardless of how many flags were
+                          present. Fixed at the chip level (.wl-flag-chip
+                          label span, see pathscribe.css) to match
+                          .wl-specimen-chip__desc's existing pattern exactly,
+                          rather than capping the flag count here, which
+                          doesn't address a single long label and would
+                          silently hide real flags beyond an arbitrary cutoff. */}
+                      {!isRestricted(c) && ((c.caseFlags?.length ?? 0) + (c.specimenFlags?.length ?? 0)) > 0 && (
                         <div className="wl-card__body-full">
                           <div className="wl-card__field-label">Flags</div>
                           <div className="wl-card__chips">
@@ -1069,21 +1220,37 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
           onScroll={handleScroll}
           className="wl-table-scroll"
         >
-          <table className="wl-table" style={{ minWidth: '1100px' }}>
+          <table className="wl-table">{/* width:100% from pathscribe.css — minWidth:'1100px' removed, see colgroup comment below */}
 
-          {/* Column widths tuned for 1366px viewport — total ~1107px */}
+          {/*
+            Percentages here, not fixed pixels, for every column except the
+            three tiny glyph slots (urgent dot / sex / status dot) — those
+            hold a single icon/letter, not text, so they don't benefit from
+            shrinking and just become illegible if they do. table-layout:fixed
+            fully supports mixing fixed-px and percentage <col> widths in the
+            same colgroup: the fixed ones reserve their exact space, the
+            percentage ones split whatever's left.
+            Previously: pixel widths "tuned for 1366px viewport" — but that
+            assumption ignores anything narrower (a search filter sidebar
+            eating into the same viewport, a smaller laptop, etc.), and
+            forced minWidth:'1100px' on the table regardless of how much
+            room was actually available, making horizontal scroll mandatory
+            even when the content could have fit by shrinking proportionally.
+            .wl-table-scroll's overflow:auto remains as a safety net for
+            genuinely extreme widths, not the expected normal-laptop behavior.
+          */}
           <colgroup>
-            <col style={{ width: '32px'  }} />{/* urgent dot */}
-            <col style={{ width: '130px' }} />{/* case id */}
-            <col style={{ width: '135px' }} />{/* patient */}
-            <col style={{ width: '60px'  }} />{/* mrn */}
-            <col style={{ width: '30px'  }} />{/* sex */}
-            <col style={{ width: '105px' }} />{/* dob */}
-            <col style={{ width: '190px' }} />{/* specimens */}
-            <col style={{ width: '85px'  }} />{/* accession */}
-            <col style={{ width: '120px' }} />{/* physician */}
-            <col style={{ width: '180px' }} />{/* flags */}
-            <col style={{ width: '40px'  }} />{/* status dot */}
+            <col style={{ width: '32px' }} />{/* urgent dot — fixed, icon */}
+            <col style={{ width: '13%' }} />{/* case id */}
+            <col style={{ width: '13%' }} />{/* patient */}
+            <col style={{ width: '6%'  }} />{/* mrn */}
+            <col style={{ width: '30px' }} />{/* sex — fixed, single letter */}
+            <col style={{ width: '10%' }} />{/* dob */}
+            <col style={{ width: '19%' }} />{/* specimens */}
+            <col style={{ width: '8%'  }} />{/* accession */}
+            <col style={{ width: '12%' }} />{/* physician */}
+            <col style={{ width: '18%' }} />{/* flags */}
+            <col style={{ width: '40px' }} />{/* status dot — fixed, icon */}
           </colgroup>
 
           {/* ── Sticky Header ── */}
@@ -1139,6 +1306,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                 // Case row
                 const c = row as Case;
                 const isUrgent = isUrgentCase(c);
+                const isRush   = (c.order as any)?.priority === 'Rush';
+                const hasOpenDeficiency = caseIdsWithOpenDeficiency.has(c.id);
                 const isPool   = c.status === 'pool';
                 const isSelected = selectedCaseId ? c.id === selectedCaseId : false;
                 const isHovered = hoveredRow === c.id;
@@ -1151,7 +1320,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     onMouseLeave={() => setHoveredRow(null)}
                     style={{
                       background: isSelected ? 'rgba(8,145,178,0.18)' : isHovered && isPool ? 'rgba(249,115,22,0.10)' : isHovered ? 'rgba(8,145,178,0.10)' : 'transparent',
-                      borderLeft: `2px solid ${isSelected ? '#0891B2' : isPool ? 'rgba(249,115,22,0.7)' : isUrgent ? 'rgba(239,68,68,0.5)' : 'transparent'}`,
+                      borderLeft: `2px solid ${isSelected ? '#0891B2' : isPool ? 'rgba(249,115,22,0.7)' : isRush ? 'rgba(245,158,11,0.6)' : isUrgent ? 'rgba(239,68,68,0.5)' : 'transparent'}`,
                       borderBottom: '1px solid rgba(255,255,255,0.05)',
                       cursor: 'pointer',
                       transition: 'background 0.15s ease',
@@ -1161,6 +1330,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     <td className="wl-td-dot">
                       <div className="wl-td-dot-inner">
                         {isUrgent && <UrgentDot />}
+                        {hasOpenDeficiency && <span className="wl-card__deficiency-dot" title="Open specimen deficiency — see Deficiencies queue">⚠</span>}
                       </div>
                     </td>
 
@@ -1172,20 +1342,28 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                           {getOrganisationShortName(c.originHospitalId)}
                         </div>
                       )}
-                      <div style={{ fontWeight: 600, color: isUrgent ? '#f87171' : isPool ? '#F97316' : '#0891b2', fontSize: '13px' }}>
+                      <div style={{ fontWeight: 600, color: isRush ? '#f59e0b' : isUrgent ? '#f87171' : isPool ? '#F97316' : '#0891b2', fontSize: '13px' }}>
                         {c.id}
                       </div>
                     </td>
 
                     {/* Patient name */}
                     <td className="wl-td" data-phi="name">
-                      {isPedRestricted(c) ? (
+                      {isRestricted(c) ? (
                         <div>
-                          <div className="wl-ped-name">🔒 Restricted Patient</div>
-                          {pedRequestedIds.has(c.id) ? (
-                            <div className="wl-ped-badge">⏳ Access requested</div>
+                          <div className="wl-ped-name">🔒 Restricted {restrictionKind(c) === 'pediatric' ? 'Patient' : 'Case'}</div>
+                          {restrictionKind(c) === 'pediatric' ? (
+                            pedRequestedIds.has(c.id) ? (
+                              <div className="wl-ped-badge">⏳ Access requested</div>
+                            ) : (
+                              <div className="wl-ped-hint">Click to request pediatric access</div>
+                            )
                           ) : (
-                            <div className="wl-ped-hint">Click to request pediatric access</div>
+                            orchRequestedIds.has(c.id) ? (
+                              <div className="wl-ped-badge">⏳ Access requested</div>
+                            ) : (
+                              <div className="wl-ped-hint">Click to request Orchestration access</div>
+                            )
                           )}
                         </div>
                       ) : (
@@ -1197,25 +1375,25 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
                     {/* MRN */}
                     <td className="wl-td-muted" data-phi="mrn">
-                      {isPedRestricted(c) ? '—' : (c.patient.mrn ?? '—')}
+                      {isRestricted(c) ? '—' : (c.patient.mrn ?? '—')}
                     </td>
 
                     {/* Sex */}
                     <td className="wl-td-center">
-                      {isPedRestricted(c) ? '—' : (c.patient.sex?.charAt(0) ?? '—')}
+                      {isRestricted(c) ? '—' : (c.patient.sex?.charAt(0) ?? '—')}
                     </td>
 
                     {/* DOB */}
                     <td className="wl-td-dob" data-phi="dob">
-                      {isPedRestricted(c) ? '—' : (
-                        <>{formatDate(c.patient.dateOfBirth)}
+                      {isRestricted(c) ? '—' : (
+                        <>{formatDate(c.patient.dateOfBirth, c.order?.clientId)}
                         <span className="wl-dob-age">({c.patient.dateOfBirth ? getAgeLabel(c.patient.dateOfBirth) : '—'})</span></>
                       )}
                     </td>
 
                     {/* Specimens */}
                     <td className="wl-td">
-                      {isPedRestricted(c) ? (
+                      {isRestricted(c) ? (
                         <span className="wl-specimen-empty">—</span>
                       ) : (
                         <div className="wl-chips-wrap">
@@ -1228,7 +1406,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
                     {/* Accession date */}
                     <td className="wl-td-date">
-                      {formatDate(c.order?.receivedDate)}
+                      {formatDate(c.order?.receivedDate, c.order?.clientId)}
                     </td>
 
                     {/* Physician */}
@@ -1247,7 +1425,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     <td className="wl-td-status">
                       <StatusDot
                         status={c.status}
-                        isGrossed={!!(c as any)?.diagnostic?.grossDescription?.trim()}
+                        isGrossed={!!(c as any)?.grossingReports?.some((r: any) => r.status === 'finalized')}
                       />
                     </td>
                   </tr>
@@ -1355,6 +1533,89 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   } catch { markPedRequested(pedBlockedCase.id); }
                 }}>
                   Request Pediatric Access
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Orchestration Access Modal ─────────────────────────────────── */}
+      {/* Structurally mirrors the Pediatric Access Modal above — same
+          messageService/auditService shape, same request-tracking pattern —
+          with copy and the message payload adjusted for what's actually being
+          granted: a Role-level flag (canViewOrchestration), not a per-client
+          authorized-pathologist list, and no age/clientId involved. */}
+      {orchBlockedCase && (
+        <div className="ps-overlay" onClick={() => setOrchBlockedCase(null)}>
+          <div className="ps-modal ps-modal-md" onClick={e => e.stopPropagation()}
+            style={{ borderColor: 'rgba(56,189,248,0.4)' }}>
+
+            <div className="ps-modal-header">
+              <div className="ps-modal-header-inner">
+                <div className="ps-ped-icon">🔒</div>
+                <div>
+                  <div className="ps-modal-title">Orchestration Access Required</div>
+                  <div className="ps-modal-subtitle">
+                    Case {orchBlockedCase.id}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="ps-modal-body">
+              <p className="ps-ped-body">
+                This case belongs to PathScribe Orchestration/Outreach — a different data source than
+                your LIS cases, with its own access control. Viewing it requires the{' '}
+                <strong className="ps-ped-highlight">canViewOrchestration</strong> flag on your staff record.
+                Your System Admin can grant this via{' '}
+                <strong className="ps-ped-highlight">Configuration → Staff</strong> (same screen as Pediatric Access).
+              </p>
+
+              {orchRequestSent ? (
+                <div className="ps-ped-pending">
+                  ⏳ Access request pending — your System Admin has been notified.<br/>
+                  <span className="ps-ped-pending-sub">You'll receive a message when access is granted.</span>
+                </div>
+              ) : (
+                <div className="ps-ped-info-box">
+                  <strong className="ps-ped-highlight">Request Orchestration Access</strong><br/>
+                  One click sends an automated request to your System Admin.
+                </div>
+              )}
+            </div>
+
+            <div className="ps-modal-footer">
+              <button className="ps-btn-secondary" onClick={() => setOrchBlockedCase(null)}>
+                Close
+              </button>
+              {!orchRequestSent && (
+                <button className="ps-btn-primary" onClick={async () => {
+                  if (!user || !orchBlockedCase) return;
+                  try {
+                    await messageService.send({
+                      senderId: (user as any).id,
+                      senderName: (user as any).name,
+                      recipientId: 'u3',
+                      recipientName: 'System Admin',
+                      subject: `Orchestration Access Request — ${(user as any).name}`,
+                      body: `${(user as any).name} needs Orchestration access for case ${orchBlockedCase.id}.\n\nTo grant access:\n1. Go to Configuration → Staff\n2. Open ${(user as any).name}'s staff record\n3. Enable the "canViewOrchestration" flag\n\nNote: this grants visibility into ALL Orchestration/Outreach cases for this user, not just this one case — confirm that's the intended scope before granting. (Same flag location/pattern as Pediatric Access, on the staff record rather than a per-client list.)`,
+                      configLink: '/configuration?tab=system&section=staff',
+                      timestamp: new Date(),
+                      isUrgent: false,
+                    });
+                    markOrchRequested(orchBlockedCase.id);
+                    reloadInbox();
+                    auditService.logEvent({
+                      type: 'system',
+                      event: 'Orchestration Access Requested',
+                      detail: `${(user as any)?.name ?? 'Unknown'} requested Orchestration Access permission for case ${orchBlockedCase!.id}. Request sent to System Admin.`,
+                      user: (user as any)?.name ?? 'Unknown',
+                      caseId: orchBlockedCase!.id,
+                      confidence: null,
+                    }).catch(() => {});
+                  } catch { markOrchRequested(orchBlockedCase.id); }
+                }}>
+                  Request Orchestration Access
                 </button>
               )}
             </div>

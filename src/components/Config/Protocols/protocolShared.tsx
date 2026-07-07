@@ -37,6 +37,31 @@ export interface Protocol {
   reviewNote?:  string;
   reviewedBy?:  string;   // who requested changes or approved
   reviewedAt?:  string;   // ISO timestamp of last review action
+  /**
+   * Whether this protocol's answers are diagnostic content destined for a
+   * pathology report / cancer registry submission, as opposed to procedural
+   * data (e.g. Grossing checklists) that never gets coded or transmitted
+   * the same way. Drives whether SNOMED/ICD coverage should be expected
+   * or encouraged for this protocol — NOT whether coding fields are
+   * available (every field always has snomed/icd keys, regardless).
+   * Default TRUE when unset — use isDiagnosticProtocol() below rather than
+   * reading this field directly, so existing entries that predate this flag
+   * (effectively all CAP/RCPath/diagnostic-Custom protocols) don't need to
+   * be touched one by one to keep their correct default behavior.
+   */
+  isDiagnostic?: boolean;
+}
+
+/**
+ * Whether coverage (SNOMED/ICD coding) should be expected/encouraged for
+ * this protocol. Defaults to true (diagnostic) unless isDiagnostic is
+ * explicitly set to false. Any future coverage-checker tool or Review
+ * Queue enforcement should call this rather than reading isDiagnostic
+ * directly, both for the default-true behavior and as a single place to
+ * change the rule later if it needs to get more nuanced than a flat flag.
+ */
+export function isDiagnosticProtocol(p: Protocol): boolean {
+  return p.isDiagnostic !== false;
 }
 
 // ─── Data registry ────────────────────────────────────────────────────────────
@@ -226,6 +251,46 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     category: 'KIDNEY', version: '5.0.0.1', source: 'CAP', type: 'Base template',
     status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
     lastModified: '2026-04-18', owner: 'System',
+  },
+  // ── Grossing Templates ──────────────────────────────────────────────────────
+  // Not diagnostic checklists — these are PA bench-grossing protocols, the
+  // data-entry equivalent for Stage 0/1 of the Orchestration workflow rather
+  // than the diagnostic Synoptic Template assignment stage. snomedPct/icdPct
+  // are intentionally 0 (isDiagnostic: false) — grossing concepts generally
+  // have no SNOMED/ICD mapping, unlike a CAP/RCPath diagnostic protocol's
+  // terms. See PathScribe_Orchestration_Workflow_Summary.md.
+  //
+  // Three peer templates, not one generic + variants — mirrors the SOP's own
+  // three-way specimen category triage (Standard Tissue / Fluid-Cytology /
+  // Histology-Only Direct Triage) and matches how CAP itself ships separate
+  // peer protocols per procedure rather than one branching mega-template
+  // (e.g. breast_invasive vs breast_dcis_resection). Stage 0's AI assignment
+  // is expected to pick the right one of these three per specimen, the same
+  // way CAP_TO_REPORT picks a Report Template — not a parent/child template
+  // relationship, which doesn't exist anywhere in the EditorTemplate schema.
+  {
+    id: 'grossing_standard_tissue',
+    name: 'Standard Tissue Grossing (Gold Standard) — Route A',
+    category: 'GROSSING', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    status: 'published', fields: 31, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-06-27', owner: 'System',
+    isDiagnostic: false,
+  },
+  {
+    id: 'grossing_fluid_cytology',
+    name: 'Fluid / Cell Block Grossing (Gold Standard) — Route B',
+    category: 'GROSSING', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    status: 'published', fields: 12, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-06-27', owner: 'System',
+    isDiagnostic: false,
+  },
+  {
+    id: 'grossing_histology_only',
+    name: 'Histology-Only / Direct Triage (Gold Standard) — Route C',
+    category: 'GROSSING', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    status: 'published', fields: 9, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-06-27', owner: 'System',
+    isDiagnostic: false,
   },
 ];
 

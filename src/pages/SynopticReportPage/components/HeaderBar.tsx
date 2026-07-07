@@ -7,13 +7,55 @@ import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
 import '@/pathscribe.css';
 
+// ── AI Synthesis Status — Gatekeeper Badge model. Matches the type defined
+// in SynopticReportPage.tsx (duplicated here rather than imported to avoid
+// a cross-directory type-only import cycle; keep these two in sync if the
+// shape changes).
+export interface AiSynthesisStatus {
+  state: 'none' | 'draft-ready' | 'review-required';
+  overallConfidence?:      number;
+  flaggedFieldId?:          string;
+  flaggedFieldConfidence?:  number;
+}
+
 interface HeaderBarProps {
   caseData:      Case | null;
   onSignOut:     () => void;
   onNavigate:    (path: string) => void;
-  aiConfidence?: number; // 0–100
+  /**
+   * Gatekeeper Badge status — replaces the old flat `aiConfidence` percentage.
+   * SHORT-TERM model (per clinical review): conservative binary state — ANY
+   * AI-suggested field below the configured confidence threshold trips
+   * 'review-required', regardless of which field it is. A true tiered
+   * "floor" model (gating only on diagnosis/staging-critical fields) is the
+   * intended long-term design, deferred until tier classification can be
+   * sourced from the real CAP eCC template schema rather than guessed.
+   */
+  aiSynthesisStatus?: AiSynthesisStatus;
+  /** "Unpacking" — clicking the badge in 'review-required' state should
+   *  jump the pathologist straight to the flagged field, not just display
+   *  a number. No-op if omitted or if state isn't 'review-required'. */
+  onAiStatusClick?: () => void;
   /** Compact single-strip mode — used in Report Draft to maximise editor space */
   compact?:      boolean;
+  /**
+   * Priority editing — added June 2026 to close a real gap: priority was
+   * previously set once at Accession and then had no edit mechanism
+   * anywhere else in the app, including here (this badge only ever
+   * displayed it read-only). Omit to keep the badge read-only (e.g. on a
+   * finalized/closed case, where changing urgency no longer means
+   * anything).
+   */
+  onChangePriority?: (priority: string) => void;
+  priorityLevels?: { id: string; label: string; colorHint: string }[];
+  /** Deficiency history indicator — see this section's own render comment. */
+  deficiencyCount?: number;
+  onOpenDeficiencyHistory?: () => void;
+  /** Highlights the matching block chip and shows its status — the
+   *  block a Grossing voice command (next/previous/mark grossed) would
+   *  currently act on. Undefined outside grossing-relevant contexts. */
+  focusedBlockId?: string;
+  onOpenBlockEditor?: () => void;
 }
 
 type StepStatus = 'completed' | 'current' | 'pending' | 'alert';
@@ -37,7 +79,7 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiConfidence, compact = false }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor }) => {
   const isOrchestration = getOrchestratorMode();
 
   const accession = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '—';
@@ -94,9 +136,20 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             </>
           )}
           {(caseData?.order as any)?.priority && (
-            <span className={`ps-hb-compact-priority${(caseData?.order as any)?.priority === 'STAT' ? ' ps-hb-compact-priority--stat' : ' ps-hb-compact-priority--routine'}`}>
-              {(caseData?.order as any)?.priority}
-            </span>
+            onChangePriority && priorityLevels?.length ? (
+              <select
+                className={`ps-hb-compact-priority ps-hb-compact-priority--editable${(caseData?.order as any)?.priority === 'STAT' ? ' ps-hb-compact-priority--stat' : (caseData?.order as any)?.priority === 'Rush' ? ' ps-hb-compact-priority--rush' : ' ps-hb-compact-priority--routine'}`}
+                value={(caseData?.order as any)?.priority}
+                onChange={e => onChangePriority(e.target.value)}
+                title="Change case priority"
+              >
+                {priorityLevels.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            ) : (
+              <span className={`ps-hb-compact-priority${(caseData?.order as any)?.priority === 'STAT' ? ' ps-hb-compact-priority--stat' : (caseData?.order as any)?.priority === 'Rush' ? ' ps-hb-compact-priority--rush' : ' ps-hb-compact-priority--routine'}`}>
+                {(caseData?.order as any)?.priority}
+              </span>
+            )
           )}
         </div>
 
@@ -117,13 +170,28 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           ))}
         </div>
 
-        {/* Right: AI confidence + breadcrumb nav */}
+        {/* Right: AI synthesis status + breadcrumb nav */}
         <div className="ps-hb-compact-right">
-          {aiConfidence !== undefined && (
-            <span className="ps-hb-compact-conf">
-              <span className="ps-hb-compact-conf-pct">{aiConfidence}%</span>
-              <span className="ps-hb-compact-conf-label">AI</span>
-            </span>
+          {aiSynthesisStatus && aiSynthesisStatus.state !== 'none' && (
+            aiSynthesisStatus.state === 'review-required' ? (
+              <button
+                className="ps-hb-compact-conf ps-hb-compact-conf--warn"
+                onClick={onAiStatusClick}
+                style={{ background: 'none', border: 'none', font: 'inherit', cursor: 'pointer', padding: 0 }}
+                title={
+                  aiSynthesisStatus.flaggedFieldConfidence !== undefined
+                    ? `A field is at ${aiSynthesisStatus.flaggedFieldConfidence}% confidence — click to review`
+                    : 'A field is below the confidence threshold — click to review'
+                }
+              >
+                <span className="ps-hb-compact-conf-pct">⚠</span>
+                <span className="ps-hb-compact-conf-label">Review Pending</span>
+              </button>
+            ) : (
+              <span className="ps-hb-compact-conf ps-hb-compact-conf--neutral" title="AI-drafted — no fields below threshold">
+                <span className="ps-hb-compact-conf-label">AI Drafted</span>
+              </span>
+            )
           )}
           <button
             className="ps-hb-compact-nav-btn"
@@ -146,6 +214,39 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb ps-hb-crumb--active">Case Report</span>
       </div>
+
+      {/* Blocks & Stains — generated at Accession from the specimen's
+          protocol (or default stains). Click "Edit" to open the real
+          manual editor — status, stains, and a per-block priority
+          override are all hand-editable there now; this row itself
+          stays a read-only summary. */}
+      {(caseData?.specimens ?? []).some((sp: any) => sp.blocks?.length) && (
+        <div className="ps-hb-blocks-row">
+          {(caseData?.specimens ?? []).map((sp: any) => (sp.blocks ?? []).map((block: any) => (
+            <span key={block.id} className={`ps-hb-block-chip${block.id === focusedBlockId ? ' ps-hb-block-chip--focused' : ''}`} title={block.sourcePathwayName ?? undefined}>
+              <strong>{sp.label}{block.label}</strong>
+              {block.sourcePathwayName ? ` (${block.sourcePathwayName})` : ''}
+              {' · '}{block.stains.length ? block.stains.map((st: any) => st.stainName).join(', ') : 'no stains yet'}
+              {' · '}<em>{block.status}</em>
+              {block.priority ? <> · <em title="Priority override">{block.priority}</em></> : null}
+            </span>
+          )))}
+          {onOpenBlockEditor && (
+            <button className="ps-hb-block-edit-btn" onClick={onOpenBlockEditor}>Edit</button>
+          )}
+        </div>
+      )}
+
+      {/* Deficiency history indicator — closes a real gap: getByCaseId()
+          already existed on the deficiency service with zero UI ever
+          calling it. Only shown when there's actually something to see. */}
+      {!!deficiencyCount && onOpenDeficiencyHistory && (
+        <div className="ps-hb-blocks-row">
+          <button className="ps-hb-deficiency-chip" onClick={onOpenDeficiencyHistory}>
+            ⚠ {deficiencyCount} specimen deficienc{deficiencyCount === 1 ? 'y' : 'ies'} — click to view history
+          </button>
+        </div>
+      )}
 
       {/* Main row */}
       <div className="ps-hb-row">
@@ -216,30 +317,51 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           ))}
         </div>
 
-        {/* Right — AI confidence card */}
+        {/* Right — AI synthesis status card */}
         <div className="ps-hb-right">
           <div className="ps-hb-confidence-card">
             <div className="ps-hb-confidence-header">
               <span className="ps-hb-confidence-status">{status}</span>
               <span className="ps-hb-confidence-priority">{caseData?.order?.priority ?? 'Routine'}</span>
             </div>
-            {aiConfidence !== undefined && (
-              <>
-                <div className="ps-hb-confidence-score">
-                  <span className="ps-hb-confidence-pct">{aiConfidence}%</span>
-                  <span className="ps-hb-confidence-label">AI confidence</span>
+            {aiSynthesisStatus && aiSynthesisStatus.state !== 'none' ? (
+              aiSynthesisStatus.state === 'review-required' ? (
+                <button
+                  className="ps-hb-confidence-score ps-hb-confidence-score--warn"
+                  onClick={onAiStatusClick}
+                  style={{ background: 'none', border: 'none', font: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', display: 'flex', flexDirection: 'column' }}
+                  title="Click to jump to the flagged field"
+                >
+                  <span className="ps-hb-confidence-pct">⚠ Review Pending</span>
+                  {aiSynthesisStatus.flaggedFieldConfidence !== undefined && (
+                    <span className="ps-hb-confidence-label">
+                      Field at {aiSynthesisStatus.flaggedFieldConfidence}% confidence
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <div className="ps-hb-confidence-score ps-hb-confidence-score--neutral">
+                  <span className="ps-hb-confidence-pct">AI Drafted</span>
+                  <span className="ps-hb-confidence-label">
+                    No fields below threshold
+                    {aiSynthesisStatus.overallConfidence !== undefined
+                      ? ` · ${aiSynthesisStatus.overallConfidence}% avg`
+                      : ''}
+                  </span>
                 </div>
-                <div className="ps-hb-confidence-bar-track">
-                  <div
-                    className={`ps-hb-confidence-bar-fill${
-                      aiConfidence >= 80 ? ' ps-hb-confidence-bar-fill--high'
-                      : aiConfidence >= 60 ? ' ps-hb-confidence-bar-fill--mid'
-                      : ' ps-hb-confidence-bar-fill--low'
-                    }`}
-                    style={{ width: `${aiConfidence}%` }}
-                  />
-                </div>
-              </>
+              )
+            ) : (
+              // No AI suggestions exist yet for this case — rather than
+              // leaving the card body empty (previously: header strip only,
+              // nothing below it), give the case status itself the same
+              // visual weight the AI states get, so the card always shows
+              // something meaningful instead of looking unfinished/blank.
+              <div className="ps-hb-confidence-score ps-hb-confidence-score--status">
+                <span className="ps-hb-confidence-pct" style={{ color: meta.color }}>
+                  {status.replace(/-/g, ' ').toUpperCase()}
+                </span>
+                <span className="ps-hb-confidence-label">No AI suggestions yet</span>
+              </div>
             )}
           </div>
         </div>

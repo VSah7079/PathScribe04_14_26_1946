@@ -23,7 +23,7 @@ import type { ServiceResult } from '../types';
 /** Full case record — alias for Case (LIS-sourced) */
 export type PathologyCase = Case;
 /** Case scheduling priority */
-export type CasePriority = 'Routine' | 'STAT';
+export type CasePriority = 'Routine' | 'Rush' | 'STAT';
 /** AI suggestion pipeline status */
 export type AIStatus = 'pending' | 'processing' | 'complete' | 'failed' | 'none';
 /** Hex or named colour for a flag badge */
@@ -153,4 +153,16 @@ export interface ICaseService {
    * Used by the report editor, delegation flows, and flag management.
    */
   updateCase(caseId: string, updates: Partial<Case>): Promise<void>;
+
+  /**
+   * Persist a brand-new case. Caller is responsible for generating the
+   * case's id (and, for Orchestration cases, ensuring it carries the
+   * O26- prefix CaseRouter currently keys on — see CaseRouter.ts's own
+   * note that this string-prefix check is a stand-in for a future Case
+   * Registry lookup, S0-CF-08/09/10). Added for the Accession page
+   * (Stage 0 Requirements §6.1) — no prior caller in this codebase
+   * created cases through ICaseService; LIS cases arrive via FHIR
+   * ServiceRequest ingestion in production, not this method.
+   */
+  createCase(caseData: Case): Promise<void>;
 }

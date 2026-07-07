@@ -21,6 +21,14 @@ export interface User {
   middleName?: string;
   lastName?: string;
   canViewPediatric?: boolean;
+  canViewOrchestration?: boolean;
+  /** The tenant/organisation boundary — see StaffUser.organisationId's
+   *  own doc comment (IUserService.ts) for the full reasoning. Resolved
+   *  from StaffUser at login/session-restore, same as the fields above.
+   *  Read by services/auth/caseAccessControl.ts directly from
+   *  localStorage — the mock services aren't React components and can't
+   *  use this context, so they read the same persisted session object. */
+  organisationId?: string;
 }
 
 interface AuthContextType {
@@ -68,11 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Option C: canViewPediatric lives on the StaffUser record, not the role
   const resolveStaffFields = async (userId: string): Promise<{
     canViewPediatric: boolean;
+    canViewOrchestration: boolean;
     credentials?: string;
     signatureUrl?: string;
     firstName?: string;
     middleName?: string;
     lastName?: string;
+    organisationId?: string;
   }> => {
     try {
       const { userService } = await import('../services');
@@ -81,17 +91,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const staffUser = res.data.find((u: any) => u.id === userId);
         if (staffUser) {
           return {
-            canViewPediatric: staffUser.canViewPediatric ?? false,
+            canViewPediatric:     staffUser.canViewPediatric ?? false,
+            canViewOrchestration: (staffUser as any).canViewOrchestration ?? false,
             credentials:      staffUser.credentials ?? undefined,
             signatureUrl:     staffUser.signatureUrl ?? undefined,
             firstName:        staffUser.firstName ?? undefined,
             middleName:       (staffUser as any).middleName ?? undefined,
             lastName:         staffUser.lastName ?? undefined,
+            organisationId:   (staffUser as any).organisationId ?? undefined,
           };
         }
       }
     } catch { /* non-critical — fail safe */ }
-    return { canViewPediatric: false };
+    // Fail-safe default: no organisationId resolved means no case access
+    // (deny by default) rather than silently falling back to some default
+    // tenant — matches the same "fail safe, not fail open" posture as
+    // canViewPediatric/canViewOrchestration defaulting to false above.
+    return { canViewPediatric: false, canViewOrchestration: false };
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -111,8 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         { email: "pete.nimmo@pathscribe.ai",           password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "superadmin"  as const, initials: "PN", voiceProfile: "EN-US" },
         { email: "demo@pathscribe.ai",                 password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-001",    name: "Pete Nimmo",           role: "superadmin"  as const, initials: "PN", voiceProfile: "EN-US" },
         { email: "sarah.johnson@demo.pathscribe.ai",   password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-SJ-001", name: "Dr. Sarah Johnson",    role: "superadmin"  as const, initials: "SJ", voiceProfile: "EN-US" },
-        { email: "admin@pathscribe.ai",                password: "ZBs=inBiC6^N*XYwH3v^",   id: "u3",          name: "System Admin",         role: "admin"       as const, initials: "SA", voiceProfile: "EN-US" },
-        { email: "paul.carter@mft.nhs.uk",             password: "Pathscribe_TempPass2026!", id: "PATH-UK-001", name: "Paul Carter",          role: "pathologist" as const, initials: "PC", voiceProfile: "EN-GB" },
+        { email: "admin@pathscribe.ai",                password: "ZBs=inBiC6^N*XYwH3v^",   id: "u3",          name: "System Admin",         role: "superadmin"  as const, initials: "SA", voiceProfile: "EN-US" },
+        { email: "paul.carter@mft.nhs.uk",             password: "Pathscribe_TempPass2026!", id: "PATH-UK-001", name: "Paul Carter",          role: "superadmin"  as const, initials: "PC", voiceProfile: "EN-GB" },
+        { email: "bronwyn.prior@mft.nhs.uk",           password: "Pathscribe_Welcome2026!",  id: "PATH-UK-003", name: "Bronwyn Prior",        role: "superadmin"  as const, initials: "BP", voiceProfile: "EN-GB" },
         { email: "oliver.pemberton@mft.nhs.uk",        password: "xyxRnJrIu64nsi0KqPn-",   id: "PATH-UK-002", name: "Dr. Oliver Pemberton", role: "superadmin"  as const, initials: "OP", voiceProfile: "EN-GB" },
         { email: "amber.fehrs@demo.pathscribe.ai",     password: "One_Amazing_Person!",      id: "PATH-US-001", name: "Amber Fehrs-Battey",   role: "superadmin"  as const, initials: "AF", voiceProfile: "EN-US" },
         { email: "mark.tuthill@hfhs-demo.pathscribe.ai", password: "One_Amazing_Doctor!",   id: "PATH-US-002", name: "Dr. J. Mark Tuthill",  role: "superadmin"         as const, initials: "MT", voiceProfile: "EN-US" },
@@ -182,8 +199,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ensure voiceProfile always has a fallback
         if (!parsed.voiceProfile) parsed.voiceProfile = 'EN-US';
 
-        // Resolve canViewPediatric if missing from stored session
-        if (parsed.canViewPediatric === undefined) {
+        // Resolve canViewPediatric/canViewOrchestration/organisationId if
+        // missing from stored session (covers a brand-new field on an old
+        // stored session). organisationId is included here deliberately —
+        // without it, a session logged in before this change would keep
+        // its old canViewPediatric/canViewOrchestration and never get
+        // organisationId backfilled, silently locking that session out of
+        // all case access until a fresh login.
+        if (parsed.canViewPediatric === undefined || parsed.canViewOrchestration === undefined || parsed.organisationId === undefined) {
           const fields = await resolveStaffFields(parsed.id);
           Object.assign(parsed, fields);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));

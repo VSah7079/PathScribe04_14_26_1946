@@ -330,6 +330,27 @@ export function getOrganisationByHospitalId(hospitalId: string): Organisation | 
   return orgId ? (ORG_BY_ID.get(orgId) ?? null) : null;
 }
 
+/**
+ * Reverse of getOrganisationByHospitalId — given a session's
+ * organisationId, returns the legacy hospital ID a new Case should carry
+ * as originHospitalId. Added June 2026 for the Accession page: Origin
+ * Hospital should be derived from the accessioning user's own
+ * organisation, not a free-pick dropdown across every organisation in the
+ * system — a mis-click there would put a case under the wrong tenant
+ * entirely, which is exactly the boundary caseAccessControl.ts exists to
+ * protect. Single-sourced here rather than duplicating the legacy map in
+ * AccessionPage.tsx.
+ */
+export function getHospitalIdForOrganisation(organisationId: string): string | null {
+  const legacyReverseMap: Record<string, string> = {
+    'ORG-DVMC': 'HOSP-001',
+    'ORG-MFT':  'HOSP-MFT',
+    'ORG-MPA':  'HOSP-MPA',
+    'ORG-HFHS': 'HOSP-HFHS',
+  };
+  return legacyReverseMap[organisationId] ?? null;
+}
+
 /** Get display name for a hospital ID (used in UI until full migration) */
 export function getOrganisationDisplayName(hospitalId?: string | null): string | null {
   if (!hospitalId) return null;

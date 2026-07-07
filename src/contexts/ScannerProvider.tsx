@@ -12,12 +12,26 @@
  *   Scanner input: <50ms between keystrokes (typically 5–20ms)
  *
  * On a complete scan (Enter received after fast-burst input):
- *   1. Validates the buffer against the accession regex from SystemConfig
+ *   1. Validates the buffer against every ENABLED accession/mrn format from
+ *      SystemConfig — not just one. Fixed June 2026: this used to test only
+ *      against config.identifierFormats.accessionPattern/mrnPattern, which
+ *      deriveLegacyFormats() populates from the FIRST enabled format of each
+ *      kind — meaning if an admin enabled both the US and UK accession
+ *      formats on the Identifier Formats config screen, only whichever one
+ *      happened to be first in the array actually got tested. A UK-format
+ *      scan would silently fail to match even though the toggle for it was
+ *      on. Same bug existed in SearchPage.tsx's manual identifier box,
+ *      fixed alongside this.
  *   2. If accession match → navigate to /case/{accession}/synoptic
  *   3. If MRN match → navigate to worklist filtered by MRN (future)
  *   4. Fires a SCANNER_EVENT custom event so components can react (e.g. flash)
  *
  * No focus required — the listener is global and works anywhere in the app.
+ *
+ * simulateScan() is exposed via useScanner() for testing without physical
+ * scanner hardware — it runs the exact same handleScan() logic a real scan
+ * would, just skipping the keystroke-timing capture step. See the
+ * "Simulate a scan" tool on the Identifier Formats config page.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -25,6 +39,7 @@ import React, { createContext, useContext, useEffect, useRef, useCallback } from
 import { useNavigate } from 'react-router-dom';
 import { useSystemConfig } from './SystemConfigContext';
 import { useAuth } from './AuthContext';
+import { IDENTIFIER_FORMAT_LIBRARY } from '../types/systemConfig';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,11 +53,14 @@ interface ScanEvent {
 
 interface ScannerContextValue {
   lastScan: ScanEvent | null;
+  /** Runs a value through the same detection logic a real scan would, for
+   *  testing without a physical scanner. */
+  simulateScan: (value: string) => void;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-const ScannerContext = createContext<ScannerContextValue>({ lastScan: null });
+const ScannerContext = createContext<ScannerContextValue>({ lastScan: null, simulateScan: () => {} });
 export const useScanner = () => useContext(ScannerContext);
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -63,27 +81,33 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const lastScanRef   = useRef<ScanEvent | null>(null);
   const [lastScan, setLastScan] = React.useState<ScanEvent | null>(null);
 
-  const getPatterns = useCallback(() => {
-    const fmt = config?.identifierFormats;
-    return {
-      accession: fmt?.accessionPattern ? new RegExp(fmt.accessionPattern) : /^[A-Z]{1,4}\d{2}-\d{3,6}/i,
-      mrn:       fmt?.mrnPattern       ? new RegExp(fmt.mrnPattern)       : /^\d{5,10}$/,
-    };
+  // Every ENABLED format of a given kind, not just one derived pattern.
+  // Falls back to the library's own defaults if config hasn't got a
+  // formats[] list yet (e.g. a session predating this field).
+  const getEnabledPatterns = useCallback((kind: 'accession' | 'mrn'): RegExp[] => {
+    const formats = config?.identifierFormats?.formats?.length
+      ? config.identifierFormats.formats
+      : IDENTIFIER_FORMAT_LIBRARY;
+    return formats
+      .filter(f => f.kind === kind && f.enabled)
+      .map(f => { try { return new RegExp(f.pattern, 'i'); } catch { return null; } })
+      .filter((r): r is RegExp => r !== null);
   }, [config?.identifierFormats]);
 
   const handleScan = useCallback((raw: string) => {
     const cleaned = raw.trim();
     if (cleaned.length < MIN_SCAN_LENGTH) return;
 
-    const { accession, mrn } = getPatterns();
+    const accessionPatterns = getEnabledPatterns('accession');
+    const mrnPatterns       = getEnabledPatterns('mrn');
 
     let type: ScanType = 'unknown';
     let matchedAccession: string | undefined;
 
-    if (accession.test(cleaned)) {
+    if (accessionPatterns.some(re => re.test(cleaned))) {
       type = 'accession';
       matchedAccession = cleaned;
-    } else if (mrn.test(cleaned)) {
+    } else if (mrnPatterns.some(re => re.test(cleaned))) {
       type = 'mrn';
     }
 
@@ -101,7 +125,7 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // MRN: could navigate to worklist filtered by MRN — placeholder for now
     // if (type === 'mrn') navigate(`/worklist?mrn=${cleaned}`);
 
-  }, [getPatterns, navigate]);
+  }, [getEnabledPatterns, navigate]);
 
   useEffect(() => {
     // Only activate when user is authenticated
@@ -181,7 +205,7 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [handleScan, user]);
 
   return (
-    <ScannerContext.Provider value={{ lastScan }}>
+    <ScannerContext.Provider value={{ lastScan, simulateScan: handleScan }}>
       {children}
     </ScannerContext.Provider>
   );

@@ -15,7 +15,6 @@ export { mockRoleService          as roleService          } from './roles/mockRo
 export { mockPhysicianService     as physicianService     } from './physicians/mockPhysicianService';
 export { mockFlagService          as flagService          } from './flags/mockFlagService';
 export { mockSubspecialtyService  as subspecialtyService  } from './subspecialties/mockSubspecialtyService';
-export { mockSpecimenService      as specimenService      } from './specimens/mockSpecimenService';
 export { mockClientService        as clientService        } from './clients/mockClientService';
 export { mockShortcutService      as shortcutService      } from './shortcuts/mockShortcutService';
 export { mockSystemConfigService  as systemConfigService  } from './systemConfig/mockSystemConfigService';
@@ -36,7 +35,6 @@ export type { Role }              from './roles/IRoleService';
 export type { Physician }         from './physicians/IPhysicianService';
 export type { Flag }              from './flags/IFlagService';
 export type { Subspecialty }      from './subspecialties/ISubspecialtyService';
-export type { Specimen }          from './specimens/ISpecimenService';
 export type { Client }            from './clients/mockClientService';
 export type { ShortcutMap }       from './shortcuts/mockShortcutService';
 export type { SystemConfig }      from './systemConfig/mockSystemConfigService';

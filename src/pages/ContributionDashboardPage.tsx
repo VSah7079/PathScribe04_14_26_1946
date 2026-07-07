@@ -17,6 +17,10 @@ import type {
 import { getOrchestratorMode } from "@components/Config/NarrativeTemplates";
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../constants/systemActions';
+import { useNavigate } from 'react-router-dom';
+import { specimenDeficiencyService, deficiencyTypeService } from '../services';
+import type { SpecimenDeficiency, DeficiencyType } from '../services/deficiencies/IDeficiencyService';
+import type { ContributionFlag } from '../types/ContributionDashboard';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -43,11 +47,10 @@ const mockCaseMixData: CaseMixData = {
 
 
 
-const mockQualityFlags: ContributionFlag[] = [
-  { id: "PSA-2024-1182", label: "PSA-2024-1182", value: "Missing margin comment",     severity: "low"    },
-  { id: "PSA-2024-1190", label: "PSA-2024-1190", value: "Discordant grade",           severity: "medium" },
-  { id: "PSA-2024-1201", label: "PSA-2024-1201", value: "Specimen labeling mismatch", severity: "high"   },
-];
+// Quality Flags previously lived here as 3 permanently-fixed fake
+// entries ("PSA-2024-XXXX") with zero connection to the real
+// Deficiency/CAPA system — looked live, never actually was. Replaced
+// by a real fetch + derivation inside the component itself, below.
 
 // RVU last-30-days mock
 const mockRvu30 = { total: 387, delta: "+6.2%", up: true, avgPerCase: 21.8 };
@@ -266,10 +269,43 @@ const TatPerformanceTile: React.FC = () => {
 
 const ContributionDashboardPage: React.FC = () => {
   const { user } = useAuth();
-  
+  const navigate = useNavigate();
 
   const [activeTab,           setActiveTab]           = useState<DashboardTab>("overview");
   const finalCaseLabel = getOrchestratorMode() ? "Cases Signed Out" : "Cases Finalised";
+
+  // ── Quality Flags — real data, not the 3 permanently-fixed fake ───────────
+  // entries this used to show. Severity isn't a real field anywhere on
+  // SpecimenDeficiency (checked — it genuinely doesn't exist), so it's
+  // derived here from real, existing signals rather than invented:
+  // overdue pending-verification or anything reopened at least once
+  // reads as high, a fresh open item as medium, anything else shown
+  // (non-overdue pending-verification) as low.
+  const [qualityFlags, setQualityFlags] = useState<ContributionFlag[]>([]);
+  useEffect(() => {
+    Promise.all([specimenDeficiencyService.getAll(), deficiencyTypeService.getAll()]).then(([defRes, typeRes]) => {
+      if (!defRes.ok) return;
+      const types: DeficiencyType[] = typeRes.ok ? typeRes.data : [];
+      const typeName = (id: string) => types.find(t => t.id === id)?.name ?? id;
+      const isOverdue = (d: SpecimenDeficiency) => !!d.verificationDueDate && new Date(d.verificationDueDate).getTime() < Date.now();
+
+      const relevant = defRes.data
+        .filter(d => d.status !== 'closed')
+        .sort((a, b) => {
+          const score = (d: SpecimenDeficiency) => (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 2 : d.status === 'open' ? 1 : 0;
+          return score(b) - score(a) || b.raisedAt.localeCompare(a.raisedAt);
+        })
+        .slice(0, 3);
+
+      setQualityFlags(relevant.map((d): ContributionFlag => ({
+        id: d.id,
+        label: d.caseId,
+        value: `${typeName(d.deficiencyTypeId)}${d.specimenLabel ? ` — Specimen ${d.specimenLabel}` : ' — case-level'}`,
+        severity: (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 'high' : d.status === 'open' ? 'medium' : 'low',
+        onClick: () => navigate(`/case/${d.caseId}/synoptic`),
+      })));
+    });
+  }, []);
 
 
   // ── Voice: set WORKLIST context on mount ──────────────────────────────────
@@ -389,7 +425,10 @@ const ContributionDashboardPage: React.FC = () => {
                   <WarningIcon size={18} style={{ color: t.colors.semantic.warning }} />
                 </div>
                 <div data-capture-hide="true" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {mockQualityFlags.map((flag) => (
+                  {qualityFlags.length === 0 && (
+                    <div style={{ fontSize: "13px", color: t.colors.text.muted }}>No open quality items right now.</div>
+                  )}
+                  {qualityFlags.map((flag) => (
                     <FlagRow key={flag.id} {...flag} />
                   ))}
                 </div>

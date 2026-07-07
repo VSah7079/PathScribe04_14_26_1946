@@ -22,8 +22,8 @@
  * and remove this import when done.
  *
  * Consumers: RoleDictionary, StaffTab, ParticipationTypesSection,
- *            PhysiciansSection, RoutingRulesSection, SpecimenDictionary,
- *            SubspecialtiesSection (already refactored)
+ *            RoutingRulesSection, SpecimenDictionary
+ *            (SubspecialtiesSection, PhysiciansSection already refactored — June 2026)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 import type React from "react";

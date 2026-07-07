@@ -16,6 +16,7 @@
 import React, { useState, useCallback } from 'react';
 import '../../../pathscribe.css';
 import { useSystemConfig } from '../../../contexts/SystemConfigContext';
+import { useScanner } from '../../../contexts/ScannerProvider';
 import { useAuditLog } from '../../Audit/useAuditLog';
 import {
   IDENTIFIER_FORMAT_LIBRARY,
@@ -182,6 +183,56 @@ const FormatRow: React.FC<{
   );
 };
 
+// ── Simulate a scan ──────────────────────────────────────────────────────────
+// No physical scanner needed to test this — HID scanners are just fast
+// keyboard bursts, and the timing-detection that tells them apart from
+// human typing is a separate, already-working concern from what actually
+// changed today (multi-format matching). This bypasses the keystroke
+// timing capture and calls the real detection logic directly.
+
+const SimulateScanTool: React.FC = () => {
+  const { simulateScan, lastScan } = useScanner();
+  const [value, setValue] = useState('');
+  const [fired, setFired] = useState(false);
+
+  const handleRun = () => {
+    if (!value.trim()) return;
+    setFired(true);
+    simulateScan(value);
+  };
+
+  return (
+    <div className="ps-idf-locale-card">
+      <div className="ps-idf-locale-row ps-idf-simulate-label-row">
+        <span className="ps-idf-locale-label">Simulate a scan (no scanner needed)</span>
+      </div>
+      <div className="ps-idf-simulate-row">
+        <input
+          className="ps-idf-test-input ps-idf-simulate-input"
+          value={value}
+          onChange={e => { setValue(e.target.value); setFired(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') handleRun(); }}
+          placeholder="Type a value exactly as it would scan, e.g. SP26-4200 or 943 476 5919"
+          spellCheck={false}
+        />
+        <button className="ps-btn-secondary ps-idf-simulate-btn" onClick={handleRun}>Simulate Scan</button>
+      </div>
+      {fired && lastScan && (
+        <div className={`ps-idf-test-banner${lastScan.type !== 'unknown' ? ' ps-idf-test-banner--pass' : ' ps-idf-test-banner--fail'}`}>
+          {lastScan.type === 'accession' && `✓ Detected as Accession Number — navigating to /case/${lastScan.matchedAccession}/synoptic, same as a real scan.`}
+          {lastScan.type === 'mrn' && `✓ Detected as a Patient ID (MRN/NHS/CHI/etc.) format.`}
+          {lastScan.type === 'unknown' && `✗ Didn't match any enabled Accession or Patient ID format. Check the formats are toggled on below, or that this value's shape matches one of their patterns.`}
+        </div>
+      )}
+      <div className="ps-idf-regex-note ps-idf-simulate-note">
+        This runs the exact same detection code a real scan triggers — if the value matches an
+        enabled Accession or Slide format, this will navigate away from this page, same as scanning
+        the physical label would.
+      </div>
+    </div>
+  );
+};
+
 // ── Main section ──────────────────────────────────────────────────────────────
 
 const IdentifierFormatsSection: React.FC = () => {
@@ -244,6 +295,13 @@ const IdentifierFormatsSection: React.FC = () => {
   const tier1 = visibleFormats.filter(f => f.tier === 1);
   const tier2 = visibleFormats.filter(f => f.tier === 2);
 
+  // Every enabled patient-ID format, for the summary card above — not just
+  // the single format tied to the system-wide jurisdiction default. Once
+  // an admin enables e.g. NHS Number alongside MRN, the card should say
+  // so, not keep showing only the one jurisdiction's default as if it
+  // were the only format recognized.
+  const enabledPatientIdFormats = formats.filter(f => f.kind === 'mrn' && f.enabled);
+
   return (
     <div className="ps-idf-shell">
 
@@ -252,9 +310,9 @@ const IdentifierFormatsSection: React.FC = () => {
         <div className="ps-idf-header-text">
           <h3 className="ps-idf-title">Identifier Formats</h3>
           <p className="ps-idf-subtitle">
-            System-defined identifier patterns for this jurisdiction.
-            Enable the formats your institution uses. Slide barcodes (Tier 1) open the
-            case directly in the Synoptic Report page when scanned.
+            Enable the identifier patterns your institution's clients use — multiple
+            jurisdictions can be enabled at once (e.g. US and UK simultaneously).
+            Slide barcodes (Tier 1) open the case directly in the Synoptic Report page when scanned.
           </p>
         </div>
         <div className="ps-idf-header-actions">
@@ -265,10 +323,20 @@ const IdentifierFormatsSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Jurisdiction & locale info */}
+      {/* Jurisdiction & locale info — this card is a SYSTEM-WIDE FALLBACK
+          default, not a live per-case value. The actual jurisdiction for
+          any given case is resolved from that case's Submitting Client
+          (Client.jurisdiction, set on the Client Dictionary) — a Fenwick
+          case gets NHS Number/British spelling, a Metro General case gets
+          MRN/US spelling, regardless of what's shown here. This default
+          is only used as a last resort when no client context is
+          available (e.g. before a client is selected on the Accession
+          page). Relabeled June 2026 — this used to just say
+          "Jurisdiction," which read as if it were the live, active value
+          for whatever case/user you were looking at. */}
       <div className="ps-idf-locale-card">
         <div className="ps-idf-locale-row">
-          <span className="ps-idf-locale-label">Jurisdiction</span>
+          <span className="ps-idf-locale-label">System default jurisdiction</span>
           <span className="ps-idf-locale-value">{jurisdiction}</span>
         </div>
         <div className="ps-idf-locale-row">
@@ -288,16 +356,37 @@ const IdentifierFormatsSection: React.FC = () => {
           <span className="ps-idf-locale-value">{jLocale.spellLang}</span>
         </div>
         <div className="ps-idf-locale-row">
-          <span className="ps-idf-locale-label">Patient ID standard</span>
-          <span className="ps-idf-locale-value">{patientId.label} — {patientId.format}</span>
+          <span className="ps-idf-locale-label">Patient ID standard{enabledPatientIdFormats.length > 1 ? 's' : ''}</span>
+          <span className="ps-idf-locale-value">
+            {enabledPatientIdFormats.length > 0
+              ? enabledPatientIdFormats.map(f => `${f.label} — ${f.example}`).join(', ')
+              : `${patientId.label} — ${patientId.format} (default — no MRN-kind format currently enabled)`}
+          </span>
         </div>
       </div>
+      <p className="ps-idf-fallback-note">
+        These are the <strong>system fallback</strong> defaults, used only when a case has no
+        Submitting Client context to resolve from. Each case's actual date format, spelling, and
+        patient ID standard come from its Submitting Client's own jurisdiction — see the Client
+        Dictionary — not from this page.
+      </p>
 
       {/* Detection order note */}
       <div className="ps-idf-detection-note">
         <span className="ps-idf-detection-label">Detection order: </span>
         Slide barcode → Accession number → Patient ID → Requisition → Patient name → All fields (ambiguous)
       </div>
+
+      {/* Simulate a scan — tests the real end-to-end detection + navigation
+          logic without a physical scanner. Calls the exact same handleScan()
+          a real HID scanner triggers (via useScanner().simulateScan), not a
+          reimplementation — so this genuinely tests what's shipped, not an
+          approximation of it. Unlike each format row's own test field below
+          (which only checks one pattern in isolation), this runs the full
+          detection order across every enabled format, and will actually
+          navigate if the value matches an Accession or Slide format —
+          same as a real scan would. */}
+      <SimulateScanTool />
 
       {/* LIS preset filter */}
       <div className="ps-idf-lis-row">

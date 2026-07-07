@@ -11,6 +11,17 @@ export interface Role {
    *  age is below the submitting client's pediatricAgeThreshold.
    *  Defaults to false — must be explicitly granted by an administrator. */
   canViewPediatric: boolean;
+  /**
+   * When true, this role may see Orchestration/Outreach cases (O26- prefix,
+   * routed by CaseRouter to the PathScribe Firestore service) in Search and
+   * any other cross-source case views. Unlike canViewPediatric — which
+   * redacts sensitive fields within an otherwise-visible case from the SAME
+   * data controller — this gates visibility of an entire DIFFERENT data
+   * controller's cases (PathScribe vs. the NHS Trust LIS), so the intended
+   * behavior on false is full exclusion from results, not field redaction.
+   * Defaults to false — must be explicitly granted by an administrator.
+   */
+  canViewOrchestration: boolean;
   permissions: PermissionSet;
   builtIn: boolean;
   clientIds?: string[];               // undefined / empty = all clients

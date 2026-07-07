@@ -24,6 +24,7 @@ import type { ReportTemplate } from '../types/reportPart';
 import type { SectionNode, TemplateNode } from '../types/template';
 import { mockReportTemplateService } from '../services/reportTemplates/mockReportTemplateService';
 import { mockReportPartService } from '../services/reportParts/mockReportPartService';
+import { getTemplate } from '../services/templates/templateService';
 
 // narrativeTemplateRegistry.ts is retired as of this change (see
 // NEXT_SESSION_BRIEF §1a). It is no longer imported anywhere in this file —
@@ -117,7 +118,18 @@ export interface ResolvedAnswer {
   displayValue: string; // human-readable, IDs resolved to labels
 }
 
-export interface SynopticContext {
+/**
+ * Resolved answers for ONE synoptic report instance, scoped to the
+ * specimen it belongs to. Synoptics are a specimen-level association —
+ * a case can carry several of these, one per specimen per assigned
+ * template — distinct from narrativeTemplate below, which is case-level
+ * (one Report Template document shell for the whole case, resolved by
+ * TemplateRoutingService from across ALL of these instances' protocol
+ * IDs combined).
+ */
+export interface SpecimenSynopticContext {
+  specimenId: string;
+  instanceId: string;
   templateId: string;
   templateName: string;
   answers: ResolvedAnswer[];
@@ -186,7 +198,16 @@ export interface StructuredContext {
   specimens: SpecimenContext[];
   diagnostic: DiagnosticContext;
   coding: CodingContext;
-  synoptic: SynopticContext;
+  /**
+   * Per-specimen synoptic answers — one entry per SynopticReportInstance
+   * on the case, NOT one case-level object. Renamed from the old singular
+   * `synoptic` field to make this shape change impossible to miss; the old
+   * field was always effectively empty in practice anyway (every real call
+   * site passed a null template, so resolution always short-circuited to
+   * []), so this is a strict improvement, not a behavior change anyone was
+   * relying on.
+   */
+  synoptics: SpecimenSynopticContext[];
   narrativeTemplate: TemplateContext;
   signOff: SignOffContext;
 
@@ -361,12 +382,85 @@ async function resolveTemplateSections(templateId: string): Promise<ResolvedTemp
 }
 
 // ─────────────────────────────────────────────────────────────
+// Resolves EVERY specimen-level synoptic instance on the case, not just
+// one. Each instance fetches its own EditorTemplate (instances can use
+// different templates from each other) and resolves its own answers
+// independently. A failure resolving one instance produces a warning and
+// an empty-answers entry for THAT instance only — it does not prevent
+// the other instances, or the rest of context-building, from succeeding.
+// Falls back to the legacy single synopticAnswers/synopticTemplateId
+// fields (Case.ts: "kept for backwards compat") only when
+// synopticReports[] is empty/missing, per Case.ts's own documented intent
+// that new code should prefer synopticReports[].
+// ─────────────────────────────────────────────────────────────
+
+async function resolveAllSpecimenSynoptics(
+  caseData: Case,
+  warnings: string[],
+): Promise<SpecimenSynopticContext[]> {
+  const reports = caseData.synopticReports ?? [];
+
+  if (reports.length === 0) {
+    // Legacy fallback — pre-synopticReports[] cases
+    const legacyTemplateId = caseData.synopticTemplateId;
+    const legacyAnswers    = caseData.synopticAnswers;
+    if (!legacyTemplateId || !legacyAnswers) return [];
+
+    try {
+      const detail = await getTemplate(legacyTemplateId);
+      const resolved = resolveAnswers(legacyAnswers, detail.template);
+      return [{
+        specimenId:   caseData.specimens?.[0]?.id ?? MISSING,
+        instanceId:   'legacy',
+        templateId:   legacyTemplateId,
+        templateName: detail.name,
+        answers:      resolved,
+      }];
+    } catch (e) {
+      warnings.push(
+        `Legacy synoptic template '${legacyTemplateId}' could not be resolved ` +
+        `(${(e as Error)?.message ?? 'unknown error'}) — no synoptic answers in context`
+      );
+      return [];
+    }
+  }
+
+  const results = await Promise.all(reports.map(async (report): Promise<SpecimenSynopticContext> => {
+    try {
+      const detail = await getTemplate(report.templateId);
+      const resolved = resolveAnswers(report.answers ?? {}, detail.template);
+      return {
+        specimenId:   report.specimenId,
+        instanceId:   report.instanceId,
+        templateId:   report.templateId,
+        templateName: detail.name,
+        answers:      resolved,
+      };
+    } catch (e) {
+      warnings.push(
+        `Synoptic template '${report.templateId}' for specimen '${report.specimenId}' ` +
+        `could not be resolved (${(e as Error)?.message ?? 'unknown error'}) — ` +
+        `that specimen's synoptic answers are missing from context`
+      );
+      return {
+        specimenId:   report.specimenId,
+        instanceId:   report.instanceId,
+        templateId:   report.templateId,
+        templateName: report.templateName ?? report.templateId,
+        answers:      [],
+      };
+    }
+  }));
+
+  return results;
+}
+
+// ─────────────────────────────────────────────────────────────
 // buildContext — main export
 // ─────────────────────────────────────────────────────────────
 
 export async function buildContext(
   caseData: Case,
-  synopticTemplate: EditorTemplate | null,
   signingUser?: SigningUser | null,
   /**
    * Pathologist's manual template override (Change ▾ in the UI). When set
@@ -380,7 +474,6 @@ export async function buildContext(
   templateIdOverride?: string,
 ): Promise<StructuredContext> {
   const warnings: string[] = [];
-  const rawAnswers = caseData.synopticAnswers ?? {};
 
   // ── Patient ──────────────────────────────────────────────
   const patient = caseData.patient;
@@ -461,18 +554,8 @@ export async function buildContext(
     cpt:    safeArr(coding.cpt),
   };
 
-  // ── Synoptic answers ──────────────────────────────────────
-  const resolvedAnswers = resolveAnswers(rawAnswers, synopticTemplate);
-
-  if (Object.keys(rawAnswers).length > 0 && resolvedAnswers.length === 0) {
-    warnings.push('Synoptic answers present but could not be resolved — template may be missing');
-  }
-
-  const synopticContext: SynopticContext = {
-    templateId:   safe(caseData.synopticTemplateId),
-    templateName: safe(synopticTemplate?.name),
-    answers:      resolvedAnswers,
-  };
+  // ── Synoptic answers — per specimen, not case-level ───────
+  const specimenSynoptics = await resolveAllSpecimenSynoptics(caseData, warnings);
 
   // ── Narrative template — resolved via TemplateRoutingService ──
   // Pass 0 (Client Override) uses order.clientId — a real, stable ID.
@@ -574,7 +657,7 @@ export async function buildContext(
     specimens,
     diagnostic:       diagnosticContext,
     coding:           codingContext,
-    synoptic:         synopticContext,
+    synoptics:        specimenSynoptics,
     narrativeTemplate: templateContext,
     signOff:          signOffContext,
     routingResolvedBy:           routingResult.resolvedBy,

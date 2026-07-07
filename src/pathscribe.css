@@ -2098,6 +2098,35 @@
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
+  max-width: 100%;
+  min-width: 0;
+}
+/* max-width:100%/min-width:0 added on the chip itself so it can shrink
+   within its flex-wrap parent (.wl-card__chips) instead of always
+   rendering at its full natural width — paired with the label span's
+   own truncation immediately below. */
+.wl-flag-chip__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+/* Mirrors .wl-specimen-chip__desc exactly (same 140px cap, same
+   ellipsis pattern) — this chip previously had NO width constraint at
+   all on its label text, unlike the specimen chip's description span.
+   A single long flag name (not flag COUNT — confirmed by inspection,
+   not assumption) could expand the whole chip wide enough to push past
+   the card's right edge. Full text remains available via the existing
+   title="..." tooltip on the chip, same as specimens. */
+
+/* Wider caps specifically inside the card grid, which has meaningfully
+   more horizontal room per chip than the table's cramped cell ever did
+   — the 140px default above was sized for the table and is needlessly
+   tight in a ~260px+ card. Scoped to .wl-card-list only so the table
+   view's cap (still appropriate there) is untouched. */
+.wl-card-list .wl-specimen-chip__desc,
+.wl-card-list .wl-flag-chip__label {
+  max-width: 220px;
 }
 
 /* ── Accession date: reference info ─────────────────────── */
@@ -4817,10 +4846,18 @@
 
 /* ── Section dividers ────────────────────────────────────── */
 .wl-card-divider {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 2px 2px;
+  scroll-snap-align: start;
 }
+/* grid-column:1/-1 added — without it, this drops into a single grid
+   cell like any other card (the grid has no idea it's meant to be a
+   section break), reading as a narrow, oddly-empty "card" rather than
+   a full-width divider. Spans every column in its row instead, the
+   grid equivalent of a table's <colspan>. */
 
 .wl-card-divider__label {
   font-size: 10px;
@@ -4863,10 +4900,10 @@
 }
 
 /* ── Table shell ─────────────────────────────────────────── */
-.wl-table-wrap   { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.wl-table-wrap   { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 .wl-table-scroll { flex: 1; overflow: auto; position: relative; }
 .wl-table        { width: 100%; border-collapse: collapse; font-family: inherit; }
-.wl-container    { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.wl-container    { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 
 /* ── Table head ──────────────────────────────────────────── */
 .wl-thead { position: sticky; top: 0; z-index: 2; background: rgba(13,20,38,0.97); backdrop-filter: blur(8px); border-top: 1px solid rgba(255,255,255,0.08); }
@@ -4921,7 +4958,55 @@
 .wl-sort-clear:hover  { color: #94a3b8; }
 
 /* ── Card view ───────────────────────────────────────────── */
-.wl-card-list        { display: flex; flex-direction: column; }
+.wl-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  align-content: start;
+  padding: 4px 2px 16px;
+}
+/* scroll-snap-type REMOVED — confirmed via direct reproduction to break
+   native scrollbar track-click page-down navigation: a full-page jump
+   gets corrected back to the nearest snap point immediately, which with
+   several short card rows fitting in one viewport height sits very
+   close to the start, making the click appear to do almost nothing
+   (and a second click do literally nothing, since it's already at a
+   snap point). This is a known cross-browser rough edge with
+   multi-row-per-viewport snap containers, not something a different
+   snap-type value resolves cleanly. The .wl-card/.wl-card-divider
+   scroll-snap-align rules are left in place but are now inert without
+   a snap-type on the container — kept rather than removed in case a
+   different, more targeted approach (e.g. snap only via keyboard/
+   programmatic scroll, not affecting mouse/trackpad/track-click) is
+   worth revisiting later. */
+/* Was display:flex/flex-direction:column — a single vertical stack,
+   which is the opposite of "cards should go out horizontally." Grid
+   with auto-fill + a 260px minimum naturally fits more columns on wider
+   monitors and fewer on narrower ones, without a hardcoded column
+   count or a JS-measured breakpoint (the kind of mechanism that's
+   caused jitter/regressions elsewhere today) — the browser computes it
+   directly from available width every layout pass. */
+
+/* .wl-card itself never had its own rule anywhere in this stylesheet —
+   only its __header/__body/__chips children did. It was rendering with
+   bare unstyled <div> defaults the entire time, which is the actual
+   cause of "not much of a border and gap between them." Defined here
+   for the first time, alongside divider/urgent/selected/pool variants
+   that already existed as modifier classes with nothing to modify. */
+.wl-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+.wl-card:hover          { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); }
+.wl-card--selected      { border-color: #0891B2; background: rgba(8,145,178,0.08); }
+.wl-card--urgent        { border-left: 3px solid #EF4444; }
+.wl-card--rush          { border-left: 3px solid #F59E0B; }
 .wl-card__header     { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .wl-card__id-group   { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
 .wl-card__body       { display: flex; gap: 12px; font-size: 11px; color: #94a3b8; flex-wrap: wrap; }
@@ -7481,6 +7566,50 @@
 .ps-ped-hint  { font-size: 10px; color: #7c3aed; font-style: italic; }
 .ps-ped-lock  { color: #7c3aed; font-size: 12px; flex-shrink: 0; }
 
+/* Pediatric/Orchestration Access Modal body classes — these were
+   referenced in WorklistTable.tsx's modal JSX but never defined anywhere
+   in this stylesheet, so the text inherited whatever color cascaded down
+   (the app's global dark-theme text color), rendering invisible on the
+   modal's white .ps-modal background. Styled here for a light modal,
+   distinct from the dark-on-dark row classes above which live on the
+   Worklist table itself, not inside this modal. */
+.ps-ped-icon {
+  font-size:   28px;
+  line-height: 1;
+}
+.ps-ped-body {
+  font-size:   14px;
+  line-height: 1.6;
+  color:       #334155;
+  margin:      0 0 16px 0;
+}
+.ps-ped-highlight {
+  color:       var(--ps-teal);
+  font-weight: 700;
+}
+.ps-ped-info-box {
+  background:    rgba(8,145,178,0.08);
+  border:        1px solid rgba(8,145,178,0.2);
+  border-radius: 10px;
+  padding:       14px 16px;
+  font-size:     13px;
+  line-height:   1.5;
+  color:         #334155;
+}
+.ps-ped-pending {
+  background:    rgba(245,158,11,0.08);
+  border:        1px solid rgba(245,158,11,0.25);
+  border-radius: 10px;
+  padding:       14px 16px;
+  font-size:     13px;
+  line-height:   1.5;
+  color:         #92400e;
+}
+.ps-ped-pending-sub {
+  font-size: 12px;
+  color:     #b45309;
+}
+
 /* ============================================================
    CONFIG — ps-config-bottom-spacer
    ============================================================ */
@@ -7768,7 +7897,169 @@
 /* ── Body + sidebar ───────────────────────────────────────── */
 .ps-search-body        { flex:1; min-height:0; padding:20px 40px; display:flex; flex-direction:column; overflow:hidden; gap:16px; }
 .ps-search-row         { flex:1; min-height:0; display:flex; gap:16px; overflow:hidden; }
-.ps-search-sidebar     { width:520px; flex-shrink:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; display:flex; flex-direction:column; overflow:hidden; min-height:0; height:calc(100vh - 155px); }
+/* ─────────────────────────────────────────────────────────────
+   SearchPage.tsx page chrome — converted from inline styles.
+   SearchPage was never given the same inline→CSS treatment
+   WorklistTable.tsx got weeks ago (146 inline style blocks vs. 9
+   classNames, confirmed by direct count). That gap is also why the
+   clipping div found during the height-truncation investigation had
+   no class name at all and was only findable via a live DOM scan —
+   .ps-search-results-pane below is that div, now properly named.
+   This pass covers page chrome (root/background/header/main/results
+   pane/summary bar/table wrapper) plus the shared modalOverlay
+   pattern; the filter-form internals and the one-off
+   Profile/Resources/Logout modals are a separate follow-up pass.
+   ───────────────────────────────────────────────────────────── */
+.ps-search-page-root {
+  position: relative; width: 100%; height: 100%;
+  background-color: #000; color: #fff;
+  font-family: 'Inter', sans-serif;
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: opacity 0.5s ease;
+}
+/* height changed from var(--app-height, 100vh) to 100% — this root
+   renders INSIDE AppShell's <Outlet> wrapper, which is flex:1;
+   minHeight:0; overflow:hidden and has ALREADY had real space (NavBar +
+   breadcrumb) subtracted from the true 100vh above it. Re-asserting a
+   full 100vh here ignored that and was taller than the space actually
+   allocated by exactly the NavBar+breadcrumb height — silently clipped
+   by the wrapper's own overflow:hidden, not by anything inside this
+   page's tree, which is why no fix inside SearchPage.tsx itself ever
+   resolved it. width changed from 100vw to 100% for the same reason. */
+.ps-search-bg-image {
+  position: absolute; inset: 0;
+  background-image: url(/main_background.jpg);
+  background-size: cover; background-position: center;
+  z-index: 0; filter: brightness(0.3) contrast(1.1);
+}
+.ps-search-bg-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, #000 100%);
+  z-index: 1;
+}
+.ps-search-shell {
+  position: relative; z-index: 10;
+  display: grid; grid-template-rows: auto 1fr;
+  flex: 1; min-height: 0;
+  overflow: hidden;
+}
+/* height changed from var(--app-height, 100vh) to flex:1;min-height:0 —
+   same bug as .ps-search-page-root above, one level deeper: this is a
+   flex child of that now-correctly-sized root, so it should stretch to
+   match it via flex, not independently re-claim the full viewport
+   again on its own. */
+/* Grid, not flex, deliberately: a "header auto-sizes, body takes
+   whatever's left" layout is exactly what grid-template-rows: auto 1fr
+   guarantees by construction, at any resolution and regardless of how
+   tall the header turns out to be (e.g. saved-search chips wrapping to
+   two lines on a narrower window) — no guessed pixel subtraction
+   needed, unlike the flex-column + calc(100vh-Npx) pattern below,
+   which has caused two real regressions when its magic number didn't
+   match reality. This is page-shell layout, not tabular data — distinct
+   from the table-layout:fixed/<colgroup> decision elsewhere in this
+   codebase, which rejected Grid specifically for header/body alignment
+   risk in actual data tables. */
+.ps-search-header {
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);
+  padding: 8px 40px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ps-search-header-row { display: flex; justify-content: space-between; align-items: center; }
+.ps-search-title-block-title { font-size: 18px; font-weight: 700; color: #f1f5f9; margin-bottom: 1px; }
+.ps-search-title-block-sub   { color: #94a3b8; font-size: 12px; }
+.ps-search-saved-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 560px; }
+.ps-search-main { min-height: 0; padding: 20px 40px; display: flex; flex-direction: column; overflow: hidden; gap: 16px; }
+.ps-search-row  { flex: 1; min-height: 0; display: flex; gap: 16px; overflow: hidden; }
+
+/* The actual clipping div from today's investigation — was a bare,
+   class-less <div data-capture-hide="true" style={{...}}>. Same
+   flex:1/minWidth:0/overflow:hidden values it already had; it just
+   has a real name now so this is findable by grep next time, not
+   only by a live getComputedStyle() scan. */
+.ps-search-results-pane {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+}
+/* overflow-y changed from hidden to auto — same safety-net reasoning as
+   .ps-search-sidebar: this was the exact div found with clippedBy:97
+   during the original height-truncation investigation. The
+   grid-template-rows fix on .ps-search-shell should resolve the actual
+   mismatch, but this guarantees nothing is ever permanently clipped if
+   any edge case still produces one. overflow-x stays hidden so a
+   horizontal scrollbar (if ever needed) only appears at the inner
+   .wl-table-scroll level, not duplicated here too. */
+.ps-search-summary-bar {
+  padding: 9px 20px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.ps-search-summary-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ps-search-table-wrap { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Shared modal overlay — previously a JS object constant
+   (modalOverlay) duplicated via style={{...modalOverlay}} across the
+   Profile/Resources/Logout modals. */
+.ps-modal-overlay {
+  position: fixed; inset: 0;
+  background-color: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10000;
+}
+
+.ps-search-sidebar     { flex-shrink:0; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden; min-height:0; position:relative; }
+.ps-search-sidebar.expanded  { width: 520px; }
+.ps-search-sidebar.collapsed { width: 56px; overflow-y: hidden; }
+/* width now set via .expanded/.collapsed modifier classes below, not a
+   bare value here — same modifier-class pattern as
+   SynopticReportPage's Sidebar.tsx (.ps-syn-sidebar.expanded/.collapsed),
+   reused rather than invented fresh. Auto-collapses after a search runs
+   (SearchPage.tsx), freeing real width for the results table instead of
+   relying on a duplicate floating scrollbar to cope with a permanently
+   narrow results panel. */
+
+/* ── Collapsed rail (mirrors .ps-syn-rail) ──────────────────────── */
+.ps-search-rail {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 6px; gap: 6px; height: 100%;
+}
+.ps-search-rail-toggle {
+  width: 36px; height: 36px;
+  background: none; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; color: #64748b; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.ps-search-rail-toggle:hover { border-color: rgba(56,189,248,0.4); color: #38bdf8; background: rgba(56,189,248,0.08); }
+.ps-search-rail-badge {
+  width: 36px; padding: 6px 0; text-align: center;
+  font-size: 10px; font-weight: 700; color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.07); border-radius: 6px;
+  writing-mode: vertical-rl; text-orientation: mixed;
+  letter-spacing: 0.5px;
+}
+
+/* ── Expanded-state collapse toggle (mirrors .ps-syn-sidebar-toggle) ── */
+.ps-search-sidebar-toggle {
+  align-self: flex-end; margin: 6px 6px 0;
+  width: 28px; height: 28px;
+  background: none; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; color: #64748b; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.ps-search-sidebar-toggle:hover { border-color: rgba(56,189,248,0.4); color: #38bdf8; background: rgba(56,189,248,0.08); }
+/* REVERTED: removing this height in favor of parent flex-stretch broke
+   the sidebar's own internal layout entirely (its scrollable filter area
+   + sticky Clear/Search Cases footer depend on the sidebar itself having
+   a definite height to distribute between them — stretching from the
+   parent row apparently wasn't sufficient, contrary to expectation).
+   That's a worse failure than the original cosmetic bottom-border gap
+   this was meant to fix, so reverted rather than chased further blind.
+   The original border-gap issue is still open. */
 
 /* KEY FIX: min-height:0 on the form ensures flex children (scrollable area +
    action buttons) can distribute height correctly. Without it the form
@@ -7821,7 +8112,7 @@
 /* ── Results panel ────────────────────────────────────────── */
 .ps-search-results     { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; }
 .ps-search-results-bar { padding:9px 20px; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.ps-search-results-body{ flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.ps-search-results-body{ flex:1; min-height:0; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
 .ps-search-no-results  { display:flex; align-items:center; justify-content:center; height:100%; color:#1e293b; font-size:13px; }
 .ps-search-export-btn  { border:1px solid rgba(148,163,184,0.2); background:transparent; color:#64748b; border-radius:6px; padding:3px 10px; font-size:11px; cursor:pointer; font-family:inherit; }
 
@@ -9926,14 +10217,25 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 28px;
+  box-sizing: border-box;
   box-shadow: 0 18px 45px rgba(0,0,0,0.7);
 }
+
+.ps-ms-modal--wide { width: 620px; }
 
 .ps-ms-header {
   font-size: 18px;
   font-weight: 600;
   color: #e5e7eb;
   margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.ps-ms-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .ps-ms-subheader {
@@ -9985,6 +10287,7 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .ps-ms-btn-cancel {
@@ -13545,6 +13848,14 @@ h3[data-section-id]:first-child {
   border-color: rgba(239,68,68,0.3);
 }
 
+.ps-hb-compact-priority--editable {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ps-hb-compact-priority--editable:hover { border-color: rgba(148,163,184,0.4); }
+
 /* Status pill in compact header — inline, borderless, minimal */
 .ps-hb-compact .ps-hb-status-pill {
   padding: 1px 6px;
@@ -13760,6 +14071,13 @@ h3[data-section-id]:first-child {
   color: #94a3b8;
   background: rgba(71,85,105,0.08);
   border-color: rgba(71,85,105,0.15);
+  font-weight: 600;
+}
+
+.ps-hb-compact-priority--rush {
+  color: #f59e0b;
+  background: rgba(245,158,11,0.1);
+  border-color: rgba(245,158,11,0.3);
   font-weight: 600;
 }
 
@@ -16205,3 +16523,1520 @@ h3[data-section-id]:first-child {
 .ps-rr-priority-row--unreached { opacity: 0.4; }
 .ps-rr-priority-row--unreached .ps-rr-priority-result { font-style: italic; }
 .ps-rr-priority-check { font-size: 13px; font-weight: 700; color: #10b981; flex-shrink: 0; }
+
+/* ============================================================
+   ACCESSION PAGE (Stage 0 — Orchestration Workflow)
+   ============================================================ */
+
+.ps-accession-shell {
+  height: 100%;
+  background-color: var(--ps-navy-base);
+  color: var(--ps-text-primary);
+  overflow-y: auto;
+}
+
+.ps-accession-content {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 24px 40px;
+}
+
+.ps-accession-header {
+  margin-bottom: 24px;
+}
+
+.ps-accession-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--ps-text);
+}
+
+.ps-accession-subtitle {
+  font-size: 13px;
+  color: var(--ps-text-muted);
+  margin-top: 4px;
+}
+
+.ps-accession-tabs {
+  margin-bottom: 20px;
+}
+
+/* Non-interactive variant of ps-card-dark — form panels, not clickable rows */
+.ps-accession-card {
+  cursor: default;
+  padding: 20px;
+}
+
+.ps-accession-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 16px;
+}
+
+.ps-accession-grid input,
+.ps-accession-grid select,
+.ps-accession-grid textarea {
+  width: 100%;
+}
+
+.ps-accession-field--full {
+  grid-column: 1 / -1;
+}
+
+.ps-accession-textarea {
+  min-height: 70px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.ps-accession-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.ps-accession-actions--split {
+  justify-content: space-between;
+}
+
+.ps-accession-specimen-row {
+  cursor: default;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ps-accession-specimen-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(8, 145, 178, 0.15);
+  color: var(--ps-teal-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ps-accession-specimen-field {
+  flex: 1;
+}
+
+.ps-accession-remove-btn {
+  color: #ef4444;
+}
+
+.ps-accession-add-btn {
+  margin-bottom: 20px;
+}
+
+.ps-accession-summary-meta {
+  font-size: 13px;
+  color: var(--ps-text-muted);
+}
+
+.ps-accession-summary-list {
+  font-size: 13px;
+  color: var(--ps-text-muted);
+  padding-left: 18px;
+}
+
+/* Stacked variant of ps-form-row for the per-specimen assignment readout */
+.ps-accession-assignment-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ps-accession-assignment-head {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ps-accession-assignment-name {
+  font-size: 13px;
+}
+
+.ps-accession-assignment-meta {
+  font-size: 12px;
+  color: var(--ps-teal-light);
+}
+
+/* Applied instead of inline color when an assignment fell back to the
+   default template (low confidence) — state drives which class is
+   applied, not a raw style value. */
+.ps-accession-assignment-meta--warn {
+  color: #f59e0b;
+}
+
+.ps-accession-assignment-reason {
+  font-size: 12px;
+  color: var(--ps-text-muted);
+}
+
+.ps-accession-warnings {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.ps-accession-warning-item {
+  font-size: 12px;
+  color: #f59e0b;
+}
+
+/* ── Accession page: Import from Order ─────────────────────────────────── */
+.ps-accession-import-row {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* .ps-accession-import-controls removed — replaced by the search+list
+   order picker below (feedback: dropdown+button was two clicks for what
+   should be one, and didn't support searching a long pending-orders list). */
+
+/* ── Accession page: Specimen Dictionary picker row (Name / Description / Comment) ── */
+.ps-accession-specimen-field--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ps-accession-specimen-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.ps-input-readonly {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* ── Accession page: specimen requisition deficiency (dictionary match) ── */
+.ps-accession-specimen-row--deficient {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.ps-accession-deficiency-banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 12px;
+  color: #fbbf24;
+}
+
+.ps-accession-deficiency-banner div {
+  margin-top: 4px;
+  color: var(--ps-text-muted);
+}
+
+.ps-accession-deficiency-confirm {
+  margin-top: 8px;
+}
+
+/* ── Config: Specimen Deficiencies section ─────────────────────────────── */
+.ps-defic-section {
+  width: 100%;
+}
+
+.ps-defic-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+}
+
+.ps-defic-subtitle {
+  font-size: 13px;
+  color: #9AA0A6;
+  margin-top: 4px;
+  margin-bottom: 20px;
+  max-width: 640px;
+}
+
+.ps-defic-tabs {
+  margin-bottom: 20px;
+}
+
+.ps-defic-loading {
+  padding: 40px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.ps-defic-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ps-defic-tab-desc {
+  font-size: 13px;
+  color: #9AA0A6;
+  margin: 0;
+  max-width: 560px;
+}
+
+.ps-defic-log-filter {
+  width: auto;
+  min-width: 140px;
+}
+
+.ps-defic-table-wrap {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ps-defic-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ps-defic-table thead tr {
+  background: #0d1117;
+}
+
+.ps-defic-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9AA0A6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ps-defic-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #d1d5db;
+  vertical-align: top;
+}
+
+.ps-defic-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ps-defic-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ps-defic-cell-name {
+  font-weight: 600;
+  color: #DEE4E7;
+}
+
+.ps-defic-cell-desc {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.ps-defic-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+.ps-defic-status-badge--active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.ps-defic-status-badge--inactive {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+.ps-defic-status-badge--warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.ps-defic-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ps-defic-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+/* ============================================================
+   CONFIGURATION — additions for Physicians / Specimen Categories
+   (migrated off the inline-style-constant pattern, off modalStyles.ts)
+   ============================================================ */
+
+.ps-conf-loading {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ps-conf-text-3);
+  font-size: 14px;
+}
+
+.ps-conf-textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.ps-conf-required { color: var(--ps-conf-red); }
+.ps-conf-input--error { border-color: var(--ps-conf-red); }
+
+.ps-conf-error-text {
+  font-size: 11px;
+  color: var(--ps-conf-red);
+  margin-top: 2px;
+  display: block;
+}
+
+/* Table wrapper — bordered, rounded, scrollable */
+.ps-conf-table-wrap {
+  border: 1px solid var(--ps-conf-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ps-conf-table-scroll {
+  max-height: calc(100vh - 480px);
+  overflow-y: auto;
+}
+
+.ps-conf-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ps-conf-thead-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ps-conf-bg);
+}
+
+.ps-conf-tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+.ps-conf-empty-row {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ps-conf-text-dim);
+  font-size: 13px;
+}
+
+.ps-conf-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Status dot + text — used for Active/Inactive/Unverified everywhere */
+.ps-conf-status-cell { display: flex; align-items: center; gap: 6px; }
+
+.ps-conf-status-dot {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  background: var(--ps-conf-text-dim);
+}
+.ps-conf-status-dot--active { background: var(--ps-conf-green); box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+.ps-conf-status-dot--pending { background: var(--ps-conf-amber); box-shadow: 0 0 6px rgba(245,158,11,0.6); }
+
+.ps-conf-status-text { font-size: 13px; color: var(--ps-conf-text-3); }
+.ps-conf-status-text--active { color: var(--ps-conf-text); }
+.ps-conf-status-text--pending { color: var(--ps-conf-amber); }
+
+.ps-conf-auto-note {
+  font-size: 10px;
+  color: var(--ps-conf-text-3);
+  margin-top: 3px;
+  max-width: 200px;
+}
+
+.ps-conf-field-hint {
+  font-size: 11px;
+  color: var(--ps-conf-text-3);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+.ps-conf-btn-verify {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.12);
+  color: #4ade80;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.ps-conf-btn-verify:hover { background: rgba(16, 185, 129, 0.22); }
+
+/* Avatar — circular initials, used for physician rows */
+.ps-conf-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(167, 139, 250, 0.2);
+  border: 1.5px solid rgba(167, 139, 250, 0.5);
+  color: #a78bfa;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+
+.ps-conf-identity-cell { display: flex; align-items: center; gap: 10px; }
+.ps-conf-identity-name { font-size: 14px; font-weight: 600; color: var(--ps-conf-text); }
+.ps-conf-identity-sub { font-size: 11px; color: var(--ps-conf-text-3); }
+
+.ps-conf-contact-cell { font-size: 12px; color: var(--ps-conf-text-3); line-height: 1.6; }
+.ps-conf-contact-via { font-size: 11px; color: var(--ps-conf-text-dim); }
+
+/* Badge — generic small pill, e.g. client affiliation tags */
+.ps-conf-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 4px;
+  margin-bottom: 2px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.ps-conf-badge-list { display: flex; flex-wrap: wrap; gap: 2px; }
+.ps-conf-badge-none { font-size: 12px; color: var(--ps-conf-text-dim); font-style: italic; }
+
+/* Toggle switch */
+.ps-conf-toggle-row { display: flex; align-items: center; gap: 12px; }
+.ps-conf-toggle-track {
+  width: 44px; height: 24px; border-radius: 12px; cursor: pointer;
+  position: relative; transition: background 0.2s; flex-shrink: 0;
+  background: var(--ps-conf-text-dim);
+}
+.ps-conf-toggle-track--active { background: var(--ps-conf-green); box-shadow: 0 0 8px rgba(16,185,129,0.35); }
+.ps-conf-toggle-thumb {
+  position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.ps-conf-toggle-track--active .ps-conf-toggle-thumb { left: 23px; }
+.ps-conf-toggle-label { font-size: 13px; font-weight: 600; color: var(--ps-conf-text-3); }
+.ps-conf-toggle-label--active { color: var(--ps-conf-green); }
+
+/* Client picker — bordered box with search + checkbox list */
+.ps-conf-picker { border: 1px solid var(--ps-conf-border); border-radius: 8px; overflow: hidden; }
+.ps-conf-picker-search-wrap { padding: 8px 10px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--ps-conf-border); }
+.ps-conf-picker-search {
+  width: 100%; background: transparent; border: none; padding: 4px 0; font-size: 12px;
+  color: var(--ps-conf-text); outline: none; font-family: inherit;
+}
+.ps-conf-picker-list { max-height: 180px; overflow-y: auto; padding: 6px 10px; }
+.ps-conf-picker-empty { font-size: 12px; color: var(--ps-conf-text-dim); padding: 8px 0; }
+.ps-conf-picker-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px;
+  cursor: pointer; margin-bottom: 2px; background: transparent; border: 1px solid transparent;
+}
+.ps-conf-picker-item--checked { background: rgba(139, 92, 246, 0.06); border-color: rgba(139, 92, 246, 0.2); }
+.ps-conf-picker-checkbox {
+  width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+  border: 2px solid var(--ps-conf-border); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+}
+.ps-conf-picker-checkbox--checked { border-color: #a78bfa; background: #a78bfa; }
+.ps-conf-picker-check-icon { color: #fff; font-size: 10px; font-weight: 900; }
+.ps-conf-picker-item-label { font-size: 13px; color: var(--ps-conf-text); }
+.ps-conf-picker-selected { margin-top: 6px; }
+
+/* ── Accession page: order picker (search + click-to-import list) ──────── */
+.ps-accession-order-picker {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ps-accession-order-picker-search-wrap {
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ps-accession-order-picker-search {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--ps-text);
+  outline: none;
+  font-family: inherit;
+}
+
+.ps-accession-order-picker-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ps-accession-order-picker-empty {
+  font-size: 12px;
+  color: var(--ps-text-muted);
+  padding: 14px 12px;
+}
+
+.ps-accession-order-picker-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.12s;
+}
+.ps-accession-order-picker-item:last-child { border-bottom: none; }
+.ps-accession-order-picker-item:hover { background: rgba(255, 255, 255, 0.04); }
+.ps-accession-order-picker-item--selected { background: rgba(8, 145, 178, 0.1); }
+.ps-accession-order-picker-item--disabled { cursor: default; opacity: 0.6; pointer-events: none; }
+
+.ps-accession-order-picker-main {
+  font-size: 13px;
+  color: var(--ps-text);
+}
+
+.ps-accession-order-picker-meta {
+  font-size: 11px;
+  color: var(--ps-text-muted);
+  margin-top: 2px;
+}
+
+.ps-accession-order-picker-status {
+  font-size: 12px;
+  color: var(--ps-teal-light);
+  margin-top: 8px;
+}
+
+/* ── SuffixSelect (shared component) ───────────────────────────────────── */
+.ps-suffix-custom-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ps-suffix-custom-row input { flex: 1; }
+
+.ps-suffix-back-link {
+  background: none;
+  border: none;
+  color: var(--ps-teal-light, #38bdf8);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0 2px;
+  text-decoration: underline;
+}
+
+/* ── Identifier Formats: Simulate a Scan tool ──────────────────────────── */
+.ps-idf-simulate-label-row { margin-bottom: 8px; }
+.ps-idf-simulate-note { margin-top: 8px; }
+
+/* Dedicated row for input+button side by side — .ps-idf-test-field (used
+   by each format's own single-input test field) is position:relative for
+   an absolutely-positioned pass/fail icon, not a flex container, so it
+   was the wrong class to reuse here — that's what made the button look
+   oversized and crammed against the input above it. */
+.ps-idf-simulate-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.ps-idf-simulate-input {
+  flex: 1;
+  min-width: 0; /* allows the input to actually shrink in a flex row instead of overflowing */
+}
+.ps-idf-simulate-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 7px 16px;
+  font-size: 12px;
+}
+.ps-idf-fallback-note {
+  font-size: 11px;
+  color: var(--ps-conf-text-3, #64748b);
+  margin: 8px 0 16px;
+  line-height: 1.5;
+}
+
+/* ── OrchestratorSectionEditor: jurisdiction transparency badge ─────────── */
+.ps-ose-group-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ps-ose-jurisdiction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #c4b5fd;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* ── Config System tab: sticky, independently-scrollable sidebar ────────── */
+/* align-items: flex-start is required for position:sticky to work correctly
+   inside a flex row — without it, flex items stretch to match each other's
+   height, which breaks sticky's own height/scroll calculation. */
+.ps-confsys-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.ps-confsys-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  padding-top: 4px;
+  /* Sticky (not fixed) — stays pinned within the Configuration page's own
+     scroll container as the content panel scrolls, without needing to
+     touch that shared scroll container's overflow behavior (every other
+     Config tab depends on it staying exactly as-is). max-height + its own
+     overflow-y is a safety net if the nav list itself ever gets taller
+     than the viewport, so it scrolls independently rather than pushing
+     content off-screen. */
+  position: sticky;
+  top: 4px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+
+.ps-confsys-nav-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: transparent;
+  color: #9AA0A6;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.15s;
+}
+.ps-confsys-nav-btn:hover { color: #DEE4E7; }
+.ps-confsys-nav-btn--active {
+  background: rgba(138, 180, 248, 0.15);
+  color: #8AB4F8;
+  border-color: rgba(138, 180, 248, 0.35);
+  font-weight: 600;
+}
+.ps-confsys-nav-btn--active:hover { color: #8AB4F8; }
+
+.ps-confsys-content {
+  flex: 1;
+  min-width: 0;
+  padding-right: 20px;
+  box-sizing: border-box;
+}
+
+/* ── Specimen Dictionary picker modal ────────────────────────────────────── */
+.ps-specimen-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-specimen-picker-list {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.ps-specimen-picker-group-label {
+  position: sticky;
+  top: 0;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  background: #0d1117;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ps-specimen-picker-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ps-specimen-picker-item:last-child { border-bottom: none; }
+.ps-specimen-picker-item:hover { background: rgba(255, 255, 255, 0.04); }
+.ps-specimen-picker-item--selected { background: rgba(8, 145, 178, 0.12); }
+
+.ps-specimen-picker-item--custom {
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  font-style: italic;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.ps-specimen-picker-item-name {
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+.ps-specimen-picker-item-meta {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.ps-specimen-picker-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+/* ── Accession page: wide, hover-free specimen fields ────────────────────── */
+.ps-accession-specimen-trigger {
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  color: #e5e7eb;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.ps-accession-specimen-trigger:hover { border-color: rgba(138, 180, 248, 0.4); }
+.ps-accession-specimen-trigger--placeholder { color: #6b7280; font-style: italic; }
+.ps-accession-specimen-trigger--deficiency { color: #fbbf24; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06); }
+
+.ps-accession-specimen-field--wide input {
+  width: 100%;
+}
+
+/* ── Accession page: specimen timing/site/container fields ──────────────── */
+.ps-accession-specimen-row-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.ps-accession-field-hint {
+  font-size: 11px;
+  color: var(--ps-text-muted);
+  margin-top: 4px;
+}
+
+.ps-accession-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #fbbf24;
+  cursor: pointer;
+}
+.ps-accession-checkbox-row input[type="checkbox"] {
+  accent-color: #fbbf24;
+  cursor: pointer;
+}
+
+/* ── Fixative Time signout gate modal ────────────────────────────────────── */
+.ps-fixgate-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ps-fixgate-intro {
+  font-size: 13px;
+  color: #d1d5db;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ps-fixgate-row {
+  padding: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.ps-fixgate-row-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 8px;
+}
+
+.ps-fixgate-row-fields {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ps-fixgate-row-actions {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ps-fixgate-unrecoverable-btn {
+  font-size: 11px;
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.ps-fixgate-unrecoverable-badge {
+  font-size: 12px;
+  color: #f87171;
+  font-weight: 600;
+}
+
+/* ── Specimen Requirements admin screen ──────────────────────────────────── */
+.ps-specreq-meta {
+  font-size: 12px;
+  color: var(--ps-conf-text-3);
+}
+
+.ps-specreq-required-badge {
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* ── Specimen Dictionary admin screen header actions ─────────────────────── */
+.ps-specdict-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Stain Dictionary admin screen ────────────────────────────────────────── */
+.ps-staindict-tabs {
+  margin-bottom: 20px;
+}
+
+/* ── Accession page: post-submit Blocks & Stains display ────────────────── */
+.ps-accession-blocks-heading {
+  margin-top: 20px;
+}
+
+.ps-accession-blocks-specimen {
+  margin-bottom: 12px;
+}
+
+.ps-accession-block-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  margin-top: 4px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ps-accession-block-label {
+  font-weight: 600;
+  color: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.ps-accession-block-status {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.ps-accession-block-stains {
+  color: #67e8f9;
+}
+
+/* ── HeaderBar: Blocks & Stains summary row ──────────────────────────────── */
+.ps-hb-blocks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.ps-hb-block-chip {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(103,232,249,0.08);
+  border: 1px solid rgba(103,232,249,0.2);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+.ps-hb-block-chip strong { color: #67e8f9; }
+
+/* ── Comment thread (Case Comment + Report Comment modals) ───────────────── */
+.ps-cmnt-thread-composer {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.ps-cmnt-post-btn {
+  margin-top: 10px;
+  padding: 7px 16px;
+  border-radius: 7px;
+  background: #0891B2;
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ps-cmnt-post-btn:disabled {
+  background: #1e293b;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+.ps-cmnt-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.ps-cmnt-thread-empty {
+  padding: 20px;
+  text-align: center;
+  color: #475569;
+  font-size: 13px;
+}
+
+.ps-cmnt-thread-item {
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.03);
+}
+
+.ps-cmnt-thread-author {
+  font-size: 12px;
+  font-weight: 700;
+  color: #67e8f9;
+}
+
+.ps-cmnt-thread-timestamp {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ps-cmnt-thread-text {
+  font-size: 13px;
+  color: #DEE4E7;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ── Comment thread: origin / sync status badges ─────────────────────────── */
+.ps-cmnt-origin-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-left: auto;
+}
+
+.ps-cmnt-origin-badge--lis {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.ps-cmnt-origin-badge--pending {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+.ps-cmnt-origin-badge--sent {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.ps-cmnt-origin-badge--acknowledged {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.ps-cmnt-origin-badge--failed {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* ── Deficiency History modal ────────────────────────────────────────────── */
+.ps-defichist-item {
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.ps-defichist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.ps-defichist-specimen {
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+.ps-defichist-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.ps-defichist-status--closed { background: rgba(16,185,129,0.12); color: #34d399; }
+.ps-defichist-status--pending-verification { background: rgba(56,189,248,0.12); color: #38bdf8; }
+.ps-defichist-status--open { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+.ps-defichist-row {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.ps-defichist-label {
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.ps-defichist-comment {
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 5px;
+  font-style: italic;
+  color: #cbd5e1;
+}
+
+/* ── HeaderBar: deficiency history indicator ─────────────────────────────── */
+.ps-hb-deficiency-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.ps-hb-deficiency-chip:hover {
+  background: rgba(245,158,11,0.18);
+}
+
+/* ── Deficiencies page (dedicated nonconformance work queue) ─────────────── */
+.ps-defic-page {
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ps-defic-page-header {
+  margin-bottom: 20px;
+}
+
+.ps-defic-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e5e7eb;
+  margin: 0 0 6px 0;
+}
+
+.ps-defic-page-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ── Worklist: open deficiency indicator ─────────────────────────────────── */
+.wl-card__deficiency-dot {
+  font-size: 12px;
+  color: #fbbf24;
+  cursor: default;
+}
+
+/* ── Case-level deficiency display (no specimen attached) ────────────────── */
+.ps-defic-caselevel {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ── Deficiencies page: CAPA lifecycle additions ──────────────────────────── */
+.ps-defic-label {
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.ps-defic-overdue {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.ps-defic-reopen-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #f87171;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ── Management Review batch checklist ───────────────────────────────────── */
+.ps-mrev-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.ps-mrev-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.ps-mrev-item:last-child { border-bottom: none; }
+.ps-mrev-item:hover { background: rgba(255,255,255,0.02); }
+
+.ps-mrev-item-text {
+  flex: 1;
+}
+
+/* ── Deficiencies page: trend chart + review banner ───────────────────────── */
+.ps-defic-trend-card {
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+}
+
+.ps-defic-review-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(8,145,178,0.25);
+  border-radius: 8px;
+  background: rgba(8,145,178,0.06);
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ── HeaderBar: focused block indicator (Grossing voice commands) ────────── */
+.ps-hb-block-chip--focused {
+  border-color: #67e8f9;
+  background: rgba(103,232,249,0.16);
+  box-shadow: 0 0 0 1px rgba(103,232,249,0.4);
+}
+
+/* ── Protocol Dictionary admin screen ─────────────────────────────────────── */
+.ps-protocol-checklist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.ps-protocol-checklist-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.ps-protocol-checklist-add .ps-conf-input { flex: 1; }
+
+.ps-protocol-remove-btn {
+  font-size: 11px;
+  color: #f87171;
+  background: none;
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ps-protocol-remove-btn:hover { background: rgba(239,68,68,0.1); }
+
+.ps-protocol-tracks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 10px;
+}
+
+.ps-protocol-track-card {
+  border: 1px solid rgba(103,232,249,0.2);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  background: rgba(103,232,249,0.03);
+}
+
+.ps-protocol-track-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ps-protocol-track-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.ps-protocol-step-row {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+
+
+/* ── Protocol Dictionary editor: 2-column layout ──────────────────────────── */
+.ps-ms-modal--protocol {
+  width: 1040px;
+  max-width: 92vw;
+}
+
+.ps-protocol-body-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.ps-protocol-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ps-protocol-col-right {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tracks get their own independent scroll — this is what "packed" really
+   meant: everything stacked in one narrow column with no room to breathe.
+   Now the track list scrolls on its own, separate from the left column
+   and the modal's own outer scroll. */
+.ps-protocol-tracks-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.ps-protocol-decal-field,
+.ps-protocol-slidecount-field,
+.ps-protocol-hold-field {
+  flex: 0 0 110px;
+}
+
+/* ── Real search + multi-select for stains — replaces the flat pill grid ──── */
+.ps-protocol-stainselect {
+  position: relative;
+  margin: 8px 0;
+}
+
+.ps-protocol-stainselect-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ps-protocol-stainselect-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 5px;
+  background: rgba(103,232,249,0.15);
+  border: 1px solid rgba(103,232,249,0.4);
+  color: #67e8f9;
+}
+
+.ps-protocol-stainselect-chip-remove {
+  background: none;
+  border: none;
+  color: #67e8f9;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.ps-protocol-stainselect-chip-remove:hover { color: #f87171; }
+
+.ps-protocol-stainselect-dropdown {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.ps-protocol-stainselect-option {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.ps-protocol-stainselect-option:hover { background: rgba(103,232,249,0.08); }
+
+.ps-protocol-stainselect-option-cat {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ps-protocol-stainselect-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ── Protocol modal: header close button ──────────────────────────────────── */
+.ps-ms-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ps-ms-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+.ps-ms-close-btn:hover { color: #e5e7eb; }
+
+/* ── Protocol modal: usage indicator banner ──────────────────────────────── */
+.ps-protocol-usage-banner {
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 8px 12px;
+  border: 1px solid rgba(103,232,249,0.2);
+  border-radius: 7px;
+  background: rgba(103,232,249,0.05);
+  line-height: 1.5;
+}
+
+/* ── Protocol modal: version history panel ───────────────────────────────── */
+.ps-protocol-history-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-protocol-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ps-protocol-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ps-protocol-history-item-meta {
+  color: #94a3b8;
+}
+
+/* ── HeaderBar: Block/Stain editor trigger ────────────────────────────────── */
+.ps-hb-block-edit-btn {
+  font-size: 11px;
+  color: #67e8f9;
+  background: rgba(103,232,249,0.1);
+  border: 1px solid rgba(103,232,249,0.3);
+  border-radius: 5px;
+  padding: 3px 10px;
+  cursor: pointer;
+  align-self: center;
+}
+.ps-hb-block-edit-btn:hover { background: rgba(103,232,249,0.2); }

@@ -56,6 +56,7 @@ import {
 import { db }                                              from '../../firebase';
 import { DEFAULT_SYSTEM_CONFIG }                           from '../../types/systemConfig';
 import type { Jurisdiction }                               from '../../types/systemConfig';
+import { LS_KEY as SYSTEM_CONFIG_LS_KEY }                  from '../../contexts/SystemConfigContext';
 import type { ServiceResult }                              from '../types';
 import type {
   ClinicalCode, CodeSearchParams, CodeSystem,
@@ -83,15 +84,25 @@ const collectionKey = (system: CodeSystem, jurisdiction: Jurisdiction): string =
 };
 
 /**
- * Reads the current jurisdiction from SystemConfig persisted in localStorage.
- * Falls back to DEFAULT_SYSTEM_CONFIG.jurisdiction ('US') if not set.
+ * Falls back to reading the system-wide default jurisdiction from
+ * SystemConfig, persisted in localStorage. Only used when a caller
+ * doesn't pass an explicit params.jurisdiction — see that field's own
+ * doc comment (ICodeService.ts) for when that's appropriate vs. not.
  *
- * This keeps firestoreCodeService independent of React context — it can be
- * called from outside the component tree (e.g. seed script utilities).
+ * Fixed June 2026: this used to hardcode its own copy of the localStorage
+ * key ('pathscribe_system_config_v1'), which silently broke the moment
+ * SystemConfigContext's LS_VERSION bumped to v2 for an unrelated reason —
+ * this function would always miss the real (now v2) key and fall through
+ * to the hardcoded default without any error. Now imports the same
+ * exported constant SystemConfigContext itself uses, so there's one
+ * source of truth for the key rather than two copies that can drift.
+ *
+ * This keeps firestoreCodeService independent of React context — it can
+ * be called from outside the component tree (e.g. seed script utilities).
  */
-const getJurisdiction = (): Jurisdiction => {
+const getDefaultJurisdiction = (): Jurisdiction => {
   try {
-    const raw = localStorage.getItem('pathscribe_system_config_v1');
+    const raw = localStorage.getItem(SYSTEM_CONFIG_LS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.jurisdiction) return parsed.jurisdiction as Jurisdiction;
@@ -108,7 +119,7 @@ export const firestoreCodeService: ICodeService = {
 
   async search(params: CodeSearchParams): Promise<ServiceResult<ClinicalCode[]>> {
     try {
-      const jurisdiction = getJurisdiction();
+      const jurisdiction = params.jurisdiction ?? getDefaultJurisdiction();
       const colKey       = collectionKey(params.system, jurisdiction);
       const colRef       = collection(db, 'terminology', colKey, 'codes');
 
@@ -186,10 +197,10 @@ export const firestoreCodeService: ICodeService = {
     }
   },
 
-  async getByCode(system: CodeSystem, code: string): Promise<ServiceResult<ClinicalCode>> {
+  async getByCode(system: CodeSystem, code: string, jurisdiction?: Jurisdiction): Promise<ServiceResult<ClinicalCode>> {
     try {
-      const jurisdiction = getJurisdiction();
-      const colKey       = collectionKey(system, jurisdiction);
+      const resolvedJurisdiction = jurisdiction ?? getDefaultJurisdiction();
+      const colKey       = collectionKey(system, resolvedJurisdiction);
 
       // Document ID is the code string (normalised: replace '/' with '_')
       const docId  = code.replace(/\//g, '_');
@@ -208,10 +219,10 @@ export const firestoreCodeService: ICodeService = {
     }
   },
 
-  async getCategories(system: CodeSystem, subtype?: IcdOSubtype): Promise<ServiceResult<string[]>> {
+  async getCategories(system: CodeSystem, subtype?: IcdOSubtype, jurisdiction?: Jurisdiction): Promise<ServiceResult<string[]>> {
     try {
-      const jurisdiction = getJurisdiction();
-      const colKey       = collectionKey(system, jurisdiction);
+      const resolvedJurisdiction = jurisdiction ?? getDefaultJurisdiction();
+      const colKey       = collectionKey(system, resolvedJurisdiction);
       const colRef       = collection(db, 'terminology', colKey, 'codes');
 
       const constraints: QueryConstraint[] = [

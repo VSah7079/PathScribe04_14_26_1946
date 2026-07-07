@@ -24,6 +24,7 @@ export interface StaffUser {
   status: 'Active' | 'Inactive';
   voiceProfile?: string | null;
   canViewPediatric?: boolean;
+  canViewOrchestration?: boolean;
 }
 
 function initials(u: StaffUser) {
@@ -84,13 +85,14 @@ type Draft = {
   firstName: string; middleName: string; lastName: string; credentials: string;
   email: string; roles: string[]; npi: string; gmcNumber: string; license: string;
   phone: string; department: string; signatureUrl: string; active: boolean;
-  voiceProfile: string; canViewPediatric: boolean;
+  voiceProfile: string; canViewPediatric: boolean; canViewOrchestration: boolean;
 };
 
 const emptyDraft: Draft = {
   firstName: '', middleName: '', lastName: '', credentials: '', email: '',
   roles: [], npi: '', gmcNumber: '', license: '', phone: '', department: '',
   signatureUrl: '', active: true, voiceProfile: '', canViewPediatric: false,
+  canViewOrchestration: false,
 };
 
 interface StaffModalProps {
@@ -111,6 +113,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
       department: user.department, signatureUrl: user.signatureUrl || '',
       active: user.status === 'Active', voiceProfile: user.voiceProfile || '',
       canViewPediatric: user.canViewPediatric ?? false,
+      canViewOrchestration: (user as any).canViewOrchestration ?? false,
     } : emptyDraft
   );
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
@@ -267,6 +270,28 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
             </label>
           </div>
 
+          {/* Row 7b: Orchestration Access — reuses the ps-st-peds-* classes
+              (a generic access-toggle-row style, not pediatric-specific
+              despite the name) rather than introducing new CSS rules. */}
+          <div className={`ps-st-peds-row ${draft.canViewOrchestration ? 'ps-st-peds-row--on' : 'ps-st-peds-row--off'}`}>
+            <label className="ps-st-peds-label">
+              <input type="checkbox" checked={draft.canViewOrchestration}
+                onChange={e => setDraft(d => ({ ...d, canViewOrchestration: e.target.checked }))}
+                className="ps-st-peds-checkbox" />
+              <div>
+                <div className={draft.canViewOrchestration ? 'ps-st-peds-title--on' : 'ps-st-peds-title--off'}>
+                  Orchestration Access
+                </div>
+                <div className="ps-st-peds-desc">
+                  Grants visibility into PathScribe Orchestration/Outreach cases (a separate data
+                  source from this user's LIS cases) across Search and Worklist. Unlike Pediatric
+                  Access, there's no second per-client authorization layer — this single flag is
+                  the entire gate.
+                </div>
+              </div>
+            </label>
+          </div>
+
           {/* Row 8: Status | Signature */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
@@ -331,6 +356,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       firstName: draft.firstName, lastName: draft.lastName, credentials: draft.credentials,
       email: draft.email, roles: draft.roles, npi: draft.npi, gmcNumber: draft.gmcNumber,
       license: draft.license, phone: draft.phone, canViewPediatric: draft.canViewPediatric,
+      canViewOrchestration: draft.canViewOrchestration,
       department: draft.department, signatureUrl: draft.signatureUrl,
       status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
       voiceProfile: draft.voiceProfile === '' ? undefined : (draft.voiceProfile as VoiceProfileId),
@@ -389,6 +415,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
                           <span className="ps-st-name" data-phi="name">{fullName(u)}</span>
                           {u.credentials && <span className="ps-st-credentials">{u.credentials}</span>}
                           {u.canViewPediatric && <span className="ps-st-peds-badge">Peds</span>}
+                          {(u as any).canViewOrchestration && <span className="ps-st-peds-badge">Orch</span>}
                         </div>
                       </div>
                     </td>

@@ -1,8 +1,9 @@
 // src/pages/SynopticReportPage/components/Sidebar.tsx
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/UI/ConfirmModal';
-import type { Case } from '@/types/case/Case';
+import type { Case, ProtocolChange } from '@/types/case/Case';
 import type { SpecimenLisStatus } from '@/types/case/Specimen';
+import type { CaseComment } from '@/types/case/CaseComment';
 
 interface SidebarProps {
   caseData: Case | null;
@@ -16,12 +17,33 @@ interface SidebarProps {
   onOpenCaseComment?: () => void;
   onOpenSpecimenComment?: (specimenId: string) => void;
   hasCaseComment?: boolean;
-  specimenComments?: Record<string, string>;
+  specimenComments?: Record<string, CaseComment[]>;
   activeReportInstanceId?: string;
   onSelectReport?: (instanceId: string, specimenId: string) => void;
   onDeleteReport?: (instanceId: string) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  /**
+   * Stage 2 background-check results awaiting pathologist review (status
+   * 'pending' — see ProtocolChange.reviewStatus in Case.ts). Drives the
+   * small persistent badge shown next to an affected specimen row,
+   * mirroring RightSynopticPanel.tsx's AI field-suggestion badge
+   * language (confidence-colored pill) but at the whole-synoptic level
+   * rather than per-field. Defaults to caseData.pendingProtocolChanges
+   * if not explicitly passed, but accepted as a prop so the page can
+   * filter/override if needed.
+   */
+  pendingProtocolChanges?: ProtocolChange[];
+  /**
+   * Opens ProtocolChangeModal for on-demand review, the same modal Stage
+   * 1/2's blocking checks already use — just a voluntary entry point
+   * here (clicking the badge) instead of a forced one. Page-controlled
+   * (Sidebar doesn't own modal state for this, same pattern as every
+   * other onX callback here), and intentionally not specimen-filtered:
+   * mirrors ProtocolChangeModal's existing design, which already renders
+   * multiple specimens' changes together in one review session.
+   */
+  onReviewProtocolChanges?: () => void;
 }
 
 type DotStatus = 'complete' | 'partial' | 'empty';
@@ -65,8 +87,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   onDeleteReport,
   collapsed = false,
   onToggleCollapse,
+  pendingProtocolChanges,
+  onReviewProtocolChanges,
 }) => {
   const specimens = caseData?.specimens ?? [];
+  // Falls back to reading straight off caseData if the page doesn't pass
+  // this explicitly — same default-to-source-data pattern as
+  // caseData.synopticReports/grossingReports being read directly below,
+  // rather than requiring every caller to thread it through manually.
+  const pendingChanges = pendingProtocolChanges ?? caseData?.pendingProtocolChanges ?? [];
+  const hasPendingChangeForSpecimen = (specimenId: string): boolean =>
+    pendingChanges.some(c => c.specimenId === specimenId && (c.reviewStatus ?? 'pending') === 'pending');
   const [confirmDeleteId,   setConfirmDeleteId]   = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
   const [expandedIds,       setExpandedIds]       = useState<Set<string>>(new Set());
@@ -100,6 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             );
             const dotColor = instances.length === 0 ? '#334155' : hasAnswers ? '#f59e0b' : '#334155';
             const isActive = activeSpecimenId === sp.id;
+            const hasPendingChange = hasPendingChangeForSpecimen(sp.id);
             return (
               <button
                 key={sp.id}
@@ -109,10 +141,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                   const first = instances[0];
                   if (first) onSelectReport?.(first.instanceId, sp.id);
                 }}
-                title={`${sp.label}: ${sp.description}`}
+                title={hasPendingChange
+                  ? `${sp.label}: ${sp.description} — AI re-evaluation suggests reviewing this specimen's synoptic assignment`
+                  : `${sp.label}: ${sp.description}`}
+                style={{ position: 'relative' }}
               >
                 <span className="ps-syn-rail-letter">{sp.label}</span>
                 <span className="ps-status-dot" style={{ background: dotColor, width: 6, height: 6 }} />
+                {hasPendingChange && (
+                  <span
+                    onClick={e => { e.stopPropagation(); onReviewProtocolChanges?.(); }}
+                    style={{
+                      position: 'absolute', top: -3, right: -3,
+                      width: 9, height: 9, borderRadius: '50%',
+                      background: '#fbbf24', border: '1.5px solid #0d1829',
+                      cursor: 'pointer',
+                    }}
+                  />
+                )}
               </button>
             );
           })}
@@ -196,10 +242,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <span
                     className="ps-specimen-comment-btn"
                     onClick={e => { e.stopPropagation(); onOpenSpecimenComment?.(specimen.id); }}
-                    title={specimenComments[specimen.id] ? 'Edit comment' : 'Add comment'}
+                    title={(specimenComments[specimen.id]?.length ?? 0) > 0 ? 'View / add comment' : 'Add comment'}
                     style={{
-                      opacity: specimenComments[specimen.id] && specimenComments[specimen.id] !== '<p></p>' ? 1 : 0.35,
-                      color:   specimenComments[specimen.id] && specimenComments[specimen.id] !== '<p></p>' ? '#38bdf8' : '#94a3b8',
+                      opacity: (specimenComments[specimen.id]?.length ?? 0) > 0 ? 1 : 0.35,
+                      color:   (specimenComments[specimen.id]?.length ?? 0) > 0 ? '#38bdf8' : '#94a3b8',
                     }}
                   >💬</span>
 
@@ -208,6 +254,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                     onClick={e => { e.stopPropagation(); onEditSpecimen?.(specimen.id); }}
                     title="Edit specimen details"
                   >✏️</span>
+
+                  {hasPendingChangeForSpecimen(specimen.id) && (
+                    <span
+                      onClick={e => { e.stopPropagation(); onReviewProtocolChanges?.(); }}
+                      title="AI re-evaluation suggests this specimen's synoptic assignment may need review — click to see proposed changes."
+                      style={{
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 8,
+                        background: 'rgba(245,158,11,0.15)',
+                        border: '1px solid rgba(245,158,11,0.4)',
+                        color: '#fbbf24', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ fontSize: 11 }}>⚠</span> Review
+                    </span>
+                  )}
 
                   <StatusDot status={specimenDot} />
                 </div>

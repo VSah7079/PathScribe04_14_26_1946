@@ -2,8 +2,23 @@ import { ServiceResult, ID } from '../types';
 
 export interface Physician {
   id: ID;
+
+  // ── Name — medical-grade schema (June 2026), same model as Patient.
+  // See utils/personName.ts. Required here (unlike Patient's optional
+  // givenNames/familyNames) since there are only 7 seed records to
+  // migrate, not 50+.
+  namePrefix?: string;
+  givenNames: string;
+  familyNames: string;
+  preferredName?: string;
+  nameSuffix?: string;
+
+  /** @deprecated Use givenNames. Always mirrors it — kept for any
+   *  consumer not yet migrated to the new fields. */
   firstName: string;
+  /** @deprecated Use familyNames. Always mirrors it. */
   lastName: string;
+
   npi: string;
   specialty: string;
   phone: string;

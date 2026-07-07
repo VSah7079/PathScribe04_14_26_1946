@@ -19,17 +19,15 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { Editor }           from '@tiptap/react';
-// StructuredContext — inlined (contextBuilder.ts is a future extraction)
-type StructuredContext = {
-  caseId?:     string;
-  patient:    { fullName: string; dateOfBirth: string; sex: string };
-  accession:  { fullAccession: string };
-  order:      { priority: string; requestingProvider: string; clinicalIndication: string };
-  specimens:  Array<{ label: string; type: string; site: string }>;
-  diagnostic: { grossDescription: string; microscopicDescription: string; ancillaryStudies: string };
-  synoptic:   { answers: Array<{ fieldLabel: string; displayValue: string }> };
-  coding:     { icd10: string[]; snomed: string[] };
-};
+// StructuredContext now imported directly from contextBuilder.ts rather
+// than hand-duplicated here. The previous inlined copy (this file's own
+// comment called it "a future extraction") had already drifted out of
+// sync with the real shape — it was missing narrativeTemplate entirely
+// despite this file using context.narrativeTemplate?.sections directly,
+// and it pre-dates the synoptic → synoptics (per-specimen array) change.
+// Importing the real type closes that drift permanently rather than
+// patching this one instance of it.
+import type { StructuredContext } from './contextBuilder';
 import type { IAIProvider }       from '../services/ai/IAIProvider';
 import { AIProviderRegistry }     from '../services/ai/AIProviderRegistry';
 import { AIAuditLog }             from '../services/ai/AIAuditLog';
@@ -104,10 +102,21 @@ function buildSectionPrompt(
   sectionInstruction: string,
   context: StructuredContext
 ): string {
-  // Resolve synoptic answers into a readable list
-  const synopticLines = context.synoptic.answers
-    .map(a => `  • ${a.fieldLabel}: ${a.displayValue}`)
-    .join('\n') || '  (no synoptic data recorded)';
+  // Resolve synoptic answers into a readable list. Synoptics are a
+  // specimen-level association, not case-level — a case can have several
+  // (one per specimen per assigned template) — so each is broken out and
+  // labeled by specimen rather than merged into one undifferentiated list.
+  // (Previously read context.synoptic.answers — a single case-level object
+  // that every real call site left empty; context.synoptics is the fixed,
+  // per-specimen array. See contextBuilder.ts.)
+  const synopticLines = context.synoptics.length
+    ? context.synoptics.map(s => {
+        const lines = s.answers
+          .map(a => `    • ${a.fieldLabel}: ${a.displayValue}`)
+          .join('\n') || '    (no answers recorded for this specimen)';
+        return `  Specimen ${s.specimenId} — ${s.templateName}:\n${lines}`;
+      }).join('\n\n')
+    : '  (no synoptic data recorded)';
 
   // Build specimen summary
   const specimenLines = context.specimens

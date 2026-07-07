@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import '../../../pathscribe.css';
 import { useSubspecialties, Subspecialty } from "../../../contexts/useSubspecialties";
-import { useSpecimens } from "../../../contexts/useSpecimens";
+import { useSpecimenDictionary } from "./useSpecimenDictionary";
 import { userService } from "../../../services";
 import { StaffUser } from "../Staff/StaffTab";
 import { mockClientService, Client } from "../../../services/clients/mockClientService";
@@ -117,7 +117,7 @@ type ReactivateConfirm = {
 
 const SubspecialtiesSection: React.FC = () => {
   const { subspecialties, addSubspecialty, updateSubspecialty } = useSubspecialties();
-  const { specimens, updateSpecimen } = useSpecimens();
+  const { dictionary: specimens, updateEntries } = useSpecimenDictionary();
   const [users,   setUsers]   = useState<StaffUser[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
 
@@ -164,7 +164,7 @@ const SubspecialtiesSection: React.FC = () => {
       clientIds:   (sub as any).clientIds    || [],
     });
     setSpecimenAssignments(
-      specimens.filter(sp => sp.subspecialtyId === sub.id).map(sp => sp.id)
+      specimens.filter(sp => sp.subspecialty === sub.name).map(sp => sp.id)
     );
     setSpecimenSearch(""); setPhysicianSearch(""); setClientSearch("");
     setActiveTab("specimens"); setNameError(""); setShowModal(true);
@@ -175,7 +175,7 @@ const SubspecialtiesSection: React.FC = () => {
     const wasActive = editTarget ? editTarget.active !== false : true;
 
     if (modalMode === "edit" && wasActive && !draft.active) {
-      const affectedSpecimens = specimens.filter(sp => sp.subspecialtyId === editTarget!.id);
+      const affectedSpecimens = specimens.filter(sp => sp.subspecialty === editTarget!.name);
       const affectedUsers     = users.filter(u => editTarget!.userIds.includes(u.id));
       if (affectedSpecimens.length > 0 || affectedUsers.length > 0) {
         setInactiveConfirm({
@@ -211,14 +211,18 @@ const SubspecialtiesSection: React.FC = () => {
       updateSubspecialty({ ...target!, name: d.name, active: d.active, userIds: unlinkAll ? [] : d.userIds, clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' } as any);
     }
 
-    specimens.forEach(sp => {
-      const shouldBelong     = !unlinkAll && spAssignments.includes(sp.id);
-      const currentlyBelongs = sp.subspecialtyId === subId;
-      if (shouldBelong && !currentlyBelongs)
-        updateSpecimen({ ...sp, subspecialtyId: subId, subspecialtyName: d.name, updatedBy: "manual", updatedAt: new Date().toISOString(), version: sp.version + 1 });
-      else if (!shouldBelong && currentlyBelongs)
-        updateSpecimen({ ...sp, subspecialtyId: "", subspecialtyName: "", updatedBy: "manual", updatedAt: new Date().toISOString(), version: sp.version + 1 });
-    });
+    const specimenUpdates = specimens
+      .map(sp => {
+        const shouldBelong     = !unlinkAll && spAssignments.includes(sp.id);
+        const currentlyBelongs = sp.subspecialty === d.name;
+        if (shouldBelong && !currentlyBelongs)
+          return { ...sp, subspecialty: d.name, updatedBy: "manual", updatedAt: new Date().toISOString(), version: sp.version + 1 };
+        if (!shouldBelong && currentlyBelongs)
+          return { ...sp, subspecialty: "", updatedBy: "manual", updatedAt: new Date().toISOString(), version: sp.version + 1 };
+        return null;
+      })
+      .filter((sp): sp is NonNullable<typeof sp> => sp !== null);
+    if (specimenUpdates.length) updateEntries(specimenUpdates);
 
     setShowModal(false); setInactiveConfirm(null); setReactivateConfirm(null);
   };
@@ -370,7 +374,7 @@ const SubspecialtiesSection: React.FC = () => {
                   <label className="fm-section-label">Status</label>
                   <Toggle value={draft.active} onChange={v => setDraft({ ...draft, active: v })} />
                   {modalMode === "edit" && editTarget?.active !== false && !draft.active && (() => {
-                    const spCount   = specimens.filter(sp => sp.subspecialtyId === editTarget!.id).length;
+                    const spCount   = specimens.filter(sp => sp.subspecialty === editTarget!.name).length;
                     const userCount = editTarget!.userIds.length;
                     if (spCount === 0 && userCount === 0) return null;
                     return (
@@ -462,7 +466,7 @@ const SubspecialtiesSection: React.FC = () => {
                       filteredSpecimens.length === 0
                         ? <div className="ps-sub-tab-empty">{specimenSearch ? "No specimens match." : "No specimens available."}</div>
                         : filteredSpecimens.map(sp => {
-                            const takenBy = sp.subspecialtyId && sp.subspecialtyId !== editTarget?.id ? sp.subspecialtyName : null;
+                            const takenBy = sp.subspecialty && sp.subspecialty !== editTarget?.name ? sp.subspecialty : null;
                             return (
                               <CheckRow
                                 key={sp.id} label={sp.name}

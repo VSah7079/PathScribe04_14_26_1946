@@ -79,10 +79,20 @@ const quickLinks = {
   }, []);
 
 const cards = [
+  // ⭐ New tile
+  {
+    title: 'Accession',
+    description: 'Log new specimens and assign Grossing Templates',
+    route: '/accession',
+    color: '#22C55E',
+    image: '/accession.webp'
+  },
+
   { title: 'Worklist', description: 'View and manage pending pathology cases', route: '/worklist', color: '#0891B2', image: '/worklist.webp' },
   { title: 'Configuration', description: 'System settings and AI preferences', route: '/configuration', color: '#F59E0B', image: '/config.webp' },
   { title: 'Search', description: 'Search completed and in-progress cases', route: '/search', color: '#8B5CF6', image: '/search.webp' },
   { title: 'System Audit', description: 'Review system activity and audit trails', route: '/audit', color: '#EF4444', image: '/logs.webp' },
+  { title: 'Deficiencies', description: 'Nonconformance tracking — open issues awaiting resolution', route: '/deficiencies', color: '#F97316', image: '/deficiencies.webp' },
 
   // ⭐ New tile
   {

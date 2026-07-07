@@ -1,0 +1,90 @@
+// src/services/specimenDictionary/mockSpecimenDictionaryService.ts
+
+import type { ServiceResult } from '../types';
+import { storageGet, storageSet } from '../mockStorage';
+import type { ISpecimenDictionaryService } from './ISpecimenDictionaryService';
+import type { SpecimenEntry } from '../../components/Config/System/specimenTypes';
+import starterData from '../../../scripts/terminology-sources/specimens-starter.json';
+
+// ─── Starter data seed ────────────────────────────────────────────────────────
+// Moved here from useSpecimenDictionary.tsx (June 2026) — same seed data,
+// same requireFixativeTimeBeforeSignout patch (Breast-type entries
+// flagged per CAP/ASCO biomarker guidance — specimens-starter.json lives
+// outside src/ and isn't directly editable from here).
+const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as SpecimenEntry[]).map(e =>
+  e.type === 'Breast' ? { ...e, requireFixativeTimeBeforeSignout: true } : e
+).concat([
+  // Medical Renal — the clearest real example of a specimen that
+  // genuinely splits into parallel processing streams rather than
+  // being "one specimen, one block." Appended as a new entry rather
+  // than attempting to patch an existing one, since specimens-starter.
+  // json lives outside src/ and isn't directly inspectable from here —
+  // safer to add new than to guess whether a similar entry already
+  // exists under a different name. Stain panel and protocol details
+  // are illustrative "preference card" seed data, not asserted
+  // clinical fact — editable the same as every other dictionary entry.
+  {
+    id: 'sp-kidney-native-biopsy',
+    name: 'Kidney Biopsy, Native',
+    description: 'Native (non-transplant) renal core biopsy — splits into Light Microscopy, Immunofluorescence, and Electron Microscopy pathways.',
+    type: 'Kidney', procedure: 'Core Biopsy',
+    normalizedLabel: 'Kidney Biopsy, Native',
+    synonyms: ['Native Kidney Biopsy', 'Renal Biopsy, Native', 'Medical Renal Biopsy'],
+    active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
+    // References the standalone Protocol dictionary (services/
+    // protocols/) rather than embedding the workflow here — the same
+    // Medical Renal Protocol record this points to could equally be
+    // mapped from a transplant kidney biopsy entry, updated once,
+    // cascading to both.
+    protocolId: 'proto-medical-renal',
+  },
+]);
+
+const STORAGE_KEY = 'specimen_dictionary';
+
+// storageGet's own fallback semantics already do what the old separate
+// SEED_KEY tracking flag was for: "nothing ever saved" returns the
+// fallback (starter data), but an explicitly-saved empty array ([]) is
+// respected as-is, not treated as "never seeded" — no separate seeded
+// flag needed.
+const load    = () => storageGet<SpecimenEntry[]>(STORAGE_KEY, STARTER_SPECIMENS);
+const persist = (entries: SpecimenEntry[]) => storageSet(STORAGE_KEY, entries);
+let DICTIONARY: SpecimenEntry[] = load();
+
+const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
+const delay = () => new Promise(r => setTimeout(r, 80));
+
+export const mockSpecimenDictionaryService: ISpecimenDictionaryService = {
+  async getAll() {
+    await delay();
+    return ok([...DICTIONARY]);
+  },
+
+  async addEntries(entries) {
+    await delay();
+    DICTIONARY = [...DICTIONARY, ...entries];
+    persist(DICTIONARY);
+    return ok([...DICTIONARY]);
+  },
+
+  async updateEntries(entries) {
+    await delay();
+    DICTIONARY = DICTIONARY.map(d => entries.find(e => e.id === d.id) ?? d);
+    persist(DICTIONARY);
+    return ok([...DICTIONARY]);
+  },
+
+  async deprecateEntries(ids) {
+    await delay();
+    DICTIONARY = DICTIONARY.map(d => ids.includes(d.id) ? { ...d, active: false, version: d.version + 1 } : d);
+    persist(DICTIONARY);
+    return ok([...DICTIONARY]);
+  },
+
+  async replaceDictionary(entries) {
+    await delay();
+    DICTIONARY = entries;
+    persist(DICTIONARY);
+    return ok([...DICTIONARY]);
+  },
+};

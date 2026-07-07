@@ -310,7 +310,18 @@ export interface SystemConfig {
 // 5. DEFAULTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _defaultFormats = defaultFormatsForJurisdiction('US');
+// Defaults enable US formats (defaultFormatsForJurisdiction only ever
+// returns one jurisdiction's set) plus UK accession + NHS Number on top —
+// this trial serves both US and UK clients simultaneously (see
+// Client.jurisdiction, added earlier for the same reason on the date-
+// formatting side), so identifier detection shouldn't default to
+// US-only and require an admin to remember to enable UK formats before
+// a UK scan will work. Admins can still toggle any of these off (or add
+// Scotland/NI/AU/NZ) via the Identifier Formats config screen — this
+// just changes what ships enabled out of the box.
+const _defaultFormats = defaultFormatsForJurisdiction('US').map(f =>
+  (f.id === 'accession_generic_uk' || f.id === 'mrn_nhs') ? { ...f, enabled: true } : f
+);
 const _defaultLegacy  = deriveLegacyFormats(_defaultFormats);
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {

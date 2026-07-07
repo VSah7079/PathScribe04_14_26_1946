@@ -10,7 +10,6 @@ export { mockRoleService          as roleService          } from '../roles/mockR
 export { mockPhysicianService     as physicianService     } from './mockPhysicianService'; // Stays ./ if in same folder
 export { mockFlagService          as flagService          } from '../flags/mockFlagService';
 export { mockSubspecialtyService  as subspecialtyService  } from '../subspecialties/mockSubspecialtyService';
-export { mockSpecimenService      as specimenService      } from '../specimens/mockSpecimenService';
 export { mockClientService        as clientService        } from '../clients/mockClientService';
 export { mockMacroService         as macroService         } from '../macros/mockMacroService';
 export { mockFontService          as fontService          } from '../fonts/mockFontService';
@@ -29,7 +28,6 @@ export type { Role }          from '../roles/IRoleService';
 export type { Physician }     from './IPhysicianService'; // Stays ./ if in same folder
 export type { Flag }          from '../flags/IFlagService';
 export type { Subspecialty }  from '../subspecialties/ISubspecialtyService';
-export type { Specimen }      from '../specimens/ISpecimenService';
 export type { Client }        from '../clients/mockClientService';
 export type { Macro }         from '../macros/IMacroService';
 export type { EditorFont, EditorFontConfig } from '../fonts/IFontService';

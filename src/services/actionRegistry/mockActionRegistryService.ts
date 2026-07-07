@@ -362,6 +362,38 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
+  // ── ACCESSION — only when the Accession page is active. NEXT_TAB/
+  // PREVIOUS_TAB above already work here for free (NAVIGATION is a
+  // GLOBAL_CATEGORIES member, eligible everywhere) — AccessionPage.tsx
+  // just needs to listen for those two ids alongside the ones below.
+  // ADD_SPECIMEN and SUBMIT_ACCESSION reuse internalKeys reserved in
+  // systemActions.ts (specimen.add, case.create) that were cataloged but
+  // never wired to a live action until now.
+  {
+    id: 'ADD_SPECIMEN', label: 'Add Specimen', category: 'ACCESSION',
+    shortcut: 'Alt+N', internalKey: ACTION_MAP['specimen.add']?.internalKey ?? 'F20+PS001',
+    voiceTriggers: ['add specimen', 'add another specimen', 'new specimen', 'add a specimen'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'SUBMIT_ACCESSION', label: 'Submit Case', category: 'ACCESSION',
+    shortcut: 'Alt+Enter', internalKey: ACTION_MAP['case.create']?.internalKey ?? 'F19+PS003',
+    voiceTriggers: ['submit case', 'submit accession', 'complete accession', 'finish accession'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'ACCESSION_IMPORT_ORDER', label: 'Import From Order', category: 'ACCESSION',
+    shortcut: 'Alt+I', internalKey: ACTION_MAP['accession.importOrder']?.internalKey ?? 'F24+PS034',
+    voiceTriggers: ['import order', 'import from order', 'search orders', 'find order'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'ACCESSION_CASE_COMMENT', label: 'Add Case Comment', category: 'ACCESSION',
+    shortcut: 'Alt+Shift+C', internalKey: ACTION_MAP['accession.caseComment']?.internalKey ?? 'F24+PS035',
+    voiceTriggers: ['add case comment', 'open case comment', 'case comment'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+
   // ── TABLE / LIST NAVIGATION — WORKLIST + SEARCH contexts ─────────────────
   {
     id: 'TABLE_NEXT', label: 'Next Row', category: VOICE_CONTEXT.WORKLIST,
@@ -1279,6 +1311,38 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [],
     requiredRole: 'All Staff',
     isActive: true,
+  },
+
+  // ── GROSSING — reachable from the same page as the SYNOPTIC actions
+  // above, not a separate context; grossing isn't a separate page.
+  // "Mark grossed" and "confirm triage" are the two that actually
+  // change real case state (block status, specimen triage
+  // confirmation) — built alongside these triggers since neither
+  // existed anywhere before this pass (no UI advanced a block's
+  // status, no state tracked triage confirmation).
+  {
+    id: 'GROSSING_NEXT_BLOCK', label: 'Next Block', category: 'SYNOPTIC',
+    shortcut: 'Alt+.', internalKey: 'F24+PS036',
+    voiceTriggers: ['next block', 'go to next block'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'GROSSING_PREVIOUS_BLOCK', label: 'Previous Block', category: 'SYNOPTIC',
+    shortcut: 'Alt+,', internalKey: 'F24+PS037',
+    voiceTriggers: ['previous block', 'go to previous block', 'prior block'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'GROSSING_MARK_GROSSED', label: 'Mark Block Grossed', category: 'SYNOPTIC',
+    shortcut: 'Alt+G', internalKey: 'F24+PS038',
+    voiceTriggers: ['mark grossed', 'block grossed', 'block complete', 'grossing complete'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'GROSSING_CONFIRM_TRIAGE', label: 'Confirm Triage', category: 'SYNOPTIC',
+    shortcut: '', internalKey: 'F24+PS039',
+    voiceTriggers: ['confirm triage', 'triage complete', 'triage confirmed'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
   // ── TAT Trend tile switching — Contribution Dashboard ────────────────────────

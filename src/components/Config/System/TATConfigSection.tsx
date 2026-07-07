@@ -19,7 +19,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSubspecialties } from '../../../contexts/useSubspecialties';
-import { useSpecimens } from '../../../contexts/useSpecimens';
+import { useSpecimenDictionary } from './useSpecimenDictionary';
 import { mockClientService } from '../../../services/clients/mockClientService';
 import '../../../pathscribe.css';
 import { useAuditLog } from '../../Audit/useAuditLog';
@@ -548,7 +548,7 @@ const TATConfigSection: React.FC = () => {
 
   // Live data from context providers
   const { subspecialties } = useSubspecialties();
-  const { specimens }      = useSpecimens();
+  const { dictionary: specimens } = useSpecimenDictionary();
 
   const [allClients, setAllClients] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {

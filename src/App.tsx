@@ -8,7 +8,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SystemConfigProvider } from "./contexts/SystemConfigContext";
 import { MessagingProvider } from "./contexts/MessagingContext";
-import { SpecimenProvider } from "./contexts/useSpecimens";
 import { SubspecialtyProvider } from "./contexts/useSubspecialties";
 import { SpecimenDictionaryProvider } from "./components/Config/System/useSpecimenDictionary";
 
@@ -38,8 +37,10 @@ import MockEMRPage from './pages/MockEMRPage';
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 const Home = lazy(() => import("./pages/Home"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AccessionPage = lazy(() => import("./pages/AccessionPage/AccessionPage"));
 
 const WorklistPage = lazy(() => import("./pages/WorklistPage/WorklistPage"));
+const DeficienciesPage = lazy(() => import("./pages/DeficienciesPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const ConfigurationPage = lazy(() => import("./pages/ConfigurationPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
@@ -111,9 +112,8 @@ const App: React.FC = () => (
     <SystemConfigProvider>
       <AuthProvider>
         <MessagingProvider>
-          <SpecimenProvider>
-            <SubspecialtyProvider>
-              <SpecimenDictionaryProvider>
+          <SubspecialtyProvider>
+            <SpecimenDictionaryProvider>
                 <DirtyStateProvider>
                 <BreadcrumbProvider>
                 <VoiceProvider>
@@ -128,7 +128,9 @@ const App: React.FC = () => (
                       <Route element={<ProtectedRoute />}>
                         <Route element={<ScannerProvider><AppShell /></ScannerProvider>}>
                           <Route path="/" element={<Home />} />
+                          <Route path="/accession" element={<AccessionPage />} />
                           <Route path="/worklist" element={<WorklistPage />} />
+                          <Route path="/deficiencies" element={<DeficienciesPage />} />
                           <Route path="/search" element={<SearchPage />} />
                           <Route path="/audit" element={<AuditLogPage />} />
                           <Route
@@ -213,9 +215,8 @@ const App: React.FC = () => (
                 </VoiceProvider>
                 </BreadcrumbProvider>
                 </DirtyStateProvider>
-              </SpecimenDictionaryProvider>
-            </SubspecialtyProvider>
-          </SpecimenProvider>
+            </SpecimenDictionaryProvider>
+          </SubspecialtyProvider>
         </MessagingProvider>
       </AuthProvider>
     </SystemConfigProvider>

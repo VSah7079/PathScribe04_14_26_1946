@@ -37,6 +37,7 @@ import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
 import { mockCaseService }             from './mockCaseService';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
+import { getSessionUser, canAccessCase, filterAccessibleCases } from '../auth/caseAccessControl';
 
 // ── Routing rule ──────────────────────────────────────────────────────────────
 const ORCH_ID_PREFIX = 'O26-';
@@ -59,6 +60,16 @@ class CaseRouter implements ICaseService {
   }
 
   // ── getCase ─────────────────────────────────────────────────────────────────
+  // Access control added June 2026 — this method previously returned
+  // whatever the underlying service had for the given id, no matter who
+  // asked. The `userId` param below is used for audit-log labeling only;
+  // the actual access decision always uses the real browser session
+  // (getSessionUser()), not a caller-supplied string, since a parameter a
+  // component controls isn't a trustworthy security boundary even in a
+  // mock. Denied access returns undefined — identical to "not found" —
+  // deliberately, to avoid confirming a case's existence to someone not
+  // authorized to see it. See caseAccessControl.ts's own doc comment for
+  // the full reasoning and its "not real server-side security" caveat.
   async getCase(caseId: string, userId = 'current'): Promise<Case | undefined> {
     const [service, audit] = isOrchCase(caseId)
       ? [this.orchService, this.orchAudit]
@@ -66,7 +77,17 @@ class CaseRouter implements ICaseService {
 
     try {
       const c = await service.getCase(caseId);
-      audit.log({ eventType: 'case.read', caseId, userId, outcome: c ? 'success' : 'failure' });
+      if (!c) {
+        audit.log({ eventType: 'case.read', caseId, userId, outcome: 'failure' });
+        return undefined;
+      }
+      const session = getSessionUser();
+      if (!canAccessCase(session, c as any)) {
+        audit.log({ eventType: 'case.read', caseId, userId, outcome: 'failure' });
+        console.debug('[CaseRouter] Access denied (organisation mismatch or no session):', { caseId, sessionUserId: session?.id });
+        return undefined;
+      }
+      audit.log({ eventType: 'case.read', caseId, userId, outcome: 'success' });
       return c;
     } catch {
       audit.log({ eventType: 'case.read', caseId, userId, outcome: 'failure' });
@@ -75,14 +96,91 @@ class CaseRouter implements ICaseService {
   }
 
   // ── getAll ───────────────────────────────────────────────────────────────────
-  // Delegated to LIS service — LIS is the system of record for search/admin views.
-  async getAll(params?: CaseFilterParams): Promise<ServiceResult<Case[]>> {
-    return this.lisService.getAll(params);
+  // Previously delegated to the LIS service ONLY, unconditionally — meaning no
+  // caller could ever see Orchestration/O26- cases through getAll(), regardless
+  // of permission, and getAll() had no audit logging at all (every other method
+  // on this class logs; this one silently didn't). Both fixed together:
+  //
+  // - includeOrchestration is the caller's responsibility to set, based on the
+  //   requesting user's Role.canViewOrchestration (see IRoleService.ts) — this
+  //   router has no access to roles/permissions itself, consistent with its
+  //   own stated boundary ("never holds credentials"). Defaults to false, so
+  //   existing callers that don't pass opts keep today's LIS-only behavior
+  //   exactly — this is additive, not a behavior change for anyone who doesn't
+  //   opt in.
+  // - LIS remains the system of record for search/admin views per the original
+  //   design; Orchestration results are merged in, not substituted.
+  // - Each source is still audited independently (lisAudit / orchAudit), same
+  //   data-controller-separation posture as listCasesForUser, so a merged UI
+  //   result doesn't blur which controller's data was actually accessed.
+  //
+  // June 2026: results from both sources are now filtered through
+  // canAccessCase() before returning — this was the single biggest hole of
+  // the three (SearchPage.tsx calls this directly, unrestricted, so any
+  // logged-in user could search up and open any case from any hospital).
+  // Same "deny by default, real session, not caller-supplied userId" posture
+  // as getCase() above.
+  async getAll(
+    params?: CaseFilterParams,
+    opts?: { includeOrchestration?: boolean; userId?: string; bypassAccessControl?: boolean },
+  ): Promise<ServiceResult<Case[]>> {
+    const userId = opts?.userId ?? 'current';
+    const session = getSessionUser();
+
+    // bypassAccessControl exists for narrow, internal, non-display uses only
+    // — e.g. AccessionPage.tsx's case-ID uniqueness check needs to see every
+    // existing O26- number across all organisations to avoid two orgs'
+    // accessioners independently generating the same id, which the
+    // organisation filter below would otherwise make possible (each org
+    // would only see its own numbering sequence). Never the default, never
+    // implied — a caller has to explicitly opt in, and it's still fully
+    // audited below like every other path.
+    const applyFilter = (cases: Case[]) => opts?.bypassAccessControl ? cases : filterAccessibleCases(session, cases as any);
+
+    const lisResult = await this.lisService.getAll(params)
+      .then(r => {
+        this.lisAudit.log({ eventType: 'case.search', userId, outcome: 'success' });
+        return r;
+      })
+      .catch((): ServiceResult<Case[]> => {
+        this.lisAudit.log({ eventType: 'case.search', userId, outcome: 'failure' });
+        return { ok: false, data: [] } as any;
+      });
+
+    const lisAccessible = lisResult.ok ? applyFilter(lisResult.data as any) : [];
+
+    if (!opts?.includeOrchestration) {
+      return { ok: lisResult.ok, data: lisAccessible } as ServiceResult<Case[]>;
+    }
+
+    const orchResult = await this.orchService.getAll(params)
+      .then(r => {
+        this.orchAudit.log({ eventType: 'case.search', userId, outcome: 'success' });
+        return r;
+      })
+      .catch((): ServiceResult<Case[]> => {
+        this.orchAudit.log({ eventType: 'case.search', userId, outcome: 'failure' });
+        return { ok: false, data: [] } as any;
+      });
+
+    const orchAccessible = orchResult.ok ? applyFilter(orchResult.data as any) : [];
+
+    return {
+      ok: true,
+      data: [...lisAccessible, ...orchAccessible],
+    } as ServiceResult<Case[]>;
   }
 
   // ── listCasesForUser ─────────────────────────────────────────────────────────
   // Queries both services independently so each access is separately audited.
+  // June 2026: results filtered through canAccessCase() too, same as getAll()
+  // above — defense in depth. The underlying services' own listCasesForUser()
+  // still do their assigned-to-me/pool-membership logic (that's a workflow
+  // concern, not a tenant-boundary one); this filter is the organisation wall
+  // applied on top, in the one place both sources' results actually merge.
   async listCasesForUser(userId: string): Promise<Case[]> {
+    const session = getSessionUser();
+
     const [lisCases, orchCases] = await Promise.all([
       this.lisService.listCasesForUser(userId)
         .then(cases => {
@@ -105,22 +203,57 @@ class CaseRouter implements ICaseService {
         }),
     ]);
 
-    return [...lisCases, ...orchCases];
+    return filterAccessibleCases(session, [...lisCases, ...orchCases] as any) as Case[];
   }
 
   // ── updateCase ────────────────────────────────────────────────────────────────
   // Routes to the owning service — only the owner should accept writes.
+  //
+  // userId attribution fixed June 2026 — this used to hardcode the
+  // literal string 'current' in every audit event regardless of who was
+  // actually logged in, which defeated the entire point of an audit
+  // trail (DSPT/UK GDPR/HIPAA-style requirements exist specifically to
+  // attribute actions to a real, identifiable individual). Now resolves
+  // the actual session user the same way getCase/getAll already do.
   async updateCase(caseId: string, updates: Partial<Case>): Promise<void> {
     const [service, audit] = isOrchCase(caseId)
       ? [this.orchService, this.orchAudit]
       : [this.lisService,  this.lisAudit];
+    const userId = getSessionUser()?.id ?? 'unknown';
 
     try {
       await service.updateCase(caseId, updates);
-      audit.log({ eventType: 'case.write', caseId, userId: 'current', outcome: 'success' });
+      audit.log({ eventType: 'case.write', caseId, userId, outcome: 'success' });
     } catch {
-      audit.log({ eventType: 'case.write', caseId, userId: 'current', outcome: 'failure' });
+      audit.log({ eventType: 'case.write', caseId, userId, outcome: 'failure' });
       throw new Error(`CaseRouter.updateCase failed for ${caseId}`);
+    }
+  }
+
+  // ── createCase ───────────────────────────────────────────────────────────────
+  // Added for the Accession page (S0-CF-08 note: this is exactly the spot
+  // CaseRouter.ts's own comment flags for a future Case Registry lookup —
+  // "In production, replace isOrchCase() with a Case Registry microservice
+  // lookup". Until that exists, the caller (AccessionPage.tsx) generates an
+  // O26--prefixed id before calling, same routing key as every other method
+  // here. Routes by the id the caller already chose, not by any
+  // Orchestration-specific parameter, so this stays a thin façade rather
+  // than special-casing one workflow.
+  //
+  // userId attribution fixed June 2026 — same hardcoded-'current' bug as
+  // updateCase above, same fix.
+  async createCase(caseData: Case): Promise<void> {
+    const [service, audit] = isOrchCase(caseData.id)
+      ? [this.orchService, this.orchAudit]
+      : [this.lisService,  this.lisAudit];
+    const userId = getSessionUser()?.id ?? 'unknown';
+
+    try {
+      await service.createCase(caseData);
+      audit.log({ eventType: 'case.create', caseId: caseData.id, userId, outcome: 'success' });
+    } catch {
+      audit.log({ eventType: 'case.create', caseId: caseData.id, userId, outcome: 'failure' });
+      throw new Error(`CaseRouter.createCase failed for ${caseData.id}`);
     }
   }
 }

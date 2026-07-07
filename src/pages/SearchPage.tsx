@@ -3,10 +3,13 @@ type CodeModalSystem = 'snomed' | 'icd' | 'SNOMED' | 'ICD-10' | 'ICD-11' | 'ICD-
 import React, { useState, useEffect, useRef } from 'react';
 import '../pathscribe.css';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { caseRouter } from '../services/cases/CaseRouter';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable from '../components/Worklist/WorklistTable';
-import { caseService, codeService } from '../services';
-import type { PathologyCase, CaseFilterParams, ClinicalCode } from '../services';
+import SidecarDrawer from '../components/sidecar/SidecarDrawer'; // path depth matches WorklistTable import above, NOT WorklistPage.tsx's '../../...' (that file lives one directory deeper, in its own WorklistPage/ subfolder)
+import { codeService, flagService } from '../services';
+import type { PathologyCase, CaseFilterParams, ClinicalCode, Flag } from '../services';
 import { LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty } from '../components/Common/LookupModal';
 // Extended component — adds onClear prop until LookupModal.tsx is updated
 const LookupModalX = LookupModal as React.ComponentType<React.ComponentProps<typeof LookupModal> & { onClear?: () => void; onDone?: () => void }>;
@@ -24,6 +27,18 @@ import { VOICE_CONTEXT } from '../constants/systemActions';
 const toDateString = (d: Date): string => d.toISOString().split('T')[0];
 const today   = (): string => toDateString(new Date());
 const daysAgo = (n: number): string => { const d = new Date(); d.setDate(d.getDate() - n); return toDateString(d); };
+
+const DATE_RANGE_SHORTCUTS: [string, number][] = [['7d',7],['30d',30],['90d',90],['1yr',365]];
+// Shared by applyFilters and the breadcrumb-return session-snapshot
+// restore — both set dateFrom/dateTo from a previously-saved/captured
+// value and need to re-derive whether that value happens to match one of
+// the four shortcut buttons, so the button's active-state highlight stays
+// correct after a restore, not just after a direct click.
+const matchDateRangeShortcut = (from: string, to: string): string | null => {
+  if (!from && !to) return 'all';
+  const match = DATE_RANGE_SHORTCUTS.find(([, days]) => from === daysAgo(days) && to === today());
+  return match ? match[0] : null;
+};
 const fmtDate = (iso: string): string => {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
@@ -220,7 +235,36 @@ const ALL_CLIENTS = [
   { id:'c3', name:'Westside Community Hospital'      },
 ];
 
-const CASE_STATUS_OPTIONS = ['draft','in-progress','pending','pending-review','pending-countersign','finalized','pool','amended'] as const;
+// Real CaseStatus values only (see src/types/case/CaseStatus.ts) — this array
+// previously included 'pending' and 'pending-countersign', neither of which
+// is a valid CaseStatus (the latter is a SynopticReportInstance status, not a
+// Case status), so those two pills never matched any real case. Replaced with
+// 'pathologist-review' (the real "ready for sign-out" status) and dropped the
+// non-existent 'pending' value — folded into 'pending-review', which already
+// covers it. Also adds the three new Orchestration statuses: 'accessioned',
+// 'gross-complete', 'intraoperative-complete'.
+const CASE_STATUS_OPTIONS = [
+  'draft','accessioned','gross-complete','in-progress','intraoperative-complete',
+  'pending-review','pathologist-review','finalizing','finalized','pool','amended',
+] as const;
+
+// Label + accent color per status — kept in one place instead of inline so the
+// mapping stays legible as statuses are added. Colors match getStatusStyle in
+// WorklistTable.tsx where the same status appears, for visual consistency
+// between Worklist and Search.
+const STATUS_PILL_META: Record<typeof CASE_STATUS_OPTIONS[number], { label: string; color: string }> = {
+  'draft':                    { label: 'Draft',             color: '#94a3b8' },
+  'accessioned':              { label: 'Awaiting Grossing', color: '#38BDF8' },
+  'gross-complete':           { label: 'Gross Complete',    color: '#14B8A6' },
+  'in-progress':              { label: 'In Progress',       color: '#0891B2' },
+  'intraoperative-complete':  { label: 'Intraop Complete',  color: '#A855F7' },
+  'pending-review':           { label: 'Needs Review',      color: '#F59E0B' },
+  'pathologist-review':       { label: 'Awaiting Sign-off',  color: '#FB7185' },
+  'finalizing':                { label: 'Finalizing',        color: '#EC4899' },
+  'finalized':                 { label: 'Completed',         color: '#10B981' },
+  'pool':                      { label: 'Pool',              color: '#F97316' },
+  'amended':                   { label: 'Amended',           color: '#8B5CF6' },
+};
 const PRIORITY_OPTIONS    = ['Routine','STAT'] as const;
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -887,9 +931,42 @@ const CodeLookupContent: React.FC<{
 const SearchPage: React.FC = () => {
   const navigate     = useNavigate();
   const handleLogout = useLogout();
+  const { user }      = useAuth();
   const { pushCrumb } = useBreadcrumb();
   const { dictionary: specimenDictionary } = useSpecimenDictionary();
   const { config } = useSystemConfig();
+
+  // Measure available height for the table container — mirrors
+  // WorklistPage.tsx's identical hook exactly. That page's own comment is
+  // explicit about why: this is "immune to any parent overflow/flex chain
+  // issues." SearchPage previously relied purely on the CSS flex cascade
+  // for the table's height, which is exactly the thing this technique
+  // exists to avoid trusting — that gap, not a missing min-width/min-height
+  // somewhere, was the actual cause of the table's bottom (and its
+  // horizontal scrollbar, which lives at that bottom edge) rendering past
+  // the visible viewport.
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const [tableHeight, setTableHeight] = useState<number>(400);
+  useEffect(() => {
+    const measure = () => {
+      if (!wrapperRef.current) return;
+      const top = wrapperRef.current.getBoundingClientRect().top;
+      const available = window.innerHeight - top - 16; // 16px bottom breathing room
+      setTableHeight(Math.max(200, available));
+    };
+    const t = setTimeout(measure, 50);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, []);
+
+  // Mirrors canViewPediatric's pattern (WorklistPage.tsx/WorklistTable.tsx) —
+  // a Role-level flag surfaced onto the authenticated user, defaulting to
+  // false. Unlike pediatric redaction (same data controller, sensitive
+  // fields hidden within an otherwise-visible case), this gates visibility
+  // of an entire different controller's cases (Orchestration/PathScribe vs.
+  // the NHS Trust LIS) — see IRoleService.ts and CaseRouter.ts for why that
+  // distinction matters for compliance, not just UI.
+  const canViewOrchestration = (user as any)?.canViewOrchestration ?? false;
 
   const [isLoaded,        setIsLoaded]        = useState(false);
   const [isProfileOpen,   setIsProfileOpen]   = useState(false);
@@ -933,13 +1010,21 @@ const SearchPage: React.FC = () => {
       );
       if (slideMatch) return 'slide';
 
-      // Accession number
-      if (new RegExp(config.identifierFormats.accessionPattern, 'i')
-          .test(normalizeAccession(v, config.identifierFormats.accessionPattern)))
-        return 'accession';
+      // Accession number — tests every enabled accession format, not just
+      // one. Fixed June 2026: this used to test only against the single
+      // derived config.identifierFormats.accessionPattern, which silently
+      // ignored any additional accession format an admin had enabled on
+      // the Identifier Formats config screen (e.g. UK alongside US) —
+      // same bug ScannerProvider.tsx had, same fix shape as the
+      // slide/requisition detection right above/below this, which was
+      // already correctly checking every enabled format.
+      const accessionFormats = enabledFormats.filter(f => f.kind === 'accession' && f.enabled);
+      const accessionMatch = accessionFormats.find(f => new RegExp(f.pattern, 'i').test(normalizeAccession(v, f.pattern)));
+      if (accessionMatch) return 'accession';
 
-      // Patient identifier (MRN / NHS / CHI / IHI etc.)
-      if (new RegExp(config.identifierFormats.mrnPattern).test(v)) return 'mrn';
+      // Patient identifier (MRN / NHS / CHI / IHI etc.) — same fix.
+      const mrnFormats = enabledFormats.filter(f => f.kind === 'mrn' && f.enabled);
+      if (mrnFormats.some(f => new RegExp(f.pattern).test(v))) return 'mrn';
 
       // Requisition number
       const reqMatch = enabledFormats.find(
@@ -975,7 +1060,18 @@ const SearchPage: React.FC = () => {
       return;
     }
 
-    if (type === 'accession')        setAccessionNo(normalizeAccession(val.trim(), config.identifierFormats.accessionPattern));
+    if (type === 'accession') {
+      // Try each enabled accession format's own pattern for hyphen
+      // normalization until one actually matches — a UK-shaped value
+      // (SP26-4200, 1-2 letter prefix) won't normalize correctly against
+      // the US-shaped default pattern's assumptions.
+      const accessionFormats = enabledFormats.filter(f => f.kind === 'accession' && f.enabled);
+      const normalized = accessionFormats
+        .map(f => normalizeAccession(val.trim(), f.pattern))
+        .find(n => accessionFormats.some(f => new RegExp(f.pattern, 'i').test(n)))
+        ?? normalizeAccession(val.trim(), config.identifierFormats.accessionPattern);
+      setAccessionNo(normalized);
+    }
     else if (type === 'mrn')         setHospitalId(val.trim());
     else if (type === 'name')        setPatientName(val.trim());
     else if (type === 'requisition') setAccessionNo(val.trim());
@@ -1004,6 +1100,11 @@ const SearchPage: React.FC = () => {
 
   const [dateFrom,     setDateFrom]     = useState(daysAgo(30));
   const [dateTo,       setDateTo]       = useState(today());
+  // Tracks which date-range shortcut (7d/30d/90d/1yr) was last clicked, if
+  // any — null once the user edits a date field manually, since at that
+  // point no shortcut's value is necessarily still accurate. Default '30d'
+  // matches the initial dateFrom/dateTo state above exactly.
+  const [activeDateRange, setActiveDateRange] = useState<string | null>('30d');
 
   const [specimenQuery,       setSpecimenQuery]       = useState('');
   const [specimenList,        setSpecimenList]        = useState<string[]>([]);
@@ -1046,6 +1147,31 @@ const SearchPage: React.FC = () => {
 
   const [results,     setResults]     = useState<PathologyCase[]|null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // flagDefinitions was never loaded/passed here at all — WorklistPage.tsx
+  // loads this via flagService.getAll() and passes it to WorklistTable as
+  // flagDefinitions, which renderFlags() needs to tell a COMPUTATIONAL flag
+  // (rendered as a ComputationalFlagIcon tile) apart from an administrative
+  // one (rendered as a plain FlagChip pill). Without it, every flag here
+  // fell through to the administrative branch regardless of its real
+  // tagClass — computational tiles were structurally never reachable in
+  // Search, not hidden by any card-view-specific code path.
+  const [flagDefinitions, setFlagDefinitions] = useState<Flag[]>([]);
+  const [computationalFlags, setComputationalFlags] = useState<Flag[]>([]);
+  useEffect(() => {
+    flagService.getAll().then(res => {
+      if (!res.ok) return;
+      setFlagDefinitions(res.data);
+      setComputationalFlags(res.data.filter((f: Flag) => f.tagClass === 'COMPUTATIONAL' && f.status === 'Active'));
+    }).catch(() => {});
+  }, []);
+  // Auto-collapses the filter sidebar after a search runs, freeing real
+  // width for the results table — mirrors SynopticReportPage's
+  // Sidebar.tsx collapsed/expanded pattern exactly. Set explicitly at
+  // each search-trigger call site below rather than via a useEffect on
+  // hasSearched, since hasSearched may already be true on a second
+  // search and wouldn't re-fire a dependency-based effect.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(lsLoad);
@@ -1064,7 +1190,7 @@ const SearchPage: React.FC = () => {
     const f = snap.filters;
     setPatientName(f.patientName); setHospitalId(f.hospitalId); setAccessionNo(f.accessionNo);
     setDateFrom(f.dateFrom); setDateTo(f.dateTo);
-    setSpecimenList(f.specimenList); setDiagnosisList(f.diagnosisList);
+    setActiveDateRange(matchDateRangeShortcut(f.dateFrom, f.dateTo));
     setSnomedList(f.snomedList); setIcdCodes(f.icdCodes);
     setSynopticIds(f.synopticIds); setFlagsList(f.flagsList);
     setPathologistIds(f.pathologistIds ?? []); setAttendingIds(f.attendingIds ?? []);
@@ -1124,10 +1250,17 @@ const SearchPage: React.FC = () => {
     });
   }, [icdQuery]);
 
-  useEffect(() => {
-    if (!hasSearched) return; void runSearch();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patientName,hospitalId,accessionNo,diagnosisList,specimenList,snomedList,icdCodes,synopticIds,flagsList,pathologistIds,attendingIds,submittingNames,statusList,priorityList,dateFrom,dateTo,genderList,dobFrom,dobTo,ageMin,ageMax]);
+  // REMOVED: previously auto-re-ran the search on every single filter
+  // change once hasSearched was true (any checkbox/dropdown edit fired a
+  // real query immediately, no debounce, no confirmation step). Under
+  // concurrent multi-pathologist usage that's a real backend-load concern
+  // — someone adjusting several filters in sequence while deciding what
+  // they actually want fires one query per click, not one query per
+  // decision. "Search Cases" (handleSubmit) is now the single deliberate
+  // trigger for any query, matching how the very first search already
+  // worked (this effect was a no-op until hasSearched flipped true).
+  // Filter state still updates instantly in the UI either way — only the
+  // actual backend query is now gated behind the explicit button press.
 
   // â”€â”€ Filter helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -1156,6 +1289,7 @@ const SearchPage: React.FC = () => {
     setPathologistIds(f.pathologistIds ?? []); setAttendingIds(f.attendingIds ?? []);
     setSubmittingNames(f.submittingNames); setStatusList(f.statusList); setPriorityList(f.priorityList);
     setDateFrom(f.dateFrom); setDateTo(f.dateTo);
+    setActiveDateRange(matchDateRangeShortcut(f.dateFrom, f.dateTo));
     // Restore demographics — previously hardcoded to empty which broke saved-search round-trips
     setGenderList(f.genderList ?? []);
     setDobFrom(f.dobFrom ?? '');
@@ -1218,8 +1352,11 @@ const SearchPage: React.FC = () => {
             .filter(Boolean) as string[],
         }),
       };
-      console.log('[Search] params:', params);
-      const result = await caseService.getAll(params);
+      console.log('[Search] params:', params, '| includeOrchestration:', canViewOrchestration);
+      const result = await caseRouter.getAll(params, {
+        includeOrchestration: canViewOrchestration,
+        userId: (user as any)?.id,
+      });
       console.log('[Search] result:', result.ok, result.ok ? result.data?.length : 0, 'cases');
       if (result.ok) {
         const filteredData = compFlagsList.length > 0
@@ -1242,7 +1379,7 @@ const SearchPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setHasSearched(true); void runSearch(); };
+  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setHasSearched(true); setSidebarCollapsed(true); void runSearch(); };
 
   const handleClear = () => {
     setPatientName(''); setHospitalId(''); setAccessionNo('');
@@ -1254,7 +1391,7 @@ const SearchPage: React.FC = () => {
     setSynopticIds([]); setFlagsList([]); setPathologistIds([]); setAttendingIds([]);
     setSubmittingNames([]); setStatusList([]); setPriorityList([]);
     setGenderList([]); setDobFrom(''); setDobTo(''); setAgeMin(''); setAgeMax('');
-    setDateFrom(daysAgo(30)); setDateTo(today());
+    setDateFrom(daysAgo(30)); setDateTo(today()); setActiveDateRange('30d');
     setResults(null); setHasSearched(false); setActiveSavedId('');
     ssClear();
   };
@@ -1303,7 +1440,7 @@ const SearchPage: React.FC = () => {
 
   const handleLoadSearch = (id: string) => {
     const s = savedSearches.find(x=>x.id===id); if (!s) return;
-    applyFilters(s.filters); setActiveSavedId(id); setHasSearched(true); void runSearch();
+    applyFilters(s.filters); setActiveSavedId(id); setHasSearched(true); setSidebarCollapsed(true); void runSearch();
   };
 
   const handleDeleteSearch = (id: string, e: React.MouseEvent) => {
@@ -1346,6 +1483,7 @@ const SearchPage: React.FC = () => {
 
     const runVoiceSearch = () => {
       setHasSearched(true);
+      setSidebarCollapsed(true);
       void runSearch();
     };
 
@@ -1408,28 +1546,27 @@ const SearchPage: React.FC = () => {
     Systems:    [{ title:'Hospital LIS', url:'#' }, { title:'Lab Management', url:'#' }],
   };
 
-  const modalOverlay: React.CSSProperties = { position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.85)', backdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10000 };
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
-    <div style={{ position:'relative', width:'100vw', height:'var(--app-height, 100vh)', backgroundColor:'#000', color:'#fff', fontFamily:"'Inter',sans-serif", opacity:isLoaded?1:0, transition:'opacity 0.5s ease', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div className="ps-search-page-root" style={{ opacity:isLoaded?1:0 }}>
 
-      <div style={{ position:'absolute', inset:0, backgroundImage:'url(/main_background.jpg)', backgroundSize:'cover', backgroundPosition:'center', zIndex:0, filter:'brightness(0.3) contrast(1.1)' }} />
-      <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom,rgba(0,0,0,0.4) 0%,#000 100%)', zIndex:1 }} />
+      <div className="ps-search-bg-image" />
+      <div className="ps-search-bg-gradient" />
 
-      <div style={{ position:'relative', zIndex:10, display:'flex', flexDirection:'column', height:'var(--app-height, 100vh)', overflow:'hidden' }}>
+      <div className="ps-search-shell">
 
         {/* â”€â”€ Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
 
         {/* â”€â”€ Page header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div style={{ background:'rgba(0,0,0,0.4)', backdropFilter:'blur(12px)', padding:'8px 40px', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div className="ps-search-header">
+          <div className="ps-search-header-row">
             <div>
-              <div style={{ fontSize:18, fontWeight:700, color:'#f1f5f9', marginBottom:1 }}>Case Search</div>
-              <div style={{ color:'#94a3b8', fontSize:12 }}>Search across cases, specimens, diagnoses, and clinical codes</div>
+              <div className="ps-search-title-block-title">Case Search</div>
+              <div className="ps-search-title-block-sub">Search across cases, specimens, diagnoses, and clinical codes</div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end', maxWidth:560 }}>
+            <div className="ps-search-saved-chips">
               {savedSearches.map(s => (
                 <button key={s.id} type="button" onClick={()=>handleLoadSearch(s.id)} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px 4px 11px', borderRadius:999, cursor:'pointer', fontSize:11, fontWeight:500, background:activeSavedId===s.id?'rgba(139,92,246,0.2)':'rgba(255,255,255,0.05)', border:`1px solid ${activeSavedId===s.id?'#8B5CF6':'rgba(255,255,255,0.1)'}`, color:activeSavedId===s.id?'#c4b5fd':'#94a3b8' }}>
                   {s.name}
@@ -1453,11 +1590,23 @@ const SearchPage: React.FC = () => {
         </div>
 
         {/* â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <main style={{ flex:1, minHeight:0, padding:'20px 40px', display:'flex', flexDirection:'column', overflow:'hidden', gap:16 }}>
-          <div style={{ flex:1, minHeight:0, display:'flex', gap:16, overflow:'hidden' }}>
+        <main className="ps-search-main">
+          <div className="ps-search-row">
 
           {/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-          <aside className="ps-search-sidebar">
+          <aside className={`ps-search-sidebar ${sidebarCollapsed ? 'collapsed' : 'expanded'}`}>
+            {sidebarCollapsed ? (
+              <div className="ps-search-rail">
+                <button type="button" className="ps-search-rail-toggle" onClick={() => setSidebarCollapsed(false)} title="Expand filters">
+                  &rsaquo;
+                </button>
+                <div className="ps-search-rail-badge">Filters</div>
+              </div>
+            ) : (
+            <>
+            <button type="button" className="ps-search-sidebar-toggle" onClick={() => setSidebarCollapsed(true)} title="Collapse filters">
+              &lsaquo;
+            </button>
             <form onSubmit={handleSubmit} className="ps-search-form">
 
               {/* Accession Date */}
@@ -1465,20 +1614,51 @@ const SearchPage: React.FC = () => {
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
                   <SectionLabel title="Accession Date" active={activeSection==="date"} />
                   <div style={{ display:'flex', gap:3 }}>
-                    {([['7d',7],['30d',30],['90d',90],['1yr',365]] as [string,number][]).map(([label,days])=>(
-                      <button key={label} type="button" onClick={()=>{setDateFrom(daysAgo(days));setDateTo(today());}}
-                        style={{ fontSize:10, padding:'2px 6px', borderRadius:5, cursor:'pointer', border:'1px solid rgba(8,145,178,0.4)', background:'rgba(8,145,178,0.08)', color:'#7dd3fc', fontWeight:600 }}>{label}</button>
-                    ))}
+                    {([['7d',7],['30d',30],['90d',90],['1yr',365]] as [string,number][]).map(([label,days])=>{
+                      const isActive = activeDateRange === label;
+                      return (
+                        <button key={label} type="button"
+                          onClick={()=>{setDateFrom(daysAgo(days));setDateTo(today());setActiveDateRange(label);}}
+                          style={{
+                            fontSize:10, padding:'2px 6px', borderRadius:5, cursor:'pointer', fontWeight:600,
+                            transition:'all 0.15s',
+                            background: isActive ? 'rgba(8,145,178,0.28)' : 'rgba(8,145,178,0.08)',
+                            border: `1px solid ${isActive ? '#0891B2' : 'rgba(8,145,178,0.4)'}`,
+                            color: isActive ? '#f1f5f9' : '#7dd3fc',
+                          }}>{label}</button>
+                      );
+                    })}
+                    {/* "All" — deliberately separate from the days-based
+                        shortcuts above (not representable as N-days-back).
+                        Amber/warning coloring rather than cyan to visually
+                        flag it as a different kind of action, not just a
+                        wider version of the same thing. The tooltip is a
+                        forward-looking caution about a real production
+                        concern (unbounded query against years of clinical
+                        records) — with the current mock service this
+                        actually returns instantly, so the warning describes
+                        the eventual real backend, not a live measurement of
+                        anything slow happening today. */}
+                    <button type="button"
+                      onClick={()=>{setDateFrom('');setDateTo('');setActiveDateRange('all');}}
+                      title="Searches all accession dates with no limit. Once connected to a production database with years of records, this could take noticeably longer to return results."
+                      style={{
+                        fontSize:10, padding:'2px 6px', borderRadius:5, cursor:'pointer', fontWeight:600,
+                        transition:'all 0.15s',
+                        background: activeDateRange === 'all' ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.08)',
+                        border: `1px solid ${activeDateRange === 'all' ? '#F59E0B' : 'rgba(245,158,11,0.4)'}`,
+                        color: activeDateRange === 'all' ? '#fde68a' : '#fbbf24',
+                      }}>All</button>
                   </div>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
                   <div>
                     <div style={{ fontSize:10, color:activeSection==='date'?'#7dd3fc':'#94a3b8', marginBottom:2, transition:'color 0.15s' }}>From</div>
-                    <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} onFocus={onF} onBlur={onB} data-section="date" style={{...INPUT, colorScheme:'dark' as any}} />
+                    <input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setActiveDateRange(null);}} onFocus={onF} onBlur={onB} data-section="date" style={{...INPUT, colorScheme:'dark' as any}} />
                   </div>
                   <div>
                     <div style={{ fontSize:10, color:activeSection==='date'?'#7dd3fc':'#94a3b8', marginBottom:2, transition:'color 0.15s' }}>To</div>
-                    <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} onFocus={onF} onBlur={onB} data-section="date" style={{...INPUT, colorScheme:'dark' as any}} />
+                    <input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setActiveDateRange(null);}} onFocus={onF} onBlur={onB} data-section="date" style={{...INPUT, colorScheme:'dark' as any}} />
                   </div>
                 </div>
               </div>
@@ -1580,7 +1760,7 @@ const SearchPage: React.FC = () => {
                     onMouseLeave={()=>setActiveSection(s=>s==='status'||s==='priority'?'':s)}
                     style={{ display:'flex', flexWrap:'wrap', gap:3 }}
                   >
-                    {CASE_STATUS_OPTIONS.map(s=><CheckPill key={s} label={({'draft':'Grossing','in-progress':'Awting Micro','pending':'Pending','pending-review':'Finalizing','pending-countersign':'Awaiting S/O','finalized':'Completed','pool':'Pool','amended':'Amended'})[s]??s} checked={statusList.includes(s)} onChange={()=>toggle(s,statusList,setStatusList)} />)}
+                    {CASE_STATUS_OPTIONS.map(s=><CheckPill key={s} label={STATUS_PILL_META[s].label} checked={statusList.includes(s)} onChange={()=>toggle(s,statusList,setStatusList)} accent={STATUS_PILL_META[s].color} />)}
                     <div style={{ width:1, alignSelf:'stretch', background:'rgba(255,255,255,0.1)', margin:'0 2px' }} />
                     {PRIORITY_OPTIONS.map(p=><CheckPill key={p} label={p} checked={priorityList.includes(p)} onChange={()=>toggle(p,priorityList,setPriorityList)} accent={p==='STAT'?'#ef4444':'#0891B2'} />)}
                   </div>
@@ -1754,13 +1934,15 @@ const SearchPage: React.FC = () => {
               </div>
 
             </form>
+            </>
+            )}
           </aside>
 
           {/* â”€â”€ Results pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-          <div data-capture-hide="true" style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12 }}>
+          <div data-capture-hide="true" className="ps-search-results-pane">
 
             {/* Summary bar */}
-            <div style={{ padding:'9px 20px', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.02)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+            <div className="ps-search-summary-bar">
               {summary ? (
                 <p style={{ margin:0, fontSize:12, color:'#94a3b8', lineHeight:1.5, flex:1 }}>
                   
@@ -1774,7 +1956,7 @@ const SearchPage: React.FC = () => {
               ) : (
                 <p style={{ margin:0, fontSize:12, color:'#94a3b8' }}>Set filters and press <strong style={{ color:'#22c55e' }}>Search Cases</strong> to begin</p>
               )}
-              <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+              <div className="ps-search-summary-actions">
                 {results!==null&&<span style={{ fontSize:12, color:'#94a3b8' }}>{results.length} case{results.length!==1?'s':''}</span>}
                 {results!==null&&results.length>0&&(
                   <button
@@ -1788,10 +1970,24 @@ const SearchPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Result table ”” WorklistTable owns its own internal scroll */}
-            <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            {/* Result table — WorklistTable owns its own internal scroll
+                (.wl-table-scroll). minWidth:0 here (and on .ps-search-results-body
+                in pathscribe.css) is required for that to actually kick in —
+                without it, the 1100px-wide table can push this flex chain wider
+                instead of being clamped, which only shows up as truncation on
+                narrower viewports rather than a visible bug on a wide monitor. */}
+            <div ref={wrapperRef} className="ps-search-table-wrap" style={{ position: 'relative' }}>
+              {/* Overlay Sidecar — opens when a computational flag icon is
+                  clicked in a card. Mirrors WorklistPage.tsx's exact mount
+                  pattern (position:relative wrapper + SidecarDrawer as a
+                  sibling before the table/card content). Without this,
+                  ComputationalFlagIcon's onSelect still calls openOverlay()
+                  successfully (SidecarProvider wraps the whole app), but
+                  nothing was mounted to render the resulting overlay here —
+                  a silent dead click, not a missing data/permission issue. */}
+              <SidecarDrawer computationalFlags={computationalFlags} navSource="search" />
               {hasSearched
-                ? <WorklistTable key={results?.length ?? 0} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} onBeforeNavigate={(_caseId)=>sessionStorage.setItem('pathscribe:navFrom','search')} />
+                ? <WorklistTable key={results?.length ?? 0} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} onBeforeNavigate={(_caseId)=>sessionStorage.setItem('pathscribe:navFrom','search')} tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions} />
                 : <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#1e293b', fontSize:13 }}>No search run yet</div>
               }
             </div>
@@ -1908,7 +2104,7 @@ const SearchPage: React.FC = () => {
 
       {/* â”€â”€ Profile modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isProfileOpen&&(
-        <div style={modalOverlay} onClick={()=>setIsProfileOpen(false)}>
+        <div className="ps-modal-overlay" onClick={()=>setIsProfileOpen(false)}>
           <div style={{ width:400, backgroundColor:'#111', borderRadius:20, padding:40, border:'1px solid rgba(8,145,178,0.3)', textAlign:'center' }} onClick={e=>e.stopPropagation()}>
             <div style={{ color:'#0891B2', fontSize:24, fontWeight:700, marginBottom:24 }}>User Preferences</div>
             <button onClick={()=>setIsProfileOpen(false)} style={{ padding:'12px 24px', borderRadius:10, background:'rgba(8,145,178,0.15)', border:'1px solid rgba(8,145,178,0.3)', color:'#0891B2', fontWeight:600, fontSize:15, cursor:'pointer', width:'100%' }}>Close</button>
@@ -1918,7 +2114,7 @@ const SearchPage: React.FC = () => {
 
       {/* â”€â”€ Resources modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isResourcesOpen&&(
-        <div style={modalOverlay} onClick={()=>setIsResourcesOpen(false)}>
+        <div className="ps-modal-overlay" onClick={()=>setIsResourcesOpen(false)}>
           <div style={{ width:500, maxHeight:'80vh', overflowY:'auto', backgroundColor:'#111', borderRadius:20, padding:40, border:'1px solid rgba(8,145,178,0.3)' }} onClick={e=>e.stopPropagation()}>
             <div style={{ color:'#0891B2', fontSize:24, fontWeight:700, marginBottom:24, textAlign:'center' }}>Quick Links</div>
             {Object.entries(quickLinks).map(([section,links])=>(
@@ -1940,7 +2136,7 @@ const SearchPage: React.FC = () => {
 
       {/* â”€â”€ Logout modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showLogoutModal&&(
-        <div style={modalOverlay}>
+        <div className="ps-modal-overlay">
           <div style={{ width:400, backgroundColor:'#111', padding:40, borderRadius:28, textAlign:'center', border:'1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ fontSize:48, marginBottom:20 }}>âš ï¸</div>
             <h2 style={{ fontSize:24, fontWeight:800, color:'#fff', margin:'0 0 12px' }}>Sign out?</h2>

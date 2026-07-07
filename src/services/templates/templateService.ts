@@ -17,7 +17,7 @@
  *   components/Config/Protocols/SynopticEditor.tsx
  *   components/Config/Templates/TemplateRenderer.tsx
  *
- * Drop-in path: src/services/templateService.ts
+ * Drop-in path: src/services/templates/templateService.ts
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  */
 
@@ -622,3 +622,25 @@ editorStore.set('rcpath_colorectal_further_investigations',   RCPATH_COLORECTAL_
 editorStore.set('rcpath_prostate_biopsy',                     RCPATH_PROSTATE_BX_JSON   as any);
 editorStore.set('rcpath_prostate_radical_prostatectomy',      RCPATH_PROSTATE_RP_JSON   as any);
 editorStore.set('rcpath_prostate_turp_enucleation',           RCPATH_PROSTATE_TURP_JSON as any);
+
+// Grossing Templates
+// NOTE: unlike the CAP/RCPath imports above, these do NOT rely on the
+// getTemplate() fallback path (the "seeded into editorStore but not in
+// PROTOCOL_REGISTRY" case) — each has an explicit PROTOCOL_REGISTRY entry
+// in protocolShared.tsx (see "Grossing Templates" section there), set to
+// status: 'published' so they show in Active Protocols / are selectable
+// for assignment, the same as any other Base/Custom template. Both files
+// must be kept in sync by id.
+//
+// Three peer templates (Route A/B/C), not one generic + variants — see the
+// "Grossing Templates" comment block in protocolShared.tsx for why there's
+// no parent/child relationship between them; Stage 0's AI assignment picks
+// the right one per specimen, the same way CAP_TO_REPORT picks a Report
+// Template in TemplateRoutingService.ts.
+import GROSSING_STANDARD_TISSUE_JSON from '../../data/templates/custom/grossing_standard_tissue.json';
+import GROSSING_FLUID_CYTOLOGY_JSON  from '../../data/templates/custom/grossing_fluid_cytology.json';
+import GROSSING_HISTOLOGY_ONLY_JSON  from '../../data/templates/custom/grossing_histology_only.json';
+
+editorStore.set('grossing_standard_tissue', GROSSING_STANDARD_TISSUE_JSON as any);
+editorStore.set('grossing_fluid_cytology',  GROSSING_FLUID_CYTOLOGY_JSON  as any);
+editorStore.set('grossing_histology_only',  GROSSING_HISTOLOGY_ONLY_JSON  as any);

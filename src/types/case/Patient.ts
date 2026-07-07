@@ -2,8 +2,41 @@ export interface Patient {
   id: string;
   mrn?: string;
 
+  // ── Name — medical-grade schema (June 2026) ──────────────────────────────
+  // Prefix/Given/Family/Preferred/Suffix instead of rigid First/Middle/Last,
+  // which breaks for Spanish double surnames, Hungarian name order,
+  // patients with no middle name, Mc/Mac variants, etc. See
+  // utils/personName.ts for the shared model and formatting helpers.
+  namePrefix?: string;
+  /** All given/first/middle names, in the order the patient would write
+   *  them. Optional despite being the "real" identity field — kept
+   *  optional (not required) specifically so the 50+ existing seed
+   *  Patient records across mockCaseService.ts/mockOrchestratorCaseService.ts
+   *  don't all need touching at once; firstName/lastName remain the
+   *  guaranteed-populated fields until a record is actually migrated.
+   *  New code (Accession page) should always populate this. */
+  givenNames?: string;
+  /** Surname(s) — single, double (Spanish/Portuguese), hyphenated, or
+   *  patronymic with spaces (Mac Donald, O'Connor). Same optionality
+   *  reasoning as givenNames above. */
+  familyNames?: string;
+  /** What staff should actually call the patient — nickname, chosen
+   *  name, or a shortened form of a long given name. Never used for
+   *  identity matching. */
+  preferredName?: string;
+  /** Jr./Sr./II/III/IV/V or free text for anything else. */
+  nameSuffix?: string;
+
+  /** @deprecated Use givenNames. Always mirrors it — kept so the ~15
+   *  existing consumers (Worklist, report letterheads, etc.) that
+   *  haven't migrated to the new fields keep working unchanged. */
   firstName: string;
+  /** @deprecated Use familyNames. Always mirrors it. */
   lastName: string;
+  /** @deprecated Middle names are now merged into givenNames — forcing
+   *  them into a single separate field is exactly the US-centric
+   *  assumption the new schema exists to avoid. Kept only for any
+   *  pre-migration record that still has one. */
   middleName?: string;
 
   dateOfBirth?: string; // ISO date

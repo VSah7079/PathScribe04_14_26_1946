@@ -11,7 +11,7 @@
 // This file is intentionally thin — layout + modal wiring only.
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AddSynopticModal       from './components/AddSynopticModal';
@@ -41,6 +41,16 @@ import { useSynopticFlags }    from '../Synoptic/useSynopticFlags';
 import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { priorityService } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { deficiencyTypeService, resolutionTypeService } from '@/services';
+import type { SpecimenDeficiency, DeficiencyType, ResolutionType } from '@/services/deficiencies/IDeficiencyService';
+import { DeficiencyHistoryModal } from './modals/DeficiencyHistoryModal';
+import { BlockStainEditorModal } from './modals/BlockStainEditorModal';
+import type { CaseComment } from '@/types/case/CaseComment';
+import { specimenDeficiencyService } from '@/services';
+import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
+import { FixativeTimeGateModal, type FixativeGateSpecimen, type FixativeResolution } from './modals/FixativeTimeGateModal';
 import { flagService }    from '@/services';
 import type { Flag }      from '@/services/flags/IFlagService';
 import ComputationalPanel from '../../components/sidecar/ComputationalPanel';
@@ -50,14 +60,17 @@ import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { useLogout } from '@/hooks/useLogout';
 import '@/pathscribe.css';
 
-import type { Case } from '@/types/case/Case';
+import type { Case, SynopticReportInstance, ProtocolChange } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import { AiReviewModal }  from './modals/AiReviewModal';
 import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
 import CaseTeamModal            from './modals/CaseTeamModal';
 import { PreFinalisationModal, type SynopticForReview } from './modals/PreFinalisationModal';
 import { getFieldLabel, type ReportingStandard } from '@/utils/synopticFieldLabels';
-import { ProtocolChangeModal, type ProtocolChange }     from './modals/ProtocolChangeModal';
+import { ProtocolChangeModal }     from './modals/ProtocolChangeModal';
+// ProtocolChange moved to Case.ts — see comment there. (ProtocolChangeModal.tsx
+// still re-exports it for backward compat, but importing it from its real
+// home directly here, alongside Case/SynopticReportInstance below.)
 import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
 import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '@/constants/computationalActions';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
@@ -95,6 +108,18 @@ const overlayStyle: React.CSSProperties = {
 const REPORT_PDF_ENDPOINT =
   (import.meta as any).env?.VITE_REPORT_PDF_ENDPOINT ?? 'http://localhost:8080/';
 
+// ── AI Synthesis Status — Gatekeeper Badge model (see Dr. Carter's review,
+// applied in SynopticReportPage below). 'none' = no AI suggestions exist
+// yet for this case; 'draft-ready' = no Tier 1 field is under threshold;
+// 'review-required' = at least one Tier 1 field is under threshold and
+// flaggedFieldId/flaggedFieldConfidence identify which one for "unpacking."
+export interface AiSynthesisStatus {
+  state: 'none' | 'draft-ready' | 'review-required';
+  overallConfidence?:      number; // informational only — never drives `state`
+  flaggedFieldId?:          string;
+  flaggedFieldConfidence?:  number;
+}
+
 const SynopticReportPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const { user: signingUser } = useAuth();
@@ -116,6 +141,24 @@ const SynopticReportPage: React.FC = () => {
 
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
+
+  // ── Voice context activation ────────────────────────────────────────────────
+  // This page — the entire SynopticReportPage tree, including whatever's
+  // rendered while filling out a Grossing-flavored synoptic instance —
+  // never called setCurrentContext at all. Worth being precise about
+  // what was actually wrong: it's not that REPORTING-category commands
+  // were built and dormant — checked directly, zero live SystemAction
+  // records anywhere use category 'REPORTING'. The real 24 actions
+  // already built for this page use category 'SYNOPTIC', which wasn't
+  // even in the VOICE_CONTEXT enum until this fix. Whatever context the
+  // previous page (almost always Worklist) last set just stayed stuck
+  // the entire time anyone was on this page — same one-line pattern
+  // every other page already uses, just never added to this one.
+  useEffect(() => {
+    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.SYNOPTIC);
+    return () => { mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
+
   const [isLoaded, setIsLoaded]     = useState(false);
   const [caseNotFound, setCaseNotFound] = useState(false);
   const [activeTab, setActiveTab]       = useState('tumor');
@@ -135,12 +178,178 @@ const SynopticReportPage: React.FC = () => {
   const [showCaseCommentModal, setShowCaseCommentModal] = useState(false);
   const [showSpecimenCommentModal, setShowSpecimenCommentModal] = useState(false);
   const [activeSpecimenCommentId, setActiveSpecimenCommentId] = useState<string>('');
-  const [hasCaseComment, setHasCaseComment] = useState(false);
-  const [caseCommentAttending, setCaseCommentAttending] = useState('');
-  const [specimenComments, setSpecimenComments] = useState<Record<string, string>>({});
+  const caseComments: CaseComment[] = (caseData as any)?.order?.caseComments ?? [];
+  const hasCaseComment = caseComments.length > 0;
+  // Fixed June 2026 — this used to be its own useState<Record<string,string>>,
+  // never actually populated from caseData and never persisted anywhere,
+  // meaning specimen comments didn't survive so much as a page refresh.
+  // Derived directly from the real Specimen.comment field instead of
+  // parallel state that could drift from it.
+  const specimenComments = useMemo(() => {
+    const map: Record<string, CaseComment[]> = {};
+    (caseData?.specimens ?? []).forEach((sp: any) => { map[sp.id] = sp.comments ?? []; });
+    return map;
+  }, [caseData?.specimens]);
+
+  // ── Fixation-time signout gate ──────────────────────────────────────────────
+  const { dictionary: specimenDictionary } = useSpecimenDictionary();
+  const [fixativeGateSpecimens, setFixativeGateSpecimens] = useState<FixativeGateSpecimen[] | null>(null);
+  // Remembers what finalizeCase was originally called with, so once the
+  // gate is resolved we can retry with the exact same arguments rather
+  // than losing e.g. which synoptic instances were excluded.
+  const [pendingFinalizeArgs, setPendingFinalizeArgs] = useState<string[]>([]);
+
+  // ── Priority editing ─────────────────────────────────────────────────────────
+  // Closes a real gap: priority was set once at Accession with no edit
+  // mechanism anywhere else in the app. Gated off once the case is
+  // finalized/closed — changing urgency no longer means anything once a
+  // case is signed out.
+  const [priorityLevels, setPriorityLevels] = useState<{ id: string; label: string; colorHint: string }[]>([]);
+  useEffect(() => {
+    priorityService.getAll().then(res => { if (res.ok) setPriorityLevels(res.data.filter(p => p.isActive)); });
+  }, []);
+  const canEditPriority = caseData && caseData.status !== 'finalized' && caseData.status !== 'closed';
+  const handleChangePriority = useCallback((newPriority: string) => {
+    if (!caseData?.id) return;
+    const patch = { order: { ...caseData.order, priority: newPriority as any } };
+    caseRouter.updateCase(caseData.id, patch as any).then(() => {
+      setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
+      markDirty('Priority');
+    }).catch(err => console.error('[Priority] Failed to persist:', err));
+  }, [caseData]);
+
+  // ── Deficiency history ──────────────────────────────────────────────────────
+  // getByCaseId() already existed on ISpecimenDeficiencyService with zero
+  // UI ever calling it — both this page and Accession only ever wrote
+  // deficiency records, never read them back. Fetched once the case
+  // loads; deliberately not re-fetched on every render since deficiency
+  // history for an already-loaded case doesn't change from anything this
+  // page itself does (both pages only write at accession/sign-out time).
+  const [caseDeficiencies, setCaseDeficiencies] = useState<SpecimenDeficiency[]>([]);
+  const [deficiencyTypes, setDeficiencyTypes] = useState<DeficiencyType[]>([]);
+  const [resolutionTypes, setResolutionTypes] = useState<ResolutionType[]>([]);
+  const [showDeficiencyModal, setShowDeficiencyModal] = useState(false);
+  const [showBlockEditor, setShowBlockEditor] = useState(false);
+  useEffect(() => {
+    if (!caseData?.id) return;
+    specimenDeficiencyService.getByCaseId(caseData.id).then(res => { if (res.ok) setCaseDeficiencies(res.data); });
+  }, [caseData?.id]);
+  useEffect(() => {
+    deficiencyTypeService.getAll().then(res => { if (res.ok) setDeficiencyTypes(res.data); });
+    resolutionTypeService.getAll().then(res => { if (res.ok) setResolutionTypes(res.data); });
+  }, []);
+
   const [showAddSynopticModal,  setShowAddSynopticModal]  = useState(false);
   const [showSpecimenEdit,      setShowSpecimenEdit]      = useState(false);
   const [editingSpecimen,       setEditingSpecimen]        = useState<import('@/types/case/Specimen').Specimen | null>(null);
+
+  // ── Grossing: focused block navigation ──────────────────────────────────────
+  // A voice command like "mark grossed" needs to know *which* block,
+  // unambiguously — there was no such concept anywhere before this.
+  // Flattened across every specimen so "next/previous block" moves
+  // through the whole case in one sequence, not per-specimen.
+  const allBlocks = useMemo(() => {
+    const out: { specimenId: string; specimenLabel: string; block: any }[] = [];
+    (caseData?.specimens ?? []).forEach((sp: any) => {
+      (sp.blocks ?? []).forEach((block: any) => out.push({ specimenId: sp.id, specimenLabel: sp.label, block }));
+    });
+    return out;
+  }, [caseData?.specimens]);
+  const [focusedBlockIndex, setFocusedBlockIndex] = useState(0);
+  useEffect(() => {
+    if (focusedBlockIndex >= allBlocks.length) setFocusedBlockIndex(Math.max(0, allBlocks.length - 1));
+  }, [allBlocks.length, focusedBlockIndex]);
+  const focusedBlockEntry = allBlocks[focusedBlockIndex];
+
+  const handleAdvanceFocusedBlockStatus = useCallback(() => {
+    if (!caseData?.id || !focusedBlockEntry) return;
+    const nextStatus: Record<string, string> = { Pending: 'Grossed', Grossed: 'Embedded' };
+    const newStatus = nextStatus[focusedBlockEntry.block.status];
+    if (!newStatus) return; // Embedded/Exhausted are terminal or exception states — not voice-advanceable
+    const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
+      sp.id !== focusedBlockEntry.specimenId ? sp : {
+        ...sp,
+        blocks: (sp.blocks ?? []).map((b: any) => b.id === focusedBlockEntry.block.id ? { ...b, status: newStatus } : b),
+      }
+    );
+    caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any).then(() => {
+      setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
+      markDirty('Block status');
+    }).catch(err => console.error('[Grossing] Failed to advance block status:', err));
+  }, [caseData, focusedBlockEntry]);
+
+  const handleConfirmTriage = useCallback(() => {
+    if (!caseData?.id || !focusedBlockEntry) return;
+    const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
+      sp.id !== focusedBlockEntry.specimenId ? sp : {
+        ...sp, triageConfirmedAt: new Date().toISOString(), triageConfirmedBy: signingUser?.id ?? 'unknown',
+      }
+    );
+    caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any).then(() => {
+      setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
+      markDirty('Triage confirmation');
+    }).catch(err => console.error('[Grossing] Failed to confirm triage:', err));
+  }, [caseData, focusedBlockEntry, signingUser]);
+
+  // ── Generic block update — the manual Block/Stain editor ────────────────────
+  // Distinct from handleAdvanceFocusedBlockStatus above, which only ever
+  // cycles the *focused* block one status forward for voice commands.
+  // This applies any change (status, priority override, stains) to any
+  // specific block by id, for the actual visual editor at the bench —
+  // there was no way to hand-edit a block at all before this, only
+  // auto-generation at accession time and one-step voice advancement.
+  const handleUpdateBlock = useCallback((specimenId: string, blockId: string, changes: Partial<any>) => {
+    if (!caseData?.id) return;
+    const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
+      sp.id !== specimenId ? sp : {
+        ...sp,
+        blocks: (sp.blocks ?? []).map((b: any) => b.id === blockId ? { ...b, ...changes } : b),
+      }
+    );
+    return caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any).then(() => {
+      setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
+      markDirty('Block edit');
+    });
+  }, [caseData]);
+
+  // ── Voice action execution ───────────────────────────────────────────────────
+  // The context activation earlier in this component makes voice
+  // recognition correctly match a spoken phrase to one of the SYNOPTIC
+  // actions and dispatch it — but dispatching an event that nothing
+  // listens for still does nothing. Only the 4 Grossing actions are
+  // wired to real behavior here; the pre-existing 24 SYNOPTIC actions
+  // (save draft, AI review confirm/override/skip, delegation, etc.)
+  // still have no listener anywhere and remain recognized-but-inert —
+  // a separate, real piece of remaining work, not something this pass
+  // silently completed.
+  //
+  // Placed here deliberately, after allBlocks/focusedBlockIndex/
+  // handleAdvanceFocusedBlockStatus/handleConfirmTriage are all
+  // actually declared — an earlier version of this effect sat higher
+  // up in the component, referencing these before their declarations
+  // ran, which threw "Cannot access before initialization" on every
+  // load. Caught and fixed; keeping this comment as a flag against
+  // moving it back above its own dependencies again.
+  useEffect(() => {
+    const unsubscribe = mockActionRegistryService.onAction((actionId: string) => {
+      switch (actionId) {
+        case 'GROSSING_NEXT_BLOCK':
+          setFocusedBlockIndex(i => Math.min(i + 1, allBlocks.length - 1));
+          break;
+        case 'GROSSING_PREVIOUS_BLOCK':
+          setFocusedBlockIndex(i => Math.max(i - 1, 0));
+          break;
+        case 'GROSSING_MARK_GROSSED':
+          handleAdvanceFocusedBlockStatus();
+          break;
+        case 'GROSSING_CONFIRM_TRIAGE':
+          handleConfirmTriage();
+          break;
+      }
+    });
+    return unsubscribe;
+  }, [allBlocks.length, handleAdvanceFocusedBlockStatus, handleConfirmTriage]);
+
   const [activeReportInstanceId, setActiveReportInstanceId] = useState<string>('');
   const [isAlertExpanded, setIsAlertExpanded] = useState(false);
   const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState(false);
@@ -196,9 +405,7 @@ const SynopticReportPage: React.FC = () => {
   }, [caseId]);
 
   // ── Left panel tab + Orchestrator state ───────────────────
-  const [leftTab, setLeftTab] = useState<'draft' | 'sequencer' | 'report' | 'results'>(
-    () => (caseId?.startsWith('O26-') ? 'draft' : 'report')
-  );
+  const [leftTab, setLeftTab] = useState<'draft' | 'sequencer' | 'report' | 'results'>('report');
   const [showSequencer, setShowSequencer] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem('ps_sidebar_collapsed') === 'true'
@@ -315,7 +522,14 @@ const SynopticReportPage: React.FC = () => {
 
   // Sync orchSections → caseData.diagnostic so LeftReportPanel (Full Report)
   // always reflects the current draft without requiring a manual save.
-  useEffect(() => {
+  // Extracted to a stable callback so it can be invoked both reactively
+  // (whenever orchSections itself changes — the original behavior) AND
+  // explicitly whenever the user switches onto the Synoptic Reporting tab,
+  // as a defensive re-sync at the moment LeftReportPanel actually becomes
+  // visible — covers any edge case where the continuous effect hasn't
+  // caught up yet (e.g. orchSections just restored from localStorage on a
+  // fresh tab switch before that effect's first run lands).
+  const syncOrchSectionsToDiagnostic = React.useCallback(() => {
     if (!isOrchestrationMode || orchSections.length === 0) return;
     const find = (id: string) => orchSections.find(s => s.id === id)?.text ?? '';
     // Map known section IDs to diagnostic fields; fall back to concatenated narrative
@@ -337,7 +551,17 @@ const SynopticReportPage: React.FC = () => {
         },
       };
     });
-  }, [orchSections, isOrchestrationMode]); // eslint-disable-line
+  }, [orchSections, isOrchestrationMode]);
+
+  useEffect(() => { syncOrchSectionsToDiagnostic(); }, [orchSections, isOrchestrationMode]); // eslint-disable-line
+
+  // Explicit re-sync on tab switch — the moment leftTab becomes 'report',
+  // force a fresh pull from orchSections rather than relying solely on the
+  // change-triggered effect above.
+  useEffect(() => {
+    if (leftTab === 'report') syncOrchSectionsToDiagnostic();
+  }, [leftTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [isOrchestrating,      setIsOrchestrating]      = useState(false);
   const [resolvedTemplateId,   setResolvedTemplateId]   = useState<string>('tmpl-gold-standard');
   const [resolvedTemplateName, setResolvedTemplateName] = useState<string>('Gold Standard — General Surgical Pathology');
@@ -359,7 +583,7 @@ const SynopticReportPage: React.FC = () => {
   useEffect(() => {
     if (!caseData || !isOrchestrationMode) return;
     let cancelled = false;
-    buildContext(caseData, null, signingUser, overrideTemplateId || undefined)
+    buildContext(caseData, signingUser, overrideTemplateId || undefined)
       .then(ctx => {
         if (cancelled) return;
         setResolvedContext(ctx);
@@ -406,6 +630,72 @@ const SynopticReportPage: React.FC = () => {
   const [aiSuggestions,        setAiSuggestions]        = useState<Record<string, AiSuggestion>>({});
   const [computationalResults, setComputationalResults] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
 
+  // ── AI Synthesis Status — fed to HeaderBar's badge ───────────────────────
+  // SHORT-TERM SAFE FALLBACK, per Dr. Carter's review: a true tiered
+  // "floor" model (Tier 1 diagnosis/staging fields gating the badge,
+  // Tier 2/3 not) is the right long-term design — but classifying tiers by
+  // regex-matching field ID strings (the only metadata AiSuggestion
+  // carries today) is a silent-failure risk: an unexpected ID like
+  // `txt_tmr_typ_01` would slip past the patterns and a genuinely critical
+  // field could fail to gate the badge. That's worse than the flat-average
+  // bug this whole thing started as fixing.
+  //
+  // Until tier classification is sourced from the real CAP eCC template
+  // schema (EditorField/EditorSection's actual "Must Have" / required
+  // metadata — the same schema RightSynopticPanel renders from, not
+  // available in this file), the badge uses a deliberately conservative
+  // binary rule instead: ANY field below the confidence threshold trips
+  // the warning, regardless of which field it is. Over-warning is the
+  // correct failure mode here, not over-assuring.
+  //
+  // TODO (long-term fix): once tier metadata is wired in from the CAP
+  // schema, replace this with real floor logic restricted to Tier 1
+  // fields, matching the design discussed but not shipped here.
+  //
+  // TODO: threshold below mirrors AI Behavior > Confidence Threshold but is
+  // a separate hardcoded constant — RightSynopticPanel fetches that config
+  // value locally to itself. These should share one source (e.g.
+  // SystemConfigContext) so the two can't drift apart.
+  const REVIEW_THRESHOLD = 80;
+
+  const aiSynthesisStatus = React.useMemo<AiSynthesisStatus>(() => {
+    const entries = Object.entries(aiSuggestions)
+      .filter((e): e is [string, AiSuggestion] => typeof e[1]?.confidence === 'number');
+    if (entries.length === 0) return { state: 'none' };
+
+    const overallConfidence = Math.round(
+      entries.reduce((sum, [, s]) => sum + s.confidence, 0) / entries.length
+    );
+
+    // Conservative: flag the single LOWEST-confidence field across ALL
+    // suggestions, not just a tier subset, since tier isn't reliably known.
+    let flagged: [string, AiSuggestion] | null = null;
+    for (const entry of entries) {
+      if (!flagged || entry[1].confidence < flagged[1].confidence) flagged = entry;
+    }
+
+    const state: AiSynthesisStatus['state'] =
+      flagged && flagged[1].confidence < REVIEW_THRESHOLD ? 'review-required' : 'draft-ready';
+
+    return {
+      state,
+      overallConfidence,
+      flaggedFieldId: flagged?.[0],
+      flaggedFieldConfidence: flagged?.[1].confidence,
+    };
+  }, [aiSuggestions]);
+
+  // "Unpacking" — clicking the badge in a 'review-required' state jumps
+  // straight to the Tier 1 field that dragged the status down, reusing the
+  // same scrollToField mechanism RightSynopticPanel already exposes (see
+  // alertFieldId below) rather than building a second navigation path.
+  const handleAiStatusReviewClick = React.useCallback(() => {
+    if (!aiSynthesisStatus.flaggedFieldId) return;
+    safeSetLeftTab('report');
+    setAlertFieldId(aiSynthesisStatus.flaggedFieldId);
+  }, [aiSynthesisStatus.flaggedFieldId, safeSetLeftTab]);
+
+
   useEffect(() => {
     if (!caseId) return;
 
@@ -451,8 +741,11 @@ const SynopticReportPage: React.FC = () => {
           setAvailableProtocols(templates.map((t: any) => ({ id: t.id, name: t.name })))
         )
       );
-      const stored = c.id ? localStorage.getItem(`ps_case_comment_${c.id}`) : null;
-      if (stored) { setCaseCommentAttending(stored); setHasCaseComment(true); }
+      // Case comments are derived directly from caseData.order.caseComments
+      // (a real append-only thread, June 2026 — previously a single string
+      // that lived in localStorage and was never actually shared across
+      // users/devices) — no separate load-on-mount state to sync here
+      // anymore, since there's nothing to keep in sync with.
       // Reopen Patient History modal if navigated back via breadcrumb (?history=1)
       if (new URLSearchParams(window.location.search).get('history') === '1') {
         setIsSimilarCasesOpen(true);
@@ -692,10 +985,10 @@ const SynopticReportPage: React.FC = () => {
       });
     });
 
-    const openCompTab   = () => { setLeftTab('results'); log(COMP_AUDIT.USE_COMP_TAB_OPENED, { caseId, source: 'voice' }); };
-    const openReportTab = () => setLeftTab('report');
+    const openCompTab   = () => { safeSetLeftTab('results'); log(COMP_AUDIT.USE_COMP_TAB_OPENED, { caseId, source: 'voice' }); };
+    const openReportTab = () => safeSetLeftTab('report');
     const openOrderModal = () => {
-      setLeftTab('results');
+      safeSetLeftTab('results');
       setTimeout(() => window.dispatchEvent(new CustomEvent('PATHSCRIBE_COMP_OPEN_ORDER_MODAL_INTERNAL')), 100);
       log(COMP_AUDIT.USE_ORDER_MODAL_OPENED, { caseId });
     };
@@ -744,7 +1037,7 @@ const SynopticReportPage: React.FC = () => {
       // Ctrl+Shift+D — Switch to Report Draft
       if (ctrl && e.shiftKey && e.key === 'D') {
         e.preventDefault();
-        setLeftTab('draft');
+        safeSetLeftTab('draft');
         return;
       }
       // Ctrl+Shift+F — Switch to Full Report
@@ -756,7 +1049,7 @@ const SynopticReportPage: React.FC = () => {
       // Ctrl+Shift+Q — Switch to Sequencer
       if (ctrl && e.shiftKey && e.key === 'Q') {
         e.preventDefault();
-        setLeftTab('sequencer');
+        safeSetLeftTab('sequencer');
         return;
       }
       // Alt+1–4 — Jump to section by number (fires custom event for OrchestratorSectionEditor)
@@ -776,9 +1069,9 @@ const SynopticReportPage: React.FC = () => {
   useEffect(() => {
     if (!isOrchestrationMode) return;
     const actions = [
-      { id: 'orch_open_draft',     phrases: ['open report draft', 'show report draft', 'go to draft'],              handler: () => setLeftTab('draft')        },
+      { id: 'orch_open_draft',     phrases: ['open report draft', 'show report draft', 'go to draft'],              handler: () => safeSetLeftTab('draft')        },
       { id: 'orch_open_report',    phrases: ['open full report', 'show full report', 'view report'],                  handler: () => safeSetLeftTab('report')   },
-      { id: 'orch_open_sequencer', phrases: ['open sequencer', 'show sequencer', 'synoptic fields'],                  handler: () => setLeftTab('sequencer')    },
+      { id: 'orch_open_sequencer', phrases: ['open sequencer', 'show sequencer', 'synoptic fields'],                  handler: () => safeSetLeftTab('sequencer')    },
       { id: 'orch_save_draft',     phrases: ['save draft', 'save report', 'save my work'],                           handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_SAVE_DRAFT'))        },
       { id: 'orch_generate',       phrases: ['generate report', 'generate narrative', 'create report', 'generate'],  handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_GENERATE_REPORT'))    },
       { id: 'orch_regen',          phrases: ['regenerate report', 'regenerate all', 'redo report'],                   handler: () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_ORCH_REGEN_ALL'))                       },
@@ -871,7 +1164,7 @@ const SynopticReportPage: React.FC = () => {
 
   const { selectedFlag, isOpen } = useSidecar();
   React.useEffect(() => {
-    if (isOpen && selectedFlag) setLeftTab('results');
+    if (isOpen && selectedFlag) safeSetLeftTab('results');
   }, [selectedFlag, isOpen]);
 
   const {
@@ -924,7 +1217,7 @@ const SynopticReportPage: React.FC = () => {
     const handler = (e: Event) => {
       const { fieldKey } = (e as CustomEvent).detail ?? {};
       if (!fieldKey) return;
-      setLeftTab('draft');
+      safeSetLeftTab('draft');
       // Small delay to let the tab switch render before scrolling
       setTimeout(() => setAlertFieldId(fieldKey), 100);
     };
@@ -1029,6 +1322,15 @@ const SynopticReportPage: React.FC = () => {
   const [preFinalSynoptics, setPreFinalSynoptics] = React.useState<SynopticForReview[]>([]);
   const [showProtoReview,   setShowProtoReview]   = React.useState(false);
   const [protoChanges,      setProtoChanges]      = React.useState<ProtocolChange[]>([]);
+  // Stage 1: tracks whether a Stage 1 evaluation call is currently in
+  // flight. Combined with showProtoReview (above) to gate Finalize/
+  // Finalize & Next/Sign Out in BottomActionBar — see handleGrossComplete.
+  const [isEvaluatingSynopticFit, setIsEvaluatingSynopticFit] = React.useState(false);
+  // Per-instance snapshot of answers at the moment each GrossingReportInstance
+  // was last finalized — set in handleGrossComplete, read by the drift-
+  // detection useEffect right after it. Ref, not state: pure bookkeeping,
+  // shouldn't trigger renders on its own.
+  const grossingSnapshotRef = React.useRef<Map<string, string>>(new Map());
 
   const handleProtocolChangesDetected = useCallback((changes: ProtocolChange[]) => {
     if (!changes.length) return;
@@ -1049,6 +1351,31 @@ const SynopticReportPage: React.FC = () => {
     excludedInstanceIds: string[] = []
   ): Promise<void> => {
     if (!caseData) return;
+
+    // ── Fixation-time gate — hard block, per the design decision this was
+    // built from. A specimen whose matched Specimen Dictionary entry has
+    // requireFixativeTimeBeforeSignout (breast/biomarker-relevant types)
+    // needs processing.processedAt documented before this case can sign
+    // out. No preliminary-report escape valve exists yet — the
+    // FixativeTimeGateModal is the entire interim safety valve until it
+    // does, offering three legitimate resolutions (documented, estimated,
+    // or confirmed unrecoverable) rather than either silently blocking
+    // forever or silently allowing incomplete biomarker-relevant data
+    // through.
+    const blockingSpecimens: FixativeGateSpecimen[] = (caseData.specimens ?? [])
+      .filter((sp: any) => {
+        const entry = sp.specimenDictionaryEntryId
+          ? specimenDictionary.find(e => e.id === sp.specimenDictionaryEntryId)
+          : undefined;
+        return entry?.requireFixativeTimeBeforeSignout && !sp.processing?.processedAt;
+      })
+      .map((sp: any) => ({ specimenId: sp.id, label: sp.label, description: sp.description }));
+
+    if (blockingSpecimens.length > 0) {
+      setFixativeGateSpecimens(blockingSpecimens);
+      setPendingFinalizeArgs(excludedInstanceIds);
+      return; // abort — do not finalize until the gate is resolved
+    }
 
     const finalizedAt = new Date().toISOString();
 
@@ -1090,33 +1417,295 @@ const SynopticReportPage: React.FC = () => {
       console.error('[Finalise] Failed to persist finalization:', err);
       showToast('Finalization failed — please try again');
     }
-  }, [caseData, signingUser, log, showToast]);
+  }, [caseData, signingUser, log, showToast, specimenDictionary]);
+
+  // ── Stage 1: unified Grossing finalize/re-finalize action ──────────────────
+  // Single handler covers both "Gross Complete" (first time) and "Update
+  // Gross" (correcting something already finalized) — they're the same
+  // event from evaluateSynopticAssignment's point of view: it already
+  // takes currentSynoptics and decides replace/add/remove against whatever
+  // is already assigned, so re-finalizing after a correction is just
+  // calling it again, not a special case. No separate "unlock" action
+  // exists — editing a finalized instance's answers is itself what
+  // reopens it (see the snapshot-diff useEffect below); this handler only
+  // fires on the explicit finalize click.
+  //
+  // isEvaluatingSynopticFit (below) gates Finalize/Finalize & Next/Sign Out
+  // in BottomActionBar while this is running and while any resulting
+  // ProtocolChangeModal review is still open (showProtoReview) — a case
+  // should not be signable while its synoptic assignment might be stale
+  // relative to a just-edited Gross.
+  const handleGrossComplete = useCallback(async () => {
+    if (!caseData) return;
+
+    const draftGrossing = (caseData.grossingReports ?? []).filter(g => g.status === 'draft');
+    if (draftGrossing.length === 0) return;
+
+    const isUpdate = draftGrossing.some(g => g.previouslyFinalized);
+
+    let reason = '';
+    if (isUpdate) {
+      // Matches the Grossing SOP's own audited-correction precedent for
+      // post-handoff cassette edits ("must be flagged, logged with a
+      // timestamp, and require a user-entered reason for modification").
+      // MVP reason capture via prompt() — a dedicated modal (matching
+      // RequestReviewModal/PoolClaimModal's pattern) is the real long-term
+      // UI here, not a browser prompt.
+      const entered = window.prompt('Reason for updating Gross (required for audit trail):');
+      if (!entered || !entered.trim()) {
+        showToast('Update cancelled — a reason is required');
+        return;
+      }
+      reason = entered.trim();
+    }
+
+    const nowIso = new Date().toISOString();
+
+    try {
+      const grossingReports = (caseData.grossingReports ?? []).map(g =>
+        g.status === 'draft'
+          ? { ...g, status: 'finalized' as const, previouslyFinalized: true, updatedAt: nowIso }
+          : g
+      );
+
+      // Snapshot finalized instances' answers now, so the useEffect below
+      // can detect a future edit by diffing against this. Stored in a ref,
+      // not state — purely internal bookkeeping, shouldn't trigger renders.
+      grossingReports
+        .filter(g => g.status === 'finalized')
+        .forEach(g => grossingSnapshotRef.current.set(g.instanceId, JSON.stringify(g.answers)));
+
+      const templateModule = await import('@/services/templates/templateService');
+      const evalWarnings: string[] = [];
+
+      const grossingAnswersBySpecimen = new Map<string, Array<{ fieldId: string; fieldLabel: string; displayValue: string }>>();
+      await Promise.all(grossingReports.map(async g => {
+        try {
+          const detail = await templateModule.getTemplate(g.templateId);
+          const fieldsById = new Map<string, { label?: string }>(
+            detail.template.sections.flatMap((s: any) => s.fields).map((f: any): [string, { label?: string }] => [f.id, f])
+          );
+          const resolved = Object.entries(g.answers).map(([fieldId, value]) => {
+            const field = fieldsById.get(fieldId);
+            const label = field?.label ?? fieldId;
+            const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+            return { fieldId, fieldLabel: label, displayValue };
+          });
+          grossingAnswersBySpecimen.set(g.specimenId, resolved);
+        } catch (e) {
+          evalWarnings.push(`Could not resolve Grossing template '${g.templateId}' for specimen '${g.specimenId}' — its answers won't appear in Stage 1 evaluation context`);
+        }
+      }));
+
+      // RESOLVED (was previously flagged as an unconfirmed assumption):
+      // listTemplates() returns the raw PROTOCOL_REGISTRY entries from
+      // protocolShared.tsx with no field-stripping, so isDiagnostic flows
+      // through untouched — confirmed by reading templateService.ts directly.
+      // Filtering on isDiagnostic (default true) rather than category !==
+      // 'GROSSING' matches the architecture's own stated principle (see
+      // workflow summary §3): the real axis is diagnostic/registry-bound
+      // vs. not, not Custom-vs-CAP or category-string equality. Today this
+      // is behaviorally identical (only the three Grossing templates have
+      // isDiagnostic: false), but it correctly excludes any FUTURE
+      // non-diagnostic template that isn't categorized 'GROSSING' too.
+      const allTemplates = await templateModule.listTemplates('published');
+      const availableTemplates = (allTemplates as any[])
+        .filter(t => t.isDiagnostic !== false)
+        .map(t => ({ id: t.id, name: t.name, category: t.category }));
+
+      const specimens = (caseData.specimens ?? []).map(sp => ({
+        specimenId: sp.id,
+        specimenLabel: sp.label,
+        specimenDesc: sp.description,
+        // Populated with whatever's currently assigned, regardless of
+        // whether this is a first finalize (empty) or a re-finalize
+        // (already has entries) — same input shape either way, which is
+        // exactly what lets evaluateSynopticAssignment decide add vs.
+        // replace vs. remove vs. nothing, without this handler needing to
+        // know which case it's in.
+        currentSynoptics: (caseData.synopticReports ?? [])
+          .filter(r => r.specimenId === sp.id)
+          .map(r => ({ instanceId: r.instanceId, templateId: r.templateId, templateName: r.templateName })),
+        grossingAnswers: grossingAnswersBySpecimen.get(sp.id),
+      }));
+
+      const evaluationInput = {
+        caseText: {
+          gross:       caseData.diagnostic?.grossDescription ?? '',
+          microscopic: caseData.diagnostic?.microscopicDescription ?? '',
+          ancillary:   caseData.diagnostic?.ancillaryStudies ?? '',
+        },
+        specimens,
+        availableTemplates,
+      };
+
+      // Persist first — Gross Complete/Update Gross should succeed even if
+      // Stage 1 evaluation below fails or is slow.
+      const patch: Record<string, unknown> = { grossingReports };
+
+      // Same work-based gate as before (not a status-string check): only
+      // advance/revert caseData.status if no real diagnostic work has
+      // begun yet. On a first finalize this naturally sets 'gross-complete'.
+      // On a re-finalize where a pathologist has already started real
+      // work, status is left alone entirely — the correction stands on
+      // its own in the audit trail without disrupting that work.
+      const hasRealDiagnosticWorkBegun =
+        (caseData.synopticReports ?? []).some(r => Object.keys(r.answers ?? {}).length > 0) ||
+        !!(caseData.diagnostic?.microscopicDescription?.trim());
+      if (!hasRealDiagnosticWorkBegun) {
+        patch.status = 'gross-complete' as CaseStatus;
+      }
+
+      await caseRouter.updateCase(caseData.id, patch as any);
+      setCaseData({ ...caseData, ...patch } as typeof caseData);
+
+      log(isUpdate ? 'gross_updated' : 'gross_complete', {
+        caseId: caseData.id,
+        accession: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber,
+        specimenCount: specimens.length,
+        ...(isUpdate ? { reason } : {}),
+      });
+
+      showToast(isUpdate ? 'Gross updated — re-evaluating synoptic assignment…' : 'Grossing complete — evaluating synoptic assignment…');
+
+      // Lock Finalize/Finalize & Next/Sign Out while evaluation runs and
+      // while any resulting review modal is open — see isEvaluatingSynopticFit.
+      setIsEvaluatingSynopticFit(true);
+      try {
+        const { evaluateSynopticAssignment } = await import('@/services/cases/mockCaseService');
+        const result = await evaluateSynopticAssignment(evaluationInput);
+        const allWarnings = [...evalWarnings, ...result.warnings];
+        if (allWarnings.length) {
+          console.warn('[PathScribe] Stage 1 evaluation warnings:', allWarnings);
+        }
+
+        if (result.changes.length > 0) {
+          handleProtocolChangesDetected(result.changes);
+          // Lock stays on — showProtoReview is now true, and the combined
+          // gate in BottomActionBar (isEvaluatingSynopticFit ||
+          // showProtoReview) keeps Finalize disabled until the pathologist
+          // resolves the modal (commit or cancel), not just until this
+          // call returns.
+        } else {
+          showToast('No synoptic assignment changes proposed');
+        }
+      } finally {
+        setIsEvaluatingSynopticFit(false);
+      }
+    } catch (err) {
+      console.error('[Gross Complete] Failed:', err);
+      showToast((isUpdate ? 'Update Gross' : 'Gross Complete') + ' failed — please try again');
+    }
+  }, [caseData, log, showToast, handleProtocolChangesDetected]);
+
+  // ── Detects edits to an already-finalized Grossing instance ────────────────
+  // Editing IS the reopen action — no separate "unlock" button. Compares
+  // each finalized instance's current answers against the snapshot taken
+  // at the moment it was last finalized (grossingSnapshotRef, set in
+  // handleGrossComplete above). A mismatch means the PA edited a field
+  // after finalizing — flip that instance back to 'draft' automatically,
+  // which makes BottomActionBar's existing hasUnfinishedGrossing check
+  // true again and brings the action button back (labeled "Update Gross",
+  // since previouslyFinalized survives the revert).
+  //
+  // Deliberately reacts to DATA (caseData.grossingReports), not to a
+  // specific editing component's onChange — robust regardless of which UI
+  // path actually writes the edit (RightSynopticPanel, voice input, AI
+  // suggestion acceptance, etc.), though it depends on that edit actually
+  // reaching caseData. Grossing-answer editing is new enough in this app
+  // (added this conversation) that the real save/autosave wiring for it
+  // hasn't been independently confirmed — worth verifying this effect
+  // actually fires once there's a running app to test against.
+  useEffect(() => {
+    if (!caseData?.grossingReports?.length) return;
+
+    const drifted = caseData.grossingReports.filter(g => {
+      if (g.status !== 'finalized') return false;
+      const snapshot = grossingSnapshotRef.current.get(g.instanceId);
+      return snapshot !== undefined && snapshot !== JSON.stringify(g.answers);
+    });
+    if (drifted.length === 0) return;
+
+    const driftedIds = new Set(drifted.map(g => g.instanceId));
+    const nowIso = new Date().toISOString();
+    const grossingReports = caseData.grossingReports.map(g =>
+      driftedIds.has(g.instanceId)
+        ? { ...g, status: 'draft' as const, updatedAt: nowIso } // previouslyFinalized stays true
+        : g
+    );
+    drifted.forEach(g => grossingSnapshotRef.current.delete(g.instanceId));
+
+    caseRouter.updateCase(caseData.id, { grossingReports } as any).catch(console.error);
+    setCaseData(prev => prev ? ({ ...prev, grossingReports } as typeof prev) : prev);
+  }, [caseData?.grossingReports]);
 
   const handleProtoCommit = useCallback((acceptedIds: string[]) => {
     setShowProtoReview(false);
-    // ⚠️ FIELD NAMES UNVERIFIED — ProtocolChange's actual shape lives in
-    // ProtocolChangeModal.tsx, which was not available when this was
-    // written. `instanceId`, `proposedTemplateId`, `proposedTemplateName`,
-    // and `proposedAnswers` are my best guess based on context (this is a
-    // protocol UPGRADE proposal, so it should carry a target template +
-    // proposed answer set) but have NOT been confirmed against the real
-    // type. CHECK ProtocolChangeModal.tsx before relying on this — if the
-    // field names differ, this will silently no-op (TypeScript would
-    // normally catch this, but `as any` below suppresses that check).
+    // FIELD NAMES CONFIRMED against ProtocolChangeModal.tsx's real ProtocolChange
+    // type (June 2026). Previous version matched on `instanceId`, which never
+    // existed on this type — every match silently failed and "Apply" was a
+    // no-op that still logged success. Fixed to match on currentInstanceId
+    // (falling back to specimenId + currentTemplateId for older callers that
+    // don't set it), and to handle all three real actions: replace, add, remove.
     if (acceptedIds.length > 0 && caseData) {
-      const accepted = protoChanges.filter(c => acceptedIds.includes((c as any).id));
-      const patch = {
-        synopticReports: (caseData.synopticReports ?? []).map((r: any) => {
-          const change = accepted.find((c: any) => c.instanceId === r.instanceId);
-          if (!change) return r;
+      const accepted = protoChanges.filter(c => acceptedIds.includes(c.id));
+      const nowIso = new Date().toISOString();
+
+      const matchesExisting = (change: ProtocolChange, r: SynopticReportInstance) =>
+        change.currentInstanceId
+          ? r.instanceId === change.currentInstanceId
+          : r.specimenId === change.specimenId && r.templateId === change.currentTemplateId;
+
+      let reports = [...(caseData.synopticReports ?? [])];
+
+      for (const change of accepted) {
+        const action = change.action ?? 'replace';
+
+        if (action === 'remove') {
+          reports = reports.filter(r => !matchesExisting(change, r));
+          continue;
+        }
+
+        if (action === 'add') {
+          reports.push({
+            instanceId:   `${change.specimenId}_${change.proposedTemplateId}_${Date.now()}`,
+            specimenId:   change.specimenId,
+            templateId:   change.proposedTemplateId ?? '',
+            templateName: change.proposedTemplateName ?? '',
+            // Intentionally empty — this is a newly-assigned synoptic with no
+            // prior answers to carry forward. AI suggestions populate it on
+            // the next evaluation/render pass, same as any fresh assignment.
+            answers:      {},
+            status:       'draft',
+            createdAt:    nowIso,
+            updatedAt:    nowIso,
+          });
+          continue;
+        }
+
+        // action === 'replace'
+        reports = reports.map(r => {
+          if (!matchesExisting(change, r)) return r;
           return {
             ...r,
-            templateId:   (change as any).proposedTemplateId ?? r.templateId,
-            templateName: (change as any).proposedTemplateName ?? r.templateName,
-            answers:      (change as any).proposedAnswers ?? r.answers,
+            templateId:   change.proposedTemplateId ?? r.templateId,
+            templateName: change.proposedTemplateName ?? r.templateName,
+            updatedAt:    nowIso,
+            // Answers are cleared rather than carried over: the old answers
+            // are keyed to the OLD template's field IDs, which a different
+            // template is not guaranteed to share. Carrying them forward
+            // silently would risk misattributing values to the wrong fields
+            // under the new schema. Re-populates via AI suggestions on next
+            // pass instead. PETE: confirm this is the behavior you want —
+            // the alternative (best-effort carry-over of fields with
+            // matching IDs only) is also reasonable if blank-on-replace
+            // feels disruptive in practice.
+            answers:      {},
           };
-        }),
-      };
+        });
+      }
+
+      const patch = { synopticReports: reports };
 
       caseRouter.updateCase(caseData.id, patch as any).then(() => {
         setCaseData({ ...caseData, ...patch } as typeof caseData);
@@ -1124,6 +1713,7 @@ const SynopticReportPage: React.FC = () => {
           caseId: caseData.id,
           acceptedCount: acceptedIds.length,
           totalProposed: protoChanges.length,
+          actions: accepted.map(c => c.action ?? 'replace'),
         });
       }).catch(console.error);
     }
@@ -1269,14 +1859,44 @@ Original report issued pending ancillary studies. This amendment incorporates th
     onSectionStart: (sectionId, title) => {
       setOrchSections(prev => {
         const exists = prev.find(s => s.id === sectionId);
-        if (exists) return prev.map(s => s.id === sectionId ? { ...s, isStreaming: true, pendingDraft: undefined } : s);
+        if (exists) {
+          // CRITICAL: a regenerate must start the new stream from a blank
+          // slate. Two distinct cases:
+          //  • userEdited (accepted) sections — the committed `text` is
+          //    the pathologist's signed-off version and must stay exactly
+          //    as-is, untouched, for the whole regenerate. The new stream
+          //    accumulates in `pendingDraft` only (onToken below), same as
+          //    before. Clearing pendingDraft here (not undefined-merging
+          //    onto whatever was left over) ensures the new draft starts
+          //    from nothing.
+          //  • not-yet-accepted (AI-generated or empty) sections — `text`
+          //    IS the live preview, so it must also be reset to '' here.
+          //    Previously it wasn't, so a regenerate's onToken branch
+          //    (`s.text + token`) appended fresh tokens directly onto the
+          //    end of the PREVIOUS generation's already-wrapped HTML
+          //    string (e.g. "<p>...old draft...</p>" + "**" + ...) —
+          //    textToHtml's leading-'<' passthrough then handed that
+          //    malformed concatenation straight to the editor unwrapped,
+          //    which is what produced the orphaned "**" fragment.
+          return prev.map(s => s.id === sectionId
+            ? (s.userEdited
+                ? { ...s, isStreaming: true, pendingDraft: '' }
+                : { ...s, isStreaming: true, pendingDraft: undefined, text: '' })
+            : s);
+        }
         return [...prev, { id: sectionId, label: title, type: 'narrative' as const, text: '', aiGenerated: '', userEdited: false, isStreaming: true }];
       });
     },
     onToken: (sectionId, token) => {
       setOrchSections(prev => prev.map(s => {
         if (s.id !== sectionId) return s;
+        // userEdited (accepted) sections: stream into pendingDraft only —
+        // `text` (the committed version) must stay untouched until the
+        // pathologist explicitly chooses "Use new draft".
         if (s.userEdited) return { ...s, pendingDraft: (s.pendingDraft ?? '') + token };
+        // Not-yet-accepted sections: `text` was just reset to '' in
+        // onSectionStart, so this is a clean accumulation, not a
+        // concatenation onto stale content.
         return { ...s, text: s.text + token };
       }));
     },
@@ -1284,6 +1904,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
       const html = textToHtml(result.text ?? '');
       setOrchSections(prev => prev.map(s => {
         if (s.id !== sectionId) return s;
+        // Accepted section: `text` (the pathologist's signed-off version)
+        // is left exactly as it was — the finished regenerate result lands
+        // in `pendingDraft`, surfacing the "New AI draft available — Use
+        // new draft / Keep my version" banner. Nothing is overwritten
+        // until the pathologist explicitly chooses.
         if (s.userEdited) return { ...s, isStreaming: false, pendingDraft: html };
         return { ...s, isStreaming: false, text: html, aiGenerated: html };
       }));
@@ -1305,7 +1930,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
   const handleGenerateReport = useCallback(async () => {
     if (!caseData) return;
     setIsOrchestrating(true);
-    setLeftTab('draft');
+    safeSetLeftTab('draft');
     try {
       // Build context async — resolves routing rules from service.
       // If the pathologist has overridden the template via Change ▾, pass
@@ -1314,7 +1939,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
       // one place template→sections resolution happens, not two kept "in
       // sync." (Previously this block re-derived narrativeTemplate here via
       // the registry directly — that divergent path is gone.)
-      const ctx = await buildContext(caseData, null, signingUser, overrideTemplateId || undefined);
+      const ctx = await buildContext(caseData, signingUser, overrideTemplateId || undefined);
       setResolvedContext(ctx);
 
       // Capture resolved template for display — reflects an active
@@ -1349,7 +1974,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
       // section after a pathologist override previously fell back to the
       // auto-resolved template silently, generating against the wrong
       // section's instructions. Same root cause as handleGenerateReport.
-      const ctx    = await buildContext(caseData, null, signingUser, overrideTemplateId || undefined);
+      const ctx    = await buildContext(caseData, signingUser, overrideTemplateId || undefined);
       setResolvedContext(ctx);
       const engine = new OrchestratorEngine(undefined, ctx as any, buildOrchCallbacks());
       engineRef.current = engine;
@@ -1362,6 +1987,63 @@ Original report issued pending ancillary studies. This amendment incorporates th
       abortRef.current  = null;
     }
   }, [caseData, isOrchestrating, buildOrchCallbacks, showToast, overrideTemplateId]);
+
+  // ── Auto-generate-once — Draft tab, data-state-driven ────────────────────
+  // Per design discussion: NOT triggered by tab navigation alone (clicking
+  // into Draft to peek shouldn't burn an AI call), and NOT silent (the
+  // pathologist gets a cancelable window, not a draft that just appears).
+  // Fires when ALL of the following hold simultaneously:
+  //   - the pathologist has landed on the Draft tab
+  //   - this is an Orchestration-mode case
+  //   - no draft exists yet (orchSections is empty — won't re-fire on a
+  //     second visit, and won't clobber an existing draft)
+  //   - generation isn't already running
+  //   - all required synoptic fields are answered (synopticPanelRef's
+  //     validateRequired() — the same check already gating Finalize —
+  //     returns nothing missing)
+  //   - it hasn't already been attempted this case session (the ref guard
+  //     below; reset whenever caseId changes)
+  const autoGenerateAttemptedRef = React.useRef(false);
+  const autoGenerateTimerRef     = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingAutoGenerate, setPendingAutoGenerate] = useState(false);
+
+  useEffect(() => {
+    autoGenerateAttemptedRef.current = false;
+    if (autoGenerateTimerRef.current) { clearTimeout(autoGenerateTimerRef.current); autoGenerateTimerRef.current = null; }
+    setPendingAutoGenerate(false);
+  }, [caseId]);
+
+  const cancelAutoGenerate = useCallback(() => {
+    if (autoGenerateTimerRef.current) { clearTimeout(autoGenerateTimerRef.current); autoGenerateTimerRef.current = null; }
+    setPendingAutoGenerate(false);
+  }, []);
+
+  useEffect(() => {
+    if (
+      leftTab !== 'draft' ||
+      !isOrchestrationMode ||
+      orchSections.length > 0 ||
+      isOrchestrating ||
+      autoGenerateAttemptedRef.current ||
+      !synopticPanelRef.current
+    ) return;
+
+    const missing = synopticPanelRef.current.validateRequired();
+    if (missing.length > 0) return; // not complete yet — stay quiet, no nag
+
+    autoGenerateAttemptedRef.current = true;
+    setPendingAutoGenerate(true);
+    autoGenerateTimerRef.current = setTimeout(() => {
+      setPendingAutoGenerate(false);
+      autoGenerateTimerRef.current = null;
+      handleGenerateReport();
+    }, 2000);
+  }, [leftTab, isOrchestrationMode, orchSections.length, isOrchestrating, handleGenerateReport]);
+
+  // Cleanup on unmount — don't fire generation against an unmounted page.
+  useEffect(() => () => {
+    if (autoGenerateTimerRef.current) clearTimeout(autoGenerateTimerRef.current);
+  }, []);
 
   // ─────────────────────────────────────────────────────────
   // Render
@@ -1408,6 +2090,34 @@ Original report issued pending ancillary studies. This amendment incorporates th
       {/* Toast */}
       <SaveToast message={toastMsg} visible={toastVisible} />
 
+      {/* Auto-generate-once confirmation toast — cancelable window before
+          a draft is silently created from completed synoptic data. */}
+      {pendingAutoGenerate && (
+        <div
+          style={{
+            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 70000, display: 'flex', alignItems: 'center', gap: 14,
+            background: '#1e293b', border: '1px solid rgba(8,145,178,0.4)',
+            borderRadius: 10, padding: '12px 16px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          }}
+        >
+          <span style={{ display: 'inline-flex', width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(56,189,248,0.3)', borderTopColor: '#38bdf8', animation: 'ps-spin 0.8s linear infinite' }} />
+          <span style={{ fontSize: 13, color: '#e2e8f0' }}>
+            Synoptic complete — generating narrative draft…
+          </span>
+          <button
+            onClick={cancelAutoGenerate}
+            style={{
+              padding: '5px 12px', fontSize: 12, fontWeight: 600,
+              background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.3)',
+              borderRadius: 6, color: '#cbd5e1', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >Cancel</button>
+          <style>{`@keyframes ps-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
       {/* Shell */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
 
@@ -1423,8 +2133,15 @@ Original report issued pending ancillary studies. This amendment incorporates th
           caseData={caseData}
           onNavigate={guard}
           onSignOut={() => setShowSignOutModal(true)}
-          aiConfidence={92}
+          aiSynthesisStatus={aiSynthesisStatus}
+          onAiStatusClick={handleAiStatusReviewClick}
           compact={isOrchestrationMode && leftTab === 'draft'}
+          onChangePriority={canEditPriority ? handleChangePriority : undefined}
+          priorityLevels={priorityLevels}
+          deficiencyCount={caseDeficiencies.length}
+          onOpenDeficiencyHistory={() => setShowDeficiencyModal(true)}
+          focusedBlockId={focusedBlockEntry?.block.id}
+          onOpenBlockEditor={() => setShowBlockEditor(true)}
         />
 
         {/* Alert bar */}
@@ -1447,7 +2164,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     if (hasUnsavedData && orchSections.some(s => s.text)) {
                       setPendingTabSwitch('report_and_scroll');
                     } else {
-                      setLeftTab('report');
+                      safeSetLeftTab('report');
                       setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
                     }
                   } else {
@@ -1588,7 +2305,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 return (
                   <button
                     key={tab}
-                    onClick={() => setLeftTab(tab)}
+                    onClick={() => safeSetLeftTab(tab)}
                     style={{
                       padding: '9px 18px', fontSize: 12,
                       fontWeight:   isActive ? 600 : 400,
@@ -1841,7 +2558,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 }}
               />
 
-              {/* Full Report — LIS source */}
+              {/* Full Report — LIS-sourced for CoPilot mode; for
+                  Orchestration mode, caseData.diagnostic is kept synced
+                  from orchSections (see syncOrchSectionsToDiagnostic above
+                  — runs both on orchSections change and explicitly on
+                  switching onto this tab), so LeftReportPanel reflects the
+                  current draft without needing a different renderer here.
+                  Keeping LeftReportPanel for both modes preserves the
+                  field-label "click to highlight source in report"
+                  feature (RightSynopticPanel's onHighlight callback only
+                  ever targeted LeftReportPanel's highlightText prop). */}
               <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
                 <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} />
               </div>
@@ -2010,7 +2736,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                         : '#3b82f6'; // draft = blue
                       const statusLabel = String(st);
                       return (
-                        <button key={tab} onClick={() => setLeftTab(tab)} style={{
+                        <button key={tab} onClick={() => safeSetLeftTab(tab)} style={{
                           padding: '9px 18px', fontSize: 12,
                           fontWeight: isActive ? 600 : 400,
                           color: isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
@@ -2171,7 +2897,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     <div style={{ position: 'absolute', inset: 0, display: leftTab === 'sequencer' ? 'flex' : 'none', flexDirection: 'column' }}>
                       <SequencerPanel
                         show={leftTab === 'sequencer'}
-                        onClose={() => setLeftTab('report')}
+                        onClose={() => safeSetLeftTab('report')}
                         onSave={(specimenOrder, synopticOrders) => {
                   setCaseData(prev => {
                     if (!prev) return prev;
@@ -2306,6 +3032,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onNextCase={() => { if (shouldWarnDirty()) { setPendingNavigation('next'); } else { navigateToCase('next'); } }}
           onPreviousCase={() => { if (shouldWarnDirty()) { setPendingNavigation('prev'); } else { navigateToCase('prev'); } }}
           onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
+          onGrossComplete={isOrchestrationMode ? handleGrossComplete : undefined}
+          synopticFitPending={isEvaluatingSynopticFit || showProtoReview}
           isGenerating={isOrchestrating}
           onAbortGenerate={handleAbortGenerate}
         />
@@ -2364,7 +3092,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     title="Click to jump to this field"
                     onClick={() => {
                       setShowMissingWarning(false);
-                      if (isOrchestrationMode) setLeftTab('draft');
+                      if (isOrchestrationMode) safeSetLeftTab('draft');
                       setTimeout(() => setAlertFieldId(f.fieldId), 100);
                     }}
                   >
@@ -2392,7 +3120,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         show={showPreFinalise}
         onJumpToField={(instanceId, fieldKey) => {
           setShowPreFinalise(false);
-          setLeftTab('draft');
+          safeSetLeftTab('draft');
           setTimeout(() => setAlertFieldId(fieldKey), 100);
         }}
         caseAccession={caseData?.accession?.fullAccession ?? ''}
@@ -2457,6 +3185,37 @@ Original report issued pending ancillary studies. This amendment incorporates th
           isOrchestrationMode={isOrchestrationMode}
           onClose={() => { setShowSpecimenEdit(false); setEditingSpecimen(null); }}
           onSave={(saved) => {
+            // Post-Hoc Correction audit trail — deliberately generated
+            // here, in the existing save path, rather than via a
+            // separate correction-only modal. SpecimenEditModal already
+            // covers every field someone would realistically need to
+            // fix; building a second modal for the same fields would
+            // just confuse people with two ways to do the same thing.
+            // Only fires for genuine edits (editingSpecimen was set),
+            // never for a newly-added specimen — there's no "before"
+            // value to compare against for something that didn't exist
+            // a moment ago, so nothing here is actually a correction.
+            if (editingSpecimen && caseData?.id) {
+              const before = editingSpecimen;
+              const fieldsToCheck: { key: string; label: string; oldVal: string; newVal: string }[] = [
+                { key: 'label', label: 'Specimen Label', oldVal: before.label ?? '', newVal: saved.label ?? '' },
+                { key: 'description', label: 'Description', oldVal: before.description ?? '', newVal: saved.description ?? '' },
+                { key: 'bodySite', label: 'Body Site', oldVal: (before as any).collection?.bodySite ?? '', newVal: (saved as any).collection?.bodySite ?? '' },
+                { key: 'laterality', label: 'Laterality', oldVal: (before as any).collection?.laterality ?? '', newVal: (saved as any).collection?.laterality ?? '' },
+                { key: 'containerType', label: 'Container Type', oldVal: (before as any).container?.type ?? '', newVal: (saved as any).container?.type ?? '' },
+              ];
+              fieldsToCheck.filter(f => f.oldVal.trim() !== f.newVal.trim()).forEach(f => {
+                specimenDeficiencyService.raiseAndResolve(
+                  {
+                    caseId: caseData.id, specimenId: saved.id, specimenLabel: saved.label,
+                    deficiencyTypeId: 'def-post-hoc-correction',
+                    comment: `${f.label}: "${f.oldVal || '(blank)'}" → "${f.newVal || '(blank)'}"`,
+                    raisedBy: signingUser?.id ?? 'unknown',
+                  },
+                  { resolutionTypeId: 'res-value-corrected', resolvedBy: signingUser?.id ?? 'unknown' }
+                ).catch(err => console.error('[PostHocCorrection] Failed to record:', err));
+              });
+            }
             setCaseData(prev => {
               if (!prev) return prev;
               const existing = (prev.specimens ?? []).findIndex(s => s.id === saved.id);
@@ -2492,11 +3251,29 @@ Original report issued pending ancillary studies. This amendment incorporates th
       {showCaseCommentModal && (
         <CaseCommentModal
           accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
-          caseComments={{ attending: caseCommentAttending }}
-          onChangeAttending={(html) => {
-            setCaseCommentAttending(html);
-            setHasCaseComment(!!html && html !== '<p></p>');
-            if (caseData?.id) localStorage.setItem(`ps_case_comment_${caseData.id}`, html);
+          comments={caseComments}
+          currentUserId={signingUser?.id ?? 'unknown'}
+          currentUserName={signingUser?.name ?? 'Unknown User'}
+          onAddComment={(text) => {
+            // Append-only — a new CaseComment record, never overwriting
+            // anything already posted. Fixed June 2026: this used to be
+            // a single string, silently overwritten by whoever saved
+            // last, with no record of who wrote what or when.
+            if (!caseData?.id) return;
+            const newComment: CaseComment = {
+              id: `cmt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              authorId: signingUser?.id ?? 'unknown',
+              authorName: signingUser?.name ?? 'Unknown User',
+              text,
+              createdAt: new Date().toISOString(),
+              origin: 'pathscribe',
+              syncStatus: 'pending',
+            };
+            const updatedComments = [...caseComments, newComment];
+            const patch = { order: { ...caseData.order, caseComments: updatedComments } };
+            caseRouter.updateCase(caseData.id, patch as any).then(() => {
+              setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
+            }).catch(err => console.error('[CaseComment] Failed to persist:', err));
             markDirty('Case comment');
           }}
           onClose={() => setShowCaseCommentModal(false)}
@@ -2511,13 +3288,113 @@ Original report issued pending ancillary studies. This amendment incorporates th
               : 'Specimen'
           }
           specimenId={activeSpecimenCommentId}
-          content={specimenComments[activeSpecimenCommentId] ?? ''}
+          comments={specimenComments[activeSpecimenCommentId] ?? []}
           isFinalized={false}
-          onChange={(html) => {
-            setSpecimenComments(prev => ({ ...prev, [activeSpecimenCommentId]: html }));
+          currentUserId={signingUser?.id ?? 'unknown'}
+          currentUserName={signingUser?.name ?? 'Unknown User'}
+          onAddComment={(text) => {
+            // Append-only — fixed June 2026, same reasoning as the case
+            // comment thread: this used to be a single string, silently
+            // overwritten by whoever saved last, with no author or
+            // timestamp recorded at all.
+            if (!caseData?.id) return;
+            const newComment: CaseComment = {
+              id: `cmt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              authorId: signingUser?.id ?? 'unknown',
+              authorName: signingUser?.name ?? 'Unknown User',
+              text,
+              createdAt: new Date().toISOString(),
+              origin: 'pathscribe',
+              syncStatus: 'pending',
+            };
+            const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
+              sp.id === activeSpecimenCommentId ? { ...sp, comments: [...(sp.comments ?? []), newComment] } : sp
+            );
+            const patch = { specimens: patchedSpecimens };
+            caseRouter.updateCase(caseData.id, patch as any).then(() => {
+              setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
+            }).catch(err => console.error('[SpecimenComment] Failed to persist:', err));
             markDirty('Specimen comment');
           }}
           onClose={() => setShowSpecimenCommentModal(false)}
+        />
+      )}
+
+      {showDeficiencyModal && (
+        <DeficiencyHistoryModal
+          deficiencies={caseDeficiencies}
+          deficiencyTypes={deficiencyTypes}
+          resolutionTypes={resolutionTypes}
+          onClose={() => setShowDeficiencyModal(false)}
+        />
+      )}
+
+      {showBlockEditor && caseData && (
+        <BlockStainEditorModal
+          blocks={allBlocks}
+          casePriority={(caseData as any)?.order?.priority ?? 'Routine'}
+          onUpdateBlock={handleUpdateBlock}
+          onClose={() => setShowBlockEditor(false)}
+        />
+      )}
+
+      {fixativeGateSpecimens && caseData && (
+        <FixativeTimeGateModal
+          specimens={fixativeGateSpecimens}
+          onCancel={() => { setFixativeGateSpecimens(null); setPendingFinalizeArgs([]); }}
+          onContinue={async (resolutions: FixativeResolution[]) => {
+            const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) => {
+              const res = resolutions.find(r => r.specimenId === sp.id);
+              if (!res) return sp;
+              return {
+                ...sp,
+                processing: {
+                  ...sp.processing,
+                  ...(res.processedAt ? { processedAt: res.processedAt, processedAtIsEstimated: res.processedAtIsEstimated } : {}),
+                },
+              };
+            });
+
+            try {
+              await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any);
+              setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
+
+              // Audit trail — one SpecimenDeficiency per resolved specimen,
+              // same pattern as the order-import dictionary-match
+              // deficiency (raised and resolved together, since detection
+              // and resolution happen in the same sitting here too).
+              await Promise.all(resolutions.map(res => {
+                const sp = caseData.specimens?.find((s: any) => s.id === res.specimenId);
+                if (!sp) return Promise.resolve();
+                return specimenDeficiencyService.raiseAndResolve(
+                  {
+                    caseId: caseData.id,
+                    specimenId: res.specimenId,
+                    specimenLabel: sp.label,
+                    deficiencyTypeId: 'def-missing-fixation-time',
+                    comment: `Fixation time not documented for Specimen ${sp.label} at sign-out.`,
+                    raisedBy: 'system',
+                  },
+                  {
+                    resolutionTypeId: res.resolutionTypeId,
+                    resolutionComment: res.resolutionComment,
+                    resolvedBy: signingUser?.id ?? 'unknown',
+                  }
+                );
+              }));
+
+              showToast('Fixation time recorded');
+            } catch (err) {
+              console.error('[FixativeGate] Failed to persist resolutions:', err);
+              showToast('Could not save fixation time — please try again');
+              return;
+            }
+
+            setFixativeGateSpecimens(null);
+            const args = pendingFinalizeArgs;
+            setPendingFinalizeArgs([]);
+            finalizeCase(args);
+          }}
         />
       )}
 
@@ -2531,7 +3408,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
       {showCodesModal && caseData && (
         <AddCodeModal
-          existingCodes={(caseData as any).codes ?? []}
+          existingCodes={[
+            ...(((caseData as any).coding?.icd10 ?? []) as any[]),
+            ...(((caseData as any).coding?.snomed ?? []) as any[]),
+          ]}
           allSpecimens={(caseData.specimens ?? []).map((sp, i) => ({
             index: i, id: i + 1,
             name: `${sp.label}: ${sp.description ?? ''}`,
@@ -2558,15 +3438,28 @@ Original report issued pending ancillary studies. This amendment incorporates th
             (caseData.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any)?.narrativeContent ?? undefined
           }
           onAddToSpecimens={(codes, _specimenIndices) => {
-            const newIcd    = codes.filter(c => c.system === 'ICD').map(c => c.code);
-            const newSnomed = codes.filter(c => c.system === 'SNOMED').map(c => c.code);
-            setCaseData(prev => prev ? {
-              ...prev,
-              coding: {
-                icd10:  [...((prev as any).coding?.icd10  ?? []), ...newIcd],
-                snomed: [...((prev as any).coding?.snomed ?? []), ...newSnomed],
-              },
-            } : prev);
+            // Previously: (a) kept only the bare code string, discarding
+            // system/display/confidence/AI source/verification state
+            // entirely, and (b) existingCodes above read from a
+            // completely different field (caseData.codes) than this
+            // wrote to (caseData.coding.icd10/.snomed) — so reopening
+            // this modal after saving never showed what was just added.
+            // Fixed both by keeping the full MedicalCode object here and
+            // reading existingCodes from these same two fields above.
+            // (c) This also never called caseRouter.updateCase at all —
+            // purely local React state, meaning even a diligent "Save
+            // Draft" click wouldn't have persisted it, since that save
+            // path is scoped specifically to orchSections. Now actually
+            // persisted directly, not left to a save mechanism that was
+            // never going to carry it.
+            const newIcd    = codes.filter(c => c.system === 'ICD');
+            const newSnomed = codes.filter(c => c.system === 'SNOMED');
+            const newCoding = {
+              icd10:  [...(((caseData as any).coding?.icd10  ?? []) as any[]), ...newIcd],
+              snomed: [...(((caseData as any).coding?.snomed ?? []) as any[]), ...newSnomed],
+            };
+            setCaseData(prev => prev ? ({ ...prev, coding: newCoding } as typeof prev) : prev);
+            caseRouter.updateCase(caseData.id, { coding: newCoding } as any).catch(err => console.error('[Codes] Failed to save:', err));
             markDirty('Codes');
             setShowCodesModal(false);
           }}
@@ -2663,7 +3556,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   // Discard and switch
                   clearDirty();
                   const tab = dest === 'report_and_scroll' ? 'report' : dest as any;
-                  setLeftTab(tab);
+                  safeSetLeftTab(tab);
                   if (dest === 'report_and_scroll') {
                     setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
                   }
@@ -2684,7 +3577,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   clearDirty();
                   showToast('Draft saved');
                   const tab = dest === 'report_and_scroll' ? 'report' : dest as any;
-                  setLeftTab(tab);
+                  safeSetLeftTab(tab);
                   if (dest === 'report_and_scroll') {
                     setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
                   }
@@ -2704,7 +3597,25 @@ Original report issued pending ancillary studies. This amendment incorporates th
           setPendingNavigation(null);
           cancelContextNavigate();
         }}
-        onSaveAndLeave={() => {
+        onSaveAndLeave={async () => {
+          // This previously just cleared the dirty flag and showed a
+          // "Draft saved" toast without ever actually calling
+          // caseRouter.updateCase or writing the localStorage backup —
+          // the toast was lying, and navigating away right after threw
+          // away orchSections for real, since nothing had persisted it
+          // anywhere. This is the actual confirmed bug behind "sections
+          // lost on navigation" — not a missing persistence mechanism
+          // (one already exists, mirrored below, used by Ctrl+S/the
+          // PATHSCRIBE_ORCH_SAVE_DRAFT event), but this specific button
+          // never calling it. Awaited directly (not dispatched as an
+          // event) so navigation can't proceed before the save actually
+          // completes.
+          if (caseData?.id) {
+            try {
+              await caseRouter.updateCase(caseData.id, { orchSections, updatedAt: new Date().toISOString() } as any);
+              localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
+            } catch (e) { console.error('[SaveAndLeave] Failed to save draft:', e); }
+          }
           clearDirty();
           showToast('Draft saved');
           if (pendingPath) confirmContextNavigate();

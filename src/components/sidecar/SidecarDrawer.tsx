@@ -103,11 +103,22 @@ interface Props {
    * without independent fetches per sidebar row.
    */
   onResultLoaded?: (flagId: string, result: ComputationalResult) => void;
+
+  /**
+   * 'search' when this drawer is mounted inside SearchPage, 'worklist'
+   * otherwise (the default — also covers WorklistPage, which doesn't
+   * pass this prop). Mirrors WorklistTable.tsx's own navSource prop
+   * exactly. Needed because this is a SHARED component mounted by both
+   * pages — the "Open case" link below can't hardcode which page sent
+   * the user here, the same reason WorklistTable.tsx's row click needs
+   * navSource passed in rather than guessing it internally.
+   */
+  navSource?: 'search' | 'worklist';
 }
 
 // ─── SidecarDrawer ────────────────────────────────────────────────────────────
 
-const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoaded: onResultLoadedProp }) => {
+const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoaded: onResultLoadedProp, navSource = 'worklist' }) => {
   const { isOpen, layoutMode, selectedFlag, caseId, caseFlags: _contextCaseFlags, selectFlag, close } = useSidecar();
   const drawerRef = useRef<HTMLDivElement>(null);
   useFocusTrap(drawerRef, isOpen && layoutMode === 'overlay');
@@ -356,6 +367,12 @@ const SidecarDrawer: React.FC<Props> = ({ computationalFlags, width, onResultLoa
               className="ps-case-link"
               onClick={() => {
                 close();
+                // Mirrors WorklistTable.tsx's onBeforeNavigate — without
+                // this, SynopticReportPage's navSource detection (reads
+                // this same key, defaults to 'worklist' if absent) always
+                // fell through to 'worklist' for this navigation path,
+                // even when the drawer was opened from a Search card.
+                sessionStorage.setItem('pathscribe:navFrom', navSource);
                 navigate(`/case/${caseId}/synoptic`);
               }}
               title={`Open case ${caseId}`}

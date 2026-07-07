@@ -9,22 +9,11 @@
 
 import React, { useState, useMemo } from 'react';
 import '../../../pathscribe.css';
+import type { ProtocolChange, ProtocolChangeAction } from '@/types/case/Case';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface ProtocolChange {
-  id:                   string;
-  specimenId:           string;
-  specimenLabel:        string;
-  specimenDesc:         string;
-  currentTemplateId:    string;
-  currentTemplateName:  string;
-  proposedTemplateId:   string;
-  proposedTemplateName: string;
-  /** Human-readable reason from AI analysis of the microscopic description */
-  reason:               string;
-  confidence:           number;  // 0–100
-}
+// ProtocolChange / ProtocolChangeAction moved to Case.ts (see comment
+// there) — this file no longer defines them, only imports and uses them.
+export type { ProtocolChange, ProtocolChangeAction };
 
 interface ProtocolChangeModalProps {
   show:       boolean;
@@ -66,19 +55,19 @@ const ChangeRow: React.FC<{
         <span className="ps-proto-change-specimen-desc">{change.specimenDesc}</span>
       </div>
 
-      {/* Protocol diff */}
+      {/* Protocol diff — 'add' has no current template, 'remove' has no proposed one */}
       <div className="ps-proto-change-diff">
         <div className="ps-proto-change-current">
           <span className="ps-proto-change-diff-label">Current</span>
           <span className="ps-proto-change-diff-name ps-proto-change-diff-name--current">
-            {change.currentTemplateName}
+            {change.currentTemplateName ?? '(none assigned)'}
           </span>
         </div>
         <span className="ps-proto-change-arrow">→</span>
         <div className="ps-proto-change-proposed">
           <span className="ps-proto-change-diff-label">Proposed</span>
           <span className="ps-proto-change-diff-name ps-proto-change-diff-name--proposed">
-            {change.proposedTemplateName}
+            {change.proposedTemplateName ?? '(remove — no longer needed)'}
           </span>
         </div>
       </div>
