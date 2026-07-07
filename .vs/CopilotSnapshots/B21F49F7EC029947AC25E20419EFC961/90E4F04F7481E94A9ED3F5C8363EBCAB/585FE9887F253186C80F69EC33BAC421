@@ -1,0 +1,843 @@
+﻿import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from "@contexts/AuthContext";
+import { useLogout } from '@hooks/useLogout';
+import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
+
+export default function Home() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const handleLogout = useLogout();
+  
+  // --- UI State ---
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+
+  // --- Theme State ---
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'auto'>('dark');
+
+  // --- Navigation Handler with Unsaved Data Check ---
+
+  // --- Quick Links Data (MVP - Hardcoded) ---
+const quickLinks = {
+  protocols: [
+    { title: 'CAP Cancer Protocols', url: 'https://www.cap.org/protocols-and-guidelines' },
+    { title: 'WHO Classification', url: 'https://www.who.int/publications' }
+  ],
+  references: [
+    { title: 'PathologyOutlines', url: 'https://www.pathologyoutlines.com' },
+    { title: 'UpToDate', url: 'https://www.uptodate.com' }
+  ],
+  systems: [
+    { title: 'Hospital LIS', url: '#' },
+    { title: 'Lab Management', url: '#' }
+  ]
+};
+
+  // --- Theme Engine ---
+  useEffect(() => {
+    const root = document.documentElement;
+    const applyTheme = (theme: 'light' | 'dark') => {
+      if (theme === 'dark') {
+        root.style.setProperty('--bg-color', '#0F172A');
+        root.style.setProperty('--text-color', '#f5fbf8');
+        root.style.setProperty('--text-secondary', '#9fb4ab');
+        root.style.setProperty('--nav-bg', 'rgba(32, 43, 54, 0.7)');
+        root.style.setProperty('--border-color', 'rgba(82, 102, 128, 0.6)');
+        root.style.setProperty('--bg-overlay', 'radial-gradient(circle at top right, rgba(5,150,105,0.16), transparent 58%), linear-gradient(160deg, rgba(31,41,51,1) 0%, rgba(32,43,54,1) 100%)');
+      } else {
+        root.style.setProperty('--bg-color', '#f7fcfa');
+        root.style.setProperty('--text-color', '#0F172A');
+        root.style.setProperty('--text-secondary', '#546372');
+        root.style.setProperty('--nav-bg', 'rgba(255, 255, 255, 0.8)');
+        root.style.setProperty('--border-color', 'rgba(5, 150, 105, 0.2)');
+        root.style.setProperty('--bg-overlay', 'radial-gradient(circle at top left, rgba(5,150,105,0.08), transparent 58%), linear-gradient(180deg, #f7fcfa 0%, #edf7f3 100%)');
+      }
+    };
+
+    if (currentTheme === 'auto') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const updateAuto = () => applyTheme(mediaQuery.matches ? 'dark' : 'light');
+      updateAuto();
+      mediaQuery.addEventListener('change', updateAuto);
+      return () => mediaQuery.removeEventListener('change', updateAuto);
+    } else {
+      applyTheme(currentTheme);
+    }
+  }, [currentTheme]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    document.body.style.margin = '0';
+    return () => { clearTimeout(timer); };
+  }, []);
+
+const cards = [
+  { title: 'Worklist', description: 'View and manage pending pathology cases', route: '/worklist', color: '#f59e0b', icon: '📝' },
+  { title: 'Configuration', description: 'System settings and AI preferences', route: '/configuration', color: '#fcd34d', icon: '⚙️' },
+  { title: 'Search', description: 'Search completed and in-progress cases', route: '/search', color: '#f59e0b', icon: '🔍' },
+  { title: 'System Audit', description: 'Review system activity and audit trails', route: '/audit', color: '#ef4444', icon: '🛡️' },
+
+  // ⭐ New tile
+  {
+    title: 'My Contribution',
+    description: 'Workload • Quality • TAT • Trends',
+    route: '/contribution',
+    color: '#fcd34d',
+    icon: '📊'
+  }
+];
+
+  return (
+    <div className="ps-page" style={{ backgroundColor: 'rgba(17, 24, 39, 0.95)', color: 'var(--text-color)', opacity: isLoaded ? 1 : 0, transition: 'opacity 0.8s ease, background-color 0.4s ease', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Theme background (no image) */}
+      <div className="ps-page-gradient" style={{ background: 'var(--bg-overlay)' }} />
+
+      {/* UI Content */}
+      <div className="ps-page-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+
+
+        <main className="ps-home-main" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', overflowY: 'auto' }}>
+          <header className="ps-home-header" style={{ 
+            marginBottom: 'clamp(20px, 5vw, 32px)', 
+            flexShrink: 0,
+            paddingLeft: 'clamp(16px, 5vw, 40px)',
+            paddingRight: 'clamp(16px, 5vw, 40px)'
+          }}>
+            {/* Main Title with Gradient */}
+            <h1 className="ps-home-title" style={{ fontWeight: 900, margin: 0, letterSpacing: '-2px' }}>
+              Welcome back,&nbsp;<span style={{ color: '#f59e0b' }}>{user?.name ? user.name.split(',')[0] : 'Doctor'}</span>
+            </h1>
+
+            {/* Subtitle with Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+              <p className="ps-home-subtitle" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                The AI models are updated and synchronized with the latest CAP protocols.
+              </p>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                paddingLeft: '12px',
+                paddingRight: '12px',
+                paddingTop: '4px',
+                paddingBottom: '4px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#10b981'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                System Ready
+              </div>
+            </div>
+          </header>
+
+          <div className="ps-home-grid" style={{ 
+            display: 'grid', 
+            gap: 'clamp(12px, 3vw, 24px)', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            paddingBottom: '40px',
+            paddingLeft: 'clamp(16px, 5vw, 40px)',
+            paddingRight: 'clamp(16px, 5vw, 40px)'
+          }}>
+            {cards.map((card, index) => (
+              <div
+                className="ps-home-card group"
+                key={card.title}
+                onClick={() => navigate(card.route, (card as any).tab ? { state: { activeTab: (card as any).tab } } : undefined)}
+                onMouseEnter={() => setHoveredCard(index)}
+                onMouseLeave={() => setHoveredCard(null)}
+                style={{
+                  position: 'relative', 
+                  cursor: 'pointer', 
+                  overflow: 'hidden',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
+                  transform: hoveredCard === index ? 'translateY(-12px) scale(1.02)' : 'translateY(0) scale(1)',
+                  border: hoveredCard === index 
+                    ? `1px solid ${card.color}` 
+                    : '1px solid rgba(255,255,255,0.05)', 
+                  background: '#1F2937', /* Secondary Background */
+                  boxShadow: hoveredCard === index 
+                    ? `0 25px 50px -12px rgba(0,0,0,0.8), 0 0 35px ${card.color}30` 
+                    : '0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -4px rgba(0,0,0,0.3)',
+                  borderRadius: '24px'
+                }}
+              >
+                {/* Accent Line Top */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+                  background: hoveredCard === index ? card.color : 'transparent',
+                  transition: 'background 0.4s'
+                }} />
+
+                {/* Subtle Luxury Pattern / Glow */}
+                <div style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  background: hoveredCard === index ? `radial-gradient(circle at 80% 20%, ${card.color}15, transparent 65%)` : 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.02), transparent 50%)',
+                  transition: 'background 0.4s ease'
+                }} />
+
+                {/* Optional Texture Layer */}
+                <div style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 100%)',
+                  pointerEvents: 'none'
+                }} />
+
+                <div className="ps-home-card-content" style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', padding: 'clamp(20px, 5vw, 32px)' }}>
+
+                  {/* Luxury Icon / Top section */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'auto' }}>
+                    <div style={{ 
+                      width: 'clamp(48px, 10vw, 56px)', 
+                      height: 'clamp(48px, 10vw, 56px)', 
+                      borderRadius: '16px', 
+                      background: hoveredCard === index ? `${card.color}20` : 'rgba(0,0,0,0.3)',
+                      border: `1px solid ${hoveredCard === index ? card.color + '40' : 'rgba(255,255,255,0.1)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 'clamp(18px, 5vw, 24px)',
+                      transition: 'all 0.4s ease',
+                      boxShadow: hoveredCard === index ? `0 0 20px ${card.color}30` : 'none'
+                    }}>
+                      {card.icon}
+                    </div>
+
+                    <div style={{
+                      opacity: hoveredCard === index ? 1 : 0,
+                      transform: hoveredCard === index ? 'translateX(0)' : 'translateX(-10px)',
+                      color: card.color,
+                      transition: 'all 0.4s ease',
+                      fontSize: '20px'
+                    }}>
+                      →
+                    </div>
+                  </div>
+
+                  {/* Text Content */}
+                  <div style={{ marginTop: '20px' }}>
+                    <h3 className="ps-home-card-title" style={{ 
+                      fontWeight: 800, 
+                      margin: 0, 
+                      color: hoveredCard === index ? card.color : '#F8FAFC', 
+                      transition: 'color 0.3s ease', 
+                      letterSpacing: '-0.5px',
+                      fontSize: 'clamp(16px, 4vw, 20px)'
+                    }}>
+                      {card.title}
+                    </h3>
+                    <p className="ps-home-card-text" style={{ 
+                      marginTop: '8px', 
+                      color: hoveredCard === index ? '#cbd5e1' : '#94a3b8', 
+                      fontSize: 'clamp(13px, 3vw, 15px)',
+                      lineHeight: '1.5', 
+                      transition: 'color 0.3s ease' 
+                    }}>
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+
+      {/* PROFILE MODAL */}
+      {isProfileOpen && (
+        <div 
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000
+          }}
+          tabIndex={-1}
+          onClick={() => setIsProfileOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') setIsProfileOpen(false);
+            if (e.key === 'Escape') setIsProfileOpen(false);
+          }}
+        >
+          <div 
+            style={{ 
+              width: '400px',
+              backgroundColor: '#1F2937', 
+              borderRadius: '20px', 
+              padding: '40px', 
+              border: '1px solid rgba(245,158,11, 0.3)', 
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              textAlign: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ 
+              color: '#f59e0b', 
+              fontSize: '24px', 
+              fontWeight: 700, 
+              marginBottom: '24px'
+            }}>
+              User Preferences
+            </div>
+
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '12px', textAlign: 'left' }}>
+                Appearance
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <button 
+                  onClick={() => { setCurrentTheme('light'); setIsProfileOpen(false); }} 
+                  style={{
+                    background: currentTheme === 'light' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
+                    border: currentTheme === 'light' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentTheme !== 'light') e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentTheme !== 'light') e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                >
+                  <SunIcon />
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Light</span>
+                </button>
+                <button 
+                  onClick={() => { setCurrentTheme('dark'); setIsProfileOpen(false); }} 
+                  style={{
+                    background: currentTheme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
+                    border: currentTheme === 'dark' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentTheme !== 'dark') e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentTheme !== 'dark') e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                >
+                  <MoonIcon />
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Dark</span>
+                </button>
+                <button 
+                  onClick={() => { setCurrentTheme('auto'); setIsProfileOpen(false); }} 
+                  style={{
+                    background: currentTheme === 'auto' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
+                    border: currentTheme === 'auto' ? '2px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentTheme !== 'auto') e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentTheme !== 'auto') e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                >
+                  <MonitorIcon />
+                  <span style={{ fontSize: '12px', fontWeight: 600 }}>Auto</span>
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={() => { 
+                  window.open('https://www.cap.org/', '_blank'); 
+                  setIsProfileOpen(false); 
+                }} 
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#cbd5e1',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(245, 158, 11, 0.1)';
+                  e.currentTarget.style.color = '#f59e0b';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = '#cbd5e1';
+                }}
+              >
+                <HelpIcon /> Support & Protocols
+              </button>
+              
+              <button 
+                onClick={() => { 
+                  setShowAbout(true); 
+                  setIsProfileOpen(false); 
+                }} 
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#cbd5e1',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.2s',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(245, 158, 11, 0.1)';
+                  e.currentTarget.style.color = '#f59e0b';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = '#cbd5e1';
+                }}
+              >
+                <HelpIcon /> About PathScribe<span style={{ color: '#f59e0b', fontSize: '0.6em', verticalAlign: 'super', marginLeft: '0.2em' }}>AI</span>
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setIsProfileOpen(false)} 
+              autoFocus
+              style={{
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245,158,11, 0.3)',
+                color: '#f59e0b',
+                fontWeight: 600,
+                fontSize: '15px',
+                cursor: 'pointer',
+                width: '100%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)';
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK LINKS MODAL */}
+      {isResourcesOpen && (
+        <div 
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000
+          }}
+          tabIndex={-1}
+          onClick={() => setIsResourcesOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') setIsResourcesOpen(false);
+            if (e.key === 'Escape') setIsResourcesOpen(false);
+          }}
+        >
+          <div 
+            style={{ 
+              width: '500px',
+              maxHeight: '80vh',
+              overflowY: 'auto' as const,
+              backgroundColor: '#1F2937', 
+              borderRadius: '20px', 
+              padding: '40px', 
+              border: '1px solid rgba(245,158,11, 0.3)', 
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ 
+              color: '#f59e0b', 
+              fontSize: '24px', 
+              fontWeight: 700, 
+              marginBottom: '24px',
+              textAlign: 'center' as const
+            }}>
+              Quick Links
+            </div>
+
+            {/* Protocols Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                color: '#94a3b8', 
+                fontSize: '12px', 
+                fontWeight: 700, 
+                marginBottom: '12px',
+                textTransform: 'uppercase' as const
+              }}>
+                Protocols
+              </div>
+              {quickLinks.protocols.map((link, i) => (
+                <a            
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsResourcesOpen(false)}
+                  style={{
+                    display: 'block',
+                    color: '#cbd5e1',
+                    textDecoration: 'none',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    transition: 'all 0.2s',
+                    borderRadius: '8px',
+                    marginBottom: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#f59e0b';
+                    e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#cbd5e1';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  → {link.title}
+                </a>
+              ))}
+            </div>
+
+            {/* References Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                color: '#94a3b8', 
+                fontSize: '12px', 
+                fontWeight: 700, 
+                marginBottom: '12px',
+                textTransform: 'uppercase' as const
+              }}>
+                References
+              </div>
+              {quickLinks.references.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsResourcesOpen(false)}
+                  style={{
+                    display: 'block',
+                    color: '#cbd5e1',
+                    textDecoration: 'none',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    transition: 'all 0.2s',
+                    borderRadius: '8px',
+                    marginBottom: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#f59e0b';
+                    e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#cbd5e1';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  → {link.title}
+                </a>
+              ))}
+            </div>
+
+            {/* Systems Section */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                color: '#94a3b8', 
+                fontSize: '12px', 
+                fontWeight: 700, 
+                marginBottom: '12px',
+                textTransform: 'uppercase' as const
+              }}>
+                Systems
+              </div>
+              {quickLinks.systems.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsResourcesOpen(false)}
+                  style={{
+                    display: 'block',
+                    color: '#cbd5e1',
+                    textDecoration: 'none',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    transition: 'all 0.2s',
+                    borderRadius: '8px',
+                    marginBottom: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#f59e0b';
+                    e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#cbd5e1';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  → {link.title}
+                </a>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => setIsResourcesOpen(false)} 
+              autoFocus
+              style={{
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245,158,11, 0.3)',
+                color: '#f59e0b',
+                fontWeight: 600,
+                fontSize: '15px',
+                cursor: 'pointer',
+                width: '100%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)';
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* IMPROVED SAFETY MODAL */}
+      {showWarning && (
+        <div 
+          style={overlayStyle}
+          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') setShowWarning(false);
+            if (e.key === 'Escape') setShowWarning(false);
+          }}
+        >
+          <div style={warningCardStyle}>
+             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+               <WarningIcon color="#F59E0B" />
+             </div>
+             <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: '0 0 12px 0' }}>
+               Unsaved Data
+             </h2>
+             <p style={{ color: '#94a3b8', marginBottom: '30px', lineHeight: '1.6', fontSize: '15px' }}>
+               You have an active session with unsaved changes. Logging out now will discard your current progress.
+             </p>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+               {/* PRIMARY BUTTON - Solid Teal (Safe Default) */}
+               <button 
+                 onClick={() => setShowWarning(false)} 
+                 autoFocus
+                 style={{
+                   padding: '16px 24px',
+                   borderRadius: '12px',
+                   background: '#f59e0b',
+                   border: 'none',
+                   color: '#fff',
+                   fontWeight: 700,
+                   fontSize: '16px',
+                   cursor: 'pointer',
+                   width: '100%',
+                   transition: 'all 0.2s ease'
+                 }}
+                 onMouseEnter={(e) => e.currentTarget.style.background = '#047857'}
+                 onMouseLeave={(e) => e.currentTarget.style.background = '#f59e0b'}
+               >
+                 ← Return to Page
+               </button>
+               
+               {/* SECONDARY BUTTON - Ghost Yellow (Warning) */}
+               <button 
+                 onClick={handleLogout}
+                 style={{
+                   padding: '16px 24px',
+                   borderRadius: '12px',
+                   background: 'transparent',
+                   border: '2px solid #F59E0B',
+                   color: '#F59E0B',
+                   fontWeight: 600,
+                   fontSize: '15px',
+                   cursor: 'pointer',
+                   width: '100%',
+                   transition: 'all 0.2s ease'
+                 }}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.background = '#F59E0B';
+                   e.currentTarget.style.color = '#000';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.background = 'transparent';
+                   e.currentTarget.style.color = '#F59E0B';
+                 }}
+               >
+                 Log Out & Discard Changes
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ABOUT MODAL - Light Frosted Glass Style */}
+      {showAbout && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000
+          }}
+          tabIndex={-1}
+          onClick={() => setShowAbout(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') setShowAbout(false);
+            if (e.key === 'Escape') setShowAbout(false);
+          }}
+        >
+          <div 
+            style={{
+              width: '400px',
+              backgroundColor: 'rgba(220, 220, 220, 0.75)',
+              backdropFilter: 'blur(40px)',
+              padding: '40px',
+              borderRadius: '20px',
+              textAlign: 'center',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+             <h2 style={{ 
+               fontSize: '32px', 
+               fontWeight: 700, 
+               color: '#1a1a1a', 
+               margin: '0 0 16px 0',
+               letterSpacing: '-0.5px'
+             }}>
+               PathScribe<span style={{ color: '#f59e0b', fontSize: '0.6em', verticalAlign: 'super', marginLeft: '0.1em' }}>AI</span>
+             </h2>
+             
+             <p style={{ 
+               color: '#3a3a3a', 
+               marginBottom: '8px', 
+               fontSize: '15px',
+               lineHeight: '1.6'
+             }}>
+               Version 1.0.0 | Build: 2026-02-14
+             </p>
+             
+             <p style={{ 
+               color: '#3a3a3a', 
+               marginBottom: '20px', 
+               fontSize: '15px',
+               lineHeight: '1.6'
+             }}>
+               Developed by the PathScribe AI Team
+             </p>
+             
+             <p style={{ 
+               color: '#5a5a5a', 
+               marginBottom: '30px', 
+               fontSize: '14px'
+             }}>
+               © 2026 PathScribe
+             </p>
+             
+             <button 
+               onClick={() => setShowAbout(false)} 
+               autoFocus
+               style={{
+                 padding: '12px 32px',
+                 borderRadius: '8px',
+                 background: 'rgba(160, 160, 160, 0.5)',
+                 border: 'none',
+                 color: '#1a1a1a',
+                 fontWeight: 600,
+                 fontSize: '15px',
+                 cursor: 'pointer',
+                 width: '100%',
+                 transition: 'all 0.2s ease'
+               }}
+               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(140, 140, 140, 0.6)'}
+               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(160, 160, 160, 0.5)'}
+             >
+               Close
+             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Global Styles
+const overlayStyle = { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 };
+const warningCardStyle = { width: '400px', backgroundColor: '#1F2937', padding: '40px', borderRadius: '28px', textAlign: 'center' as const, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' };

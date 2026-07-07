@@ -1,0 +1,33 @@
+﻿@import "tailwindcss";
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+
+@layer base {
+  button { @apply appearance-none border-0 bg-transparent; }
+  html, body, #root { @apply h-full bg-slate-950 m-0 p-0; }
+  * { @apply box-border; }
+  body { @apply font-sans antialiased text-slate-100; }
+}
+
+@layer utilities {
+  @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  .ps-page { @apply relative w-screen h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden; }
+  .ps-nav { @apply px-4 md:px-10 flex justify-between items-center bg-slate-900/90 backdrop-blur-xl h-16 md:h-[70px] border-b border-white/10 sticky top-0 z-1000 flex-shrink-0; }
+  .ps-home-grid { @apply grid gap-4 md:gap-6 px-4 md:px-10 pb-5 md:pb-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3; }
+  .ps-home-card { @apply relative cursor-pointer overflow-hidden transition-all duration-300 transform hover:-translate-y-3 hover:scale-105 border rounded-2xl bg-gray-900 p-6 md:p-8 border-white/5; }
+  .ps-home-title { @apply text-2xl md:text-4xl font-black m-0 -tracking-[2px]; }
+  .ps-modal { @apply bg-white rounded-2xl border border-slate-200 shadow-lg flex flex-col overflow-hidden max-h-[90vh] w-[90vw] md:w-[560px]; }
+  .ps-btn-primary { @apply px-4 md:px-6 py-2.5 bg-amber-500 text-white border-0 rounded-[10px] font-bold text-sm cursor-pointer transition-colors duration-150 hover:bg-amber-600; }
+  .ps-input { @apply w-full px-3 py-2.5 border-2 border-slate-200 rounded-lg text-base text-slate-900 bg-white outline-0 box-border transition-colors duration-150; }
+
+  @media screen and (max-width: 768px) {
+    .ps-home-card { @apply hover:scale-100 hover:-translate-y-0; }
+  }
+}
