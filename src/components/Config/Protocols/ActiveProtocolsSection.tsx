@@ -30,6 +30,7 @@ import {
   CoverageBar,
   UploadProtocolModal,
   BuildCustomiseModal,
+  protocolGroup,
 } from './protocolShared';
 
 // ─── ProtocolCard ─────────────────────────────────────────────────────────────
@@ -144,16 +145,25 @@ const ActiveProtocolsSection: React.FC = () => {
   const [search,     setSearch]       = useState('');
   const [showUpload,  setShowUpload]  = useState(false);
   const [showBuild,   setShowBuild]   = useState(false);
+  const [groupFilter, setGroupFilter] = useState<'All' | ReturnType<typeof protocolGroup>>('All');
 
   const protocols = useProtocols(p => p.status === 'published');
 
+  const GROUPS: ('All' | ReturnType<typeof protocolGroup>)[] = ['All', 'Surgical Pathology', 'Non-GYN Cytology', 'GYN Cytology', 'Grossing'];
+  const groupCounts = GROUPS.reduce<Record<string, number>>((acc, g) => {
+    acc[g] = g === 'All' ? protocols.length : protocols.filter(p => protocolGroup(p) === g).length;
+    return acc;
+  }, {});
+
+  const byGroup = groupFilter === 'All' ? protocols : protocols.filter(p => protocolGroup(p) === groupFilter);
+
   const filtered = search.trim()
-    ? protocols.filter(p =>
+    ? byGroup.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.category.toLowerCase().includes(search.toLowerCase()) ||
         p.source.toLowerCase().includes(search.toLowerCase())
       )
-    : protocols;
+    : byGroup;
 
   const grouped = filtered.reduce<Record<string, Protocol[]>>((acc, p) => {
     (acc[p.category] = acc[p.category] || []).push(p);
@@ -172,6 +182,28 @@ const ActiveProtocolsSection: React.FC = () => {
           <OutlineBtn onClick={() => setShowUpload(true)}>📤 Upload Protocol</OutlineBtn>
           <TealBtn    onClick={() => setShowBuild(true)}>🔬 Build / Customise</TealBtn>
         </div>
+      </div>
+
+      {/* Group filter */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        {GROUPS.map(g => {
+          const active = groupFilter === g;
+          return (
+            <button
+              key={g}
+              onClick={() => setGroupFilter(g)}
+              style={{
+                fontSize: '11px', fontWeight: 600, padding: '6px 12px', borderRadius: '6px',
+                border: active ? '1px solid #0891b2' : '1px solid #1e293b',
+                background: active ? 'rgba(8,145,178,0.15)' : 'transparent',
+                color: active ? '#22d3ee' : '#94a3b8',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {g} <span style={{ opacity: 0.7 }}>({groupCounts[g]})</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search */}

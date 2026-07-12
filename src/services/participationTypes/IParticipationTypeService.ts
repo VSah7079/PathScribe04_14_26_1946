@@ -18,6 +18,14 @@ export interface ParticipationTypeRecord {
   active:          boolean;
   isSystem:        boolean;
   sortOrder:       number;
+  /** Short badge text (2-6 chars) shown on case team chips. */
+  abbreviation?:        string;
+  /** Whether this participation type's work requires a supervising
+   *  countersign before the case can finalize. */
+  requiresCountersign?: boolean;
+  /** Whether someone holding this participation type can finalize
+   *  (sign out) the case themselves. */
+  canFinalize?:          boolean;
 }
 
 export type NewParticipationType = Omit<ParticipationTypeRecord, 'id' | 'isSystem' | 'sortOrder'>;

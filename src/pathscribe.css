@@ -4599,6 +4599,34 @@
 
 .ps-hb-crumb-sep { color: #cbd5e1; }
 
+.ps-hb-lis-sync {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ps-hb-lis-sync-label {
+  color: #475569;
+}
+
+.ps-hb-lis-sync-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0891B2;
+  background: rgba(8,145,178,0.08);
+  border: 1px solid rgba(8,145,178,0.25);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ps-hb-lis-sync-btn:hover:not(:disabled) { background: rgba(8,145,178,0.16); }
+.ps-hb-lis-sync-btn:disabled { opacity: 0.6; cursor: default; }
+
 /* ── Main row ────────────────────────────────────────────── */
 .ps-hb-row {
   display: flex;
@@ -4933,7 +4961,6 @@
 .wl-chips-wrap          { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 .wl-specimen-chip__desc { color: #94a3b8; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
 .wl-specimen-empty      { font-size: 11px; color: #475569; font-style: italic; }
-.wl-comp-flags          { display: flex; gap: 3px; flex-wrap: wrap; }
 
 /* ── Demographics ────────────────────────────────────────── */
 .wl-dob-age        { font-size: 10px; color: #475569; font-style: italic; }
@@ -5252,157 +5279,7 @@
 .fm-middle { width: 240px; flex-shrink: 0; border-right: 1px solid rgba(30,41,59,0.9); background: var(--ps-grad-left), var(--ps-navy-left); overflow-y: auto; display: flex; flex-direction: column; padding: 14px 0 12px; }
 .fm-btn-save:disabled { background: rgba(8,145,178,0.25); color: #64748b; cursor: default; }
 
-
-/* ============================================================
-   COMPUTATIONAL PANEL — comp-* classes + modal helpers
-   All were absent from pathscribe.css
-   ============================================================ */
-
-/* ── Left navigator pane ─────────────────────────────────── */
-.comp-navigator {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex: 1;
-  padding: 4px 0;
-}
-
-.comp-col-label {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: #475569;
-  padding: 8px 12px 4px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.comp-group-count {
-  font-size: 9px;
-  font-weight: 700;
-  color: #334155;
-  background: rgba(255,255,255,0.06);
-  padding: 1px 5px;
-  border-radius: 8px;
-}
-
-/* ── Individual test row ─────────────────────────────────── */
-.comp-flag-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 10px 6px 12px;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-left: 2px solid transparent;
-  width: 100%;
-  text-align: left;
-  transition: background 0.12s;
-  outline: none;
-}
-.comp-flag-row:hover               { background: rgba(255,255,255,0.04); }
-.comp-flag-row[aria-selected=true] {
-  background: rgba(8,145,178,0.1);
-  border-left-color: #0891B2;
-}
-
-.comp-flag-row-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: #cbd5e1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
-}
-.comp-flag-row[aria-selected=true] .comp-flag-row-name { color: #e2e8f0; }
-
-.comp-flag-row-code {
-  font-size: 10px;
-  color: #475569;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
-/* ── Status dot ──────────────────────────────────────────── */
-.comp-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-/* ── Order trigger button ────────────────────────────────── */
-.comp-order-trigger-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  width: calc(100% - 20px);
-  margin: 6px 10px;
-  padding: 7px 12px;
-  background: rgba(8,145,178,0.07);
-  border: 1px dashed rgba(8,145,178,0.35);
-  border-radius: 7px;
-  color: #0891B2;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  text-align: left;
-  flex-shrink: 0;
-}
-.comp-order-trigger-btn:hover {
-  background: rgba(8,145,178,0.15);
-  border-color: rgba(8,145,178,0.55);
-}
-
-/* ── Trash / cancel button ───────────────────────────────── */
-.comp-trash-btn {
-  background: none;
-  border: none;
-  color: #475569;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  transition: color 0.15s, background 0.15s;
-  opacity: 0;
-}
-.comp-flag-row:hover .comp-trash-btn { opacity: 1; }
-.comp-trash-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
-
-/* ── Empty state ─────────────────────────────────────────── */
-.comp-empty-note {
-  font-size: 12px;
-  color: #475569;
-  padding: 12px 12px 6px;
-  font-style: italic;
-}
-
-/* ── Modal close button ──────────────────────────────────── */
-.comp-modal-close-btn {
-  background: none;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
-}
-.comp-modal-close-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+/* Computational Panel comp-* classes removed — see IFlagService.ts's Flag.tagClass comment and ComputationalPanel.tsx's deletion. */
 
 /* ============================================================
    DARK MODAL — ps-modal-dark + subclasses (Cancel Order)
@@ -5545,166 +5422,7 @@
 }
 
 
-/* ============================================================
-   COMPUTATIONAL ORDER MODAL — comp-order-* classes
-   Replaces inline styles in the Order Additional Test modal
-   ============================================================ */
-
-/* Modal header row */
-.comp-order-header {
-  padding: 18px 22px 14px;
-  border-bottom: 1px solid rgba(30,41,59,0.9);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.comp-order-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Left specimen selector panel */
-.comp-order-left {
-  width: 300px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  padding: 8px 0 8px 12px;
-}
-
-/* Drop target rows (All Specimens + each specimen) */
-.comp-order-target-row {
-  padding: 8px 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-left: 2px solid transparent;
-  background: transparent;
-  transition: background 0.12s, border-color 0.12s;
-}
-.comp-order-target-row:hover   { background: rgba(255,255,255,0.03); }
-.comp-order-target-row.selected{ background: rgba(56,189,248,0.08); border-left-color: #38bdf8; }
-.comp-order-target-row.dropping{ background: rgba(56,189,248,0.14); border-left-color: #38bdf8; }
-
-.comp-order-target-row--specimen {
-  align-items: flex-start;
-}
-
-.comp-order-target-icon {
-  flex-shrink: 0;
-  color: #94a3b8;
-}
-.comp-order-target-row.dropping .comp-order-target-icon,
-.comp-order-target-row.selected .comp-order-target-icon { color: #38bdf8; }
-
-.comp-order-target-label {
-  font-size: 13px;
-  font-weight: 400;
-  color: #94a3b8;
-  flex: 1;
-}
-.comp-order-target-row.selected .comp-order-target-label,
-.comp-order-target-row.dropping .comp-order-target-label { color: #e2e8f0; font-weight: 600; }
-
-.comp-order-target-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.comp-order-target-row.selected .comp-order-target-name,
-.comp-order-target-row.dropping .comp-order-target-name { color: #e2e8f0; }
-
-.comp-order-target-desc {
-  color: #64748b;
-  font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.comp-order-target-row.selected .comp-order-target-desc { color: #cbd5e1; }
-
-.comp-order-drop-hint {
-  font-size: 10px;
-  color: #38bdf8;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-/* Ordered flag preview (inside each drop target) */
-.comp-order-flag-preview {
-  padding: 3px 14px 3px 36px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.comp-order-flag-code {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 600;
-  flex: 0 0 auto;
-}
-
-.comp-order-flag-name {
-  font-size: 11px;
-  color: #64748b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-
-/* Pending orders panel (right header) */
-.comp-order-pending-header {
-  padding: 14px 14px 6px 16px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #475569;
-}
-
-.comp-order-pending-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.comp-order-pending-target {
-  font-size: 10px;
-  color: #64748b;
-  font-style: italic;
-}
-
-/* Footer */
-.comp-order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 22px;
-  border-top: 1px solid rgba(30,41,59,0.9);
-  flex-shrink: 0;
-}
-
-/* Additional comp-order-* classes */
-.comp-order-grid-header { display: flex; align-items: center; gap: 0; padding: 6px 14px 6px 44px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.comp-order-grid-header .fm-col-label:first-child { width: 70px; flex-shrink: 0; }
-.comp-order-grid-header .fm-col-label:last-child  { flex: 1; }
-.comp-order-grid-header .fm-col-label-note        { white-space: nowrap; }
-.comp-order-empty       { padding: 24px 0; text-align: center; }
-.comp-order-spec-content{ min-width: 0; flex: 1; }
-.comp-order-spec-sub    { display: block; font-size: 10px; color: #64748b; margin-top: 1px; }
+/* Computational Order Modal comp-order-* classes removed — see ComputationalPanel.tsx's deletion. */
 
 
 /* ============================================================
@@ -6566,43 +6284,9 @@
   pointer-events: none;
 }
 
-/* ============================================================
-   FLAG CONFIG PAGE — comp-source-radio* (radio toggle group)
-   ============================================================ */
+/* Flag Config Page comp-source-radio* classes removed — the Data
+   source type selector they styled was removed from FlagConfigPage.tsx. */
 
-/* Wrapper for the custom radio group */
-.comp-source-radio-group {
-  display:   flex;
-  gap:       6px;
-  flex-wrap: wrap;
-}
-
-/* Individual radio option (styled as pill toggle) */
-.comp-source-radio-btn {
-  display:       inline-flex;
-  align-items:   center;
-  gap:           6px;
-  padding:       7px 14px;
-  border-radius: 20px;
-  border:        1px solid var(--ps-conf-border);
-  background:    transparent;
-  color:         var(--ps-conf-text-2);
-  font-size:     12px;
-  font-weight:   600;
-  cursor:        pointer;
-  font-family:   'Inter', sans-serif;
-  transition:    all 0.15s;
-}
-.comp-source-radio-btn:hover {
-  border-color: rgba(8,145,178,0.4);
-  color:        var(--ps-conf-text);
-}
-.comp-source-radio-btn.active,
-.comp-source-radio-btn[aria-checked=true] {
-  background:   rgba(8,145,178,0.15);
-  border-color: var(--ps-conf-teal);
-  color:        #38bdf8;
-}
 
 /* ============================================================
    REPORT PREVIEW MODAL — ps-rp-*
@@ -7137,34 +6821,8 @@
   white-space: nowrap;
 }
 
-/* ============================================================
-   COMPUTATIONAL SIDECAR — comp-order-modal, comp-specimen-badge
-   ============================================================ */
-
-/* The "Order Additional Test" modal shell */
-.comp-order-modal {
-  width:          min(900px, 96vw);
-  height:         600px;
-  display:        flex;
-  flex-direction: column;
-  overflow:       hidden;
-}
-
-/* Specimen identity badge in the computational panel */
-.comp-specimen-badge {
-  display:       inline-flex;
-  align-items:   center;
-  gap:           4px;
-  padding:       2px 8px;
-  border-radius: 10px;
-  font-size:     10px;
-  font-weight:   700;
-  background:    rgba(8,145,178,0.12);
-  color:         #38bdf8;
-  border:        1px solid rgba(8,145,178,0.25);
-  white-space:   nowrap;
-  flex-shrink:   0;
-}
+/* Computational Sidecar comp-order-modal / comp-specimen-badge
+   classes removed along with ComputationalPanel.tsx. */
 
 /* ============================================================
    QUALITY / TAT DASHBOARD — ps-quality-*, ps-tat-*
@@ -10342,6 +10000,13 @@
   outline: none;
 }
 
+/* Same bug as ps-specedit-input above — select > option renders with the
+   browser's own native popup background regardless of the parent's
+   styling. This fixes every existing dropdown using ps-conf-select
+   across Config, not just newly-added ones. */
+select.ps-conf-select option { background: #0f0f0f; color: #d1d5db; }
+select.ps-conf-select optgroup { background: #0f0f0f; color: #9ca3af; font-weight: 600; }
+
 /* ── TypeModal specific classes ─────────────────────────────────────────────── */
 .ps-type-cap-list          { display: flex; flex-direction: column; gap: 4px; }
 .ps-type-cap-checkbox      { width: 16px; height: 16px; accent-color: #8AB4F8; cursor: pointer; flex-shrink: 0; }
@@ -10978,6 +10643,14 @@
 .ps-specedit-input             { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #e2e8f0; outline: none; width: 100%; box-sizing: border-box; font-family: inherit; transition: border-color 0.15s; }
 .ps-specedit-input:focus       { border-color: #0891B2; }
 .ps-specedit-input--error      { border-color: rgba(248,113,113,0.6); }
+/* select > option ignores the parent's background — browsers render the
+   open options popup with their own native background regardless of
+   what's set on <select> itself. Light theme text (#e2e8f0) with no
+   explicit option background/color was rendering near-invisible against
+   the browser's default light popup. Real, named rule — not inline —
+   scoped to selects using this class specifically. */
+select.ps-specedit-input option { background: #0d1829; color: #e2e8f0; }
+select.ps-specedit-input optgroup { background: #0d1829; color: #94a3b8; font-weight: 600; }
 .ps-specedit-row-2col          { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .ps-specedit-label-badge       { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(8,145,178,0.15); color: #38bdf8; font-size: 16px; font-weight: 800; border: 1px solid rgba(8,145,178,0.25); }
 .ps-specedit-label-row         { display: flex; align-items: center; gap: 10px; }
@@ -18040,3 +17713,60 @@ h3[data-section-id]:first-child {
   align-self: center;
 }
 .ps-hb-block-edit-btn:hover { background: rgba(103,232,249,0.2); }
+
+/* ── Intraop Queue Page ──────────────────────────────────────────────── */
+.ps-intraop-page { padding: 28px 36px; max-width: 980px; margin: 0 auto; }
+.ps-intraop-page-header { margin-bottom: 24px; }
+.ps-intraop-page-title { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0 0 6px; }
+.ps-intraop-page-subtitle { font-size: 13px; color: #94a3b8; margin: 0; max-width: 640px; }
+.ps-intraop-empty { padding: 40px; text-align: center; color: #64748b; font-size: 13px; border: 1px dashed #1e293b; border-radius: 10px; }
+.ps-intraop-list { display: flex; flex-direction: column; gap: 16px; }
+
+.ps-intraop-card { background: #0d1829; border: 1px solid #1e293b; border-radius: 10px; padding: 18px 20px; }
+.ps-intraop-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.ps-intraop-card-patient { font-size: 15px; font-weight: 600; color: #e2e8f0; }
+.ps-intraop-card-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.ps-intraop-specimen { font-size: 13px; color: #cbd5e1; margin-bottom: 14px; }
+
+.ps-intraop-timeline { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 12px; }
+.ps-intraop-timeline-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.ps-intraop-timeline-time { color: #64748b; font-variant-numeric: tabular-nums; width: 74px; flex-shrink: 0; }
+.ps-intraop-timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: #0891B2; flex-shrink: 0; }
+.ps-intraop-timeline-dot--skip { background: #f59e0b; }
+.ps-intraop-timeline-label { color: #e2e8f0; font-weight: 500; }
+.ps-intraop-timeline-reason { color: #f59e0b; font-style: italic; }
+
+.ps-intraop-note { font-size: 12px; color: #cbd5e1; padding: 10px 0; border-top: 1px solid #1e293b; }
+.ps-intraop-note-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; margin-bottom: 3px; }
+
+.ps-intraop-merge-intro { font-size: 12px; color: #94a3b8; margin: 0 0 16px; }
+.ps-intraop-candidate-row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 6px; cursor: pointer; }
+.ps-intraop-candidate-row:hover { background: rgba(255,255,255,0.04); }
+.ps-intraop-candidate-case { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.ps-intraop-candidate-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; }
+.ps-intraop-candidate-badge--high { background: rgba(16,185,129,0.15); color: #10b981; }
+.ps-intraop-candidate-badge--medium { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.ps-intraop-candidate-reason { font-size: 11px; color: #64748b; }
+
+.ps-intraop-action-block { display: flex; flex-direction: column; gap: 8px; padding: 14px; margin-bottom: 12px; background: rgba(8,145,178,0.06); border: 1px solid rgba(8,145,178,0.2); border-radius: 8px; position: relative; }
+.ps-intraop-gate-note { font-size: 11px; color: #64748b; font-style: italic; margin: 2px 0 0; }
+.ps-intraop-skipmenu { position: absolute; top: 100%; left: 0; margin-top: 6px; z-index: 20; display: flex; flex-direction: column; gap: 2px; background: #0d1829; border: 1px solid #1e293b; border-radius: 8px; padding: 6px; min-width: 200px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.ps-intraop-scan-btn { width: 100%; padding: 18px 20px; font-size: 16px; font-weight: 700; border-radius: 12px; }
+.ps-intraop-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.ps-intraop-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.ps-intraop-capture-inline { background: #0d1829; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+.ps-intraop-capture-step1 { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 0; }
+.ps-intraop-capture-step2 { display: flex; flex-direction: column; gap: 10px; }
+.ps-intraop-scan-hint { font-size: 12px; color: #64748b; margin: 0; }
+.ps-intraop-manual-link { background: none; border: none; color: #0891B2; font-size: 13px; text-decoration: underline; cursor: pointer; padding: 8px; }
+.ps-intraop-manual-fields { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.ps-intraop-cancel-link { align-self: center; color: #64748b; }
+.ps-intraop-identified-banner { font-size: 13px; font-weight: 600; color: #10b981; background: rgba(16,185,129,0.1); border-radius: 8px; padding: 10px 14px; }
+.ps-intraop-identified-banner--warn { color: #f59e0b; background: rgba(245,158,11,0.1); }
+.ps-intraop-specimen-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ps-intraop-specimen-card { border-top: 1px solid #1e293b; padding-top: 14px; margin-top: 14px; }
+.ps-intraop-specimen-card:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+.ps-intraop-skipmenu-other { display: flex; gap: 6px; margin-top: 4px; }
+.ps-intraop-skipmenu-other-input { font-size: 11px; padding: 4px 8px; }
+.ps-intraop-skipmenu-cancel { color: #64748b; }

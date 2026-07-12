@@ -19,7 +19,7 @@ interface ProtocolChangeModalProps {
   show:       boolean;
   changes:    ProtocolChange[];
   /** Called with the IDs of changes the pathologist approved */
-  onCommit:   (acceptedIds: string[]) => void;
+  onCommit:   (acceptedIds: string[]) => void | Promise<void>;
   onCancel:   () => void;
 }
 

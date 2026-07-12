@@ -64,6 +64,9 @@ export interface StainOrder {
    *  follow-up work, not done here for time. */
   stainName: string;
   status: StainOrderStatus;
+  /** A whole-slide scan of this specific stain order, if one exists.
+   *  See Material.ts's DigitalAsset — left empty everywhere for now. */
+  digitalAssets?: import('./Material').DigitalAsset[];
 }
 
 export interface HistologyBlock {
@@ -100,6 +103,9 @@ export interface HistologyBlock {
    * is affected.
    */
   priority?: CasePriority;
+  /** A block-face photo of this specific block, if one exists. See
+   *  Material.ts's DigitalAsset — left empty everywhere for now. */
+  digitalAssets?: import('./Material').DigitalAsset[];
 }
 
 /**
@@ -181,6 +187,13 @@ export interface Specimen {
    * bench; this pass is read-through visibility, not editing.
    */
   blocks?: HistologyBlock[];
+  /** Cytology material — residual fluid / cell block prep, with its own
+   *  slides. A specimen populates either blocks (surgical) or decants
+   *  (cytology), never both — see Material.ts's file header. */
+  decants?: import('./Material').Decant[];
+  /** A gross photo of this specimen/container itself, if one exists.
+   *  See Material.ts's DigitalAsset — left empty everywhere for now. */
+  digitalAssets?: import('./Material').DigitalAsset[];
   /** Optional SNOMED specimen type code */
   snomedTypeCode?: string;
   /** Optional SNOMED anatomic site code */

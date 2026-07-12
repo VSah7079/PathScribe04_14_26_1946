@@ -50,11 +50,14 @@ import { deficiencyTypeService } from '@/services';
 import { stainTypeService } from '@/services';
 import type { StainType } from '@/services/stains/IStainService';
 import { protocolService } from '@/services';
+import { grossingRoutingOverrideService, containerTypeService, intraoperativeService } from '@/services';
 import type { Protocol } from '@/services/protocols/IProtocolService';
 import { diagnosisCodesService } from '@/services';
 import type { Icd10Code } from '@/services/diagnosisCodes/IDiagnosisCodesService';
 import type { DeficiencyType } from '@/services/deficiencies/IDeficiencyService';
 import { ReportDeficiencyModal } from './ReportDeficiencyModal';
+import { IntraopMergePromptModal } from './IntraopMergePromptModal';
+import type { EntryMatch } from '@/types/intraop/IntraoperativeEntry';
 import type { SpecimenEntry } from '@/components/Config/System/specimenTypes';
 import { getSpecimenLabel, getBlockLabel } from '@/utils/specimenLabeling';
 import type { GrossingTemplateAssignment } from '@/services/grossing/IGrossingEvaluationService';
@@ -387,6 +390,13 @@ const AccessionPage: React.FC = () => {
   useEffect(() => {
     priorityService.getAll().then(res => { if (res.ok) setPriorityLevels(res.data.filter(p => p.isActive)); });
   }, []);
+
+  const [containerTypes, setContainerTypes] = useState<import('@/services/containerTypes/IContainerTypeService').ContainerType[]>([]);
+  useEffect(() => {
+    containerTypeService.getAll().then(res => { if (res.ok) setContainerTypes(res.data.filter(c => c.status === 'Active')); });
+  }, []);
+
+  const [intraopMatch, setIntraopMatch] = useState<{ caseId: string; match: EntryMatch } | null>(null);
   const [deficiencyTypes, setDeficiencyTypes] = useState<DeficiencyType[]>([]);
   const [deficiencyModalOpenForIdx, setDeficiencyModalOpenForIdx] = useState<number | null>(null);
   const [caseDeficiencyModalOpen, setCaseDeficiencyModalOpen] = useState(false);
@@ -623,7 +633,7 @@ const AccessionPage: React.FC = () => {
     setImporting(true);
     try {
       const res = await orderIntakeService.resolveOrder(orderId);
-      if (!res.ok) { toast.error(`Could not resolve order: ${res.error}`); return; }
+      if (res.ok === false) { const errMsg: string = res.error; toast.error(`Could not resolve order: ${errMsg}`); return; }
       const { order, warnings } = res.data;
 
       // IncomingOrder.patient is still the simpler {firstName,lastName}
@@ -664,10 +674,9 @@ const AccessionPage: React.FC = () => {
         );
         if (!exactMatch) unresolvedCount++;
         return {
-          label: getSpecimenLabel(i, importedClientStyle),
+          ...emptySpecimen(getSpecimenLabel(i, importedClientStyle)),
           dictionaryEntryId: exactMatch?.id ?? '',
           description: exactMatch ? (exactMatch.normalizedLabel || exactMatch.name) : sp.description,
-          comments: [],
           resolvedCategoryName: sp.specimenCategoryId ? catNameById.get(sp.specimenCategoryId) : undefined,
           categoryWasAutoCreated: sp.categoryWasAutoCreated,
           needsDictionaryResolution: !exactMatch,
@@ -788,6 +797,18 @@ const AccessionPage: React.FC = () => {
         .filter(t => t.isDiagnostic === false)
         .map(t => ({ id: t.id, name: t.name, category: t.category }));
 
+      // S0-CF-12 admin UI now exists (Config → System → Grossing Route
+      // Overrides) — evaluateGrossingTemplateAssignment's own consuming
+      // logic was already real and correct; this was the only missing
+      // piece. Only active overrides apply; mapped down to the simple
+      // {clientId, specimenType, grossingTemplateId} shape the
+      // evaluation function already expects, rather than that
+      // function's contract changing to match the richer admin record.
+      const overridesRes = await grossingRoutingOverrideService.getAll();
+      const routingOverrides = (overridesRes.ok ? overridesRes.data : [])
+        .filter(o => o.active)
+        .map(o => ({ clientId: o.clientId, specimenType: o.specimenType, grossingTemplateId: o.grossingTemplateId }));
+
       const evalResult = await evaluateGrossingTemplateAssignment({
         specimens: specimenRecords.map(sp => ({
           specimenId: sp.id,
@@ -803,7 +824,7 @@ const AccessionPage: React.FC = () => {
         clinicalIndication: clinicalIndication.trim() || undefined,
         caseContext: { clientId },
         availableTemplates,
-        routingOverrides: [], // S0-CF-12 admin UI not built yet — always empty for now
+        routingOverrides,
       });
 
       setLastResult({
@@ -833,6 +854,10 @@ const AccessionPage: React.FC = () => {
         reportingMode: 'orchestrator',
         accession: { accessionNumber: caseId.replace('O26-', 'O'), accessionPrefix: 'O', accessionYear: new Date().getFullYear(), fullAccession: caseId },
         originHospitalId,
+        // Matches the convention value used across every case in
+        // mockCaseService.ts's seed data — all demo data belongs to
+        // the same single enterprise in this mock system.
+        originEnterpriseId: 'ENT-ACME',
         status: 'accessioned' as any,
         patient: {
           id: `OPAT-${caseId.slice(4)}`,
@@ -942,6 +967,19 @@ const AccessionPage: React.FC = () => {
           ? `Case ${caseId} accessioned — ${lowConfidenceCount} of ${specimens.length} specimen(s) fell back to the default Grossing Template (see below).`
           : `Case ${caseId} accessioned with ${specimens.length} Grossing Template assignment(s).`
       );
+
+      // Closes the loop described in the original Intraop spec — "when
+      // the formal order finally arrives from the LIS, PathScribe
+      // should look for a match." This is that moment. Non-blocking:
+      // if nothing matches, accession finishes exactly as it always did.
+      intraoperativeService.findMatchesForNewCase({
+        patientName: `${familyNames.trim()}, ${givenNames.trim()}`,
+        mrn: mrn.trim(),
+        surgeon: requestingProvider.trim(),
+        accessionedAt: new Date().toISOString(),
+      }).then(res => {
+        if (res.ok && res.data.length > 0) setIntraopMatch({ caseId, match: res.data[0] });
+      });
 
       setTab('specimens');
     } catch (e) {
@@ -1223,9 +1261,22 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">Container Type</label>
-                        <input className="ps-input-dark" value={s.containerType}
-                          onChange={e => updateSpecimenField(idx, 'containerType', e.target.value)}
-                          placeholder="e.g. Jar, Cassette" />
+                        <select className="ps-input-dark" value={s.containerType}
+                          onChange={e => updateSpecimenField(idx, 'containerType', e.target.value)}>
+                          <option value="">Select container type…</option>
+                          {(['histology', 'cytology', 'special_media'] as const).map(cat => {
+                            const inCat = containerTypes.filter(c => c.category === cat);
+                            if (inCat.length === 0) return null;
+                            const label = cat === 'histology' ? 'Histology' : cat === 'cytology' ? 'Cytology' : 'Special Media';
+                            return (
+                              <optgroup key={cat} label={label}>
+                                {inCat.map(c => (
+                                  <option key={c.id} value={c.name}>{c.name}</option>
+                                ))}
+                              </optgroup>
+                            );
+                          })}
+                        </select>
                       </div>
                     </div>
 
@@ -1403,6 +1454,20 @@ const AccessionPage: React.FC = () => {
           currentUserName={user?.name ?? 'Unknown User'}
           onAddComment={addCaseComment}
           onClose={() => setCaseCommentModalOpen(false)}
+        />
+      )}
+
+      {intraopMatch && (
+        <IntraopMergePromptModal
+          caseId={intraopMatch.caseId}
+          match={intraopMatch.match}
+          onMergeNow={async () => {
+            await intraoperativeService.merge(intraopMatch.match.entry.id, intraopMatch.caseId);
+            toast.success(`Intraoperative entry merged into ${intraopMatch.caseId}`);
+            setIntraopMatch(null);
+          }}
+          onGoToQueueLater={() => { setIntraopMatch(null); navigate('/intraop-queue'); }}
+          onDismiss={() => setIntraopMatch(null)}
         />
       )}
     </div>

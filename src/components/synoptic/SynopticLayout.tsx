@@ -8,9 +8,8 @@
 // When the Sidecar opens it pushes Columns 3 and 4 — never overlays them.
 // Zero-Overlay Rule: primary diagnostic text is always fully visible.
 
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { Flag } from '@/services/flags/IFlagService';
-import { ComputationalResult } from '@/types/smarttag.types';
 import { useSidecar } from '@/contexts/SidecarContext';
 import SynopticSidebar from './SynopticSidebar';
 import SidecarDrawer   from '../sidecar/SidecarDrawer';
@@ -71,17 +70,6 @@ const SynopticLayout: React.FC<Props> = ({
   const { isOpen, layoutMode } = useSidecar();
   const sidecarVisible = isOpen && layoutMode === 'docked';
 
-  // Collect results from SidecarDisplay so status dots stay live
-  // without independent fetches per sidebar row.
-  const [results, setResults] = useState<Record<string, ComputationalResult | null>>({});
-
-  const handleResultLoaded = useCallback((flagId: string, result: ComputationalResult) => {
-    setResults(prev => (prev[flagId] === result ? prev : { ...prev, [flagId]: result }));
-  }, []);
-
-  // Suppress unused warning — results collected for future sidebar status dots
-  void results;
-
   return (
     <div style={{
       display:       'flex',
@@ -111,7 +99,6 @@ const SynopticLayout: React.FC<Props> = ({
         <SidecarDrawer
           computationalFlags={computationalFlags}
           width={SIDECAR_WIDTH}
-          onResultLoaded={handleResultLoaded}
         />
       </div>
 

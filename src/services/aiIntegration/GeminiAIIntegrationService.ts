@@ -9,7 +9,7 @@
 // new code can use the clearer name.
 // ─────────────────────────────────────────────────────────────
 
-import { IAIIntegrationService, AIProcessingOptions, AiFieldSuggestionResult } from './IAIIntegrationService';
+import { IAIIntegrationService, AIProcessingOptions, AiFieldSuggestionResult, SynopticEvaluationInput, SynopticEvaluationResult } from './IAIIntegrationService';
 import { callAi } from './aiProviderService';
 import { ServiceResult, VoiceMacro } from '../../types';
 import { spellLangForJurisdiction } from '../../utils/formatDate';
@@ -193,6 +193,18 @@ If there are no spelling errors, return {"flags":[]}.`,
     } catch (error: any) {
       return { success: false, error: error.message };
     }
+  }
+
+  // Interface requires this method, but per IAIIntegrationService's own
+  // doc comment, it isn't actually the runtime path — the real
+  // evaluateSynopticAssignment lives as a plain function in
+  // mockCaseService.ts. Stubbed here the same way MockAIIntegrationService
+  // stubs it, just to satisfy `implements IAIIntegrationService`. A real
+  // Gemini-backed implementation would be new scope, not a type fix.
+  async evaluateSynopticAssignment(
+    _input: SynopticEvaluationInput
+  ): Promise<ServiceResult<SynopticEvaluationResult>> {
+    return { success: true, data: { changes: [], warnings: [] } };
   }
 }
 

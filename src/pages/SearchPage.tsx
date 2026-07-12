@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '../services/cases/CaseRouter';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable from '../components/Worklist/WorklistTable';
-import SidecarDrawer from '../components/sidecar/SidecarDrawer'; // path depth matches WorklistTable import above, NOT WorklistPage.tsx's '../../...' (that file lives one directory deeper, in its own WorklistPage/ subfolder)
 import { codeService, flagService } from '../services';
 import type { PathologyCase, CaseFilterParams, ClinicalCode, Flag } from '../services';
 import { LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty } from '../components/Common/LookupModal';
@@ -1148,21 +1147,14 @@ const SearchPage: React.FC = () => {
   const [results,     setResults]     = useState<PathologyCase[]|null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // flagDefinitions was never loaded/passed here at all — WorklistPage.tsx
-  // loads this via flagService.getAll() and passes it to WorklistTable as
-  // flagDefinitions, which renderFlags() needs to tell a COMPUTATIONAL flag
-  // (rendered as a ComputationalFlagIcon tile) apart from an administrative
-  // one (rendered as a plain FlagChip pill). Without it, every flag here
-  // fell through to the administrative branch regardless of its real
-  // tagClass — computational tiles were structurally never reachable in
-  // Search, not hidden by any card-view-specific code path.
+  // flagDefinitions still feeds WorklistTable/FlagManagerModal-style
+  // consumers on this page; computationalFlags removed along with the
+  // Sidecar it only ever fed.
   const [flagDefinitions, setFlagDefinitions] = useState<Flag[]>([]);
-  const [computationalFlags, setComputationalFlags] = useState<Flag[]>([]);
   useEffect(() => {
     flagService.getAll().then(res => {
       if (!res.ok) return;
       setFlagDefinitions(res.data);
-      setComputationalFlags(res.data.filter((f: Flag) => f.tagClass === 'COMPUTATIONAL' && f.status === 'Active'));
     }).catch(() => {});
   }, []);
   // Auto-collapses the filter sidebar after a search runs, freeing real
@@ -1977,15 +1969,6 @@ const SearchPage: React.FC = () => {
                 instead of being clamped, which only shows up as truncation on
                 narrower viewports rather than a visible bug on a wide monitor. */}
             <div ref={wrapperRef} className="ps-search-table-wrap" style={{ position: 'relative' }}>
-              {/* Overlay Sidecar — opens when a computational flag icon is
-                  clicked in a card. Mirrors WorklistPage.tsx's exact mount
-                  pattern (position:relative wrapper + SidecarDrawer as a
-                  sibling before the table/card content). Without this,
-                  ComputationalFlagIcon's onSelect still calls openOverlay()
-                  successfully (SidecarProvider wraps the whole app), but
-                  nothing was mounted to render the resulting overlay here —
-                  a silent dead click, not a missing data/permission issue. */}
-              <SidecarDrawer computationalFlags={computationalFlags} navSource="search" />
               {hasSearched
                 ? <WorklistTable key={results?.length ?? 0} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} onBeforeNavigate={(_caseId)=>sessionStorage.setItem('pathscribe:navFrom','search')} tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions} />
                 : <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#1e293b', fontSize:13 }}>No search run yet</div>

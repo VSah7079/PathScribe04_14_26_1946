@@ -497,7 +497,11 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
 
   const handleSave = async (draft: Omit<Role, 'id'>) => {
     if (modal?.mode === 'add') {
-      const res = await roleService.add({ ...draft, builtIn: false });
+      // canViewOrchestration defaults to false here too — same
+      // documented "must be explicitly granted by an administrator"
+      // intent as the seed roles; the create form doesn't collect
+      // this yet.
+      const res = await roleService.add({ ...draft, builtIn: false, canViewOrchestration: false });
       if (res.ok) {
         const next = [...roles, res.data as Role];
         setRoles(next); onRolesChange?.(next);

@@ -193,7 +193,7 @@ const FlagManagerModal: React.FC<Props> = ({
   const addFlagLocally = useCallback((defId: string, specimenId?: string) => {
     setIsDirty(true);
     const def = flagDefinitions.find(f => f.id === defId);
-    if (def) log('flag_applied', { caseId: caseData?.id ?? '', flagName: def.name ?? def.id, specimenId });
+    if (def) log('flag_applied', { caseId: localCase?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const inst: FlagInstance = {
       id: `local-${Date.now()}-${Math.random()}`,
       flagDefinitionId: defId,
@@ -225,7 +225,7 @@ const FlagManagerModal: React.FC<Props> = ({
     setIsDirty(true);
     const inst = [...(localCase?.caseFlags ?? []), ...(localCase?.specimenFlags?.flatMap(sf => sf.flags) ?? [])].find(f => f.instanceId === instanceId);
     const def  = inst ? flagDefinitions.find(f => f.id === inst.flagDefinitionId) : undefined;
-    if (def) log('flag_removed', { caseId: caseData?.id ?? '', flagName: def.name ?? def.id, specimenId });
+    if (def) log('flag_removed', { caseId: localCase?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const now = new Date().toISOString();
     setLocalCase(prev => {
       const next = deepClone(prev);
@@ -333,10 +333,15 @@ const FlagManagerModal: React.FC<Props> = ({
 
   // ── catalog ───────────────────────────────────────────────────────────────────
   const catalog = useMemo(() => {
+    // Previously filtered out COMPUTATIONAL flags here, on the
+    // assumption they'd be "driven by the LIS, not manually applied" —
+    // that assumption no longer holds; there's no ordering apparatus
+    // left to drive anything, and this was the only place a flag could
+    // be applied at all, so the filter was actively hiding usable
+    // flags rather than protecting against a real conflict. tagClass
+    // itself is vestigial now — see IFlagService.ts — every flag shows
+    // here uniformly.
     let pool = flagDefinitions.filter(d =>
-      // Only show ADMINISTRATIVE flags in the Flag Manager catalog
-      // Computational flags are driven by the LIS, not manually applied
-      ((d as any).tagClass !== 'COMPUTATIONAL') &&
       // Handle both legacy 'active' boolean and new 'status' string
       (d.active === true || (d as any).status?.toLowerCase() === 'active')
     );
@@ -470,7 +475,7 @@ const FlagManagerModal: React.FC<Props> = ({
                 )}
               </div>
             </div>
-            <button onClick={handleClose} aria-label="Close"
+            <button onClick={() => handleClose()} aria-label="Close"
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '2px 8px', lineHeight: 1, flexShrink: 0 }}
               onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
@@ -679,7 +684,7 @@ const FlagManagerModal: React.FC<Props> = ({
                 <span style={{ fontSize: 11, color: '#475569' }}>Changes apply immediately</span>
               )}
             </div>
-            <button className="fm-btn-cancel" onClick={handleClose} style={{ flexShrink: 0 }}>Close</button>
+            <button className="fm-btn-cancel" onClick={() => handleClose()} style={{ flexShrink: 0 }}>Close</button>
           </div>
         </div>
       </div>

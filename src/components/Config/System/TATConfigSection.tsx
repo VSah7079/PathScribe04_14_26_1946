@@ -221,6 +221,11 @@ const TATModal: React.FC<ModalProps> = ({
       clientId:       draft.clientId ?? null,
       specimenId:     draft.specimenId ?? null,
       subspecialtyId: draft.subspecialtyId ?? null,
+      // No form UI sets this yet — same null-default pattern as the
+      // other scoping fields above; TATEntry itself already supports
+      // per-role targets (see seed data), just not exposed in this
+      // form's UI.
+      roleId:         null,
       active:         draft.active ?? true,
       notes:          draft.notes ?? '',
       createdAt:      entry?.createdAt ?? now,

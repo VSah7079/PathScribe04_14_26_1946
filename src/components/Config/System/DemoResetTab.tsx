@@ -29,7 +29,7 @@ const SETTINGS_KEYS = [
 
 const CASE_KEYS = [
   'ps_cases',
-  'orch_cases_v2',
+  'orch_cases_v3',
 ];
 
 const FLAG_KEYS = [

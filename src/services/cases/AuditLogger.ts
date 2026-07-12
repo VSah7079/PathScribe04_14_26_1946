@@ -18,6 +18,7 @@
 export type AuditEventType =
   | 'case.read'
   | 'case.list'
+  | 'case.search'
   | 'case.write'
   | 'case.create'
   | 'case.delete';

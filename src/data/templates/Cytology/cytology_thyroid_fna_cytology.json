@@ -1,0 +1,580 @@
+{
+  "id": "thyroid_fna_cytology",
+  "name": "Thyroid FNA — The Bethesda System for Reporting Thyroid Cytopathology",
+  "source": "Custom",
+  "version": "1.0.0",
+  "category": "CYTOLOGY_NONGYN",
+  "standard": "Bethesda System for Reporting Thyroid Cytopathology, 3rd Edition (2023)",
+  "sections": [
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "us_guided_fna",
+              "label": "Ultrasound-guided fine needle aspiration",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "palpation_fna",
+              "label": "Palpation-guided fine needle aspiration",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "other",
+              "label": "Other (specify)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "not_specified",
+              "label": "Not specified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "laterality",
+          "label": "Site",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "right_lobe",
+              "label": "Right lobe",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "left_lobe",
+              "label": "Left lobe",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "isthmus",
+              "label": "Isthmus",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "not_specified",
+              "label": "Not specified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "nodule_size",
+          "label": "Target Nodule Size (cm, if provided)",
+          "type": "text",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "number_of_passes",
+          "label": "Number of Passes",
+          "type": "numeric",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "rose_performed",
+          "label": "Rapid On-Site Evaluation (ROSE) Performed",
+          "type": "dropdown",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "yes",
+              "label": "Yes",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "no",
+              "label": "No",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adequacy",
+      "title": "Specimen Adequacy",
+      "fields": [
+        {
+          "id": "adequacy_status",
+          "label": "Adequacy",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "satisfactory",
+              "label": "Satisfactory for evaluation",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "unsatisfactory",
+              "label": "Unsatisfactory for evaluation",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "follicular_group_count",
+          "label": "Follicular Epithelial Groups Present (approximate count)",
+          "type": "text",
+          "required": false,
+          "note": "Optional (+) — six or more groups of at least 10 well-visualized follicular cells, on at least two slides, is a conventional adequacy benchmark; clinical/radiologic correlation may override in a cystic or clinically concerning nodule",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "unsatisfactory_reason",
+          "label": "Reason for Unsatisfactory (if applicable)",
+          "type": "checkboxes",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "low_cellularity",
+              "label": "Insufficient follicular cellularity",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "obscuring_blood",
+              "label": "Obscuring blood",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "air_drying",
+              "label": "Air-drying / fixation artifact",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "cyst_fluid_only",
+              "label": "Cyst fluid only, virtually acellular",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "other",
+              "label": "Other (specify)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diagnostic_category",
+      "title": "Bethesda Diagnostic Category",
+      "fields": [
+        {
+          "id": "bethesda_category",
+          "label": "Diagnostic Category",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "i_nondiagnostic",
+              "label": "I — Nondiagnostic or Unsatisfactory",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ii_benign",
+              "label": "II — Benign",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "iii_aus_flus",
+              "label": "III — Atypia of Undetermined Significance / Follicular Lesion of Undetermined Significance (AUS/FLUS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "iv_fn_sfn",
+              "label": "IV — Follicular Neoplasm / Suspicious for Follicular Neoplasm (specify if Hürthle cell type)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "v_suspicious_malignant",
+              "label": "V — Suspicious for Malignancy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "vi_malignant",
+              "label": "VI — Malignant",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "estimated_risk_note",
+          "label": "Estimated Risk of Malignancy (reference only, per 3rd Edition ranges)",
+          "type": "longtext",
+          "required": false,
+          "note": "Optional (+) — informational; not a data element to select, a reference note pathologists may cite: I ~13–15%, II ~4–17%, III ~13–30%, IV ~23—35%, V ~67–83%, VI ~97–100%. Ranges reflect the NIFTP reclassification and vary by practice setting — cite local institutional data where available rather than these alone.",
+          "snomed": "",
+          "icd": ""
+        }
+      ]
+    },
+    {
+      "id": "cytologic_findings",
+      "title": "Cytologic Findings",
+      "fields": [
+        {
+          "id": "cellularity",
+          "label": "Cellularity",
+          "type": "dropdown",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "scant",
+              "label": "Scant",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "low",
+              "label": "Low",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "moderate",
+              "label": "Moderate",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "high",
+              "label": "High",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "architecture",
+          "label": "Architectural Pattern (select all that apply)",
+          "type": "checkboxes",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "follicular",
+              "label": "Follicular / microfollicular",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "macrofollicular",
+              "label": "Macrofollicular / colloid-predominant",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "papillary",
+              "label": "Papillary architecture",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "syncytial",
+              "label": "Syncytial fragments",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "single_cell",
+              "label": "Predominantly single cells",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "nuclear_features",
+          "label": "Nuclear Features (select all that apply)",
+          "type": "checkboxes",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "enlargement",
+              "label": "Nuclear enlargement",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grooves",
+              "label": "Nuclear grooves",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pseudoinclusions",
+              "label": "Intranuclear pseudoinclusions",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "chromatin_clearing",
+              "label": "Chromatin clearing (\"Orphan Annie eye\")",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "overlapping",
+              "label": "Nuclear overlapping / crowding",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "none_significant",
+              "label": "No significant atypia identified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "colloid",
+          "label": "Colloid",
+          "type": "dropdown",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "abundant",
+              "label": "Abundant",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "scant",
+              "label": "Scant",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "absent",
+              "label": "Absent",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "background",
+          "label": "Background Findings (select all that apply)",
+          "type": "checkboxes",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymphocytes",
+              "label": "Lymphocytic infiltrate (consider lymphocytic/Hashimoto thyroiditis)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "cyst_macrophages",
+              "label": "Cyst-lining / hemosiderin-laden macrophages",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "hurthle_cells",
+              "label": "Hürthle (oncocytic) cell change",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psammoma_bodies",
+              "label": "Psammoma bodies",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "none",
+              "label": "None identified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ancillary_studies",
+      "title": "Ancillary Studies",
+      "fields": [
+        {
+          "id": "molecular_testing_ordered",
+          "label": "Molecular Testing Ordered",
+          "type": "dropdown",
+          "required": false,
+          "note": "Optional (+) — most relevant for Bethesda III/IV, per ATA guidance on risk-stratifying indeterminate nodules",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "yes",
+              "label": "Yes",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "no",
+              "label": "No",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pending",
+              "label": "Pending",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "molecular_platform",
+          "label": "Platform (if ordered)",
+          "type": "text",
+          "required": false,
+          "note": "Optional (+) — e.g. genomic sequencing classifier or gene expression classifier panel in local use",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "molecular_result",
+          "label": "Result (if resulted)",
+          "type": "longtext",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "cell_block_ihc",
+          "label": "Cell Block Immunohistochemistry Performed",
+          "type": "dropdown",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "yes",
+              "label": "Yes — see comment",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "no",
+              "label": "No",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comment / Correlation",
+      "fields": [
+        {
+          "id": "radiologic_correlation",
+          "label": "Radiologic Correlation (e.g. TI-RADS category, if provided)",
+          "type": "text",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "prior_fna_comparison",
+          "label": "Comparison to Prior FNA(s), if applicable",
+          "type": "longtext",
+          "required": false,
+          "note": "Optional (+)",
+          "snomed": "",
+          "icd": ""
+        },
+        {
+          "id": "comment",
+          "label": "Additional Comment",
+          "type": "longtext",
+          "required": false,
+          "snomed": "",
+          "icd": ""
+        }
+      ]
+    }
+  ],
+  "applicability": {
+    "specimenSites": [
+      "Thyroid"
+    ],
+    "specimenTypes": [
+      "FNA"
+    ],
+    "note": "Fine-needle aspiration of a thyroid nodule"
+  }
+}

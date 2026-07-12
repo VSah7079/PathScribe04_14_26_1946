@@ -264,6 +264,39 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
+    id: 'OPEN_INTRAOP_QUEUE', label: 'Open Intraop Queue', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS270',
+    voiceTriggers: [
+      'open intraop queue', 'show intraop queue', 'open intraoperative queue',
+      'unlinked intraoperative entries', 'intraop queue',
+    ],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_START_NEW_ENTRY', label: 'Start New Intraop Entry', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS271',
+    voiceTriggers: ['start new intraop entry', 'start intraop entry', 'new intraop entry', 'start entry'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_TOUCH_PREP_PERFORMED', label: 'Log Touch Prep Performed', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS272',
+    voiceTriggers: ['log touch prep performed', 'touch prep performed', 'touch prep done'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_TOUCH_PREP_SKIP', label: 'Skip Touch Prep', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS273',
+    voiceTriggers: ['skip touch prep', 'no touch prep', 'direct to frozen'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_FROZEN_SECTION_CUT', label: 'Log Frozen Section Cut', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS274',
+    voiceTriggers: ['log frozen section cut', 'frozen section cut', 'frozen cut logged'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
     id: 'GO_BACK', label: 'Go Back', category: 'SYSTEM',
     shortcut: 'Alt+ArrowLeft', internalKey: ACTION_MAP['system.goBack']?.internalKey ?? 'F13+PS003',
     voiceTriggers: ['go back', 'back', 'previous page', 'go to previous page'],
@@ -1243,6 +1276,58 @@ const SEED_ACTIONS: SystemAction[] = [
     shortcut: '',
     internalKey: 'F13+PS241',
     voiceTriggers: ['flag stat', 'mark stat', 'stat flag', 'urgent stat', 'rush processing'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── Add Orders — Block/Recut, Specimen, Stain tiers ─────────────────────────
+  // Four separate actions, not one generic "add orders" plus manual tab
+  // clicks — someone saying "add block" already knows which tier they
+  // mean, and landing them straight on that tab is the whole point of
+  // having the tiers be distinct in the first place. ADD_ORDERS alone
+  // (no tier specified) opens to whichever tab the case's current
+  // status puts first, matching the button's own default.
+  {
+    id: 'ADD_ORDERS',
+    label: 'Add Orders',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS040',
+    voiceTriggers: ['add orders', 'open add orders', 'new order'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'ADD_ORDERS_BLOCK',
+    label: 'Add Block / Recut',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS041',
+    voiceTriggers: ['add block', 'add recut', 'add cassette', 'order deeper levels', 'recut block'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'ADD_ORDERS_STAIN',
+    label: 'Order Stain / Sectioning',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS042',
+    voiceTriggers: ['order stain', 'order sectioning', 'add stain', 'order ihc', 'order levels'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'ADD_ORDERS_SPECIMEN',
+    label: 'Add New Specimen',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS043',
+    voiceTriggers: ['add new specimen', 'add specimen container', 'new tissue container'],
     learnedTriggers: [],
     requiredRole: 'All Staff',
     isActive: true,

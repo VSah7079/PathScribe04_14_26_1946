@@ -330,8 +330,9 @@ interface ResolvedTemplateSections {
 
 async function resolveTemplateSections(templateId: string): Promise<ResolvedTemplateSections> {
   const templateRes = await mockReportTemplateService.getById(templateId);
-  if (!templateRes.ok) {
-    throw new Error(`Report template '${templateId}' not found: ${templateRes.error}`);
+  if (templateRes.ok === false) {
+    const errMsg: string = templateRes.error;
+    throw new Error(`Report template '${templateId}' not found: ${errMsg}`);
   }
   const template = templateRes.data;
 
@@ -345,8 +346,9 @@ async function resolveTemplateSections(templateId: string): Promise<ResolvedTemp
   }
 
   const partsRes = await mockReportPartService.getByIds(bodySlots.map(s => s.partId));
-  if (!partsRes.ok) {
-    throw new Error(`Failed to load report parts for template '${templateId}': ${partsRes.error}`);
+  if (partsRes.ok === false) {
+    const errMsg: string = partsRes.error;
+    throw new Error(`Failed to load report parts for template '${templateId}': ${errMsg}`);
   }
   const partsById = new Map(partsRes.data.map(p => [p.id, p] as const));
 

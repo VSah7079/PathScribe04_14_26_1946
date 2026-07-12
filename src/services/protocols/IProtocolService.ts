@@ -54,6 +54,15 @@ export interface PathwayTask {
   isHold?: boolean;
 }
 
+export interface ProtocolHistoryEntry {
+  version: number;
+  /** Full snapshot of the protocol as it existed at this version,
+   *  before the edit that superseded it. */
+  snapshot: Omit<Protocol, 'history'>;
+  savedBy: string;
+  savedAt: string;
+}
+
 export interface Protocol {
   id: ID;
   name: string;
@@ -72,10 +81,20 @@ export interface Protocol {
   version: number;
   updatedBy: string;
   updatedAt: string;
+  /** Snapshots of every prior version, most recent last. Populated by
+   *  update() just before applying a change — a protocol only
+   *  accumulates history once it's actually been edited at least
+   *  once, so this stays empty/undefined for anything untouched
+   *  since history tracking was added. */
+  history?: ProtocolHistoryEntry[];
 }
 
 export interface IProtocolService {
   getAll(): Promise<ServiceResult<Protocol[]>>;
   add(entry: Omit<Protocol, 'id' | 'version' | 'updatedBy' | 'updatedAt'>): Promise<ServiceResult<Protocol>>;
   update(id: ID, changes: Partial<Omit<Protocol, 'id'>>): Promise<ServiceResult<Protocol>>;
+  /** Restores a protocol to an earlier version's snapshot — itself
+   *  recorded as a new version (with its own history entry), not a
+   *  destructive rewrite, so restoring is always itself undoable. */
+  restoreVersion(id: ID, version: number): Promise<ServiceResult<Protocol>>;
 }

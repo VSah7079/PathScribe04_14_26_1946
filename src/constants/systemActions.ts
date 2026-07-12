@@ -548,6 +548,7 @@ export const VOICE_CONTEXT = {
   SEARCH:        'SEARCH',
   CONFIGURATION: 'CONFIGURATION',
   ACCESSION:     'ACCESSION',
+  CONTRIBUTION:  'CONTRIBUTION',
 } as const;
 
 export type VoiceContextName = typeof VOICE_CONTEXT[keyof typeof VOICE_CONTEXT];

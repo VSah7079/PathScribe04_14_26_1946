@@ -301,7 +301,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
     // mockReportPartService.ts) not present in the formal TemplateNode
     // union — handled before the typed switch below for that reason.
     if ((node as any).type === 'synoptic-block') {
-      const answers = structuredContext?.synoptic?.answers ?? [];
+      const answers = structuredContext?.synoptics?.flatMap(s => s.answers) ?? [];
       if (answers.length === 0) {
         return <div key={key} className="rp-node-empty">No synoptic data recorded.</div>;
       }

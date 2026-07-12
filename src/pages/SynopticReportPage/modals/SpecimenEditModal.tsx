@@ -18,6 +18,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import '@/pathscribe.css';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
+import { containerTypeService } from '@/services';
+import type { ContainerType, ContainerCategory } from '@/services/containerTypes/IContainerTypeService';
 import type { Specimen, SpecimenLisStatus } from '@/types/case/Specimen';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -53,6 +55,10 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
   const [method,      setMethod]      = useState(specimen?.collection?.method    ?? '');
   const [laterality,  setLaterality]  = useState('');
   const [container,   setContainer]   = useState(specimen?.container?.type       ?? '');
+  const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
+  useEffect(() => {
+    containerTypeService.getAll().then(res => { if (res.ok) setContainerTypes(res.data.filter(c => c.status === 'Active')); });
+  }, []);
   const [snomedCode,  setSnomedCode]  = useState(specimen?.snomedTypeCode        ?? '');
   const [siteCode,    setSiteCode]    = useState(specimen?.snomedSiteCode        ?? '');
   const [dictSearch,  setDictSearch]  = useState('');
@@ -227,8 +233,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               <div className="ps-specedit-label-row">
                 <span className="ps-specedit-label-badge">{label || '?'}</span>
                 <input
-                  className={`ps-specedit-input${errors.label ? ' ps-specedit-input--error' : ''}`}
-                  className="ps-specedit-label-input"
+                  className={`ps-specedit-input ps-specedit-label-input${errors.label ? ' ps-specedit-input--error' : ''}`}
                   value={label}
                   onChange={e => setLabel(e.target.value.toUpperCase())}
                   maxLength={3}
@@ -292,12 +297,25 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className="ps-specedit-label">Container Type</label>
-                <input
+                <select
                   className="ps-specedit-input"
                   value={container}
                   onChange={e => setContainer(e.target.value)}
-                  placeholder="e.g. Jar, Cassette"
-                />
+                >
+                  <option value="">Select container type…</option>
+                  {(['histology', 'cytology', 'special_media'] as ContainerCategory[]).map(cat => {
+                    const inCat = containerTypes.filter(c => c.category === cat);
+                    if (inCat.length === 0) return null;
+                    const label = cat === 'histology' ? 'Histology' : cat === 'cytology' ? 'Cytology' : 'Special Media';
+                    return (
+                      <optgroup key={cat} label={label}>
+                        {inCat.map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
               </div>
             </div>
 

@@ -9,7 +9,7 @@ import { callAi } from '../aiIntegration/aiProviderService';
 import { Case, ProtocolChange } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
 import { storageSet } from "../mockStorage";
-import type { SynopticEvaluationInput, SynopticEvaluationResult } from '../ai/IAIIntegrationService';
+import type { SynopticEvaluationInput, SynopticEvaluationResult } from '../aiIntegration/IAIIntegrationService';
 import type { GrossingEvaluationInput, GrossingEvaluationResult, GrossingTemplateAssignment } from '../grossing/IGrossingEvaluationService';
 import { applyCaseFilters } from './caseFilterUtils';
 
@@ -44,7 +44,16 @@ const MOCK_CASES: Case[] = [
       address: '14 Maple Ave, Phoenix, AZ 85001',
     },
     specimens: [
-      { id: 'S26-4401-SP-1', label: 'A', description: 'Left breast mastectomy', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [],
+      { id: 'S26-4401-SP-1', label: 'A', description: 'Left breast mastectomy', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [{ id: 'migrated-f25-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f25', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }, { id: 'migrated-f30-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f30', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }],
+        blocks: [
+          { id: 'blk-4401-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-4401-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+            { id: 'stn-4401-a1-2', stainName: 'ER', status: 'Staining' },
+            { id: 'stn-4401-a1-3', stainName: 'PR', status: 'Staining' },
+            { id: 'stn-4401-a1-4', stainName: 'HER2', status: 'Pending Cut' },
+          ] },
+          { id: 'blk-4401-a2', label: '2', status: 'Embedded', stains: [{ id: 'stn-4401-a2-1', stainName: 'H&E', status: 'Coverslipped' }] },
+        ],
         comments: [
           { id: 'cmt-demo-sp-lis-001', authorId: 'lis-system', authorName: 'Metro General LIS',
             text: '<p>Specimen orientation: superior suture short, lateral suture long \u2014 per OR communication.</p>',
@@ -139,10 +148,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'tumor_board_schedule', name: 'Tumor Board — Thu 14:00', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
       { tagClass: 'ADMINISTRATIVE', id: 'pending_clin_cor',     name: 'Pending Clinical Correlation',              color: '#f59e0b', level: 'Case', status: 'Active', severity: 2 },
     ],
-    specimenFlags: [
-      { id: 'comp-erh2-4401', name: 'ER/PR/HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
-      { id: 'comp-her2f-4401', name: 'HER2 FISH', lisCode: 'HER2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4401-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
   },
@@ -161,7 +167,15 @@ const MOCK_CASES: Case[] = [
       address: '88 Desert Rose Blvd, Scottsdale, AZ 85251',
     },
     specimens: [
-      { id: 'S26-4402-SP-1', label: 'A', description: 'Sigmoid colon resection', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+      { id: 'S26-4402-SP-1', label: 'A', description: 'Sigmoid colon resection', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [{ id: 'migrated-f26-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f26', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }],
+        blocks: [
+          { id: 'blk-4402-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-4402-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+            { id: 'stn-4402-a1-2', stainName: 'MMR Panel', status: 'Pending Cut' },
+          ] },
+          { id: 'blk-4402-a2', label: '2', status: 'Embedded', stains: [{ id: 'stn-4402-a2-1', stainName: 'H&E', status: 'Coverslipped' }] },
+          { id: 'blk-4402-a3', label: '3', status: 'Grossed', stains: [] },
+        ] },
       { id: 'S26-4402-SP-2', label: 'B', description: 'Apical lymph node', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Dr. Michael Torres', clientId: 'c2', clientName: 'Riverside Medical Center', clinicalIndication: 'Sigmoid colon adenocarcinoma diagnosed on colonoscopy biopsy. CT staging: T3N1M0. Proceeding to laparoscopic sigmoid resection.', receivedDate: isoDaysAgo(2), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary',
@@ -223,9 +237,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'oncology_awaiting',   name: 'Oncology Awaiting Report',  color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
       { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',    color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
     ],
-    specimenFlags: [
-      { id: 'comp-mol-4402', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4402-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C18.7'], snomed: ['363346000'] },
   },
@@ -244,7 +256,14 @@ const MOCK_CASES: Case[] = [
       address: '230 Cactus Wren Dr, Tempe, AZ 85281',
     },
     specimens: [
-      { id: 'S26-4403-SP-1', label: 'A', description: 'Right upper lobe lobectomy', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'S26-4403-SP-1', label: 'A', description: 'Right upper lobe lobectomy', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [{ id: 'migrated-f35-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f35', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }, { id: 'migrated-f24-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f24', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }],
+        blocks: [
+          { id: 'blk-4403-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-4403-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+            { id: 'stn-4403-a1-2', stainName: 'IHC Panel', status: 'Staining' },
+          ] },
+          { id: 'blk-4403-a2', label: '2', status: 'Grossed', stains: [{ id: 'stn-4403-a2-1', stainName: 'H&E', status: 'Staining' }] },
+        ] },
       { id: 'S26-4403-SP-2', label: 'B', description: 'Station 4R mediastinal lymph nodes', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
       { id: 'S26-4403-SP-3', label: 'C', description: 'Station 7 subcarinal lymph nodes', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
     ],
@@ -308,10 +327,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',    color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
       { tagClass: 'ADMINISTRATIVE', id: 'thoracic_mdt',        name: 'Thoracic MDT — Fri 09:00', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
     ],
-    specimenFlags: [
-      { id: 'comp-mprof-4403', name: 'Molecular Profiling', lisCode: 'MPROF', color: '#3b82f6', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
-      { id: 'comp-ihc-4403', name: 'IHC Panel (PD-L1)', lisCode: 'IHC', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4403-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C34.11'], snomed: ['254637007'] },
   },
@@ -329,7 +345,10 @@ const MOCK_CASES: Case[] = [
       address: '501 Sun Valley Rd, Mesa, AZ 85201',
     },
     specimens: [
-      { id: 'S26-4404-SP-1', label: 'A', description: 'Prostate biopsy — right apex', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'S26-4404-SP-1', label: 'A', description: 'Prostate biopsy — right apex', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [],
+        blocks: [
+          { id: 'blk-4404-a1', label: '1', status: 'Embedded', stains: [{ id: 'stn-4404-a1-1', stainName: 'H&E', status: 'Ready for Review' }] },
+        ] },
       { id: 'S26-4404-SP-2', label: 'B', description: 'Prostate biopsy — right mid', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
       { id: 'S26-4404-SP-3', label: 'C', description: 'Prostate biopsy — right base', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
       { id: 'S26-4404-SP-4', label: 'D', description: 'Prostate biopsy — left apex', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
@@ -473,7 +492,7 @@ const MOCK_CASES: Case[] = [
       address: '320 Ironwood Pl, Gilbert, AZ 85295',
     },
     specimens: [
-      { id: 'S26-4406-SP-1', label: 'A', description: 'Left breast core needle biopsy', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'S26-4406-SP-1', label: 'A', description: 'Left breast core needle biopsy', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [{ id: 'migrated-f25-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f25', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Dr. Patricia Moore', clientId: 'c2', clientName: 'Riverside Medical Center', clinicalIndication: 'Palpable mass left breast 2 o\'clock. Ultrasound: 1.8 cm hypoechoic irregular mass. BIRADS 5. Proceeding to ultrasound-guided core needle biopsy.', receivedDate: isoDaysAgo(1), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
     diagnostic: {
@@ -498,9 +517,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',   color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
       { tagClass: 'ADMINISTRATIVE', id: 'frozen_section',      name: 'Frozen Section Pending',   color: '#f97316', level: 'Case', status: 'Active', severity: 4 },
     ],
-    specimenFlags: [
-      { id: 'comp-erh2-4406', name: 'ER/PR/HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4406-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
   },
 
@@ -517,7 +534,7 @@ const MOCK_CASES: Case[] = [
       address: '88 Mesquite Lane, Peoria, AZ 85345',
     },
     specimens: [
-      { id: 'S26-4407-SP-1', label: 'A', description: 'Anterior resection — rectum', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
+      { id: 'S26-4407-SP-1', label: 'A', description: 'Anterior resection — rectum', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [{ id: 'migrated-f24-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f24', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }] },
       { id: 'S26-4407-SP-2', label: 'B', description: 'Mesorectal lymph nodes', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
     ],
     order: { priority: 'Routine', requestingProvider: 'Dr. James Nguyen', clientId: 'c3', clientName: 'Northside Clinic', clinicalIndication: 'Rectal adenocarcinoma, 8 cm from anal verge. MRI: mrT3N2. Completed neoadjuvant chemoradiotherapy (FOLFOX × 6 + long-course RT). Restaging MRI: good response. Proceeding to low anterior resection.', receivedDate: isoDaysAgo(3), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
@@ -583,7 +600,6 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'braf_msi_noted',      name: 'BRAF+ / MSI-H Noted',        color: '#f97316', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [
-      { id: 'comp-ihc-4407', name: 'MMR IHC Panel', lisCode: 'IHC', color: '#10b981', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4407-SP-1' },
       { tagClass: 'ADMINISTRATIVE', id: 'comp-mol-4407', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', level: 'Case', status: 'Active', severity: 3 },
     ],
     reportingMode: 'copilot',
@@ -603,7 +619,7 @@ const MOCK_CASES: Case[] = [
       address: '145 Saguaro Way, Glendale, AZ 85301',
     },
     specimens: [
-      { id: 'S26-4408-SP-1', label: 'A', description: 'Right breast mastectomy', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+      { id: 'S26-4408-SP-1', label: 'A', description: 'Right breast mastectomy', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(2), specimenFlags: [{ id: 'migrated-f25-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f25', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }, { id: 'migrated-f30-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'f30', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }] },
       { id: 'S26-4408-SP-2', label: 'B', description: 'Right axillary contents', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(2), specimenFlags: [] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Dr. Sarah Chen', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: 'Multifocal right breast carcinoma — index lesion 2.1 cm invasive NST plus extensive DCIS. BRCA1 positive. Opting for bilateral mastectomy.', receivedDate: isoDaysAgo(2), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
@@ -691,10 +707,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'brca1_positive',      name: 'BRCA1 Pathogenic Variant',   color: '#8b5cf6', level: 'Case', status: 'Active', severity: 4 },
       { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',     color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
     ],
-    specimenFlags: [
-      { id: 'comp-erh2-4408', name: 'ER/PR/HER2', lisCode: 'ERH2', color: '#ef4444', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
-      { id: 'comp-her2f-4408', name: 'HER2 FISH', lisCode: 'HER2', color: '#ef4444', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'S26-4408-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
   },
@@ -1893,7 +1906,7 @@ const MOCK_CASES: Case[] = [
       address: '12 Saguaro Heights, Phoenix, AZ 85004',
     },
     specimens: [
-      { id: 'S26-4480-SP-1', label: 'A', description: 'Right thyroid lobe and isthmus', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+      { id: 'S26-4480-SP-1', label: 'A', description: 'Right thyroid lobe and isthmus', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [{ id: 'migrated-braf-comp-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'braf-comp', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }] },
       { id: 'S26-4480-SP-2', label: 'B', description: 'Right central neck lymph nodes (level VI)', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(2), specimenFlags: [] },
     ],
     order: {
@@ -1955,9 +1968,7 @@ const MOCK_CASES: Case[] = [
       { id: 'thyroid-board', tagClass: 'ADMINISTRATIVE', name: 'Thyroid MDT',        lisCode: 'THYR',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
       { id: 'braf-positive', tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive',lisCode: 'BRAF',  color: '#f59e0b', severity: 2, level: 'Case', status: 'Active' },
     ],
-    specimenFlags: [
-      { id: 'braf-comp', tagClass: 'COMPUTATIONAL', name: 'BRAF V600E', lisCode: 'BRAFM', color: '#10b981', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4480-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C73'], snomed: ['363478007'] },
   },
@@ -2042,7 +2053,7 @@ const MOCK_CASES: Case[] = [
       address: '58 Ironwood Trail, Scottsdale, AZ 85260',
     },
     specimens: [
-      { id: 'S26-4482-SP-1', label: 'A', description: 'Partial nephrectomy — right renal mass', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'S26-4482-SP-1', label: 'A', description: 'Partial nephrectomy — right renal mass', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [{ id: 'migrated-vhl-mutation-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'vhl-mutation', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }] },
       { id: 'S26-4482-SP-2', label: 'B', description: 'Surgical margin shave', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
     ],
     order: {
@@ -2103,9 +2114,7 @@ const MOCK_CASES: Case[] = [
       { id: 'f1',          tagClass: 'ADMINISTRATIVE', name: 'STAT — Rush Processing', lisCode: 'STAT',  color: '#ef4444', severity: 5, level: 'Case', status: 'Active' },
       { id: 'urology-mdt', tagClass: 'ADMINISTRATIVE', name: 'Urology MDT',            lisCode: 'UROL',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
     ],
-    specimenFlags: [
-      { id: 'vhl-mutation', tagClass: 'COMPUTATIONAL', name: 'VHL Mutation', lisCode: 'VHL', color: '#10b981', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4482-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C64.1'], snomed: ['41607009'] },
   },
@@ -2123,7 +2132,7 @@ const MOCK_CASES: Case[] = [
       address: '214 Prickly Pear Road, Chandler, AZ 85225',
     },
     specimens: [
-      { id: 'S26-4483-SP-1', label: 'A', description: 'Wide local excision — left upper back', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
+      { id: 'S26-4483-SP-1', label: 'A', description: 'Wide local excision — left upper back', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [{ id: 'migrated-braf-comp-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'braf-comp', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }, { id: 'migrated-pdl1-result-' + Math.random().toString(36).slice(2,8), flagDefinitionId: 'pdl1-result', appliedAt: isoDaysAgo(2), appliedBy: 'lis-import', source: 'system', deletedAt: null, deletedBy: null }] },
       { id: 'S26-4483-SP-2', label: 'B', description: 'Sentinel lymph node — left axilla #1', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
       { id: 'S26-4483-SP-3', label: 'C', description: 'Sentinel lymph node — left axilla #2', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
     ],
@@ -2187,10 +2196,7 @@ const MOCK_CASES: Case[] = [
       { id: 'melanoma-mdt', tagClass: 'ADMINISTRATIVE', name: 'Melanoma MDT', lisCode: 'MEL',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
       { id: 'braf-positive',tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive', lisCode: 'BRAF', color: '#10b981', severity: 2, level: 'Case', status: 'Active' },
     ],
-    specimenFlags: [
-      { id: 'braf-comp',  tagClass: 'COMPUTATIONAL', name: 'BRAF V600E',  lisCode: 'BRAFM', color: '#10b981', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4483-SP-1' },
-      { id: 'pdl1-result',tagClass: 'COMPUTATIONAL', name: 'PD-L1 CPS 15',lisCode: 'PDL1',  color: '#3b82f6', severity: 2, level: 'Specimen', status: 'Active', orderedVia: 'lis', specimenId: 'S26-4483-SP-1' },
-    ],
+    specimenFlags: [    ],
     reportingMode: 'copilot',
     coding: { icd10: ['C43.59'], snomed: ['372244006'] },
   },
@@ -2599,7 +2605,7 @@ export const mockPatientHistory = mockPatientHistoryMap['S26-4401'] ?? DEFAULT_H
 // ─── Persisted case store ─────────────────────────────────────────────────────
 // Version bump here forces a re-seed whenever mock data changes structurally.
 // Increment MOCK_VERSION whenever MOCK_CASES fields are added/changed.
-const MOCK_VERSION = '28'; // bumped: added computational specimenFlags // bumped: added assignedParticipationTypeId: primary to all assigned cases
+const MOCK_VERSION = '31'; // bumped: added MMR Panel to S26-4402's block to match its Molecular Panel flag, which had no corresponding stain order
 const VERSION_KEY  = 'pathscribe_mock_cases_version';
 
 const storedVersion = localStorage.getItem(VERSION_KEY);
@@ -2672,7 +2678,7 @@ Rules:
 - value must be an option id (not the label) when options are listed, or a plain string for free text
 - For checkboxes/multi-select fields, value may be an array of option ids
 - confidence is 0–100 based on how clearly the text supports the answer
-- source is a short (≤12 word) direct quote or paraphrase from gross/micro/ancillary/computational
+- source MUST be an exact, verbatim substring copied directly from the gross/micro/ancillary/computational text above — not a paraphrase, not a reworded summary. The pathologist-facing UI highlights this exact string inside the original text; a paraphrase will not be found and will silently fail to highlight anything. Keep it short (≤12 words) but character-for-character exact.
 - Only include fields you can answer with reasonable confidence (≥30)
 - Do NOT invent findings not present in the text`;
 

@@ -26,7 +26,7 @@ export interface Protocol {
   name:         string;
   category:     string;
   version:      string;
-  source:       'CAP' | 'RCPath' | 'ICCR' | 'Custom';
+  source:       'CAP' | 'RCPath' | 'ICCR' | 'PathScribe' | 'Custom';
   type:         string;
   status:       LifecycleState;
   fields:       number;
@@ -50,6 +50,33 @@ export interface Protocol {
    * be touched one by one to keep their correct default behavior.
    */
   isDiagnostic?: boolean;
+  /**
+   * High-level grouping for the Synoptic Library's top-level filter —
+   * coarser than category (which is organ/purpose-specific: BREAST,
+   * COLON, GROSSING, CYTOLOGY_NONGYN, etc.). Optional — when unset,
+   * derived from category via protocolGroup() below, so existing
+   * entries don't need to be touched one by one. Set explicitly only
+   * when a category's default grouping is genuinely wrong for a
+   * specific entry.
+   */
+  group?: 'Surgical Pathology' | 'Non-GYN Cytology' | 'GYN Cytology' | 'Grossing';
+}
+
+/**
+ * Resolves a protocol's Synoptic Library group. Call this rather than
+ * reading category or group directly, so the derivation rule lives in
+ * one place. Explicit group wins if set; otherwise derived from
+ * category. GYN Cytology has no real category prefix yet (none built —
+ * see the HPV-testing note on why GYN was deliberately deprioritized),
+ * included here so the filter UI has a real place for it to land
+ * without another change once it exists.
+ */
+export function protocolGroup(p: Protocol): 'Surgical Pathology' | 'Non-GYN Cytology' | 'GYN Cytology' | 'Grossing' {
+  if (p.group) return p.group;
+  if (p.category === 'GROSSING') return 'Grossing';
+  if (p.category.startsWith('CYTOLOGY_NONGYN')) return 'Non-GYN Cytology';
+  if (p.category.startsWith('CYTOLOGY_GYN')) return 'GYN Cytology';
+  return 'Surgical Pathology';
 }
 
 /**
@@ -271,7 +298,7 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'grossing_standard_tissue',
     name: 'Standard Tissue Grossing (Gold Standard) — Route A',
-    category: 'GROSSING', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
     status: 'published', fields: 31, snomedPct: 0, icdPct: 0,
     lastModified: '2026-06-27', owner: 'System',
     isDiagnostic: false,
@@ -279,7 +306,7 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'grossing_fluid_cytology',
     name: 'Fluid / Cell Block Grossing (Gold Standard) — Route B',
-    category: 'GROSSING', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
     status: 'published', fields: 12, snomedPct: 0, icdPct: 0,
     lastModified: '2026-06-27', owner: 'System',
     isDiagnostic: false,
@@ -287,10 +314,72 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'grossing_histology_only',
     name: 'Histology-Only / Direct Triage (Gold Standard) — Route C',
-    category: 'GROSSING', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
     status: 'published', fields: 9, snomedPct: 0, icdPct: 0,
     lastModified: '2026-06-27', owner: 'System',
     isDiagnostic: false,
+  },
+  {
+    // Self-authored — no CAP/RCPath equivalent exists; their own Cancer
+    // Protocol FAQ explicitly excludes cytology specimens. Real content
+    // (Bethesda System, 3rd Edition), same schema every other template
+    // here uses. First of a real, separate "Non-GYN Cytology" category —
+    // salivary gland (Milan), urine (Paris), and lymph node FNA are the
+    // natural next ones to follow this same pattern.
+    id: 'thyroid_fna_cytology',
+    name: 'Thyroid FNA — The Bethesda System for Reporting Thyroid Cytopathology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-08', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-08T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // Milan System (2018) — genuinely different category names/structure
+    // from Bethesda despite both being 6-tier; not interchangeable.
+    id: 'salivary_gland_fna_cytology',
+    name: 'Salivary Gland FNA — The Milan System for Reporting Salivary Gland Cytopathology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 18, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // Paris System, 2nd Edition (2022) — built specifically around
+    // detecting high-grade urothelial carcinoma; LGUN deliberately kept
+    // as its own separate category rather than folded into the main tier.
+    id: 'urine_cytology',
+    name: 'Urine Cytology — The Paris System for Reporting Urinary Cytology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 16, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // Papanicolaou Society System (2014) — Category IV deliberately
+    // split into IVA (benign) / IVB (premalignant) rather than one tier,
+    // since the two carry very different clinical management.
+    id: 'pancreaticobiliary_cytology',
+    name: 'Pancreaticobiliary Cytology — Papanicolaou Society System for Reporting Pancreaticobiliary Cytology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 18, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // No single dominant named system exists for lymph node FNA, unlike
+    // the other three above — the template's own "standard" field says
+    // so honestly rather than implying a citation that doesn't exist.
+    id: 'lymph_node_fna_cytology',
+    name: 'Lymph Node FNA — General Reporting Categories',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 15, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
   },
 ];
 
@@ -359,10 +448,11 @@ export const LIFECYCLE_STYLES: Record<LifecycleState, { bg: string; color: strin
 };
 
 export const SOURCE_STYLES: Record<string, { color: string; bg: string }> = {
-  CAP:    { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)'  },
-  RCPath: { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-  ICCR:   { color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)'  },
-  Custom: { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)'  },
+  CAP:        { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)'  },
+  RCPath:     { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+  ICCR:       { color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)'  },
+  PathScribe: { color: '#34d399', bg: 'rgba(52,211,153,0.12)'  },
+  Custom:     { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)'  },
 };
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -373,6 +463,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   LIVER:    '#4ade80',
   PLACENTA: '#f472b6',
   KIDNEY:   '#818cf8',
+  CYTOLOGY_NONGYN: '#fb923c',
 };
 
 export const LIFECYCLE_ORDER: LifecycleState[] = ['draft', 'in_review', 'approved', 'published'];

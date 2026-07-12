@@ -7,7 +7,7 @@ const KEY     = 'pathscribe_routing_rules_v1';
 const VERSION = 'routing_rules_v1';
 
 function load(): RoutingRule[] {
-  return storageGet<RoutingRule[]>(KEY) ?? [];
+  return storageGet<RoutingRule[]>(KEY, []) ?? [];
 }
 function save(rules: RoutingRule[]): void {
   storageSet(KEY, rules);

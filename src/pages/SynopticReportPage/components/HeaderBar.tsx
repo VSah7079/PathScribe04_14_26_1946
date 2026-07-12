@@ -1,10 +1,12 @@
 // src/pages/SynopticReportPage/components/HeaderBar.tsx
 // Rich case header — white bar with accession, patient info, progress steps.
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Case } from '@/types/case/Case';
 import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
+import { lisSyncService } from '@/services';
+import type { LisSyncState } from '@/services/lisSync/mockLisSyncService';
 import '@/pathscribe.css';
 
 // ── AI Synthesis Status — Gatekeeper Badge model. Matches the type defined
@@ -56,6 +58,10 @@ interface HeaderBarProps {
    *  currently act on. Undefined outside grossing-relevant contexts. */
   focusedBlockId?: string;
   onOpenBlockEditor?: () => void;
+  /** For the CoPilot "Data as of / Check now" indicator — lets HeaderBar
+   *  apply any flags a simulated LIS check returns onto the real case.
+   *  Omit to leave the indicator read-only (no case mutation possible). */
+  onCaseUpdate?: (updatedCase: Case) => void;
 }
 
 type StepStatus = 'completed' | 'current' | 'pending' | 'alert';
@@ -79,8 +85,59 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate }) => {
   const isOrchestration = getOrchestratorMode();
+
+  // CoPilot-only — Orchestration mode is the system of record; there's no
+  // separate LIS for anything here to be "as of" relative to.
+  const isCopilotCase = caseData?.reportingMode === 'copilot';
+  const [syncState, setSyncState] = useState<LisSyncState | null>(null);
+  const [checkingNow, setCheckingNow] = useState(false);
+
+  useEffect(() => {
+    if (!isCopilotCase || !caseData?.id) { setSyncState(null); return; }
+    let cancelled = false;
+    lisSyncService.getSyncState(caseData.id).then(res => {
+      if (!cancelled && res.ok) setSyncState(res.data);
+    });
+    return () => { cancelled = true; };
+  }, [isCopilotCase, caseData?.id]);
+
+  const handleCheckNow = async () => {
+    if (!caseData?.id || checkingNow) return;
+    setCheckingNow(true);
+    try {
+      const res = await lisSyncService.checkNow(caseData.id);
+      if (res.ok) {
+        setSyncState({ lastCheckedAt: res.data.lastCheckedAt });
+        // Real flag-adding mechanism (caseFlagsApi / useSynopticFlags) is
+        // the actual insertion point here — deliberately not duplicated
+        // in this mock service, kept as the caller's job per its own
+        // header comment. onCaseUpdate applies whatever came back onto
+        // the case the same way any other flag addition would.
+        if (res.data.newFlags.length > 0 && onCaseUpdate && caseData) {
+          const updated: Case = {
+            ...caseData,
+            specimenFlags: [
+              ...((caseData as any).specimenFlags ?? []),
+              ...res.data.newFlags,
+            ],
+          } as any;
+          onCaseUpdate(updated);
+        }
+      }
+    } finally {
+      setCheckingNow(false);
+    }
+  };
+
+  const formatSyncLabel = (iso: string): string => {
+    const then = new Date(iso);
+    const mins = Math.round((Date.now() - then.getTime()) / 60000);
+    const rel = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : `${Math.round(mins / 60)} hr${Math.round(mins / 60) === 1 ? '' : 's'} ago`;
+    const clock = then.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `Data as of ${clock} · ${rel}`;
+  };
 
   const accession = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '—';
   const patient   = caseData?.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—';
@@ -213,6 +270,20 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         <span className="ps-hb-crumb" onClick={() => onNavigate('/worklist')}>Worklist</span>
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb ps-hb-crumb--active">Case Report</span>
+
+        {isCopilotCase && syncState && (
+          <div className="ps-hb-lis-sync">
+            <span className="ps-hb-lis-sync-label">{formatSyncLabel(syncState.lastCheckedAt)}</span>
+            <button
+              className="ps-hb-lis-sync-btn"
+              disabled={checkingNow}
+              onClick={handleCheckNow}
+              title="Ask the LIS for the current state of this case"
+            >
+              {checkingNow ? 'Checking…' : '↻ Check now'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Blocks & Stains — generated at Accession from the specimen's

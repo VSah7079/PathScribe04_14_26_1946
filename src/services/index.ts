@@ -5,9 +5,14 @@ export { mockUserService          as userService          } from './users/mockUs
 export { mockRoleService          as roleService          } from './roles/mockRoleService';
 export { mockPhysicianService     as physicianService     } from './physicians/mockPhysicianService';
 export { mockFlagService          as flagService          } from './flags/mockFlagService';
+export { mockContainerTypeService as containerTypeService } from './containerTypes/mockContainerTypeService';
+export { mockIntraoperativeService as intraoperativeService } from './intraop/mockIntraoperativeService';
 export { mockSubspecialtyService  as subspecialtyService  } from './subspecialties/mockSubspecialtyService';
 export { mockClientService        as clientService        } from './clients/mockClientService';
 export { mockSpecimenCategoryService as specimenCategoryService } from './specimenCategories/mockSpecimenCategoryService';
+export { mockGrossingRoutingOverrideService as grossingRoutingOverrideService } from './grossingRoutingOverrides/mockGrossingRoutingOverrideService';
+export { mockTemplateSuggestionSignalService as templateSuggestionSignalService } from './templates/mockTemplateSuggestionSignalService';
+export { mockLisSyncService as lisSyncService } from './lisSync/mockLisSyncService';
 export { mockSpecimenDictionaryService as specimenDictionaryService } from './specimenDictionary/mockSpecimenDictionaryService';
 export { mockPriorityService as priorityService } from './priority/mockPriorityService';
 export { mockStainTypeService as stainTypeService } from './stains/mockStainTypeService';
@@ -32,7 +37,12 @@ export { mockCodeService          as codeService          } from './codes/mockCo
 export { mockMessageService       as messageService       } from './messages/mockMessageService';
 export { mockInternalNoteService  as internalNoteService  } from './internalNotes/mockInternalNoteService';
 export { INTERNAL_NOTE_TYPE_LABELS                        } from './internalNotes/IInternalNoteService';
-export { mockResultService        as resultService         } from './result/MockResultService';
+// resultService removed — the whole discrete-result concept (order,
+// poll, status) was shelved as unvalidated. See Flag Maintenance /
+// ComputationalPanel for what remains: Flags as a real catalog/triage
+// concept, without the ordering/result apparatus that was built on an
+// integration model (outbound polling) that never matched how either
+// Orchestration or CoPilot actually works.
 export { mockReportTemplateService as reportTemplateService } from './reportTemplates/mockReportTemplateService';
 export { onReportTemplatesChanged, STANDARD_TEMPLATE_ID,
          BREAST_TEMPLATE_ID, GI_TEMPLATE_ID,
@@ -41,6 +51,7 @@ export { resolveReportTemplate                            } from './reportTempla
 
 // ─── Type re-exports ──────────────────────────────────────────────────────────
 export type { StaffUser }         from './users/IUserService';
+export type { GrossingRoutingOverrideEntry } from './grossingRoutingOverrides/IGrossingRoutingOverrideService';
 export type { Role }              from './roles/IRoleService';
 export type { Physician }         from './physicians/IPhysicianService';
 export type { Flag }              from './flags/IFlagService';
@@ -65,6 +76,7 @@ export type { ClinicalCode, CodeSystem, CodeSearchParams, IcdOSubtype } from './
 export type { Message }           from './messages/IMessageService';
 export type { InternalNote, InternalNoteType, InternalNoteVisibility } from './internalNotes/IInternalNoteService';
 export type { ServiceResult }     from './types';
-export type { ComputationalResult } from '../types/smarttag.types';
+// ComputationalResult re-export removed — the type itself was removed
+// from smarttag.types.ts along with the ordering/result apparatus.
 export type { ReportTemplate }    from './reportTemplates/IReportTemplateService';
 export type { TemplateRoutingInput, TemplateRoutingResult } from './reportTemplates/TemplateRoutingService';

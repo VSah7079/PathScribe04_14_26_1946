@@ -335,8 +335,8 @@ export const PreFinalisationModal: React.FC<Props> = ({
           <div className="ps-prefin-header-left">
             <div className="ps-prefin-header-row">
               <h2 className="ps-prefin-title">Review before finalising</h2>
-              <span className={`ps-prefin-mode-badge${reportingMode === 'copilot' ? ' ps-prefin-mode-badge--copilot' : ' ps-prefin-mode-badge--pathscribe'}`}>
-                {reportingMode === 'copilot' ? 'Copilot mode' : 'Orchestration mode'}
+              <span className={`ps-prefin-mode-badge${reportingMode === 'assisted' ? ' ps-prefin-mode-badge--copilot' : ' ps-prefin-mode-badge--pathscribe'}`}>
+                {reportingMode === 'assisted' ? 'Copilot mode' : 'Orchestration mode'}
               </span>
             </div>
             <p className="ps-prefin-header-meta">{caseAccession} · {patientName}</p>

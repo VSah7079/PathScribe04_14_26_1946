@@ -10,7 +10,7 @@
 
 import type { ICaseService } from './ICaseService';
 import type { Case } from '../../types/case/Case';
-import { storageGet, storageSet } from '../mockStorage';
+import { storageGet, storageSet, storageClear } from '../mockStorage';
 import { applyCaseFilters } from './caseFilterUtils';
 
 // v3 key forces reset to pick up Stage 0 seed cases (O26-0018/0019/0020) —
@@ -49,7 +49,17 @@ const PETE_CASES: Case[] = [
     status: 'gross-complete' as any,
     patient: { id: 'OPAT-001', mrn: '200001', firstName: 'Robert', lastName: 'Ashford', dateOfBirth: isoYearsAgo(67, 4, 22), sex: 'M' },
     specimens: [
-      { id: 'O26-0001-SP-A', label: 'A', description: 'Right hemicolectomy',                   receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-mol-0001', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0001-SP-A' }] },
+      { id: 'O26-0001-SP-A', label: 'A', description: 'Right hemicolectomy',                   receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-mol-0001', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0001-SP-A' }],
+        blocks: [
+          { id: 'blk-0001-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-0001-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+            { id: 'stn-0001-a1-2', stainName: 'MMR Panel', status: 'Pending Cut' },
+          ] },
+          { id: 'blk-0001-a2', label: '2', status: 'Embedded', stains: [
+            { id: 'stn-0001-a2-1', stainName: 'H&E', status: 'Coverslipped' },
+          ] },
+          { id: 'blk-0001-a3', label: '3', status: 'Grossed', stains: [] },
+        ] },
       { id: 'O26-0001-SP-B', label: 'B', description: 'Ileocolic lymph nodes, separate packet', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
       { id: 'O26-0001-SP-C', label: 'C', description: 'Appendix',                              receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
     ],
@@ -134,7 +144,14 @@ const PETE_CASES: Case[] = [
     originHospitalId: 'HOSP-001', status: 'gross-complete' as any,
     patient: { id: 'OPAT-002', mrn: '200002', firstName: 'Patricia', lastName: 'Okafor', dateOfBirth: isoYearsAgo(61, 9, 3), sex: 'F' },
     specimens: [
-      { id: 'O26-0002-SP-A', label: 'A', description: 'Right lower lobe lobectomy',      receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-mprof-0002', name: 'Molecular Profiling', lisCode: 'MPROF', color: '#3b82f6', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0002-SP-A' }] },
+      { id: 'O26-0002-SP-A', label: 'A', description: 'Right lower lobe lobectomy',      receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-mprof-0002', name: 'Molecular Profiling', lisCode: 'MPROF', color: '#3b82f6', severity: 3, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0002-SP-A' }],
+        blocks: [
+          { id: 'blk-0002-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-0002-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+            { id: 'stn-0002-a1-2', stainName: 'NGS Panel', status: 'Pending Cut' },
+          ] },
+          { id: 'blk-0002-a2', label: '2', status: 'Grossed', stains: [{ id: 'stn-0002-a2-1', stainName: 'H&E', status: 'Staining' }] },
+        ] },
       { id: 'O26-0002-SP-B', label: 'B', description: 'Station 7 subcarinal lymph nodes', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Mr. Andrew Pearce', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: 'Right lower lobe mass 3.1 cm. Core biopsy: adenocarcinoma TTF-1+. EGFR/ALK/ROS1 pending. PET-CT: no distant disease. VATS right lower lobectomy.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
@@ -148,7 +165,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "station 7 subcarinal lymph nodes," is fibrofatty tissue measuring 3.5 x 2.0 x 1.5 cm containing three discrete lymph nodes ranging 0.5-1.4 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0002-SP-A_lung_${iid()}`, specimenId: 'O26-0002-SP-A', templateId: 'lung_resection', templateName: 'CAP Lung — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0002-SP-A_lung_${iid()}`, specimenId: 'O26-0002-SP-A', templateId: 'lung_resection', templateName: 'CAP Lung — Resection (All Types)', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0002-SP-A_grossing_${iid()}`, specimenId: 'O26-0002-SP-A',
@@ -196,7 +213,13 @@ const PETE_CASES: Case[] = [
     originHospitalId: 'HOSP-001', status: 'gross-complete' as any,
     patient: { id: 'OPAT-003', mrn: '200003', firstName: 'David', lastName: 'Marchetti', dateOfBirth: isoYearsAgo(64, 1, 8), sex: 'M' },
     specimens: [
-      { id: 'O26-0003-SP-A', label: 'A', description: 'Radical prostatectomy',    receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+      { id: 'O26-0003-SP-A', label: 'A', description: 'Radical prostatectomy',    receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [],
+        blocks: [
+          { id: 'blk-0003-a1', label: '1', status: 'Embedded', stains: [{ id: 'stn-0003-a1-1', stainName: 'H&E', status: 'Ready for Review' }] },
+          { id: 'blk-0003-a2', label: '2', status: 'Embedded', stains: [{ id: 'stn-0003-a2-1', stainName: 'H&E', status: 'Coverslipped' }] },
+          { id: 'blk-0003-a3', label: '3', status: 'Embedded', stains: [{ id: 'stn-0003-a3-1', stainName: 'H&E', status: 'Ready for Review' }] },
+          { id: 'blk-0003-a4', label: '4', status: 'Grossed', stains: [] },
+        ] },
       { id: 'O26-0003-SP-B', label: 'B', description: 'Right pelvic lymph nodes',  receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
       { id: 'O26-0003-SP-C', label: 'C', description: 'Left pelvic lymph nodes',   receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
     ],
@@ -277,7 +300,16 @@ const PETE_CASES: Case[] = [
     originHospitalId: 'HOSP-001', status: 'gross-complete' as any,
     patient: { id: 'OPAT-004', mrn: '200004', firstName: 'Sandra', lastName: 'Kovacs', dateOfBirth: isoYearsAgo(44, 7, 19), sex: 'F' },
     specimens: [
-      { id: 'O26-0004-SP-A', label: 'A', description: 'Left total mastectomy',                        receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [{ id: 'comp-erh2-0004', name: 'ER / PR / HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0004-SP-A' }] },
+      { id: 'O26-0004-SP-A', label: 'A', description: 'Left total mastectomy',                        receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [{ id: 'comp-erh2-0004', name: 'ER / PR / HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0004-SP-A' }],
+        blocks: [
+          { id: 'blk-0004-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-0004-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+            { id: 'stn-0004-a1-2', stainName: 'ER', status: 'Staining' },
+            { id: 'stn-0004-a1-3', stainName: 'PR', status: 'Staining' },
+            { id: 'stn-0004-a1-4', stainName: 'HER2', status: 'Pending Cut' },
+          ] },
+          { id: 'blk-0004-a2', label: '2', status: 'Embedded', stains: [{ id: 'stn-0004-a2-1', stainName: 'H&E', status: 'Coverslipped' }] },
+        ] },
       { id: 'O26-0004-SP-B', label: 'B', description: 'Left axillary sentinel lymph node — level I',   receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Dr. Rachel Kim', clientId: 'c-westside', clientName: 'Westside Surgical Centre', clinicalIndication: 'Triple-negative breast carcinoma. Core biopsy: Grade 3 IDC, Ki-67 78%. BRCA1 pathogenic variant. Neoadjuvant chemotherapy completed. Total mastectomy with sentinel lymph node biopsy.', receivedDate: isoDaysAgo(1), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
@@ -293,7 +325,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "left axillary sentinel lymph node, level I," is a single lymph node measuring 1.8 x 1.2 x 1.0 cm with a firm, tan-white cut surface, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0004-SP-A_breast_${iid()}`, specimenId: 'O26-0004-SP-A', templateId: 'breast_resection', templateName: 'CAP Breast — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0004-SP-A_breast_${iid()}`, specimenId: 'O26-0004-SP-A', templateId: 'breast_invasive', templateName: 'CAP Breast Invasive Carcinoma — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0004-SP-A_grossing_${iid()}`, specimenId: 'O26-0004-SP-A',
@@ -354,7 +386,8 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "right central compartment lymph nodes," is fibrofatty and thymic tissue measuring 4.0 x 2.5 x 1.5 cm containing four grossly identified lymph nodes ranging 0.3-0.9 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0005-SP-A_thyroid_${iid()}`, specimenId: 'O26-0005-SP-A', templateId: 'thyroid_resection', templateName: 'CAP Thyroid Gland — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(2) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0005-SP-A_grossing_${iid()}`, specimenId: 'O26-0005-SP-A',
@@ -407,7 +440,11 @@ const PAUL_CASES: Case[] = [
     originHospitalId: 'HOSP-002', status: 'gross-complete' as any,
     patient: { id: 'OPAT-006', mrn: '300001', firstName: 'James', lastName: 'Whitmore', dateOfBirth: isoYearsAgo(58, 11, 3), sex: 'M' },
     specimens: [
-      { id: 'O26-0006-SP-A', label: 'A', description: 'Left radical nephrectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-vhl-0006', name: 'VHL Mutation', lisCode: 'VHL', color: '#10b981', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0006-SP-A' }] },
+      { id: 'O26-0006-SP-A', label: 'A', description: 'Left radical nephrectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-vhl-0006', name: 'VHL Mutation', lisCode: 'VHL', color: '#10b981', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0006-SP-A' }],
+        blocks: [
+          { id: 'blk-0006-a1', label: '1', status: 'Embedded', stains: [{ id: 'stn-0006-a1-1', stainName: 'H&E', status: 'Ready for Review' }] },
+          { id: 'blk-0006-a2', label: '2', status: 'Grossed', stains: [] },
+        ] },
       { id: 'O26-0006-SP-B', label: 'B', description: 'Renal hilar lymph node',   receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
     ],
     order: { priority: 'Routine', requestingProvider: 'Mr. Gavin Fletcher', clientId: 'c-royal-manchester', clientName: 'Royal Manchester Centre', clinicalIndication: 'Clear cell renal cell carcinoma. CT: 6.8 cm heterogeneous left renal mass with renal vein thrombus, no distant metastases. Left radical nephrectomy.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-UK-001', assignedParticipationTypeId: 'primary' },
@@ -421,7 +458,7 @@ const PAUL_CASES: Case[] = [
         'Received separately, labeled "renal hilar lymph node," is a single lymph node measuring 1.2 x 0.8 x 0.6 cm, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0006-SP-A_kidney_${iid()}`, specimenId: 'O26-0006-SP-A', templateId: 'kidney_resection', templateName: 'CAP Kidney — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0006-SP-A_kidney_${iid()}`, specimenId: 'O26-0006-SP-A', templateId: 'kidney_resection', templateName: 'CAP Kidney — Renal Cell Carcinoma Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0006-SP-A_grossing_${iid()}`, specimenId: 'O26-0006-SP-A',
@@ -487,7 +524,8 @@ const PAUL_CASES: Case[] = [
         'Received separately, labeled "coeliac axis lymph nodes," is fibrofatty tissue measuring 3.0 x 2.0 x 1.0 cm containing two grossly identified lymph nodes measuring 0.5 cm and 0.8 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0007-SP-A_oeso_${iid()}`, specimenId: 'O26-0007-SP-A', templateId: 'oesophagus_resection', templateName: 'CAP Oesophagus — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0007-SP-A_grossing_${iid()}`, specimenId: 'O26-0007-SP-A',
@@ -563,7 +601,8 @@ const PAUL_CASES: Case[] = [
         'Received fresh in formalin, labeled "TURBT — posterior wall bladder," are multiple tan-pink, papillary and fragmented tissue pieces, in aggregate measuring 3.0 x 2.5 x 1.0 cm. The fragments have a friable, frond-like architecture grossly consistent with papillary urothelial tumor, admixed with smaller fragments of underlying detrusor muscle. No separately identifiable deep/muscularis specimen is submitted separately by the surgeon. Entirely submitted in two cassettes.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0008-SP-A_bladder_${iid()}`, specimenId: 'O26-0008-SP-A', templateId: 'bladder_turbt', templateName: 'CAP Urinary Bladder — TURBT', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0008-SP-A_grossing_${iid()}`, specimenId: 'O26-0008-SP-A',
@@ -600,7 +639,10 @@ const AMBER_CASES: Case[] = [
     originHospitalId: 'HOSP-003', status: 'gross-complete' as any,
     patient: { id: 'OPAT-009', mrn: '400001', firstName: 'Marcus', lastName: 'Delray', dateOfBirth: isoYearsAgo(47, 6, 9), sex: 'M' },
     specimens: [
-      { id: 'O26-0009-SP-A', label: 'A', description: 'Wide local excision — right upper back',  receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-braf-0009', name: 'BRAF V600E', lisCode: 'BRAFM', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0009-SP-A' }] },
+      { id: 'O26-0009-SP-A', label: 'A', description: 'Wide local excision — right upper back',  receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [{ id: 'comp-braf-0009', name: 'BRAF V600E', lisCode: 'BRAFM', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0009-SP-A' }],
+        blocks: [
+          { id: 'blk-0009-a1', label: '1', status: 'Embedded', stains: [{ id: 'stn-0009-a1-1', stainName: 'H&E', status: 'Ready for Review' }] },
+        ] },
       { id: 'O26-0009-SP-B', label: 'B', description: 'Right axillary sentinel lymph node',       receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
     ],
     order: { priority: 'STAT', requestingProvider: 'Dr. Lisa Fontaine', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: 'Cutaneous melanoma right upper back. Shave biopsy: invasive melanoma Breslow 2.8 mm, Clark IV, no ulceration. Wide local excision with 2 cm margins and sentinel lymph node biopsy.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-US-001', assignedParticipationTypeId: 'primary' },
@@ -614,7 +656,7 @@ const AMBER_CASES: Case[] = [
         'Received separately, labeled "right axillary sentinel lymph node," is a single lymph node measuring 2.0 x 1.5 x 1.2 cm with a homogeneous tan cut surface, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0009-SP-A_melanoma_${iid()}`, specimenId: 'O26-0009-SP-A', templateId: 'melanoma_excision', templateName: 'CAP Melanoma — Excision', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0009-SP-A_melanoma_${iid()}`, specimenId: 'O26-0009-SP-A', templateId: 'skin_melanoma_bx', templateName: 'CAP Melanoma of the Skin — Biopsy/Excision', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0009-SP-A_grossing_${iid()}`, specimenId: 'O26-0009-SP-A',
@@ -677,7 +719,8 @@ const AMBER_CASES: Case[] = [
         'Received separately, labeled "peripancreatic lymph nodes," is fibrofatty tissue measuring 5.5 x 3.0 x 2.0 cm containing nine grossly identified lymph nodes ranging 0.3-1.3 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0010-SP-A_pancreas_${iid()}`, specimenId: 'O26-0010-SP-A', templateId: 'pancreas_resection', templateName: 'CAP Pancreas — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0010-SP-A_grossing_${iid()}`, specimenId: 'O26-0010-SP-A',
@@ -743,7 +786,8 @@ const AMBER_CASES: Case[] = [
         'Received separately, labeled "right level II/III lymph nodes," is fibrofatty tissue measuring 5.0 x 3.5 x 1.8 cm containing five grossly unremarkable lymph nodes ranging 0.3-0.8 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0011-SP-A_larynx_${iid()}`, specimenId: 'O26-0011-SP-A', templateId: 'larynx_resection', templateName: 'CAP Larynx — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(2) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0011-SP-A_grossing_${iid()}`, specimenId: 'O26-0011-SP-A',
@@ -826,7 +870,8 @@ const BRONWYN_CASES: Case[] = [
         'Received separately, labeled "pelvic washings," is a cloudy, straw-colored fluid, 40 mL, submitted entirely for cytological preparation.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0021-SP-A_endometrium_${iid()}`, specimenId: 'O26-0021-SP-A', templateId: 'endometrium_resection', templateName: 'CAP Endometrium — Hysterectomy', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0021-SP-A_grossing_${iid()}`, specimenId: 'O26-0021-SP-A',
@@ -887,7 +932,8 @@ const BRONWYN_CASES: Case[] = [
         'Received fresh, labeled "segmental liver resection, segment VI," is a wedge of liver parenchyma measuring 8.0 x 6.0 x 4.5 cm with a smooth, glistening capsular surface on the non-resected aspect and an inked parenchymal resection margin. On sectioning, there is a well-circumscribed, firm, tan-white nodule measuring 3.6 x 3.2 x 3.0 cm, located 1.2 cm from the inked parenchymal margin. The nodule has a lobulated, umbilicated contour with central pallor, grossly consistent with the known metastatic lesion. The surrounding hepatic parenchyma is red-brown and grossly unremarkable, without cirrhotic nodularity. Representative sections submitted per the cassette key, including the closest margin.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0022-SP-A_liver_${iid()}`, specimenId: 'O26-0022-SP-A', templateId: 'liver_metastasis_resection', templateName: 'CAP Liver — Metastatic Tumor Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0022-SP-A_grossing_${iid()}`, specimenId: 'O26-0022-SP-A',
@@ -932,7 +978,8 @@ const BRONWYN_CASES: Case[] = [
         'Received fresh, labeled "superficial parotidectomy, left," is a lobulated segment of salivary gland tissue measuring 5.0 x 4.0 x 2.5 cm with a smooth, thin capsule. On sectioning, there is a well-circumscribed, firm, tan-white to gray nodule measuring 2.2 x 2.0 x 1.8 cm with focal cystic change, located centrally within the specimen and 0.8 cm from the closest inked capsular margin. The surrounding parotid parenchyma is unremarkable, tan-yellow, and lobulated. Representative sections submitted per the cassette key, including the closest margin.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0023-SP-A_salivary_${iid()}`, specimenId: 'O26-0023-SP-A', templateId: 'salivary_gland_resection', templateName: 'CAP Major Salivary Gland — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(2) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     grossingReports: [
       {
         instanceId: `O26-0023-SP-A_grossing_${iid()}`, specimenId: 'O26-0023-SP-A',
@@ -989,7 +1036,8 @@ const POOL_CASES: Case[] = [
       { id: 'gynae-onc-mdt', tagClass: 'ADMINISTRATIVE', name: 'Gynae-Oncology MDT Scheduled', color: '#3b82f6', level: 'Case', status: 'Active', severity: 3 },
     ],
     diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
-    synopticReports: [{ instanceId: `O26-0012-SP-A_cervix_${iid()}`, specimenId: 'O26-0012-SP-A', templateId: 'cervix_cone', templateName: 'CAP Cervix — Cone Biopsy', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
   } as any,
 
@@ -1016,7 +1064,8 @@ const POOL_CASES: Case[] = [
       { id: 'derm-corr',  tagClass: 'ADMINISTRATIVE', name: 'Dermatopathology Correlation',    color: '#f59e0b', level: 'Case', status: 'Active', severity: 2 },
     ],
     diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
-    synopticReports: [{ instanceId: `O26-0013-SP-A_skin_${iid()}`, specimenId: 'O26-0013-SP-A', templateId: 'skin_excision', templateName: 'CAP Skin — Excision', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
   } as any,
 
@@ -1043,7 +1092,8 @@ const POOL_CASES: Case[] = [
       { id: 'onc-await',  tagClass: 'ADMINISTRATIVE', name: 'Oncology Awaiting Report', color: '#ef4444', level: 'Case', status: 'Active', severity: 4 },
     ],
     diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
-    synopticReports: [{ instanceId: `O26-0014-SP-A_breast_${iid()}`, specimenId: 'O26-0014-SP-A', templateId: 'breast_biopsy', templateName: 'CAP Breast — Core Needle Biopsy', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
   } as any,
 
@@ -1054,7 +1104,10 @@ const POOL_CASES: Case[] = [
     originHospitalId: 'HOSP-001', status: 'pool' as any,
     patient: { id: 'OPAT-015', mrn: '500004', firstName: 'Daniel', lastName: 'Okafor', dateOfBirth: isoYearsAgo(58, 2, 9), sex: 'M' },
     specimens: [
-      { id: 'O26-0015-SP-A', label: 'A', description: 'Liver core biopsy — right lobe, ultrasound-guided', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0015-SP-A', label: 'A', description: 'Liver core biopsy — right lobe, ultrasound-guided', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [],
+        blocks: [
+          { id: 'blk-0015-a1', label: '1', status: 'Embedded', stains: [{ id: 'stn-0015-a1-1', stainName: 'H&E', status: 'Ready for Review' }] },
+        ] },
     ],
     order: {
       priority: 'Routine',
@@ -1073,7 +1126,7 @@ const POOL_CASES: Case[] = [
       grossDescription: 'Received fresh in formalin labeled "A: liver biopsy" is one core of tan-brown tissue measuring 1.8 cm in length and 0.1 cm in diameter. The core is intact and submitted entirely in one cassette (A1).',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0015-SP-A_liver_${iid()}`, specimenId: 'O26-0015-SP-A', templateId: 'liver_biopsy', templateName: 'CAP Liver — Core Biopsy', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0015-SP-A_liver_${iid()}`, specimenId: 'O26-0015-SP-A', templateId: 'liver_biopsy_medical', templateName: 'Liver Biopsy — Medical (Native)', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
   } as any,
 
@@ -1105,7 +1158,8 @@ const POOL_CASES: Case[] = [
       grossDescription: 'Received fresh labeled "A: subtotal gastrectomy" is a partial stomach measuring 14.0 x 8.5 x 2.0 cm. The greater curvature measures 16.5 cm and the lesser curvature measures 9.0 cm. On the mucosal surface at the antrum there is an ulcerated, firm, white-tan mass measuring 4.1 x 3.6 x 1.2 cm, located 2.0 cm from the distal (duodenal) margin and 9.5 cm from the proximal margin. The mass appears to invade through the muscularis propria on sectioning. Representative sections submitted. "B: greater curvature lymph nodes" received fresh consists of adipose tissue containing 6 grossly identified lymph nodes ranging 0.4–1.8 cm, entirely submitted. "C: lesser curvature lymph nodes" received fresh consists of adipose tissue containing 4 grossly identified lymph nodes ranging 0.3–1.1 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0016-SP-A_gastric_${iid()}`, specimenId: 'O26-0016-SP-A', templateId: 'gastric_resection', templateName: 'CAP Stomach — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
   } as any,
 
@@ -1135,7 +1189,8 @@ const POOL_CASES: Case[] = [
       grossDescription: 'Received fresh labeled "A: left thigh mass" is an ellipse of skin and underlying soft tissue measuring 14.0 x 9.5 x 6.0 cm. The overlying skin measures 13.0 x 8.0 cm and is unremarkable. On sectioning, there is a well-circumscribed but unencapsulated tan-yellow, fleshy mass measuring 7.2 x 6.8 x 5.5 cm within the deep soft tissue, with the closest margin (deep) measuring 0.8 cm. The mass has a variegated cut surface with focal hemorrhage. Margins inked and sectioned per protocol; representative sections submitted in cassettes A1–A8.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0017-SP-A_softtissue_${iid()}`, specimenId: 'O26-0017-SP-A', templateId: 'soft_tissue_resection', templateName: 'CAP Soft Tissue — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
+    // No real matching Report Template exists for this specimen type in PROTOCOL_REGISTRY (protocolShared.tsx) — starts with no pre-assigned synoptic report, same as any real case whose specimen type has no dedicated template. Use Add Synoptic to pick from what's actually available.
+    synopticReports: [],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
   } as any,
 ];
@@ -1287,6 +1342,21 @@ const STAGE0_CASES: Case[] = [
 // ─── Seed ─────────────────────────────────────────────────────
 
 const ORCH_CASES: Case[] = [...PETE_CASES, ...PAUL_CASES, ...AMBER_CASES, ...BRONWYN_CASES, ...POOL_CASES, ...STAGE0_CASES];
+
+// Version-gated re-seed — same mechanism as mockCaseService.ts's
+// MOCK_VERSION. Without this, a stale localStorage snapshot silently
+// wins over every future edit to ORCH_CASES, forever, regardless of
+// Demo Reset (which depends on its own key list staying manually in
+// sync with STORAGE_KEY — the exact mismatch that caused this file's
+// data to look stale even after a Full Reset). Increment
+// ORCH_MOCK_VERSION whenever ORCH_CASES content changes.
+const ORCH_MOCK_VERSION = '5'; // bumped: corrected clinically questionable stain choices — Ki-67 replaced with MMR Panel on the colon case (Lynch screening is the real reflex test, not proliferation index), NGS Panel added to the lung case to match its already-flagged Molecular Profiling request
+const ORCH_VERSION_KEY = 'pathscribe_mock_orch_cases_version';
+const storedOrchVersion = localStorage.getItem(ORCH_VERSION_KEY);
+if (storedOrchVersion !== ORCH_MOCK_VERSION) {
+  storageClear(STORAGE_KEY);
+  localStorage.setItem(ORCH_VERSION_KEY, ORCH_MOCK_VERSION);
+}
 
 let CASES: Case[] = (() => {
   const stored = storageGet<Case[]>(STORAGE_KEY, []);

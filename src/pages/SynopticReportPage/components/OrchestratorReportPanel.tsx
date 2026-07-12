@@ -881,7 +881,12 @@ const OrchestratorReportPanel: React.FC<Props> = ({
                 minHeight="400px"
                 placeholder=""
                 toolbarPortalId="ps-orch4-tb-portal"
-                rulerPortalId="ps-orch4-ruler-portal"
+                // rulerPortalId removed — no ruler-rendering feature
+                // exists anywhere in the editor chain (NarrativeEditor
+                // or PathScribeEditor) to actually use it; the portal
+                // div above (#ps-orch4-ruler-portal) stays as a
+                // harmless, unused anchor in case a real ruler feature
+                // gets built later.
                 macros={macros}
               />
             </div>

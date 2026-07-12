@@ -463,7 +463,7 @@ const StudyFormModal: React.FC<{
   const [targetAccept,   setTargetAccept]   = useState(existing?.targetAcceptanceRate ?? 0.70);
   const [targetEdit,     setTargetEdit]     = useState(existing?.targetMaxEditRatio ?? 0.30);
   const [startDate,      setStartDate]      = useState(existing?.startDate ? existing.startDate.slice(0,10) : new Date().toISOString().slice(0,10));
-  const [irbRef,         setIrbRef]         = useState(existing?.irbReference ?? '');
+  const [irbRef,         setIrbRef]         = useState(existing?.committeeApproval?.irbReference ?? '');
   const [piId,           setPiId]           = useState(existing?.principalInvestigatorId ?? '');
 
   const toggleClient = (id: string) => {
@@ -560,7 +560,12 @@ const StudyFormModal: React.FC<{
               clientIds, pathologistIds: pathIds,
               targetAcceptanceRate: targetAccept,
               targetMaxEditRatio:   targetEdit,
-              startDate, irbReference: irbRef || undefined,
+              // irbReference intentionally omitted here — it lives on
+              // committeeApproval, which requires approvedAt/approvedBy
+              // and only gets populated later via the real
+              // recordApproval flow. A draft study can't validly have
+              // a partial committeeApproval object yet.
+              startDate,
               principalInvestigatorId: piId || (pathIds[0] ?? ''),
               validationMode: 'advisory',
               createdBy: 'admin',
@@ -768,7 +773,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean 
                 <div><span className="ps-vs-rp-label">Sections analysed</span><span>{stats.totalSignals}</span></div>
                 <div><span className="ps-vs-rp-label">Acceptance rate</span><span style={{ color: stats.acceptanceRate >= study.targetAcceptanceRate ? '#10b981' : '#f87171' }}>{pct(stats.acceptanceRate)}</span></div>
                 <div><span className="ps-vs-rp-label">Governance</span><span>Advisory mode only</span></div>
-                {study.irbReference && <div><span className="ps-vs-rp-label">IRB</span><span>{study.irbReference}</span></div>}
+                {study.committeeApproval?.irbReference && <div><span className="ps-vs-rp-label">IRB</span><span>{study.committeeApproval.irbReference}</span></div>}
               </div>
               <button className="ps-btn-primary" onClick={generateReport} disabled={generating} style={{ marginTop: 16 }}>
                 {generating ? 'Generating…' : '📄 Generate & Print Report'}
@@ -829,7 +834,7 @@ function buildReportHtml(
 <table><tr><td><strong>Study Name</strong></td><td>${study.name}</td></tr>
 <tr><td><strong>Period</strong></td><td>${new Date(study.startDate).toLocaleDateString()} — ${study.endDate ? new Date(study.endDate).toLocaleDateString() : 'Ongoing'}</td></tr>
 <tr><td><strong>Validation Mode</strong></td><td>Advisory — AI output reviewed and signed by pathologist. No AI-direct LIS submission.</td></tr>
-${study.irbReference ? `<tr><td><strong>Ethics Reference</strong></td><td>${study.irbReference}</td></tr>` : ''}
+${study.committeeApproval?.irbReference ? `<tr><td><strong>Ethics Reference</strong></td><td>${study.committeeApproval.irbReference}</td></tr>` : ''}
 <tr><td><strong>PathScribe Version</strong></td><td>v0.9.0</td></tr></table>
 
 <h2>2. Executive Summary</h2>

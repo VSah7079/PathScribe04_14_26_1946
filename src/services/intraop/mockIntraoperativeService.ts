@@ -1,0 +1,342 @@
+// src/services/intraop/mockIntraoperativeService.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Mock service backing the "Unlinked Intraoperative Entries" queue. Real
+// session/specimen create/list/merge operations and real matching logic —
+// deterministic (MRN exact) checked before fuzzy (last name + surgeon +
+// arrival-time proximity), same priority order the original spec called for.
+//
+// Session != specimen — see IntraoperativeEntry.ts's file header for why.
+// createSession makes the shell (patient/OR/surgeon, no specimens yet);
+// addSpecimen adds one; addMilestone and setFrozenSectionDiagnosis operate
+// on a specific specimen within a session, not the session as a whole.
+//
+// candidateCases below stands in for "cases that have since arrived via
+// formal LIS accession" — deliberately a small, separate mock list here
+// rather than reaching into the full existing case services, so this
+// stays clearly scoped as a demonstration of the matching logic itself,
+// not a claim that it's wired to the real, full case list yet.
+// ─────────────────────────────────────────────────────────────────────────────
+import { ServiceResult } from '../types';
+import { storageGet, storageSet } from '../mockStorage';
+import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch } from '@/types/intraop/IntraoperativeEntry';
+import type { IIntraoperativeService } from './IIntraoperativeService';
+
+const STORAGE_KEY = 'intraop_entries';
+const INTRAOP_VERSION = '4'; // bumped: session/specimen restructuring — one session can hold multiple specimens
+const VERSION_KEY = 'pathscribe_mock_intraop_version';
+try {
+  const storedVersion = localStorage.getItem(VERSION_KEY);
+  if (storedVersion !== INTRAOP_VERSION) {
+    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    localStorage.setItem(VERSION_KEY, INTRAOP_VERSION);
+  }
+} catch { /* SSR / sandboxed env — ignore */ }
+
+// Stands in for "cases that arrived via formal LIS accession" — see file header.
+interface CandidateCase {
+  caseId: string;
+  patientName: string; // "Last, First"
+  mrn: string;
+  surgeon: string;
+  accessionedAt: string;
+}
+const CANDIDATE_CASES: CandidateCase[] = [
+  { caseId: 'O26-0021', patientName: 'Whitfield, Margaret', mrn: 'MRN-88214', surgeon: 'Dr. Owusu',    accessionedAt: '2026-07-11T14:35:00.000Z' },
+  { caseId: 'O26-0022', patientName: 'Delacroix, Henri',    mrn: 'MRN-77002', surgeon: 'Dr. Faulkner',  accessionedAt: '2026-07-11T13:10:00.000Z' },
+  { caseId: 'O26-0023', patientName: 'Nakamura, Sato',      mrn: 'MRN-91045', surgeon: 'Dr. Reyes',     accessionedAt: '2026-07-11T15:02:00.000Z' },
+];
+
+// Stands in for a real ADT feed lookup — a site's hospital-wide patient
+// registry, not this app's own data. Deliberately separate from
+// CANDIDATE_CASES above (that's "cases already accessioned," this is
+// "patients the hospital knows about at all," a different real system
+// in a real deployment). '12345' included specifically so a demo
+// without a real barcode to scan can type a short, memorable MRN and
+// get a consistent, real-looking match every time — not left to
+// Math.random() chance.
+const ADT_RECORDS: Record<string, { patientName: string; dateOfBirth: string }> = {
+  '12345':     { patientName: 'Bennett, Sarah',      dateOfBirth: '1979-03-22' },
+  'MRN-88214': { patientName: 'Whitfield, Margaret', dateOfBirth: '1958-02-11' },
+  'MRN-77002': { patientName: 'Delacroix, Henri',    dateOfBirth: '1971-09-30' },
+};
+
+const SEED_ENTRIES: IntraoperativeEntry[] = [
+  {
+    id: 'intraop-001',
+    patientMatch: { source: 'barcode', patientName: 'Whitfield, Margaret', mrn: 'MRN-88214', dateOfBirth: '1958-02-11', confirmedAt: '2026-07-11T14:20:00.000Z' },
+    performedBy: { userId: 'user-owusu', userName: 'Dr. Owusu' },
+    orNumber: 'OR-4', surgeon: 'Dr. Owusu',
+    specimens: [
+      {
+        id: 'spec-001-a',
+        specimenLabel: 'Specimen A: Left breast, margins',
+        arrivalTimestamp: '2026-07-11T14:18:00.000Z',
+        milestones: [
+          { id: 'm1', milestone: 'gross_logged',          timestamp: '2026-07-11T14:19:10.000Z' },
+          { id: 'm2', milestone: 'touch_prep_performed',  timestamp: '2026-07-11T14:20:40.000Z' },
+          { id: 'm3', milestone: 'frozen_section_cut',    timestamp: '2026-07-11T14:22:15.000Z' },
+        ],
+        preliminaryCytologyDictation: 'Touch prep shows cohesive clusters, mild atypia. Proceeding to freeze.',
+        quickGrossDictation: 'Received fresh, labeled "left breast, margins." Irregular tan-white fibrofatty tissue, 4.2 x 3.1 x 1.8 cm. Sectioned to reveal firm, ill-defined white mass, 1.4 cm greatest dimension.',
+      },
+    ],
+    verbalReportLog: { timestamp: '2026-07-11T14:26:00.000Z', note: 'Spoke with Dr. Owusu. Margins grossly clear, frozen pending.' },
+    status: 'pending',
+    createdAt: '2026-07-11T14:18:00.000Z',
+  },
+  {
+    id: 'intraop-002',
+    patientMatch: { source: 'adt_match', patientName: 'Delacroix, Henri', mrn: 'MRN-77002', dateOfBirth: '1971-09-30', confirmedAt: '2026-07-11T13:02:00.000Z' },
+    performedBy: { userId: 'user-faulkner', userName: 'Dr. Faulkner' },
+    orNumber: 'OR-2', surgeon: 'Dr. Faulkner',
+    specimens: [
+      {
+        id: 'spec-002-a',
+        specimenLabel: 'Specimen A: Right colon mass',
+        arrivalTimestamp: '2026-07-11T13:00:00.000Z',
+        milestones: [
+          { id: 'm1', milestone: 'gross_logged',        timestamp: '2026-07-11T13:01:30.000Z' },
+          { id: 'm2', milestone: 'touch_prep_skipped',  timestamp: '2026-07-11T13:02:05.000Z', skipReason: 'direct_to_frozen' },
+          { id: 'm3', milestone: 'frozen_section_cut',  timestamp: '2026-07-11T13:03:40.000Z' },
+        ],
+        quickGrossDictation: 'Received fresh, right colon segment with attached mass, dense and fibrotic on palpation — proceeding direct to frozen, touch prep not expected to yield adequate cellularity.',
+        frozenSectionDiagnosis: 'Invasive adenocarcinoma, moderately differentiated. Radial margin grossly uninvolved, pending permanent confirmation.',
+      },
+      {
+        // A second specimen in the same session — same patient/OR/surgeon,
+        // real example of what "Next Specimen" actually produces.
+        id: 'spec-002-b',
+        specimenLabel: 'Specimen B: Pericolic lymph node',
+        arrivalTimestamp: '2026-07-11T13:05:00.000Z',
+        milestones: [
+          { id: 'm1', milestone: 'gross_logged', timestamp: '2026-07-11T13:06:00.000Z' },
+        ],
+        quickGrossDictation: 'Single lymph node, 0.8 cm, submitted entirely for frozen.',
+      },
+    ],
+    verbalReportLog: { timestamp: '2026-07-11T13:07:00.000Z', note: 'Spoke with Dr. Faulkner. Invasive adenocarcinoma confirmed on frozen, margin appears clear.' },
+    status: 'pending',
+    createdAt: '2026-07-11T13:00:00.000Z',
+  },
+  {
+    id: 'intraop-003',
+    patientMatch: { source: 'barcode', patientName: 'Okafor, Chidi', mrn: 'MRN-60391', confirmedAt: '2026-07-11T09:44:00.000Z' },
+    performedBy: { userId: 'user-patel', userName: 'Dr. Patel' },
+    orNumber: 'OR-1', surgeon: 'Dr. Patel',
+    specimens: [
+      {
+        id: 'spec-003-a',
+        specimenLabel: 'Specimen A: Thyroid nodule, left lobe',
+        arrivalTimestamp: '2026-07-11T09:42:00.000Z',
+        milestones: [
+          { id: 'm1', milestone: 'gross_logged', timestamp: '2026-07-11T09:43:20.000Z' },
+        ],
+        quickGrossDictation: 'Received a 1.8 cm firm tan nodule, left thyroid lobe. No sutures placed, no orientation given by surgeon.',
+      },
+    ],
+    status: 'pending', // deliberately no real case candidate matches this one — a session genuinely awaiting a formal accession that hasn't arrived yet
+    createdAt: '2026-07-11T09:42:00.000Z',
+  },
+];
+
+const load    = (): IntraoperativeEntry[] => storageGet<IntraoperativeEntry[]>(STORAGE_KEY, SEED_ENTRIES);
+const persist = (data: IntraoperativeEntry[]) => storageSet(STORAGE_KEY, data);
+
+const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
+const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
+
+/** Last name only, case-insensitive — "Whitfield, Margaret" -> "whitfield". */
+const lastName = (fullName: string) => fullName.split(',')[0].trim().toLowerCase();
+
+/** A session's arrival, for matching purposes, is its earliest specimen's
+ *  arrival — the moment the case genuinely started at the bench. */
+const sessionArrival = (entry: IntraoperativeEntry): string =>
+  entry.specimens.reduce((earliest, s) => s.arrivalTimestamp < earliest ? s.arrivalTimestamp : earliest, entry.specimens[0]?.arrivalTimestamp ?? entry.createdAt);
+
+function findMatchCandidates(entry: IntraoperativeEntry): MatchCandidate[] {
+  const candidates: MatchCandidate[] = [];
+
+  const exact = CANDIDATE_CASES.find(c => c.mrn === entry.patientMatch.mrn);
+  if (exact) {
+    candidates.push({ caseId: exact.caseId, matchType: 'mrn_exact', matchReason: 'MRN exact match', confidence: 'high' });
+    return candidates; // an exact MRN match is decisive — no need to also surface weaker fuzzy candidates
+  }
+
+  const arrival = sessionArrival(entry);
+  for (const c of CANDIDATE_CASES) {
+    const sameLastName = lastName(c.patientName) === lastName(entry.patientMatch.patientName);
+    const sameSurgeon = c.surgeon.toLowerCase() === entry.surgeon.toLowerCase();
+    const minutesApart = Math.abs(new Date(c.accessionedAt).getTime() - new Date(arrival).getTime()) / 60000;
+    if (sameLastName && sameSurgeon && minutesApart <= 90) {
+      candidates.push({
+        caseId: c.caseId,
+        matchType: 'fuzzy',
+        matchReason: `Last name + surgeon match, accessioned ${Math.round(minutesApart)} min after arrival`,
+        confidence: minutesApart <= 30 ? 'high' : 'medium',
+      });
+    }
+  }
+  return candidates;
+}
+
+/** The inverse direction of findMatchCandidates — given a case that was
+ *  just formally accessioned, find any pending intraop sessions that
+ *  might belong to it. Same priority order: MRN exact short-circuits
+ *  fuzzy, same 90-minute proximity window. This is what
+ *  AccessionPage's post-submit check calls, since a newly-accessioned
+ *  case is exactly the moment the original spec describes: "when the
+ *  formal order finally arrives from the LIS." */
+function findEntryMatchesForCase(caseInfo: { patientName: string; mrn: string; surgeon: string; accessionedAt: string }): EntryMatch[] {
+  const pending = load().filter(e => e.status === 'pending');
+
+  const exact = pending.find(e => e.patientMatch.mrn === caseInfo.mrn);
+  if (exact) {
+    return [{ entry: exact, matchType: 'mrn_exact', matchReason: 'MRN exact match', confidence: 'high' }];
+  }
+
+  const matches: EntryMatch[] = [];
+  for (const e of pending) {
+    const sameLastName = lastName(e.patientMatch.patientName) === lastName(caseInfo.patientName);
+    const sameSurgeon = e.surgeon.toLowerCase() === caseInfo.surgeon.toLowerCase();
+    const minutesApart = Math.abs(new Date(caseInfo.accessionedAt).getTime() - new Date(sessionArrival(e)).getTime()) / 60000;
+    if (sameLastName && sameSurgeon && minutesApart <= 90) {
+      matches.push({
+        entry: e,
+        matchType: 'fuzzy',
+        matchReason: `Last name + surgeon match, arrived ${Math.round(minutesApart)} min before accession`,
+        confidence: minutesApart <= 30 ? 'high' : 'medium',
+      });
+    }
+  }
+  return matches;
+}
+
+export const mockIntraoperativeService: IIntraoperativeService = {
+  async lookupAdtRecord(mrn: string): Promise<ServiceResult<{ patientName: string; dateOfBirth: string } | null>> {
+    return ok(ADT_RECORDS[mrn.trim()] ?? null);
+  },
+
+  async getAll(): Promise<ServiceResult<IntraoperativeEntry[]>> {
+    return ok([...load()]);
+  },
+
+  async getPending(): Promise<ServiceResult<IntraoperativeEntry[]>> {
+    return ok(load().filter(e => e.status === 'pending'));
+  },
+
+  async createSession(input: {
+    patientMatch: { source: 'barcode' | 'adt_match'; patientName: string; mrn: string; dateOfBirth?: string };
+    performedBy: { userId: string; userName: string };
+    orNumber: string;
+    surgeon: string;
+  }): Promise<ServiceResult<IntraoperativeEntry>> {
+    if (!input.patientMatch.patientName.trim() || !input.patientMatch.mrn.trim()) {
+      return err('Patient name and MRN are required to start an intraoperative session.');
+    }
+    const now = new Date().toISOString();
+    const newEntry: IntraoperativeEntry = {
+      id: `intraop-${Date.now().toString(36)}`,
+      patientMatch: { ...input.patientMatch, confirmedAt: now },
+      performedBy: input.performedBy,
+      orNumber: input.orNumber.trim(),
+      surgeon: input.surgeon.trim(),
+      specimens: [],
+      status: 'pending',
+      createdAt: now,
+    };
+    const entries = load();
+    persist([...entries, newEntry]);
+    return ok(newEntry);
+  },
+
+  async addSpecimen(sessionId: string, specimenLabel: string): Promise<ServiceResult<IntraoperativeEntry>> {
+    if (!specimenLabel.trim()) return err('Specimen label is required.');
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === sessionId);
+    if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
+    const newSpecimen: IntraopSpecimen = {
+      id: `spec-${Date.now().toString(36)}`,
+      specimenLabel: specimenLabel.trim(),
+      arrivalTimestamp: new Date().toISOString(),
+      milestones: [],
+    };
+    entries[idx] = { ...entries[idx], specimens: [...entries[idx].specimens, newSpecimen] };
+    persist(entries);
+    return ok({ ...entries[idx] });
+  },
+
+  async getMatchCandidates(entryId: string): Promise<ServiceResult<MatchCandidate[]>> {
+    const entry = load().find(e => e.id === entryId);
+    if (!entry) return err(`Intraoperative session ${entryId} not found`);
+    return ok(findMatchCandidates(entry));
+  },
+
+  async findMatchesForNewCase(caseInfo: { patientName: string; mrn: string; surgeon: string; accessionedAt: string }): Promise<ServiceResult<EntryMatch[]>> {
+    return ok(findEntryMatchesForCase(caseInfo));
+  },
+
+  async addMilestone(sessionId: string, specimenId: string, milestone: MilestoneType, skipReason?: SkipReason, skipReasonNote?: string, quickGrossText?: string): Promise<ServiceResult<IntraoperativeEntry>> {
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === sessionId);
+    if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
+    const specIdx = entries[idx].specimens.findIndex(s => s.id === specimenId);
+    if (specIdx === -1) return err(`Specimen ${specimenId} not found in session ${sessionId}`);
+    const specimen = entries[idx].specimens[specIdx];
+
+    // Real, hard gate — unlike touch prep's deliberate "active override"
+    // pattern, there's no clinical scenario where Quick Gross can be
+    // legitimately skipped the way touch prep can be for dense, fibrotic
+    // tissue. Every specimen has some macroscopic appearance that must
+    // be recorded before anything else — it's what justifies why that
+    // specific tissue got frozen in the first place. Per specimen, not
+    // per session — one specimen being further along than another in the
+    // same session is normal, not an error.
+    const requiresQuickGrossFirst: MilestoneType[] = ['touch_prep_performed', 'touch_prep_skipped', 'frozen_section_cut'];
+    if (requiresQuickGrossFirst.includes(milestone)) {
+      const hasQuickGross = specimen.milestones.some(m => m.milestone === 'gross_logged') && !!specimen.quickGrossDictation?.trim();
+      if (!hasQuickGross) {
+        return err('Quick Gross must be logged for this specimen before Touch Prep or Frozen Section Cut — dictate basic dimensions, what was frozen, and orientation first.');
+      }
+    }
+    if (milestone === 'gross_logged' && !quickGrossText?.trim()) {
+      return err('Quick Gross requires actual dictation — a timestamp alone isn\u2019t enough to justify what gets frozen next.');
+    }
+
+    const newMilestone: MilestoneEntry = {
+      id: `m-${Date.now().toString(36)}`, milestone, timestamp: new Date().toISOString(), skipReason, skipReasonNote,
+    };
+    const updatedSpecimen: IntraopSpecimen = {
+      ...specimen,
+      milestones: [...specimen.milestones, newMilestone],
+      ...(quickGrossText ? { quickGrossDictation: quickGrossText } : {}),
+    };
+    const updatedSpecimens = [...entries[idx].specimens];
+    updatedSpecimens[specIdx] = updatedSpecimen;
+    entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
+    persist(entries);
+    return ok({ ...entries[idx] });
+  },
+
+  async setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string): Promise<ServiceResult<IntraoperativeEntry>> {
+    if (!diagnosis.trim()) return err('Frozen section diagnosis cannot be empty.');
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === sessionId);
+    if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
+    const specIdx = entries[idx].specimens.findIndex(s => s.id === specimenId);
+    if (specIdx === -1) return err(`Specimen ${specimenId} not found in session ${sessionId}`);
+    const updatedSpecimens = [...entries[idx].specimens];
+    updatedSpecimens[specIdx] = { ...updatedSpecimens[specIdx], frozenSectionDiagnosis: diagnosis.trim() };
+    entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
+    persist(entries);
+    return ok({ ...entries[idx] });
+  },
+
+  async merge(entryId: string, caseId: string): Promise<ServiceResult<IntraoperativeEntry>> {
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === entryId);
+    if (idx === -1) return err(`Intraoperative session ${entryId} not found`);
+    entries[idx] = { ...entries[idx], status: 'merged', mergedIntoCaseId: caseId, mergedAt: new Date().toISOString() };
+    persist(entries);
+    return ok({ ...entries[idx] });
+  },
+};

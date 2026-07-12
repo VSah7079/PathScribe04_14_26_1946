@@ -10,8 +10,20 @@ import {
   Firestore,
 } from 'firebase/firestore';
 
-import { IFlagService, Flag, TagClass } from './IFlagService';
+import { IFlagService, Flag } from './IFlagService';
 import { ServiceResult, ID } from '../types';
+
+// ── Note for whoever wires this up to a real Firestore backend ──────────
+// Flag.tagClass ('ADMINISTRATIVE' | 'COMPUTATIONAL') still exists on the
+// type for backward compatibility with existing mock seed data, but it
+// is functionally dead — nothing in the app reads it to make a decision
+// anymore (see the comment on Flag.tagClass in IFlagService.ts for the
+// full reasoning, and the FlagManagerModal fix it was blocking). Do NOT
+// persist it as a real field in whatever schema/collection backs this —
+// no index, no column, no required field. If a genuine need for a
+// flag-type distinction resurfaces later, it deserves a fresh field and
+// a fresh reason, not a revival of this one.
+// ──────────────────────────────────────────────────────────────────────
 
 const COL = 'flags';
 
@@ -38,16 +50,6 @@ export class FirestoreFlagService implements IFlagService {
       const snap = await getDoc(doc(this.db, COL, id));
       if (!snap.exists()) return err(`Flag ${id} not found`);
       return ok(toFlag(snap.id, snap.data() as Record<string, unknown>));
-    } catch (e) {
-      return err((e as Error).message);
-    }
-  }
-
-  async getByClass(tagClass: TagClass): Promise<ServiceResult<Flag[]>> {
-    try {
-      const q    = query(collection(this.db, COL), where('tagClass', '==', tagClass));
-      const snap = await getDocs(q);
-      return ok(snap.docs.map(d => toFlag(d.id, d.data() as Record<string, unknown>)));
     } catch (e) {
       return err((e as Error).message);
     }

@@ -48,16 +48,20 @@ const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'm
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
-  { id: 'ai',        label: 'AI Behavior'        },
-  { id: 'protocols', label: 'Synoptic Library'   },
-  { id: 'staff',     label: 'Staff'              },
-  { id: 'voice',     label: 'Voice'              },
-  { id: 'system',    label: 'System'             },
-  { id: 'actions',   label: 'Action Registry'    },
-  { id: 'macros',    label: 'Macros'             },
-  { id: 'templates', label: 'Report Templates'   },
+  { id: 'actions',    label: 'Action Registry'    },
+  { id: 'ai',         label: 'AI Behavior'        },
+  { id: 'macros',     label: 'Macros'             },
+  { id: 'templates',  label: 'Report Templates'   },
+  { id: 'staff',      label: 'Staff'              },
+  { id: 'protocols',  label: 'Synoptic Library'   },
+  { id: 'system',     label: 'System'             },
   { id: 'validation', label: 'Validation Studies' },
-  { id: 'demo',       label: '⟳ Demo Reset'         },
+  { id: 'voice',      label: 'Voice'              },
+  // Pinned last deliberately, not alphabetized — a reset/destructive
+  // action, same convention as keeping "Delete Account" separate from
+  // an alphabetized settings list rather than letting it land wherever
+  // "D" happens to sort.
+  { id: 'demo',       label: '⟳ Demo Reset'       },
 ];
 
 function getTabFromSearch(search: string): TabId {

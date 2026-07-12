@@ -5,7 +5,9 @@ import FlagConfigPage            from './FlagConfigPage';
 import SpecimenDictionarySection from './SpecimenDictionarySection';
 import StainDictionarySection from './StainDictionarySection';
 import ProtocolDictionarySection from './ProtocolDictionarySection';
+import GrossingRouteOverridesSection from './GrossingRouteOverridesSection';
 import SpecimenCategoriesSection from './SpecimenCategoriesSection';
+import ContainerTypesSection from './ContainerTypesSection';
 import SubspecialtiesSection     from './SubspecialtiesSection';
 import FontsSection              from './FontsSection';
 import LISSection                from './LISSection';
@@ -30,12 +32,14 @@ type SystemSection =
   | 'specimens'
   | 'stains'
   | 'specimen_categories'
+  | 'container_types'
   | 'fonts'
   | 'lis'
   | 'retention'
   | 'clients'
   | 'physicians'
   | 'protocols'
+  | 'grossing_route_overrides'
   | 'deficiencies'
   | 'identifiers'
   | 'governing_bodies'
@@ -51,10 +55,12 @@ const SECTIONS: { id: SystemSection; emoji: string; label: string }[] = [
   { id: 'fonts',               emoji: '🔤', label: 'Approved Fonts'        },
   { id: 'case_routing',        emoji: '🔀', label: 'Case Routing'          },
   { id: 'clients',             emoji: '🏥', label: 'Client Dictionary'     },
+  { id: 'container_types',     emoji: '🧪', label: 'Container Types'       },
   { id: 'retention',           emoji: '🗄️', label: 'Data Retention'        },
   { id: 'delegation_types',    emoji: '🔀', label: 'Delegation Types'      },
   { id: 'flags',               emoji: '🚩', label: 'Flags'                 },
   { id: 'governing_bodies',    emoji: '📋', label: 'Governing Bodies'      },
+  { id: 'grossing_route_overrides', emoji: '🔀', label: 'Grossing Route Overrides' },
   { id: 'identifiers',         emoji: '🔍', label: 'Identifier Formats'    },
   { id: 'lis',                 emoji: '🔗', label: 'LIS Integration'       },
   { id: 'participation_types', emoji: '👥', label: 'Participation Types'   },
@@ -92,7 +98,9 @@ const SystemTab: React.FC = () => {
       case 'specimens':           return <SpecimenDictionarySection />;
       case 'stains':              return <StainDictionarySection />;
       case 'protocols':           return <ProtocolDictionarySection />;
+      case 'grossing_route_overrides': return <GrossingRouteOverridesSection />;
       case 'specimen_categories': return <SpecimenCategoriesSection />;
+      case 'container_types': return <ContainerTypesSection />;
       case 'fonts':               return <FontsSection />;
       case 'lis':                 return <LISSection />;
       case 'retention':           return <RetentionSection />;

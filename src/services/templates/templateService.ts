@@ -78,8 +78,38 @@ export interface ServiceError {
 // Stores the full EditorTemplate structure keyed by id.
 // PROTOCOL_REGISTRY holds the summary/status view; this holds the field data.
 // Both are updated together on every write.
+//
+// localStorage bridge — same pattern as protocolShared.tsx's registry
+// overrides, added for the same reason: this was a plain in-memory Map,
+// meaning a real Build/Customise session lost all its field/section work
+// on a page refresh even though the registry's lifecycle status (draft,
+// in_review, etc.) survived. That mismatch was flagged directly rather
+// than left implicit — a template could show "draft" in the registry
+// with no real content behind it anymore. Local-only, same tradeoff as
+// the registry bridge: fast, protects against accidental refresh, but
+// doesn't sync across machines or survive clearing browser data. A real
+// backend-backed autosave is separate, larger scope — deliberately not
+// attempted here.
+// Key: ps_editor_store_v1  Value: Record<id, EditorTemplate>
 
 const editorStore = new Map<string, EditorTemplate>();
+
+const EDITOR_STORE_KEY = 'ps_editor_store_v1';
+
+function loadEditorStoreOverrides(): Record<string, EditorTemplate> {
+  try {
+    const raw = localStorage.getItem(EDITOR_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveEditorStoreOverride(id: string, template: EditorTemplate): void {
+  try {
+    const overrides = loadEditorStoreOverrides();
+    overrides[id] = template;
+    localStorage.setItem(EDITOR_STORE_KEY, JSON.stringify(overrides));
+  } catch { /* storage unavailable */ }
+}
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -197,6 +227,7 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
   // â”€â”€ MOCK â”€â”€
   const ts = now();
   editorStore.set(template.id, template);
+  saveEditorStoreOverride(template.id, template);
   upsertRegistry({
     id:           template.id,
     name:         template.name || 'Untitled',
@@ -637,10 +668,32 @@ editorStore.set('rcpath_prostate_turp_enucleation',           RCPATH_PROSTATE_TU
 // no parent/child relationship between them; Stage 0's AI assignment picks
 // the right one per specimen, the same way CAP_TO_REPORT picks a Report
 // Template in TemplateRoutingService.ts.
-import GROSSING_STANDARD_TISSUE_JSON from '../../data/templates/custom/grossing_standard_tissue.json';
-import GROSSING_FLUID_CYTOLOGY_JSON  from '../../data/templates/custom/grossing_fluid_cytology.json';
-import GROSSING_HISTOLOGY_ONLY_JSON  from '../../data/templates/custom/grossing_histology_only.json';
+import GROSSING_STANDARD_TISSUE_JSON from '../../data/templates/Grossing/grossing_standard_tissue.json';
+import GROSSING_FLUID_CYTOLOGY_JSON  from '../../data/templates/Grossing/grossing_fluid_cytology.json';
+import THYROID_FNA_CYTOLOGY_JSON     from '../../data/templates/Cytology/cytology_thyroid_fna_cytology.json';
+import SALIVARY_GLAND_FNA_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_salivary_gland_fna_cytology.json';
+import URINE_CYTOLOGY_JSON           from '../../data/templates/Cytology/cytology_urine_cytology.json';
+import PANCREATICOBILIARY_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_pancreaticobiliary_cytology.json';
+import LYMPH_NODE_FNA_CYTOLOGY_JSON  from '../../data/templates/Cytology/cytology_lymph_node_fna_cytology.json';
+import GROSSING_HISTOLOGY_ONLY_JSON  from '../../data/templates/Grossing/grossing_histology_only.json';
 
 editorStore.set('grossing_standard_tissue', GROSSING_STANDARD_TISSUE_JSON as any);
 editorStore.set('grossing_fluid_cytology',  GROSSING_FLUID_CYTOLOGY_JSON  as any);
+editorStore.set('thyroid_fna_cytology',     THYROID_FNA_CYTOLOGY_JSON     as any);
+editorStore.set('salivary_gland_fna_cytology', SALIVARY_GLAND_FNA_CYTOLOGY_JSON as any);
+editorStore.set('urine_cytology',           URINE_CYTOLOGY_JSON           as any);
+editorStore.set('pancreaticobiliary_cytology', PANCREATICOBILIARY_CYTOLOGY_JSON as any);
+editorStore.set('lymph_node_fna_cytology',  LYMPH_NODE_FNA_CYTOLOGY_JSON  as any);
 editorStore.set('grossing_histology_only',  GROSSING_HISTOLOGY_ONLY_JSON  as any);
+
+// Hydrate from localStorage on module load — merges saved template content
+// on top of the seed data, same timing and same reasoning as
+// protocolShared.tsx's registry hydration: reflects prior-session edits
+// immediately, and restores any template that only ever existed at
+// runtime (never had a hardcoded seed import at all).
+{
+  const overrides = loadEditorStoreOverrides();
+  Object.entries(overrides).forEach(([id, template]) => {
+    editorStore.set(id, template);
+  });
+}

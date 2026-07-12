@@ -180,7 +180,7 @@ export type AuditPayload = {
   comp_config_protocol_unlinked:  { flagId?: string; protocolId?: string };
   // ── Validation Studies ──
   validation_study_created:        { studyName: string; clientCount: number; pathologistCount: number };
-  validation_study_activated:      { studyName: string; approvedBy: string };
+  validation_study_activated:      { studyName: string; activatedBy: string; irbReference?: string };
   validation_study_closed:         { studyName: string; signalCount: number };
   validation_study_deleted:        { studyName: string };
   validation_report_generated:     { studyName: string; caseCount: number; acceptanceRate: string };
@@ -189,10 +189,42 @@ export type AuditPayload = {
   validation_routing_rule_deleted: { entityName: string; ruleType: string };
   // ── Synoptic Report Page ──
   case_finalized:             { caseId: string; accession?: string; finalizedBy: string; excludedCount: number };
-  protocol_change_committed: { caseId: string; acceptedCount: number; totalProposed: number };
-  flag_manager_opened:       { caseId: string };
+  protocol_change_committed: { caseId: string; acceptedCount: number; totalProposed: number; actions?: string[] };
+  flag_manager_opened:       { caseId: string; source?: string };
   team_modal_opened:         { caseId: string };
   codes_modal_opened:        { caseId: string };
+  gross_complete:            { caseId: string; accession?: string; specimenCount: number };
+  gross_updated:             { caseId: string; accession?: string; specimenCount: number; reason?: string };
+
+  // ── Messaging (AppShell) ──
+  message_sent:               { recipientId: string; recipientName: string; isUrgent: boolean };
+  secure_email_sent:          { recipientEmail: string; subject: string };
+
+  // ── Audit log itself ──
+  audit_log_viewed:           Record<string, never>;
+
+  // ── Identifier Formats ──
+  identifier_format_toggled:  { formatId: string; label: string; enabled: boolean };
+  identifier_formats_saved:   { jurisdiction: string; enabledCount: number };
+
+  // ── TAT Configuration ──
+  tat_entry_deleted:          { id: string; type: string };
+  tat_entry_toggled:          { id: string; type: string; active: boolean };
+  tat_entry_updated:          { id: string; type: string; changes: string[] };
+  tat_entry_created:          { type: string; targetHours: number; clientId: string | null; roleId: string | null };
+
+  // ── Flag Manager (real apply/remove — not the removed Computational ordering) ──
+  flag_applied:                { caseId: string; flagName: string; specimenId?: string };
+  flag_removed:                { caseId: string; flagName: string; specimenId?: string };
+
+  // ── Case Search ──
+  case_search_no_results:     { query: string };
+  case_search_performed:      { query: string; resultCount: number };
+  case_search_opened:         { query: string; caseId: string; accession?: string; matchedField?: string };
+
+  // ── Validation Studies (additional — some entries already existed above) ──
+  validation_study_submitted:           { studyName: string; committeeName: string; submittedBy: string };
+  validation_study_approval_recorded:   { studyName: string; irbReference?: string; approvedBy: string; conditions?: string };
 };
 
 // ── Detail string builders ────────────────────────────────────────────────────
@@ -345,7 +377,7 @@ function buildDetail<A extends keyof AuditPayload>(action: A, payload: AuditPayl
     }
     case "validation_study_activated": {
       const p = payload as AuditPayload["validation_study_activated"];
-      return `Validation study activated: "${p.studyName}" — approved by ${p.approvedBy}`;
+      return `Validation study activated: "${p.studyName}" — activated by ${p.activatedBy}`;
     }
     case "validation_study_closed": {
       const p = payload as AuditPayload["validation_study_closed"];

@@ -60,13 +60,18 @@ interface FieldRowProps {
   isPulsing?: boolean;
   fieldRef?: (el: HTMLDivElement | null) => void;
   onFieldFocus?: (fieldId: string) => void;
+  /** True when this field is the currently-active/highlighted one AND
+   *  the AI's cited source text couldn't actually be located in the
+   *  report — an honest signal instead of the highlight silently
+   *  doing nothing. */
+  sourceNotFound?: boolean;
 }
 
 const FieldRow: React.FC<FieldRowProps> = ({
   field, value, onChange, aiSuggestion, onVerify, onLabelClick,
   isActive = false, aiAttempted = false,
   belowThreshold = false, belowThresholdConf, belowThresholdSource,
-  isPulsing = false, fieldRef, onFieldFocus,
+  isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false,
 }) => {
   const strVal = (value ?? '') as string;
   const arrVal = Array.isArray(value) ? value as string[] : [];
@@ -284,6 +289,14 @@ const FieldRow: React.FC<FieldRowProps> = ({
           AI source: {belowThresholdSource}
         </div>
       )}
+      {isActive && sourceNotFound && (
+        <div
+          style={{ marginTop: 4, fontSize: 10, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}
+          title="The AI cited a source for this suggestion, but this app couldn't find that exact text anywhere in the Gross, Microscopic, or Ancillary sections."
+        >
+          <span aria-hidden="true">◐</span> Source not found in report text — verify this value manually
+        </div>
+      )}
     </div>
   );
 };
@@ -352,7 +365,14 @@ interface RightSynopticPanelProps {
   caseData: Case | null;
   activeTab: string;
   activeReportInstanceId?: string;
+  /** Which array activeReportInstanceId actually lives in — this panel
+   *  is a generic template-field editor, usable for either a Grossing
+   *  instance (grossingReports) or a diagnostic Synoptic instance
+   *  (synopticReports). Defaults to 'synoptic' for any caller that
+   *  hasn't been updated to pass this explicitly. */
+  activeReportType?: 'grossing' | 'synoptic';
   onReportInstanceChange?: (id: string) => void;
+  onReportTypeChange?: (type: 'grossing' | 'synoptic') => void;
   onCaseUpdate?: (updated: Case) => void;
   isDirty?: boolean;
   /**
@@ -365,6 +385,11 @@ interface RightSynopticPanelProps {
   scrollToField?: string | null;
   onScrollComplete?: () => void;
   onHighlight?: (source: string | null) => void;
+  /** Whether the last onHighlight source was actually found in the
+   *  report text — see LeftReportPanel's matchResult. When true, shows
+   *  an honest indicator next to the currently-highlighted field
+   *  instead of silently doing nothing. */
+  highlightNotFound?: boolean;
   /**
    * Discrete computational results keyed by assay name (e.g. "HER2 IHC").
    * Passed into the AI prompt so the AI uses discrete LIS data rather than
@@ -373,8 +398,10 @@ interface RightSynopticPanelProps {
   computationalResults?: Record<string, Record<string, string | number | boolean | null>>;
   /**
    * Called whenever AI suggestions are loaded or updated.
-   * SynopticReportPage stores them and passes to SidecarDisplay for
-   * concordance checking against the discrete computational result.
+   * Previously also fed SidecarDisplay's concordance check against a
+   * discrete computational result — removed along with the rest of
+   * the ordering/result apparatus. Kept here since aiSuggestions are
+   * still genuinely used elsewhere (report drafting, verification).
    */
   onAiSuggestionsUpdate?: (suggestions: Record<string, AiSuggestion>) => void;
 }
@@ -384,10 +411,20 @@ const TEMPLATE_CACHE = new Map<string, any>();
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
-  ({ caseData: initialCaseData, activeReportInstanceId, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, computationalResults, onAiSuggestionsUpdate }, ref) => {
+  ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', onReportTypeChange, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate }, ref) => {
 
   const orchestratorMode = useMemo(() => getOrchestratorMode(), []);
   const caseData = initialCaseData;
+
+  // This panel is a generic template-field editor — it doesn't care
+  // whether it's editing a Grossing instance or a diagnostic Synoptic
+  // one, only which array to read/write. These two helpers are the
+  // single place that decision gets made, so every load/save site
+  // below stays identical regardless of which kind of report is active.
+  const activeReportsKey: 'grossingReports' | 'synopticReports' =
+    activeReportType === 'grossing' ? 'grossingReports' : 'synopticReports';
+  const getActiveReports = useCallback((c: Case | null): any[] =>
+    (c as any)?.[activeReportsKey] ?? [], [activeReportsKey]);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [templateDetail,      setTemplateDetail]      = useState<TemplateDetail | null>(null);
@@ -398,8 +435,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   const [activeSectionId,     setActiveSectionId]     = useState('');
   const [viewMode,            setViewMode]            = useState<'tabs' | 'page'>('tabs');
   const [aiSuggestions,       setAiSuggestions]       = useState<Record<string, AiSuggestion>>({});
+  const [isRegenerating,      setIsRegenerating]      = useState(false);
 
-  // Notify parent whenever suggestions update so SidecarDisplay can check concordance
+  // Notify parent whenever suggestions update — previously also fed
+  // SidecarDisplay's concordance check, removed along with the rest
+  // of the ordering/result apparatus.
   const updateAiSuggestions = useCallback((sugs: Record<string, AiSuggestion>) => {
     setAiSuggestions(sugs);
     onAiSuggestionsUpdate?.(sugs);
@@ -408,6 +448,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   const [pulsingFieldId,      setPulsingFieldId]      = useState<string | null>(null);
   const [confidenceThreshold, setConfidenceThreshold] = useState(75);
   const [autoInsertSuggestions, setAutoInsertSuggestions] = useState(false);
+  const [microscopicAiEnabled, setMicroscopicAiEnabled] = useState(true);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const loadedAnswersRef   = useRef<string>('');
@@ -421,6 +462,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       if (res.ok) {
         setConfidenceThreshold(res.data.confidenceThreshold ?? 75);
         setAutoInsertSuggestions(res.data.autoInsertSuggestions ?? false);
+        setMicroscopicAiEnabled(res.data.microscopicEnabled ?? true);
       }
     });
   }, []);
@@ -430,12 +472,12 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     if (!caseData || !activeReportInstanceId) return;
     const current = JSON.stringify(answers);
     if (current === loadedAnswersRef.current) return;
-    const updatedReports = (caseData.synopticReports ?? []).map(r =>
+    const updatedReports = getActiveReports(caseData).map(r =>
       r.instanceId === activeReportInstanceId
         ? { ...r, answers, updatedAt: new Date().toISOString() }
         : r
     );
-    onCaseUpdate?.({ ...caseData, synopticReports: updatedReports, updatedAt: new Date().toISOString() });
+    onCaseUpdate?.({ ...caseData, [activeReportsKey]: updatedReports, updatedAt: new Date().toISOString() } as any);
   }, [answers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Jump to field ─────────────────────────────────────────────────────────
@@ -573,7 +615,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
 
     validateRequired(): MissingRequiredField[] {
       if (!templateDetail) return [];
-      const inst = caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any;
+      const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as any;
       if (inst?.assignedTo && inst.assignedTo !== 'PATH-001') {
         return [{
           sectionId: '__assignment__', sectionTitle: 'Assignment',
@@ -705,11 +747,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
         let answersToLoad: Record<string, string | string[]> = {};
         let activeInst: any = null;
 
-        if (activeReportInstanceId && caseData.synopticReports?.length) {
-          const inst = caseData.synopticReports.find(r => r.instanceId === activeReportInstanceId);
+        if (activeReportInstanceId && getActiveReports(caseData).length) {
+          const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId);
           if (inst) { templateId = inst.templateId; answersToLoad = inst.answers ?? {}; activeInst = inst; }
-        } else if (caseData.synopticReports?.length) {
-          const first = caseData.synopticReports[0];
+        } else if (getActiveReports(caseData).length) {
+          const first = getActiveReports(caseData)[0];
           templateId = first.templateId; answersToLoad = first.answers ?? {}; activeInst = first;
         } else if (caseData.synopticTemplateId) {
           templateId = caseData.synopticTemplateId;
@@ -764,9 +806,70 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       }
     })();
     return () => { cancelled = true; };
-  }, [initialCaseData?.id, initialCaseData?.synopticTemplateId, initialCaseData?.synopticReports?.length, activeReportInstanceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialCaseData?.id, initialCaseData?.synopticTemplateId, initialCaseData?.synopticReports?.length, (initialCaseData as any)?.grossingReports?.length, activeReportInstanceId, activeReportType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── setAnswer ─────────────────────────────────────────────────────────────
+  // ── Regenerate AI suggestions from the current Gross description ──────────
+  // Triggered by the "⚡ Orchestrator" pill. Non-destructive by design,
+  // same convention as the initial-load prefill above: aiSuggestions
+  // always gets the fresh result (so Confirm/Override badges update to
+  // reflect it), but answers only gets touched for fields that are
+  // still empty AND autoInsertSuggestions is on — a field the
+  // pathologist already typed into, confirmed, or overrode is never
+  // silently replaced.
+  const handleRegenerateFromGross = useCallback(async () => {
+    if (!caseData || !activeReportInstanceId || !templateDetail || isRegenerating) return;
+    const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId);
+    if (!inst) return;
+
+    setIsRegenerating(true);
+    try {
+      const allFields = templateDetail.template.sections.flatMap((s: EditorSection) => s.fields);
+      const { generateAiSuggestionsForReport } = await import('@/services/cases/mockCaseService');
+      const suggestions = await generateAiSuggestionsForReport(
+        caseData, inst.templateId, allFields, computationalResults
+      );
+
+      updateAiSuggestions(suggestions as any);
+
+      let nextAnswers: Record<string, string | string[]> = {};
+      setAnswers(prev => {
+        const next = { ...prev };
+        // Unlike the passive page-load prefill, this is an explicit,
+        // deliberate click — the pathologist just asked for this
+        // specific regeneration, so it isn't gated behind the global
+        // Auto-Insert Suggestions toggle (that setting exists to guard
+        // against *silent* AI involvement, which doesn't apply to an
+        // action someone just triggered on purpose). Still respects
+        // the confidence threshold, and still never touches a field
+        // that already has a value — same non-destructive guarantee
+        // as before, just without the extra passive-only gate.
+        Object.entries(suggestions).forEach(([fieldId, sug]: [string, any]) => {
+          const aboveThreshold = (sug.confidence ?? 0) >= (confidenceThreshold || 75);
+          const fieldEmpty = !next[fieldId] || next[fieldId] === '' ||
+            (Array.isArray(next[fieldId]) && (next[fieldId] as string[]).length === 0);
+          if (aboveThreshold && fieldEmpty) next[fieldId] = sug.value;
+        });
+        nextAnswers = next;
+        return next;
+      });
+
+      // Persist so the regenerated suggestions AND newly-filled answers
+      // survive navigation/reload, same mechanism the deferred-toggle
+      // button below uses.
+      const idx = getActiveReports(caseData).findIndex(r => r.instanceId === activeReportInstanceId);
+      if (idx >= 0) {
+        const reports = [...getActiveReports(caseData)];
+        reports[idx] = { ...reports[idx], aiSuggestions: suggestions, answers: nextAnswers } as any;
+        onCaseUpdate?.({ ...caseData, [activeReportsKey]: reports } as any);
+      }
+    } catch (e) {
+      console.error('[RightSynopticPanel] Regenerate from Gross failed:', e);
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [caseData, activeReportInstanceId, templateDetail, isRegenerating, computationalResults, confidenceThreshold, onCaseUpdate, updateAiSuggestions]);
+
   const setAnswer = useCallback((fieldId: string, value: string | string[]) => {
     setAnswers(prev => {
       const next = { ...prev, [fieldId]: value };
@@ -860,17 +963,22 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       setAnswers({});
       updateAiSuggestions({});
       if (detail.template.sections.length > 0) setActiveSectionId(detail.template.sections[0].id);
-      const allFields = detail.template.sections.flatMap((s: any) => s.fields);
-      const suggestions = await generateAiSuggestionsForReport(caseData, id, allFields, computationalResults);
-      if (Object.keys(suggestions).length > 0) {
-        updateAiSuggestions(suggestions);
-        setAnswers(prev => {
-          const prefilled = { ...prev };
-          Object.entries(suggestions).forEach(([fieldId, sug]) => {
-            if (!prefilled[fieldId]) prefilled[fieldId] = sug.value as string | string[];
+      // Microscopic-Driven AI toggle (Config → AI Behavior) — same gap as
+      // Gross-Driven AI: persisted correctly, read by nothing. Wired here
+      // rather than call generateAiSuggestionsForReport unconditionally.
+      if (microscopicAiEnabled) {
+        const allFields = detail.template.sections.flatMap((s: any) => s.fields);
+        const suggestions = await generateAiSuggestionsForReport(caseData, id, allFields, computationalResults);
+        if (Object.keys(suggestions).length > 0) {
+          updateAiSuggestions(suggestions);
+          setAnswers(prev => {
+            const prefilled = { ...prev };
+            Object.entries(suggestions).forEach(([fieldId, sug]) => {
+              if (!prefilled[fieldId]) prefilled[fieldId] = sug.value as string | string[];
+            });
+            return prefilled;
           });
-          return prefilled;
-        });
+        }
       }
     }} />
   );
@@ -928,6 +1036,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               belowThresholdSource={belowThresh ? sug!.source : undefined}
               onVerify={handleVerify}
               isActive={activeFieldId === f.id}
+              sourceNotFound={activeFieldId === f.id && !!highlightNotFound}
               isPulsing={pulsingFieldId === f.id}
               fieldRef={el => { fieldRefs.current[f.id] = el; }}
               aiAttempted={Object.keys(aiSuggestions).length > 0}
@@ -955,7 +1064,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Assignment badge */}
             {(() => {
-              const inst = caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any;
+              const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as any;
               if (!inst?.assignedTo) return null;
               const isAssignee = inst.assignedTo === 'PATH-001';
               return (
@@ -971,24 +1080,39 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               );
             })()}
             {orchestratorMode && (
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(8,145,178,0.15)', color: '#38bdf8', border: '1px solid rgba(8,145,178,0.3)' }}>
-                ⚡ Orchestrator
-              </span>
+              <button
+                onClick={handleRegenerateFromGross}
+                disabled={isRegenerating || !templateDetail}
+                title={
+                  !templateDetail
+                    ? 'No synoptic template assigned to this specimen yet — nothing to regenerate against'
+                    : "Regenerate AI suggestions for this synoptic from the current Gross description — never overwrites a field you've already answered"
+                }
+                style={{
+                  fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                  background: 'rgba(8,145,178,0.15)', color: '#38bdf8',
+                  border: '1px solid rgba(8,145,178,0.3)',
+                  cursor: isRegenerating || !templateDetail ? 'default' : 'pointer',
+                  opacity: isRegenerating || !templateDetail ? 0.5 : 1,
+                }}
+              >
+                {isRegenerating ? '⚡ Generating…' : '⚡ Orchestrator'}
+              </button>
             )}
             {/* Deferred toggle */}
             {(() => {
-              const inst = caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any;
+              const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as any;
               const isDeferred = inst?.status === 'deferred';
               return (
                 <button
                   title={isDeferred ? 'Marked as deferred — click to unmark' : 'Mark this synoptic as deferred (ancillary results pending)'}
                   onClick={() => {
                     if (!caseData || !activeReportInstanceId) return;
-                    const idx = (caseData.synopticReports ?? []).findIndex(r => r.instanceId === activeReportInstanceId);
+                    const idx = getActiveReports(caseData).findIndex(r => r.instanceId === activeReportInstanceId);
                     if (idx < 0) return;
-                    const reports = [...(caseData.synopticReports ?? [])];
+                    const reports = [...getActiveReports(caseData)];
                     reports[idx] = { ...reports[idx], status: isDeferred ? 'draft' : 'deferred' } as any;
-                    onCaseUpdate?.({ ...caseData, synopticReports: reports } as any);
+                    onCaseUpdate?.({ ...caseData, [activeReportsKey]: reports } as any);
                   }}
                   style={{
                     fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,

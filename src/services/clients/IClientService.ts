@@ -86,6 +86,31 @@ export interface Client {
   clientType: ClientType;
   /** Affiliates only — points to the parent institution's Client.id. */
   parentId?: string;
+  /**
+   * Which internal client's lab actually performs work ordered by this
+   * client. Real, admin-configured data — set once, deliberately — never
+   * inferred from who happens to be logged in or accessioning at the
+   * time; a Trust's real routing relationships don't change session to
+   * session. Resolution: this field if set, else the client's own id if
+   * clientType is 'internal', else undefined (an external client has no
+   * lab of its own by definition and must have this set explicitly —
+   * worth enforcing at client-creation time rather than leaving unset).
+   *
+   * This is administrative/default attribution only — which Trust
+   * entity is nominally responsible for a client's work. It's
+   * deliberately separate from real-time physical specimen tracking
+   * (where a given block actually sits right now — grossing station,
+   * processor, embedding bench, stainer), which is a real, larger,
+   * separate concept, flagged as future work, not built here. That
+   * system would need its own Location entity nested under a client,
+   * plus a `currentLocationId` living on HistologyBlock rather than the
+   * case (blocks already work through the lab semi-independently), plus
+   * an append-only location-transition audit trail — matching the same
+   * pattern already proven by the Deficiency audit log and comment
+   * threads. This field is the sensible fallback until that exists, not
+   * a replacement for it.
+   */
+  performingLabClientId?: string;
   hl7: ClientHL7Settings;
   reporting: ClientReportingPreferences;
 
@@ -161,6 +186,22 @@ export interface Client {
 }
 
 export type ClientInput = Omit<Client, 'id' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * Resolves which client's lab performs work ordered by the given client.
+ * Pure and data-only — reads exactly two stored facts (performingLabClientId,
+ * clientType), nothing derived from session/login context. See
+ * Client.performingLabClientId's own doc comment for the full reasoning.
+ *
+ * Returns undefined for an external client with no override set — that's
+ * a real configuration gap (external clients have no lab of their own by
+ * definition), worth surfacing rather than silently guessing.
+ */
+export function resolvePerformingLabClientId(client: Client): string | undefined {
+  if (client.performingLabClientId) return client.performingLabClientId;
+  if (client.clientType === 'internal') return client.id;
+  return undefined;
+}
 
 export interface IClientService {
   getAll(): Promise<ServiceResult<Client[]>>;

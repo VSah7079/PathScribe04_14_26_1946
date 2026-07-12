@@ -18,9 +18,6 @@ import { DirtyStateProvider } from './contexts/DirtyStateProvider';
 // Voice Integration
 import { VoiceProvider } from "./contexts/VoiceProvider";
 
-// Sidecar — persists drawer state across Worklist ↔ Synoptic navigation
-import { SidecarProvider } from "@/contexts/SidecarContext";
-
 // Scanner Integration (barcode/QR scanner support)
 import { ScannerProvider } from "./contexts/ScannerProvider";
 
@@ -41,6 +38,7 @@ const AccessionPage = lazy(() => import("./pages/AccessionPage/AccessionPage"));
 
 const WorklistPage = lazy(() => import("./pages/WorklistPage/WorklistPage"));
 const DeficienciesPage = lazy(() => import("./pages/DeficienciesPage"));
+const IntraopQueuePage = lazy(() => import("./pages/IntraopQueuePage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const ConfigurationPage = lazy(() => import("./pages/ConfigurationPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
@@ -117,7 +115,6 @@ const App: React.FC = () => (
                 <DirtyStateProvider>
                 <BreadcrumbProvider>
                 <VoiceProvider>
-                  <SidecarProvider>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       
@@ -131,6 +128,7 @@ const App: React.FC = () => (
                           <Route path="/accession" element={<AccessionPage />} />
                           <Route path="/worklist" element={<WorklistPage />} />
                           <Route path="/deficiencies" element={<DeficienciesPage />} />
+                          <Route path="/intraop-queue" element={<IntraopQueuePage />} />
                           <Route path="/search" element={<SearchPage />} />
                           <Route path="/audit" element={<AuditLogPage />} />
                           <Route
@@ -211,7 +209,6 @@ const App: React.FC = () => (
                       <Route path="*" element={<Navigate to="/login" replace />} />
                     </Routes>
                   </Suspense>
-                  </SidecarProvider>
                 </VoiceProvider>
                 </BreadcrumbProvider>
                 </DirtyStateProvider>

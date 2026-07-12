@@ -795,7 +795,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       return;
     }
     if (content !== editor.getHTML()) {
-      editor.commands.setContent(content, false); // false = don't emit another update event
+      editor.commands.setContent(content, { emitUpdate: false }); // don't emit another update event
     }
   }, [content, editor]);
 

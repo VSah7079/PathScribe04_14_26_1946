@@ -99,6 +99,36 @@ function humanizeKey(key: string): string {
     .replace(/^./, c => c.toUpperCase());
 }
 
+// Renders the primary synoptic report's resolved answers as a
+// two-column key/value table. This node type isn't part of the
+// formal TemplateNode union (it's added to std_body_synoptic via
+// an `as unknown as TemplateNode` cast) — previously there was no
+// render case for it at all, so the Synoptic Summary part was
+// silently blank in every preview despite being included in every
+// seeded template's assembly. Pulled out to its own function (called
+// before the main switch, not as a case inside it) so the switch
+// keeps real discriminated-union narrowing for every formal node type.
+function renderSynopticBlock(node: any, ctx: StructuredContext) {
+  const primary = (ctx as any).primarySynoptic ?? (ctx as any).synopticReports?.[0] ?? null;
+  const answers: Record<string, string> = primary?.answers ?? {};
+  const entries = Object.entries(answers);
+  if (entries.length === 0) {
+    return <div className="ps-tpp-no-content">No synoptic data recorded</div>;
+  }
+  return (
+    <div className="ps-tpp-field-table">
+      {entries.map(([key, value]) => (
+        <div key={key} className="ps-tpp-field-row">
+          <div className="ps-tpp-field-cell">
+            <span className="ps-tpp-field-label">{humanizeKey(key)}</span>
+            <span className="ps-tpp-field-value">{String(value)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function resolveField(node: TemplateNode, ctx: StructuredContext): string {
   switch (node.type) {
     case 'expression-value': return resolveExpr(node.template, ctx) || (node.fallback ?? '—');
@@ -163,6 +193,13 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
   ({ node, ctx, pageNum = 1, totalPages = 1 }) => {
   if (node.showWhen && !evalCond(node.showWhen, ctx)) return null;
   if (isField(node)) return <FieldTable nodes={[node]} ctx={ctx} />;
+  // 'synoptic-block' is deliberately outside the formal TemplateNode
+  // union (see mockReportPartService.ts's `as unknown as TemplateNode`
+  // cast) — handled here, before the switch, so the switch below keeps
+  // its real discriminated-union narrowing for every formal node type.
+  if ((node.type as string) === 'synoptic-block') {
+    return renderSynopticBlock(node as any, ctx);
+  }
   switch (node.type) {
     case 'static-label': {
       const variant = node.variant ?? 'body';
@@ -277,33 +314,6 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
           {node.showPageNumbers && <span>Page {pageNum} of {totalPages}</span>}
         </div>
       );
-    case 'synoptic-block': {
-      // Renders the primary synoptic report's resolved answers as a
-      // two-column key/value table. This node type isn't part of the
-      // formal TemplateNode union (it's added to std_body_synoptic via
-      // an `as unknown as TemplateNode` cast) — previously there was no
-      // render case for it at all, so the Synoptic Summary part was
-      // silently blank in every preview despite being included in every
-      // seeded template's assembly.
-      const primary = (ctx as any).primarySynoptic ?? (ctx as any).synopticReports?.[0] ?? null;
-      const answers: Record<string, string> = primary?.answers ?? {};
-      const entries = Object.entries(answers);
-      if (entries.length === 0) {
-        return <div className="ps-tpp-no-content">No synoptic data recorded</div>;
-      }
-      return (
-        <div className="ps-tpp-field-table">
-          {entries.map(([key, value]) => (
-            <div key={key} className="ps-tpp-field-row">
-              <div className="ps-tpp-field-cell">
-                <span className="ps-tpp-field-label">{humanizeKey(key)}</span>
-                <span className="ps-tpp-field-value">{String(value)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
     case 'template-ref':
       return <div className="ps-tpp-template-ref">⊞ {node.refTemplateName || node.refTemplateId}</div>;
     default: return null;

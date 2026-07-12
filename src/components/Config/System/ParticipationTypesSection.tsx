@@ -290,7 +290,7 @@ const ParticipationTypesSection: React.FC = () => {
         <div>{types.filter(t => t.active).length} active · {types.length} total</div>
       </div>
 
-      {modal && <TypeModal mode={modal.mode} type={modal.type} onSave={handleSave} onClose={() => setModal(null)} />}
+      {modal && <TypeModal mode={modal.mode} type={modal.type} isBuiltIn={modal.type?.builtIn ?? false} onSave={handleSave} onClose={() => setModal(null)} />}
     </div>
   );
 };

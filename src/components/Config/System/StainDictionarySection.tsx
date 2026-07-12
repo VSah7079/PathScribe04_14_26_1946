@@ -7,7 +7,8 @@
 // the two dimensions in the data).
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import '../../../pathscribe.css';
 import { stainTypeService, sectioningProtocolService, stainOrderMacroService } from '../../../services';
 import type { StainType, StainCategory, SectioningProtocol, StainOrderMacro } from '../../../services';
@@ -241,6 +242,78 @@ const StainDictionarySection: React.FC = () => {
     return stainTypes.filter(s => !q || s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
   }, [stainTypes, search]);
 
+  // ── Duplicate — genuinely missing before; Protocol Dictionary already
+  // has this exact pattern (handleClone), matched here rather than
+  // inventing a different shape for the same idea.
+  const handleCloneStainType = (source: StainType) => {
+    const { id, version, updatedBy, updatedAt, ...draft } = source;
+    stainTypeService.add({ ...draft, name: `${draft.name} (Copy)` }).then(() => loadAll());
+  };
+
+  // ── Spreadsheet import/export — also genuinely missing before, unlike
+  // Specimen Dictionary which already has this. Same two-step
+  // preview-then-apply shape, matched rather than reinvented.
+  const stainImportFileInputRef = useRef<HTMLInputElement>(null);
+  const [stainImportPreview, setStainImportPreview] = useState<Omit<StainType, 'id' | 'version' | 'updatedBy' | 'updatedAt'>[] | null>(null);
+  const [stainImportCounts, setStainImportCounts] = useState({ newCount: 0, updateCount: 0 });
+
+  const handleDownloadStainTypes = () => {
+    const rows = stainTypes.map(s => ({
+      Name: s.name, Category: s.category, Description: s.description ?? '',
+      AntibodyClone: s.antibodyClone ?? '', Vendor: s.vendor ?? '',
+      DefaultTurnaroundHours: s.defaultTurnaroundHours ?? '', Active: s.active ? 'Yes' : 'No',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Stain Types');
+    XLSX.writeFile(wb, 'StainDictionary.xlsx');
+  };
+
+  const handleStainFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const data = evt.target?.result;
+      if (!data) return;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      const get = (row: any, ...keys: string[]) => { for (const k of keys) if (row[k] !== undefined && row[k] !== '') return String(row[k]).trim(); return ''; };
+      let newCount = 0, updateCount = 0;
+      const preview = rows.map(row => {
+        const name = get(row, 'Name', 'name');
+        const existing = stainTypes.find(s => s.name.toLowerCase() === name.toLowerCase());
+        if (existing) updateCount++; else newCount++;
+        const category = (get(row, 'Category', 'category') || existing?.category || 'Routine') as StainCategory;
+        const turnaround = get(row, 'DefaultTurnaroundHours', 'defaultTurnaroundHours');
+        const activeText = get(row, 'Active', 'active');
+        return {
+          name, category,
+          description: get(row, 'Description', 'description') || existing?.description,
+          antibodyClone: get(row, 'AntibodyClone', 'antibodyClone') || existing?.antibodyClone,
+          vendor: get(row, 'Vendor', 'vendor') || existing?.vendor,
+          defaultTurnaroundHours: turnaround ? Number(turnaround) : existing?.defaultTurnaroundHours,
+          active: activeText ? /^(yes|true|y|1)$/i.test(activeText) : (existing?.active ?? true),
+        };
+      }).filter(d => d.name);
+
+      setStainImportPreview(preview);
+      setStainImportCounts({ newCount, updateCount });
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleApplyStainImport = () => {
+    if (!stainImportPreview) return;
+    Promise.all(stainImportPreview.map(draft => {
+      const existing = stainTypes.find(s => s.name.toLowerCase() === draft.name.toLowerCase());
+      return existing ? stainTypeService.update(existing.id, draft) : stainTypeService.add(draft);
+    })).then(() => {
+      setStainImportPreview(null);
+      loadAll();
+    });
+  };
+
   const stainName = (id: string) => stainTypes.find(s => s.id === id)?.name ?? '—';
   const protocolName = (id: string) => protocols.find(p => p.id === id)?.name ?? '—';
 
@@ -266,9 +339,20 @@ const StainDictionarySection: React.FC = () => {
         <>
           <div className="ps-conf-form-row--3">
             <input type="text" placeholder="Search stain types..." value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
-            <div />
+            <div className="ps-specdict-header-actions">
+              <button className="ps-btn-secondary" onClick={handleDownloadStainTypes}>Export</button>
+              <button className="ps-btn-secondary" onClick={() => stainImportFileInputRef.current?.click()}>Import Spreadsheet</button>
+              <input ref={stainImportFileInputRef} type="file" hidden accept=".csv,.xlsx" onChange={e => { if (e.target.files?.[0]) handleStainFileUpload(e.target.files[0]); e.target.value = ''; }} />
+            </div>
             <button className="ps-conf-btn-primary" onClick={() => setTypeModal({})}>+ Add Stain Type</button>
           </div>
+          {stainImportPreview && (
+            <div className="ps-conf-import-preview">
+              <p>{stainImportCounts.newCount} new, {stainImportCounts.updateCount} to update, parsed from the spreadsheet.</p>
+              <button className="ps-conf-btn-primary" onClick={handleApplyStainImport}>Apply Import</button>
+              <button className="ps-btn-secondary" onClick={() => setStainImportPreview(null)}>Cancel</button>
+            </div>
+          )}
           <div className="ps-conf-table-wrap">
             <div className="ps-conf-table-scroll">
               <table className="ps-conf-table">
@@ -288,7 +372,10 @@ const StainDictionarySection: React.FC = () => {
                           <span className={`ps-conf-status-text ${s.active ? 'ps-conf-status-text--active' : ''}`}>{s.active ? 'Active' : 'Inactive'}</span>
                         </span>
                       </td>
-                      <td className="ps-conf-td"><button className="ps-conf-btn-row" onClick={() => setTypeModal({ entry: s })}>Edit</button></td>
+                      <td className="ps-conf-td">
+                        <button className="ps-conf-btn-row" onClick={() => setTypeModal({ entry: s })}>Edit</button>
+                        <button className="ps-conf-btn-row" onClick={() => handleCloneStainType(s)}>Duplicate</button>
+                      </td>
                     </tr>
                   ))}
                   {filteredTypes.length === 0 && <tr><td className="ps-conf-empty-row" colSpan={6}>No stain types match the current search.</td></tr>}

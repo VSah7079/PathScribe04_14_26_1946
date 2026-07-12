@@ -67,11 +67,35 @@ export const mockProtocolService: IProtocolService = {
     let updated: Protocol | undefined;
     PROTOCOLS = PROTOCOLS.map(p => {
       if (p.id !== id) return p;
-      updated = { ...p, ...changes, version: p.version + 1, updatedBy: 'admin', updatedAt: new Date().toISOString() };
+      // Snapshot the pre-change state before applying anything, so
+      // restoreVersion has something real to go back to.
+      const { history: _prevHistory, ...snapshot } = p;
+      const historyEntry = {
+        version:  p.version,
+        snapshot,
+        savedBy:  p.updatedBy,
+        savedAt:  p.updatedAt,
+      };
+      updated = {
+        ...p, ...changes,
+        version: p.version + 1, updatedBy: 'admin', updatedAt: new Date().toISOString(),
+        history: [...(p.history ?? []), historyEntry],
+      };
       return updated;
     });
     persist(PROTOCOLS);
     if (!updated) return { ok: false, error: 'Not found' } as ServiceResult<Protocol>;
     return ok(updated);
+  },
+
+  async restoreVersion(id: ID, version: number) {
+    const current = PROTOCOLS.find(p => p.id === id);
+    if (!current) return { ok: false, error: 'Not found' } as ServiceResult<Protocol>;
+    const entry = current.history?.find(h => h.version === version);
+    if (!entry) return { ok: false, error: `Version ${version} not found in history` } as ServiceResult<Protocol>;
+    // Restoring is itself a new, recorded version — not a rewrite of
+    // history — so the version you're restoring FROM stays in history
+    // too, and this restore can itself be undone later.
+    return this.update(id, entry.snapshot);
   },
 };

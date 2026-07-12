@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@/pathscribe.css';
 import { claimPoolCase, acceptPoolCase, passPoolCase } from '../../services/cases/mockCaseService';
+import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
 
 interface PoolClaimModalProps {
   isOpen:            boolean;
@@ -80,6 +81,25 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
     onPassed();
     navigate('/worklist', { state: { restoreFilter: fromFilter ?? 'pool' } });
   };
+
+  // Voice: POOL_ACCEPT_CASE / POOL_PASS_CASE. These were tagged category
+  // SYNOPTIC in the action registry but genuinely belong here — accepting
+  // or passing a pool case only ever happens with this modal open, never
+  // inside an already-open Synoptic Report. Self-contained, matching
+  // DelegateModal.tsx's own pattern, rather than the parent Worklist page
+  // trying to reach into this modal's internal accept/pass logic from
+  // outside. Gated on isOpen/busy so a stray recognition doesn't fire
+  // twice or act on a modal that isn't actually showing.
+  useEffect(() => {
+    if (!isOpen) return;
+    const unsubscribe = mockActionRegistryService.onAction((actionId: string) => {
+      if (step === 'accepting' || step === 'passing') return;
+      if (actionId === 'POOL_ACCEPT_CASE') handleAccept();
+      else if (actionId === 'POOL_PASS_CASE') handlePass();
+    });
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, caseId, step]);
 
   if (!isOpen || !caseId) return null;
 

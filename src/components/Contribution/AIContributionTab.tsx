@@ -369,7 +369,7 @@ const AIContributionTab: React.FC = () => {
             </div>
             <div className="ps-quality-bar-list">
               {workflow === "synoptic" && specimens === null
-                ? <div className="ps-quality-empty">Loading case types\u2026</div>
+                ? <div className="ps-quality-empty">Loading case types…</div>
                 : scaledBreakdown.map(r => (
                 <div key={r.label} className="ps-quality-bar-row">
                   <div className="ps-quality-bar-row__label-row">

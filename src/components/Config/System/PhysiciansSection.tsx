@@ -340,7 +340,7 @@ const PhysiciansSection: React.FC = () => {
                       <span className={`ps-conf-status-text ${p.status === 'Active' ? 'ps-conf-status-text--active' : p.status === 'Unverified' ? 'ps-conf-status-text--pending' : ''}`}>{p.status}</span>
                     </div>
                     {p.autoCreated && (
-                      <div className="ps-conf-auto-note" title={p.autoCreatedNote}>
+                      <div className="ps-conf-auto-note">
                         Auto-created{p.autoCreatedAt ? ` ${p.autoCreatedAt}` : ''} — from order intake
                       </div>
                     )}

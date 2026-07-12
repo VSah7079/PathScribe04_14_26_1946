@@ -9,8 +9,6 @@ import type { Jurisdiction } from '@/types/systemConfig';
 import '../../pathscribe.css';
 import { Case } from "../../types/case/Case";
 import { Flag } from '../../services/flags/IFlagService';
-import { useSidecar } from '@/contexts/SidecarContext';
-import ComputationalFlagIcon from '../Flags/ComputationalFlagIcon';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -230,7 +228,7 @@ const FlagChip: React.FC<{ flag: any; isSpecimen?: boolean }> = React.memo(({ fl
   return (
     <span
       className="wl-flag-chip"
-      title={`${isSpecimen ? 'Specimen' : 'Case'}: ${label}`}
+      title={`${isSpecimen ? 'Specimen' : 'Case'}: ${label}${flag.description ? ` — ${flag.description}` : ''}`}
       style={{
         background: palette.bg, 
         border: `1px solid ${palette.border}`,
@@ -337,19 +335,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   const { user } = useAuth();
   const { reloadInbox } = useMessaging();
 
-  const { openOverlay, isOpen: isDrawerOpen, close: closeDrawer } = useSidecar();
-
-  // Lookup map: flagDefinitionId or lisCode → Flag definition.
-  // Used to identify which applied flags are COMPUTATIONAL.
-  const defMap = useMemo(() => {
-    const m = new Map<string, Flag>();
-    flagDefinitions.forEach(f => {
-      m.set(f.id, f);
-      if (f.lisCode) m.set(f.lisCode, f);
-    });
-    return m;
-  }, [flagDefinitions]);
-
+  // useSidecar / defMap removed along with the Sidecar overlay — flag
+  // detail is now just the tooltip on FlagChip itself (includes the
+  // description now), and defMap had no other purpose.
 
   // ── Pediatric access state ──────────────────────────────────────────────
   const [pedBlockedCase, setPedBlockedCase] = React.useState<{id:string;age:number;clientId?:string}|null>(null);
@@ -769,13 +757,6 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
    */
   const handleRowClick = useCallback(
     (id: string) => {
-      // If sidecar overlay is open, first click closes it — does not navigate.
-      // We check a ref rather than state to avoid stale closure issues.
-      if (isDrawerOpen) {
-        closeDrawer();
-        return;
-      }
-
       const c = cases.find(c => c.id === id);
 
       // Pediatric restricted — show access modal instead of opening case
@@ -826,7 +807,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       }
       openCase(id);
     },
-    [cases, openCase, onRowSelect, onPoolCaseClick, isDrawerOpen, closeDrawer]
+    [cases, openCase, onRowSelect, onPoolCaseClick]
   );
 // ─────────────────────────────────────────────────────────────────────────────
   // DISPLAY ROW GENERATION (Dividers + Virtualization)
@@ -958,60 +939,23 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // ─────────────────────────────────────────────────────────────────────────────
 
 
-  // Renders either a ComputationalFlagIcon (with stopPropagation) or the
-  // existing FlagChip — determined by the flag definition's tagClass.
+  // Previously wrapped in a clickable div to open the Sidecar overlay —
+  // removed along with the Sidecar entirely (see SidecarDrawer.tsx's
+  // deletion). The pill's own tooltip now carries the description
+  // that was the only real information the overlay ever added.
   const renderFlag = (appliedFlag: any, caseId: string, idx: number, isSpecimen: boolean) => {
-    const key = appliedFlag.flagDefinitionId ?? appliedFlag.lisCode ?? appliedFlag.id;
-    const def = key ? defMap.get(key) : undefined;
-    // Use definition tagClass first, then the flag's own tagClass as fallback
-    const effectiveTagClass = def?.tagClass ?? (appliedFlag as any).tagClass;
-
-    if (effectiveTagClass === 'COMPUTATIONAL') {
-      // Use the matched definition if available, otherwise treat the applied
-      // flag itself as the definition (handles empty flagDefinitions prop).
-      const compDef = def ?? appliedFlag;
-      return (
-        <ComputationalFlagIcon
-          key={`comp-${compDef.id ?? idx}-${idx}`}
-          flag={compDef}
-          caseId={caseId}
-          size={26}
-          onSelect={(flag) => { openOverlay(flag, caseId); }}
-        />
-      );
-    }
-
-    return <FlagChip key={`${isSpecimen ? 'sf' : 'cf'}-${idx}`} flag={appliedFlag} isSpecimen={isSpecimen} />;
+    return <FlagChip key={`flag-${appliedFlag.id ?? idx}-${idx}`} flag={appliedFlag} isSpecimen={isSpecimen} />;
   };
 
 
-  // Renders flags with computational icons FIRST (actionable data),
-  // followed by administrative pills (informational).
   const renderFlags = (caseFlags: any[], specimenFlags: any[], caseId: string) => {
     const allFlags = [
       ...caseFlags.map(f => ({ f, isSpecimen: false })),
       ...specimenFlags.map(f => ({ f, isSpecimen: true })),
     ];
-    const computational = allFlags.filter(({ f }) => {
-      const key = f.flagDefinitionId ?? f.lisCode ?? f.id;
-      const def = key ? defMap.get(key) : undefined;
-      const effectiveTagClass = def?.tagClass ?? (f as any).tagClass;
-      return effectiveTagClass === 'COMPUTATIONAL';
-    });
-    const administrative = allFlags.filter(({ f }) => {
-      const key = f.flagDefinitionId ?? f.lisCode ?? f.id;
-      const def = key ? defMap.get(key) : undefined;
-      const effectiveTagClass = def?.tagClass ?? (f as any).tagClass;
-      return !effectiveTagClass || effectiveTagClass !== 'COMPUTATIONAL';
-    });
     return (
       <div className="wl-flags-wrap">
-        {computational.length > 0 && (
-          <div className="wl-comp-flags" style={{ marginRight: administrative.length > 0 ? 6 : 0 }}>
-            {computational.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx, isSpecimen))}
-          </div>
-        )}
-        {administrative.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx + 1000, isSpecimen))}
+        {allFlags.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx, isSpecimen))}
       </div>
     );
   };

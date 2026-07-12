@@ -609,10 +609,15 @@ interface SecureEmailModalProps {
   prefillSubject?: string;
   prefillBody?:  string;
   onClose:       () => void;
+  /** Called once the simulated send completes — lets the caller log
+   *  the event. Previously declared at the call site but never in
+   *  this interface, and never invoked here either, so the intended
+   *  audit log for sent emails never actually fired. */
+  onSent?:       (to: string, subject: string) => void;
 }
 
 const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
-  isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose,
+  isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose, onSent,
 }) => {
   const [to,      setTo]      = React.useState(prefillTo);
   const [subject, setSubject] = React.useState(prefillSubject);
@@ -634,6 +639,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
     // Simulate NHSMail SMTP handshake delay
     await new Promise(r => setTimeout(r, 1800));
     setStatus('sent');
+    onSent?.(to, subject);
   };
 
   if (!isOpen) return null;
@@ -788,6 +794,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     '/audit':         'Audit Log',
     '/configuration': 'Configuration',
     '/contribution':  'Contributions',
+    '/intraop-queue': 'Intraop Queue',
   };
   React.useEffect(() => {
     const label = PAGE_LABELS[location.pathname];
@@ -989,6 +996,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     const openHome               = () => guardedNavigate('/');
     const openMessages           = () => setPortalOpen(true);
     const openWorklist           = () => guardedNavigate('/worklist');
+    const openIntraopQueue       = () => guardedNavigate('/intraop-queue');
     const openConfig             = () => guardedNavigate('/configuration');
     const openSearch             = () => guardedNavigate('/search');
     const openAudit              = () => guardedNavigate('/audit');
@@ -1079,6 +1087,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     window.addEventListener('PATHSCRIBE_OPEN_HOME',               openHome);
     window.addEventListener('PATHSCRIBE_OPEN_MESSAGES',           openMessages);
     window.addEventListener('PATHSCRIBE_OPEN_WORKLIST',           openWorklist);
+    window.addEventListener('PATHSCRIBE_OPEN_INTRAOP_QUEUE',      openIntraopQueue);
     window.addEventListener('PATHSCRIBE_OPEN_CONFIGURATION',      openConfig);
     window.addEventListener('PATHSCRIBE_OPEN_SEARCH',             openSearch);
     window.addEventListener('PATHSCRIBE_OPEN_AUDIT',              openAudit);
@@ -1121,6 +1130,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       window.removeEventListener('PATHSCRIBE_OPEN_HOME',               openHome);
       window.removeEventListener('PATHSCRIBE_OPEN_MESSAGES',           openMessages);
       window.removeEventListener('PATHSCRIBE_OPEN_WORKLIST',           openWorklist);
+      window.removeEventListener('PATHSCRIBE_OPEN_INTRAOP_QUEUE',      openIntraopQueue);
       window.removeEventListener('PATHSCRIBE_OPEN_CONFIGURATION',      openConfig);
       window.removeEventListener('PATHSCRIBE_OPEN_SEARCH',             openSearch);
       window.removeEventListener('PATHSCRIBE_OPEN_AUDIT',              openAudit);

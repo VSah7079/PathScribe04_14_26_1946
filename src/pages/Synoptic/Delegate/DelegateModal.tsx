@@ -194,8 +194,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                       setDelegationType(isSelected ? null : dt.id);
                       if (!isSelected) setSelectedInstanceId(null);
                     }}
-                    className={'fm-flag-card' + (isSelected ? ' applied' : '')}
-                    className="fm-del-type-btn"
+                    className={'fm-flag-card fm-del-type-btn' + (isSelected ? ' applied' : '')}
                   >
                     <div className="fm-del-type-btn-row">
                       <span
@@ -227,9 +226,8 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                   return (
                     <div
                       key={inst.instanceId}
-                      className={'fm-flag-card' + (isSel ? ' applied' : '')}
+                      className={'fm-flag-card fm-del-synoptic-row' + (isSel ? ' applied' : '')}
                       onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
-                      className="fm-del-synoptic-row"
                     >
                       <span className="fm-flag-name">{inst.specimenDescription}</span>
                       <span className="fm-flag-desc">{inst.templateName}</span>
@@ -333,9 +331,8 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                       return (
                         <div
                           key={s.id}
-                          className={'fm-flag-card' + (isSelected ? ' applied' : '')}
+                          className={'fm-flag-card fm-del-row-grid' + (isSelected ? ' applied' : '')}
                           onClick={() => setSelectedId(isSelected ? null : s.id)}
-                          className="fm-del-row-grid"
                         >
                           <span className="fm-code-chip fm-del-role-chip">
                             {s.role}
@@ -368,9 +365,8 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                       return (
                         <div
                           key={pool.id}
-                          className={'fm-flag-card' + (isSelected ? ' applied' : '')}
+                          className={'fm-flag-card fm-del-row-grid' + (isSelected ? ' applied' : '')}
                           onClick={() => setSelectedId(isSelected ? null : pool.id)}
-                          className="fm-del-row-grid"
                         >
                           <span className="fm-code-chip fm-del-pool-chip">POOL</span>
                           <div className="fm-flag-info">

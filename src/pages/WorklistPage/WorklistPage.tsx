@@ -10,14 +10,11 @@ import ResourcesModal     from './ResourcesModal';
 import LogoutWarningModal from './LogoutWarningModal';
 import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../../constants/systemActions';
-import { COMP_EVENT, COMP_VOICE, COMP_AUDIT } from '../../constants/computationalActions';
 import { useAuditLog } from '../../components/Audit/useAuditLog';
 import { PoolClaimModal } from '../../components/Worklist/PoolClaimModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { flagService }    from '@/services';
 import { Flag }           from '@/services/flags/IFlagService';
-import SidecarDrawer      from '../../components/sidecar/SidecarDrawer';
-import { useSidecar }     from '@/contexts/SidecarContext';
 
 const FILTER_TITLES: Record<string, string> = {
   all:           'Active Cases',
@@ -87,23 +84,14 @@ const WorklistPage: React.FC = () => {
   // Pool claim modal state
   const [claimModal, setClaimModal] = useState<{ caseId: string; summary: string; poolName: string } | null>(null);
 
-  // Flag definitions — needed by WorklistTable to identify computational flags
-  // and by SidecarDrawer to populate the navigator pane.
+  // Flag definitions — needed by WorklistTable's (now-unused but still
+  // accepted) flagDefinitions prop, and by FlagManagerModal.
   const [allFlags,           setAllFlags]           = useState<Flag[]>([]);
-  const [computationalFlags, setComputationalFlags] = useState<Flag[]>([]);
-
-  // Sidecar — reset to overlay mode when returning from synoptic page.
-  const { openOverlay, close: closeSidecar } = useSidecar();
-  useEffect(() => {
-    closeSidecar(); // close overlay when returning to worklist — re-opens on next icon click
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount only
 
   useEffect(() => {
     flagService.getAll().then(res => {
       if (!res.ok) return;
       setAllFlags(res.data);
-      setComputationalFlags(res.data.filter((f: Flag) => f.tagClass === 'COMPUTATIONAL' && f.status === 'Active'));
     }).catch(() => {});
   }, []);
 
@@ -338,24 +326,11 @@ const WorklistPage: React.FC = () => {
 
 
 
-  // ── Voice: set WORKLIST context on mount ──────────────────────────────────
-  // Register computational voice actions with the action registry
-  useEffect(() => {
-    const registerComp = () => {
-      Object.entries(COMP_VOICE).forEach(([key, phrases]) => {
-        const eventName = COMP_EVENT[key as keyof typeof COMP_EVENT];
-        (mockActionRegistryService as any).registerAction?.({
-          id:       `comp_${key.toLowerCase()}`,
-          label:    phrases[0],
-          phrases,
-          event:    eventName,
-          context:  VOICE_CONTEXT.WORKLIST,
-          category: 'Computational Data',
-        });
-      });
-    };
-    registerComp();
-  }, []);
+  // Computational voice action registration removed — COMP_VOICE/
+  // COMP_EVENT no longer export anything to register (both removed
+  // along with the Sidecar/ordering apparatus). This was the source
+  // of the dangling "open sidecar" etc. voice commands — registered
+  // as sayable, but with no handler left to respond when invoked.
 
   useEffect(() => {
     mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
@@ -510,35 +485,9 @@ const WorklistPage: React.FC = () => {
     window.addEventListener('PATHSCRIBE_NAV_PREVIOUS_CASE',      prevCase);
     window.addEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES',    openResources);
 
-    // ── Computational Sidecar voice actions ──────────────────────────────
-    const openSidecar = () => {
-      const focused = filteredCases.find(c => c.id === selectedCaseId);
-      if (!focused) { speak('No case selected.'); return; }
-      // Trigger first computational flag icon click via custom event
-      window.dispatchEvent(new CustomEvent('PATHSCRIBE_COMP_OPEN_FOR_CASE', {
-        detail: { caseId: focused.id }
-      }));
-      log(COMP_AUDIT.USE_SIDECAR_OPENED, { caseId: focused.id, source: 'voice' });
-    };
-
-    const closeSidecar = () => {
-      window.dispatchEvent(new CustomEvent(COMP_EVENT.CLOSE_SIDECAR));
-      const focused = filteredCases.find(c => c.id === selectedCaseId);
-      log(COMP_AUDIT.USE_SIDECAR_CLOSED, { caseId: focused?.id });
-    };
-
-    const readResult = () => {
-      window.dispatchEvent(new CustomEvent(COMP_EVENT.READ_RESULT));
-    };
-
-    const nextAssay = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.NEXT_ASSAY));
-    const prevAssay = () => window.dispatchEvent(new CustomEvent(COMP_EVENT.PREV_ASSAY));
-
-    window.addEventListener(COMP_EVENT.OPEN_SIDECAR,  openSidecar);
-    window.addEventListener(COMP_EVENT.CLOSE_SIDECAR, closeSidecar);
-    window.addEventListener(COMP_EVENT.READ_RESULT,   readResult);
-    window.addEventListener(COMP_EVENT.NEXT_ASSAY,    nextAssay);
-    window.addEventListener(COMP_EVENT.PREV_ASSAY,    prevAssay);
+    // Computational Sidecar voice actions removed along with the
+    // Sidecar itself — these all dispatched events nothing listens
+    // for anymore.
 
     return () => {
       window.removeEventListener('PATHSCRIBE_TABLE_NEXT',             next);
@@ -564,11 +513,6 @@ const WorklistPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_NAV_NEXT_CASE',          nextCase);
       window.removeEventListener('PATHSCRIBE_NAV_PREVIOUS_CASE',      prevCase);
       window.removeEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES',    openResources);
-    window.removeEventListener(COMP_EVENT.OPEN_SIDECAR,  openSidecar);
-    window.removeEventListener(COMP_EVENT.CLOSE_SIDECAR, closeSidecar);
-    window.removeEventListener(COMP_EVENT.READ_RESULT,   readResult);
-    window.removeEventListener(COMP_EVENT.NEXT_ASSAY,    nextAssay);
-    window.removeEventListener(COMP_EVENT.PREV_ASSAY,    prevAssay);
     };
   }, [filteredCases, selectedIndex, navigate]);
 
@@ -729,10 +673,6 @@ const WorklistPage: React.FC = () => {
               className="ps-table-scroll-wrap"
               style={{ position: 'relative' }}
             >
-              {/* Overlay Sidecar — opens when a computational flag icon is clicked.
-                  Positioned absolute within this container so it overlays the table
-                  without affecting page layout. Closes on outside click or scroll. */}
-              <SidecarDrawer computationalFlags={computationalFlags} />
               <WorklistTable
                 flagDefinitions={allFlags}
                 cases={filteredCases}

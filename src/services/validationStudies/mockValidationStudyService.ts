@@ -5,7 +5,7 @@ import { storageGet, storageSet } from '../mockStorage';
 const KEY = 'pathscribe_validation_studies_v1';
 
 function load(): ValidationStudy[] {
-  const stored = storageGet<ValidationStudy[]>(KEY);
+  const stored = storageGet<ValidationStudy[]>(KEY, []);
   if (stored && stored.length > 0) return stored;
   // Seed demo study if nothing stored yet
   const now   = new Date();
@@ -57,9 +57,11 @@ function load(): ValidationStudy[] {
       targetAcceptanceRate: 0.65,
       targetMaxEditRatio:   0.35,
       principalInvestigatorId: 'PATH-US-001',
-      approvedById:    'u3',
-      approvedAt:      (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
-      irbReference:    'MPA-IRB-2026-0017',
+      committeeApproval: {
+        approvedBy:      'u3',
+        approvedAt:      (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
+        irbReference:    'MPA-IRB-2026-0017',
+      },
       validationMode:  'advisory',
       createdAt:       (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
       createdBy:       'admin',
@@ -80,9 +82,11 @@ function load(): ValidationStudy[] {
       targetAcceptanceRate: 0.70,
       targetMaxEditRatio:   0.30,
       principalInvestigatorId: 'PATH-001',
-      approvedById:    'u3',
-      approvedAt:      (() => { const d = new Date(now); d.setDate(d.getDate() - 60); return d.toISOString(); })(),
-      irbReference:    'MGH-IRB-2026-0031',
+      committeeApproval: {
+        approvedBy:      'u3',
+        approvedAt:      (() => { const d = new Date(now); d.setDate(d.getDate() - 60); return d.toISOString(); })(),
+        irbReference:    'MGH-IRB-2026-0031',
+      },
       validationMode:  'advisory',
       createdAt:       (() => { const d = new Date(now); d.setDate(d.getDate() - 65); return d.toISOString(); })(),
       createdBy:       'admin',

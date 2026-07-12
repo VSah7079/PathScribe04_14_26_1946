@@ -8,6 +8,12 @@ import { internalNoteService } from '@/services';
 interface LeftReportPanelProps {
   caseData: Case | null;
   highlightText?: string;
+  /** Fired once per highlightText change, reporting whether a real,
+   *  verbatim match was actually found in the report text. Lets the
+   *  right panel show an honest "source not found" indicator next to
+   *  the field that triggered the highlight, instead of a silent
+   *  no-op when the AI's cited source can't be located. */
+  onMatchResolved?: (found: boolean) => void;
 }
 
 // Splits text and wraps matching substring in a highlight mark.
@@ -41,7 +47,7 @@ const HighlightedText: React.FC<{
   );
 };
 
-const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightText }) => {
+const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightText, onMatchResolved }) => {
   const { user } = useAuth();
   const [notesOpen, setNotesOpen] = React.useState(false);
   const [unreadNoteCount, setUnreadNoteCount] = React.useState(0);
@@ -70,28 +76,40 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
 
   // Extract the quoted phrase from source strings like 'Gross: "2.3 × 1.8 × 1.5 cm"'
   // Falls back to progressively shorter word sequences if the full phrase isn't found
-  const matchPhrase = React.useMemo(() => {
-    if (!highlightText) return undefined;
+  const matchResult = React.useMemo(() => {
+    if (!highlightText) return { phrase: undefined as string | undefined, found: false };
     const quoted = highlightText.match(/"([^"]+)"/);
     const candidate = quoted ? quoted[1] : highlightText;
 
     // Build a combined text to search across all sections
     // Try full phrase first, then drop words from the end until we find a match
     const words = candidate.split(/\s+/).filter(Boolean);
+    const allText = [
+      caseData?.order?.clinicalIndication ?? '',
+      caseData?.diagnostic?.grossDescription ?? '',
+      caseData?.diagnostic?.microscopicDescription ?? '',
+      caseData?.diagnostic?.ancillaryStudies ?? '',
+    ].join(' ').toLowerCase();
     for (let len = words.length; len >= 3; len--) {
       const phrase = words.slice(0, len).join(' ');
       // Check if this phrase appears in any section text (case-insensitive)
-      const allText = [
-        caseData?.order?.clinicalIndication ?? '',
-        caseData?.diagnostic?.grossDescription ?? '',
-        caseData?.diagnostic?.microscopicDescription ?? '',
-        caseData?.diagnostic?.ancillaryStudies ?? '',
-      ].join(' ').toLowerCase();
-      if (allText.includes(phrase.toLowerCase())) return phrase;
+      if (allText.includes(phrase.toLowerCase())) return { phrase, found: true };
     }
-    // Fall back to the original candidate even if not found
-    return candidate;
+    // Fall back to the original candidate even if not found — found:false
+    // is the honest signal here; the AI cited a source but this app
+    // couldn't locate it verbatim anywhere in the report text.
+    return { phrase: candidate, found: false };
   }, [highlightText, caseData]);
+
+  const matchPhrase = matchResult.phrase;
+
+  // Report whether the highlight actually resolved, once per
+  // highlightText change — lets the right panel show an honest
+  // indicator next to the field instead of a silent no-op.
+  useEffect(() => {
+    if (highlightText) onMatchResolved?.(matchResult.found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightText, matchResult.found]);
 
   // Scroll the panel to bring the highlighted mark into view whenever it changes
   const handleMarkMount = React.useCallback((el: HTMLElement | null) => {

@@ -14,12 +14,14 @@ interface SidebarProps {
   onAddSynoptic?: () => void;
   onEditSpecimen?: (specimenId: string) => void;
   onAddSpecimen?: () => void;
+  onAddBlock?: () => void;
+  onAddStain?: () => void;
   onOpenCaseComment?: () => void;
   onOpenSpecimenComment?: (specimenId: string) => void;
   hasCaseComment?: boolean;
   specimenComments?: Record<string, CaseComment[]>;
   activeReportInstanceId?: string;
-  onSelectReport?: (instanceId: string, specimenId: string) => void;
+  onSelectReport?: (instanceId: string, specimenId: string, reportType: 'grossing' | 'synoptic') => void;
   onDeleteReport?: (instanceId: string) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -78,6 +80,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAddSynoptic,
   onEditSpecimen,
   onAddSpecimen,
+  onAddBlock,
+  onAddStain,
   onOpenCaseComment,
   onOpenSpecimenComment,
   hasCaseComment = false,
@@ -125,11 +129,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           {specimens.map(sp => {
+            const grossingInstances = (caseData?.grossingReports ?? []).filter(r => r.specimenId === sp.id);
             const instances  = (caseData?.synopticReports ?? []).filter(r => r.specimenId === sp.id);
-            const hasAnswers = instances.some(r =>
+            const allInstances = [...grossingInstances, ...instances];
+            const hasAnswers = allInstances.some(r =>
               Object.values(r.answers ?? {}).some(v => v !== '' && !(Array.isArray(v) && !v.length))
             );
-            const dotColor = instances.length === 0 ? '#334155' : hasAnswers ? '#f59e0b' : '#334155';
+            const dotColor = allInstances.length === 0 ? '#334155' : hasAnswers ? '#f59e0b' : '#334155';
             const isActive = activeSpecimenId === sp.id;
             const hasPendingChange = hasPendingChangeForSpecimen(sp.id);
             return (
@@ -138,8 +144,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`ps-syn-rail-btn${isActive ? ' active' : ''}`}
                 onClick={() => {
                   onSelectSpecimen?.(sp.id);
-                  const first = instances[0];
-                  if (first) onSelectReport?.(first.instanceId, sp.id);
+                  const first = allInstances[0];
+                  if (first) {
+                    const isGrossing = grossingInstances.some(g => g.instanceId === first.instanceId);
+                    onSelectReport?.(first.instanceId, sp.id, isGrossing ? 'grossing' : 'synoptic');
+                  }
                 }}
                 title={hasPendingChange
                   ? `${sp.label}: ${sp.description} — AI re-evaluation suggests reviewing this specimen's synoptic assignment`
@@ -198,9 +207,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             const isExpanded = expandedIds.has(specimen.id);
             const isActive   = activeSpecimenId === specimen.id;
 
-            const instances = (caseData?.synopticReports ?? []).filter(r => r.specimenId === specimen.id);
+            const grossingInstances = (caseData?.grossingReports ?? []).filter(r => r.specimenId === specimen.id)
+              .map(r => ({ ...r, reportType: 'grossing' as const }));
+            const instances = (caseData?.synopticReports ?? []).filter(r => r.specimenId === specimen.id)
+              .map(r => ({ ...r, reportType: 'synoptic' as const }));
             const legacyId  = !instances.length && caseData?.synopticTemplateId;
-            const allRows   = instances.length > 0 ? instances : legacyId ? [{
+            const legacyRows = legacyId ? [{
               instanceId:   '__legacy__',
               templateId:   caseData!.synopticTemplateId!,
               templateName: (caseData!.synopticTemplateId!).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
@@ -208,7 +220,13 @@ const Sidebar: React.FC<SidebarProps> = ({
               status:       'draft' as const,
               specimenId:   specimen.id,
               createdAt: '', updatedAt: '',
+              reportType:   'synoptic' as const,
             }] : [];
+            // Grossing rows first — matches real workflow order (gross,
+            // then microscopic/synoptic), and lets the sidebar visually
+            // separate the two kinds of report the same way accession →
+            // grossing → sign-out treats them as sequential stages.
+            const allRows = [...grossingInstances, ...(instances.length > 0 ? instances : legacyRows)];
 
             const specimenHasAnswers = allRows.some(r =>
               Object.values(r.answers ?? {}).some(v => v !== '' && !(Array.isArray(v) && !v.length))
@@ -289,10 +307,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div
                           key={inst.instanceId}
                           className={`ps-syn-instance-row${isActiveInst ? ' active' : ''}`}
-                          onClick={() => onSelectReport?.(inst.instanceId, specimen.id)}
+                          onClick={() => onSelectReport?.(inst.instanceId, specimen.id, inst.reportType)}
                         >
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div className="ps-syn-instance-name">{inst.templateName}</div>
+                            <div className="ps-syn-instance-name">
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                                color: inst.reportType === 'grossing' ? '#fbbf24' : '#38bdf8',
+                                marginRight: 6,
+                              }}>
+                                {inst.reportType === 'grossing' ? 'Gross' : 'Synoptic'}
+                              </span>
+                              {inst.templateName}
+                            </div>
                             <div className="ps-syn-instance-meta">
                               {filledCount} field{filledCount !== 1 ? 's' : ''} answered
                             </div>
@@ -321,10 +348,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           <button className="ps-syn-add-btn" onClick={() => onAddSynoptic?.()}>
             <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Synoptic Report
-          </button>
-
-          <button className="ps-syn-add-btn ps-syn-add-btn--specimen" onClick={() => onAddSpecimen?.()}>
-            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Specimen
           </button>
 
         </div>

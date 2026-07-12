@@ -71,7 +71,7 @@ const ConfigSearchBar: React.FC<ConfigSearchBarProps> = ({ onNavigate }) => {
       <input
         className="ps-config-search__input"
         type="text"
-        placeholder="Search settings\u2026"
+        placeholder="Search settings…"
         value={query}
         onChange={e => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}

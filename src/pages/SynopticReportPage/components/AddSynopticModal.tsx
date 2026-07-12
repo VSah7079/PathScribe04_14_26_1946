@@ -4,6 +4,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TemplateRequestModal } from '@/components/TemplateRequest/TemplateRequestModal';
 import type { Case, SynopticReportInstance } from '@/types/case/Case';
+import { suggestSynopticTemplates } from '@/services/templates/synopticTemplateSuggestionService';
+import { templateSuggestionSignalService } from '@/services';
+import type { SynopticTemplateSuggestion } from '@/services/templates/ISynopticTemplateSuggestionService';
 
 interface Protocol {
   id:   string;
@@ -30,10 +33,36 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
   const [protocolSearch,      setProtocolSearch]      = useState('');
   const [learnPairing,        setLearnPairing]        = useState(true);
   const [showRequestModal,    setShowRequestModal]    = useState(false);
+  const [suggestions,         setSuggestions]         = useState<SynopticTemplateSuggestion[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const specimens      = caseData?.specimens ?? [];
   const existingReports = caseData?.synopticReports ?? [];
+
+  // Fetch AI template suggestions once, on open — real callAi() call,
+  // confidence-scored, matching on specimen description text since the
+  // structured Specimen Dictionary link (sp._entry?.type/site) is only
+  // populated transiently during accession and isn't persisted onto the
+  // case's own Specimen records. A suggestion here is advisory only —
+  // it's surfaced as a badge in the protocol list, never auto-selected.
+  useEffect(() => {
+    if (specimens.length === 0 || availableProtocols.length === 0) return;
+    let cancelled = false;
+    suggestSynopticTemplates({
+      specimens: specimens.map(sp => ({
+        specimenId: sp.id,
+        specimenLabel: sp.label,
+        specimenDesc: sp.description,
+      })),
+      availableTemplates: availableProtocols.map(p => ({
+        id: p.id, name: p.name, category: p.category ?? 'Other',
+      })),
+    }).then(result => {
+      if (!cancelled) setSuggestions(result.suggestions);
+    }).catch(() => { /* suggestion fetch failing must never block manual selection */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseData?.id]);
 
   // Auto-focus search on open
   useEffect(() => { setTimeout(() => searchRef.current?.focus(), 100); }, []);
@@ -53,6 +82,11 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
   );
 
   const selectedProtocolObj = availableProtocols.find(p => p.id === selectedProtocol);
+
+  // Highest-confidence suggestion among the currently selected specimens,
+  // for the currently visible protocol list — advisory badge only.
+  const suggestionForTemplate = (templateId: string) =>
+    suggestions.find(s => s.templateId === templateId && selectedSpecimenIds.includes(s.specimenId));
 
   const toggleSpecimen = (id: string) => {
     setSelectedSpecimenIds(prev =>
@@ -103,6 +137,36 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
     };
 
     onAdd(newInstances, updatedCase);
+
+    // Wire "Learn this pairing" to something real. Previously this
+    // checkbox toggled its own color and nothing else — checked the
+    // actual submit path directly and confirmed learnPairing was never
+    // read anywhere beyond its own styling. Records one signal per
+    // specimen, comparing the pathologist's actual choice against
+    // whatever suggestion (if any) was shown for it.
+    if (learnPairing && caseData) {
+      for (const specId of selectedSpecimenIds) {
+        const suggestion = suggestions.find(s => s.specimenId === specId);
+        const outcome = !suggestion
+          ? 'manual_no_suggestion'
+          : suggestion.templateId === selectedProtocol
+            ? 'accepted'
+            : 'overridden';
+        templateSuggestionSignalService.recordSignal({
+          caseId: caseData.id,
+          accessionNumber: caseData.accession?.accessionNumber ?? '',
+          specimenId: specId,
+          suggestedTemplateId: suggestion?.templateId,
+          suggestedTemplateName: suggestion?.templateName,
+          suggestedConfidence: suggestion?.confidence,
+          chosenTemplateId: selectedProtocol,
+          chosenTemplateName: name,
+          outcome,
+          subspecialtyId: (caseData as any)?.subspecialtyId,
+        }).catch(() => { /* signal recording must never block adding the report itself */ });
+      }
+    }
+
     onClose();
   };
 
@@ -295,6 +359,23 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
                         {p.name}
                       </span>
                       <SourceBadge source={p.source} />
+                      {(() => {
+                        const match = suggestionForTemplate(p.id);
+                        if (!match) return null;
+                        return (
+                          <span
+                            title={match.reason}
+                            style={{
+                              marginLeft: 8, flexShrink: 0, fontSize: 10, fontWeight: 700,
+                              color: '#a78bfa', background: 'rgba(167,139,250,0.12)',
+                              border: '1px solid rgba(167,139,250,0.3)', borderRadius: 4,
+                              padding: '2px 6px',
+                            }}
+                          >
+                            ✨ Suggested · {match.confidence}%
+                          </span>
+                        );
+                      })()}
                     </div>
                     {isSelected && (
                       <span style={{ color: '#0891B2', fontSize: 13, fontWeight: 800, marginLeft: 12, flexShrink: 0 }}>

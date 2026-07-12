@@ -8,7 +8,7 @@ interface SequencerPanelProps {
   onSave?:                (specimenOrder: string[], synopticOrders: Record<string, string[]>) => void;
   caseData:               Case | null;
   activeReportInstanceId: string | null;
-  onSelectReport:         (instanceId: string, specimenId: string) => void;
+  onSelectReport:         (instanceId: string, specimenId: string, reportType?: 'grossing' | 'synoptic') => void;
 }
 
 interface SpecimenRow {
@@ -305,7 +305,7 @@ const PreviewPane: React.FC<{
   rows: SpecimenRow[];
   synopticOrders: Record<string, string[]>;
   activeReportInstanceId: string | null;
-  onSelectReport: (instanceId: string, specimenId: string) => void;
+  onSelectReport: (instanceId: string, specimenId: string, reportType?: 'grossing' | 'synoptic') => void;
   onClose: () => void;
 }> = ({ rows, synopticOrders, activeReportInstanceId, onSelectReport, onClose }) => {
   if (rows.length === 0) return <div className="ps-seq-empty">No report preview available.</div>;
