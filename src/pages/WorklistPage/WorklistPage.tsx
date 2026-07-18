@@ -13,6 +13,7 @@ import { VOICE_CONTEXT } from '../../constants/systemActions';
 import { useAuditLog } from '../../components/Audit/useAuditLog';
 import { PoolClaimModal } from '../../components/Worklist/PoolClaimModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { AmendedAddendaTriageTile } from './AmendedAddendaTriageTile';
 import { flagService }    from '@/services';
 import { Flag }           from '@/services/flags/IFlagService';
 
@@ -667,6 +668,7 @@ const WorklistPage: React.FC = () => {
             )}
 
             {/* Worklist table — height measured from viewport top offset */}
+            <AmendedAddendaTriageTile pathologistId={user?.id ?? ''} />
             <div
               ref={wrapperRef}
               data-capture-hide="true"

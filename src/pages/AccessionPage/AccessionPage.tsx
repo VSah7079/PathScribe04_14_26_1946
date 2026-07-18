@@ -47,6 +47,7 @@ import type { Case, GrossingReportInstance } from '@/types/case/Case';
 import type { HistologyBlock } from '@/types/case/Specimen';
 import type { CaseComment } from '@/types/case/CaseComment';
 import { deficiencyTypeService } from '@/services';
+import { physicianService } from '@/services';
 import { stainTypeService } from '@/services';
 import type { StainType } from '@/services/stains/IStainService';
 import { protocolService } from '@/services';
@@ -894,6 +895,18 @@ const AccessionPage: React.FC = () => {
       };
 
       await caseRouter.createCase(newCase);
+
+      // ROOT FIX — requestingProvider was pure free text with nothing
+      // resolving it against the physician directory (findOrCreateByNpi
+      // existed but had no NPI to work with at intake; nothing called it
+      // anyway). Mirrors the same auto-create-pending posture already
+      // used for Client/SpecimenCategory: never blocks case creation,
+      // just ensures a directory record exists (Unverified) so this
+      // provider shows up for future notification lookups instead of
+      // silently falling through the cracks like "Dr. Lisa Wong" did.
+      if (requestingProvider.trim()) {
+        physicianService.findOrCreateByName(requestingProvider.trim(), clientId).catch(console.error);
+      }
 
       // Write a permanent record for any specimen that had a
       // requisition-deficiency detected (and resolved) during this

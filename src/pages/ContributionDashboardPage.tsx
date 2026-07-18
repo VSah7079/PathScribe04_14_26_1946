@@ -18,7 +18,7 @@ import { getOrchestratorMode } from "@components/Config/NarrativeTemplates";
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router-dom';
-import { specimenDeficiencyService, deficiencyTypeService } from '../services';
+import { specimenDeficiencyService, deficiencyTypeService, discordanceService, intraoperativeService } from '../services';
 import type { SpecimenDeficiency, DeficiencyType } from '../services/deficiencies/IDeficiencyService';
 
 
@@ -283,27 +283,59 @@ const ContributionDashboardPage: React.FC = () => {
   // (non-overdue pending-verification) as low.
   const [qualityFlags, setQualityFlags] = useState<ContributionFlag[]>([]);
   useEffect(() => {
-    Promise.all([specimenDeficiencyService.getAll(), deficiencyTypeService.getAll()]).then(([defRes, typeRes]) => {
+    Promise.all([specimenDeficiencyService.getAll(), deficiencyTypeService.getAll(), discordanceService.getAll()]).then(([defRes, typeRes, discRes]) => {
       if (!defRes.ok) return;
       const types: DeficiencyType[] = typeRes.ok ? typeRes.data : [];
       const typeName = (id: string) => types.find(t => t.id === id)?.name ?? id;
       const isOverdue = (d: SpecimenDeficiency) => !!d.verificationDueDate && new Date(d.verificationDueDate).getTime() < Date.now();
 
-      const relevant = defRes.data
+      const deficiencyFlags: (ContributionFlag & { sortKey: string; score: number })[] = defRes.data
         .filter(d => d.status !== 'closed')
-        .sort((a, b) => {
-          const score = (d: SpecimenDeficiency) => (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 2 : d.status === 'open' ? 1 : 0;
-          return score(b) - score(a) || b.raisedAt.localeCompare(a.raisedAt);
-        })
+        .map(d => ({
+          id: d.id,
+          label: d.caseId,
+          value: `${typeName(d.deficiencyTypeId)}${d.specimenLabel ? ` — Specimen ${d.specimenLabel}` : ' — case-level'}`,
+          severity: (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 'high' : d.status === 'open' ? 'medium' : 'low',
+          onClick: () => navigate(`/case/${d.caseId}/synoptic`),
+          sortKey: d.raisedAt,
+          score: (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 2 : d.status === 'open' ? 1 : 0,
+        }));
+
+      // Real Frozen-to-Permanent discordance records now feed this same
+      // list — this widget's own subtitle ("documentation or concordance
+      // issues") already promised this; it just had nothing behind the
+      // concordance half until discordanceService existed. Only high/
+      // medium severity surface here — low (Tier 1, no clinical impact)
+      // isn't the kind of thing that belongs in a short, urgent flag list.
+      const discordanceFlags: (ContributionFlag & { sortKey: string; score: number })[] = discRes.ok
+        ? discRes.data
+            .filter(d => d.severity !== 'low')
+            .map(d => ({
+              id: d.id,
+              label: d.caseId,
+              value: `Frozen/Final discordance — ${d.caseType}`,
+              severity: d.severity,
+              onClick: () => navigate(`/case/${d.caseId}/synoptic`),
+              sortKey: d.recordedAt,
+              score: d.severity === 'high' ? 2 : 1,
+            }))
+        : [];
+
+      const relevant = [...deficiencyFlags, ...discordanceFlags]
+        .sort((a, b) => b.score - a.score || b.sortKey.localeCompare(a.sortKey))
         .slice(0, 3);
 
-      setQualityFlags(relevant.map((d): ContributionFlag => ({
-        id: d.id,
-        label: d.caseId,
-        value: `${typeName(d.deficiencyTypeId)}${d.specimenLabel ? ` — Specimen ${d.specimenLabel}` : ' — case-level'}`,
-        severity: (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 'high' : d.status === 'open' ? 'medium' : 'low',
-        onClick: () => navigate(`/case/${d.caseId}/synoptic`),
-      })));
+      setQualityFlags(relevant.map(({ sortKey, score, ...flag }) => flag));
+    });
+  }, []);
+
+  // ── Active Intraop Sessions — real, previously nothing on this
+  // dashboard reflected intraop volume at all despite the feature
+  // being real now.
+  const [activeIntraopCount, setActiveIntraopCount] = useState<number | null>(null);
+  useEffect(() => {
+    intraoperativeService.getPending().then(res => {
+      if (res.ok) setActiveIntraopCount(res.data.length);
     });
   }, []);
 
@@ -431,6 +463,28 @@ const ContributionDashboardPage: React.FC = () => {
                   {qualityFlags.map((flag) => (
                     <FlagRow key={flag.id} {...flag} />
                   ))}
+                </div>
+              </div>
+
+              {/* Active Intraop Sessions */}
+              <div
+                style={{ padding: "20px", borderRadius: "18px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, cursor: "pointer" }}
+                onClick={() => navigate('/intraop-queue')}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: "15px", fontWeight: 600 }}>Active Intraop Sessions</div>
+                    <div style={{ fontSize: "13px", color: t.colors.text.muted }}>Unlinked entries awaiting a formal accession to merge into</div>
+                  </div>
+                  <span style={{ fontSize: "18px" }}>🧊</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "10px" }}>
+                  <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.5px" }}>
+                    {activeIntraopCount === null ? "—" : activeIntraopCount}
+                  </span>
+                  <span style={{ fontSize: "13px", color: t.colors.text.muted }}>
+                    {activeIntraopCount === 0 ? "all merged" : "pending"}
+                  </span>
                 </div>
               </div>
             </div>

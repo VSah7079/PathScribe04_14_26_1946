@@ -1,0 +1,85 @@
+// src/types/reports/AmendmentRecord.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Real Amendment/Addendum record — replaces what was a fully decorative
+// feature: the modal existed and looked functional, but its submit
+// handler never persisted anything at all (checked directly — closed
+// the modal, showed a success toast, cleared the text field, done).
+//
+// Addendum: new information appended; original stays entirely
+// untouched. Amendment: existing finalized information was wrong and
+// is being corrected — requires an explanation and, per CAP/RCPath
+// accreditation requirements, proof the treating clinician was
+// actually notified. That notification log is the one field this spec
+// calls "the most crucial audit trail," and it's a genuine hard gate
+// here, not optional.
+//
+// Deliberately scoped: this captures the real amendment/addendum
+// record — explanation, notification log, timestamps, authorship,
+// sequencing. It does NOT attempt to version or re-edit the underlying
+// synoptic answers themselves (a major diagnostic change like Benign
+// → Malignant showing as live, edited text in the active report view,
+// with the old text preserved in a parallel version history) — that's
+// a substantially larger feature touching how report editing itself
+// works, not something to half-build silently inside this pass.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type AmendmentType = 'addendum' | 'amendment';
+
+export type NotificationMethod = 'verbal_phone' | 'secure_page' | 'direct_lis_flag';
+
+export interface ClinicalNotification {
+  clinicianName: string;
+  method: NotificationMethod;
+  notifiedAt: string;
+}
+
+export interface AmendmentRecord {
+  id: string;
+  caseId: string;
+  type: AmendmentType;
+  /** Per-case, per-type sequence — "Addendum 1", "Addendum 2", etc.
+   *  Amendments don't customarily get numbered the same way in most
+   *  LISs (each one supersedes for notification purposes), but the
+   *  field is tracked for both so the count is always available if
+   *  a site wants to display it. */
+  sequenceNumber: number;
+
+  // ── Addendum-specific ─────────────────────────────────────────────
+  /** Required for addendum — e.g. "Addendum: Immunohistochemical
+   *  Staining Results". Not applicable to amendments. */
+  addendumTitle?: string;
+
+  // ── Amendment-specific ────────────────────────────────────────────
+  /** Required for amendment — the mandatory "why," so the treating
+   *  clinician doesn't have to spot the difference themselves. */
+  explanationOfChange?: string;
+  /** The hard gate — sign-out cannot release an amendment without
+   *  this being filled in. Not optional, not skippable. */
+  notification?: ClinicalNotification;
+
+  /** The actual new content — supplemental data for an addendum, or
+   *  the corrected text/values for an amendment. */
+  body: string;
+
+  /** When the tech/pathologist opened the addendum/amendment
+   *  workspace — distinct from releasedAt. */
+  initiatedAt: string;
+  /** When officially authorized/released — kept entirely separate
+   *  from the original case sign-out timestamp. Null while still a draft. */
+  releasedAt?: string;
+
+  authoringPathologist: { userId: string; userName: string };
+  status: 'draft' | 'released';
+  /** Whether this record originated from an LIS-side amendment notice, rather than the pathologist independently amending. */
+  triggeredByLisNotice?: boolean;
+
+  /** The actual "immutable archive" requirement — a real snapshot of
+   *  the synoptic report instance exactly as it was at the moment of
+   *  unlock, before any editing happens. Captured at Stage 1
+   *  (captureFields), not reconstructed later — there's no way to
+   *  recover the original answers after the pathologist starts
+   *  editing the unlocked instance in place, since that edits the
+   *  same object with no other backup anywhere. Only meaningful for
+   *  amendments; addenda never touch or overwrite anything original. */
+  originalReportSnapshot?: unknown;
+}

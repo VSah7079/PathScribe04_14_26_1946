@@ -34,7 +34,7 @@ import '../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { intraoperativeService } from '@/services';
-import type { IntraoperativeEntry, IntraopSpecimen, MatchCandidate, MilestoneType, SkipReason } from '@/types/intraop/IntraoperativeEntry';
+import type { IntraoperativeEntry, IntraopSpecimen, MatchCandidate, MilestoneType, SkipReason, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
 
 const MILESTONE_LABEL: Record<MilestoneType, string> = {
   gross_logged: 'Gross Logged',
@@ -72,6 +72,7 @@ const NewEntryForm: React.FC<{
   const [specimenLabel, setSpecimenLabel] = useState('');
   const [quickGross, setQuickGross] = useState('');
   const [frozenDx, setFrozenDx] = useState('');
+  const [frozenCategory, setFrozenCategory] = useState<FrozenCategory | ''>('');
   const [specimenCount, setSpecimenCount] = useState(0);
   const [busy, setBusy] = useState(false);
 
@@ -125,11 +126,11 @@ const NewEntryForm: React.FC<{
     await intraoperativeService.addMilestone(sessionId, newSpecimen.id, 'gross_logged', undefined, undefined, quickGross);
     if (frozenDx.trim()) {
       await intraoperativeService.addMilestone(sessionId, newSpecimen.id, 'frozen_section_cut');
-      await intraoperativeService.setFrozenSectionDiagnosis(sessionId, newSpecimen.id, frozenDx);
+      await intraoperativeService.setFrozenSectionDiagnosis(sessionId, newSpecimen.id, frozenDx, frozenCategory || undefined);
     }
     setBusy(false);
     setSpecimenCount(c => c + 1);
-    setSpecimenLabel(''); setQuickGross(''); setFrozenDx('');
+    setSpecimenLabel(''); setQuickGross(''); setFrozenDx(''); setFrozenCategory('');
     if (andContinue) {
       // Same session — patient/OR/surgeon already captured, straight
       // back to the specimen step for the next one.
@@ -225,6 +226,17 @@ const NewEntryForm: React.FC<{
         <label className="ps-conf-label">Frozen section diagnosis (optional here — can be added later from the log)</label>
         <textarea className="ps-conf-input ps-conf-textarea" value={frozenDx} onChange={e => setFrozenDx(e.target.value)}
           placeholder="e.g. Invasive carcinoma, margins negative." />
+      </div>
+      <div className="ps-conf-form-field">
+        <label className="ps-conf-label">Preliminary category</label>
+        <select className="ps-conf-select" value={frozenCategory} onChange={e => setFrozenCategory(e.target.value as FrozenCategory | '')}>
+          <option value="">Select…</option>
+          <option value="benign">Benign</option>
+          <option value="malignant">Malignant</option>
+          <option value="atypical_suspicious">Atypical / Suspicious</option>
+          <option value="deferred">Deferred</option>
+        </select>
+        <p className="ps-intraop-scan-hint">This category, not the diagnosis text, is what gets compared against the final category at sign-out.</p>
       </div>
       <div className="ps-intraop-specimen-actions">
         <button className="ps-conf-btn-row" disabled={busy || !specimenLabel.trim() || !quickGross.trim()} onClick={() => saveSpecimen(true)}>

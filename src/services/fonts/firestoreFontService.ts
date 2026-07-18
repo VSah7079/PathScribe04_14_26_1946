@@ -1,3 +1,8 @@
+// Stub only — real implementation pending backend cutover.
+// mockFontService.ts is the active implementation; this satisfies the
+// service interface's contract so the swap to a real backend is a
+// one-line change in services/index.ts when that backend exists.
+
 // TODO: implement Firestore version
 // import { IFontService } from './IFontService';
 const notImplemented = (): never => { throw new Error('firestoreFontService.ts: not yet implemented'); };

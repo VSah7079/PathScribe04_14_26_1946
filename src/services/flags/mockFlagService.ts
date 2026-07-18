@@ -110,11 +110,6 @@ export const mockFlagService: IFlagService = {
     return f ? ok({ ...f }) : err(`Flag ${id} not found`);
   },
 
-  async getByClass(tagClass) {
-    await delay();
-    return ok(MOCK_FLAGS.filter(f => f.tagClass === tagClass).map(f => ({ ...f })));
-  },
-
   async add(flag) {
     await delay();
     const newFlag: Flag = { ...flag, id: 'f' + Date.now() };

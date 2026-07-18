@@ -3,7 +3,7 @@ import { TemplateDefinition } from "../types/templateTypes";
 export const mockDcisTemplate: TemplateDefinition = {
   id: "dcis_resection",
   displayName: "Breast DCIS Resection",
-  source: "CAP",
+  source: "Custom",
   sourceVersion: "4.2",
   sections: [
     {

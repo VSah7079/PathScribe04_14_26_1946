@@ -17770,3 +17770,502 @@ h3[data-section-id]:first-child {
 .ps-intraop-skipmenu-other { display: flex; gap: 6px; margin-top: 4px; }
 .ps-intraop-skipmenu-other-input { font-size: 11px; padding: 4px 8px; }
 .ps-intraop-skipmenu-cancel { color: #64748b; }
+
+/* ── Amendment Status Banner ─────────────────────────────────────────── */
+.ps-amendment-status-banner { background: rgba(217,119,6,0.08); border: 2px solid #d97706; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
+.ps-amendment-status-banner-header { margin-bottom: 8px; }
+.ps-amendment-status-flag { font-size: 15px; font-weight: 800; letter-spacing: 0.03em; color: #d97706; }
+.ps-amendment-status-row { padding: 8px 0; border-top: 1px solid rgba(217,119,6,0.25); }
+.ps-amendment-status-row:first-of-type { border-top: none; }
+.ps-amendment-status-row-label { display: block; font-size: 12px; font-weight: 700; color: #d97706; margin-bottom: 4px; }
+.ps-amendment-status-row-detail { font-size: 13px; color: #e2e8f0; margin: 0 0 4px; }
+.ps-amendment-status-row-notification { font-size: 11px; color: #94a3b8; margin: 0 0 4px; }
+.ps-amendment-status-row-author { font-size: 11px; color: #64748b; margin: 0; }
+.ps-amendment-snapshot { margin-top: 6px; }
+.ps-amendment-snapshot-toggle { background: none; border: none; color: #d97706; font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 0; }
+.ps-amendment-snapshot-body { margin-top: 6px; padding: 10px 12px; background: rgba(0,0,0,0.2); border-radius: 6px; display: flex; flex-direction: column; gap: 4px; }
+.ps-amendment-snapshot-field { display: flex; gap: 8px; font-size: 11px; }
+.ps-amendment-snapshot-field-key { color: #64748b; min-width: 140px; flex-shrink: 0; }
+.ps-amendment-snapshot-field-value { color: #cbd5e1; }
+.ps-amendment-snapshot-empty { font-size: 11px; color: #64748b; font-style: italic; margin: 0; }
+.ps-amendment-version-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #f59e0b; margin: 8px 0 4px; }
+.ps-amendment-version-label--current { color: #10b981; margin-top: 10px; }
+.ps-amendment-field-old { color: #f87171; text-decoration: line-through; }
+.ps-amendment-field-arrow { color: #64748b; }
+.ps-amendment-field-new { color: #10b981; font-weight: 600; }
+.ps-amendment-status-count { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.ps-amendment-narrative-header { font-size: 13px; font-weight: 800; color: #d97706; margin: 4px 0; }
+.ps-amendment-narrative-line { font-size: 12px; color: #e2e8f0; margin: 3px 0; }
+.ps-amendment-narrative-divider { font-size: 11px; color: #d97706; font-weight: 600; text-align: center; margin: 8px 0; }
+.ps-amendment-matrix { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+.ps-amendment-matrix th { text-align: left; padding: 6px 10px; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid rgba(217,119,6,0.3); }
+.ps-amendment-matrix td { padding: 6px 10px; border-bottom: 1px solid rgba(217,119,6,0.12); color: #cbd5e1; }
+.ps-amendment-matrix-current { color: #10b981; font-weight: 600; }
+.ps-amendment-matrix-previous { color: #f87171; text-decoration: line-through; }
+.ps-bab-copilot-complete { font-size: 12px; font-weight: 600; color: #10b981; padding: 8px 14px; }
+
+/* ── CoPilot Report View (print) ─────────────────────────────────────── */
+.ps-copilot-report-view { background: #0b1120; color: #e2e8f0; width: 90vw; max-width: 900px; max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid #1e293b; margin: 5vh auto; }
+.ps-copilot-report-view-toolbar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #0f172a; border-bottom: 1px solid #1e293b; z-index: 1; }
+.ps-copilot-report-view-title { font-size: 14px; font-weight: 700; }
+.ps-copilot-report-view-body { padding: 24px 28px; }
+.ps-copilot-report-header { display: flex; gap: 24px; font-size: 15px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #1e293b; }
+.ps-copilot-report-empty { font-size: 14px; color: #64748b; font-style: italic; }
+.ps-copilot-report-section { margin-bottom: 22px; }
+.ps-copilot-report-section-title { font-size: 16px; font-weight: 700; color: #0891B2; margin-bottom: 8px; }
+.ps-copilot-report-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ps-copilot-report-field-label { padding: 7px 14px 7px 0; color: #94a3b8; width: 45%; vertical-align: top; font-size: 15px; }
+.ps-copilot-report-field-value { padding: 7px 0; color: #e2e8f0; font-weight: 500; font-size: 15px; }
+.ps-copilot-report-section-row td {
+  font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 0.08em;
+  text-transform: uppercase; padding-top: 14px !important; padding-bottom: 5px !important;
+  border-bottom: 1px solid rgba(56,189,248,0.25);
+}
+
+@media print {
+  body * { visibility: hidden; }
+  #ps-copilot-print-area, #ps-copilot-print-area * { visibility: visible; }
+  #ps-copilot-print-area { position: static !important; width: 100%; color: #000; }
+  /* Confirmed via live DevTools inspection: .ps-synrp-root (position:
+     relative; overflow:hidden) is a real ancestor further up the page.
+     Once .ps-overlay--copilot-report was forced to position:static
+     (fixing the earlier bug), #ps-copilot-print-area's position:absolute
+     skipped past it onto THIS ancestor instead — which clips overflow,
+     silently zeroing out the rendered content. Neutralized above by
+     removing position:absolute entirely (no longer needed once the
+     overlay is already in normal flow); this is belt-and-suspenders in
+     case anything else in the chain still relies on positioning context. */
+  .ps-synrp-root { overflow: visible !important; }
+  #ps-copilot-print-area .ps-copilot-report-section-title { color: #000; }
+  #ps-copilot-print-area .ps-copilot-report-field-label { color: #333; }
+  #ps-copilot-print-area .ps-copilot-report-section-row td { color: #000; border-bottom-color: #999; }
+  [data-print-hide="true"] { display: none !important; }
+  .ps-copilot-report-view,
+  .ps-copilot-report-view--two-pane,
+  .ps-copilot-report-body-split,
+  .ps-copilot-report-right {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    display: block !important;
+  }
+  .ps-overlay--copilot-report {
+    position: static !important;
+    inset: auto !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    display: block !important;
+  }
+  /* ACTUAL, COMPLETE root cause — src/pathscribe.css line ~11506
+     (pre-existing, written for Orchestration's print flow, long before
+     this feature) has:
+       body > *:not(.ps-orch4-shell) { display: none !important; }
+     That selector's specificity (body element + :not()'s argument) is
+     HIGHER than a plain .ps-overlay--copilot-report class selector, so
+     it was winning regardless of !important or being earlier in the
+     file — !important ties are broken by specificity BEFORE source
+     order, and this rule had both !important AND higher specificity.
+     Matching the same selector shape (body > .class) gives equal
+     specificity, so source order (this rule is later in the file) then
+     correctly decides it in our favor. This is a real, standing
+     conflict between this modal and Orchestration's print isolation —
+     any other portal-rendered print modal outside .ps-orch4-shell would
+     hit the exact same bug. */
+  body > .ps-overlay--copilot-report {
+    display: block !important;
+  }
+  .ps-copilot-report-table { font-size: 11pt !important; }
+  .ps-copilot-report-field-label { font-size: 11pt !important; }
+  .ps-copilot-report-field-value { font-size: 11pt !important; }
+  .ps-copilot-report-section-title { font-size: 13pt !important; }
+  .ps-copilot-report-header { font-size: 11pt !important; }
+  .ps-copilot-report-amendment-narrative { font-size: 10.5pt !important; }
+}
+.ps-lis-triage-banner { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: rgba(239,68,68,0.08); border: 2px solid #ef4444; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
+.ps-lis-triage-title { font-size: 14px; font-weight: 800; color: #ef4444; margin-bottom: 4px; }
+.ps-lis-triage-summary { font-size: 12px; color: #e2e8f0; margin: 0; }
+
+/* ── Amended & Addenda Triage Tile ────────────────────────────────────── */
+.ps-triage-tile { background: rgba(239,68,68,0.06); border: 2px solid #ef4444; border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+.ps-triage-tile-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: none; border: none; cursor: pointer; }
+.ps-triage-tile-title { font-size: 13px; font-weight: 800; color: #ef4444; }
+.ps-triage-tile-toggle { color: #ef4444; font-size: 12px; }
+.ps-triage-tile-body { display: flex; flex-direction: column; border-top: 1px solid rgba(239,68,68,0.25); }
+.ps-triage-tile-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: none; border: none; border-bottom: 1px solid rgba(239,68,68,0.12); cursor: pointer; text-align: left; width: 100%; }
+.ps-triage-tile-row:hover { background: rgba(239,68,68,0.08); }
+.ps-triage-tile-row:last-child { border-bottom: none; }
+.ps-triage-tile-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; flex-shrink: 0; }
+.ps-triage-tile-badge--lis_notice { background: rgba(239,68,68,0.2); color: #ef4444; }
+.ps-triage-tile-badge--amendment_draft { background: rgba(217,119,6,0.2); color: #d97706; }
+.ps-triage-tile-badge--addendum_draft { background: rgba(8,145,178,0.2); color: #0891B2; }
+.ps-triage-tile-case { font-size: 12px; font-weight: 700; color: #e2e8f0; flex-shrink: 0; }
+.ps-triage-tile-label { font-size: 12px; color: #94a3b8; flex-shrink: 0; }
+.ps-triage-tile-detail { font-size: 11px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Amendment wizard — physician search-select picker */
+.ps-amendment-physician-picker { position: relative; }
+.ps-amendment-physician-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+  background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+  max-height: 220px; overflow-y: auto; margin-top: 4px;
+}
+.ps-amendment-physician-option:hover { background: #334155; }
+
+/* Amendment wizard — target banner + restyled physician picker (staff-directory look) */
+.ps-amendment-target-banner {
+  background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 12px; color: #cbd5e1; font-size: 0.9em;
+}
+.ps-amendment-target-banner strong { color: #f1f5f9; }
+.ps-amendment-physician-search {
+  width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 999px;
+  background: #0f172a; border: 1px solid #334155; color: #e2e8f0; font-size: 0.95em;
+}
+.ps-amendment-physician-search::placeholder { color: #64748b; }
+.ps-amendment-physician-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; }
+.ps-amendment-physician-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 600; font-size: 0.8em;
+}
+.ps-amendment-physician-info { display: flex; flex-direction: column; }
+.ps-amendment-physician-name { color: #e2e8f0; font-weight: 600; font-size: 0.92em; }
+.ps-amendment-physician-specialty { color: #94a3b8; font-size: 0.82em; margin-left: 0; }
+
+/* Amendment draft-in-progress banner (report panel, before release) */
+.ps-amendment-draft-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #431407; border: 1px solid #9a3412; border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 12px;
+}
+.ps-amendment-draft-banner-icon { font-size: 1.1em; line-height: 1.3; }
+.ps-amendment-draft-banner-title { color: #fdba74; font-weight: 700; font-size: 0.85em; letter-spacing: 0.02em; }
+.ps-amendment-draft-banner-reason { color: #fed7aa; font-size: 0.85em; margin: 4px 0 0 0; }
+
+/* Amendment Summary Box + live Changed Items (persistent, in-panel) */
+.ps-amendment-draft-banner-body { flex: 1; min-width: 0; }
+.ps-amendment-draft-banner-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ps-amendment-draft-banner-edit {
+  background: none; border: 1px solid #9a3412; border-radius: 6px; color: #fdba74;
+  font-size: 0.8em; padding: 4px 10px; cursor: pointer;
+}
+.ps-amendment-draft-banner-edit:hover { background: #7c2d12; }
+.ps-amendment-summary-box { margin-top: 8px; }
+.ps-amendment-summary-box--compact .ps-amendment-summary-row { font-size: 0.85em; margin-bottom: 3px; }
+.ps-amendment-summary-row { color: #e2e8f0; }
+.ps-amendment-summary-label { color: #94a3b8; font-weight: 600; margin-right: 6px; }
+.ps-amendment-changed-items { margin-top: 10px; }
+.ps-amendment-changed-items-toggle {
+  background: none; border: none; color: #fdba74; font-size: 0.85em; font-weight: 600;
+  cursor: pointer; padding: 0;
+}
+
+/* Physician picker — contact info row */
+.ps-amendment-physician-contact { display: flex; gap: 10px; margin-top: 2px; font-size: 0.78em; color: #94a3b8; }
+.ps-amendment-physician-contact-preferred { color: #fdba74; font-weight: 600; }
+.ps-amendment-physician-unverified { color: #f59e0b; font-weight: 400; font-size: 0.85em; }
+
+/* Amendment modal — replacing inline styles with real classes */
+.ps-overlay--amendment { z-index: 22000; }
+.ps-amendment-header-label--amendment { color: #d97706; }
+.ps-amendment-header-label--addendum { color: #0891b2; }
+.ps-amendment-submit--amendment { background: #d97706; }
+.ps-amendment-submit--addendum { background: #0891b2; }
+.ps-amendment-notification-block { margin-top: 12px; }
+.ps-amendment-notification-label { color: #d97706; }
+.ps-amendment-error-text { color: #f87171; }
+
+/* Fixed avatar color set — replaces a computed inline background so
+   the picker still gets per-person color variety without inline styles. */
+.ps-avatar-color-0 { background: #6366f1; }
+.ps-avatar-color-1 { background: #0891b2; }
+.ps-avatar-color-2 { background: #d97706; }
+.ps-avatar-color-3 { background: #16a34a; }
+.ps-avatar-color-4 { background: #db2777; }
+.ps-avatar-color-5 { background: #7c3aed; }
+
+/* HeaderBar cleanup — replacing all inline styles with real classes.
+   None of these needed to be dynamic: the button resets are fully
+   static, and the case-status colors only ever vary across 5 known
+   statuses, so a class-per-status lookup replaces the old
+   color-value-per-status lookup entirely — no CSS custom properties
+   needed here, this genuinely isn't a dynamic-value case. */
+.ps-hb-reset-button { background: none; border: none; font: inherit; cursor: pointer; padding: 0; }
+.ps-hb-reset-button--column { text-align: left; display: flex; flex-direction: column; }
+
+.ps-hb-hospital-sublabel { font-size: 10px; color: #64748b; font-weight: 600; margin-top: 2px; margin-bottom: 3px; }
+
+.ps-hb-status-pill.ps-case-status--draft           { background: #eff6ff; border: 1px solid #bfdbfe; }
+.ps-hb-status-pill.ps-case-status--finalized       { background: #f0fdf4; border: 1px solid #86efac; }
+.ps-hb-status-pill.ps-case-status--pending-review  { background: #fef3c7; border: 1px solid #fde047; }
+.ps-hb-status-pill.ps-case-status--amended         { background: #fff7ed; border: 1px solid #fdba74; }
+
+.ps-hb-status-pill.ps-case-status--draft .ps-hb-status-dot          { background: #3b82f6; }
+.ps-hb-status-pill.ps-case-status--finalized .ps-hb-status-dot      { background: #22c55e; }
+.ps-hb-status-pill.ps-case-status--pending-review .ps-hb-status-dot { background: #f59e0b; }
+.ps-hb-status-pill.ps-case-status--amended .ps-hb-status-dot        { background: #f97316; }
+
+.ps-hb-status-pill.ps-case-status--draft .ps-hb-status-text,
+.ps-hb-confidence-pct.ps-case-status--draft          { color: #1d4ed8; }
+.ps-hb-status-pill.ps-case-status--finalized .ps-hb-status-text,
+.ps-hb-confidence-pct.ps-case-status--finalized      { color: #15803d; }
+.ps-hb-status-pill.ps-case-status--pending-review .ps-hb-status-text,
+.ps-hb-confidence-pct.ps-case-status--pending-review { color: #92400e; }
+.ps-hb-status-pill.ps-case-status--amended .ps-hb-status-text,
+.ps-hb-confidence-pct.ps-case-status--amended         { color: #c2410c; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SynopticReportPage.tsx — full inline-style cleanup.
+   Every rule below reproduces the exact values the removed inline style
+   objects had; this is a like-for-like conversion, not a redesign.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes ps-spin { to { transform: rotate(360deg); } }
+
+/* Case not found screen */
+.ps-case-not-found { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0b1120; gap: 16px; }
+.ps-case-not-found-icon { font-size: 48px; }
+.ps-case-not-found-title { font-size: 20px; font-weight: 700; color: #e2e8f0; }
+.ps-case-not-found-subtitle { font-size: 14px; color: #64748b; }
+.ps-case-not-found-id { color: #38bdf8; }
+.ps-case-not-found-button { margin-top: 8px; }
+
+/* Root shell */
+.ps-synrp-root {
+  position: relative; width: 100vw; height: var(--app-height, 100vh);
+  background-color: #0f172a; color: #fff; font-family: 'Inter', sans-serif;
+  display: flex; flex-direction: column; overflow: hidden;
+  opacity: 0; transition: opacity 0.4s ease;
+}
+.ps-synrp-root--loaded { opacity: 1; }
+.ps-synrp-bg-image { position: absolute; inset: 0; background-image: url(/main_background.jpg); background-size: cover; background-position: center; z-index: 0; }
+.ps-synrp-bg-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.72); z-index: 1; }
+.ps-synrp-bg-gradient { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%); z-index: 2; }
+.ps-synrp-shell { position: relative; z-index: 10; display: flex; flex-direction: column; height: 100%; }
+
+/* Auto-generate toast */
+.ps-autogen-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 70000; display: flex; align-items: center; gap: 14px;
+  background: #1e293b; border: 1px solid rgba(8,145,178,0.4);
+  border-radius: 10px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.ps-autogen-toast-spinner { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(56,189,248,0.3); border-top-color: #38bdf8; animation: ps-spin 0.8s linear infinite; }
+.ps-autogen-toast-text { font-size: 13px; color: #e2e8f0; }
+.ps-autogen-toast-cancel { padding: 5px 12px; font-size: 12px; font-weight: 600; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 6px; color: #cbd5e1; cursor: pointer; font-family: inherit; }
+
+/* Alert banner */
+.ps-alert-banner { background: #fef3c7; border-top: none; border-bottom: 1px solid #fde047; flex-shrink: 0; }
+.ps-alert-banner-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 40px; cursor: pointer; user-select: none; }
+.ps-alert-banner-text { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #92400e; font-size: 12px; }
+.ps-alert-banner-link { text-decoration: underline; font-weight: 700; }
+.ps-alert-chevron { font-size: 12px; color: #92400e; transform: none; transition: transform 0.2s; cursor: pointer; }
+.ps-alert-chevron--expanded { transform: rotate(180deg); }
+.ps-alert-banner-detail { padding: 0 40px 6px; color: #78350f; font-size: 11px; border-top: 1px solid #fde047; padding-top: 5px; }
+
+/* Main body / left panel */
+.ps-synrp-main-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+.ps-syn-left-panel-wrap { flex: 1; min-width: 0; overflow: hidden; position: relative; background: rgba(15,23,42,0.95); display: flex; flex-direction: column; }
+.ps-syn-nav-strip-empty { color: #475569; }
+
+/* Tab bar (used in both the normal view and the full-screen sequencer overlay) */
+.ps-syn-tabbar { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; background: rgba(10,16,32,0.6); }
+.ps-syn-tab-btn {
+  padding: 9px 18px; font-size: 12px; font-weight: 400; color: rgba(148,163,184,0.7);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.ps-syn-tab-btn:not(.ps-syn-tab-btn--active):hover { color: #94a3b8; }
+.ps-syn-tab-btn--active { font-weight: 600; color: #38bdf8; border-bottom: 2px solid #38bdf8; }
+.ps-syn-tab-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ps-syn-tab-dot--finalized   { background: #10b981; border: 1.5px solid #10b981; box-shadow: 0 0 5px #10b981; }
+.ps-syn-tab-dot--pending     { background: #f59e0b; border: 1.5px solid #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+.ps-syn-tab-dot--in-progress { background: #60a5fa; border: 1.5px solid #60a5fa; box-shadow: 0 0 5px #60a5fa; }
+.ps-syn-tab-dot--draft       { background: #3b82f6; border: 1.5px solid #3b82f6; box-shadow: 0 0 5px #3b82f6; }
+
+.ps-syn-tabbar-tools { margin-left: auto; padding: 0 10px; display: flex; align-items: center; gap: 8px; }
+.ps-syn-dev-btn { font-size: 11px; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.ps-syn-dev-btn--microscopic { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b; }
+.ps-syn-dev-btn--lis { background: rgba(217,119,6,0.12); border: 1px solid rgba(217,119,6,0.35); color: #d97706; }
+.ps-syn-sequencer-btn {
+  padding: 5px 12px; font-size: 11px; font-weight: 600; color: #38bdf8; cursor: pointer;
+  background: rgba(8,145,178,0.1); border: 1px solid rgba(8,145,178,0.3);
+  border-radius: 6px; display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s; white-space: nowrap;
+}
+.ps-syn-sequencer-btn:hover { background: rgba(8,145,178,0.2); border-color: #0891B2; }
+
+/* Tab content panels */
+.ps-syn-tab-content { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.ps-syn-tab-panel { position: absolute; inset: 0; display: none; }
+.ps-syn-tab-panel--dark { background: #0b1120; }
+.ps-syn-tab-panel--scroll { overflow-y: auto; }
+.ps-syn-tab-panel--column { flex-direction: column; }
+.ps-syn-tab-panel--visible-flex { display: flex; }
+.ps-syn-tab-panel--visible-block { display: block; }
+
+/* Expand/collapse button */
+.ps-syn-expand-btn-wrap { position: relative; width: 0; z-index: 200; display: flex; align-items: center; }
+.ps-syn-expand-btn-wrap--hidden { display: none; }
+.ps-syn-expand-btn {
+  position: absolute; left: -16px; width: 32px; height: 32px; border-radius: 50%;
+  background: #0891B2; border: 2px solid rgba(255,255,255,0.2); color: white;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; box-shadow: 0 2px 12px rgba(0,0,0,0.8); transition: background 0.15s;
+}
+.ps-syn-expand-btn:hover { background: #0e7490; }
+
+/* Right panel */
+.ps-syn-right-panel { flex: 1; min-width: 0; background: rgba(15,23,42,0.95); display: flex; flex-direction: column; overflow: hidden; visibility: visible; }
+.ps-syn-right-panel--collapsed { flex: 0 0 0px; visibility: hidden; }
+.ps-syn-right-panel-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.ps-syn-right-panel-scroll--flex { min-width: 0; background: rgba(15,23,42,0.95); }
+
+/* Full-screen sequencer overlay */
+.ps-syn-sequencer-overlay { position: fixed; inset: 0; z-index: 9000; display: flex; flex-direction: column; background: #0a0f1e; }
+.ps-syn-sequencer-header { background: rgba(8,20,40,0.98); border-bottom: 1px solid rgba(8,145,178,0.3); flex-shrink: 0; }
+.ps-syn-sequencer-header-row { display: flex; align-items: center; gap: 10px; padding: 0 20px; height: 34px; font-size: 12px; }
+.ps-syn-sequencer-accession { font-weight: 700; color: #38bdf8; font-family: monospace; }
+.ps-syn-sequencer-sep { color: #334155; }
+.ps-syn-sequencer-patient { color: #f1f5f9; font-weight: 600; }
+.ps-syn-sequencer-value { color: #f1f5f9; }
+.ps-syn-sequencer-value--spaced { margin-left: 3px; }
+.ps-syn-sequencer-label { color: #94a3b8; font-size: 11px; }
+.ps-syn-sequencer-specimen-row { display: flex; align-items: center; gap: 12px; padding: 0 20px 10px; overflow-x: auto; }
+.ps-syn-sequencer-specimen-label { font-size: 10px; color: #94a3b8; font-weight: 700; letter-spacing: 0.08em; flex-shrink: 0; text-transform: uppercase; margin-right: 4px; }
+.ps-syn-sequencer-specimen-item { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.ps-syn-sequencer-warn-icon { font-size: 10px; }
+.ps-syn-sequencer-body { flex: 1; display: flex; min-height: 0; }
+.ps-syn-sequencer-left-col { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; background: rgba(15,23,42,0.95); }
+
+/* Specimen pill state variants — base .ps-specimen-pill / .warning already
+   exist elsewhere; these add only the per-state color logic that used to
+   be computed inline (hasNone × isActive, 3 real states). */
+.ps-specimen-pill--warning  { border: 1.5px solid #d97706; background: transparent; color: #fbbf24; }
+.ps-specimen-pill--active   { border: 1.5px solid #0891B2; background: #0891B2; color: #ffffff; }
+.ps-specimen-pill--inactive { border: 1.5px solid #0891B2; background: transparent; color: #7dd3fc; }
+.ps-specimen-pill-letter { font-weight: 800; }
+.ps-specimen-pill--warning .ps-specimen-pill-letter  { color: #f59e0b; }
+.ps-specimen-pill--active .ps-specimen-pill-letter   { color: #ffffff; }
+.ps-specimen-pill--inactive .ps-specimen-pill-letter { color: #38bdf8; }
+.ps-specimen-pill-select {
+  height: 24px; font-size: 11px; font-weight: 600; max-width: 160px; flex-shrink: 0;
+  background: rgba(8,145,178,0.15); color: #7dd3fc; border: 1.5px solid #0891B2;
+  border-radius: 20px; padding: 0 8px; cursor: pointer; outline: none;
+}
+
+/* Tab-switch unsaved-draft confirmation modal */
+.ps-tabswitch-overlay { position: fixed; inset: 0; z-index: 60000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; }
+.ps-tabswitch-modal { background: #1e293b; border: 1px solid rgba(148,163,184,0.2); border-radius: 12px; padding: 28px 32px; max-width: 420px; width: 90%; }
+.ps-tabswitch-title { font-size: 16px; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; }
+.ps-tabswitch-body { font-size: 13px; color: #94a3b8; margin-bottom: 24px; line-height: 1.6; }
+.ps-tabswitch-footer { display: flex; gap: 10px; justify-content: flex-end; }
+.ps-tabswitch-btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.ps-tabswitch-btn--cancel  { background: transparent; border: 1px solid rgba(148,163,184,0.2); color: #64748b; }
+.ps-tabswitch-btn--discard { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.2); color: #cbd5e1; }
+.ps-tabswitch-btn--save    { background: rgba(8,145,178,0.2); border: 1px solid rgba(8,145,178,0.4); color: #38bdf8; font-weight: 600; }
+
+/* Persistent physician contact card — visible without opening the
+   search dropdown, for whoever's currently set in the field. */
+.ps-amendment-physician-selected-card {
+  display: flex; flex-direction: row; align-items: flex-start; gap: 12px;
+  margin-top: 8px; padding: 10px 14px;
+  background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+}
+.ps-amendment-physician-selected-card .ps-amendment-physician-avatar { flex-shrink: 0; }
+.ps-amendment-physician-selected-card .ps-amendment-physician-info {
+  display: flex; flex-direction: column; gap: 4px; padding-top: 2px;
+}
+.ps-amendment-physician-selected-card .ps-amendment-physician-specialty { color: #94a3b8; font-size: 0.85em; }
+.ps-amendment-physician-selected-card .ps-amendment-physician-contact {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 2px; font-size: 0.82em;
+}
+
+/* Pre-finalisation preview — section headers within each synoptic report */
+.ps-prefin-preview-section { margin-bottom: 14px; }
+.ps-prefin-preview-section-title {
+  font-size: 10px; font-weight: 800; color: #0891B2; letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 6px; padding-bottom: 4px;
+  border-bottom: 1px solid rgba(8,145,178,0.25);
+}
+
+/* Amendment diff table — collapse toggle + section grouping */
+.ps-amendment-narrative-header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ps-amendment-collapse-toggle {
+  background: none; border: none; color: #fdba74; font-size: 0.82em; font-weight: 600;
+  cursor: pointer; padding: 2px 8px; white-space: nowrap;
+}
+.ps-amendment-matrix-section-row td {
+  font-size: 10px; font-weight: 800; color: #fdba74; letter-spacing: 0.08em;
+  text-transform: uppercase; padding-top: 12px; padding-bottom: 4px;
+  border-bottom: 1px solid rgba(253,186,116,0.25);
+}
+
+/* Copilot print/report-view modal — real two-pane layout */
+.ps-overlay--copilot-report { z-index: 21000; }
+.ps-copilot-report-view--two-pane { display: flex; flex-direction: column; width: 95vw; max-width: 1400px; height: 90vh; max-height: 900px; }
+.ps-copilot-report-body-split { flex: 1; display: flex; min-height: 0; }
+
+.ps-copilot-report-left {
+  width: 420px; flex-shrink: 0; overflow-y: auto; padding: 16px;
+  background: #0f172a; border-right: 1px solid #334155;
+}
+.ps-copilot-report-left-hint { color: #64748b; font-size: 0.85em; margin-top: 12px; line-height: 1.5; }
+.ps-copilot-report-specimen-card {
+  margin-bottom: 16px; padding: 12px; background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+}
+.ps-copilot-report-specimen-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ps-copilot-report-specimen-num {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #0891B2; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 0.85em; font-weight: 700;
+}
+.ps-copilot-report-specimen-name { color: #e2e8f0; font-weight: 600; font-size: 1.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ps-copilot-report-specimen-count { color: #94a3b8; font-size: 0.85em; }
+.ps-copilot-report-instance-block { margin-left: 36px; margin-bottom: 8px; }
+.ps-copilot-report-instance-row {
+  display: block; width: 100%; text-align: left; padding: 6px 8px; font-family: inherit;
+  background: none; border: none; border-radius: 6px; color: #cbd5e1; font-size: 0.95em; font-weight: 600;
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ps-copilot-report-instance-row:hover { background: rgba(148,163,184,0.08); }
+.ps-copilot-report-instance-row--active { color: #38bdf8; }
+
+.ps-copilot-report-version-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px 6px 16px;
+  background: none; border: 1px solid transparent; border-radius: 6px;
+  cursor: pointer; text-align: left; font-family: inherit;
+}
+.ps-copilot-report-version-row:hover { background: rgba(148,163,184,0.08); }
+.ps-copilot-report-version-row--active { border-color: #0891B2; background: rgba(8,145,178,0.12); }
+.ps-copilot-report-version-badge {
+  flex-shrink: 0; font-size: 11px; font-weight: 800; color: #38bdf8;
+  background: rgba(56,189,248,0.15); border-radius: 4px; padding: 2px 6px;
+}
+.ps-copilot-report-version-label { color: #e2e8f0; font-size: 0.88em; font-weight: 600; white-space: nowrap; }
+.ps-copilot-report-section-version-tag {
+  margin-left: 10px; font-size: 0.7em; font-weight: 700; color: #38bdf8;
+  background: rgba(56,189,248,0.15); border-radius: 4px; padding: 2px 8px; vertical-align: middle;
+}
+
+.ps-copilot-report-right { flex: 1; min-width: 0; overflow-y: auto; }
+
+.ps-copilot-report-version-meta { color: #94a3b8; font-size: 0.78em; margin-left: auto; }
+
+/* Amendment narrative + Originally Reported As diff in the print output */
+.ps-copilot-report-amendment-narrative {
+  background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.35); border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 12px; font-size: 12px; line-height: 1.6;
+}
+.ps-copilot-report-amendment-flag { font-size: 10px; font-weight: 800; color: #d97706; letter-spacing: 0.08em; margin-bottom: 4px; }
+.ps-copilot-report-diff-table { margin-bottom: 14px; }
+.ps-copilot-report-diff-table th { text-align: left; font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 6px; border-bottom: 1px solid #334155; }
+.ps-copilot-report-diff-previous { color: #94a3b8; text-decoration: line-through; }
+.ps-copilot-report-diff-current { color: #38bdf8; font-weight: 600; }
+
+@media print {
+  .ps-copilot-report-amendment-narrative { background: #fff7ed; border-color: #d97706; color: #000; }
+  .ps-copilot-report-amendment-flag { color: #d97706; }
+  .ps-copilot-report-diff-previous { color: #666; }
+  .ps-copilot-report-diff-current { color: #000; }
+}

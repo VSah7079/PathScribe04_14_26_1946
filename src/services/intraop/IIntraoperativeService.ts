@@ -13,7 +13,7 @@
 // points in their own workflow.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
-import type { IntraoperativeEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch } from '@/types/intraop/IntraoperativeEntry';
+import type { IntraoperativeEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
 
 export interface IIntraoperativeService {
   /** Simulated ADT feed lookup by MRN — real, deterministic result for
@@ -51,7 +51,7 @@ export interface IIntraoperativeService {
     quickGrossText?: string
   ): Promise<ServiceResult<IntraoperativeEntry>>;
 
-  setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string): Promise<ServiceResult<IntraoperativeEntry>>;
+  setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string, category?: FrozenCategory): Promise<ServiceResult<IntraoperativeEntry>>;
 
   merge(entryId: string, caseId: string): Promise<ServiceResult<IntraoperativeEntry>>;
 }

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 type Template = { id: string; name: string; version: string; status: string; };
 
 const mockTemplates: Template[] = [
-  { id: "breast_dcis_resection", name: "Breast DCIS – Resection", version: "4.4.0.0", status: "staged" },
+  { id: "generic_test_basic", name: "Generic Synoptic Test Form — Basic", version: "1.0", status: "staged" },
 ];
 
 export const AdminTemplateList: React.FC = () => {

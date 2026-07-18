@@ -2,12 +2,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Contract for template routing rule persistence.
 // Rules are admin-defined overrides that take priority over the default
-// CAP protocol → subspecialty → gold-standard resolution chain.
+// synoptic protocol → subspecialty → gold-standard resolution chain.
 //
 // Priority order (matches TemplateRoutingService):
 //   Pass 0  — Client override   (clientId → templateId)
 //   Pass 0b — Physician pref    (physicianId → templateId)
-//   Pass 1  — CAP protocol      (admin-defined rules below, merged with the
+//   Pass 1  — Synoptic protocol (admin-defined rules below, merged with the
 //                                 hardcoded fallback map in TemplateRoutingService —
 //                                 admin rules take precedence)
 //   Pass 2  — Subspecialty      (hardcoded in TemplateRoutingService)
@@ -16,12 +16,12 @@
 
 import type { ServiceResult, ID } from '../types';
 
-export type RoutingRuleType = 'client' | 'physician' | 'cap-protocol';
+export type RoutingRuleType = 'client' | 'physician' | 'protocol';
 
 export interface RoutingRule {
   id:           ID;
   type:         RoutingRuleType;
-  /** clientId, physicianId, or CAP/RCPath synoptic protocol ID, depending on type */
+  /** clientId, physicianId, or synoptic protocol ID, depending on type */
   entityId:     string;
   /** Cached display name — avoids async lookup */
   entityName:   string;
@@ -47,6 +47,6 @@ export interface IRoutingRuleService {
   /** Returns the map used by TemplateRoutingService — { entityId: templateId } */
   getClientMap():                         Promise<ServiceResult<Record<string, string>>>;
   getPhysicianMap():                      Promise<ServiceResult<Record<string, string>>>;
-  /** Admin-defined CAP/RCPath protocol → template overrides — { protocolId: templateId } */
-  getCapProtocolMap():                    Promise<ServiceResult<Record<string, string>>>;
+  /** Admin-defined synoptic protocol → template overrides — { protocolId: templateId } */
+  getProtocolMap():                       Promise<ServiceResult<Record<string, string>>>;
 }

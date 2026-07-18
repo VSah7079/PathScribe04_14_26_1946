@@ -1,0 +1,1117 @@
+{
+  "id": "prostate_needle_biopsy",
+  "name": "Generic Template \u2014 Prostate Needle Biopsy",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "PROSTATE",
+  "sections": [
+    {
+      "id": "case_summary",
+      "title": "Case Summary",
+      "fields": [
+        {
+          "id": "case_summary_note",
+          "label": "Case Summary",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "procedure",
+      "title": "Procedure",
+      "fields": [
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "procedure_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "positive_specimens_or_zones",
+      "title": "Positive Areas",
+      "fields": [
+        {
+          "id": "positive_specimen_locations",
+          "label": "Positive Area(s)",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "positive_specimen_locations_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "positive_specimen_locations_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "positive_specimen_locations_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "positive_specimen_locations_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "positive_specimen_locations_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "histologic_type",
+      "title": "Type Summary",
+      "fields": [
+        {
+          "id": "histologic_glandular",
+          "label": "Type - Category A",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_glandular_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_glandular_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_glandular_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_glandular_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_glandular_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_glandular_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_glandular_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "histologic_squamous",
+          "label": "Type - Category B",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_squamous_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_squamous_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_squamous_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "histologic_neuroendocrine",
+          "label": "Type - Category C",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_neuroendocrine_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_neuroendocrine_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_neuroendocrine_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_neuroendocrine_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "histologic_other",
+          "label": "Type - Other",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_other_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_other_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "histologic_type_comment",
+          "label": "Type Comment",
+          "type": "longtext",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "histologic_grade",
+      "title": "Grade Summary",
+      "fields": [
+        {
+          "id": "highest_gleason_score",
+          "label": "Highest Score",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "highest_gleason_score_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "highest_gleason_score_opt_11",
+              "label": "Option 11",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "sites_with_highest_gleason",
+          "label": "Site(s) of Highest Score",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "sites_with_highest_gleason_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "sites_with_highest_gleason_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "sites_with_highest_gleason_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "sites_with_highest_gleason_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "sites_with_highest_gleason_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overall_grade",
+      "title": "Overall Grade",
+      "fields": [
+        {
+          "id": "systematic_overall_grade",
+          "label": "Overall Grade A",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "systematic_overall_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "systematic_overall_grade_opt_11",
+              "label": "Option 11",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "targeted_biopsy_grade",
+          "label": "Overall Grade B",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "combined_systematic_targeted_grade",
+          "label": "Combined Grade",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "combined_systematic_targeted_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "combined_systematic_targeted_grade_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "intraductal_carcinoma",
+          "label": "Secondary Finding A",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "intraductal_carcinoma_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "intraductal_carcinoma_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "cribriform_glands",
+          "label": "Secondary Finding B",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "cribriform_glands_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "cribriform_glands_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "cribriform_glands_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "cribriform_glands_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "cribriform_glands_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "treatment_effect",
+          "label": "Treatment Effect",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "treatment_effect_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_effect_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_effect_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_effect_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_effect_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_effect_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_effect_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tumor_quantitation",
+      "title": "Quantitation",
+      "fields": [
+        {
+          "id": "total_number_of_cores",
+          "label": "Total Number of Units",
+          "type": "numeric",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "total_number_of_cores_cannot_be_determined",
+          "label": "Total Number Cannot Be Determined",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "number_of_positive_cores",
+          "label": "Number of Positive Units",
+          "type": "numeric",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "number_of_positive_cores_cannot_be_determined",
+          "label": "Number Positive Cannot Be Determined",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "tumor_measurement_technique",
+          "label": "Measurement Technique",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "tumor_measurement_technique_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_measurement_technique_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_measurement_technique_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "greatest_percentage_core_involvement",
+          "label": "Greatest % Involvement",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "greatest_percentage_core_involvement_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_11",
+              "label": "Option 11",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_12",
+              "label": "Option 12",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_percentage_core_involvement_opt_13",
+              "label": "Option 13",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "gpc_sites",
+          "label": "Site(s) of Greatest % Involvement",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "gpc_sites_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gpc_sites_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gpc_sites_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gpc_sites_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gpc_sites_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "greatest_length_core_involvement",
+          "label": "Greatest Length Involvement",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "greatest_length_core_sites",
+          "label": "Site(s) of Greatest Length",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "greatest_length_core_sites_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_length_core_sites_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_length_core_sites_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_length_core_sites_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "greatest_length_core_sites_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "percentage_total_prostatic_tissue_involved",
+          "label": "Percentage of Total Tissue Involved",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "total_linear_mm_carcinoma",
+          "label": "Total Linear mm (Finding)",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "total_linear_mm_core_tissue",
+          "label": "Total Linear mm (Tissue)",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        },
+        {
+          "id": "periprostatic_fat_invasion",
+          "label": "Adjacent Fat Involvement",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "periprostatic_fat_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "periprostatic_fat_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "periprostatic_fat_invasion_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "periprostatic_fat_invasion_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "seminal_vesicle_invasion",
+          "label": "Secondary Structure Involvement A",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "seminal_vesicle_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_invasion_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_invasion_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "lymphatic_vascular_invasion",
+          "label": "Lymphatic/Vascular Involvement",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymphatic_vascular_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "perineural_invasion",
+          "label": "Perineural Involvement",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "perineural_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "perineural_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "additional_findings",
+      "title": "Additional Findings",
+      "fields": [
+        {
+          "id": "additional_findings",
+          "label": "Additional Findings",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "additional_findings_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "additional_findings_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "additional_findings_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "additional_findings_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "additional_findings_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "additional_findings_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comment_text",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        }
+      ]
+    }
+  ]
+}

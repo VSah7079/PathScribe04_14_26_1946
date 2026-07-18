@@ -14,6 +14,19 @@ interface BottomActionBarProps {
   onFinalize: () => void;
   onFinalizeAndNext: () => void;
   onSignOut: () => void;
+  /** Manual trigger for the Amendment/Addendum modal on an already-
+   *  finalized case — before this, the modal only ever opened itself
+   *  automatically for one narrow scenario (a deferred synoptic being
+   *  completed), with no way for a pathologist to request a genuine
+   *  correction or addition on demand. Shown in the same slot Sign Out
+   *  occupies before finalization — mutually exclusive with it. */
+  onRequestAmendment?: () => void;
+  /** CoPilot-specific print action — Orchestration's print button lives
+   *  inside the full report preview panel, which is Orchestration-only
+   *  (relies on narrative sections that don't exist for CoPilot). This
+   *  is a separate, dedicated entry point reusing the same underlying
+   *  PDF generation, not a duplicate implementation. */
+  onPrint?: () => void;
   
   onDelegate?: () => void;
   onHistory?: () => void;
@@ -113,6 +126,8 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onFinalize,
   onFinalizeAndNext,
   onSignOut,
+  onRequestAmendment,
+  onPrint,
   
   onDelegate,
   onHistory,
@@ -299,7 +314,7 @@ useEffect(() => {
             </ActionButton>
           </>
         )}
-        {!isPool && (allFinalized || isFinalized) && status !== 'finalized' && (
+        {!isPool && caseData?.reportingMode !== 'copilot' && (allFinalized || isFinalized) && status !== 'finalized' && (
           <ActionButton
             onClick={onSignOut}
             variant="solid"
@@ -309,6 +324,26 @@ useEffect(() => {
             title={synopticFitPending ? 'Disabled — Stage 1 synoptic assignment evaluation in progress or awaiting review' : undefined}
           >
             ✍️ Sign Out Case
+          </ActionButton>
+        )}
+        {!isPool && caseData?.reportingMode === 'copilot' && (allFinalized || isFinalized) && (
+          <span className="ps-bab-copilot-complete" title="CoPilot cases are completed via Finalize — the LIS owns official sign-out for this reporting mode, not PathScribe.">
+            ✓ Finalized — structured data complete, LIS handles official sign-out
+          </span>
+        )}
+        {!isPool && caseData?.reportingMode === 'copilot' && (allFinalized || isFinalized) && onPrint && (
+          <ActionButton onClick={onPrint} variant="outline" color="#0891B2" title="Print this report">
+            🖨 Print
+          </ActionButton>
+        )}
+        {status === 'finalized' && onRequestAmendment && (
+          <ActionButton
+            onClick={onRequestAmendment}
+            variant="outline"
+            color="#d97706"
+            title="Issue a correction or addition to this already-finalized report"
+          >
+            ✏️ Request Amendment / Addendum
           </ActionButton>
         )}
       </div>

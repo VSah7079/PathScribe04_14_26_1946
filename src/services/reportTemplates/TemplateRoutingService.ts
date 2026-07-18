@@ -3,11 +3,11 @@
 // Resolves the correct Case Report Template for an Outreach case.
 //
 // Priority:
-//   1. CAP synoptic template ID (most specific — encodes subspecialty + procedure)
+//   1. Synoptic protocol template ID (most specific — encodes subspecialty + procedure)
 //   2. Subspecialty ID fallback
 //   3. Gold standard (universal fallback)
 //
-// If multiple CAP protocols on a single case resolve to different report
+// If multiple synoptic protocols on a single case resolve to different report
 // templates (multi-organ case), `ambiguous: true` is returned and `candidates`
 // lists all qualifying template IDs.  The caller should surface the choice to
 // the pathologist via the Sequencer or case header dropdown.
@@ -16,7 +16,7 @@
 export interface TemplateRoutingInput {
   /** Subspecialty ID from the case or order (e.g. 'breast', 'gi') */
   subspecialtyId?: string;
-  /** CAP / RCPath synoptic template IDs from synopticReports[].templateId */
+  /** Synoptic template IDs from synopticReports[].templateId */
   synopticTemplateIds?: string[];
   /** Performing/receiving client ID — enables client-specific template overrides */
   performingClientId?: string;
@@ -32,10 +32,10 @@ export interface TemplateRoutingResult {
   /** All qualifying template IDs in priority order */
   candidates: string[];
   /** How the template was resolved */
-  resolvedBy: 'cap-protocol' | 'client-override' | 'physician-preference' | 'subspecialty' | 'gold-standard';
+  resolvedBy: 'protocol' | 'client-override' | 'physician-preference' | 'subspecialty' | 'gold-standard';
 }
 
-// ── CAP synoptic template → Case Report Template ─────────────────────────────
+// ── Synoptic protocol → Case Report Template ─────────────────────────────
 // Key = synopticReports[].templateId value in real case data — these MUST
 // match the IDs actually seeded in templateService.ts's editorStore
 // (editorStore.set('breast_invasive', ...) etc.) — NOT an invented naming
@@ -43,24 +43,28 @@ export interface TemplateRoutingResult {
 // keys that didn't match any real protocol ID anywhere in the codebase,
 // which meant Pass 1 (the most specific, highest-priority match) could
 // never fire against real data. Re-keyed against the authoritative list
-// in templateService.ts as of June 2026.
+// in templateService.ts as of June 2026, and again in July 2026 when the
+// former RCPath-derived templates were renamed as part of the CAP/RCPath
+// content-licensing cleanup (e.g. rcpath_g148_breast_surgical_excision ->
+// breast_surgical_excision, rcpath_colorectal_resection ->
+// colorectal_resection_b) — see templateService.ts for the full mapping.
 //
-// MAINTENANCE: if a new CAP/RCPath protocol is added to templateService.ts's
+// MAINTENANCE: if a new protocol is added to templateService.ts's
 // editorStore, it must also be added here (or routed to gold-standard by
 // omission) — these two files are not otherwise kept in sync automatically.
 // Value = Case Report Template ID (see mockReportTemplateService)
 
-const CAP_TO_REPORT: Record<string, string> = {
+const PROTOCOL_TO_REPORT: Record<string, string> = {
   // Breast
   'breast_invasive':                          'tmpl-breast',
   'breast_dcis_resection':                    'tmpl-breast',
-  'rcpath_g148_breast_surgical_excision':      'tmpl-breast',
+  'breast_surgical_excision':                  'tmpl-breast',
 
   // Gastrointestinal
   'colon_resection':                          'tmpl-gi',
-  'rcpath_colorectal_resection':               'tmpl-gi',
-  'rcpath_colorectal_local_excision':          'tmpl-gi',
-  'rcpath_colorectal_further_investigations':  'tmpl-gi',
+  'colorectal_resection_b':                    'tmpl-gi',
+  'colorectal_local_excision':                'tmpl-gi',
+  'colorectal_further_investigations':        'tmpl-gi',
 
   // Thoracic / Pulmonary
   'lung_adeno':                                'tmpl-thoracic',
@@ -69,9 +73,9 @@ const CAP_TO_REPORT: Record<string, string> = {
   // Urological (includes renal — no dedicated renal template exists)
   'prostate_needle_biopsy':                    'tmpl-uro',
   'prostate_resection':                        'tmpl-uro',
-  'rcpath_prostate_biopsy':                    'tmpl-uro',
-  'rcpath_prostate_radical_prostatectomy':     'tmpl-uro',
-  'rcpath_prostate_turp_enucleation':          'tmpl-uro',
+  'prostate_biopsy':                           'tmpl-uro',
+  'prostate_radical_prostatectomy':            'tmpl-uro',
+  'prostate_turp_enucleation':                 'tmpl-uro',
   'kidney_resection':                          'tmpl-uro',
   'kidney_biopsy':                             'tmpl-uro',
   'wilms_resection':                           'tmpl-uro',
@@ -101,7 +105,7 @@ const SUBSPECIALTY_TO_REPORT: Record<string, string> = {
 // populated upstream (e.g. at case triage). Until then, this lets Pass 2
 // still do something useful by deriving a subspecialty from whatever
 // synoptic protocol the case already has — covering, in particular, the
-// case where a protocol exists but isn't (yet) in CAP_TO_REPORT above, so
+// case where a protocol exists but isn't (yet) in PROTOCOL_TO_REPORT above, so
 // it doesn't fall all the way through to Gold Standard unnecessarily.
 // Keys are the real protocol IDs from templateService.ts's editorStore —
 // same groupings as the Admin Guide's Appendix B.
@@ -109,18 +113,18 @@ const SUBSPECIALTY_TO_REPORT: Record<string, string> = {
 const PROTOCOL_TO_SUBSPECIALTY: Record<string, string> = {
   'breast_invasive':                         'breast',
   'breast_dcis_resection':                   'breast',
-  'rcpath_g148_breast_surgical_excision':    'breast',
+  'breast_surgical_excision':                'breast',
   'colon_resection':                         'gi',
-  'rcpath_colorectal_resection':             'gi',
-  'rcpath_colorectal_local_excision':        'gi',
-  'rcpath_colorectal_further_investigations':'gi',
+  'colorectal_resection_b':                  'gi',
+  'colorectal_local_excision':               'gi',
+  'colorectal_further_investigations':       'gi',
   'lung_adeno':                               'thoracic',
   'lung_resection':                           'thoracic',
   'prostate_needle_biopsy':                   'uro',
   'prostate_resection':                       'uro',
-  'rcpath_prostate_biopsy':                   'uro',
-  'rcpath_prostate_radical_prostatectomy':    'uro',
-  'rcpath_prostate_turp_enucleation':         'uro',
+  'prostate_biopsy':                          'uro',
+  'prostate_radical_prostatectomy':           'uro',
+  'prostate_turp_enucleation':                'uro',
   'kidney_resection':                         'uro',
   'kidney_biopsy':                            'uro',
   'wilms_resection':                          'uro',
@@ -197,10 +201,10 @@ export function traceReportTemplateResolution(input: TemplateRoutingInput): Temp
 
   const clientMap      = { ...CLIENT_TO_REPORT,    ...((input as any)._clientOverrides      ?? {}) };
   const physicianMap   = { ...PHYSICIAN_TO_REPORT, ...((input as any)._physicianOverrides   ?? {}) };
-  // Admin-defined CAP protocol mappings take precedence over the hardcoded
+  // Admin-defined protocol mappings take precedence over the hardcoded
   // fallback map — lets an admin self-service a new/changed protocol
   // mapping from Routing Rules without a code deploy.
-  const capMap = { ...CAP_TO_REPORT, ...((input as any)._capProtocolOverrides ?? {}) };
+  const protocolMap = { ...PROTOCOL_TO_REPORT, ...((input as any)._protocolOverrides ?? {}) };
 
   // Pass 0 — Client override
   {
@@ -232,22 +236,22 @@ export function traceReportTemplateResolution(input: TemplateRoutingInput): Temp
     passes.push({ pass: 'physician-preference', reached: false, inputProvided: false, matched: false, detail: 'Not reached — higher-priority pass already matched' });
   }
 
-  // Pass 1 — CAP protocol (most specific)
+  // Pass 1 — synoptic protocol (most specific)
   if (!resolved) {
     const ids = input.synopticTemplateIds ?? [];
     const candidateSet = new Set<string>();
-    ids.forEach(id => { const m = capMap[id]; if (m) candidateSet.add(m); });
+    ids.forEach(id => { const m = protocolMap[id]; if (m) candidateSet.add(m); });
     if (candidateSet.size > 0) {
       const list = Array.from(candidateSet);
-      resolved = { templateId: list[0], ambiguous: list.length > 1, candidates: list, resolvedBy: 'cap-protocol' };
-      passes.push({ pass: 'cap-protocol', reached: true, inputProvided: true, matched: true,
+      resolved = { templateId: list[0], ambiguous: list.length > 1, candidates: list, resolvedBy: 'protocol' };
+      passes.push({ pass: 'protocol', reached: true, inputProvided: true, matched: true,
         detail: `${ids.join(', ')} → ${list.join(', ')}` });
     } else {
-      passes.push({ pass: 'cap-protocol', reached: true, inputProvided: ids.length > 0, matched: false,
-        detail: ids.length > 0 ? `${ids.join(', ')} — no protocol mapping found` : 'No CAP synoptic template ID specified' });
+      passes.push({ pass: 'protocol', reached: true, inputProvided: ids.length > 0, matched: false,
+        detail: ids.length > 0 ? `${ids.join(', ')} — no protocol mapping found` : 'No synoptic template ID specified' });
     }
   } else {
-    passes.push({ pass: 'cap-protocol', reached: false, inputProvided: false, matched: false, detail: 'Not reached — higher-priority pass already matched' });
+    passes.push({ pass: 'protocol', reached: false, inputProvided: false, matched: false, detail: 'Not reached — higher-priority pass already matched' });
   }
 
   // Pass 2 — Subspecialty fallback
@@ -291,20 +295,20 @@ export async function resolveReportTemplateAsync(
 ): Promise<TemplateRoutingResult> {
   try {
     const { mockRoutingRuleService } = await import('../routingRules/mockRoutingRuleService');
-    const [clientMapResult, physicianMapResult, capMapResult] = await Promise.all([
+    const [clientMapResult, physicianMapResult, protocolMapResult] = await Promise.all([
       mockRoutingRuleService.getClientMap(),
       mockRoutingRuleService.getPhysicianMap(),
-      mockRoutingRuleService.getCapProtocolMap(),
+      mockRoutingRuleService.getProtocolMap(),
     ]);
     const clientOverrides      = (clientMapResult as any).ok ? (clientMapResult as any).data : {};
     const physicianOverrides   = (physicianMapResult as any).ok ? (physicianMapResult as any).data : {};
-    const capProtocolOverrides = (capMapResult as any).ok ? (capMapResult as any).data : {};
+    const protocolOverrides    = (protocolMapResult as any).ok ? (protocolMapResult as any).data : {};
     // Merge admin rules into the hardcoded maps (admin rules take precedence)
     return resolveReportTemplate({
       ...input,
       _clientOverrides:      clientOverrides,
       _physicianOverrides:   physicianOverrides,
-      _capProtocolOverrides: capProtocolOverrides,
+      _protocolOverrides:    protocolOverrides,
     } as any);
   } catch {
     // Fall back to sync resolution if service unavailable

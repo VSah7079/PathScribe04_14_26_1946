@@ -75,7 +75,7 @@ const PETE_CASES: Case[] = [
         "Received separately, labeled \"appendix,\" is a vermiform appendix measuring 7.5 x 1.0 cm with an unremarkable serosal surface. The cut surface reveals a patent lumen throughout without a mass lesion. Representative sections submitted.",
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0001-SP-A_colon_${iid()}`, specimenId: 'O26-0001-SP-A', templateId: 'colon_resection', templateName: 'CAP Colon & Rectum Carcinoma — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0001-SP-A_colon_${iid()}`, specimenId: 'O26-0001-SP-A', templateId: 'colon_resection', templateName: 'Generic Template — Colon Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     // Previously missing entirely — for any specimen. Real
     // GrossingReportInstance per specimen, all 'finalized' since Gross
     // is meant to be complete for a case at this stage; answers use the
@@ -165,7 +165,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "station 7 subcarinal lymph nodes," is fibrofatty tissue measuring 3.5 x 2.0 x 1.5 cm containing three discrete lymph nodes ranging 0.5-1.4 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0002-SP-A_lung_${iid()}`, specimenId: 'O26-0002-SP-A', templateId: 'lung_resection', templateName: 'CAP Lung — Resection (All Types)', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0002-SP-A_lung_${iid()}`, specimenId: 'O26-0002-SP-A', templateId: 'lung_resection', templateName: 'Generic Template — Lung Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0002-SP-A_grossing_${iid()}`, specimenId: 'O26-0002-SP-A',
@@ -235,7 +235,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "left pelvic lymph nodes," is fibrofatty tissue measuring 4.5 x 3.5 x 1.5 cm containing four grossly identified lymph nodes ranging 0.4-1.1 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0003-SP-A_prostate_${iid()}`, specimenId: 'O26-0003-SP-A', templateId: 'prostate_resection', templateName: 'CAP Prostate Gland — Radical Prostatectomy', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
+    synopticReports: [{ instanceId: `O26-0003-SP-A_prostate_${iid()}`, specimenId: 'O26-0003-SP-A', templateId: 'prostate_resection', templateName: 'Generic Template — Prostate Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
     grossingReports: [
       {
         instanceId: `O26-0003-SP-A_grossing_${iid()}`, specimenId: 'O26-0003-SP-A',
@@ -325,7 +325,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "left axillary sentinel lymph node, level I," is a single lymph node measuring 1.8 x 1.2 x 1.0 cm with a firm, tan-white cut surface, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0004-SP-A_breast_${iid()}`, specimenId: 'O26-0004-SP-A', templateId: 'breast_invasive', templateName: 'CAP Breast Invasive Carcinoma — Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0004-SP-A_breast_${iid()}`, specimenId: 'O26-0004-SP-A', templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0004-SP-A_grossing_${iid()}`, specimenId: 'O26-0004-SP-A',
@@ -458,7 +458,7 @@ const PAUL_CASES: Case[] = [
         'Received separately, labeled "renal hilar lymph node," is a single lymph node measuring 1.2 x 0.8 x 0.6 cm, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0006-SP-A_kidney_${iid()}`, specimenId: 'O26-0006-SP-A', templateId: 'kidney_resection', templateName: 'CAP Kidney — Renal Cell Carcinoma Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0006-SP-A_kidney_${iid()}`, specimenId: 'O26-0006-SP-A', templateId: 'kidney_resection', templateName: 'Generic Template — Kidney Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0006-SP-A_grossing_${iid()}`, specimenId: 'O26-0006-SP-A',
@@ -656,7 +656,7 @@ const AMBER_CASES: Case[] = [
         'Received separately, labeled "right axillary sentinel lymph node," is a single lymph node measuring 2.0 x 1.5 x 1.2 cm with a homogeneous tan cut surface, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0009-SP-A_melanoma_${iid()}`, specimenId: 'O26-0009-SP-A', templateId: 'skin_melanoma_bx', templateName: 'CAP Melanoma of the Skin — Biopsy/Excision', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0009-SP-A_melanoma_${iid()}`, specimenId: 'O26-0009-SP-A', templateId: 'skin_melanoma_bx', templateName: 'Generic Template — Skin Melanoma Bx', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0009-SP-A_grossing_${iid()}`, specimenId: 'O26-0009-SP-A',

@@ -7,6 +7,10 @@ export { mockPhysicianService     as physicianService     } from './physicians/m
 export { mockFlagService          as flagService          } from './flags/mockFlagService';
 export { mockContainerTypeService as containerTypeService } from './containerTypes/mockContainerTypeService';
 export { mockIntraoperativeService as intraoperativeService } from './intraop/mockIntraoperativeService';
+export { mockDiscordanceService as discordanceService } from './quality/mockDiscordanceService';
+export { mockAmendmentService as amendmentService } from './reports/mockAmendmentService';
+export { mockReportVersionService as reportVersionService } from './reports/mockReportVersionService';
+export { mockLisAmendmentNoticeService as lisAmendmentNoticeService } from './reports/mockLisAmendmentNoticeService';
 export { mockSubspecialtyService  as subspecialtyService  } from './subspecialties/mockSubspecialtyService';
 export { mockClientService        as clientService        } from './clients/mockClientService';
 export { mockSpecimenCategoryService as specimenCategoryService } from './specimenCategories/mockSpecimenCategoryService';

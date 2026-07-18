@@ -100,7 +100,6 @@ const FlagConfigPage: React.FC = () => {
     setSearch('');
     setStatusFilter('All');
     setLevelFilter('All');
-    setClassFilter('All');
   };
 
   // ── Modal helpers ─────────────────────────────────────────────────────────

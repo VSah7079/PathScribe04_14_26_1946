@@ -11,6 +11,7 @@ import { SpecimenFlag } from "./SpecimenFlag";
 import { CaseComment } from "./CaseComment";
 import type { Icd10Code } from "@/services/diagnosisCodes/IDiagnosisCodesService";
 import { CaseStatus } from "./CaseStatus";
+import type { FieldLineageEntry } from '@/types/reports/FieldLineage';
 
 export interface CaseCoding {
   icd10?: string[];
@@ -183,12 +184,26 @@ export interface SynopticReportInstance {
   countersignedBy?: string;
   /** When countersigned */
   countersignedAt?: string;
-  /** Note from the assigning pathologist */
+/** Note from the assigning pathologist */
   assignmentNote?: string;
 
   /** Timestamps */
   createdAt: string;
   updatedAt: string;
+
+  // ── Amendment reseed state ──────────────────────────────────────────
+  /** Was in seed data already but never formally typed. Set when an
+   *  amendment reseed opens this instance for editing — distinguishes
+   *  a reseeded amendment-in-progress draft from a genuinely new draft. */
+  pendingAmendmentId?: string;
+  /** Was in seed data already but never formally typed. True once this
+   *  instance has been finalized at least once before. */
+  previouslyFinalizedForAmendment?: boolean;
+  /** NEW (DR-2) — field-level provenance for delta fields chosen during
+   *  amendment reseeding. Only present for fields that differed across
+   *  the version history being compared; unchanged fields' provenance
+   *  is implicit in the ReportVersionRecord chain. See FieldLineage.ts. */
+  fieldLineage?: Record<string, FieldLineageEntry>;
 }
 
 // ─────────────────────────────────────────────────────────────

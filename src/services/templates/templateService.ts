@@ -1,4 +1,4 @@
-﻿/**
+/**
  * services/templateService.ts
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * Service layer for all synoptic template operations.
@@ -180,13 +180,13 @@ export async function getTemplate(id: string): Promise<TemplateDetail> {
     return {
       id,
       name:      tpl.name ?? id,
-      source:    tpl.source ?? 'CAP',
+      source:    tpl.source ?? 'Custom',
       version:   tpl.version ?? '1.0.0',
       category:  tpl.category ?? 'Other',
       status:    'approved' as TemplateStatus,
       fields:    fieldCount,
       sections:  (tpl.sections ?? []).length,
-      createdBy: 'CAP',
+      createdBy: 'System',
       createdAt: '2024-01-01',
       updatedAt: '2024-01-01',
       template:  storedTemplate,
@@ -603,25 +603,31 @@ export async function validateTerminologyCodes(
   // return res.json();
 }
 
-// â”€â”€â”€ DEVELOPMENT SEED (CAP eCC JSON files) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Imports real CAP protocol JSON files converted from official eCCs.
+// ─── DEVELOPMENT SEED (generic synoptic template JSON files) ─────────────
+// These were originally derived from CAP protocol content. As of the
+// CAP/RCPath content-licensing cleanup, all field labels, section titles,
+// and option text have been replaced with generic placeholders -- no CAP
+// or RCPath content remains in these files. Structure (field types,
+// section counts) is preserved so the editor/validation UI still exercises
+// the same code paths. Restore real CAP-derived content only once a CAP
+// license is confirmed in place.
 // Each is seeded into editorStore at module load so getTemplate() returns
 // real field data during development. Remove when backend API is wired in.
 
-import BREAST_INVASIVE_JSON      from '../../data/templates/CAP/breast_invasive.json';
-import BREAST_DCIS_JSON          from '../../data/templates/CAP/breast_dcis_resection.json';
-import LUNG_ADENO_JSON           from '../../data/templates/CAP/lung_adeno.json';
-import PROSTATE_NEEDLE_JSON      from '../../data/templates/CAP/prostate_needle_biopsy.json';
-import COLON_RESECTION_JSON      from '../../data/templates/CAP/colon_resection.json';
-import SKIN_MELANOMA_JSON        from '../../data/templates/CAP/skin_melanoma_bx.json';
-import PROSTATE_RESECTION_JSON   from '../../data/templates/CAP/prostate_resection.json';
-import LUNG_RESECTION_JSON       from '../../data/templates/CAP/lung_resection.json';
-import KIDNEY_RESECTION_JSON    from '../../data/templates/CAP/kidney_resection.json';
-import KIDNEY_BIOPSY_JSON       from '../../data/templates/CAP/kidney_biopsy.json';
-import WILMS_RESECTION_JSON     from '../../data/templates/CAP/wilms_resection.json';
-import WILMS_BIOPSY_JSON        from '../../data/templates/CAP/wilms_biopsy.json';
+import BREAST_INVASIVE_JSON      from '../../data/templates/generic/breast_invasive.json';
+import BREAST_DCIS_JSON          from '../../data/templates/generic/breast_dcis_resection.json';
+import LUNG_ADENO_JSON           from '../../data/templates/generic/lung_adeno.json';
+import PROSTATE_NEEDLE_JSON      from '../../data/templates/generic/prostate_needle_biopsy.json';
+import COLON_RESECTION_JSON      from '../../data/templates/generic/colon_resection.json';
+import SKIN_MELANOMA_JSON        from '../../data/templates/generic/skin_melanoma_bx.json';
+import PROSTATE_RESECTION_JSON   from '../../data/templates/generic/prostate_resection.json';
+import LUNG_RESECTION_JSON       from '../../data/templates/generic/lung_resection.json';
+import KIDNEY_RESECTION_JSON    from '../../data/templates/generic/kidney_resection.json';
+import KIDNEY_BIOPSY_JSON       from '../../data/templates/generic/kidney_biopsy.json';
+import WILMS_RESECTION_JSON     from '../../data/templates/generic/wilms_resection.json';
+import WILMS_BIOPSY_JSON        from '../../data/templates/generic/wilms_biopsy.json';
 
-// Seed all real CAP templates
+// Seed all generic templates (see comment block above)
 editorStore.set('breast_invasive',        BREAST_INVASIVE_JSON   as any);
 editorStore.set('breast_dcis_resection',  BREAST_DCIS_JSON       as any);
 editorStore.set('lung_adeno',             LUNG_ADENO_JSON        as any);
@@ -634,28 +640,31 @@ editorStore.set('wilms_resection',     WILMS_RESECTION_JSON     as unknown as Ed
 editorStore.set('wilms_biopsy',        WILMS_BIOPSY_JSON        as unknown as EditorTemplate);
 editorStore.set('prostate_resection',        PROSTATE_RESECTION_JSON  as any);
 editorStore.set('lung_resection',            LUNG_RESECTION_JSON      as any);
-// Alias — internal protocol ID used in CAP JSON
+// Alias — internal protocol ID used by the generic seed template above
 editorStore.set('skin_invasive_melanoma_biopsy', SKIN_MELANOMA_JSON as any);
 
-// RCPath Templates (UK)
-import RCPATH_BREAST_JSON         from '../../data/templates/RCPATH/rcpath_g148_breast_surgical_excision.json';
-import RCPATH_COLORECTAL_RES_JSON from '../../data/templates/RCPATH/rcpath_colorectal_resection.json';
-import RCPATH_COLORECTAL_LOC_JSON from '../../data/templates/RCPATH/rcpath_colorectal_local_excision.json';
-import RCPATH_COLORECTAL_FI_JSON  from '../../data/templates/RCPATH/rcpath_colorectal_further_investigations.json';
-import RCPATH_PROSTATE_BX_JSON    from '../../data/templates/RCPATH/rcpath_prostate_biopsy.json';
-import RCPATH_PROSTATE_RP_JSON    from '../../data/templates/RCPATH/rcpath_prostate_radical_prostatectomy.json';
-import RCPATH_PROSTATE_TURP_JSON  from '../../data/templates/RCPATH/rcpath_prostate_turp_enucleation.json';
+// UK generic templates (formerly RCPath-derived; see comment block above --
+// same content-licensing cleanup applies. Ids/filenames were also renamed
+// to drop the "rcpath_" prefix and RCPath's internal document numbering,
+// e.g. rcpath_g148_breast_surgical_excision -> breast_surgical_excision.)
+import UK_BREAST_JSON         from '../../data/templates/generic/breast_surgical_excision.json';
+import UK_COLORECTAL_RES_JSON from '../../data/templates/generic/colorectal_resection_b.json';
+import UK_COLORECTAL_LOC_JSON from '../../data/templates/generic/colorectal_local_excision.json';
+import UK_COLORECTAL_FI_JSON  from '../../data/templates/generic/colorectal_further_investigations.json';
+import UK_PROSTATE_BX_JSON    from '../../data/templates/generic/prostate_biopsy.json';
+import UK_PROSTATE_RP_JSON    from '../../data/templates/generic/prostate_radical_prostatectomy.json';
+import UK_PROSTATE_TURP_JSON  from '../../data/templates/generic/prostate_turp_enucleation.json';
 
-editorStore.set('rcpath_g148_breast_surgical_excision',       RCPATH_BREAST_JSON        as any);
-editorStore.set('rcpath_colorectal_resection',                RCPATH_COLORECTAL_RES_JSON as any);
-editorStore.set('rcpath_colorectal_local_excision',           RCPATH_COLORECTAL_LOC_JSON as any);
-editorStore.set('rcpath_colorectal_further_investigations',   RCPATH_COLORECTAL_FI_JSON  as any);
-editorStore.set('rcpath_prostate_biopsy',                     RCPATH_PROSTATE_BX_JSON   as any);
-editorStore.set('rcpath_prostate_radical_prostatectomy',      RCPATH_PROSTATE_RP_JSON   as any);
-editorStore.set('rcpath_prostate_turp_enucleation',           RCPATH_PROSTATE_TURP_JSON as any);
+editorStore.set('breast_surgical_excision',            UK_BREAST_JSON         as any);
+editorStore.set('colorectal_resection_b',               UK_COLORECTAL_RES_JSON as any);
+editorStore.set('colorectal_local_excision',            UK_COLORECTAL_LOC_JSON as any);
+editorStore.set('colorectal_further_investigations',    UK_COLORECTAL_FI_JSON  as any);
+editorStore.set('prostate_biopsy',                      UK_PROSTATE_BX_JSON   as any);
+editorStore.set('prostate_radical_prostatectomy',       UK_PROSTATE_RP_JSON   as any);
+editorStore.set('prostate_turp_enucleation',            UK_PROSTATE_TURP_JSON as any);
 
 // Grossing Templates
-// NOTE: unlike the CAP/RCPath imports above, these do NOT rely on the
+// NOTE: unlike the generic template imports above, these do NOT rely on the
 // getTemplate() fallback path (the "seeded into editorStore but not in
 // PROTOCOL_REGISTRY" case) — each has an explicit PROTOCOL_REGISTRY entry
 // in protocolShared.tsx (see "Grossing Templates" section there), set to

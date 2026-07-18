@@ -118,186 +118,55 @@ export function saveRegistryOverride(patch: Partial<Protocol> & { id: string }):
 }
 
 export let PROTOCOL_REGISTRY: Protocol[] = [
+  // CAP/RCPath-derived registry entries removed entirely (not just
+  // disabled) as part of the CAP/RCPath content-licensing cleanup, pending
+  // a confirmed CAP license. Note this doesn't affect the 19 real synoptic
+  // templates (breast_invasive, colon_resection, etc.) -- those were never
+  // listed in PROTOCOL_REGISTRY to begin with (see templateService.ts's
+  // getTemplate() fallback for templates seeded directly into editorStore).
+  // Those templates' JSON content was separately genericized in place
+  // rather than removed. Replaced with two generic, non-clinical test
+  // templates below.
   {
-    // CAP v4.10.0.0 — 6 sections, 35 fields (real eCC JSON)
-    id: 'breast_invasive', name: 'CAP Breast Invasive Carcinoma — Resection',
-    category: 'BREAST', version: '4.10.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 35, snomedPct: 89, icdPct: 84,
-    lastModified: '2026-03-30', owner: 'Dr. A. Mensah',
+    id: 'generic_test_basic', name: 'Generic Synoptic Test Form -- Basic',
+    category: 'TEST', version: '1.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 6, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-17', owner: 'System',
   },
   {
-    // CAP v4.3.0.2 — 6 sections, 20 fields (real eCC JSON)
-    id: 'breast_dcis_resection', name: 'CAP Breast DCIS — Resection',
-    category: 'BREAST', version: '4.3.0.2', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 20, snomedPct: 88, icdPct: 82,
-    lastModified: '2026-03-30', owner: 'Dr. A. Mensah',
+    id: 'generic_test_complex', name: 'Generic Synoptic Test Form -- Complex',
+    category: 'TEST', version: '1.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 17, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-17', owner: 'System',
   },
   {
-    // CAP v4.4.0.1 (September 2025) — 9 sections, 46 fields (real eCC JSON)
-    id: 'colon_resection', name: 'CAP Colon & Rectum Carcinoma — Resection',
-    category: 'COLON', version: '4.4.0.1', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 46, snomedPct: 91, icdPct: 88,
-    lastModified: '2026-03-30', owner: 'Dr. K. Patel',
-    reviewedBy: 'Dr. A. Mensah', reviewedAt: '2026-03-30T00:00:00Z',
-  },
-  {
-    // CAP v4.2.0.0 — 9 sections, 34 fields (real eCC JSON)
-    id: 'lung_adeno', name: 'CAP Lung — Resection',
-    category: 'LUNG', version: '4.2.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 34, snomedPct: 78, icdPct: 70,
-    lastModified: '2026-03-30', owner: 'Dr. M. Chen',
-    reviewedBy: 'Dr. K. Patel', reviewedAt: '2026-03-30T00:00:00Z',
-  },
-  {
-    // CAP v1.1.0.0 — 9 sections, 34 fields (real eCC JSON)
-    id: 'prostate_needle_biopsy', name: 'CAP Prostate — Needle Biopsy',
-    category: 'PROSTATE', version: '1.1.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 34, snomedPct: 82, icdPct: 75,
-    lastModified: '2026-03-30', owner: 'Dr. R. Singh',
-  },
-  {
-    // CAP v4.3.0.0 — 7 sections, 29 fields (official eCC Word doc)
-    id: 'prostate_resection', name: 'CAP Prostate Gland — Radical Prostatectomy',
-    category: 'PROSTATE', version: '4.3.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 29, snomedPct: 84, icdPct: 78,
-    lastModified: '2026-04-17', owner: 'Dr. S. Johnson',
-  },
-  {
-    // CAP v5.1.0.0 — 7 sections, 31 fields (official eCC Word doc)
-    id: 'lung_resection', name: 'CAP Lung — Resection (All Types)',
-    category: 'LUNG', version: '5.1.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 31, snomedPct: 82, icdPct: 75,
-    lastModified: '2026-04-17', owner: 'Dr. S. Johnson',
-  },
-  {
-    // CAP v1.1.0.0 — 5 sections, 17 fields (real eCC JSON)
-    id: 'skin_melanoma_bx', name: 'CAP Melanoma of the Skin — Biopsy/Excision',
-    category: 'SKIN', version: '1.1.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 80, icdPct: 72,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'liver_biopsy_medical', name: 'Liver Biopsy — Medical (Native)',
+    id: 'liver_biopsy_medical', name: 'Liver Biopsy -- Medical (Native)',
     category: 'LIVER', version: '1.0.1', source: 'Custom', type: 'Non-cancer / Custom',
     status: 'in_review', fields: 18, snomedPct: 72, icdPct: 60,
     lastModified: '2025-12-01', owner: 'Dr. L. Okonkwo',
     reviewNote: 'Awaiting clinical sign-off from hepatopathology',
   },
   {
-    id: 'lung_small_cell', name: 'Lung — Small Cell Carcinoma',
-    category: 'LUNG', version: '2.0.0', source: 'CAP', type: 'Base template',
-    status: 'needs_changes', fields: 41, snomedPct: 68, icdPct: 55,
-    lastModified: '2025-11-25', owner: 'Dr. M. Chen',
-    reviewNote: 'SNOMED coding incomplete — 12 answer options uncoded. Return to author.',
-    reviewedBy: 'Dr. A. Mensah', reviewedAt: '2025-11-27T09:15:00Z',
-  },
-  {
-    id: 'placenta_term', name: 'Placenta — Term Delivery',
+    id: 'placenta_term', name: 'Placenta -- Term Delivery',
     category: 'PLACENTA', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
     status: 'in_review', fields: 24, snomedPct: 40, icdPct: 20,
     lastModified: '2025-12-03', owner: 'Dr. S. Torres',
-    reviewNote: 'First submission — please review section structure and SNOMED coverage.',
+    reviewNote: 'First submission -- please review section structure and SNOMED coverage.',
   },
   {
-    id: 'renal_transplant_biopsy', name: 'Renal Biopsy — Transplant',
+    id: 'renal_transplant_biopsy', name: 'Renal Biopsy -- Transplant',
     category: 'KIDNEY', version: '0.9.0', source: 'Custom', type: 'Non-cancer / Custom',
     status: 'draft', fields: 21, snomedPct: 33, icdPct: 15,
     lastModified: '2025-12-04', owner: 'Dr. J. Williams',
   },
-  // ── RCPath Templates (UK) ──────────────────────────────────────────────
-  {
-    id: 'rcpath_g148_breast_surgical_excision',
-    name: 'RCPath Breast Disease — Surgical Excision (G148)',
-    category: 'BREAST', version: 'G148-2024-11', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 52, snomedPct: 88, icdPct: 80,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'rcpath_colorectal_resection',
-    name: 'RCPath Colorectal Carcinoma — Resection (Appendix F)',
-    category: 'COLON', version: 'v4-TNM9', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 56, snomedPct: 91, icdPct: 88,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'rcpath_colorectal_local_excision',
-    name: 'RCPath Colorectal Carcinoma — Local Excision (Appendix D)',
-    category: 'COLON', version: 'v4-TNM9', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 38, snomedPct: 88, icdPct: 85,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'rcpath_colorectal_further_investigations',
-    name: 'RCPath Colorectal — Further Investigations (Appendix E)',
-    category: 'COLON', version: 'v4-2024', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 18, snomedPct: 82, icdPct: 75,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'rcpath_prostate_biopsy',
-    name: 'RCPath Prostate — Needle Biopsy',
-    category: 'PROSTATE', version: 'v5-2024', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 32, snomedPct: 85, icdPct: 78,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'rcpath_prostate_radical_prostatectomy',
-    name: 'RCPath Prostate — Radical Prostatectomy',
-    category: 'PROSTATE', version: 'v5-2024', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 44, snomedPct: 87, icdPct: 80,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  {
-    id: 'rcpath_prostate_turp_enucleation',
-    name: 'RCPath Prostate — TURP / Enucleation',
-    category: 'PROSTATE', version: 'v5-2024', source: 'RCPath', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 80, icdPct: 72,
-    lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
-  },
-  // ── Kidney ──────────────────────────────────────────────────────────────────
-  {
-    id: 'kidney_resection', name: 'CAP Kidney — Renal Cell Carcinoma Resection',
-    category: 'KIDNEY', version: '4.2.1.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 35, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-04-18', owner: 'System',
-  },
-  {
-    id: 'kidney_biopsy', name: 'CAP Kidney — Renal Cell Carcinoma Biopsy',
-    category: 'KIDNEY', version: '4.2.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 10, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-04-18', owner: 'System',
-  },
-  {
-    id: 'wilms_resection', name: 'CAP Kidney — Wilms & Pediatric Renal Tumors Resection',
-    category: 'KIDNEY', version: '4.4.0.0', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 42, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-04-18', owner: 'System',
-  },
-  {
-    id: 'wilms_biopsy', name: 'CAP Kidney — Wilms & Pediatric Renal Tumors Biopsy',
-    category: 'KIDNEY', version: '5.0.0.1', source: 'CAP', type: 'Base template',
-    status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-04-18', owner: 'System',
-  },
-  // ── Grossing Templates ──────────────────────────────────────────────────────
-  // Not diagnostic checklists — these are PA bench-grossing protocols, the
+  // -- Grossing Templates --------------------------------------------------
+  // Not diagnostic checklists -- these are PA bench-grossing protocols, the
   // data-entry equivalent for Stage 0/1 of the Orchestration workflow rather
   // than the diagnostic Synoptic Template assignment stage. snomedPct/icdPct
-  // are intentionally 0 (isDiagnostic: false) — grossing concepts generally
-  // have no SNOMED/ICD mapping, unlike a CAP/RCPath diagnostic protocol's
-  // terms. See PathScribe_Orchestration_Workflow_Summary.md.
-  //
-  // Three peer templates, not one generic + variants — mirrors the SOP's own
-  // three-way specimen category triage (Standard Tissue / Fluid-Cytology /
-  // Histology-Only Direct Triage) and matches how CAP itself ships separate
-  // peer protocols per procedure rather than one branching mega-template
-  // (e.g. breast_invasive vs breast_dcis_resection). Stage 0's AI assignment
-  // is expected to pick the right one of these three per specimen, the same
-  // way CAP_TO_REPORT picks a Report Template — not a parent/child template
-  // relationship, which doesn't exist anywhere in the EditorTemplate schema.
+  // are intentionally 0 (isDiagnostic: false).
   {
     id: 'grossing_standard_tissue',
-    name: 'Standard Tissue Grossing (Gold Standard) — Route A',
+    name: 'Standard Tissue Grossing (Gold Standard) -- Route A',
     category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
     status: 'published', fields: 31, snomedPct: 0, icdPct: 0,
     lastModified: '2026-06-27', owner: 'System',
@@ -305,7 +174,7 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
   {
     id: 'grossing_fluid_cytology',
-    name: 'Fluid / Cell Block Grossing (Gold Standard) — Route B',
+    name: 'Fluid / Cell Block Grossing (Gold Standard) -- Route B',
     category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
     status: 'published', fields: 12, snomedPct: 0, icdPct: 0,
     lastModified: '2026-06-27', owner: 'System',
@@ -313,21 +182,19 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
   {
     id: 'grossing_histology_only',
-    name: 'Histology-Only / Direct Triage (Gold Standard) — Route C',
+    name: 'Histology-Only / Direct Triage (Gold Standard) -- Route C',
     category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
     status: 'published', fields: 9, snomedPct: 0, icdPct: 0,
     lastModified: '2026-06-27', owner: 'System',
     isDiagnostic: false,
   },
   {
-    // Self-authored — no CAP/RCPath equivalent exists; their own Cancer
+    // Self-authored -- no CAP/RCPath equivalent exists; their own Cancer
     // Protocol FAQ explicitly excludes cytology specimens. Real content
     // (Bethesda System, 3rd Edition), same schema every other template
-    // here uses. First of a real, separate "Non-GYN Cytology" category —
-    // salivary gland (Milan), urine (Paris), and lymph node FNA are the
-    // natural next ones to follow this same pattern.
+    // here uses.
     id: 'thyroid_fna_cytology',
-    name: 'Thyroid FNA — The Bethesda System for Reporting Thyroid Cytopathology',
+    name: 'Thyroid FNA -- The Bethesda System for Reporting Thyroid Cytopathology',
     category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
     status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-08', owner: 'System',
@@ -335,10 +202,10 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     isDiagnostic: true,
   },
   {
-    // Milan System (2018) — genuinely different category names/structure
+    // Milan System (2018) -- genuinely different category names/structure
     // from Bethesda despite both being 6-tier; not interchangeable.
     id: 'salivary_gland_fna_cytology',
-    name: 'Salivary Gland FNA — The Milan System for Reporting Salivary Gland Cytopathology',
+    name: 'Salivary Gland FNA -- The Milan System for Reporting Salivary Gland Cytopathology',
     category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
     status: 'published', fields: 18, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-09', owner: 'System',
@@ -346,11 +213,11 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     isDiagnostic: true,
   },
   {
-    // Paris System, 2nd Edition (2022) — built specifically around
+    // Paris System, 2nd Edition (2022) -- built specifically around
     // detecting high-grade urothelial carcinoma; LGUN deliberately kept
     // as its own separate category rather than folded into the main tier.
     id: 'urine_cytology',
-    name: 'Urine Cytology — The Paris System for Reporting Urinary Cytology',
+    name: 'Urine Cytology -- The Paris System for Reporting Urinary Cytology',
     category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
     status: 'published', fields: 16, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-09', owner: 'System',
@@ -358,11 +225,11 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     isDiagnostic: true,
   },
   {
-    // Papanicolaou Society System (2014) — Category IV deliberately
+    // Papanicolaou Society System (2014) -- Category IV deliberately
     // split into IVA (benign) / IVB (premalignant) rather than one tier,
     // since the two carry very different clinical management.
     id: 'pancreaticobiliary_cytology',
-    name: 'Pancreaticobiliary Cytology — Papanicolaou Society System for Reporting Pancreaticobiliary Cytology',
+    name: 'Pancreaticobiliary Cytology -- Papanicolaou Society System for Reporting Pancreaticobiliary Cytology',
     category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
     status: 'published', fields: 18, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-09', owner: 'System',
@@ -371,10 +238,10 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
   {
     // No single dominant named system exists for lymph node FNA, unlike
-    // the other three above — the template's own "standard" field says
+    // the other three above -- the template's own "standard" field says
     // so honestly rather than implying a citation that doesn't exist.
     id: 'lymph_node_fna_cytology',
-    name: 'Lymph Node FNA — General Reporting Categories',
+    name: 'Lymph Node FNA -- General Reporting Categories',
     category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
     status: 'published', fields: 15, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-09', owner: 'System',

@@ -36,6 +36,21 @@ export interface IPhysicianService {
   getAll(): Promise<ServiceResult<Physician[]>>;
   getById(id: ID): Promise<ServiceResult<Physician>>;
   getByNpi(npi: string): Promise<ServiceResult<Physician | null>>;
+  /** Server-side (mock: in-memory) filtered search — avoids pulling the
+   *  entire physician table into every consumer that just needs a
+   *  handful of matches, e.g. a type-ahead picker. Matches name,
+   *  specialty, or NPI, case-insensitive. `limit` defaults to 8. */
+  search(query: string, limit?: number): Promise<ServiceResult<Physician[]>>;
+  /** Order/case intake never carries an NPI in practice (confirmed:
+   *  IncomingOrder.requestingProvider and Case.order.requestingProvider
+   *  are both bare strings, no NPI field at all) — findOrCreateByNpi is
+   *  the wrong shape for that data. This is the real intake-resolution
+   *  method: exact-match by parsed name, case-insensitive: if found,
+   *  merges clientId into its clientIds if not already present; if not
+   *  found, auto-creates an 'Unverified' record, same posture as
+   *  Client.findOrCreateByCode / SpecimenCategory.findOrCreateByName —
+   *  never blocks case creation on an unrecognized provider. */
+  findOrCreateByName(name: string, clientId?: string): Promise<ServiceResult<Physician>>;
   add(physician: Omit<Physician, 'id'>): Promise<ServiceResult<Physician>>;
   update(id: ID, changes: Partial<Omit<Physician, 'id'>>): Promise<ServiceResult<Physician>>;
   verify(id: ID): Promise<ServiceResult<Physician>>;

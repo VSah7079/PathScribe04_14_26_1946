@@ -30,7 +30,7 @@ import React, { useState, useMemo } from 'react';
 import '@/pathscribe.css';
 import type { Case } from '@/types/case/Case';
 
-type OrderTab = 'blocks' | 'specimens' | 'stains';
+export type OrderTab = 'blocks' | 'specimens' | 'stains';
 
 interface AddOrdersModalProps {
   show: boolean;
@@ -39,6 +39,15 @@ interface AddOrdersModalProps {
    *  in the Blocks and Stains tabs so the common case (I'm already
    *  looking at the specimen I want to act on) needs no extra click. */
   activeSpecimenId?: string | null;
+  /** Force the modal to open on a specific tab, overriding the default
+   *  status-driven tabOrder[0] — e.g. a keyboard shortcut or action-registry
+   *  entry (ADD_ORDERS_BLOCK / ADD_ORDERS_STAIN / ADD_ORDERS_SPECIMEN) that
+   *  wants to land the user directly on that tab instead of requiring a
+   *  manual click. undefined (or ADD_ORDERS's generic entry) falls back to
+   *  the existing status-driven default. Re-applied every time the modal
+   *  opens, not just on first mount, since this component stays mounted
+   *  (returns null internally) across show/hide cycles. */
+  initialTab?: OrderTab;
   onClose: () => void;
   /** "Specimens" tab chosen — caller closes this modal and opens the
    *  real SpecimenEditModal, exactly as the old + Add Specimen button did. */
@@ -60,7 +69,7 @@ const TAB_LABEL: Record<OrderTab, string> = {
 };
 
 const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
-  show, caseData, activeSpecimenId, onClose, onGoToAddSpecimen, onGoToAddStain, onAddBlock,
+  show, caseData, activeSpecimenId, initialTab, onClose, onGoToAddSpecimen, onGoToAddStain, onAddBlock,
 }) => {
   // Pre-gross-complete = PA actively at the bench, hasn't finalized
   // Grossing yet. Everything from 'gross-complete' onward is
@@ -74,7 +83,18 @@ const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
     ? ['blocks', 'specimens', 'stains']
     : ['stains', 'blocks', 'specimens'];
 
-  const [activeTab, setActiveTab] = useState<OrderTab>(tabOrder[0]);
+  const [activeTab, setActiveTab] = useState<OrderTab>(initialTab ?? tabOrder[0]);
+
+  // This component stays mounted (returns null internally, see below)
+  // across show/hide cycles rather than being conditionally rendered by
+  // its parent — so the useState initializer above only ever runs once,
+  // on first mount. Re-apply initialTab explicitly every time the modal
+  // transitions to open, so ADD_ORDERS_BLOCK/STAIN/SPECIMEN land on the
+  // requested tab on every open, not just the first.
+  React.useEffect(() => {
+    if (show) setActiveTab(initialTab ?? tabOrder[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, initialTab]);
 
   // If the modal re-opens later in the case's life (grossing now done
   // when it wasn't before), land on the tab that's actually first for

@@ -99,14 +99,58 @@ interface Props {
   blocks: BlockRow[];
   casePriority: CasePriority;
   onUpdateBlock: (specimenId: string, blockId: string, changes: Partial<any>) => void;
+  /** Places a real stain order (LIS/order-service call) — distinct from
+   *  onUpdateBlock, which only updates local block state. Called when a
+   *  new stain is added via StainMultiSelect, before it's reflected in
+   *  local state; if it fails, the stain is NOT added locally, so the UI
+   *  never shows a stain chip that wasn't actually ordered. */
+  onSendStainOrder: (specimenId: string, blockId: string, stainName: string) => Promise<{ ok: boolean }>;
   onClose: () => void;
 }
 
-export const BlockStainEditorModal: React.FC<Props> = ({ blocks, casePriority, onUpdateBlock, onClose }) => {
+export const BlockStainEditorModal: React.FC<Props> = ({ blocks, casePriority, onUpdateBlock, onSendStainOrder, onClose }) => {
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   useEffect(() => {
     stainTypeService.getAll().then(res => { if (res.ok) setStainTypes(res.data.filter(s => s.active)); });
   }, []);
+
+  // Per-block state for in-flight stain orders and any failure to show inline.
+  // Keyed by block id since multiple blocks can be edited independently.
+  const [orderingBlockId, setOrderingBlockId] = useState<string | null>(null);
+  const [orderErrors, setOrderErrors] = useState<Record<string, string>>({});
+
+  const handleStainsChange = async (
+    specimenId: string,
+    block: any,
+    nextStains: { id: string; stainName: string; status: string }[],
+  ) => {
+    const added = nextStains.find(s => !block.stains.some((existing: any) => existing.id === s.id));
+
+    // Removal (or no net addition) — purely local, no order to place.
+    if (!added) {
+      onUpdateBlock(specimenId, block.id, { stains: nextStains });
+      setOrderErrors(prev => { const next = { ...prev }; delete next[block.id]; return next; });
+      return;
+    }
+
+    // Addition — place the real order first. Only reflect it in local
+    // state (the visible stain chip) if the order actually succeeded, so
+    // the UI never shows a stain that wasn't really ordered.
+    setOrderingBlockId(block.id);
+    try {
+      const result = await onSendStainOrder(specimenId, block.id, added.stainName);
+      if (result.ok) {
+        onUpdateBlock(specimenId, block.id, { stains: nextStains });
+        setOrderErrors(prev => { const next = { ...prev }; delete next[block.id]; return next; });
+      } else {
+        setOrderErrors(prev => ({ ...prev, [block.id]: `Failed to order ${added.stainName} — not added.` }));
+      }
+    } catch (e) {
+      setOrderErrors(prev => ({ ...prev, [block.id]: `Failed to order ${added.stainName}: ${(e as Error).message}` }));
+    } finally {
+      setOrderingBlockId(null);
+    }
+  };
 
   return (
     <div className="ps-ms-overlay">
@@ -150,8 +194,16 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, casePriority, o
                 <StainMultiSelect
                   stainTypes={stainTypes}
                   stains={block.stains}
-                  onChange={stains => onUpdateBlock(specimenId, block.id, { stains })}
+                  onChange={stains => handleStainsChange(specimenId, block, stains)}
                 />
+                {orderingBlockId === block.id && (
+                  <div className="ps-fixgate-intro" style={{ fontSize: 12, marginTop: 4 }}>Placing stain order…</div>
+                )}
+                {orderErrors[block.id] && (
+                  <div className="ps-fixgate-intro" style={{ fontSize: 12, marginTop: 4, color: '#ef4444' }}>
+                    {orderErrors[block.id]}
+                  </div>
+                )}
               </div>
             ))}
             {blocks.length === 0 && <div className="ps-cmnt-thread-empty">No blocks on this case yet.</div>}

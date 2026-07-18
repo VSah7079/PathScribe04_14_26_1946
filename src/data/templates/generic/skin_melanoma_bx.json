@@ -1,0 +1,518 @@
+{
+  "id": "skin_melanoma_bx",
+  "name": "Generic Template \u2014 Skin Melanoma Bx",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "SKIN",
+  "sections": [
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "procedure_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "procedure_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "procedure_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "procedure_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "procedure_opt_5",
+              "label": "Option 5"
+            }
+          ]
+        },
+        {
+          "id": "specimen_laterality",
+          "label": "Specimen Laterality",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "specimen_laterality_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "specimen_laterality_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "specimen_laterality_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "specimen_laterality_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tumor",
+      "title": "Findings",
+      "fields": [
+        {
+          "id": "tumor_site",
+          "label": "Finding Site",
+          "type": "checkboxes",
+          "required": true,
+          "options": []
+        },
+        {
+          "id": "multiple_primary_sites",
+          "label": "Multiple Primary Sites",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "multiple_primary_sites_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "multiple_primary_sites_opt_2",
+              "label": "Option 2"
+            }
+          ]
+        },
+        {
+          "id": "histologic_type",
+          "label": "Type",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "histologic_type_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "histologic_type_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "histologic_type_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "histologic_type_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "histologic_type_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "histologic_type_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "histologic_type_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "histologic_type_opt_8",
+              "label": "Option 8"
+            },
+            {
+              "id": "histologic_type_opt_9",
+              "label": "Option 9"
+            },
+            {
+              "id": "histologic_type_opt_10",
+              "label": "Option 10"
+            },
+            {
+              "id": "histologic_type_opt_11",
+              "label": "Option 11"
+            },
+            {
+              "id": "histologic_type_opt_12",
+              "label": "Option 12"
+            },
+            {
+              "id": "histologic_type_opt_13",
+              "label": "Option 13"
+            },
+            {
+              "id": "histologic_type_opt_14",
+              "label": "Option 14"
+            }
+          ]
+        },
+        {
+          "id": "breslow_thickness",
+          "label": "Maximum Thickness (mm)",
+          "type": "text",
+          "required": true,
+          "options": []
+        },
+        {
+          "id": "ulceration",
+          "label": "Surface Change",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "ulceration_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "ulceration_opt_2",
+              "label": "Option 2"
+            }
+          ]
+        },
+        {
+          "id": "anatomic_clark_level",
+          "label": "Anatomic Level",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "anatomic_clark_level_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "anatomic_clark_level_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "anatomic_clark_level_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "anatomic_clark_level_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "anatomic_clark_level_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "anatomic_clark_level_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "anatomic_clark_level_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "anatomic_clark_level_opt_8",
+              "label": "Option 8"
+            }
+          ]
+        },
+        {
+          "id": "mitotic_rate",
+          "label": "Activity Rate",
+          "type": "text",
+          "required": true,
+          "options": []
+        },
+        {
+          "id": "macroscopic_satellite_lesions",
+          "label": "Macroscopic Satellite Finding(s)",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "macroscopic_satellite_lesions_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "macroscopic_satellite_lesions_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "macroscopic_satellite_lesions_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "macroscopic_satellite_lesions_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "microsatellites",
+          "label": "Microscopic Satellite Finding(s)",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "microsatellites_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "microsatellites_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "microsatellites_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        },
+        {
+          "id": "lymphatic_vascular_invasion",
+          "label": "Lymphatic/Vascular Involvement",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "lymphatic_vascular_invasion_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "neurotropism",
+          "label": "Neural Involvement",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "neurotropism_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "neurotropism_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "neurotropism_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "neurotropism_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "tumor_infiltrating_lymphocytes",
+          "label": "Infiltrating Cell Response",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "tumor_infiltrating_lymphocytes_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "tumor_infiltrating_lymphocytes_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "tumor_infiltrating_lymphocytes_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "tumor_infiltrating_lymphocytes_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "tumor_regression",
+          "label": "Regression",
+          "type": "text",
+          "required": false,
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "margins",
+      "title": "Margins",
+      "fields": [
+        {
+          "id": "margin_status_melanoma",
+          "label": "Margin Status",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "margin_status_melanoma_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margin_status_melanoma_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margin_status_melanoma_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        },
+        {
+          "id": "margins_involved_invasive",
+          "label": "Margin(s) Involved A",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "margins_involved_invasive_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margins_involved_invasive_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margins_involved_invasive_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "margins_involved_invasive_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "margins_involved_in_situ",
+          "label": "Margin(s) Involved B",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "margins_involved_in_situ_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margins_involved_in_situ_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margins_involved_in_situ_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "margins_involved_in_situ_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "margin_involvement_satellites",
+          "label": "Margin Involvement C",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "margin_involvement_satellites_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margin_involvement_satellites_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margin_involvement_satellites_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "margin_involvement_satellites_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "margin_involvement_satellites_opt_5",
+              "label": "Option 5"
+            }
+          ]
+        },
+        {
+          "id": "margin_involvement_regression",
+          "label": "Margin Involvement D",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "margin_involvement_regression_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margin_involvement_regression_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margin_involvement_regression_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "margin_involvement_regression_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "margin_involvement_regression_opt_5",
+              "label": "Option 5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "additional_findings",
+      "title": "Additional Findings",
+      "fields": [
+        {
+          "id": "additional_findings",
+          "label": "Additional Findings",
+          "type": "checkboxes",
+          "required": false,
+          "options": [
+            {
+              "id": "additional_findings_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "additional_findings_opt_2",
+              "label": "Option 2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": true,
+          "options": []
+        }
+      ]
+    }
+  ]
+}

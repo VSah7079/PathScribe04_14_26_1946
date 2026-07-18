@@ -32,6 +32,13 @@ export type MilestoneType =
 
 export type SkipReason = 'fibrotic_scant' | 'direct_to_frozen' | 'other';
 
+/** Discrete, comparable category — the actual point of this over free
+ *  text: two short diagnoses can't reliably self-compare for
+ *  discordance, but two categories from the same small set can. 'deferred'
+ *  means no real call was made at frozen, so there's nothing to
+ *  reconcile against later — not a mismatch, a non-comparison. */
+export type FrozenCategory = 'benign' | 'malignant' | 'atypical_suspicious' | 'deferred';
+
 export interface MilestoneEntry {
   id: string;
   milestone: MilestoneType;
@@ -98,6 +105,10 @@ export interface IntraopSpecimen {
    *  diagnosis to check against the final permanent diagnosis, not
    *  something extracted from mixed-purpose text. */
   frozenSectionDiagnosis?: string;
+  /** The discrete category behind the diagnosis text — what actually
+   *  makes reconciliation against the final diagnosis reliable later.
+   *  See FrozenCategory's doc comment for why. */
+  frozenCategory?: FrozenCategory;
 }
 
 export interface IntraoperativeEntry {

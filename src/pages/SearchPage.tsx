@@ -78,36 +78,36 @@ const SPECIMEN_DICTIONARY = [
 interface SynopticTemplate { id: string; name: string; organ: string; category: string; templateId: string; }
 const ALL_SYNOPTICS: SynopticTemplate[] = [
   // Breast
-  { id:'p01', templateId:'breast_invasive',            name:'CAP Breast Invasive Carcinoma', organ:'Breast',      category:'Breast'      },
-  { id:'p02', templateId:'breast_dcis_resection',      name:'CAP Breast DCIS',               organ:'Breast DCIS', category:'Breast'      },
+  { id:'p01', templateId:'generic_test_complex',       name:'Breast Invasive Carcinoma',      organ:'Breast',      category:'Breast'      },
+  { id:'p02', templateId:'generic_test_basic',         name:'Breast DCIS',                    organ:'Breast DCIS', category:'Breast'      },
   // GI — alphabetical by organ
-  { id:'p05', templateId:'appendix',                   name:'CAP Appendix',                  organ:'Appendix',    category:'GI'          },
-  { id:'p03', templateId:'colon_resection',            name:'CAP Colon Resection',           organ:'Colon',       category:'GI'          },
-  { id:'p04', templateId:'rcpath_colorectal_resection',name:'CAP Rectum Resection',          organ:'Rectum',      category:'GI'          },
+  { id:'p05', templateId:'appendix',                   name:'Appendix',                       organ:'Appendix',    category:'GI'          },
+  { id:'p03', templateId:'generic_test_complex',       name:'Colon Resection',                organ:'Colon',       category:'GI'          },
+  { id:'p04', templateId:'generic_test_complex',       name:'Rectum Resection',               organ:'Rectum',      category:'GI'          },
   // GU — alphabetical by organ
-  { id:'p09', templateId:'bladder_resection',          name:'CAP Bladder Resection',         organ:'Bladder',     category:'GU'          },
-  { id:'p08', templateId:'kidney_resection',           name:'CAP Kidney Resection',          organ:'Kidney',      category:'GU'          },
-  { id:'p06', templateId:'prostate_resection',         name:'CAP Prostatectomy',             organ:'Prostate',    category:'GU'          },
-  { id:'p07', templateId:'prostate_needle_biopsy',     name:'CAP Prostate Biopsy',           organ:'Prostate Bx', category:'GU'          },
+  { id:'p09', templateId:'bladder_resection',          name:'Bladder Resection',              organ:'Bladder',     category:'GU'          },
+  { id:'p08', templateId:'generic_test_complex',       name:'Kidney Resection',               organ:'Kidney',      category:'GU'          },
+  { id:'p06', templateId:'generic_test_complex',       name:'Prostatectomy',                  organ:'Prostate',    category:'GU'          },
+  { id:'p07', templateId:'generic_test_complex',       name:'Prostate Biopsy',                organ:'Prostate Bx', category:'GU'          },
   // Thoracic
-  { id:'p10', templateId:'lung_adeno',                 name:'CAP Lung Resection',            organ:'Lung',        category:'Thoracic'    },
-  { id:'p11', templateId:'mesothelioma',               name:'CAP Mesothelioma',              organ:'Pleura',      category:'Thoracic'    },
+  { id:'p10', templateId:'generic_test_complex',       name:'Lung Resection',                 organ:'Lung',        category:'Thoracic'    },
+  { id:'p11', templateId:'mesothelioma',               name:'Mesothelioma',                   organ:'Pleura',      category:'Thoracic'    },
   // Endocrine — alphabetical
-  { id:'p13', templateId:'adrenal',                    name:'CAP Adrenal',                   organ:'Adrenal',     category:'Endocrine'   },
-  { id:'p12', templateId:'thyroid_malignant',          name:'CAP Thyroid',                   organ:'Thyroid',     category:'Endocrine'   },
+  { id:'p13', templateId:'adrenal',                    name:'Adrenal',                        organ:'Adrenal',     category:'Endocrine'   },
+  { id:'p12', templateId:'thyroid_malignant',          name:'Thyroid',                        organ:'Thyroid',     category:'Endocrine'   },
   // Gynaecology — alphabetical
-  { id:'p15', templateId:'cervix_resection',           name:'CAP Cervix Resection',          organ:'Cervix',      category:'Gynaecology' },
-  { id:'p14', templateId:'endometrium_biopsy',         name:'CAP Endometrium',               organ:'Uterus',      category:'Gynaecology' },
-  { id:'p16', templateId:'ovary',                      name:'CAP Ovary',                     organ:'Ovary',       category:'Gynaecology' },
+  { id:'p15', templateId:'cervix_resection',           name:'Cervix Resection',               organ:'Cervix',      category:'Gynaecology' },
+  { id:'p14', templateId:'endometrium_biopsy',         name:'Endometrium',                    organ:'Uterus',      category:'Gynaecology' },
+  { id:'p16', templateId:'ovary',                      name:'Ovary',                          organ:'Ovary',       category:'Gynaecology' },
   // Skin — alphabetical
-  { id:'p17', templateId:'melanoma_resection',         name:'CAP Melanoma',                  organ:'Skin',        category:'Skin'        },
-  { id:'p18', templateId:'skin_scc',                   name:'CAP Squamous Cell Carcinoma',   organ:'Skin SCC',    category:'Skin'        },
+  { id:'p17', templateId:'generic_test_basic',         name:'Melanoma',                       organ:'Skin',        category:'Skin'        },
+  { id:'p18', templateId:'skin_scc',                   name:'Squamous Cell Carcinoma',        organ:'Skin SCC',    category:'Skin'        },
   // Bone/Soft — alphabetical
-  { id:'p20', templateId:'bone',                       name:'CAP Bone',                      organ:'Bone',        category:'Bone/Soft'   },
-  { id:'p19', templateId:'soft_tissue',                name:'CAP Soft Tissue',               organ:'Soft Tissue', category:'Bone/Soft'   },
+  { id:'p20', templateId:'bone',                       name:'Bone',                           organ:'Bone',        category:'Bone/Soft'   },
+  { id:'p19', templateId:'soft_tissue',                name:'Soft Tissue',                    organ:'Soft Tissue', category:'Bone/Soft'   },
   // Haem
-  { id:'p22', templateId:'hodgkin_lymphoma',           name:'CAP Hodgkin Lymphoma',          organ:'Lymphoma',    category:'Haem'        },
-  { id:'p21', templateId:'lymph_node',                 name:'CAP Lymph Node',                organ:'Lymph Node',  category:'Haem'        },
+  { id:'p22', templateId:'hodgkin_lymphoma',           name:'Hodgkin Lymphoma',               organ:'Lymphoma',    category:'Haem'        },
+  { id:'p21', templateId:'lymph_node',                 name:'Lymph Node',                     organ:'Lymph Node',  category:'Haem'        },
 ];
 
 // â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

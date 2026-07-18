@@ -73,11 +73,12 @@ interface ProgressStep {
 }
 
 // ── Status meta ───────────────────────────────────────────────────────────────
-const CASE_STATE_META: Record<string, { bg: string; border: string; color: string; dot: string }> = {
-  'draft':          { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8', dot: '#3b82f6' },
-  'in-progress':    { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8', dot: '#3b82f6' },
-  'finalized':      { bg: '#f0fdf4', border: '#86efac', color: '#15803d', dot: '#22c55e' },
-  'pending-review': { bg: '#fef3c7', border: '#fde047', color: '#92400e', dot: '#f59e0b' },
+const CASE_STATE_CLASS: Record<string, string> = {
+  'draft':          'ps-case-status--draft',
+  'in-progress':    'ps-case-status--draft',
+  'finalized':      'ps-case-status--finalized',
+  'pending-review': 'ps-case-status--pending-review',
+  'amended':        'ps-case-status--amended',
 };
 
 // ── Step circle class helper ──────────────────────────────────────────────────
@@ -148,7 +149,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   const status    = caseData?.status ?? 'draft';
   const hospital    = getOrganisationByHospitalId(caseData?.originHospitalId ?? '');
   const clientName  = caseData?.order?.clientName ?? null;
-  const meta        = CASE_STATE_META[status] ?? CASE_STATE_META['draft'];
+  const statusClass  = CASE_STATE_CLASS[status] ?? CASE_STATE_CLASS['draft'];
 
   // ── Mode-aware final step label ───────────────────────────────────────────
   const finalStepLabel = isOrchestration ? 'Sign Out' : 'Finalise';
@@ -232,13 +233,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           {aiSynthesisStatus && aiSynthesisStatus.state !== 'none' && (
             aiSynthesisStatus.state === 'review-required' ? (
               <button
-                className="ps-hb-compact-conf ps-hb-compact-conf--warn"
+                className="ps-hb-compact-conf ps-hb-compact-conf--warn ps-hb-reset-button"
                 onClick={onAiStatusClick}
-                style={{ background: 'none', border: 'none', font: 'inherit', cursor: 'pointer', padding: 0 }}
                 title={
                   aiSynthesisStatus.flaggedFieldConfidence !== undefined
-                    ? `A field is at ${aiSynthesisStatus.flaggedFieldConfidence}% confidence — click to review`
-                    : 'A field is below the confidence threshold — click to review'
+                    ? `AI review confidence (separate from case status): a field is at ${aiSynthesisStatus.flaggedFieldConfidence}% confidence — click to review`
+                    : 'AI review confidence (separate from case status): a field is below the confidence threshold — click to review'
                 }
               >
                 <span className="ps-hb-compact-conf-pct">⚠</span>
@@ -330,13 +330,13 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             <div className="ps-hb-field-label">Accession</div>
             <div className="ps-hb-accession-number">{accession}</div>
             {hospital && (
-              <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, marginTop: 2, marginBottom: 3 }}>
+              <div className="ps-hb-hospital-sublabel">
                 {hospital.shortName} · {hospital.country === 'UK' ? 'NHS' : hospital.country}
               </div>
             )}
-            <div className="ps-hb-status-pill" style={{ background: meta.bg, border: `1px solid ${meta.border}` }}>
-              <div className="ps-hb-status-dot" style={{ background: meta.dot }} />
-              <span className="ps-hb-status-text" style={{ color: meta.color }}>{status}</span>
+            <div className={`ps-hb-status-pill ${statusClass}`} title="Overall case status — separate from the AI review confidence indicator on synoptic fields">
+              <div className="ps-hb-status-dot" />
+              <span className="ps-hb-status-text">Case: {status}</span>
             </div>
           </div>
 
@@ -392,16 +392,15 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         <div className="ps-hb-right">
           <div className="ps-hb-confidence-card">
             <div className="ps-hb-confidence-header">
-              <span className="ps-hb-confidence-status">{status}</span>
+              <span className="ps-hb-confidence-status" title="Overall case status">Case: {status}</span>
               <span className="ps-hb-confidence-priority">{caseData?.order?.priority ?? 'Routine'}</span>
             </div>
             {aiSynthesisStatus && aiSynthesisStatus.state !== 'none' ? (
               aiSynthesisStatus.state === 'review-required' ? (
                 <button
-                  className="ps-hb-confidence-score ps-hb-confidence-score--warn"
+                  className="ps-hb-confidence-score ps-hb-confidence-score--warn ps-hb-reset-button ps-hb-reset-button--column"
                   onClick={onAiStatusClick}
-                  style={{ background: 'none', border: 'none', font: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', display: 'flex', flexDirection: 'column' }}
-                  title="Click to jump to the flagged field"
+                  title="AI review confidence on synoptic fields — separate from overall case status. Click to jump to the flagged field."
                 >
                   <span className="ps-hb-confidence-pct">⚠ Review Pending</span>
                   {aiSynthesisStatus.flaggedFieldConfidence !== undefined && (
@@ -428,7 +427,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               // visual weight the AI states get, so the card always shows
               // something meaningful instead of looking unfinished/blank.
               <div className="ps-hb-confidence-score ps-hb-confidence-score--status">
-                <span className="ps-hb-confidence-pct" style={{ color: meta.color }}>
+                <span className={`ps-hb-confidence-pct ${statusClass}`}>
                   {status.replace(/-/g, ' ').toUpperCase()}
                 </span>
                 <span className="ps-hb-confidence-label">No AI suggestions yet</span>

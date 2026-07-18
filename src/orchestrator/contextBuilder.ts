@@ -240,7 +240,7 @@ const safeArr = (v: string[] | null | undefined): string[] =>
 // EditorTemplate field definitions.
 // ─────────────────────────────────────────────────────────────
 
-function resolveAnswers(
+export function resolveAnswers(
   rawAnswers: Record<string, string | string[]>,
   synopticTemplate: EditorTemplate | null
 ): ResolvedAnswer[] {

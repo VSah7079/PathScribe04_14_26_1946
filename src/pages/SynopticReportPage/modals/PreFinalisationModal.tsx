@@ -34,6 +34,10 @@ export interface SynopticForReview {
   answers:       Record<string, string | string[]>;
   fieldLabels:   Record<string, string>;
   fieldOrder:    string[];
+  /** Real CAP/RCPath section structure (Specimen/Tumor/Margins/...),
+   *  same grouping the main editor's tabs use. Optional — falls back to
+   *  a flat list if a template's sections couldn't be loaded. */
+  sections?:       { title: string; fieldKeys: string[] }[];
   answeredCount:   number;
   totalCount:      number;
   requiredFields?: string[];   // field keys marked required — empty fields here block sign-out
@@ -57,6 +61,7 @@ interface StagedSynoptic {
   answers:       Record<string, string | string[]>;
   fieldLabels:   Record<string, string>;
   fieldOrder:    string[];
+  sections?:     { title: string; fieldKeys: string[] }[];
 }
 
 interface Props {
@@ -97,6 +102,7 @@ function buildStaged(synoptics: SynopticForReview[]): StagedSpecimen[] {
       answers:       syn.answers,
       fieldLabels:   syn.fieldLabels,
       fieldOrder:    syn.fieldOrder,
+      sections:      syn.sections,
     });
   });
   return Array.from(map.values());
@@ -129,9 +135,17 @@ const ReportPreview: React.FC<{ staged: StagedSpecimen[] }> = ({ staged }) => {
   return (
     <div className="ps-prefin-preview-content">
       {included.map(({ sp, ...syn }) => {
-        const fields = syn.fieldOrder.filter(fid =>
-          syn.answers[fid] !== undefined && syn.answers[fid] !== ''
+        const answeredFields = new Set(
+          syn.fieldOrder.filter(fid => syn.answers[fid] !== undefined && syn.answers[fid] !== '')
         );
+        // Group by real section structure when available; fall back to
+        // one flat "unsectioned" group only if a template's sections
+        // genuinely couldn't be loaded (see buildSynopticsForReview).
+        const groups: { title: string | null; fieldKeys: string[] }[] =
+          syn.sections && syn.sections.length > 0
+            ? syn.sections.map(s => ({ title: s.title, fieldKeys: s.fieldKeys.filter(k => answeredFields.has(k)) }))
+            : [{ title: null, fieldKeys: syn.fieldOrder.filter(k => answeredFields.has(k)) }];
+        const anyAnswered = groups.some(g => g.fieldKeys.length > 0);
         return (
           <div key={syn.instanceId} className="ps-prefin-preview-report">
             <div className="ps-prefin-preview-report-header">
@@ -141,18 +155,25 @@ const ReportPreview: React.FC<{ staged: StagedSpecimen[] }> = ({ staged }) => {
                 <div className="ps-prefin-preview-report-specimen">{sp.specimenDesc}</div>
               </div>
             </div>
-            <div className="ps-prefin-preview-qa">
-              {fields.length === 0 ? (
-                <div className="ps-prefin-preview-empty-fields">No fields completed</div>
-              ) : fields.map((fid, i) => (
-                <div key={fid} className={`ps-prefin-preview-qa-row${i < fields.length - 1 ? '' : ' ps-prefin-preview-qa-row--last'}`}>
-                  <span className="ps-prefin-preview-qa-label">
-                    {syn.fieldLabels[fid] ?? fid.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}
-                  </span>
-                  <span className="ps-prefin-preview-qa-value">{fmt(syn.answers[fid])}</span>
+            {!anyAnswered ? (
+              <div className="ps-prefin-preview-empty-fields">No fields completed</div>
+            ) : groups.filter(g => g.fieldKeys.length > 0).map(group => (
+              <div key={group.title ?? '_flat'} className="ps-prefin-preview-section">
+                {group.title && (
+                  <div className="ps-prefin-preview-section-title">{group.title}</div>
+                )}
+                <div className="ps-prefin-preview-qa">
+                  {group.fieldKeys.map((fid, i) => (
+                    <div key={fid} className={`ps-prefin-preview-qa-row${i < group.fieldKeys.length - 1 ? '' : ' ps-prefin-preview-qa-row--last'}`}>
+                      <span className="ps-prefin-preview-qa-label">
+                        {syn.fieldLabels[fid] ?? fid.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}
+                      </span>
+                      <span className="ps-prefin-preview-qa-value">{fmt(syn.answers[fid])}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         );
       })}

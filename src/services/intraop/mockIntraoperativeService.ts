@@ -18,7 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch } from '@/types/intraop/IntraoperativeEntry';
+import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
 import type { IIntraoperativeService } from './IIntraoperativeService';
 
 const STORAGE_KEY = 'intraop_entries';
@@ -317,7 +317,7 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     return ok({ ...entries[idx] });
   },
 
-  async setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string): Promise<ServiceResult<IntraoperativeEntry>> {
+  async setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string, category?: FrozenCategory): Promise<ServiceResult<IntraoperativeEntry>> {
     if (!diagnosis.trim()) return err('Frozen section diagnosis cannot be empty.');
     const entries = load();
     const idx = entries.findIndex(e => e.id === sessionId);
@@ -325,7 +325,7 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     const specIdx = entries[idx].specimens.findIndex(s => s.id === specimenId);
     if (specIdx === -1) return err(`Specimen ${specimenId} not found in session ${sessionId}`);
     const updatedSpecimens = [...entries[idx].specimens];
-    updatedSpecimens[specIdx] = { ...updatedSpecimens[specIdx], frozenSectionDiagnosis: diagnosis.trim() };
+    updatedSpecimens[specIdx] = { ...updatedSpecimens[specIdx], frozenSectionDiagnosis: diagnosis.trim(), ...(category ? { frozenCategory: category } : {}) };
     entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
     persist(entries);
     return ok({ ...entries[idx] });

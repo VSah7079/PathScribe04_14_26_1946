@@ -1,12 +1,10 @@
-import SpecimenDictionary from "../../components/Config/System/SpecimenDictionary";
+import SpecimenDictionarySection from "../../components/Config/System/SpecimenDictionarySection";
 import '../../pathscribe.css';
-
 const SpecimenDictionaryPage = () => {
   return (
     <div className="p-8">
-      <SpecimenDictionary />
+      <SpecimenDictionarySection />
     </div>
   );
 };
-
 export default SpecimenDictionaryPage;

@@ -22,16 +22,22 @@ import HeaderBar          from './components/HeaderBar';
 import Sidebar            from './components/Sidebar';
 import MaterialTreePanel  from './components/MaterialTreePanel';
 import LeftReportPanel    from './components/LeftReportPanel';
+import { AmendmentStatusBanner } from './components/AmendmentStatusBanner';
+import { AmendmentDraftBanner } from './components/AmendmentDraftBanner';
 import RightSynopticPanel, { type RightSynopticPanelHandle, type AiSuggestion, type MissingRequiredField, type ReviewField } from './components/RightSynopticPanel';
 import BottomActionBar    from './components/BottomActionBar';
 
 import AmendmentModal        from './modals/AmendmentModal';
+import type { VersionHistoryEntry, FieldOverride } from './modals/AmendmentModal';
 import { CaseCommentModal }   from '../Synoptic/Comments/CaseCommentModal';
 import PatientHistoryModal    from '../../components/CasePanel/PatientHistoryModal';
 import FlagManagerModal       from '../../components/Flags/FlagManagerModal';
 import { AddCodeModal }       from '../Synoptic/Codes/AddCodeModal';
 import { ReportCommentModal } from '../Synoptic/Comments/ReportCommentModal';
 import CaseSignOutModal      from './modals/CaseSignOutModal';
+import { DiscordanceReconciliationModal } from './modals/DiscordanceReconciliationModal';
+import { CopilotReportViewModal } from './modals/CopilotReportViewModal';
+import type { CopilotReportInstance } from './modals/CopilotReportViewModal';
 import FinalizeSynopticModal from './modals/FinalizeSynopticModal';
 import LogoutWarningModal    from './modals/LogoutWarningModal';
 import UnsavedWarningModal   from './modals/UnsavedWarningModal';
@@ -44,6 +50,10 @@ import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { priorityService } from '@/services';
+import { intraoperativeService, discordanceService } from '@/services';
+import { amendmentService, reportVersionService } from '@/services';
+import { lisAmendmentNoticeService, messageService } from '@/services';
+import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { deficiencyTypeService, resolutionTypeService } from '@/services';
 import type { SpecimenDeficiency, DeficiencyType, ResolutionType } from '@/services/deficiencies/IDeficiencyService';
@@ -67,6 +77,7 @@ import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
 import CaseTeamModal            from './modals/CaseTeamModal';
 import { PreFinalisationModal, type SynopticForReview } from './modals/PreFinalisationModal';
 import { getFieldLabel, type ReportingStandard } from '@/utils/synopticFieldLabels';
+import { getTemplate } from '@/services/templates/templateService';
 import { ProtocolChangeModal }     from './modals/ProtocolChangeModal';
 // ProtocolChange moved to Case.ts — see comment there. (ProtocolChangeModal.tsx
 // still re-exports it for backward compat, but importing it from its real
@@ -81,7 +92,7 @@ import ReportPreviewRenderer, { getInstitution, buildRenderScope } from '@/pages
 import SequencerPanel from './components/SequencerPanel';
 import { OrchestratorEngine } from '@/orchestrator/orchestratorEngine';
 import type { OrchestratorCallbacks } from '@/orchestrator/orchestratorEngine';
-import { buildContext } from '@/orchestrator/contextBuilder';
+import { buildContext, resolveAnswers } from '@/orchestrator/contextBuilder';
 import type { StructuredContext } from '@/orchestrator/contextBuilder';
 import { aiBehaviorService } from '@/services';
 
@@ -609,10 +620,18 @@ const SynopticReportPage: React.FC = () => {
       entries.reduce((sum, [, s]) => sum + s.confidence, 0) / entries.length
     );
 
-    // Conservative: flag the single LOWEST-confidence field across ALL
-    // suggestions, not just a tier subset, since tier isn't reliably known.
+    // ROOT FIX — this previously flagged the lowest-confidence field
+    // across ALL suggestions regardless of verification status, so a
+    // field the pathologist had already confirmed or overridden (e.g.
+    // via a Delta-table override during an amendment, which sets
+    // verification: 'disputed') kept triggering "Review Pending"
+    // forever based on its original, now-irrelevant AI confidence
+    // score. Only fields still genuinely 'unverified' — i.e. actually
+    // pending review — should be able to trip this.
+    const unreviewed = entries.filter(([, s]) => s.verification === 'unverified');
+
     let flagged: [string, AiSuggestion] | null = null;
-    for (const entry of entries) {
+    for (const entry of unreviewed) {
       if (!flagged || entry[1].confidence < flagged[1].confidence) flagged = entry;
     }
 
@@ -753,6 +772,16 @@ const SynopticReportPage: React.FC = () => {
     try {
       const patient = caseData.patient
         ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
+      // Amendment/addendum data added to the payload so a server-side
+      // renderer CAN draw the banner — but the ReportLab service that
+      // actually turns this payload into the PDF page is a separate
+      // Python service outside this codebase. This field being present
+      // here does not guarantee it's drawn; that requires a
+      // corresponding update on the PDF generation side, which isn't
+      // something verifiable from this React app.
+      const amendmentRes = caseData.id ? await amendmentService.getByCaseId(caseData.id) : { ok: false as const };
+      const releasedAmendments = amendmentRes.ok ? amendmentRes.data.filter(r => r.status === 'released') : [];
+
       const payload = {
         templateName: resolvedTemplateName,
         resolvedBy,
@@ -774,6 +803,7 @@ const SynopticReportPage: React.FC = () => {
         sections:        orchSections,
         renderScope:     buildRenderScope(caseData),
         synopticAnswers: resolvedContext?.synoptics?.flatMap(s => s.answers) ?? [],
+        amendments:      releasedAmendments,
       };
 
       const resp = await fetch(REPORT_PDF_ENDPOINT, {
@@ -1258,18 +1288,439 @@ const SynopticReportPage: React.FC = () => {
     }
   }, [worklistCases, worklistIndex, navigate]);
 
-  const handleSignOutConfirm = useCallback(() => {
+  const [pendingReconciliation, setPendingReconciliation] = React.useState<{
+    specimenId: string; caseType: string; frozenCategory: import('@/types/intraop/IntraoperativeEntry').FrozenCategory; frozenDx: string;
+  } | null>(null);
+
+  const sendMaterialOrderToLis = useCallback(async (order: {
+    kind: 'block_recut' | 'stain';
+    specimenId: string;
+    label: string;
+  }): Promise<{ ok: boolean }> => {
+    await new Promise(resolve => setTimeout(resolve, 400)); // simulated round-trip
+    return { ok: true };
+  }, []);
+
+  // CoPilot amendment/addendum transmission — same honest simulation as
+  // sendMaterialOrderToLis above: no real HL7 MDM/ORU or FHIR
+  // DiagnosticReport message actually leaves this app. What's real is
+  // the seam and, for corrections specifically, a genuine trigger event.
+  //
+  // The "Disconnected Modification" risk a real LIS integration needs
+  // to guard against: someone amends directly in the LIS without going
+  // through PathScribe, leaving PathScribe's structured data stale.
+  // PathScribe can't detect that — it happens entirely outside this
+  // app. What it CAN do is the inverse: the moment PathScribe itself
+  // sends a correction, fire a real, documented event a real LIS
+  // integration layer would listen for to force-sync or show a warning
+  // banner. That's what PATHSCRIBE_LIS_SYNC_REQUIRED is — a genuine
+  // trigger with no real subscriber yet, not a fake success.
+  // Builds the actual hardcoded text header baked into the outgoing
+  // payload — per the spec, this has to survive even if the LIS has a
+  // rigid layout engine, so it's part of the text itself, not just a
+  // flag the LIS might render correctly.
+  const buildEmbeddedHeader = (kind: 'corrected' | 'new_instance' | 'corrected_with_addition', timestamp: string, sequenceNumber?: number, title?: string): string => {
+    const formatted = new Date(timestamp).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+    if (kind === 'new_instance') {
+      const label = title ? `ADDENDUM ${sequenceNumber ?? 1}: ${title.toUpperCase()}` : `ADDITIONAL SYNOPTIC REPORT ADDED`;
+      return `--- ${label} (Transmitted: ${formatted}) ---`;
+    }
+    if (kind === 'corrected_with_addition') {
+      const label = title ? ` — ${title.toUpperCase()}` : '';
+      return `[CORRECTED RESULT WITH ADDITIONAL INFORMATION${label} (Transmitted: ${formatted})]`;
+    }
+    return `[AMENDED REPORT — CORRECTED: ${formatted}]`;
+  };
+
+  const sendSynopticReportToLis = useCallback(async (payload: {
+    kind: 'corrected' | 'new_instance' | 'corrected_with_addition';
+    caseId: string;
+    instanceId: string;
+    reasonForChange?: string; // only meaningful for 'corrected'
+    sequenceNumber?: number; // addendum numbering, for the header label
+    addendumTitle?: string;
+    /** The actual discrete text block being handed to the LIS — the
+     *  embedded header gets prepended to this, not just attached as
+     *  separate metadata. */
+    payloadBody: string;
+  }): Promise<{ ok: boolean }> => {
+    const timestamp = new Date().toISOString();
+    // HL7 OBR-25 / FHIR DiagnosticReport.status equivalent — this is
+    // what tells the LIS to stamp its own "Amended/Supplemented" page
+    // header. 'A' = Amended, 'P' = Append/Supplemental, matching the
+    // spec's two transaction types exactly.
+    // HL7 OBR-25 / FHIR DiagnosticReport.status equivalent — this is
+    // what tells the LIS to stamp its own "Amended/Supplemented" page
+    // header. 'A' = Amended, 'P' = Append/Supplemental. The hybrid case
+    // gets 'A' too — per spec, the overall envelope must be flagged as
+    // a correction so the EMR scans the whole file for modified
+    // fields, even though the payload also carries new content.
+    const transactionStatusFlag: 'A' | 'P' = payload.kind === 'new_instance' ? 'P' : 'A';
+    const embeddedHeader = buildEmbeddedHeader(payload.kind, timestamp, payload.sequenceNumber, payload.addendumTitle);
+    const fullPayloadText = `${embeddedHeader}\n\n${payload.payloadBody}`;
+
+    await new Promise(resolve => setTimeout(resolve, 400)); // simulated round-trip
+    if (payload.kind === 'corrected' || payload.kind === 'corrected_with_addition') {
+      window.dispatchEvent(new CustomEvent('PATHSCRIBE_LIS_SYNC_REQUIRED', { detail: { ...payload, transactionStatusFlag, embeddedHeader, fullPayloadText, timestamp } }));
+    }
+    return { ok: true };
+  }, []);
+
+  // Real PDF snapshot, generated through the exact same
+  // REPORT_PDF_ENDPOINT / ReportLab pipeline handleOrchPrint already
+  // uses for live printing — deliberately not a second, separately-
+  // built renderer that could drift from what the report actually
+  // looks like. Returns base64 for storage rather than opening a tab;
+  // callers persist it via reportVersionService. Failure doesn't throw
+  // — a version record should still be created even if the PDF
+  // couldn't be generated, so the audit trail itself is never silently
+  // lost, just missing its rendered artifact for that one version.
+  const [showCopilotReportView, setShowCopilotReportView] = React.useState(false);
+  const [pendingLisNotice, setPendingLisNotice] = React.useState<{ id: string; lisAmendmentSummary: string; receivedAt: string } | null>(null);
+
+  useEffect(() => {
+    if (!caseData?.id) { setPendingLisNotice(null); return; }
+    lisAmendmentNoticeService.getByCaseId(caseData.id).then(res => {
+      if (!res.ok) return;
+      const pending = res.data.find(n => n.status === 'pending_review');
+      setPendingLisNotice(pending ? { id: pending.id, lisAmendmentSummary: pending.lisAmendmentSummary, receivedAt: pending.receivedAt } : null);
+    });
+  }, [caseData?.id]);
+
+  // Exit Gate A — clerical clearance. Only reachable when there's no
+  // open amendment/addendum draft for this case (Exit Gate B rule: an
+  // active draft keeps the case in triage regardless of this button).
+  const handleMarkReviewedNoChanges = useCallback(async () => {
+    if (!pendingLisNotice) return;
+    await lisAmendmentNoticeService.updateStatus(pendingLisNotice.id, 'acknowledged');
+    setPendingLisNotice(null);
+    showToast('Marked reviewed — confirmed no PathScribe synoptic changes necessary.');
+  }, [pendingLisNotice, showToast]);
+
+  const [copilotReportInstances, setCopilotReportInstances] = React.useState<CopilotReportInstance[]>([]);
+
+  // What "print" actually means for CoPilot, per direct clarification:
+  // the completed synoptic data as it's sent to the LIS — not a
+  // narrative document, since CoPilot doesn't produce one. Reuses the
+  // exact same resolveAnswers logic already fixed for the (still
+  // server-dependent, still not confirmed working) PDF payload — this
+  // is the real, verifiable alternative that doesn't depend on
+  // REPORT_PDF_ENDPOINT rendering sections it was never given.
+  // Simulated inbound "Disconnected Modification" event — honest
+  // simulation, same as every other LIS-boundary stub tonight: no real
+  // LIS exists to receive this from. What's real is the response: a
+  // tracked notice record and a genuine urgent message to the
+  // finalizing pathologist specifically, via the real message service.
+  //
+  // Deliberately does NOT touch synopticReports, does NOT unlock
+  // anything, and does NOT invoke AI in any way. Per explicit
+  // direction: AI never updates the record on its own — only if the
+  // pathologist has already created an amendment and asks for
+  // re-evaluation themselves. This handler's entire effect is the
+  // notice + the message; everything else is a manual decision made
+  // later, by the pathologist, through the existing amendment flow.
+  const simulateLisAmendmentReceived = useCallback(async () => {
+    if (!caseData?.id) return;
+    const finalizedByName = caseData.diagnostic?.finalizedBy ?? signingUser?.name ?? 'Unknown Pathologist';
+    const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
+
+    await lisAmendmentNoticeService.create({
+      caseId: caseData.id,
+      notifiedPathologistId: signingUser?.id ?? 'unknown',
+      notifiedPathologistName: finalizedByName,
+      lisAmendmentSummary: 'LIS reports this case was corrected directly in the LIS text editor, outside PathScribe.',
+    });
+
+    await messageService.send({
+      senderId: 'system-lis-integration',
+      senderName: 'LIS Integration',
+      recipientId: signingUser?.id ?? 'unknown',
+      recipientName: finalizedByName,
+      subject: `Case ${accession} corrected in LIS — review required`,
+      body: `This case was amended directly in the LIS, outside PathScribe. Review the correction and decide whether the synoptic data you originally reported also needs amending. PathScribe will not change anything automatically — if the synoptic report needs correcting, start that amendment yourself from this case.`,
+      caseNumber: accession,
+      timestamp: new Date(),
+      isUrgent: true,
+    });
+
+    showToast('Simulated LIS amendment notice sent — check Messages for the urgent notification.');
+  }, [caseData, signingUser, showToast]);
+
+  const openCopilotReportView = useCallback(async () => {
+    if (!caseData) return;
+    const templateModule = await import('@/services/templates/templateService');
+    const instances = caseData.synopticReports ?? [];
+    const [versionsRes, amendmentsRes] = await Promise.all([
+      reportVersionService.getByCaseId(caseData.id),
+      amendmentService.getByCaseId(caseData.id),
+    ]);
+    const allVersions = versionsRes.ok ? versionsRes.data : [];
+    const allAmendments = amendmentsRes.ok ? amendmentsRes.data : [];
+
+    const resolved = await Promise.all(instances.map(async (inst: any) => {
+      const detail = await templateModule.getTemplate(inst.templateId);
+      const specimen = (caseData.specimens ?? []).find((s: any) => s.id === inst.specimenId);
+
+      // Real version picker, per feedback — was always printing live
+      // current data with no way to select an earlier reported version.
+      const instanceVersions = allVersions
+        .filter(v => v.instanceId === inst.instanceId && v.synopticAnswersSnapshot)
+        .sort((a, b) => a.versionNumber - b.versionNumber);
+      const total = instanceVersions.length;
+      const versions = total > 1 ? instanceVersions.map((v, i) => {
+        // Per feedback — print output must include the amendment
+        // narrative and "Originally Reported As" diff, not just the
+        // bare field values. Linked via amendmentRecordId, already
+        // stored on ReportVersionRecord since the earlier root-cause fix.
+        const record = v.amendmentRecordId ? allAmendments.find(a => a.id === v.amendmentRecordId) : undefined;
+        const prevSnapshot = i > 0 ? instanceVersions[i - 1].synopticAnswersSnapshot ?? {} : undefined;
+        const changedFromPrevious = prevSnapshot && detail
+          ? Object.keys({ ...prevSnapshot, ...v.synopticAnswersSnapshot })
+              .filter(k => JSON.stringify((prevSnapshot as any)[k]) !== JSON.stringify((v.synopticAnswersSnapshot as any)[k]))
+              .map(k => ({
+                fieldLabel: getFieldLabel(k, 'generic'),
+                previousValue: (prevSnapshot as any)[k],
+                currentValue: (v.synopticAnswersSnapshot as any)[k],
+              }))
+          : undefined;
+        return {
+          versionNumber: v.versionNumber,
+          label: i === 0 ? 'Original' : i === total - 1 ? `${i === 1 ? '1st' : `${i}th`} Amended (Most Recent)` : `${i === 1 ? '1st' : `${i}th`} Amended`,
+          releasedAt: v.createdAt,
+          createdByName: v.createdBy?.userName ?? 'Unknown',
+          answers: detail ? resolveAnswers((v.synopticAnswersSnapshot ?? {}) as Record<string, string | string[]>, detail.template) : [],
+          explanationOfChange: record?.explanationOfChange,
+          notification: record?.notification,
+          changedFromPrevious,
+        };
+      }) : undefined;
+
+      const templateSections = ((detail?.template as any)?.sections ?? []) as any[];
+
+      return {
+        instanceId: inst.instanceId,
+        specimenId: inst.specimenId,
+        specimenLabel: specimen?.label ?? inst.specimenId,
+        specimenDesc: specimen?.description,
+        templateName: inst.templateName ?? detail?.name ?? inst.templateId,
+        answers: detail ? resolveAnswers(inst.answers ?? {}, detail.template) : [],
+        sections: templateSections.map(s => ({ title: s.title as string, fieldKeys: (s.fields ?? []).map((f: any) => f.id as string) })),
+        versions,
+      };
+    }));
+    setCopilotReportInstances(resolved);
+    setShowCopilotReportView(true);
+  }, [caseData]);
+
+  const generateReportPdfSnapshot = useCallback(async (): Promise<{ pdfBase64?: string; generationError?: string }> => {
+    if (!caseData) return { generationError: 'No case data available.' };
+    try {
+      const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
+      const patient = caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
+
+      // Real bug, confirmed directly: resolvedContext is only ever set
+      // when isOrchestrationMode is true (see the useEffect that calls
+      // buildContext — it returns immediately otherwise). That means
+      // every field pulling from it here — bodyAssembly, synopticAnswers
+      // — was silently an empty array for CoPilot, producing a blank
+      // PDF with a real HTTP 200 response, not an error. For CoPilot,
+      // build the answers directly from the case's own synopticReports,
+      // resolving each instance's own template — same resolveAnswers
+      // function Orchestration already uses, not a separate, lesser
+      // implementation.
+      let copilotSynopticAnswers: any[] = [];
+      if (!isOrchestrationMode) {
+        const templateModule = await import('@/services/templates/templateService');
+        const instances = caseData.synopticReports ?? [];
+        const resolved = await Promise.all(instances.map(async (inst: any) => {
+          const detail = await templateModule.getTemplate(inst.templateId);
+          if (!detail) return [];
+          return resolveAnswers(inst.answers ?? {}, detail.template);
+        }));
+        copilotSynopticAnswers = resolved.flat();
+      }
+
+      const payload = {
+        templateName: resolvedTemplateName,
+        resolvedBy,
+        institution: getInstitution(caseData.originHospitalId),
+        caseHeader: {
+          accession, patient,
+          mrn: caseData.patient?.mrn ?? '',
+          dob: caseData.patient?.dateOfBirth
+            ? new Date(caseData.patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+            : '',
+          referring: caseData.order?.clientName ?? '',
+          clinician: caseData.order?.requestingProvider ?? '',
+        },
+        bodyAssembly:    resolvedContext?.narrativeTemplate.bodyAssembly ?? [],
+        sections:        orchSections,
+        renderScope:     buildRenderScope(caseData),
+        synopticAnswers: isOrchestrationMode ? (resolvedContext?.synoptics?.flatMap(s => s.answers) ?? []) : copilotSynopticAnswers,
+      };
+      const resp = await fetch(REPORT_PDF_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      if (!resp.ok) return { generationError: `Report PDF generation failed (${resp.status})` };
+      const blob = await resp.blob();
+      const pdfBase64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1] ?? '');
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      return { pdfBase64 };
+    } catch (e: any) {
+      return { generationError: e?.message ?? 'Unknown error generating PDF snapshot.' };
+    }
+  }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode]);
+
+  const finalizeSignOut = useCallback(async () => {
+    // Stage 2 of the CoPilot amendment pipeline — this is the real
+    // re-sign-out. Real, serious ordering bug caught and fixed here:
+    // release() was firing before sendSynopticReportToLis() resolved,
+    // meaning a synoptic instance could be marked 'released' — and
+    // vanish from the triage tile — even if the transmission itself
+    // failed. The LIS never getting the update while the case
+    // disappears from the pathologist's active view is exactly the
+    // dangerous gray area being guarded against. Fixed: send first,
+    // only release/clear on confirmed success. A failed instance stays
+    // exactly where it was — pendingAmendmentId intact, status
+    // untouched — so it remains visible in the triage tile rather than
+    // silently vanishing while the LIS never received anything.
+    if (caseData?.id) {
+      const pendingInstances = (caseData.synopticReports ?? []).filter((r: any) => r.pendingAmendmentId);
+      const successfulInstanceIds = new Set<string>();
+      const failedInstances: string[] = [];
+
+      for (const instance of pendingInstances) {
+        const anyInstance = instance as any;
+        // Orchestration owns its own finalization directly — there's
+        // no external LIS transmission to wait on the way CoPilot has.
+        // It commits immediately; CoPilot still gates on a real,
+        // confirmed send before releasing.
+        if (caseData.reportingMode !== 'copilot') {
+          await amendmentService.release(anyInstance.pendingAmendmentId, {
+            body: `Synoptic instance ${anyInstance.instanceId} corrected and re-signed out.`,
+          });
+          successfulInstanceIds.add(anyInstance.instanceId);
+          continue;
+        }
+        const sendResult = await sendSynopticReportToLis({
+          kind: 'corrected', caseId: caseData.id, instanceId: anyInstance.instanceId,
+          payloadBody: `Synoptic instance ${anyInstance.instanceId} corrected and re-signed out.`,
+        });
+        if (!sendResult.ok) {
+          failedInstances.push(anyInstance.instanceId);
+          continue; // do NOT release — this instance stays in draft/triage exactly as it was
+        }
+        await amendmentService.release(anyInstance.pendingAmendmentId, {
+          body: `Synoptic instance ${anyInstance.instanceId} corrected and re-signed out.`,
+        });
+        successfulInstanceIds.add(anyInstance.instanceId);
+
+        {
+          const { pdfBase64, generationError } = await generateReportPdfSnapshot();
+          if (generationError) showToast(`Version saved, but PDF snapshot failed to generate: ${generationError}`);
+          await reportVersionService.create({
+            caseId: caseData.id,
+            mode: 'copilot',
+            trigger: 'amendment',
+            createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
+            pdfBase64, generationError,
+            synopticAnswersSnapshot: anyInstance.answers,
+            instanceId: anyInstance.instanceId,
+            amendmentRecordId: anyInstance.pendingAmendmentId,
+          });
+        }
+      }
+
+      if (failedInstances.length > 0) {
+        showToast(`Warning: ${failedInstances.length} corrected synoptic instance(s) could not be transmitted — they remain in your triage queue, not finalized.`);
+      }
+
+      if (successfulInstanceIds.size > 0) {
+        const clearedReports = (caseData.synopticReports ?? []).map((r: any) =>
+          successfulInstanceIds.has(r.instanceId) ? { ...r, status: 'finalized', pendingAmendmentId: undefined } : r
+        );
+        setCaseData({ ...caseData, synopticReports: clearedReports } as any);
+        caseRouter.updateCase(caseData.id, { synopticReports: clearedReports } as any).catch(console.error);
+      }
+
+      // Real, saved version of the report as it looks at THIS sign-out
+      // — Version 1 the first time, a new version every re-sign-out
+      // after that. Not a diff, not metadata — the actual exact PDF,
+      // generated through the same real ReportLab pipeline as live
+      // printing, so what gets saved genuinely matches what was signed.
+      if (isOrchestrationMode) {
+        const existingVersions = await reportVersionService.getByCaseId(caseData.id);
+        const versionCount = existingVersions.ok ? existingVersions.data.length : 0;
+        const { pdfBase64, generationError } = await generateReportPdfSnapshot();
+        if (generationError) {
+          showToast(`Version saved, but PDF snapshot failed to generate: ${generationError}`);
+        }
+        await reportVersionService.create({
+          caseId: caseData.id,
+          mode: 'orchestration',
+          trigger: versionCount === 0 ? 'initial_signout' : 'amendment',
+          createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
+          pdfBase64, generationError,
+        });
+      }
+    }
+
     setCaseSigned(true);
     setShowSignOutModal(false);
+    setPendingReconciliation(null);
     showToast('Case signed out successfully');
-  }, [setCaseSigned, setShowSignOutModal, showToast]);
+  }, [caseData, sendSynopticReportToLis, generateReportPdfSnapshot, isOrchestrationMode, signingUser, setCaseSigned, setShowSignOutModal, showToast, setCaseData]);
+
+  const handleSignOutConfirm = useCallback(async () => {
+    // Real Frozen-to-Permanent Reconciliation check — only fires when
+    // this case actually has a merged intraop specimen with a real
+    // frozen category (not 'deferred' — no real call was made at
+    // frozen, so there's nothing to reconcile). Everything else signs
+    // out exactly as it always did.
+    if (caseData?.id) {
+      const res = await intraoperativeService.getAll();
+      if (res.ok) {
+        const mergedSession = res.data.find(e => e.status === 'merged' && e.mergedIntoCaseId === caseData.id);
+        const specimenNeedingReconciliation = mergedSession?.specimens.find(s => s.frozenCategory && s.frozenCategory !== 'deferred');
+        if (mergedSession && specimenNeedingReconciliation) {
+          setPendingReconciliation({
+            specimenId: specimenNeedingReconciliation.id,
+            caseType: specimenNeedingReconciliation.specimenLabel,
+            frozenCategory: specimenNeedingReconciliation.frozenCategory!,
+            frozenDx: specimenNeedingReconciliation.frozenSectionDiagnosis ?? '',
+          });
+          return; // hold sign-out until the reconciliation modal resolves
+        }
+      }
+    }
+    finalizeSignOut();
+  }, [caseData, finalizeSignOut]);
 
   // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
-  const buildSynopticsForReview = useCallback((): SynopticForReview[] => {
+  const buildSynopticsForReview = useCallback(async (): Promise<SynopticForReview[]> => {
     if (!caseData?.synopticReports?.length) return [];
-    return caseData.synopticReports
-      .filter(r => (r as any).status !== 'deferred')
-      .map(report => {
+    const reports = caseData.synopticReports.filter(r => (r as any).status !== 'deferred');
+
+    // Real section structure, per feedback — was previously a flat
+    // field list with no grouping at all. getTemplate() gives the same
+    // sections/fields structure that drives the main editor's tabs
+    // (Specimen/Tumor/Margins/...), fetched in parallel per instance.
+    const sectionsByInstance = await Promise.all(reports.map(async report => {
+      try {
+        const detail = await getTemplate((report as any).templateId);
+        const sections = ((detail.template as any)?.sections ?? []) as any[];
+        return sections.map(s => ({ title: s.title as string, fieldKeys: (s.fields ?? []).map((f: any) => f.id as string) }));
+      } catch (e) {
+        console.error(`[PreFinalisation] Could not load template sections for ${(report as any).templateId}:`, e);
+        return [] as { title: string; fieldKeys: string[] }[];
+      }
+    }));
+
+    return reports.map((report, i) => {
         const specimen  = caseData.specimens?.find(s => s.id === report.specimenId) as any;
         const answers   = (report as any).answers ?? {};
         const fieldKeys = Object.keys(answers);
@@ -1280,7 +1731,8 @@ const SynopticReportPage: React.FC = () => {
         const std: ReportingStandard =
           report.templateName?.includes('RCPath') ? 'RCPath' :
           report.templateName?.includes('RCPA')  ? 'RCPA'  :
-          report.templateName?.includes('WHO')   ? 'WHO'   : 'CAP';
+          report.templateName?.includes('WHO')   ? 'WHO'   :
+          report.templateName?.includes('CAP')   ? 'CAP'   : 'generic';
         const fieldLabels: Record<string, string> = {};
         fieldKeys.forEach(k => { fieldLabels[k] = getFieldLabel(k, std); });
         return {
@@ -1288,8 +1740,9 @@ const SynopticReportPage: React.FC = () => {
           templateName:  report.templateName,
           specimenId:    report.specimenId,
           specimenLabel: specimen?.label ?? '?',
-          specimenDesc:  specimen?.specimenType ?? specimen?.description ?? 'Specimen',
+          specimenDesc:  specimen?.description ?? 'Specimen',
           answers, fieldLabels, fieldOrder: fieldKeys,
+          sections: sectionsByInstance[i],
           answeredCount, totalCount: fieldKeys.length,
           requiredFields: (report as any).requiredFields ?? [],
           status: (report as any).status,
@@ -1336,8 +1789,8 @@ const SynopticReportPage: React.FC = () => {
   // implementation both call.
   const finalizeCase = useCallback(async (
     excludedInstanceIds: string[] = []
-  ): Promise<void> => {
-    if (!caseData) return;
+  ): Promise<boolean> => {
+    if (!caseData) return false;
 
     // ── Fixation-time gate — hard block, per the design decision this was
     // built from. A specimen whose matched Specimen Dictionary entry has
@@ -1361,7 +1814,7 @@ const SynopticReportPage: React.FC = () => {
     if (blockingSpecimens.length > 0) {
       setFixativeGateSpecimens(blockingSpecimens);
       setPendingFinalizeArgs(excludedInstanceIds);
-      return; // abort — do not finalize until the gate is resolved
+      return false; // abort — do not finalize until the gate is resolved
     }
 
     const finalizedAt = new Date().toISOString();
@@ -1400,11 +1853,107 @@ const SynopticReportPage: React.FC = () => {
       });
 
       showToast('Report finalized');
+      return true;
     } catch (err) {
       console.error('[Finalise] Failed to persist finalization:', err);
       showToast('Finalization failed — please try again');
+      return false;
     }
   }, [caseData, signingUser, log, showToast, specimenDictionary]);
+
+  // ── Shared amendment/addendum release — race-safe ──────────────────────────
+  // Extracted because this exact logic previously lived ONLY inside
+  // handleFinalizeConfirm (the legacy AI-review-fallback password modal),
+  // which meant the PRIMARY finalize path (handlePreFinalConfirm, via
+  // PreFinalisationModal — the one that actually shows the full report)
+  // never released amendments/addenda at all. Uses functional setCaseData
+  // updates specifically so this can safely run concurrently with
+  // finalizeCase()'s own setCaseData call without either one clobbering
+  // the other based on a stale closure — the previous version of this
+  // logic used `{ ...caseData, ... }` from a captured closure, which raced
+  // against finalizeCase()'s own fire-and-forget async update and would
+  // silently lose whichever one resolved first.
+  const releasePendingAmendmentOrAddendum = useCallback(async (): Promise<string | undefined> => {
+    if (!caseData?.id || !activeReportInstanceId) return undefined;
+    const activeInstance = (caseData.synopticReports ?? []).find((r: any) => r.instanceId === activeReportInstanceId) as any;
+    let releasedAmendmentId: string | undefined;
+
+    if (activeInstance?.pendingAddendumId) {
+      const hasConcurrentAmendment = (caseData.synopticReports ?? []).some(
+        (r: any) => r.instanceId !== activeReportInstanceId && r.pendingAmendmentId
+      );
+      await amendmentService.release(activeInstance.pendingAddendumId, {
+        addendumTitle: activeInstance.templateName,
+        body: `Addendum synoptic instance ${activeInstance.instanceId} finalized.`,
+      });
+      setCaseData(prev => prev ? {
+        ...prev,
+        synopticReports: (prev.synopticReports ?? []).map((r: any) =>
+          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined } : r
+        ),
+      } as any : prev);
+      caseRouter.updateCase(caseData.id, {
+        synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
+          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined } : r
+        ),
+      } as any).catch(console.error);
+      sendSynopticReportToLis({
+        kind: hasConcurrentAmendment ? 'corrected_with_addition' : 'new_instance',
+        caseId: caseData.id, instanceId: activeInstance.instanceId,
+        sequenceNumber: (caseData.synopticReports ?? []).length,
+        addendumTitle: activeInstance.templateName,
+        payloadBody: `Addendum synoptic instance ${activeInstance.instanceId} finalized.`,
+      });
+    }
+
+    if (activeInstance?.pendingAmendmentId) {
+      releasedAmendmentId = activeInstance.pendingAmendmentId;
+      await amendmentService.release(activeInstance.pendingAmendmentId, {
+        body: `Synoptic instance ${activeInstance.instanceId} corrected and re-signed out.`,
+      });
+      setCaseData(prev => prev ? {
+        ...prev,
+        status: 'finalized' as CaseStatus,
+        synopticReports: (prev.synopticReports ?? []).map((r: any) =>
+          r.instanceId === activeReportInstanceId
+            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined }
+            : r
+        ),
+      } as any : prev);
+      caseRouter.updateCase(caseData.id, {
+        status: 'finalized' as CaseStatus,
+        synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
+          r.instanceId === activeReportInstanceId
+            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined }
+            : r
+        ),
+      } as any).catch(console.error);
+      sendSynopticReportToLis({
+        kind: 'corrected', caseId: caseData.id, instanceId: activeInstance.instanceId,
+        payloadBody: `Synoptic instance ${activeInstance.instanceId} corrected and re-signed out.`,
+      });
+    }
+
+    // CoPilot's real completion moment — version record, tagged correctly
+    // based on what actually happened above rather than always assuming
+    // first-time finalize.
+    if (caseData?.reportingMode === 'copilot' && activeInstance) {
+      const { pdfBase64, generationError } = await generateReportPdfSnapshot();
+      if (generationError) showToast(`Version saved, but PDF snapshot failed to generate: ${generationError}`);
+      await reportVersionService.create({
+        caseId: caseData.id,
+        mode: 'copilot',
+        trigger: releasedAmendmentId ? 'amendment' : 'initial_signout',
+        createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
+        pdfBase64, generationError,
+        synopticAnswersSnapshot: activeInstance.answers,
+        instanceId: activeInstance.instanceId,
+        amendmentRecordId: releasedAmendmentId,
+      });
+    }
+
+    return releasedAmendmentId;
+  }, [caseData, activeReportInstanceId, signingUser, generateReportPdfSnapshot, showToast, setCaseData]);
 
   // ── Stage 1: unified Grossing finalize/re-finalize action ──────────────────
   // Single handler covers both "Gross Complete" (first time) and "Update
@@ -1449,15 +1998,6 @@ const SynopticReportPage: React.FC = () => {
   //      receiving the eventual ORU^R01 result message and update the
   //      matching StainOrder's status — that's a different code path,
   //      not something this send function does itself
-  const sendMaterialOrderToLis = useCallback(async (order: {
-    kind: 'block_recut' | 'stain';
-    specimenId: string;
-    label: string;
-  }): Promise<{ ok: boolean }> => {
-    await new Promise(resolve => setTimeout(resolve, 400)); // simulated round-trip
-    return { ok: true };
-  }, []);
-
   const handleAddBlock = useCallback(async (specimenId: string) => {
     if (!caseData) return;
     const specimens = caseData.specimens ?? [];
@@ -1489,6 +2029,18 @@ const SynopticReportPage: React.FC = () => {
     markDirty('Blocks');
     showToast(`Block ${sp.label}${nextNumber} requested — sent to LIS`);
   }, [caseData, sendMaterialOrderToLis]);
+
+  // StainMultiSelect (inside BlockStainEditorModal) was committing new
+  // stain orders straight to local state, bypassing this seam entirely —
+  // the same gap handleAddBlock had before it was wired. This is the fix
+  // for that: the picker now awaits this before adding anything locally.
+  const handleSendStainOrder = useCallback(async (specimenId: string, blockId: string, stainName: string): Promise<{ ok: boolean }> => {
+    const result = await sendMaterialOrderToLis({ kind: 'stain', specimenId, label: stainName });
+    if (!result.ok) {
+      showToast(`LIS did not acknowledge the ${stainName} order — nothing was recorded. Try again.`);
+    }
+    return result;
+  }, [sendMaterialOrderToLis]);
 
   const handleGrossComplete = useCallback(async () => {
     if (!caseData) return;
@@ -1843,10 +2395,10 @@ const SynopticReportPage: React.FC = () => {
     }
   }, [protoChanges, caseData, log, computationalResults]);
 
-  const handleRequestFinalize = useCallback((andNext: boolean) => {
+  const handleRequestFinalize = useCallback(async (andNext: boolean) => {
     setFinalizeAndNextPending(andNext);
     if (!synopticPanelRef.current) {
-      setPreFinalSynoptics(buildSynopticsForReview());
+      setPreFinalSynoptics(await buildSynopticsForReview());
       setShowPreFinalise(true);
       return;
     }
@@ -1860,7 +2412,7 @@ const SynopticReportPage: React.FC = () => {
       // Note: deferred check handled by PreFinalisationModal advisory panel
       console.info('[Finalise] Deferred synoptics:', names);
     }
-    setPreFinalSynoptics(buildSynopticsForReview());
+    setPreFinalSynoptics(await buildSynopticsForReview());
     setShowPreFinalise(true);
   }, [buildSynopticsForReview, caseData, setMissingFields, setShowMissingWarning, setReviewFields, setShowAiReview, setFinalizeAndNextPending, setPreFinalSynoptics, setShowPreFinalise]);
 
@@ -1870,8 +2422,20 @@ const SynopticReportPage: React.FC = () => {
     // _ordered is the pathologist's final section/synoptic ordering choice
     // from the drag-to-reorder interaction — display order only, not
     // persisted here since it doesn't affect report content or status.
-    finalizeCase(_excluded);
-  }, [finalizeCase]);
+    //
+    // ROOT FIX — this is the PRIMARY finalize path (PreFinalisationModal
+    // shows the full report; this is what runs when there's nothing
+    // requiring the AI-review fallback). It previously called only
+    // finalizeCase(), fire-and-forget, with zero amendment/addendum
+    // awareness — meaning an in-progress amendment finalized through the
+    // normal expected flow would NEVER get released at all, regardless
+    // of any race condition. Now shares the same fixed logic as the
+    // fallback path (handleFinalizeConfirm), properly sequenced.
+    (async () => {
+      const succeeded = await finalizeCase(_excluded);
+      if (succeeded) await releasePendingAmendmentOrAddendum();
+    })();
+  }, [finalizeCase, releasePendingAmendmentOrAddendum]);
 
   const [deferredAmendmentContext, setDeferredAmendmentContext] = React.useState<{ title: string; prefill: string } | null>(null);
 
@@ -1962,19 +2526,214 @@ Original report issued pending ancillary studies. This amendment incorporates th
       });
       setAmendmentMode('amendment');
       setShowAmendmentModal(true);
+      openAmendmentDraft('amendment');
     } else {
-      // Genuine first-time finalize — actually persist the status change
-      // and audit event. Previously this branch only showed a toast with
-      // no underlying state change at all.
-      finalizeCase();
+      // Genuine first-time finalize OR amendment/addendum completion —
+      // properly sequenced now: finalizeCase() first (awaited, not
+      // fire-and-forget), THEN the amendment/addendum release, so there's
+      // no race between the two independently updating caseData from
+      // stale closures. Previously finalizeCase() ran fire-and-forget
+      // while this same logic ran inline right after it — whichever one's
+      // setCaseData call resolved last would silently clobber the other,
+      // which is exactly why the "AMENDMENT IN PROGRESS" banner stayed
+      // stuck inconsistently rather than every time.
+      (async () => {
+        const succeeded = await finalizeCase();
+        if (succeeded) await releasePendingAmendmentOrAddendum();
+      })();
     }
-  }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal, isOrchestrationMode, orchSections, finalizeCase]);
+  }, [setShowFinalizeModal, showToast, caseData, activeReportInstanceId, setAmendmentMode, setShowAmendmentModal, isOrchestrationMode, orchSections, finalizeCase, releasePendingAmendmentOrAddendum]);
 
-  const handleAmendmentSubmit = useCallback(() => {
+  const [amendmentDraftId, setAmendmentDraftId] = React.useState<string | null>(null);
+  const [amendmentSequenceNumber, setAmendmentSequenceNumber] = React.useState(1);
+  const [amendmentSubmitError, setAmendmentSubmitError] = React.useState<string | null>(null);
+  const [versionHistory, setVersionHistory] = React.useState<VersionHistoryEntry[]>([]);
+  const [preOverrideSnapshot, setPreOverrideSnapshot] = React.useState<Record<string, unknown> | null>(null);
+  const [pendingFieldOverrides, setPendingFieldOverrides] = React.useState<Record<string, FieldOverride>>({});
+  const [resumingAmendment, setResumingAmendment] = React.useState<{ clinicianName?: string; method?: NotificationMethod; notifiedAt?: string } | undefined>(undefined);
+
+  // Opens a real draft record the moment the modal appears — captures
+  // initiatedAt now, distinct from whenever it's actually released,
+  // matching the spec's explicit "date/time workspace was opened"
+  // requirement rather than only timestamping at submit.
+  const openAmendmentDraft = useCallback(async (mode: 'amendment' | 'addendum') => {
+    if (!caseData?.id) return;
+    setAmendmentSubmitError(null);
+    const res = await amendmentService.startDraft({
+      caseId: caseData.id, type: mode,
+      authoringPathologist: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
+    });
+    if (res.ok) { setAmendmentDraftId(res.data.id); setAmendmentSequenceNumber(res.data.sequenceNumber); }
+
+    // Delta step needs the true pre-amendment baseline captured NOW,
+    // before any field overrides get applied below — not re-cloned
+    // later at Save Draft time, which would already include overrides.
+    const activeInstance = (caseData.synopticReports ?? []).find((r: any) => r.instanceId === activeReportInstanceId);
+    setPreOverrideSnapshot(activeInstance ? structuredClone(activeInstance.answers) : null);
+
+    const versionRes = await reportVersionService.getByCaseId(caseData.id);
+    if (versionRes.ok) {
+      const history = versionRes.data
+        .filter(v => v.instanceId === activeReportInstanceId && v.synopticAnswersSnapshot)
+        .sort((a, b) => a.versionNumber - b.versionNumber)
+        .map(v => ({ versionNumber: v.versionNumber, releasedAt: v.createdAt, createdBy: v.createdBy, synopticAnswersSnapshot: v.synopticAnswersSnapshot! }));
+      setVersionHistory(history);
+    }
+
+    // Per the triage spec's Exit Gate B — starting a real amendment IS
+    // the pathologist's decision that changes are needed, so any
+    // pending LIS notice transitions to synoptic_amended, not
+    // acknowledged. The case stays rooted in triage regardless (an open
+    // draft keeps it there), but the notice itself is no longer
+    // "awaiting a decision" — the decision was just made.
+    if (pendingLisNotice) {
+      await lisAmendmentNoticeService.updateStatus(pendingLisNotice.id, 'synoptic_amended');
+      setPendingLisNotice(null);
+    }
+  }, [caseData, signingUser, pendingLisNotice, activeReportInstanceId]);
+
+  const handleFieldOverridesConfirmed = useCallback((overrides: Record<string, FieldOverride>) => {
+    if (!caseData || !activeReportInstanceId) return;
+    setPendingFieldOverrides(overrides);
+    if (Object.keys(overrides).length === 0) return;
+
+    const now = new Date().toISOString();
+    const chosenBy = { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' };
+
+    const updatedReports = (caseData.synopticReports ?? []).map((r: any) => {
+      if (r.instanceId !== activeReportInstanceId) return r;
+      const newAnswers = { ...r.answers };
+      const newLineage = { ...(r.fieldLineage ?? {}) };
+      const newAiSuggestions = { ...(r.aiSuggestions ?? {}) };
+      for (const [key, o] of Object.entries(overrides)) {
+        newAnswers[key] = o.value;
+        newLineage[key] = { fieldKey: key, value: o.value, sourceVersionNumber: o.sourceVersionNumber, chosenAt: now, chosenBy, wasOverride: true };
+        // Per feedback: only fields that actually changed should lose
+        // their AI-confirmed badge. Untouched fields genuinely were
+        // reviewed and remain correct — leaving their verification
+        // alone is the right call, not a shortcut. 'disputed' already
+        // exists on AiFieldVerification for exactly this case; no new
+        // status needed.
+        if (newAiSuggestions[key]) {
+          newAiSuggestions[key] = { ...newAiSuggestions[key], verification: 'disputed' };
+        }
+      }
+      return { ...r, answers: newAnswers, fieldLineage: newLineage, aiSuggestions: newAiSuggestions };
+    });
+    setCaseData({ ...caseData, synopticReports: updatedReports } as any);
+    caseRouter.updateCase(caseData.id, { synopticReports: updatedReports } as any).catch(console.error);
+  }, [caseData, activeReportInstanceId, signingUser, setCaseData]);
+
+  // Real gap fixed here: the "Amend" button always started a brand new
+  // draft via openAmendmentDraft, even when the active instance already
+  // had one in progress (pendingAmendmentId set) — creating an orphaned
+  // duplicate AmendmentRecord instead of reopening the real one. Now it
+  // checks first and resumes the existing draft's reason/notification
+  // for editing when one exists.
+  const handleRequestAmendment = useCallback(async () => {
+    setAmendmentMode('amendment');
+    const activeInstance = (caseData?.synopticReports ?? []).find((r: any) => r.instanceId === activeReportInstanceId);
+
+    if (activeInstance?.pendingAmendmentId && caseData?.id) {
+      const res = await amendmentService.getByCaseId(caseData.id);
+      const record = res.ok ? res.data.find(r => r.id === activeInstance.pendingAmendmentId) : undefined;
+      if (record) {
+        setAmendmentDraftId(record.id);
+        setAmendmentSequenceNumber(record.sequenceNumber);
+        setAmendmentText(record.explanationOfChange ?? '');
+        setResumingAmendment({
+          clinicianName: record.notification?.clinicianName,
+          method: record.notification?.method,
+          notifiedAt: record.notification?.notifiedAt,
+        });
+        setShowAmendmentModal(true);
+        return;
+      }
+    }
+
+    // No existing draft on this instance — genuinely new amendment.
+    setResumingAmendment(undefined);
+    setShowAmendmentModal(true);
+    openAmendmentDraft('amendment');
+  }, [caseData, activeReportInstanceId, openAmendmentDraft]);
+
+  const handleAmendmentSubmit = useCallback(async (fields: { addendumTitle?: string; explanationOfChange?: string; clinicianName?: string; method?: NotificationMethod; notifiedAt?: string }) => {
+    if (!amendmentDraftId) return;
+    const notification = fields.clinicianName && fields.method
+      ? { clinicianName: fields.clinicianName, method: fields.method, notifiedAt: fields.notifiedAt ?? new Date().toISOString() }
+      : undefined;
+
+    // Real architectural extension: this used to be CoPilot-only
+    // (isCopilotAmendment required reportingMode === 'copilot'). Real
+    // gap, caught directly: Orchestration's amendment needs the exact
+    // same two-stage unlock-and-re-edit behavior — stay open across
+    // sessions, only clear from triage at actual re-finalize — not the
+    // single-stage append-only behavior this had before. Stage 2
+    // (finalizeSignOut) already checks for pendingAmendmentId
+    // mode-agnostically, so this is the only change needed to make
+    // both modes work identically here.
+    const isUnlockAmendment = amendmentMode === 'amendment';
+
+    if (isUnlockAmendment) {
+      // Stage 1 only — captures Reason + Notification up front and
+      // unlocks the template. Nothing transmitted yet; that's Stage 2,
+      // which fires for real at actual re-sign-out (see
+      // handleSignOutConfirm), not here.
+      if (!caseData?.id || !activeReportInstanceId) return;
+
+      // The real snapshot — but now sourced from preOverrideSnapshot,
+      // captured back when the draft first opened (before the Delta
+      // step could apply any field overrides). Re-cloning caseData
+      // here directly would incorrectly bake any confirmed overrides
+      // into what's supposed to be the untouched "before" record,
+      // destroying the whole point of the delta/lineage trail.
+      const originalInstance = (caseData.synopticReports ?? []).find((r: any) => r.instanceId === activeReportInstanceId);
+      const originalReportSnapshot = originalInstance
+        ? { ...structuredClone(originalInstance), answers: preOverrideSnapshot ?? structuredClone(originalInstance.answers) }
+        : null;
+
+      const res = await amendmentService.captureFields(amendmentDraftId, {
+        explanationOfChange: fields.explanationOfChange ?? '',
+        notification: notification!,
+        originalReportSnapshot,
+      });
+      if (!res.ok) { setAmendmentSubmitError('error' in res ? res.error : 'Could not proceed — check required fields.'); return; }
+
+      const unlockedReports = (caseData.synopticReports ?? []).map((r: any) =>
+        r.instanceId === activeReportInstanceId
+          ? { ...r, status: 'draft', previouslyFinalizedForAmendment: true, pendingAmendmentId: amendmentDraftId }
+          : r
+      );
+      setCaseData({ ...caseData, status: 'amended' as CaseStatus, synopticReports: unlockedReports } as any);
+      caseRouter.updateCase(caseData.id, { status: 'amended' as CaseStatus, synopticReports: unlockedReports } as any).catch(console.error);
+      showToast('Report unlocked for correction — edit the synoptic fields, then re-finalize and sign out to transmit.');
+
+      setAmendmentSubmitError(null);
+      setShowAmendmentModal(false);
+      setAmendmentDraftId(null);
+      setAmendmentText('');
+      return;
+    }
+
+    // Single-stage — addenda (both modes), and Orchestration amendments
+    // (which append a record rather than unlock/re-edit anything, so
+    // there's no separate re-sign-out transmission step to wait for).
+    // Single-stage — addenda only. Amendments (both modes now) go
+    // through the unlock-and-re-edit path above and never reach here.
+    const res = await amendmentService.release(amendmentDraftId, {
+      addendumTitle: fields.addendumTitle,
+      explanationOfChange: fields.explanationOfChange,
+      notification,
+      body: amendmentText,
+    });
+    if (!res.ok) { setAmendmentSubmitError('error' in res ? res.error : 'Could not release — check required fields.'); return; }
+
+    setAmendmentSubmitError(null);
     setShowAmendmentModal(false);
-    showToast(`${amendmentMode === 'addendum' ? 'Addendum' : 'Amendment'} submitted`);
+    setAmendmentDraftId(null);
+    showToast(`${amendmentMode === 'addendum' ? 'Addendum' : 'Amendment'} released`);
     setAmendmentText('');
-  }, [amendmentMode, setAmendmentText, setShowAmendmentModal, showToast]);
+  }, [amendmentDraftId, amendmentMode, amendmentText, caseData, activeReportInstanceId, setAmendmentText, setShowAmendmentModal, showToast, setCaseData, preOverrideSnapshot]);
 
   // ── Orchestrator handlers ──────────────────────────────────
 
@@ -2175,14 +2934,13 @@ Original report issued pending ancillary studies. This amendment incorporates th
   // ── Case not found ─────────────────────────────────────────────────────────
   if (isLoaded && caseNotFound) {
     return (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0b1120', gap: 16 }}>
-        <div style={{ fontSize: 48 }}>🔍</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#e2e8f0' }}>Case not found</div>
-        <div style={{ fontSize: 14, color: '#64748b' }}>No case exists with ID <code style={{ color: '#38bdf8' }}>{caseId}</code></div>
+      <div className="ps-case-not-found">
+        <div className="ps-case-not-found-icon">🔍</div>
+        <div className="ps-case-not-found-title">Case not found</div>
+        <div className="ps-case-not-found-subtitle">No case exists with ID <code className="ps-case-not-found-id">{caseId}</code></div>
         <button
           onClick={() => navigate('/')}
-          className="ps-btn-primary"
-          style={{ marginTop: 8 }}
+          className="ps-btn-primary ps-case-not-found-button"
         >
           ← Back to Worklist
         </button>
@@ -2191,25 +2949,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
   }
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100vw',
-        height: 'var(--app-height, 100vh)',
-        backgroundColor: '#0f172a',
-        color: '#fff',
-        fontFamily: "'Inter', sans-serif",
-        opacity: isLoaded ? 1 : 0,
-        transition: 'opacity 0.4s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    <div className={`ps-synrp-root ${isLoaded ? 'ps-synrp-root--loaded' : ''}`}>
       {/* Background */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/main_background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%)', zIndex: 2 }} />
+      <div className="ps-synrp-bg-image" />
+      <div className="ps-synrp-bg-overlay" />
+      <div className="ps-synrp-bg-gradient" />
 
       {/* Toast */}
       <SaveToast message={toastMsg} visible={toastVisible} />
@@ -2217,33 +2961,20 @@ Original report issued pending ancillary studies. This amendment incorporates th
       {/* Auto-generate-once confirmation toast — cancelable window before
           a draft is silently created from completed synoptic data. */}
       {pendingAutoGenerate && (
-        <div
-          style={{
-            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 70000, display: 'flex', alignItems: 'center', gap: 14,
-            background: '#1e293b', border: '1px solid rgba(8,145,178,0.4)',
-            borderRadius: 10, padding: '12px 16px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          }}
-        >
-          <span style={{ display: 'inline-flex', width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(56,189,248,0.3)', borderTopColor: '#38bdf8', animation: 'ps-spin 0.8s linear infinite' }} />
-          <span style={{ fontSize: 13, color: '#e2e8f0' }}>
+        <div className="ps-autogen-toast">
+          <span className="ps-autogen-toast-spinner" />
+          <span className="ps-autogen-toast-text">
             Synoptic complete — generating narrative draft…
           </span>
           <button
             onClick={cancelAutoGenerate}
-            style={{
-              padding: '5px 12px', fontSize: 12, fontWeight: 600,
-              background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.3)',
-              borderRadius: 6, color: '#cbd5e1', cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            className="ps-autogen-toast-cancel"
           >Cancel</button>
-          <style>{`@keyframes ps-spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
 
       {/* Shell */}
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="ps-synrp-shell">
 
         {/* NavBar */}
         <NavBar
@@ -2284,7 +3015,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           const templateId = activeReport?.templateId ?? caseData?.synopticTemplateId;
           if (!templateId) return null;
           return (
-            <div style={{ background: '#fef3c7', borderTop: 'none', borderBottom: '1px solid #fde047', flexShrink: 0 }}>
+            <div className="ps-alert-banner">
               <div
                 onClick={() => {
                   if (isOrchestrationMode && leftTab === 'draft') {
@@ -2300,21 +3031,21 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     setAlertFieldId('scroll_to_unanswered');
                   }
                 }}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 40px', cursor: 'pointer', userSelect: 'none' as const }}
+                className="ps-alert-banner-row"
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: '#92400e', fontSize: '12px' }}>
+                <div className="ps-alert-banner-text">
                   ⚠️ Alert — Some required fields are incomplete.{' '}
-                  <span style={{ textDecoration: 'underline', fontWeight: 700 }}>
+                  <span className="ps-alert-banner-link">
                     {isOrchestrationMode && leftTab === 'draft' ? 'Review required fields →' : 'Click to review →'}
                   </span>
                 </div>
                 <span
-                  style={{ fontSize: '12px', color: '#92400e', transform: isAlertExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', cursor: 'pointer' }}
+                  className={`ps-alert-chevron${isAlertExpanded ? ' ps-alert-chevron--expanded' : ''}`}
                   onClick={e => { e.stopPropagation(); setIsAlertExpanded(a => !a); }}
                 >▼</span>
               </div>
               {isAlertExpanded && (
-                <div style={{ padding: '0 40px 6px', color: '#78350f', fontSize: '11px', borderTop: '1px solid #fde047', paddingTop: '5px' }}>
+                <div className="ps-alert-banner-detail">
                   Review all <strong>required fields</strong> marked with * in the synoptic checklist. Ensure all required data elements are completed before finalizing.
                 </div>
               )}
@@ -2323,7 +3054,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         })()}
 
         {/* Main body */}
-        <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+        <div className="ps-synrp-main-body">
 
           {/* Sidebar */}
           <SynopticSidebar>
@@ -2370,7 +3101,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           </SynopticSidebar>
 
           {/* Left panel — tabbed ──────────────────────────────────────────── */}
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative', background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column' }}>
+          <div className="ps-syn-left-panel-wrap">
 
             {/* Collapsed sidebar nav strip */}
             {sidebarCollapsed && (() => {
@@ -2400,7 +3131,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                         <span className="ps-syn-nav-strip-count">{idx + 1} / {allSynoptics.length}</span>
                       </>
                     ) : (
-                      <span style={{ color: '#475569' }}>No synoptic selected</span>
+                      <span className="ps-syn-nav-strip-empty">No synoptic selected</span>
                     )}
                   </div>
                   <button
@@ -2413,11 +3144,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
             })()}
 
             {/* Tab bar */}
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
-              flexShrink: 0, background: 'rgba(10,16,32,0.6)',
-            }}>
+            <div className="ps-syn-tabbar">
               {(['draft', 'report', 'material'] as const)
                 .filter(tab => tab !== 'draft' || isOrchestrationMode)
                 .map(tab => {
@@ -2427,37 +3154,21 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 // 'pending-countersign' is a per-synoptic-instance status (SynopticReportInstance),
                 // not a CaseStatus value — check whether any instance on this case needs it.
                 const needsCountersign2 = (caseData?.synopticReports ?? []).some(r => r.status === 'pending-countersign');
-                const dot2Color = st2 === 'finalized' ? '#10b981'
-                  : st2 === 'pending-review' || needsCountersign2 ? '#f59e0b'
-                  : st2 === 'in-progress' ? '#60a5fa'
-                  : '#3b82f6'; // draft = blue
+                const dot2Class = st2 === 'finalized' ? 'ps-syn-tab-dot--finalized'
+                  : st2 === 'pending-review' || needsCountersign2 ? 'ps-syn-tab-dot--pending'
+                  : st2 === 'in-progress' ? 'ps-syn-tab-dot--in-progress'
+                  : 'ps-syn-tab-dot--draft';
                 return (
                   <button
                     key={tab}
                     onClick={() => safeSetLeftTab(tab)}
-                    style={{
-                      padding: '9px 18px', fontSize: 12,
-                      fontWeight:   isActive ? 600 : 400,
-                      color:        isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
-                      background:   'none', border: 'none',
-                      borderBottom: isActive ? '2px solid #38bdf8' : '2px solid transparent',
-                      cursor: 'pointer', transition: 'all 0.15s',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#94a3b8'; }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; }}
+                    className={`ps-syn-tab-btn${isActive ? ' ps-syn-tab-btn--active' : ''}`}
                   >
                     {label}
                     {tab === 'draft' && isOrchestrationMode && (
                       <span
                         title={`Report status: ${String(st2)}`}
-                        style={{
-                          display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                          background: dot2Color, flexShrink: 0,
-                          border: `1.5px solid ${dot2Color}`,
-                          boxShadow: `0 0 5px ${dot2Color}`,
-                        }}
+                        className={`ps-syn-tab-dot ${dot2Class}`}
                       />
                     )}
                   </button>
@@ -2469,40 +3180,40 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   centre Full Report pane's own header there instead, since
                   they're document-level controls, not tab-bar navigation. */}
               {!(isOrchestrationMode && leftTab === 'draft') && (
-              <div style={{ marginLeft: 'auto', padding: '0 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="ps-syn-tabbar-tools">
                 {import.meta.env.DEV && caseData && (
                   <button
                     onClick={() => handleProtocolChangesDetected([{
                       id: 'demo-proto-1',
                       specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
                       specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
-                      specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                      specimenDesc:         caseData.specimens?.[0]?.description ?? 'Core biopsy',
                       currentTemplateId:    'breast_core_general',
                       currentTemplateName:  'Breast Core Biopsy (General)',
                       proposedTemplateId:   'breast_invasive_carcinoma',
-                      proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                      proposedTemplateName: 'Breast Invasive Carcinoma',
                       reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
                       confidence:           92,
                     }])}
-                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+                    className="ps-syn-dev-btn ps-syn-dev-btn--microscopic"
                     title="DEV: Simulate microscopic slide received"
                   >
                     ⚡ Sim Microscopic
                   </button>
                 )}
+                {import.meta.env.DEV && caseData && (
+                  <button
+                    onClick={simulateLisAmendmentReceived}
+                    className="ps-syn-dev-btn ps-syn-dev-btn--lis"
+                    title="DEV: Simulate an amendment received from the LIS, outside PathScribe"
+                  >
+                    ⚡ Sim LIS Amendment
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSequencer(true)}
                   title="Open report sequencer"
-                  style={{
-                    padding: '5px 12px', fontSize: 11, fontWeight: 600,
-                    color: '#38bdf8', cursor: 'pointer',
-                    background: 'rgba(8,145,178,0.1)',
-                    border: '1px solid rgba(8,145,178,0.3)',
-                    borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6,
-                    transition: 'all 0.15s', whiteSpace: 'nowrap' as const,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.2)'; e.currentTarget.style.borderColor = '#0891B2'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.1)'; e.currentTarget.style.borderColor = 'rgba(8,145,178,0.3)'; }}
+                  className="ps-syn-sequencer-btn"
                 >
                   🔀 Sequencer ↗
                 </button>
@@ -2512,12 +3223,12 @@ Original report issued pending ancillary studies. This amendment incorporates th
             </div>
 
             {/* Tab content */}
-            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+            <div className="ps-syn-tab-content">
               {/* Report Draft — three-column Orchestration layout (O26- cases only)
                   Navigator (foldable) | Full Report (centre, read-only) | Section Editor (right)
                   All three share activeSectionId — clicking in any pane updates the other two. */}
               {isOrchestrationMode && (
-              <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none', background: '#0b1120' }}>
+              <div className={`ps-syn-tab-panel ps-syn-tab-panel--dark${leftTab === 'draft' ? ' ps-syn-tab-panel--visible-flex' : ''}`}>
 
                 {/* ── CENTRE: Full Report — read-only formatted preview ───────
                     Has its own sticky header for document-level controls:
@@ -2566,11 +3277,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
                             id: 'demo-proto-1',
                             specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
                             specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
-                            specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                            specimenDesc:         caseData.specimens?.[0]?.description ?? 'Core biopsy',
                             currentTemplateId:    'breast_core_general',
                             currentTemplateName:  'Breast Core Biopsy (General)',
                             proposedTemplateId:   'breast_invasive_carcinoma',
-                            proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                            proposedTemplateName: 'Breast Invasive Carcinoma',
                             reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
                             confidence:           92,
                           }])}
@@ -2688,10 +3399,23 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   field-label "click to highlight source in report"
                   feature (RightSynopticPanel's onHighlight callback only
                   ever targeted LeftReportPanel's highlightText prop). */}
-              <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
+              <div className={`ps-syn-tab-panel ps-syn-tab-panel--scroll${leftTab === 'report' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
+                {pendingLisNotice && (
+                  <div className="ps-lis-triage-banner">
+                    <div>
+                      <div className="ps-lis-triage-title">⚠ LIS Amendment — Review Required</div>
+                      <p className="ps-lis-triage-summary">{pendingLisNotice.lisAmendmentSummary}</p>
+                    </div>
+                    <button className="ps-conf-btn-primary" onClick={handleMarkReviewedNoChanges}>
+                      Mark Reviewed — No PathScribe Changes Required
+                    </button>
+                  </div>
+                )}
+                <AmendmentDraftBanner caseData={caseData} activeReportInstanceId={activeReportInstanceId} onEdit={handleRequestAmendment} />
+                <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} />
                 <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} onMatchResolved={found => setHighlightNotFound(!found)} />
               </div>
-              <div style={{ position: 'absolute', inset: 0, display: leftTab === 'material' ? 'block' : 'none' }}>
+              <div className={`ps-syn-tab-panel${leftTab === 'material' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
                 <MaterialTreePanel
                   caseData={caseData}
                   onOpenBlockEditor={() => setShowBlockEditor(true)}
@@ -2705,34 +3429,17 @@ Original report issued pending ancillary studies. This amendment incorporates th
           </div>
 
           {/* Expand button — hidden in orchestration draft mode */}
-          <div style={{ position: 'relative', width: 0, zIndex: 200, display: isOrchestrationMode && leftTab === 'draft' ? 'none' : 'flex', alignItems: 'center' }}>
+          <div className={`ps-syn-expand-btn-wrap${isOrchestrationMode && leftTab === 'draft' ? ' ps-syn-expand-btn-wrap--hidden' : ''}`}>
             <button
               onClick={() => setPanelMode(m => m ? null : 'expanded')}
               title="Full-screen review mode"
-              style={{
-                position: 'absolute', left: -16,
-                width: 32, height: 32, borderRadius: '50%',
-                background: '#0891B2', border: '2px solid rgba(255,255,255,0.2)',
-                color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 15, boxShadow: '0 2px 12px rgba(0,0,0,0.8)',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#0e7490')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#0891B2')}
+              className="ps-syn-expand-btn"
             >⤢</button>
           </div>
 
           {/* Right panel — hidden in orchestration draft mode (Sequencer provides synoptic access) */}
-          <div style={{
-            flex: isOrchestrationMode && leftTab === 'draft' ? '0 0 0px' : 1,
-            minWidth: 0,
-            background: 'rgba(15,23,42,0.95)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            visibility: isOrchestrationMode && leftTab === 'draft' ? 'hidden' : 'visible',
-          }}>
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <div className={`ps-syn-right-panel${isOrchestrationMode && leftTab === 'draft' ? ' ps-syn-right-panel--collapsed' : ''}`}>
+            <div className="ps-syn-right-panel-scroll">
               <RightSynopticPanel
                 ref={synopticPanelRef}
                 caseData={caseData}
@@ -2762,61 +3469,45 @@ Original report issued pending ancillary studies. This amendment incorporates th
           const sex       = caseData.patient?.sex ?? '';
           return (
             <div
-              style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', flexDirection: 'column', background: '#0a0f1e' }}
+              className="ps-syn-sequencer-overlay"
               onKeyDown={e => { if (e.key === 'Escape') setPanelMode(null); }}
               tabIndex={-1}
             >
-              <div style={{ background: 'rgba(8,20,40,0.98)', borderBottom: '1px solid rgba(8,145,178,0.3)', flexShrink: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 20px', height: 34, fontSize: 12 }}>
-                  <span style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace' }}>{accession}</span>
-                  {patient && <><span style={{ color: '#334155' }}>·</span><span style={{ color: '#f1f5f9', fontWeight: 600 }}>{patient}</span></>}
-                  {sex  && <><span style={{ color: '#334155' }}>·</span><span style={{ color: '#f1f5f9' }}>{sex}</span></>}
-                  {dob  && <><span style={{ color: '#334155' }}>·</span><span style={{ color: '#94a3b8', fontSize: 11 }}>DOB</span><span style={{ color: '#f1f5f9', marginLeft: 3 }}>{dob}</span></>}
+              <div className="ps-syn-sequencer-header">
+                <div className="ps-syn-sequencer-header-row">
+                  <span className="ps-syn-sequencer-accession">{accession}</span>
+                  {patient && <><span className="ps-syn-sequencer-sep">·</span><span className="ps-syn-sequencer-patient">{patient}</span></>}
+                  {sex  && <><span className="ps-syn-sequencer-sep">·</span><span className="ps-syn-sequencer-value">{sex}</span></>}
+                  {dob  && <><span className="ps-syn-sequencer-sep">·</span><span className="ps-syn-sequencer-label">DOB</span><span className="ps-syn-sequencer-value ps-syn-sequencer-value--spaced">{dob}</span></>}
                 </div>
                 {caseData.specimens && caseData.specimens.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px 10px', overflowX: 'auto' }}>
-                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, letterSpacing: '0.08em', flexShrink: 0, textTransform: 'uppercase', marginRight: 4 }}>Specimen:</span>
+                  <div className="ps-syn-sequencer-specimen-row">
+                    <span className="ps-syn-sequencer-specimen-label">Specimen:</span>
                     {caseData.specimens.map((sp: any) => {
                       const reports  = (caseData.synopticReports ?? []).filter((r: any) => r.specimenId === sp.id);
                       const hasNone  = reports.length === 0;
                       const hasMulti = reports.length > 1;
                       const isActive = sp.id === activeSpecimenId;
-                      const pillBorder = hasNone ? '#d97706' : '#0891B2';
-                      const pillBg     = hasNone ? 'transparent' : isActive ? '#0891B2' : 'transparent';
-                      const pillColor  = hasNone ? '#fbbf24' : isActive ? '#ffffff' : '#7dd3fc';
-                      const labelColor = hasNone ? '#f59e0b' : isActive ? '#ffffff' : '#38bdf8';
+                      const pillStateClass = hasNone ? 'ps-specimen-pill--warning' : isActive ? 'ps-specimen-pill--active' : 'ps-specimen-pill--inactive';
                       return (
-                        <div key={sp.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <div key={sp.id} className="ps-syn-sequencer-specimen-item">
                           <button
-                            className={`ps-specimen-pill${hasNone ? ' warning' : ''}`}
+                            className={`ps-specimen-pill ${pillStateClass}${hasNone ? ' warning' : ''}`}
                             onClick={() => {
                               setActiveSpecimenId(sp.id);
                               if (hasNone) { setShowAddSynopticModal(true); }
                               else if (!hasMulti) { setActiveReportInstanceId(reports[0].instanceId); }
                             }}
-                            style={{
-                              padding: '3px 12px', fontSize: 12, fontWeight: 600, flexShrink: 0,
-                              borderRadius: 20, border: `1.5px solid ${pillBorder}`,
-                              background: pillBg, color: pillColor,
-                              cursor: 'pointer', transition: 'all 0.15s',
-                              display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
-                            }}
                           >
-                            <span style={{ color: labelColor, fontWeight: 800 }}>{sp.label}:</span>
+                            <span className="ps-specimen-pill-letter">{sp.label}:</span>
                             <span>{sp.description}</span>
-                            {hasNone && <span style={{ fontSize: 10 }}>⚠</span>}
+                            {hasNone && <span className="ps-syn-sequencer-warn-icon">⚠</span>}
                           </button>
                           {hasMulti && (
                             <select
-                              className="ps-specimen-pill"
+                              className="ps-specimen-pill ps-specimen-pill-select"
                               value={isActive ? activeReportInstanceId : reports[0].instanceId}
                               onChange={e => { setActiveSpecimenId(sp.id); setActiveReportInstanceId(e.target.value); }}
-                              style={{
-                                height: 24, fontSize: 11, fontWeight: 600, maxWidth: 160, flexShrink: 0,
-                                background: 'rgba(8,145,178,0.15)', color: '#7dd3fc',
-                                border: '1.5px solid #0891B2', borderRadius: 20,
-                                padding: '0 8px', cursor: 'pointer', outline: 'none',
-                              }}
                             >
                               {reports.map((r: any, i: number) => (
                                 <option key={r.instanceId} value={r.instanceId}>
@@ -2832,9 +3523,9 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 )}
               </div>
 
-              <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'rgba(15,23,42,0.95)' }}>
-                  <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, background: 'rgba(10,16,32,0.6)' }}>
+              <div className="ps-syn-sequencer-body">
+                <div className="ps-syn-sequencer-left-col">
+                  <div className="ps-syn-tabbar">
                     {(['draft', 'sequencer', 'report', 'material'] as const).map(tab => {
                       const isActive = leftTab === tab;
                       const label    = tab === 'draft' ? '✍️ Report Draft' : tab === 'sequencer' ? '🔀 Sequencer' : tab === 'report' ? '📑 Synoptic Reporting' : '🧱 Material';
@@ -2843,45 +3534,27 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       // 'pending-countersign' is a per-synoptic-instance status (SynopticReportInstance),
                       // not a CaseStatus value — check whether any instance on this case needs it.
                       const needsCountersign = (caseData?.synopticReports ?? []).some(r => r.status === 'pending-countersign');
-                      const statusDotColor = st === 'finalized' ? '#10b981'
-                        : st === 'pending-review' || needsCountersign ? '#f59e0b'
-                        : st === 'in-progress' ? '#60a5fa'
-                        : '#3b82f6'; // draft = blue
+                      const statusDotClass = st === 'finalized' ? 'ps-syn-tab-dot--finalized'
+                        : st === 'pending-review' || needsCountersign ? 'ps-syn-tab-dot--pending'
+                        : st === 'in-progress' ? 'ps-syn-tab-dot--in-progress'
+                        : 'ps-syn-tab-dot--draft';
                       const statusLabel = String(st);
                       return (
-                        <button key={tab} onClick={() => safeSetLeftTab(tab)} style={{
-                          padding: '9px 18px', fontSize: 12,
-                          fontWeight: isActive ? 600 : 400,
-                          color: isActive ? '#38bdf8' : 'rgba(148,163,184,0.7)',
-                          background: 'none', border: 'none',
-                          borderBottom: isActive ? '2px solid #38bdf8' : '2px solid transparent',
-                          cursor: 'pointer', transition: 'all 0.15s',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                        }}
-                          onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#94a3b8'; }}
-                          onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(148,163,184,0.7)'; }}
-                        >
+                        <button key={tab} onClick={() => safeSetLeftTab(tab)} className={`ps-syn-tab-btn${isActive ? ' ps-syn-tab-btn--active' : ''}`}>
                           {label}
                           {/* Status dot on Full Report tab — after label, visible on all states */}
                           {tab === 'report' && (
                             <span
                               title={`Report status: ${statusLabel}`}
-                              style={{
-                                display: 'inline-block',
-                                width: 8, height: 8, borderRadius: '50%',
-                                background: statusDotColor,
-                                border: `1.5px solid ${statusDotColor}`,
-                                flexShrink: 0,
-                                boxShadow: `0 0 5px ${statusDotColor}`,
-                              }}
+                              className={`ps-syn-tab-dot ${statusDotClass}`}
                             />
                           )}
                         </button>
                       );
                     })}
                   </div>
-                  <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'draft' ? 'flex' : 'none' }}>
+                  <div className="ps-syn-tab-content">
+                    <div className={`ps-syn-tab-panel${leftTab === 'draft' ? ' ps-syn-tab-panel--visible-flex' : ''}`}>
                       <div className="ps-ose-centre-pane-wrap">
                         <div className="ps-ose-centre-header">
                           <div className="ps-ose-centre-header-left">
@@ -2923,11 +3596,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
                                   id: 'demo-proto-1',
                                   specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
                                   specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
-                                  specimenDesc:         (caseData.specimens?.[0] as any)?.specimenType ?? 'Core biopsy',
+                                  specimenDesc:         caseData.specimens?.[0]?.description ?? 'Core biopsy',
                                   currentTemplateId:    'breast_core_general',
                                   currentTemplateName:  'Breast Core Biopsy (General)',
                                   proposedTemplateId:   'breast_invasive_carcinoma',
-                                  proposedTemplateName: 'Breast Invasive Carcinoma (CAP)',
+                                  proposedTemplateName: 'Breast Invasive Carcinoma',
                                   reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
                                   confidence:           92,
                                 }])}
@@ -2999,7 +3672,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                         />
                       </div>
                     </div>
-                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'sequencer' ? 'flex' : 'none', flexDirection: 'column' }}>
+                    <div className={`ps-syn-tab-panel ps-syn-tab-panel--column${leftTab === 'sequencer' ? ' ps-syn-tab-panel--visible-flex' : ''}`}>
                       <SequencerPanel
                         show={leftTab === 'sequencer'}
                         onClose={() => safeSetLeftTab('report')}
@@ -3031,10 +3704,23 @@ Original report issued pending ancillary studies. This amendment incorporates th
                         }}
                       />
                     </div>
-                    <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: leftTab === 'report' ? 'block' : 'none' }}>
-                      <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} onMatchResolved={found => setHighlightNotFound(!found)} />
+                    <div className={`ps-syn-tab-panel ps-syn-tab-panel--scroll${leftTab === 'report' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
+                      {pendingLisNotice && (
+                  <div className="ps-lis-triage-banner">
+                    <div>
+                      <div className="ps-lis-triage-title">⚠ LIS Amendment — Review Required</div>
+                      <p className="ps-lis-triage-summary">{pendingLisNotice.lisAmendmentSummary}</p>
                     </div>
-                    <div style={{ position: 'absolute', inset: 0, display: leftTab === 'material' ? 'block' : 'none' }}>
+                    <button className="ps-conf-btn-primary" onClick={handleMarkReviewedNoChanges}>
+                      Mark Reviewed — No PathScribe Changes Required
+                    </button>
+                  </div>
+                )}
+                <AmendmentDraftBanner caseData={caseData} activeReportInstanceId={activeReportInstanceId} onEdit={handleRequestAmendment} />
+                <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} />
+                <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} onMatchResolved={found => setHighlightNotFound(!found)} />
+                    </div>
+                    <div className={`ps-syn-tab-panel${leftTab === 'material' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
                       <MaterialTreePanel
                   caseData={caseData}
                   onOpenBlockEditor={() => setShowBlockEditor(true)}
@@ -3045,24 +3731,15 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   </div>
                 </div>
 
-                <div style={{ position: 'relative', width: 0, zIndex: 200, display: 'flex', alignItems: 'center' }}>
+                <div className="ps-syn-expand-btn-wrap">
                   <button
                     onClick={() => setPanelMode(null)}
                     title="Exit full-screen (Esc)"
-                    style={{
-                      position: 'absolute', left: -16,
-                      width: 32, height: 32, borderRadius: '50%',
-                      background: '#0891B2', border: '2px solid rgba(255,255,255,0.2)',
-                      color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: 15, boxShadow: '0 2px 12px rgba(0,0,0,0.8)',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#0e7490')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#0891B2')}
+                    className="ps-syn-expand-btn"
                   >⤡</button>
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0, background: 'rgba(15,23,42,0.95)', overflowY: 'auto' }}>
+                <div className="ps-syn-right-panel-scroll ps-syn-right-panel-scroll--flex">
                   <RightSynopticPanel
                     caseData={caseData}
                     activeTab={activeTab}
@@ -3101,6 +3778,20 @@ Original report issued pending ancillary studies. This amendment incorporates th
               } catch (e) {
                 console.error('Failed to persist orchSections:', e);
               }
+            } else if (caseData?.id) {
+              // ROOT FIX — CoPilot's Save Draft never actually persisted
+              // synopticReports anywhere. It only cleared the dirty flag
+              // and showed "Draft saved," which was true for Orchestration
+              // but silently false here — any field edit was lost on
+              // refresh since it only ever lived in local React state.
+              try {
+                await caseRouter.updateCase(caseData.id, {
+                  synopticReports: caseData.synopticReports,
+                  updatedAt: new Date().toISOString(),
+                } as any);
+              } catch (e) {
+                console.error('Failed to persist synopticReports:', e);
+              }
             }
             clearDirty();
             showToast('Draft saved');
@@ -3119,6 +3810,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
               } catch (e) {
                 console.error('Failed to persist orchSections:', e);
               }
+            } else if (caseData?.id) {
+              // Same root fix as onSaveDraft above.
+              try {
+                await caseRouter.updateCase(caseData.id, {
+                  synopticReports: caseData.synopticReports,
+                  updatedAt: new Date().toISOString(),
+                } as any);
+              } catch (e) {
+                console.error('Failed to persist synopticReports:', e);
+              }
             }
             clearDirty();
             showToast('Draft saved');
@@ -3127,6 +3828,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onFinalize={() => handleRequestFinalize(false)}
           onFinalizeAndNext={() => handleRequestFinalize(true)}
           onSignOut={() => { if (caseData?.reportingMode !== 'copilot') setShowSignOutModal(true); }}
+          onRequestAmendment={handleRequestAmendment}
+          onPrint={openCopilotReportView}
           
           onHistory={() => setIsSimilarCasesOpen(true)}
           onFlags={() => { openFlagManager(caseData); log('flag_manager_opened', { caseId: caseId ?? '' }); }}
@@ -3156,6 +3859,27 @@ Original report issued pending ancillary studies. This amendment incorporates th
         onUserChange={setSignOutUser}
         onPasswordChange={setSignOutPassword}
         onConfirm={handleSignOutConfirm}
+      />
+
+      {pendingReconciliation && caseData && (
+        <DiscordanceReconciliationModal
+          caseId={caseData.id}
+          specimenId={pendingReconciliation.specimenId}
+          caseType={pendingReconciliation.caseType}
+          frozenCategory={pendingReconciliation.frozenCategory}
+          frozenDx={pendingReconciliation.frozenDx}
+          performedBy={{ userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' }}
+          onDone={finalizeSignOut}
+        />
+      )}
+
+      <CopilotReportViewModal
+        show={showCopilotReportView}
+        onClose={() => setShowCopilotReportView(false)}
+        accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
+        patient={caseData?.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : ''}
+        mrn={caseData?.patient?.mrn ?? ''}
+        instances={copilotReportInstances}
       />
 
       {showAiReview && (
@@ -3265,11 +3989,23 @@ Original report issued pending ancillary studies. This amendment incorporates th
         overlayStyle={overlayStyle}
         amendmentMode={amendmentMode}
         amendmentText={amendmentText}
-        activeSynopticTitle={caseData?.accession?.fullAccession ?? 'Case'}
+        activeSynopticTitle={(() => {
+          const r = caseData?.synopticReports?.find(rr => rr.instanceId === activeReportInstanceId);
+          if (!r) return caseData?.accession?.fullAccession ?? 'Case';
+          const specimen = caseData?.specimens?.find((s: any) => s.id === r.specimenId);
+          return specimen ? `Specimen ${specimen.label}: ${r.templateName}` : r.templateName;
+        })()}
+        sequenceNumber={amendmentSequenceNumber}
+        amendedByName={signingUser?.name ?? 'Unknown User'}
+        versionHistory={versionHistory}
+        resuming={resumingAmendment}
+        orderingPhysicianName={caseData?.order?.requestingProvider}
         onModeChange={setAmendmentMode}
         onTextChange={setAmendmentText}
-        onClose={() => { setShowAmendmentModal(false); setDeferredAmendmentContext(null); }}
+        onClose={() => { setShowAmendmentModal(false); setDeferredAmendmentContext(null); setAmendmentDraftId(null); setAmendmentSubmitError(null); setResumingAmendment(undefined); }}
         onSubmit={handleAmendmentSubmit}
+        onFieldOverridesConfirmed={handleFieldOverridesConfirmed}
+        submitError={amendmentSubmitError}
         triggeredBySynopticTitle={deferredAmendmentContext?.title}
         prefillText={deferredAmendmentContext?.prefill}
       />
@@ -3480,11 +4216,42 @@ Original report issued pending ancillary studies. This amendment incorporates th
           caseData={caseData}
           availableProtocols={availableProtocols}
           onClose={() => setShowAddSynopticModal(false)}
-          onAdd={(newInstances, updatedCase) => {
-            setCaseData(updatedCase);
+          onAdd={async (newInstances, updatedCase) => {
             markDirty('Synoptic reports');
             setActiveReportInstanceId(newInstances[0].instanceId);
             setActiveSpecimenId(newInstances[0].specimenId);
+
+            // Real gap, caught directly: this flow never touched
+            // amendmentService at all — meaning the triage tile (which
+            // only queries amendmentService) had no way to see or track
+            // an addendum created this way, even though this is the
+            // actual mechanism a real addendum uses. Fixed: create a
+            // real draft record here, mark this specific instance with
+            // pendingAddendumId, and release it only when that instance
+            // is actually finalized (see handleFinalizeConfirm) — not
+            // immediately, so it genuinely stays visible in triage
+            // until sign-out, for both modes, not just CoPilot.
+            let finalCaseData = updatedCase;
+            if (caseData?.status === 'finalized' && caseData?.id) {
+              const draftRes = await amendmentService.startDraft({
+                caseId: caseData.id, type: 'addendum',
+                authoringPathologist: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
+              });
+              if (draftRes.ok) {
+                const markedReports = (updatedCase.synopticReports ?? []).map((r: any) =>
+                  r.instanceId === newInstances[0].instanceId ? { ...r, pendingAddendumId: draftRes.data.id } : r
+                );
+                finalCaseData = { ...updatedCase, synopticReports: markedReports } as any;
+              }
+
+              // No send here — transmission happens at actual
+              // finalization of this instance (see handleFinalizeConfirm),
+              // not at creation. Sending here, before any real content
+              // exists or the pathologist has finished it, was the same
+              // "clear before confirmed" ordering mistake already fixed
+              // for amendments.
+            }
+            setCaseData(finalCaseData);
           }}
         />
       )}
@@ -3575,6 +4342,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           blocks={allBlocks}
           casePriority={(caseData as any)?.order?.priority ?? 'Routine'}
           onUpdateBlock={handleUpdateBlock}
+          onSendStainOrder={handleSendStainOrder}
           onClose={() => setShowBlockEditor(false)}
         />
       )}
@@ -3634,7 +4402,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
             setFixativeGateSpecimens(null);
             const args = pendingFinalizeArgs;
             setPendingFinalizeArgs([]);
-            finalizeCase(args);
+            // Same gap as the other two finalize paths — fixed the same way.
+            (async () => {
+              const succeeded = await finalizeCase(args);
+              if (succeeded) await releasePendingAmendmentOrAddendum();
+            })();
           }}
         />
       )}
@@ -3770,25 +4542,18 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
       {/* Tab-switch unsaved draft confirmation — orchestration mode only */}
       {pendingTabSwitch && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 60000,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div style={{
-            background: '#1e293b', border: '1px solid rgba(148,163,184,0.2)',
-            borderRadius: 12, padding: '28px 32px', maxWidth: 420, width: '90%',
-          }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
+        <div className="ps-tabswitch-overlay">
+          <div className="ps-tabswitch-modal">
+            <div className="ps-tabswitch-title">
               Unsaved draft changes
             </div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24, lineHeight: 1.6 }}>
+            <div className="ps-tabswitch-body">
               You have unsaved changes in the report draft. Would you like to save before switching tabs?
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="ps-tabswitch-footer">
               <button
                 onClick={() => setPendingTabSwitch(null)}
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 6, color: '#64748b', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                className="ps-tabswitch-btn ps-tabswitch-btn--cancel"
               >Cancel</button>
               <button
                 onClick={() => {
@@ -3802,7 +4567,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
                   }
                 }}
-                style={{ padding: '8px 16px', background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 6, color: '#cbd5e1', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                className="ps-tabswitch-btn ps-tabswitch-btn--discard"
               >Discard &amp; Switch</button>
               <button
                 onClick={async () => {
@@ -3823,7 +4588,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     setTimeout(() => setAlertFieldId('scroll_to_unanswered'), 150);
                   }
                 }}
-                style={{ padding: '8px 16px', background: 'rgba(8,145,178,0.2)', border: '1px solid rgba(8,145,178,0.4)', borderRadius: 6, color: '#38bdf8', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                className="ps-tabswitch-btn ps-tabswitch-btn--save"
               >Save &amp; Switch</button>
             </div>
           </div>

@@ -41,7 +41,7 @@ const RuleModal: React.FC<{
   const [templateId,  setTemplateId]  = useState(rule?.templateId  ?? '');
   const [note,        setNote]        = useState(rule?.note        ?? '');
 
-  const entityLabel = type === 'client' ? 'Client' : type === 'physician' ? 'Physician' : 'CAP Protocol';
+  const entityLabel = type === 'client' ? 'Client' : type === 'physician' ? 'Physician' : 'Protocol';
   const entityList  = type === 'client'
     ? clients.map(c => ({ id: c.id as string, name: `${c.name} (${c.code})` }))
     : type === 'physician'
@@ -189,7 +189,7 @@ const TestPanel: React.FC<{
   const [physicianId,  setPhysicianId]  = useState('');
   const [protocols,    setProtocols]    = useState<{ id: string; name: string; status: string }[]>([]);
 
-  // Pull the real, current CAP/RCPath synoptic protocol list rather than a
+  // Pull the real, current synoptic protocol list rather than a
   // hardcoded copy — guarantees the picker can never offer an ID that the
   // routing maps don't actually recognise (the exact bug we found and fixed
   // earlier tonight, caused by a free-text field accepting any string).
@@ -201,11 +201,11 @@ const TestPanel: React.FC<{
     // Build dynamic override maps from active rules
     const clientMap:    Record<string, string> = {};
     const physicianMap: Record<string, string> = {};
-    const capMap:       Record<string, string> = {};
+    const protocolMap:  Record<string, string> = {};
     rules.filter(r => r.active).forEach(r => {
-      if (r.type === 'client')       clientMap[r.entityId] = r.templateId;
-      if (r.type === 'physician')    physicianMap[r.entityId] = r.templateId;
-      if (r.type === 'cap-protocol') capMap[r.entityId] = r.templateId;
+      if (r.type === 'client')    clientMap[r.entityId] = r.templateId;
+      if (r.type === 'physician') physicianMap[r.entityId] = r.templateId;
+      if (r.type === 'protocol')  protocolMap[r.entityId] = r.templateId;
     });
 
     const trace = traceReportTemplateResolution({
@@ -213,9 +213,9 @@ const TestPanel: React.FC<{
       subspecialtyId:       subspecialty || undefined,
       performingClientId:   clientId     || undefined,
       orderingPhysicianId:  physicianId  || undefined,
-      _clientOverrides:      clientMap,
-      _physicianOverrides:   physicianMap,
-      _capProtocolOverrides: capMap,
+      _clientOverrides:    clientMap,
+      _physicianOverrides: physicianMap,
+      _protocolOverrides:  protocolMap,
     } as any);
     const resolved = trace.result;
     const template = templates.find(t => t.id === resolved.templateId);
@@ -223,11 +223,11 @@ const TestPanel: React.FC<{
   };
 
   const PASS_LABELS: Record<string, string> = {
-    'client-override':    'Pass 0 — Client override',
+    'client-override':      'Pass 0 — Client override',
     'physician-preference': 'Pass 0b — Physician preference',
-    'cap-protocol':       'Pass 1 — CAP protocol match',
-    'subspecialty':       'Pass 2 — Subspecialty fallback',
-    'gold-standard':      'Pass 3 — Gold standard fallback',
+    'protocol':              'Pass 1 — Protocol match',
+    'subspecialty':          'Pass 2 — Subspecialty fallback',
+    'gold-standard':         'Pass 3 — Gold standard fallback',
   };
 
   return (
@@ -239,7 +239,7 @@ const TestPanel: React.FC<{
 
       <div className="ps-rr-test-fields">
         <div>
-          <div className="ps-conf-label">CAP Synoptic Template ID</div>
+          <div className="ps-conf-label">Synoptic Template ID</div>
           <select className="ps-conf-select" value={synopticId} onChange={e => setSynopticId(e.target.value)}>
             <option value="">— None —</option>
             {protocols.map(p => (
@@ -360,7 +360,7 @@ const RoutingRulesTab: React.FC = () => {
 
   const clientRules    = rules.filter(r => r.type === 'client');
   const physicianRules = rules.filter(r => r.type === 'physician');
-  const capRules       = rules.filter(r => r.type === 'cap-protocol');
+  const protocolRules  = rules.filter(r => r.type === 'protocol');
 
   if (loading) return <div className="ps-conf-loading">Loading routing rules…</div>;
 
@@ -373,7 +373,7 @@ const RoutingRulesTab: React.FC = () => {
           <h2 className="tmpl-list-title">Template Routing Rules</h2>
           <p className="tmpl-list-subtitle">
             Define which report template is selected for specific clients or physicians.
-            Rules override the default CAP protocol → subspecialty → gold standard chain.
+            Rules override the default protocol → subspecialty → gold standard chain.
           </p>
         </div>
       </div>
@@ -387,7 +387,7 @@ const RoutingRulesTab: React.FC = () => {
             {[
               { pass: '0',   key: 'client-override',      label: 'Client override' },
               { pass: '0b',  key: 'physician-preference',  label: 'Physician preference' },
-              { pass: '1',   key: 'cap-protocol',          label: 'CAP protocol match' },
+              { pass: '1',   key: 'protocol',              label: 'Protocol match' },
               { pass: '2',   key: 'subspecialty',          label: 'Subspecialty fallback' },
               { pass: '3',   key: 'gold-standard',         label: 'Gold standard' },
             ].map(p => {
@@ -424,7 +424,7 @@ const RoutingRulesTab: React.FC = () => {
               </button>
             </div>
             {clientRules.length === 0 ? (
-              <div className="ps-rr-empty">No client overrides defined — routing falls through to CAP protocol matching.</div>
+              <div className="ps-rr-empty">No client overrides defined — routing falls through to protocol matching.</div>
             ) : clientRules.map(r => (
               <RuleRow
                 key={r.id} rule={r}
@@ -435,25 +435,25 @@ const RoutingRulesTab: React.FC = () => {
             ))}
           </div>
 
-          {/* CAP protocol mappings */}
+          {/* Protocol mappings */}
           <div className="ps-rr-section">
             <div className="ps-rr-section-header">
-              <span className="ps-rr-section-title">CAP Protocol Mappings</span>
-              <span className="ps-rr-section-pass ps-rr-pass--cap-protocol">Pass 1</span>
-              <button className="ps-section-add-btn" onClick={() => setModal({ type: 'cap-protocol' })}>
+              <span className="ps-rr-section-title">Protocol Mappings</span>
+              <span className="ps-rr-section-pass ps-rr-pass--protocol">Pass 1</span>
+              <button className="ps-section-add-btn" onClick={() => setModal({ type: 'protocol' })}>
                 + Add Protocol Mapping
               </button>
             </div>
             <div className="ps-rr-note ps-rr-note--spaced">
               These supplement — and take precedence over — the built-in protocol mapping table. Use
-              this to map a new or changed CAP/RCPath protocol to a template without a code deploy.
+              this to map a new or changed synoptic protocol to a template without a code deploy.
             </div>
-            {capRules.length === 0 ? (
+            {protocolRules.length === 0 ? (
               <div className="ps-rr-empty">No admin-defined protocol mappings — routing uses the built-in mapping table only.</div>
-            ) : capRules.map(r => (
+            ) : protocolRules.map(r => (
               <RuleRow
                 key={r.id} rule={r}
-                onEdit={() => setModal({ type: 'cap-protocol', rule: r })}
+                onEdit={() => setModal({ type: 'protocol', rule: r })}
                 onDelete={() => handleDelete(r.id)}
                 onToggle={() => handleToggle(r)}
               />

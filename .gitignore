@@ -52,14 +52,5 @@ Thumbs.db
 *.gz
 *.tgz
 
-# Misc
-*.lock
-*.log
-*.cache
-*.pid
-<<<<<<< HEAD
-*.seed
-=======
-*.seed
-node_modules/
->>>>>>> 0f2faec (Merge team refactor with build 2026-05-15)
+
+
