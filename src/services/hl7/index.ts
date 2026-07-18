@@ -7,6 +7,18 @@
 // transport to carry it, is real follow-up work once there's a
 // concrete target to send to.
 // ─────────────────────────────────────────────────────────────
+// NOTE: This HL7 module (index.ts, ormBuilder.ts, segmentBuilders.ts,
+// types.ts, adapters/) is built ahead of integration -- nothing in the
+// app currently calls it. Not dead code: it's deliberate, carefully-
+// researched scaffolding (see types.ts's header for sourcing against
+// IHE PaLM Technical Framework Vol. 2x) for the real outbound HL7
+// order-transmission work, staged so the standard-conformant core
+// could be built and tested without waiting on a specific vendor's
+// integration spec. See adapters/IHL7VendorAdapter.ts for the
+// vendor-plug-in seam, and adapters/vantageAdapter.ts for why that
+// specific adapter is intentionally left unimplemented rather than
+// guessed at. Wire in via buildOrmO01ForBlock() + a real HTTP/MLLP
+// transport when order transmission is ready to go live.
 
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock } from '@/types/case/Specimen';
