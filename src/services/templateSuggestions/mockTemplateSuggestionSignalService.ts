@@ -1,4 +1,4 @@
-// src/services/templates/mockTemplateSuggestionSignalService.ts
+// src/services/templateSuggestions/mockTemplateSuggestionSignalService.ts
 
 import type {
   ITemplateSuggestionSignalService,

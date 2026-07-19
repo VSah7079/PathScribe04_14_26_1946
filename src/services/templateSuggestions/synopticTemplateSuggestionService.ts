@@ -1,4 +1,4 @@
-// src/services/templates/synopticTemplateSuggestionService.ts
+// src/services/templateSuggestions/synopticTemplateSuggestionService.ts
 
 import { callAi } from '../aiIntegration/aiProviderService';
 import type {

@@ -4,9 +4,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TemplateRequestModal } from '@/components/TemplateRequest/TemplateRequestModal';
 import type { Case, SynopticReportInstance } from '@/types/case/Case';
-import { suggestSynopticTemplates } from '@/services/templates/synopticTemplateSuggestionService';
+import { suggestSynopticTemplates } from '@/services/templateSuggestions/synopticTemplateSuggestionService';
 import { templateSuggestionSignalService } from '@/services';
-import type { SynopticTemplateSuggestion } from '@/services/templates/ISynopticTemplateSuggestionService';
+import type { SynopticTemplateSuggestion } from '@/services/templateSuggestions/ISynopticTemplateSuggestionService';
 
 interface Protocol {
   id:   string;

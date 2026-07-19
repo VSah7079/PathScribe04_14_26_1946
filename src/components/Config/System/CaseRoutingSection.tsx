@@ -13,7 +13,7 @@ import {
   saveRoutingConfig,
   routeUnassignedCases,
   RoutingResult,
-} from '../../../services/cases/caseRoutingService';
+} from '../../../services/cases/casePoolAssignmentService';
 import { subspecialtyService } from '../../../services';
 import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyService';
 import { mockCaseService } from '../../../services/cases/mockCaseService';

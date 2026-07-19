@@ -26,7 +26,7 @@ import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEdito
 import type { Case } from '@/types/case/Case';
 import { mockMacroService } from '@/services/macros/mockMacroService';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
-import { PathScribeAIService, type SpellingFlag } from '@/services/aiIntegration/GeminiAIIntegrationService';
+import { PathScribeAIService, type SpellingFlag } from '@/services/aiIntegration/PathScribeAIService';
 import { clientService } from '@/services';
 import type { Jurisdiction } from '@/types/systemConfig';
 

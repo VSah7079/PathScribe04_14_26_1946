@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Trash2, Plus, Search, Upload, Loader2 } from 'lucide-react';
 import { VoiceMacro } from '../../types/voiceMacros';
-import { MockVoiceMacroService } from '../../services/voicemacro/mockVoiceService';
+import { MockVoiceMacroService } from '../../services/voicemacro/mockVoiceMacroService';
 import { usepathscribeSpeech }   from '../../hooks/usepathscribeSpeech';
 
 // Initialize the service instance

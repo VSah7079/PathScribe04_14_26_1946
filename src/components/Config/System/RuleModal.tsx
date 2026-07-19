@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
-import { RoutingRule } from '../../../services/cases/caseRoutingService';
+import { RoutingRule } from '../../../services/cases/casePoolAssignmentService';
 import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyService';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────

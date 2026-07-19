@@ -15,7 +15,7 @@ export { mockSubspecialtyService  as subspecialtyService  } from './subspecialti
 export { mockClientService        as clientService        } from './clients/mockClientService';
 export { mockSpecimenCategoryService as specimenCategoryService } from './specimenCategories/mockSpecimenCategoryService';
 export { mockGrossingRoutingOverrideService as grossingRoutingOverrideService } from './grossingRoutingOverrides/mockGrossingRoutingOverrideService';
-export { mockTemplateSuggestionSignalService as templateSuggestionSignalService } from './templates/mockTemplateSuggestionSignalService';
+export { mockTemplateSuggestionSignalService as templateSuggestionSignalService } from './templateSuggestions/mockTemplateSuggestionSignalService';
 export { mockLisSyncService as lisSyncService } from './lisSync/mockLisSyncService';
 export { mockSpecimenDictionaryService as specimenDictionaryService } from './specimenDictionary/mockSpecimenDictionaryService';
 export { mockPriorityService as priorityService } from './priority/mockPriorityService';

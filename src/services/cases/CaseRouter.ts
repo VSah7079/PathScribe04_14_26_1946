@@ -261,6 +261,6 @@ class CaseRouter implements ICaseService {
 // ── Singleton ──────────────────────────────────────────────────────────────────
 // In production:
 //   import { fhirCaseService }      from './FHIRCaseService';
-//   import { firestoreCaseService } from './firestoreCaseService';
+//   import { firestoreCaseService } from './FirestoreCaseService';
 //   export const caseRouter = new CaseRouter(fhirCaseService, firestoreCaseService);
 export const caseRouter = new CaseRouter(mockCaseService, mockOrchestratorCaseService);

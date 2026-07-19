@@ -14,7 +14,7 @@ import '../../../pathscribe.css';
 import {
   RoutingRule, loadRoutingRules, saveRoutingRules,
   testSpecimenRouting, BUILT_IN_ROUTING_RULES,
-} from '../../../services/cases/caseRoutingService';
+} from '../../../services/cases/casePoolAssignmentService';
 import { subspecialtyService } from '../../../services';
 import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyService';
 import RuleModal from './RuleModal';
