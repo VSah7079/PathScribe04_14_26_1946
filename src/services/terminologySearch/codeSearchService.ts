@@ -1,4 +1,4 @@
-// src/pages/Synoptic/Codes/codeSearchService.ts
+// src/services/terminologySearch/codeSearchService.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Terminology search abstraction.
 // All endpoint URLs are centralised in terminologyConfig.ts.
@@ -15,7 +15,7 @@
 //   rec_type = SNOMED concept type filter
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { TERMINOLOGY_CONFIG } from '../../../components/Config/Terminology/terminologyConfig';
+import { TERMINOLOGY_CONFIG } from '../../components/Config/Terminology/terminologyConfig';
 
 export interface CodeResult {
   code:       string;
@@ -33,8 +33,26 @@ export type SnomedFilter = 'all' | 'morphology' | 'anatomy' | 'specimen' | 'orga
 // endpoint has been retired and returns 404 for all queries.
 // UTS 'approximate' search type gives the best substring/partial word matching.
 
-const UMLS_API_KEY = import.meta.env.VITE_UMLS_KEY ?? 'a29978e5-905a-4b4e-af8d-2c7ec4bd90d7';
-const UTS_SEARCH   = 'https://uts-ws.nlm.nih.gov/rest/search/current';
+// Deliberately NO hardcoded fallback here. A checked-in API key is a real
+// credential leak (visible to anyone with repo access, past or future,
+// regardless of any later fix) — same reasoning as never committing a
+// .env file. If VITE_UMLS_KEY isn't set, this throws immediately and
+// loudly at call time rather than silently degrading or (worse) silently
+// using a shared, exposed default key. Set VITE_UMLS_KEY in .env locally
+// and in your deployment platform's environment variable settings.
+function getUmlsApiKey(): string {
+  const key = import.meta.env.VITE_UMLS_KEY;
+  if (!key) {
+    throw new Error(
+      '[codeSearchService] VITE_UMLS_KEY is not set. SNOMED/ICD-O search ' +
+      'requires a UMLS API key — see https://uts.nlm.nih.gov/uts/ to ' +
+      'obtain one, then set VITE_UMLS_KEY in your .env file.'
+    );
+  }
+  return key;
+}
+
+const UTS_SEARCH = 'https://uts-ws.nlm.nih.gov/rest/search/current';
 
 const SNOMED_FILTER_KEYWORDS: Record<SnomedFilter, string[]> = {
   all:        [],
@@ -58,7 +76,7 @@ export async function searchSnomed(
       sabs:         'SNOMEDCT_US',
       returnIdType: 'code',
       pageSize:     String(maxResults),
-      apiKey:       UMLS_API_KEY,
+      apiKey:       getUmlsApiKey(),
     });
 
     const res = await fetch(`${UTS_SEARCH}?${params}`);
@@ -201,7 +219,7 @@ export async function searchIcdo(query: string, maxResults = 20): Promise<CodeRe
       sabs:         'SNOMEDCT_US',
       returnIdType: 'code',
       pageSize:     String(maxResults),
-      apiKey:       UMLS_API_KEY,
+      apiKey:       getUmlsApiKey(),
     });
 
     const res = await fetch(`${UTS_SEARCH}?${params}`);

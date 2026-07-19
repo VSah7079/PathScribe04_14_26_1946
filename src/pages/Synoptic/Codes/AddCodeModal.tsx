@@ -8,7 +8,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { callAi } from '@/services/aiIntegration/aiProviderService';
 import '../../../pathscribe.css';
 import type { MedicalCode } from '../synopticTypes';
-import { searchCodes, type CodeResult, type SnomedFilter } from './codeSearchService';
+import { searchCodes, type CodeResult, type SnomedFilter } from '../../../services/terminologySearch/codeSearchService';
 import { getOrganisationByHospitalId, type CodingSystem } from '@/services/organisation/organisationService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

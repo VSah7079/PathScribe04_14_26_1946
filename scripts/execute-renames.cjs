@@ -35,52 +35,20 @@ const EXECUTE = process.argv.includes('--execute');
 // Each entry: { from: 'relative/path/from/src', to: 'relative/path/from/src' }
 // Folder moves: list every file inside individually (safer than trying to
 // detect folder vs file automatically).
-const RENAMES = [
-  {
-    from: 'services/aiIntegration/GeminiAIIntegrationService.ts',
-    to:   'services/aiIntegration/PathScribeAIService.ts',
-    note: 'File rename only — class name GeminiAIIntegrationService and its PathScribeAIService alias both left untouched.',
-  },
-  {
-    from: 'services/voicemacro/mockVoiceService.ts',
-    to:   'services/voicemacro/mockVoiceMacroService.ts',
-    note: 'File rename only — class MockVoiceMacroService already correctly named.',
-  },
-  {
-    from: 'services/cases/caseRoutingService.ts',
-    to:   'services/cases/casePoolAssignmentService.ts',
-    note: 'File rename only — disambiguates from CaseRouter.ts (different concern: pool/subspecialty assignment, not LIS-vs-Orchestration data source routing).',
-  },
-  {
-    from: 'services/cases/firestoreCaseService.ts',
-    to:   'services/cases/FirestoreCaseService.ts',
-    note: 'Casing fix — matches PRODUCTION_MIGRATION.md\'s documented filename. Real bug: would fail on case-sensitive (Linux) deploys as written.',
-  },
-  {
-    from: 'services/templates/ISynopticTemplateSuggestionService.ts',
-    to:   'services/templateSuggestions/ISynopticTemplateSuggestionService.ts',
-    note: 'Folder split 1/4 — templates/ now holds only library management (templateService.ts).',
-  },
-  {
-    from: 'services/templates/ITemplateSuggestionSignalService.ts',
-    to:   'services/templateSuggestions/ITemplateSuggestionSignalService.ts',
-    note: 'Folder split 2/4.',
-  },
-  {
-    from: 'services/templates/mockTemplateSuggestionSignalService.ts',
-    to:   'services/templateSuggestions/mockTemplateSuggestionSignalService.ts',
-    note: 'Folder split 3/4.',
-  },
-  {
-    from: 'services/templates/synopticTemplateSuggestionService.ts',
-    to:   'services/templateSuggestions/synopticTemplateSuggestionService.ts',
-    note: 'Folder split 4/4.',
-  },
-];
+// The confirmed rename batch — edit this list to add/remove renames.
+// The services/ batch (8 renames) was executed successfully. Add the
+// next confirmed batch here when ready (e.g. from the components/ review).
+
 
 const CODE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
 const RESOLVABLE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.json'];
-
+const RENAMES = [
+  {
+    from: 'pages/Synoptic/Codes/codeSearchService.ts',
+    to:   'services/terminologySearch/codeSearchService.ts',
+    note: 'Real REST-API terminology search client (SNOMED/ICD-10/ICD-11/LOINC/ICD-O/OPCS-4/CPT) — genuinely different concern from services/codes/ (a config/dictionary layer), deserves its own folder, same precedent as orderIntake/, deficiencies/, etc.',
+  },
+];
 function readTsconfigPaths() {
   const tsconfigPath = path.join(PROJECT_ROOT, 'tsconfig.json');
   if (!fs.existsSync(tsconfigPath)) return {};
@@ -164,7 +132,6 @@ function main() {
     note: r.note,
   }));
 
-  // Verify every source file exists before doing anything
   let missing = false;
   for (const r of renameMap) {
     if (!fs.existsSync(r.fromAbs)) {
@@ -175,6 +142,15 @@ function main() {
   if (missing) console.log('');
 
   const validRenames = renameMap.filter(r => fs.existsSync(r.fromAbs));
+
+  // BUGFIX: if a file being updated is ALSO one of the files being renamed,
+  // the write must target its NEW path (files move before import rewrites
+  // happen) — otherwise writeFileSync silently creates a stray duplicate
+  // at the old, now-vacated location instead of updating the real file.
+  function resolveWriteTarget(filePath) {
+    const match = validRenames.find(r => path.normalize(r.fromAbs) === path.normalize(filePath));
+    return match ? match.toAbs : filePath;
+  }
 
   console.log(`Planned renames (${validRenames.length}):\n`);
   for (const r of validRenames) {
@@ -237,7 +213,11 @@ function main() {
 
   console.log(`Import statements to update (${importUpdates.length} files affected):\n`);
   for (const u of importUpdates) {
-    console.log(`  ${path.relative(PROJECT_ROOT, u.file)}`);
+    const writeTarget = resolveWriteTarget(u.file);
+    const label = writeTarget !== u.file
+      ? `${path.relative(PROJECT_ROOT, u.file)}  (writes to new location: ${path.relative(PROJECT_ROOT, writeTarget)})`
+      : path.relative(PROJECT_ROOT, u.file);
+    console.log(`  ${label}`);
     for (const c of u.changes) {
       console.log(`    '${c.old}' -> '${c.new}'`);
     }
@@ -257,8 +237,9 @@ function main() {
   }
 
   for (const u of importUpdates) {
-    fs.writeFileSync(u.file, u.newContent, 'utf8');
-    console.log(`Updated imports in: ${path.relative(PROJECT_ROOT, u.file)}`);
+    const writeTarget = resolveWriteTarget(u.file);
+    fs.writeFileSync(writeTarget, u.newContent, 'utf8');
+    console.log(`Updated imports in: ${path.relative(PROJECT_ROOT, writeTarget)}`);
   }
 
   console.log('\nDone. Now run: npx tsc --noEmit -p .   to verify nothing broke.');
