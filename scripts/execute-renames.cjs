@@ -38,17 +38,13 @@ const EXECUTE = process.argv.includes('--execute');
 // The confirmed rename batch — edit this list to add/remove renames.
 // The services/ batch (8 renames) was executed successfully. Add the
 // next confirmed batch here when ready (e.g. from the components/ review).
-
+const RENAMES = [
+  // { from: 'path/from/src', to: 'path/from/src', note: 'why' },
+];
 
 const CODE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
 const RESOLVABLE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.json'];
-const RENAMES = [
-  {
-    from: 'pages/Synoptic/Codes/codeSearchService.ts',
-    to:   'services/terminologySearch/codeSearchService.ts',
-    note: 'Real REST-API terminology search client (SNOMED/ICD-10/ICD-11/LOINC/ICD-O/OPCS-4/CPT) — genuinely different concern from services/codes/ (a config/dictionary layer), deserves its own folder, same precedent as orderIntake/, deficiencies/, etc.',
-  },
-];
+
 function readTsconfigPaths() {
   const tsconfigPath = path.join(PROJECT_ROOT, 'tsconfig.json');
   if (!fs.existsSync(tsconfigPath)) return {};
@@ -170,27 +166,45 @@ function main() {
     let newContent = content;
     let fileChanges = [];
 
+    // KEY FIX: if THIS file is itself being moved, every relative import
+    // inside it needs recomputing against its NEW directory — regardless
+    // of whether the thing it imports is also moving. Alias-style (@/...)
+    // imports never need this adjustment, since they're absolute from the
+    // project root and don't care where the importing file physically
+    // lives. This is the blind spot that caused a stray-duplicate bug
+    // earlier tonight (a file that moved AND imported a sibling that also
+    // moved — its self-import "looked" fine by coincidence, but the
+    // general case wasn't handled).
+    const selfMove = validRenames.find(r => path.normalize(r.fromAbs) === path.normalize(file));
+    const effectiveDir = selfMove ? path.dirname(selfMove.toAbs) : path.dirname(file);
+
     // Process matches in reverse order so string indices stay valid as we edit
     for (const imp of importLines.slice().reverse()) {
       const resolved = resolveSpecifier(imp.specifier, file, aliases);
       if (!resolved) continue;
-      const match = validRenames.find(r => stripExt(r.fromAbs) === stripExt(resolved));
-      if (!match) continue;
 
-      // Compute new specifier: preserve the style (relative vs alias) of the original
+      const targetMatch = validRenames.find(r => stripExt(r.fromAbs) === stripExt(resolved));
+      const targetFinalAbs = targetMatch ? targetMatch.toAbs : resolved;
+
+      // Skip entirely if: target isn't moving AND this importing file isn't
+      // moving either — nothing about this import needs to change.
+      if (!targetMatch && !selfMove) continue;
+      // Alias imports never need adjustment for the importer's own move —
+      // only adjust them if their TARGET moved.
+      if (!imp.specifier.startsWith('.') && !targetMatch) continue;
+
       let newSpecifier;
       if (imp.specifier.startsWith('.')) {
-        const relDir = path.dirname(file);
-        let rel = path.relative(relDir, stripExt(match.toAbs)).split(path.sep).join('/');
+        let rel = path.relative(effectiveDir, stripExt(targetFinalAbs)).split(path.sep).join('/');
         if (!rel.startsWith('.')) rel = './' + rel;
         newSpecifier = rel;
       } else {
-        // alias-based import — find which alias matched and rebuild
+        // alias-based import pointing at a renamed target
         const aliasHit = aliases.find(a => imp.specifier.startsWith(a.keyPrefix));
         if (aliasHit) {
           const toRelToTarget = path.relative(
             path.join(PROJECT_ROOT, aliasHit.targetPrefix),
-            stripExt(match.toAbs)
+            stripExt(targetFinalAbs)
           ).split(path.sep).join('/');
           newSpecifier = aliasHit.keyPrefix + toRelToTarget;
         } else {
