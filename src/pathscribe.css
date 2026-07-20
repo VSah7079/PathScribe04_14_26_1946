@@ -8613,7 +8613,6 @@
 .ps-btn-danger  { padding: 9px 20px; border-radius: 8px; border: none; background: #dc2626; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
 .ps-btn-green   { padding: 12px; border-radius: 8px; border: none; background: #047857; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; transition: background 0.15s; }
 .ps-btn-green:hover { background: #065f46; }
-.ps-btn-amber   { padding: 9px 18px; border-radius: 8px; background: rgba(245,158,11,0.1); border: 1.5px solid rgba(245,158,11,0.3); color: #fbbf24; font-size: 13px; font-weight: 700; cursor: pointer; }
 
 
 /* ── ClientEditorModal ───────────────────────────────────────────────────── */
