@@ -4,21 +4,41 @@
 // Lets a pathologist send an internal message to a colleague with the case
 // number attached so the colleague can open the report and leave a note.
 // This is NOT the same as Delegate — it does not transfer case ownership.
+//
+// Reviewer list (FIXED July 2026): used to be a hardcoded, standalone
+// REVIEWERS array whose own comment claimed it "mirrors AppShell
+// INTERNAL_USERS" — it didn't. AppShell's list is a broad, non-clinical
+// general-staff messaging directory (Lab Manager, IT Support, Billing,
+// Archives — departments, not reviewers); this modal needs a narrow,
+// clinically-appropriate subset instead, which AppShell's list was never
+// meant to provide. The two were legitimately different scopes, but the
+// standalone array was never actually connected to any real data source,
+// which let it drift into real ID collisions with AppShell's directory
+// ('u3'/'u4' meant different people in each list). Now sources from the
+// real, canonical services/users/mockUserService.ts (the same directory
+// StaffTab.tsx and CaseTeamModal.tsx use), filtered to active
+// Pathologist-role users — a real, clinically-appropriate, collision-free
+// subset instead of a second hand-maintained copy.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { mockMessageService } from '@/services/messages/mockMessageService';
+import { userService } from '@/services';
+import type { StaffUser } from '@/services/users/IUserService';
+import type { ServiceResult } from '@/services/types';
 
-// ─── Internal user directory (mirrors AppShell INTERNAL_USERS) ────────────────
-const REVIEWERS = [
-  { id: 'uk-okafor',   name: 'Dr. Sarah Okafor',    role: 'Consultant Histopathologist' },
-  { id: 'uk-marsden',  name: 'Dr. Helen Marsden',    role: 'Consultant Oncologist'       },
-  { id: 'uk-patel',    name: 'Dr. Raj Patel',        role: 'Consultant Histopathologist' },
-  { id: 'uk-thornton', name: 'Mr. Peter Thornton',   role: 'Consultant Surgeon'          },
-  { id: 'u3',          name: 'Dr. James Chen',       role: 'Consultant Histopathologist' },
-  { id: 'u4',          name: 'Dr. Maria Santos',     role: 'Consultant Histopathologist' },
-];
+interface ReviewerOption { id: string; name: string; role: string; }
+
+// Real display name/role derived from StaffUser — "Dr." prefix kept for
+// consistency with existing UI copy (avatarInitials already strips it),
+// department used as the subtitle since StaffUser has no separate
+// "Consultant X" title field.
+const toReviewerOption = (u: StaffUser): ReviewerOption => ({
+  id:   u.id,
+  name: `Dr. ${u.firstName} ${u.lastName}`.trim(),
+  role: u.department || 'Pathologist',
+});
 
 const NOTE_TYPES = [
   { value: 'informal_review',      label: 'Informal Review'      },
@@ -50,22 +70,35 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
   const [message,     setMessage]     = useState('');
   const [status,      setStatus]      = useState<'compose' | 'sending' | 'sent'>('compose');
   const [query,       setQuery]       = useState('');
+  const [reviewers,   setReviewers]   = useState<ReviewerOption[]>([]);
+  const [loadingReviewers, setLoadingReviewers] = useState(true);
 
-  // Reset when opened
+  // Reset + fetch real reviewers when opened
   React.useEffect(() => {
     if (isOpen) {
       setSelectedId(''); setNoteType('informal_review');
       setMessage(''); setStatus('compose'); setQuery('');
+      setLoadingReviewers(true);
+      userService.getAll().then((res: ServiceResult<StaffUser[]>) => {
+        if (res.ok) {
+          const active = res.data
+            .filter(u => u.status === 'Active' && u.roles.includes('Pathologist') && u.id !== fromUserId)
+            .map(toReviewerOption);
+          setReviewers(active);
+        } else {
+          setReviewers([]);
+        }
+        setLoadingReviewers(false);
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, fromUserId]);
 
-  const filtered = REVIEWERS.filter(r =>
-    r.id !== fromUserId &&
-    (r.name.toLowerCase().includes(query.toLowerCase()) ||
-     r.role.toLowerCase().includes(query.toLowerCase()))
+  const filtered = reviewers.filter(r =>
+    r.name.toLowerCase().includes(query.toLowerCase()) ||
+    r.role.toLowerCase().includes(query.toLowerCase())
   );
 
-  const selected = REVIEWERS.find(r => r.id === selectedId);
+  const selected = reviewers.find(r => r.id === selectedId);
   const canSend  = !!selectedId;
 
   const handleSend = async () => {
@@ -165,7 +198,15 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
                 className="ps-modal-dark-input"
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
-                {filtered.map(r => (
+                {loadingReviewers ? (
+                  <div style={{ padding: '16px 12px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                    Loading colleagues…
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div style={{ padding: '16px 12px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                    No active pathologists found{query ? ' matching your search' : ''}.
+                  </div>
+                ) : filtered.map(r => (
                   <div
                     key={r.id}
                     onClick={() => setSelectedId(r.id)}

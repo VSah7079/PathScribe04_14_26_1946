@@ -93,11 +93,6 @@ remains the first real check on your end).
   `Common/LookupModal.tsx` or `Common/ConfirmModal.tsx` (both real,
   working, barely adopted) — see `Common/README.md`. Logged as
   PRIORITY_FIXES.md #8.
-- **Real ID collision, `RequestReview/RequestReviewModal.tsx`** — its
-  reviewer list drifted from `AppShell.tsx`'s real user directory;
-  `u3`/`u4` mean different people in each. Needs a product decision, not
-  a mechanical fix. See `RequestReview/README.md`. Logged as
-  PRIORITY_FIXES.md #10.
 
 ## Fixes applied across components/
 
@@ -138,6 +133,11 @@ subfolder work — summarized here for a single cross-folder view:
   — key evidence for the modal-consolidation opportunity.
 - **Full naming/structure pass** — see the table above. 7 folders
   renamed or consolidated; every move verified via grep + esbuild.
+- **`RequestReviewModal.tsx`'s reviewer list rebuilt** on the real
+  `services/users/mockUserService.ts` directory (filtered to active
+  Pathologists), replacing a standalone hardcoded array that had drifted
+  into real ID collisions with `AppShell.tsx`'s directory. Collision-free
+  by construction now, not just patched around.
 
 ---
 *Tracking docs (`PRIORITY_FIXES.md`, `ACCESS_CONTROL_PLAN.md`) live at the

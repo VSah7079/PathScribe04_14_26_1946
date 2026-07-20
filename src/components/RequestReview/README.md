@@ -5,44 +5,43 @@
 - **`RequestReviewModal.tsx`** — "Request Informal Review" — sends an
   internal message to a colleague with the case attached (explicitly NOT
   the same as Delegate — no ownership transfer, own comment is clear on
-  this). Uses the shared `ps-modal-dark`/`ps-overlay` CSS pattern — good.
-  **See Notes — real ID collision found, not fixed.**
+  this). Uses the shared `ps-modal-dark`/`ps-overlay` CSS pattern. Reviewer
+  list now sourced live from the real user directory — see Notes for the
+  bug this replaced.
 
-## Notes — real bug, needs your input before fixing
+## Notes — real bug, FIXED (July 2026)
 
-`REVIEWERS` here is a hardcoded 6-entry list, whose own comment says it
-"mirrors AppShell INTERNAL_USERS." It doesn't — it's a second,
-independently-maintained list that has already drifted, and two of its
-IDs collide with genuinely different people in the real directory:
+Used to have a hardcoded 6-entry `REVIEWERS` array whose own comment
+claimed it "mirrors AppShell INTERNAL_USERS." It didn't, and Pete's own
+analysis of both lists was more precise than the original diagnosis:
+`AppShell.tsx`'s real directory is a broad, non-clinical general-staff
+messaging list (Lab Manager, IT Support, Billing Dept, Archives — actual
+departments, not reviewers), while this modal legitimately needs a
+narrow, clinically-appropriate subset — a genuinely different scope, not
+a mirror. The 4 `uk-*` names weren't a deliberate separate pool either;
+the whole array was just a standalone list that was never connected to
+any real data source, which is exactly how it drifted into real ID
+collisions with `AppShell.tsx`'s directory:
 
-| ID | `AppShell.tsx` (real directory) | `RequestReviewModal.tsx` |
+| ID | `AppShell.tsx` | `RequestReviewModal.tsx` (old, hardcoded) |
 |---|---|---|
 | `u3` | System Admin | Dr. James Chen |
 | `u4` | Dr. Sarah Li Chen | Dr. Maria Santos |
 
-The 4 `uk-*` prefixed reviewers (Okafor, Marsden, Patel, Thornton) don't
-exist in `AppShell.tsx`'s list at all — possibly deliberate (a UK-specific
-reviewer pool, matching this app's UK/RCPath support elsewhere), but
-worth confirming rather than assuming.
+**Fix:** now fetches from `services/users/mockUserService.ts` — the same
+real, canonical `StaffUser` directory `StaffTab.tsx` and `CaseTeamModal.tsx`
+already use — filtered to `status === 'Active' && roles.includes('Pathologist')`,
+excluding the sender. This is a real, role-based, collision-free subset:
+none of its IDs (`1`, `6`, `7`, `9`, `PATH-001`, `PATH-UK-001`, etc.)
+overlap with `AppShell.tsx`'s `u`-prefixed range at all, so the whole
+class of collision is gone by construction, not just patched around.
+Display name/subtitle built from real `firstName`/`lastName`/`department`
+instead of the old fictional "Consultant Histopathologist"-style titles.
+Added loading and empty states since the list is now fetched
+asynchronously instead of available synchronously from a constant.
 
-**Why this isn't visibly broken today:** the modal calls
-`mockMessageService.send()` with both `recipientId: selected.id` AND
-`recipientName: selected.name` explicitly — so the message inbox almost
-certainly displays the correct name from what was passed at send time,
-not a re-lookup of `recipientId` against `AppShell.tsx`'s directory. The
-bug is latent, not active — but `u3`/`u4` are landmines: the moment
-anything does an ID-based lookup instead of trusting the passed name
-(a future feature, a different display surface, a real backend where IDs
-become the actual source of truth), this breaks and could misattribute a
-review request to the wrong person.
-
-**Not fixed this pass — needs a product decision, not a mechanical fix:**
-is the UK reviewer pool intentionally separate from `AppShell.tsx`'s
-directory? If yes, the fix is just giving all 6 reviewers IDs that don't
-collide with the real directory's `u`-prefixed range. If no — if this is
-supposed to be the same internal directory — the fix is importing from
-`AppShell.tsx`'s real list (which isn't currently exported) instead of
-maintaining a second copy at all.
+Confirmed via grep: zero remaining references to the old `REVIEWERS`
+constant anywhere in the file.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

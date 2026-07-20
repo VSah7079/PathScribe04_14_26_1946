@@ -139,19 +139,18 @@ See `components/PatientReportPage/README.md`.
 ## 10. DATA INTEGRITY — RequestReviewModal.tsx's reviewer list has real ID
 collisions with the app's actual user directory (found during
 components/ review, not originally in this doc)
-**Files:** `src/components/RequestReview/RequestReviewModal.tsx`,
-`src/components/AppShell/AppShell.tsx`
+**Files:** `src/components/RequestReview/RequestReviewModal.tsx`
 **Issue:** `RequestReviewModal.tsx`'s hardcoded `REVIEWERS` list (own
-comment: "mirrors AppShell INTERNAL_USERS") has drifted from the real
-directory in `AppShell.tsx`. Two IDs collide with different people:
+comment: "mirrors AppShell INTERNAL_USERS") had drifted from the real
+directory in `AppShell.tsx`. Two IDs collided with different people:
 `u3` = System Admin (AppShell) vs Dr. James Chen (RequestReviewModal);
 `u4` = Dr. Sarah Li Chen (AppShell) vs Dr. Maria Santos (RequestReviewModal).
-Not visibly broken today — `mockMessageService.send()` is called with
-both `recipientId` and `recipientName` explicitly, so display likely uses
-the passed name, not a re-lookup. But it's a landmine: any future
-ID-based lookup against the real directory would misattribute.
-**Status: LOGGED, needs your input before fixing.** Not a mechanical fix —
-depends on whether the 4 `uk-*` reviewers are intentionally a separate UK
-pool (matching this app's UK/RCPath support) or should be the same
-directory as `AppShell.tsx`. See `components/RequestReview/README.md` for
-the full comparison table.
+**Status: CLOSED (July 2026).** Pete's own analysis correctly identified
+that AppShell's directory (general staff, non-clinical) and this modal's
+needs (clinically-appropriate reviewers) are legitimately different
+scopes — the UK names weren't a deliberate separate pool, the array was
+just never connected to any real data source. Fixed by sourcing from the
+real, canonical `services/users/mockUserService.ts` directory instead —
+filtered to active Pathologist-role users, which is collision-free by
+construction (none of its IDs overlap AppShell's `u`-range). See
+`components/RequestReview/README.md` for full detail.
