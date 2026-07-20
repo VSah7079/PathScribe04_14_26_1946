@@ -9,6 +9,14 @@
 // to programmatically interact with the Tiptap editor without
 // going through React props / state.
 //
+// STATUS: already implemented in PathScribeEditor.tsx — the how-to below
+// is accurate as a reference for the pattern (e.g. if a similar editor
+// needs the same treatment elsewhere), not a pending task. This file's
+// PathScribeEditorHandle interface below is the single source of truth;
+// PathScribeEditor.tsx imports it rather than re-declaring its own copy
+// (fixed July 2026 — the two had drifted into two separate, structurally
+// identical declarations kept in sync only by hand).
+//
 // HOW TO ADD THIS TO PathScribeEditor.tsx:
 // ─────────────────────────────────────────────────────────────
 // 1. Import this file:

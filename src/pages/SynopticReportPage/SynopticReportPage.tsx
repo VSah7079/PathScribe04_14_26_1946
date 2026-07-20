@@ -30,7 +30,7 @@ import BottomActionBar    from './components/BottomActionBar';
 import AmendmentModal        from './modals/AmendmentModal';
 import type { VersionHistoryEntry, FieldOverride } from './modals/AmendmentModal';
 import { CaseCommentModal }   from '../Synoptic/Comments/CaseCommentModal';
-import PatientHistoryModal    from '../../components/CasePanel/PatientHistoryModal';
+import PatientHistoryModal    from '../../components/PatientHistory/PatientHistoryModal';
 import FlagManagerModal       from '../../components/Flags/FlagManagerModal';
 import { AddCodeModal }       from '../Synoptic/Codes/AddCodeModal';
 import { ReportCommentModal } from '../Synoptic/Comments/ReportCommentModal';
@@ -65,7 +65,7 @@ import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDic
 import { FixativeTimeGateModal, type FixativeGateSpecimen, type FixativeResolution } from './modals/FixativeTimeGateModal';
 import { flagService }    from '@/services';
 import type { Flag }      from '@/services/flags/IFlagService';
-import SynopticSidebar    from '../../components/synoptic/SynopticSidebar';
+import SynopticSidebar    from '../../components/Synoptic/SynopticSidebar';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { useLogout } from '@/hooks/useLogout';
 import '@/pathscribe.css';

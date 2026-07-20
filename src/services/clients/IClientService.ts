@@ -151,6 +151,26 @@ export interface Client {
    */
   specimenLabelStyle?: 'alpha-specimen' | 'numeric-specimen';
 
+  /**
+   * Per-internal-client override for AI Orchestrator narrative auto-draft
+   * (the "Orchestrator Config" panel in Configuration → AI Behavior — see
+   * components/Config/AI/orchestratorModeConfig.ts). null/undefined =
+   * inherit the org-level default. Only meaningful on an internal client
+   * (clientType === 'internal', i.e. an actual performing lab) — an
+   * external client has no lab of its own, so its own value here is
+   * never consulted; resolution always follows resolvePerformingLabClientId()
+   * to the internal client that actually performs the work, same as every
+   * other performing-lab-scoped setting.
+   *
+   * Deliberately distinct from the Orchestration *case-routing* concept
+   * (O26-/S26- accession prefixes, CaseRouter.ts, Role.canViewOrchestration)
+   * — that controls which system owns the report record; this controls
+   * only whether the AI auto-drafts narrative sections in the editor for
+   * cases performed at this lab. A lab can be in either routing mode and
+   * still want this on or off.
+   */
+  internalAiOrchestratorEnabled?: boolean | null;
+
   status: 'Active' | 'Inactive' | 'Unverified';
   /** True if this client was auto-created by order-intake resolution
    *  (crosswalk had no match for the client code on an incoming order)

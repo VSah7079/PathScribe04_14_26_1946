@@ -14,7 +14,7 @@ import * as XLSX from 'xlsx';
 import '../../../pathscribe.css';
 import { protocolService, stainTypeService } from '../../../services';
 import { useSpecimenDictionary } from './useSpecimenDictionary';
-import type { SpecimenEntry } from './specimenTypes';
+import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
 import type { Protocol, ProtocolPathway, PathwayTask, StainType, ProtocolHistoryEntry } from '../../../services';
 
 type Draft = Omit<Protocol, 'id' | 'version' | 'updatedBy' | 'updatedAt'>;

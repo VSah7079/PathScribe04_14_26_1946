@@ -13,6 +13,7 @@
 
 import React, { useState } from 'react';
 import { narrativeTemplateConfig } from '../../Config/NarrativeTemplates/narrativeTemplateConfig';
+import { getOrgOrchestratorDefault, setOrgOrchestratorDefault } from './orchestratorModeConfig';
 
 // ── Step card ─────────────────────────────────────────────────
 
@@ -132,6 +133,18 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
   const [open, setOpen] = useState(false);
   const cfg = narrativeTemplateConfig;
 
+  // Real, persisted org-level default — this used to read the static
+  // `narrativeTemplateConfig.orchestratorEnabled` literal directly (always
+  // true, no toggle existed anywhere). See orchestratorModeConfig.ts for
+  // why, and for the per-lab override this org value now falls back from.
+  const [orchestratorOn, setOrchestratorOn] = useState<boolean>(getOrgOrchestratorDefault);
+
+  const handleToggle = () => {
+    const next = !orchestratorOn;
+    setOrchestratorOn(next);
+    setOrgOrchestratorDefault(next);
+  };
+
   const enabledCount = cfg.sections.filter(s => s.enabled).length;
 
   return (
@@ -157,13 +170,31 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
           Orchestrator Config
         </span>
 
-        <span style={{
-          fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
-          background: cfg.orchestratorEnabled ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
-          color:      cfg.orchestratorEnabled ? '#34d399' : '#475569',
-        }}>
-          {cfg.orchestratorEnabled ? 'ON' : 'OFF'}
-        </span>
+        {isAdmin ? (
+          <span
+            role="switch"
+            aria-checked={orchestratorOn}
+            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+            title="Org-level default — internal clients (labs) can override this individually in the Client Dictionary"
+            style={{
+              fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+              cursor: 'pointer',
+              background: orchestratorOn ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
+              color:      orchestratorOn ? '#34d399' : '#475569',
+              border: `1px solid ${orchestratorOn ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`,
+            }}
+          >
+            {orchestratorOn ? 'ON' : 'OFF'} — click to toggle
+          </span>
+        ) : (
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+            background: orchestratorOn ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
+            color:      orchestratorOn ? '#34d399' : '#475569',
+          }}>
+            {orchestratorOn ? 'ON' : 'OFF'}
+          </span>
+        )}
 
         <span style={{ fontSize: 11, color: '#475569', marginLeft: 'auto' }}>
           {enabledCount} of {cfg.sections.length} generation steps active
@@ -177,6 +208,12 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
             instructions each step receives. Steps run in order — earlier steps provide context
             to later ones. This is <strong style={{ color: '#94a3b8' }}>AI configuration</strong>,
             not report layout (that lives in Report Templates → Part Library).
+          </p>
+          <p style={{ fontSize: 12, color: '#64748b', marginBottom: 16, lineHeight: 1.6 }}>
+            The ON/OFF badge above is the <strong style={{ color: '#94a3b8' }}>org-wide default</strong>.
+            Individual internal clients (performing labs) can override it in the Client
+            Dictionary — see that client's General tab — for trusts where not every site
+            wants AI narrative auto-draft enabled.
           </p>
 
           {!isAdmin && (

@@ -9,7 +9,7 @@ import '../../pathscribe.css';
 // turned up as the one real caller a case-sensitive grep had missed) onto
 // the real Specimen Dictionary service.
 import { specimenDictionaryService } from '@/services';
-import type { SpecimenEntry } from '@/components/Config/System/specimenTypes';
+import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

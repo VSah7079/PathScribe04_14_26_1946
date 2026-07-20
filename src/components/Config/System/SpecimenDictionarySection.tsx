@@ -26,7 +26,7 @@ import { useSpecimenDictionary } from './useSpecimenDictionary';
 import { useSubspecialties } from '../../../contexts/useSubspecialties';
 import { specimenCategoryService } from '../../../services';
 import { protocolService } from '../../../services';
-import type { SpecimenEntry } from './specimenTypes';
+import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
 import type { SpecimenCategory } from '../../../services/specimenCategories/ISpecimenCategoryService';
 import type { Protocol } from '../../../services/protocols/IProtocolService';
 

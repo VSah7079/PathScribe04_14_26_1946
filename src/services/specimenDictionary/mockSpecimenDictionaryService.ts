@@ -3,7 +3,7 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ISpecimenDictionaryService } from './ISpecimenDictionaryService';
-import type { SpecimenEntry } from '../../components/Config/System/specimenTypes';
+import type { SpecimenEntry } from './specimenTypes';
 import starterData from '../../../scripts/terminology-sources/specimens-starter.json';
 
 // ─── Starter data seed ────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { SpecimenEntry } from './specimenTypes';
+import { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
 import { specimenDictionaryService } from '../../../services';
 
 interface SpecimenDictionaryContextValue {

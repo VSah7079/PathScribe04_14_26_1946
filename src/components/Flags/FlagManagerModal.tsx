@@ -1,4 +1,4 @@
-// src/components/FlagManagerModal.tsx
+// src/components/Flags/FlagManagerModal.tsx
 //
 // Layout:
 //   LEFT (260px) — target rows (Case, All Specimens, Sp.1…) with applied flag chips.

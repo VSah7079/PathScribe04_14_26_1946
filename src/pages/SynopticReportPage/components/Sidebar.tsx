@@ -1,6 +1,6 @@
 // src/pages/SynopticReportPage/components/Sidebar.tsx
 import React, { useState, useEffect } from 'react';
-import ConfirmModal from '@/components/UI/ConfirmModal';
+import ConfirmModal from '@/components/Common/ConfirmModal';
 import type { Case, ProtocolChange } from '@/types/case/Case';
 import type { SpecimenLisStatus } from '@/types/case/Specimen';
 import type { CaseComment } from '@/types/case/CaseComment';

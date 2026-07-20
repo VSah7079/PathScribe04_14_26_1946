@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import '../pathscribe.css';
 import { useAuth } from "@contexts/AuthContext";
 import { WarningIcon } from "@components/Icons";
-import FlagRow        from "@components/Dashboards/FlagRow";
-import CaseMixTile    from "@components/Dashboards/CaseMixTile";
+import FlagRow        from "@components/Contribution/FlagRow";
+import CaseMixTile    from "@components/Contribution/CaseMixTile";
 import ProductivityTab from "../components/Contribution/ProductivityTab";
 import QualityTab      from "../components/Contribution/QualityTab";
 import AIContributionTab from "../components/Contribution/AIContributionTab";
@@ -14,7 +14,7 @@ import type {
   CaseMixData,
   KpiTile,
 } from "../types/ContributionDashboard";
-import { getOrchestratorMode } from "@components/Config/NarrativeTemplates";
+import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorModeConfig";
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router-dom';
@@ -272,7 +272,9 @@ const ContributionDashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [activeTab,           setActiveTab]           = useState<DashboardTab>("overview");
-  const finalCaseLabel = getOrchestratorMode() ? "Cases Signed Out" : "Cases Finalised";
+  // Dashboard aggregates across clients/labs, so there's no single case to
+  // resolve a per-lab override for — org default only (see orchestratorModeConfig.ts).
+  const finalCaseLabel = getOrgOrchestratorDefault() ? "Cases Signed Out" : "Cases Finalised";
 
   // ── Quality Flags — real data, not the 3 permanently-fixed fake ───────────
   // entries this used to show. Severity isn't a real field anywhere on

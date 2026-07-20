@@ -32,7 +32,7 @@ import type { IAIProvider }       from '../services/ai/IAIProvider';
 import { AIProviderRegistry }     from '../services/ai/AIProviderRegistry';
 import { AIAuditLog }             from '../services/ai/AIAuditLog';
 import { narrativeTemplateConfig } from '../components/Config/NarrativeTemplates/narrativeTemplateConfig';
-import { StreamingWriter }         from '../components/Editor/integration/streamingWriter';
+import { StreamingWriter }         from '../components/Editor/tiptapBridge/streamingWriter';
 
 const SYSTEM_PROMPT =
   'You are a board-certified pathologist assistant generating structured ' +

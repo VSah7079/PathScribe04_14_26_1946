@@ -23,7 +23,7 @@ import '../../../pathscribe.css';
 import { grossingRoutingOverrideService, clientService, specimenDictionaryService } from '../../../services';
 import type { GrossingRoutingOverrideEntry } from '../../../services/grossingRoutingOverrides/IGrossingRoutingOverrideService';
 import type { Client } from '../../../services/clients/IClientService';
-import type { SpecimenEntry } from './specimenTypes';
+import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
 
 // Same three Gold Standard routes as SpecimenCategoriesSection.tsx —
 // same pragmatic hardcode-rather-than-fetch call, same reason.

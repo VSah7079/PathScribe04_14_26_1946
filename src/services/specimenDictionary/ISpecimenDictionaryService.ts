@@ -24,7 +24,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { ServiceResult } from '../types';
-import type { SpecimenEntry } from '../../components/Config/System/specimenTypes';
+import type { SpecimenEntry } from './specimenTypes';
 
 export interface ISpecimenDictionaryService {
   getAll(): Promise<ServiceResult<SpecimenEntry[]>>;

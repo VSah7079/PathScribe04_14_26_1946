@@ -13,14 +13,9 @@
  *   - The current user's email (via useAuth)
  *   - A UUID + ISO timestamp (via logEvent)
  *   - A consistently formatted detail string (built here)
- * ============================================================
- */
-/**
- * useAuditLog
- * Centralised audit logging hook for pathscribe AI.
  *
- * Drop this file into src/components/Audit/useAuditLog.ts (replace existing).
- * It is typed to match src/types/AuditEvent.ts (uses `category` not `type`/`actor`).
+ * Typed to match src/types/AuditEvent.ts (uses `category` not `type`/`actor`).
+ * ============================================================
  */
 
 import { useAuth } from "@contexts/AuthContext";

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useImperativeHandle, f
 import { createPortal } from 'react-dom';
 import '../../pathscribe.css';
 import { X } from "../Icons";
+import type { PathScribeEditorHandle } from './PathScribeEditorRef';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
@@ -127,36 +128,18 @@ const useEditorTheme = () => useContext(EditorThemeContext);
 // ─── IMPERATIVE HANDLE ────────────────────────────────────────────────────────
 // Exposed via forwardRef so the Orchestrator Engine and NarrativeEditor
 // can drive the editor programmatically without going through React props.
-
-export interface PathScribeEditorHandle {
-  /** Raw Tiptap Editor instance — use for operations not covered below */
-  getEditor: () => Editor | null;
-
-  /** Insert HTML at a specific document position (undo/redo safe) */
-  insertAtPos: (pos: number, html: string) => void;
-
-  /** Append a single streaming token at the current end of the document */
-  appendToken: (token: string) => void;
-
-  /** Replace entire editor content */
-  setContent: (html: string) => void;
-
-  /** Clear all content */
-  clearContent: () => void;
-
-  /** Focus the editor */
-  focus: () => void;
-
-  /** Returns whether the editor is currently editable */
-  isEditable: () => boolean;
-
-  /**
-   * Lock or unlock the editor.
-   * Pass false while the Orchestrator is streaming to prevent
-   * user edits from conflicting with AI insertion.
-   */
-  setEditable: (editable: boolean) => void;
-}
+//
+// FIXED (July 2026): this used to re-declare its own separate
+// PathScribeEditorHandle interface here, structurally identical to (but
+// nominally distinct from) the one in PathScribeEditorRef.ts — which
+// every external consumer (NarrativeEditor.tsx, OrchestratorReportPanel.tsx,
+// OrchestratorSectionEditor.tsx) actually imports. Two independent
+// declarations of the same shape, kept in sync only by manual discipline —
+// exactly the class of drift bug found live elsewhere in this codebase
+// this session (aiProviderService, protocolRegistry/protocolShared, the
+// reportingMode mismatch — see services/cases/caseFilterUtils.ts's own
+// comment). Consolidated to a single source of truth — now imported at
+// the top of this file instead of re-declared here.
 
 // ─── MACRO HOTKEY EXTENSION ───────────────────────────────────────────────────
 

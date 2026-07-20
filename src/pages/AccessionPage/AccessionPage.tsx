@@ -59,7 +59,7 @@ import type { DeficiencyType } from '@/services/deficiencies/IDeficiencyService'
 import { ReportDeficiencyModal } from './ReportDeficiencyModal';
 import { IntraopMergePromptModal } from './IntraopMergePromptModal';
 import type { EntryMatch } from '@/types/intraop/IntraoperativeEntry';
-import type { SpecimenEntry } from '@/components/Config/System/specimenTypes';
+import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 import { getSpecimenLabel, getBlockLabel } from '@/utils/specimenLabeling';
 import type { GrossingTemplateAssignment } from '@/services/grossing/IGrossingEvaluationService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -75,7 +75,7 @@ import { formatFullDisplayName } from '@/utils/personName';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { getHospitalIdForOrganisation, getOrganisationDisplayName } from '@/services/organisation/organisationService';
 import { PATIENT_ID_BY_JURISDICTION } from '@/types/systemConfig';
-import { SpecimenDictionaryPicker } from '@/components/AccessionPage/SpecimenDictionaryPicker';
+import { SpecimenDictionaryPicker } from '@/components/SpecimenPicker/SpecimenDictionaryPicker';
 import { CaseCommentModal } from '@/pages/Synoptic/Comments/CaseCommentModal';
 import { ReportCommentModal } from '@/pages/Synoptic/Comments/ReportCommentModal';
 import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
@@ -277,7 +277,7 @@ function generateDefaultBlocks(
   const stainName = (stainTypeId: string) => stainTypes.find(s => s.id === stainTypeId)?.name ?? stainTypeId;
   // Resolved from the standalone Protocol dictionary via protocolId —
   // no longer an embedded object on the specimen entry itself. See
-  // that field's own doc comment (Config/System/specimenTypes.ts) for
+  // that field's own doc comment (services/specimenDictionary/specimenTypes.ts) for
   // why: the same protocol record can be mapped from multiple
   // unrelated specimen types, updated once, cascading to all of them.
   const protocol = entry?.protocolId ? protocols.find(p => p.id === entry.protocolId) : undefined;

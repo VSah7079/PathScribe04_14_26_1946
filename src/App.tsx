@@ -50,9 +50,6 @@ const SynopticReportPage = lazy(() =>
   import("./pages/SynopticReportPage/SynopticReportPage")
 );
 const FullReportPage = lazy(() => import("./pages/FullReportPage"));
-const PatientReportPage = lazy(() =>
-  import("./components/PatientReportPage/PatientReportPage")
-);
 
 const ReportPreviewPage = lazy(() =>
   import('./pages/ReportPreview/ReportPreviewPage')
@@ -61,7 +58,6 @@ const ReportPreviewPage = lazy(() =>
 const SynopticEditor = lazy(() =>
   import("./components/Config/Protocols/SynopticEditor")
 );
-const ProtocolEditor = lazy(() => import("./protocols/ProtocolEditor"));
 const TemplateRendererPage = lazy(() =>
   import("./components/Config/Templates/TemplateRenderer").then((m) => ({
     default: m.TemplateRenderer,
@@ -181,20 +177,12 @@ const App: React.FC = () => (
                         />
 
                         <Route
-                          path="/case/:accession"
-                          element={<PatientReportPage />}
-                        />
-                        <Route
                           path="/template-editor/new"
                           element={<SynopticEditor />}
                         />
                         <Route
                           path="/template-editor/:templateId"
                           element={<SynopticEditor />}
-                        />
-                        <Route
-                          path="/configuration/protocols/:protocolId"
-                          element={<ProtocolEditor />}
                         />
                         <Route
                           path="/template-review/:templateId"

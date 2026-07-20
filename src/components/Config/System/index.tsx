@@ -19,7 +19,7 @@ import IdentifierFormatsSection  from './IdentifierFormatsSection';
 import GoverningBodiesSection    from './GoverningBodiesSection';
 import DelegationTypeSection     from './DelegationTypeSection';
 import ParticipationTypesSection from './ParticipationTypesSection';
-import CaseRoutingSection        from './CaseRoutingSection';
+import CasePoolAssignmentSection from './CasePoolAssignmentSection';
 import RoutingRulesSection       from './RoutingRulesSection';
 import TerminologyServicesSection from '../Terminology/TerminologyServicesSection';
 import TATConfigSection          from './TATConfigSection'; // ← create this component
@@ -111,7 +111,7 @@ const SystemTab: React.FC = () => {
       case 'participation_types': return <ParticipationTypesSection />;
       case 'physicians':          return <PhysiciansSection />;
       case 'deficiencies':        return <DeficienciesSection />;
-      case 'case_routing':        return <CaseRoutingSection />;
+      case 'case_routing':        return <CasePoolAssignmentSection />;
       case 'routing_rules':       return <RoutingRulesSection />;
       case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
       case 'tat_config':          return <TATConfigSection />;  // ← new

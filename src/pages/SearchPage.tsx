@@ -13,7 +13,7 @@ import { LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty } fro
 // Extended component — adds onClear prop until LookupModal.tsx is updated
 const LookupModalX = LookupModal as React.ComponentType<React.ComponentProps<typeof LookupModal> & { onClear?: () => void; onDone?: () => void }>;
 import { useSpecimenDictionary } from '../components/Config/System/useSpecimenDictionary';
-import type { SpecimenEntry } from '../components/Config/System/specimenTypes';
+import type { SpecimenEntry } from '../services/specimenDictionary/specimenTypes';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import { useBreadcrumb }   from '../contexts/BreadcrumbContext';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';

@@ -21,8 +21,8 @@ import { useState, useEffect } from "react";
 import '../../pathscribe.css';
 import { clientService } from "../../services";
 import type { Client, ClientInput } from "../../services/clients/IClientService";
-import { ClientEditorModal } from "../../components/system/clients/ClientEditorModal";
-import { ClientTable } from "../../components/system/clients/ClientTable";
+import { ClientEditorModal } from "../../components/ClientDictionary/ClientEditorModal";
+import { ClientTable } from "../../components/ClientDictionary/ClientTable";
 
 export const ClientDictionaryPage = () => {
   const [clients, setClients] = useState<Client[]>([]);
