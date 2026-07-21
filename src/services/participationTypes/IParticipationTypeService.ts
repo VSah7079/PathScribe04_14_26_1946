@@ -18,6 +18,13 @@ export interface ParticipationTypeRecord {
   active:          boolean;
   isSystem:        boolean;
   sortOrder:       number;
+  /** Whether this participation type can be assigned a report template
+   *  for structured reporting (e.g. a synoptic template). */
+  canBeAssignedTemplate?: boolean;
+  /** Whether someone holding this participation type can view the
+   *  entire case (all specimens and prior reports), not just what
+   *  they're specifically working on. */
+  canViewWholeCase?:      boolean;
   /** Short badge text (2-6 chars) shown on case team chips. */
   abbreviation?:        string;
   /** Whether this participation type's work requires a supervising

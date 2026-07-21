@@ -2,136 +2,28 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // System-level master list of case participation types.
 // Admins define types here; roles then select which types they can serve as.
-// Follows the same pattern as ClientDictionary / SubspecialtiesSection.
+//
+// July 2026 consolidation: this screen used to maintain its OWN separate
+// local list (BUILT_IN_PARTICIPATION_TYPES + a localStorage key with no
+// _v2 suffix) that had drifted to contain different types entirely from
+// services/participationTypes/mockParticipationTypeService.ts -- the real
+// service CaseTeamModal actually uses. This screen's "● System Live Sync"
+// footer label used to be actively misleading (nothing was actually
+// synced with the real feature); it's genuinely true now that this reads
+// and writes through the real service directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
 import TypeModal from './TypeModal';
-import { storageGet, storageSet } from '../../../services/mockStorage';
+import { mockParticipationTypeService } from '../../../services/participationTypes/mockParticipationTypeService';
+import type { ParticipationTypeRecord as ParticipationType, NewParticipationType } from '../../../services/participationTypes/IParticipationTypeService';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface ParticipationType {
-  id:                    string;
-  label:                 string;
-  abbreviation:          string;
-  description:           string;
-  canFinalize:           boolean;
-  requiresCountersign:   boolean;
-  canBeAssignedTemplate: boolean;
-  canViewWholeCase:      boolean;
-  /** Multiple people can hold this role on the same case simultaneously */
-  allowsMultiple:        boolean;
-  color:                 string;
-  builtIn:               boolean;
-  active:                boolean;
-}
-
-// ─── Built-in types — shipped with PathScribe ─────────────────────────────────
-
-export const BUILT_IN_PARTICIPATION_TYPES: ParticipationType[] = [
-  {
-    id: 'primary', label: 'Primary Pathologist', abbreviation: 'Primary',
-    description: 'Responsible pathologist with full case ownership and sign-out authority.',
-    canFinalize: true, requiresCountersign: false,
-    canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: false,
-    color: '#8AB4F8', builtIn: true, active: true,
-  },
-  {
-    id: 'consultant', label: 'Consultant', abbreviation: 'Consult',
-    description: 'Subspecialty consultant contributing an opinion on specific specimens or findings.',
-    canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: true, canViewWholeCase: false, allowsMultiple: true,
-    color: '#60a5fa', builtIn: true, active: true,
-  },
-  {
-    id: 'second_opinion', label: 'Second Opinion', abbreviation: '2nd Op',
-    description: 'Formal second opinion — can view the whole case but does not sign out.',
-    canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: true,
-    color: '#818cf8', builtIn: true, active: true,
-  },
-  {
-    id: 'frozen_section', label: 'Frozen Section', abbreviation: 'Frozen',
-    description: 'Intraoperative frozen section pathologist — report requires attending countersign.',
-    canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: true, canViewWholeCase: false, allowsMultiple: false,
-    color: '#38bdf8', builtIn: true, active: true,
-  },
-  {
-    id: 'grossing', label: 'Grossing Pathologist', abbreviation: 'Grossing',
-    description: 'Performs macroscopic examination and specimen description. Work requires countersign.',
-    canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: false, canViewWholeCase: true, allowsMultiple: true,
-    color: '#81C995', builtIn: true, active: true,
-  },
-  {
-    id: 'preliminary_report', label: 'Preliminary Report', abbreviation: 'Prelim',
-    description: 'Drafts the microscopic report under supervision. Requires attending countersign.',
-    canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: true,
-    color: '#4ade80', builtIn: true, active: true,
-  },
-  {
-    id: 'observer', label: 'Observer', abbreviation: 'Observer',
-    description: 'View-only access for training or audit purposes. No reporting capability.',
-    canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: false, canViewWholeCase: true, allowsMultiple: true,
-    color: '#6b7280', builtIn: true, active: true,
-  },
-  {
-    id: 'cytotechnologist', label: 'Cytotechnologist', abbreviation: 'CytoTech',
-    description: 'Screens cytology slides and flags abnormals for pathologist review.',
-    canFinalize: false, requiresCountersign: true,
-    canBeAssignedTemplate: true, canViewWholeCase: false, allowsMultiple: true,
-    color: '#f59e0b', builtIn: true, active: true,
-  },
-  {
-    id: 'tumour_board', label: 'Tumour Board', abbreviation: 'MDT',
-    description: 'Multidisciplinary team participant — view access for case discussion.',
-    canFinalize: false, requiresCountersign: false,
-    canBeAssignedTemplate: false, canViewWholeCase: true, allowsMultiple: true,
-    color: '#8b5cf6', builtIn: true, active: true,
-  },
-];
-
-// ─── Storage ──────────────────────────────────────────────────────────────────
-
-const STORAGE_KEY = 'pathscribe_participation_types';
-
-export function loadParticipationTypes(): ParticipationType[] {
-  const stored = storageGet<ParticipationType[]>(STORAGE_KEY, BUILT_IN_PARTICIPATION_TYPES);
-  // Ensure built-ins are always present (migration guard)
-  const ids = stored.map(t => t.id);
-  const missing = BUILT_IN_PARTICIPATION_TYPES.filter(t => !ids.includes(t.id));
-  // Migration: backfill allowsMultiple for types stored before this field existed
-  const migrated = stored.map(t => ({ allowsMultiple: false, ...t }));
-  return [...missing, ...migrated];
-}
-
-
-function saveParticipationTypes(types: ParticipationType[]) {
-  storageSet(STORAGE_KEY, types);
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const INPUT: React.CSSProperties = {
-  padding: '9px 12px', fontSize: 13, color: '#e5e7eb',
-  background: '#0f0f0f', border: '1px solid #374151',
-  borderRadius: 7, outline: 'none', width: '100%',
-  boxSizing: 'border-box', fontFamily: 'inherit',
-};
-const LABEL: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, color: '#9ca3af',
-  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4,
-};
-const FIELD: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5 };
+export type { ParticipationType };
 
 // ─── Attribute chip ───────────────────────────────────────────────────────────
 
-const AttrChip: React.FC<{ label: string; value: boolean; onColor?: string }> = ({ label, value, onColor = '#22c55e' }) => (
+const AttrChip: React.FC<{ label: string; value?: boolean; onColor?: string }> = ({ label, value, onColor = '#22c55e' }) => (
   <span style={{
     fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 600,
     background: value ? onColor + '18' : 'rgba(255,255,255,0.04)',
@@ -142,44 +34,48 @@ const AttrChip: React.FC<{ label: string; value: boolean; onColor?: string }> = 
   </span>
 );
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
+// ─── Modal draft type ─────────────────────────────────────────────────────────
 
-type Draft = Omit<ParticipationType, 'id' | 'builtIn'>;
-const emptyDraft: Draft = {
-  label: '', abbreviation: '', description: '',
-  canFinalize: false, requiresCountersign: false,
-  canBeAssignedTemplate: true, canViewWholeCase: true, allowsMultiple: false,
-  color: '#8AB4F8', active: true,
-};
+type Draft = Omit<ParticipationType, 'id' | 'isSystem'>;
 
 const ParticipationTypesSection: React.FC = () => {
-  const [types,  setTypes]  = useState<ParticipationType[]>(loadParticipationTypes);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [modal,  setModal]  = useState<{ mode: 'add' | 'edit'; type?: ParticipationType } | null>(null);
+  const [types,   setTypes]   = useState<ParticipationType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState('');
+  const [filter,  setFilter]  = useState<'all' | 'active' | 'inactive'>('all');
+  const [modal,   setModal]   = useState<{ mode: 'add' | 'edit'; type?: ParticipationType } | null>(null);
+  const [saving,  setSaving]  = useState(false);
 
-  const persist = (next: ParticipationType[]) => { setTypes(next); saveParticipationTypes(next); };
+  const refresh = () => {
+    setLoading(true);
+    mockParticipationTypeService.getAll().then(res => {
+      if (res.ok) setTypes(res.data);
+      setLoading(false);
+    });
+  };
 
-  const handleSave = (draft: Draft) => {
-    if (modal?.mode === 'add') {
-      const newType: ParticipationType = {
-        ...draft,
-        id: draft.label.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(),
-        builtIn: false,
-      };
-      persist([...types, newType]);
-    } else if (modal?.type) {
-      persist(types.map(t => t.id === modal.type!.id ? { ...t, ...draft } : t));
+  useEffect(() => { refresh(); }, []);
+
+  const handleSave = async (draft: Draft) => {
+    setSaving(true);
+    try {
+      if (modal?.mode === 'add') {
+        await mockParticipationTypeService.add(draft as NewParticipationType);
+      } else if (modal?.type) {
+        await mockParticipationTypeService.update(modal.type.id, draft);
+      }
+      refresh();
+      setModal(null);
+    } finally {
+      setSaving(false);
     }
-    setModal(null);
   };
 
   const filtered = types.filter(t => {
-    const matchSearch = !search || t.label.toLowerCase().includes(search.toLowerCase()) || t.abbreviation.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || t.label.toLowerCase().includes(search.toLowerCase()) || (t.abbreviation ?? '').toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === 'all' || (filter === 'active' ? t.active : !t.active);
     return matchSearch && matchFilter;
   });
-
 
   return (
     <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto' }}>
@@ -222,7 +118,10 @@ const ParticipationTypesSection: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t, i) => (
+              {loading && (
+                <tr><td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>Loading…</td></tr>
+              )}
+              {!loading && filtered.map((t, i) => (
                 <tr key={t.id}
                   style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111827' : 'none' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#0d0d0d'}
@@ -236,7 +135,7 @@ const ParticipationTypesSection: React.FC = () => {
                       </span>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{t.label}</div>
-                        {t.builtIn && <div style={{ fontSize: 10, color: '#4b5563' }}>built-in</div>}
+                        {t.isSystem && <div style={{ fontSize: 10, color: '#4b5563' }}>built-in</div>}
                       </div>
                     </div>
                   </td>
@@ -249,11 +148,11 @@ const ParticipationTypesSection: React.FC = () => {
                   {/* Capabilities */}
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      <AttrChip label="Finalise"       value={t.canFinalize}             onColor="#22c55e" />
-                      <AttrChip label="Countersign"    value={t.requiresCountersign}     onColor="#f59e0b" />
-                      <AttrChip label="Template"       value={t.canBeAssignedTemplate}   onColor="#8AB4F8" />
-                      <AttrChip label="Full View"      value={t.canViewWholeCase}        onColor="#8AB4F8" />
-                      <AttrChip label="Multi"          value={t.allowsMultiple ?? false} onColor="#a78bfa" />
+                      <AttrChip label="Finalise"    value={t.canFinalize}           onColor="#22c55e" />
+                      <AttrChip label="Countersign"  value={t.requiresCountersign}   onColor="#f59e0b" />
+                      <AttrChip label="Template"     value={t.canBeAssignedTemplate} onColor="#8AB4F8" />
+                      <AttrChip label="Full View"    value={t.canViewWholeCase}      onColor="#8AB4F8" />
+                      <AttrChip label="Multi"        value={t.allowsMultiple}        onColor="#a78bfa" />
                     </div>
                   </td>
                   {/* Status */}
@@ -274,7 +173,7 @@ const ParticipationTypesSection: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr><td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#4b5563', fontSize: 13 }}>No participation types match the current filter.</td></tr>
               )}
             </tbody>
@@ -290,7 +189,15 @@ const ParticipationTypesSection: React.FC = () => {
         <div>{types.filter(t => t.active).length} active · {types.length} total</div>
       </div>
 
-      {modal && <TypeModal mode={modal.mode} type={modal.type} isBuiltIn={modal.type?.builtIn ?? false} onSave={handleSave} onClose={() => setModal(null)} />}
+      {modal && (
+        <TypeModal
+          mode={modal.mode}
+          type={modal.type}
+          isBuiltIn={modal.type?.isSystem ?? false}
+          onSave={handleSave}
+          onClose={() => !saving && setModal(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,15 +1,15 @@
-﻿// src/components/Config/System/TypeModal.tsx
+// src/components/Config/System/TypeModal.tsx
 // Rewritten from scratch to avoid OXC/rolldown parse issues.
 // Zero template literals in style props. Zero inline hex-alpha strings.
 // All styling via CSS classes from pathscribe.css.
 
 import React, { useState } from 'react';
 import '../../../pathscribe.css';
-import { ParticipationType } from './ParticipationTypesSection';
+import type { ParticipationTypeRecord as ParticipationType, NewParticipationType } from '../../../services/participationTypes/IParticipationTypeService';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-type Draft = Omit<ParticipationType, 'id' | 'builtIn'>;
+type Draft = NewParticipationType;
 
 interface TypeModalProps {
   mode:     'add' | 'edit';
@@ -19,7 +19,7 @@ interface TypeModalProps {
   onClose:  () => void;
 }
 
-// â”€â”€ Capability row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Capability row ────────────────────────────────────────────────────────────
 
 const CapRow: React.FC<{
   label:    string;
@@ -43,7 +43,7 @@ const CapRow: React.FC<{
   </label>
 );
 
-// â”€â”€ Colour swatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Colour swatch ─────────────────────────────────────────────────────────────
 
 const PRESET_COLORS = [
   '#8AB4F8','#60a5fa','#818cf8','#38bdf8',
@@ -51,7 +51,7 @@ const PRESET_COLORS = [
   '#8b5cf6','#f87171','#fb923c','#e879f9',
 ];
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main component ────────────────────────────────────────────────────────────
 
 const TypeModal: React.FC<TypeModalProps> = ({ mode, type, isBuiltIn, onSave, onClose }) => {
 
@@ -66,6 +66,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, isBuiltIn, onSave, on
     allowsMultiple:        type?.allowsMultiple        ?? true,
     color:                 type?.color                 ?? '#8AB4F8',
     active:                type?.active                ?? true,
+    requiresNote:          type?.requiresNote          ?? false,
   });
 
   const [error, setError] = useState('');
@@ -98,9 +99,9 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, isBuiltIn, onSave, on
 
         <div className="fm-modal-header">
           <div>
-            <div className="fm-eyebrow">Configuration Â· Participation Types</div>
+            <div className="fm-eyebrow">Configuration · Participation Types</div>
             <h2 className="fm-title" style={{ fontSize: 16 }}>
-              {mode === 'add' ? 'Add Participation Type' : 'Edit — ' + (type?.label ?? '')}
+              {mode === 'add' ? 'Add Participation Type' : 'Edit � ' + (type?.label ?? '')}
               {isBuiltIn && (
                 <span className="ps-idf-tier-badge ps-idf-tier-badge--2" style={{ marginLeft: 8 }}>
                   built-in

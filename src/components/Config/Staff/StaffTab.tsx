@@ -5,6 +5,7 @@ import { useSubspecialties } from '../../../contexts/useSubspecialties';
 import RoleDictionary, { Role, DEFAULT_ROLES } from './RoleDictionary';
 import { userService } from '../../../services';
 import { ServiceResult } from '../../../services/types';
+import { Dropdown } from '@/components/Common/Dropdown';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -195,13 +196,12 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
                   })}
                 </div>
               )}
-              <select value="" onChange={e => { const val = e.target.value; if (val && !draft.roles.includes(val)) set('roles', [...draft.roles, val]); }}
-                className="ps-conf-select">
-                <option value="" disabled>Select a role...</option>
-                {roles.filter(r => r.name !== 'Physician' && !draft.roles.includes(r.name)).map(r => (
-                  <option key={r.id} value={r.name}>{r.name}</option>
-                ))}
-              </select>
+              <Dropdown
+                placeholder="Select a role..."
+                options={roles.filter(r => r.name !== 'Physician' && !draft.roles.includes(r.name)).map(r => ({ value: r.name, label: r.name }))}
+                emptyText="No more roles to add"
+                onSelect={val => { if (val && !draft.roles.includes(val)) set('roles', [...draft.roles, val]); }}
+              />
               {errors.roles && <span className="ps-st-error">{errors.roles}</span>}
             </div>
           </div>

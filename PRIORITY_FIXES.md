@@ -154,3 +154,10 @@ real, canonical `services/users/mockUserService.ts` directory instead —
 filtered to active Pathologist-role users, which is collision-free by
 construction (none of its IDs overlap AppShell's `u`-range). See
 `components/RequestReview/README.md` for full detail.
+## N. UI CONSISTENCY β€” ~36 remaining native `<select>` elements in Config/System
+**Status:** Deferred, not urgent. `Dropdown.tsx` (components/Common/) is built,
+proven, and ready to reuse whenever this broader pass happens β€” fixed the
+one flagged instance (StaffTab.tsx role-add) as a proof of concept. The
+other ~36 need individual review (options shown, single/multi-select,
+search needs) before swapping, not a mechanical find-replace. No bearing
+on the copyright deposit β€” purely a UX-consistency item.

@@ -4,6 +4,32 @@
 // Reads/writes from localStorage so the Config screen and CaseTeamModal
 // share the same data source.
 //
+// July 2026 consolidation: this service is now the ONE canonical source for
+// participation types. Previously, ParticipationTypesSection.tsx (the admin
+// screen) and RoleDictionary.tsx's Case Participation tab each read/wrote a
+// SEPARATE local list (components/Config/System/ParticipationTypesSection.tsx's
+// own BUILT_IN_PARTICIPATION_TYPES + a different localStorage key with no
+// _v2 suffix) that had drifted to contain different types entirely from
+// what this service (and therefore CaseTeamModal, the actual feature) used.
+// Both files have been updated to use this service directly -- see their
+// own file headers for what changed.
+//
+// The final 8-type list below was defined directly by Pete (July 2026),
+// reconciling both of the previously-separate lists. Dropped entirely
+// (existed in one of the two old lists, not in the final list): Transcriptionist,
+// Requesting Clinician, External Reviewer, Preliminary Report, Observer,
+// Tumour Board.
+//
+// INTERNATIONAL NAMING REFERENCE (not yet implemented as real localization
+// -- captured here so it isn't lost, for whenever jurisdiction-aware
+// labels become a real feature):
+//   Standard Role              | UK & Ireland                          | Canada                          | Australia & NZ                | EU
+//   Attending/Primary Path.    | Consultant Pathologist                | Attending/Staff Pathologist     | Consultant Pathologist        | Pathologist/Specialist Doctor (e.g. Facharzt, Germany)
+//   Resident/Fellow            | Specialty Registrar (StR)/Fellow      | Resident/Clinical Fellow        | Pathology Registrar/Fellow    | Resident/Trainee Specialist
+//   Co-Signer/Supervisor       | Educational Supervisor/Sr. Consultant | Co-Signer/Supervising Pathologist| Supervising Consultant       | Supervising Pathologist
+//   Grossing/PA                | Pathology Associate/BMS               | Pathologists' Assistant (PA)    | Anatomic Path. Tech/BMS       | Dissection Technician/PA
+//   Cytotechnologist           | Cytotechnologist/BMS Cytology         | Cytotechnologist                | Cytotechnologist              | Cytotechnologist
+//
 // In production this is replaced by FirestoreParticipationTypeService,
 // which reads the customer's participation_types collection seeded during
 // tenant provisioning.
@@ -13,18 +39,17 @@ import type { IParticipationTypeService, ParticipationTypeRecord, NewParticipati
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 
-// ─── Seed data (mirrors BUILT_IN_PARTICIPATION_TYPES in ParticipationTypesSection) ──
+// ─── Seed data — the ONE canonical list, per Pete's final refined role list ──
 
 const SEED: ParticipationTypeRecord[] = [
-  { id: 'primary',          label: 'Primary Pathologist',    description: 'Responsible pathologist — signs out the case',                       color: '#8AB4F8', icon: '🔬', allowsMultiple: false, requiresNote: false, active: true,  isSystem: true, sortOrder: 1, abbreviation: 'PATH',  requiresCountersign: false, canFinalize: true  },
-  { id: 'resident',         label: 'Resident / Fellow',      description: 'Trainee assigned for supervised reporting',                           color: '#60a5fa', icon: '🎓', allowsMultiple: true,  requiresNote: false, active: true,  isSystem: true, sortOrder: 2, abbreviation: 'RES',   requiresCountersign: true,  canFinalize: false },
-  { id: 'attending',        label: 'Attending / Supervisor',  description: 'Supervising pathologist for trainee cases',                           color: '#818cf8', icon: '👨‍⚕️', allowsMultiple: false, requiresNote: false, active: true,  isSystem: true, sortOrder: 3, abbreviation: 'ATT',   requiresCountersign: false, canFinalize: true  },
-  { id: 'consultant',       label: 'Consultant',              description: 'Second opinion or specialist review — does not sign out',             color: '#38bdf8', icon: '💬', allowsMultiple: true,  requiresNote: true,  active: true,  isSystem: true, sortOrder: 4, abbreviation: 'CONS',  requiresCountersign: false, canFinalize: false },
-  { id: 'grossing',         label: 'Grossing Pathologist',    description: 'Performed gross examination and dictation',                           color: '#81C995', icon: '✂️', allowsMultiple: true,  requiresNote: false, active: true,  isSystem: true, sortOrder: 5, abbreviation: 'GROSS', requiresCountersign: false, canFinalize: false },
-  { id: 'frozen',           label: 'Frozen Section',          description: 'Issued intraoperative frozen section report',                         color: '#4ade80', icon: '🧊', allowsMultiple: false, requiresNote: false, active: true,  isSystem: true, sortOrder: 6, abbreviation: 'FS',    requiresCountersign: false, canFinalize: false },
-  { id: 'transcriptionist', label: 'Transcriptionist',        description: 'Transcribed dictated report',                                         color: '#6b7280', icon: '⌨️', allowsMultiple: false, requiresNote: false, active: true,  isSystem: true, sortOrder: 7, abbreviation: 'TRANS', requiresCountersign: false, canFinalize: false },
-  { id: 'clinician',        label: 'Requesting Clinician',    description: 'Clinician who submitted the specimen — for notification tracking',    color: '#f59e0b', icon: '🏥', allowsMultiple: true,  requiresNote: false, active: true,  isSystem: true, sortOrder: 8, abbreviation: 'CLIN',  requiresCountersign: false, canFinalize: false },
-  { id: 'external',         label: 'External Reviewer',       description: 'Outside institution or specialist — formal referral',                 color: '#8b5cf6', icon: '🌐', allowsMultiple: false, requiresNote: true,  active: true,  isSystem: true, sortOrder: 9, abbreviation: 'EXT',   requiresCountersign: false, canFinalize: false },
+  { id: 'primary',          label: 'Attending / Primary Pathologist', description: 'The credentialed pathologist responsible for final sign-out and diagnosis.',                                                                                              color: '#8AB4F8', icon: '🔬',   allowsMultiple: false, requiresNote: false, active: true, isSystem: true, sortOrder: 1, abbreviation: 'PATH',  requiresCountersign: false, canFinalize: true,  canBeAssignedTemplate: true,  canViewWholeCase: true  },
+  { id: 'resident',         label: 'Resident / Fellow',               description: 'Trainee drafting the report; requires Attending co-signature.',                                                                                                              color: '#60a5fa', icon: '🎓',   allowsMultiple: true,  requiresNote: false, active: true, isSystem: true, sortOrder: 2, abbreviation: 'RES',   requiresCountersign: true,  canFinalize: false, canBeAssignedTemplate: true,  canViewWholeCase: true  },
+  { id: 'attending',        label: 'Co-Signer / Supervisor',          description: 'Supervising/co-signing pathologist — covers resident and fellow oversight (CLIA/CAP/ACGME), FPPE proctoring for onboarding attendings, PA gross-description sign-off, and mandatory QA double-reads.', color: '#818cf8', icon: '👨‍⚕️', allowsMultiple: false, requiresNote: false, active: true, isSystem: true, sortOrder: 3, abbreviation: 'ATT',   requiresCountersign: false, canFinalize: true,  canBeAssignedTemplate: true,  canViewWholeCase: true  },
+  { id: 'grossing',         label: 'Grossing / PA',                   description: 'Pathologist Assistant, Resident, or Histotech who performed the gross examination and dissection.',                                                                          color: '#81C995', icon: '✂️',   allowsMultiple: true,  requiresNote: false, active: true, isSystem: true, sortOrder: 4, abbreviation: 'GROSS', requiresCountersign: true,  canFinalize: false, canBeAssignedTemplate: false, canViewWholeCase: true  },
+  { id: 'cytotechnologist', label: 'Cytotechnologist',                description: 'Screened cytology slides and provided initial diagnostic triage/assessment.',                                                                                              color: '#f59e0b', icon: '🧫',   allowsMultiple: true,  requiresNote: false, active: true, isSystem: true, sortOrder: 5, abbreviation: 'CYTO',  requiresCountersign: true,  canFinalize: false, canBeAssignedTemplate: true,  canViewWholeCase: false },
+  { id: 'consultant',       label: 'Consultant / Subspecialist',      description: 'Internal expert or subspecialist reviewing slides for internal consultation.',                                                                                             color: '#38bdf8', icon: '💬',   allowsMultiple: true,  requiresNote: true,  active: true, isSystem: true, sortOrder: 6, abbreviation: 'CONS',  requiresCountersign: false, canFinalize: false, canBeAssignedTemplate: true,  canViewWholeCase: false },
+  { id: 'frozen',           label: 'Frozen Section Pathologist',      description: 'Pathologist who performed/interpreted the intraoperative frozen section diagnosis.',                                                                                       color: '#4ade80', icon: '🧊',   allowsMultiple: false, requiresNote: false, active: true, isSystem: true, sortOrder: 7, abbreviation: 'FS',    requiresCountersign: true,  canFinalize: false, canBeAssignedTemplate: true,  canViewWholeCase: false },
+  { id: 'second_opinion',   label: 'Second Opinion',                  description: 'Secondary attending performing a mandatory QA double-read (e.g. breast/prostate core QA).',                                                                               color: '#818cf8', icon: '🔎',   allowsMultiple: true,  requiresNote: false, active: true, isSystem: true, sortOrder: 8, abbreviation: '2nd Op', requiresCountersign: false, canFinalize: false, canBeAssignedTemplate: true,  canViewWholeCase: true  },
 ];
 
 // ─── Storage ──────────────────────────────────────────────────────────────────

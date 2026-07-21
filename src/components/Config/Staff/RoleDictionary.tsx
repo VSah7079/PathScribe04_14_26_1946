@@ -7,7 +7,8 @@ import {
   ACTION_GROUPS, DEFAULT_ROLE_PERMISSIONS,
   ActionId, PermissionSet,
 } from '../../../constants/systemActions';
-import { loadParticipationTypes } from '../System/ParticipationTypesSection';
+import { mockParticipationTypeService } from '../../../services/participationTypes/mockParticipationTypeService';
+import type { ParticipationTypeRecord } from '../../../services/participationTypes/IParticipationTypeService';
 import { roleService, auditService } from '../../../services';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,6 +109,13 @@ const RoleModal: React.FC<{
   const [selectedGroupId, setSelectedGroupId] = useState<string>(ACTION_GROUPS[0].id);
   const [search,          setSearch]          = useState('');
   const [cheatSearch,     setCheatSearch]     = useState('');
+  // July 2026: was loadParticipationTypes() from ParticipationTypesSection's
+  // own separate, disconnected local list -- now the real service, the
+  // same one CaseTeamModal actually uses.
+  const [participationTypes, setParticipationTypes] = useState<ParticipationTypeRecord[]>([]);
+  useEffect(() => {
+    mockParticipationTypeService.getActive().then(res => { if (res.ok) setParticipationTypes(res.data); });
+  }, []);
 
   const allClients     = !draft.clientIds || draft.clientIds.length === 0;
   const selectedGroup  = ACTION_GROUPS.find(g => g.id === selectedGroupId) ?? ACTION_GROUPS[0];
@@ -343,7 +351,7 @@ const RoleModal: React.FC<{
 
           {/* ── CASE PARTICIPATION TAB ── */}
           {activeTab === 'participation' && (() => {
-            const allTypes   = loadParticipationTypes().filter(t => t.active);
+            const allTypes   = participationTypes;
             const selectedIds = draft.participationTypeIds ?? [];
             const toggle = (id: string) => setDraft(d => ({
               ...d,
