@@ -18279,3 +18279,285 @@ h3[data-section-id]:first-child {
   .ps-copilot-report-diff-previous { color: #666; }
   .ps-copilot-report-diff-current { color: #000; }
 }
+
+/* ── Case Team Modal (CaseTeamModal.tsx) — extracted from inline styles ──── */
+
+.ps-ctm-staff-card {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: border-color 0.15s;
+}
+.ps-ctm-staff-card--dragging { background: rgba(138,180,248,0.15); border-color: rgba(138,180,248,0.4); transition: none; }
+.ps-ctm-staff-card--disabled { cursor: default; opacity: 0.4; }
+
+.ps-ctm-staff-row { display: flex; align-items: center; gap: 10px; }
+
+.ps-ctm-staff-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(138,180,248,0.15); border: 1.5px solid rgba(138,180,248,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #8AB4F8;
+}
+
+.ps-ctm-staff-info { flex: 1; min-width: 0; }
+.ps-ctm-staff-name { font-size: 13px; font-weight: 600; color: #e5e7eb; }
+.ps-ctm-staff-meta  { font-size: 11px; color: #cbd5e1; }
+
+.ps-ctm-staff-grip { font-size: 16px; color: #374151; flex-shrink: 0; cursor: grab; }
+
+.ps-ctm-staff-oncase-badge {
+  font-size: 10px; color: #22c55e; padding: 1px 6px; border-radius: 4px;
+  border: 1px solid rgba(34,197,94,0.2); background: rgba(34,197,94,0.06); flex-shrink: 0;
+}
+
+.ps-ctm-staff-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+/* --badge-bg / --badge-border / --badge-color set inline per-item from the
+   participation type's own color field — genuinely dynamic per-record data,
+   pre-computed in the component using this app's existing hex+alpha-suffix
+   convention (t.color + '18' etc, same as used throughout the rest of the
+   app), not a new pattern introduced here. */
+.ps-ctm-staff-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
+}
+
+/* Drop zones — three live-preview eligibility states, set during drag */
+.ps-ctm-dropzone {
+  border-radius: 10px; padding: 12px; min-height: 80px;
+  transition: all 0.15s;
+  background: rgba(255,255,255,0.02);
+  border: 2px dashed rgba(255,255,255,0.08);
+}
+.ps-ctm-dropzone--role-ineligible { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); cursor: not-allowed; }
+.ps-ctm-dropzone--role-ineligible.ps-ctm-dropzone--hover { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.1); }
+.ps-ctm-dropzone--occupied { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.04); }
+.ps-ctm-dropzone--occupied.ps-ctm-dropzone--hover { border-style: solid; border-color: rgba(245,158,11,0.6); background: rgba(245,158,11,0.1); }
+.ps-ctm-dropzone--eligible { border-color: rgba(255,255,255,0.14); }
+.ps-ctm-dropzone--eligible.ps-ctm-dropzone--hover {
+  border-style: solid;
+  border-color: var(--badge-border-strong);
+  background: var(--badge-bg);
+}
+
+.ps-ctm-dropzone-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ps-ctm-dropzone-type-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
+}
+.ps-ctm-dropzone-label { font-size: 12px; font-weight: 600; color: #e5e7eb; flex: 1; }
+.ps-ctm-dropzone-single-badge { font-size: 9px; font-weight: 700; color: #64748b; letter-spacing: 0.04em; }
+.ps-ctm-dropzone-countersign-badge {
+  font-size: 10px; color: #f59e0b; padding: 1px 5px; border-radius: 4px;
+  border: 1px solid rgba(245,158,11,0.2); background: rgba(245,158,11,0.06);
+}
+.ps-ctm-dropzone-finalize-badge {
+  font-size: 10px; color: #22c55e; padding: 1px 5px; border-radius: 4px;
+  border: 1px solid rgba(34,197,94,0.2); background: rgba(34,197,94,0.06);
+}
+
+.ps-ctm-dropzone-preview { padding: 6px 0; text-align: center; font-size: 11px; font-style: italic; }
+.ps-ctm-dropzone-preview--role-ineligible { color: #f87171; }
+.ps-ctm-dropzone-preview--occupied { color: #fbbf24; }
+.ps-ctm-dropzone-preview--eligible { color: var(--badge-color); }
+
+.ps-ctm-dropzone-empty { padding: 8px 0; text-align: center; font-size: 11px; color: #475569; font-style: italic; }
+
+.ps-ctm-participant-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.2s;
+}
+.ps-ctm-participant-row--removed { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); opacity: 0.7; }
+
+.ps-ctm-participant-avatar {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(138,180,248,0.15); display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #8AB4F8;
+}
+
+.ps-ctm-participant-name { font-size: 12px; color: #e5e7eb; flex: 1; }
+.ps-ctm-participant-name--removed { color: #8a9db5; text-decoration: line-through; }
+.ps-ctm-participant-tag--you    { font-size: 10px; color: #8AB4F8; margin-left: 5px; }
+.ps-ctm-participant-tag--auto   { font-size: 10px; color: #22c55e; margin-left: 5px; }
+
+.ps-ctm-undo-btn {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 5px;
+  border: 1px solid rgba(138,180,248,0.3); background: transparent; color: #8AB4F8; cursor: pointer;
+}
+
+.ps-ctm-delegate-btn {
+  padding: 3px 6px; border-radius: 5px; border: 1px solid rgba(245,158,11,0.3);
+  background: rgba(245,158,11,0.06); cursor: pointer; color: #f59e0b;
+  display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+}
+
+.ps-ctm-remove-btn {
+  padding: 3px 6px; border-radius: 5px; border: none; background: transparent;
+  cursor: pointer; color: #4b5563; display: flex; align-items: center; transition: color 0.15s;
+}
+.ps-ctm-remove-btn:hover { color: #f87171; }
+
+.ps-ctm-rejection-banner {
+  margin: 10px 20px 0; padding: 8px 14px; border-radius: 8px;
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.ps-ctm-rejection-banner-icon { font-size: 13px; }
+.ps-ctm-rejection-banner-text { font-size: 12px; color: #fca5a5; flex: 1; }
+.ps-ctm-rejection-banner-close { background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 13px; }
+
+.ps-ctm-drag-overlay {
+  padding: 10px 14px; background: #1e293b; border: 2px solid #8AB4F8; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); cursor: grabbing; opacity: 0.95;
+}
+
+/* ── Case Team Modal (CaseTeamModal.tsx) ──────────────────────────────────
+   Layout, empty-states, primary button, and dirty-status styling all
+   reuse existing shared classes (.fm-body/.fm-left/.fm-right/.fm-empty/
+   .ps-btn-primary/.fm-footer-status.dirty) — see this modal's own
+   comments for which. Only what's genuinely specific to this modal's
+   own content lives below. ─────────────────────────────────────────── */
+
+/* .fm-left's default width (340px) and padding (14px 0 12px) don't fit
+   this modal's own drop-zone spacing assumptions (built with 20px
+   horizontal breathing room) -- same "--suffix modifier" convention
+   already established by .fm-left--delegate. */
+.fm-left--caseteam { width: 370px; padding: 16px 20px; gap: 10px; display: flex; flex-direction: column; }
+
+/* No existing wrapper groups a footer's action buttons together
+   separately from the status text -- .fm-footer's own space-between
+   layout otherwise treats each direct child as one side; this groups
+   Cancel+Save as a single right-hand unit with their own internal gap. */
+.fm-footer-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* The patient-name / hint-text / Delegate-link header line is specific
+   compound content, no existing equivalent found. */
+.ps-ctm-header-subtitle { font-size: 12px; color: #8a9db5; margin-top: 2px; }
+.ps-ctm-header-subtitle-hint { color: #64748b; }
+.ps-ctm-header-subtitle-link { color: #0891B2; cursor: pointer; text-decoration: underline; }
+
+/* --badge-bg / --badge-border / --badge-color set inline per-item from the
+   participation type's own color field — genuinely dynamic per-record
+   data, pre-computed using this app's existing hex+alpha-suffix
+   convention (t.color + '18' etc), not a new pattern. */
+.ps-ctm-staff-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.ps-ctm-staff-badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
+}
+
+.ps-ctm-staff-card {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: border-color 0.15s;
+}
+.ps-ctm-staff-card--dragging { background: rgba(138,180,248,0.15); border-color: rgba(138,180,248,0.4); transition: none; }
+.ps-ctm-staff-card--disabled { cursor: default; opacity: 0.4; }
+.ps-ctm-staff-row { display: flex; align-items: center; gap: 10px; }
+.ps-ctm-staff-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(138,180,248,0.15); border: 1.5px solid rgba(138,180,248,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #8AB4F8;
+}
+.ps-ctm-staff-info { flex: 1; min-width: 0; }
+.ps-ctm-staff-name { font-size: 13px; font-weight: 600; color: #e5e7eb; }
+.ps-ctm-staff-meta  { font-size: 11px; color: #cbd5e1; }
+.ps-ctm-staff-grip { font-size: 16px; color: #374151; flex-shrink: 0; cursor: grab; }
+.ps-ctm-staff-oncase-badge {
+  font-size: 10px; color: #22c55e; padding: 1px 6px; border-radius: 4px;
+  border: 1px solid rgba(34,197,94,0.2); background: rgba(34,197,94,0.06); flex-shrink: 0;
+}
+
+.ps-ctm-dropzone {
+  border-radius: 10px; padding: 12px; min-height: 80px;
+  transition: all 0.15s;
+  background: rgba(255,255,255,0.02);
+  border: 2px dashed rgba(255,255,255,0.08);
+}
+.ps-ctm-dropzone--role-ineligible { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); cursor: not-allowed; }
+.ps-ctm-dropzone--role-ineligible.ps-ctm-dropzone--hover { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.1); }
+.ps-ctm-dropzone--occupied { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.04); }
+.ps-ctm-dropzone--occupied.ps-ctm-dropzone--hover { border-style: solid; border-color: rgba(245,158,11,0.6); background: rgba(245,158,11,0.1); }
+.ps-ctm-dropzone--eligible { border-color: rgba(255,255,255,0.14); }
+.ps-ctm-dropzone--eligible.ps-ctm-dropzone--hover {
+  border-style: solid;
+  border-color: var(--badge-border-strong);
+  background: var(--badge-bg);
+}
+
+.ps-ctm-dropzone-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ps-ctm-dropzone-type-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
+}
+.ps-ctm-dropzone-label { font-size: 12px; font-weight: 600; color: #e5e7eb; flex: 1; }
+.ps-ctm-dropzone-single-badge { font-size: 9px; font-weight: 700; color: #64748b; letter-spacing: 0.04em; }
+.ps-ctm-dropzone-countersign-badge {
+  font-size: 10px; color: #f59e0b; padding: 1px 5px; border-radius: 4px;
+  border: 1px solid rgba(245,158,11,0.2); background: rgba(245,158,11,0.06);
+}
+.ps-ctm-dropzone-finalize-badge {
+  font-size: 10px; color: #22c55e; padding: 1px 5px; border-radius: 4px;
+  border: 1px solid rgba(34,197,94,0.2); background: rgba(34,197,94,0.06);
+}
+
+.ps-ctm-dropzone-preview { padding: 6px 0; text-align: center; font-size: 11px; font-style: italic; }
+.ps-ctm-dropzone-preview--role-ineligible { color: #f87171; }
+.ps-ctm-dropzone-preview--occupied { color: #fbbf24; }
+.ps-ctm-dropzone-preview--eligible { color: var(--badge-color); }
+
+.ps-ctm-participant-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.2s;
+}
+.ps-ctm-participant-row--removed { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); opacity: 0.7; }
+.ps-ctm-participant-avatar {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(138,180,248,0.15); display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #8AB4F8;
+}
+.ps-ctm-participant-name { font-size: 12px; color: #e5e7eb; flex: 1; }
+.ps-ctm-participant-name--removed { color: #8a9db5; text-decoration: line-through; }
+.ps-ctm-participant-tag--you  { font-size: 10px; color: #8AB4F8; margin-left: 5px; }
+.ps-ctm-participant-tag--auto { font-size: 10px; color: #22c55e; margin-left: 5px; }
+
+.ps-ctm-undo-btn {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 5px;
+  border: 1px solid rgba(138,180,248,0.3); background: transparent; color: #8AB4F8; cursor: pointer;
+}
+.ps-ctm-delegate-btn {
+  padding: 3px 6px; border-radius: 5px; border: 1px solid rgba(245,158,11,0.3);
+  background: rgba(245,158,11,0.06); cursor: pointer; color: #f59e0b;
+  display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+}
+.ps-ctm-remove-btn {
+  padding: 3px 6px; border-radius: 5px; border: none; background: transparent;
+  cursor: pointer; color: #4b5563; display: flex; align-items: center; transition: color 0.15s;
+}
+.ps-ctm-remove-btn:hover { color: #f87171; }
+
+.ps-ctm-rejection-banner {
+  margin: 10px 20px 0; padding: 8px 14px; border-radius: 8px;
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.ps-ctm-rejection-banner-icon { font-size: 13px; }
+.ps-ctm-rejection-banner-text { font-size: 12px; color: #fca5a5; flex: 1; }
+.ps-ctm-rejection-banner-close { background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 13px; }
+
+.ps-ctm-drag-overlay {
+  padding: 10px 14px; background: #1e293b; border: 2px solid #8AB4F8; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4); cursor: grabbing; opacity: 0.95;
+}
