@@ -1,30 +1,29 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-const MockEMRPage: React.FC = () => {
+interface MockEMRPageProps {
+  /** Optional — when provided (embedded modal use), takes priority over
+   *  the URL search param. Falls back to the ?patientId= query param so
+   *  this still works standalone at the real /mock-emr route. */
+  patientId?: string;
+}
+
+const MockEMRPage: React.FC<MockEMRPageProps> = ({ patientId: patientIdProp }) => {
   const [searchParams] = useSearchParams();
-  const patientId = searchParams.get('patientId') || '100004';
-  
+  const patientId = patientIdProp ?? searchParams.get('patientId') ?? '100004';
+
   const isMartinez = patientId === '100004';
   const patientName = isMartinez ? 'MARTINEZ, DAVID' : 'THOMPSON, GRACE';
   const dob = isMartinez ? '05/30/1955' : '11/12/1982';
   const gender = isMartinez ? 'Male' : 'Female';
 
-  // Simple Safety: Close if parent app closes
-  useEffect(() => {
-    const safetyCheck = setInterval(() => {
-      if (!window.opener || window.opener.closed) window.close();
-    }, 2000);
-    return () => clearInterval(safetyCheck);
-  }, []);
-
   const systemFont = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
   return (
-    <div style={{ background: '#f3f4f6', height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: systemFont, color: '#111827' }}>
-      
+    <div style={{ background: '#f3f4f6', height: '100%', display: 'flex', flexDirection: 'column', fontFamily: systemFont, color: '#111827' }}>
+
       {/* NHS BANNER */}
-      <div style={{ background: '#005eb8', color: 'white', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#005eb8', color: 'white', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div style={{ background: '#fff', color: '#005eb8', padding: '2px 8px', borderRadius: '2px', fontWeight: '900' }}>NHS</div>
           <div>
@@ -37,13 +36,13 @@ const MockEMRPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'auto' }}>
         {/* LEFT COLUMN */}
-        <div style={{ width: '280px', background: '#fff', borderRight: '1px solid #d1d5db', padding: '20px' }}>
+        <div style={{ width: '280px', background: '#fff', borderRight: '1px solid #d1d5db', padding: '20px', flexShrink: 0 }}>
           <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563', textTransform: 'uppercase', marginBottom: '15px' }}>Encounter</h3>
           <p style={{ fontSize: '14px' }}><strong>Status:</strong> Admitted</p>
           <p style={{ fontSize: '14px' }}><strong>Ward:</strong> 4B (Urology)</p>
-          
+
           <div style={{ marginTop: '30px', padding: '12px', background: '#eff6ff', borderRadius: '6px', fontSize: '12px', color: '#1e40af' }}>
             <strong>Integration Note:</strong> Production uses FHIR R4 API to sync with LIS.
           </div>

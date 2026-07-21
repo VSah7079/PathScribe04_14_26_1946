@@ -4476,7 +4476,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           narrativeText={
             (caseData.synopticReports?.find(r => r.instanceId === activeReportInstanceId) as any)?.narrativeContent ?? undefined
           }
-          onAddToSpecimens={(codes, _specimenIndices) => {
+          onAddToSpecimens={async (codes, _specimenIndices) => {
             // Previously: (a) kept only the bare code string, discarding
             // system/display/confidence/AI source/verification state
             // entirely, and (b) existingCodes above read from a
@@ -4486,21 +4486,24 @@ Original report issued pending ancillary studies. This amendment incorporates th
             // Fixed both by keeping the full MedicalCode object here and
             // reading existingCodes from these same two fields above.
             // (c) This also never called caseRouter.updateCase at all —
-            // purely local React state, meaning even a diligent "Save
-            // Draft" click wouldn't have persisted it, since that save
-            // path is scoped specifically to orchSections. Now actually
-            // persisted directly, not left to a save mechanism that was
-            // never going to carry it.
+            // purely local React state.
+            // FURTHER FIX: this used to fire caseRouter.updateCase with
+            // only a console.error on failure, then close the modal
+            // unconditionally right after — a failed save was
+            // completely invisible, the modal just closed as if it had
+            // worked. Now genuinely awaited: setCaseData/markDirty only
+            // run on confirmed success, and the modal (AddCodeModal.tsx)
+            // itself only closes if this promise resolves, showing a
+            // real error and staying open if it rejects.
             const newIcd    = codes.filter(c => c.system === 'ICD');
             const newSnomed = codes.filter(c => c.system === 'SNOMED');
             const newCoding = {
               icd10:  [...(((caseData as any).coding?.icd10  ?? []) as any[]), ...newIcd],
               snomed: [...(((caseData as any).coding?.snomed ?? []) as any[]), ...newSnomed],
             };
+            await caseRouter.updateCase(caseData.id, { coding: newCoding } as any);
             setCaseData(prev => prev ? ({ ...prev, coding: newCoding } as typeof prev) : prev);
-            caseRouter.updateCase(caseData.id, { coding: newCoding } as any).catch(err => console.error('[Codes] Failed to save:', err));
             markDirty('Codes');
-            setShowCodesModal(false);
           }}
           onClose={() => setShowCodesModal(false)}
           originHospitalId={caseData?.originHospitalId}

@@ -28,7 +28,7 @@ export interface AddCodeModalProps {
   existingCodes: MedicalCode[];
   allSpecimens: SpecimenOption[];
   activeSpecimenIndex?: number;  // reserved for future per-specimen default targeting
-  onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[]) => void;
+  onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[]) => Promise<void>;
   onClose: () => void;
   originHospitalId?: string;
   /** Optional — if provided, enables AI code suggestions */
@@ -168,6 +168,7 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
 
 
   const [saving,       setSaving]       = useState(false);
+  const [saveError,    setSaveError]    = useState<string | null>(null);
   const [dragCode,     setDragCode]     = useState<PendingCode | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<number | null | 'none'>('none'); // null=case, number=spec, 'none'=not dragging
   const [contextMenu,  setContextMenu]  = useState<{ entry: PendingCode; x: number; y: number } | null>(null);
@@ -401,8 +402,9 @@ Rules:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     setSaving(true);
+    setSaveError(null);
     // Include codes that are new OR have been moved to a different specimen
     const toAdd = applied.filter(c => {
       if (c.pendingDelete) return false;
@@ -434,11 +436,27 @@ Rules:
     const hasDeletions = applied.some(c => c.pendingDelete);
     if (toAdd.length > 0 || hasDeletions) {
       const specimenIndices = [...new Set(toAdd.map(c => c.specimenIndex ?? 0))];
-      onAddToSpecimens(allActiveCodes, specimenIndices);
+      // Previously fired onAddToSpecimens and closed the modal
+      // immediately afterward regardless of whether the save actually
+      // succeeded -- the parent's real persist call only had a
+      // console.error on failure, invisible in normal use. Now the
+      // modal genuinely waits: closes only on confirmed success, shows
+      // a real error and stays open (so nothing looks "saved" when it
+      // wasn't) on failure. Also fixes saving never being reset to
+      // false, which previously left the button stuck disabled.
+      try {
+        await onAddToSpecimens(allActiveCodes, specimenIndices);
+        onClose();
+      } catch (err: any) {
+        setSaveError(err?.message ?? 'Failed to save — please try again.');
+      } finally {
+        setSaving(false);
+      }
     } else {
+      setSaving(false);
       onClose();
     }
-    }, [applied, existingCodes, onAddToSpecimens, onClose]);
+  }, [applied, existingCodes, allSpecimens, onAddToSpecimens, onClose]);
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
@@ -897,8 +915,10 @@ Rules:
 
         {/* ── FOOTER ── */}
         <div className="fm-footer">
-          <span className={`fm-footer-status${isDirty ? ' dirty' : ''}`}>
-            {isDirty
+          <span className={`fm-footer-status${isDirty ? ' dirty' : ''}`} style={saveError ? { color: '#f87171' } : undefined}>
+            {saveError
+              ? saveError
+              : isDirty
               ? `${toAddCount > 0 ? `${toAddCount} to add` : ''}${toAddCount > 0 && toRemoveCount > 0 ? ' · ' : ''}${toRemoveCount > 0 ? `${toRemoveCount} to remove` : ''}`
               : 'No changes'
             }

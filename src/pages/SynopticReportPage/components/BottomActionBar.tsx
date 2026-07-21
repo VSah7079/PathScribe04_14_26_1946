@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Case } from '@/types/case/Case';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RequestReviewModal from '@/components/RequestReview/RequestReviewModal';
 import { PoolClaimModal } from '@/components/Worklist/PoolClaimModal';
+import EMRSidecarModal from './EMRSidecarModal';
 
 
 interface BottomActionBarProps {
@@ -146,49 +147,22 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const navigate = useNavigate();
   const [reviewOpen, setReviewOpen] = useState(false);
   const [claimOpen,  setClaimOpen]  = useState(false);
-  const emrWindowRef = useRef<Window | null>(null);
+  const [emrOpen,    setEmrOpen]    = useState(false);
   const status = caseData?.status ?? 'draft';
   const isFinalized = status === 'finalized';
   const isPool = status === 'pool';
-  
-  // Logic to auto-close EMR window when patient changes
+
+  // Auto-close the EMR sidecar when the case changes, so a stale
+  // patient's record is never left showing -- replaces the previous
+  // window.open()-based popup and its two separate window-closing
+  // effects (one keyed on MRN, one on case id) with one consolidated
+  // effect, since this is now just local component state instead of a
+  // raw Window reference to manage.
   useEffect(() => {
-    return () => {
-      if (emrWindowRef.current && !emrWindowRef.current.closed) {
-        emrWindowRef.current.close();
-      }
-    };
-  }, [caseData?.patient?.mrn]); // Trigger whenever MRN changes
+    setEmrOpen(false);
+  }, [caseData?.id]);
 
-const handleLaunchEMR = () => {
-  const mrn = caseData?.patient?.mrn ?? '100004';
-  const targetUrl = `${window.location.origin}/mock-emr?patientId=${mrn}`;
-  
-  // Standard stable dimensions for demo laptops/projectors
-  const width = 1200;
-  const height = 800;
-  const left = (window.screen.width - width) / 2;
-  const top = (window.screen.height - height) / 2;
-
-  if (emrWindowRef.current && !emrWindowRef.current.closed) {
-    emrWindowRef.current.location.href = targetUrl;
-    emrWindowRef.current.focus();
-  } else {
-    emrWindowRef.current = window.open(
-      targetUrl, 
-      'PathScribeEMRSidecar', 
-      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-    );
-  }
-};
-
-// Keep your safety close logic
-useEffect(() => {
-  if (emrWindowRef.current && !emrWindowRef.current.closed) {
-    emrWindowRef.current.close();
-    emrWindowRef.current = null;
-  }
-}, [caseData?.id]);
+  const handleLaunchEMR = () => setEmrOpen(true);
 
   const hasCodes = ((caseData as any)?.coding?.icd10?.length ?? 0) > 0 ||
                    ((caseData as any)?.coding?.snomed?.length ?? 0) > 0;
@@ -372,6 +346,12 @@ useEffect(() => {
         navigate('/worklist');
       }}
       onClose={() => setClaimOpen(false)}
+    />
+
+    <EMRSidecarModal
+      isOpen={emrOpen}
+      patientId={caseData?.patient?.mrn ?? '100004'}
+      onClose={() => setEmrOpen(false)}
     />
     </>
   );
