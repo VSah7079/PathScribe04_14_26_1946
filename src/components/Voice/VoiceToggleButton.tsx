@@ -63,7 +63,7 @@ export const VoiceToggleButton: React.FC = () => {
             background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '8px', padding: '8px 12px',
             fontSize: '11px', color: '#94a3b8',
-            whiteSpace: 'nowrap', zIndex: 9999, pointerEvents: 'none',
+            whiteSpace: 'nowrap', zIndex: 10000, pointerEvents: 'none',
             boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           }}>
             Voice is disabled for this deployment
@@ -135,7 +135,7 @@ export const VoiceToggleButton: React.FC = () => {
           background: '#0f172a', border: '1px solid rgba(245,158,11,0.4)',
           borderRadius: '8px', padding: '8px 12px',
           fontSize: '11px', color: '#fbbf24',
-          whiteSpace: 'nowrap', zIndex: 9999, pointerEvents: 'none',
+          whiteSpace: 'nowrap', zIndex: 10000, pointerEvents: 'none',
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
         }}>
           ⚠️ AI refinement unavailable

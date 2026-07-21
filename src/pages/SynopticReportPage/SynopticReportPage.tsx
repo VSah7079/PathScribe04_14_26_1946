@@ -185,6 +185,32 @@ const SynopticReportPage: React.FC = () => {
     setHasUnsavedData(false);
     setDirtySections(new Set());
   }, [setHasUnsavedData]);
+
+  // Lets FlagManagerModal/CaseTeamModal (and similar action-modals)
+  // report their own local draft's dirty state into the SAME
+  // dirtySections mechanism content fields already use -- critical that
+  // this ADDS/REMOVES just its own named entry and recomputes
+  // hasUnsavedData from the total remaining set, rather than blindly
+  // setting true/false, otherwise closing a clean modal could wrongly
+  // clear a warning that's still legitimately active for an unrelated
+  // dirty content field.
+  const setSectionDirty = React.useCallback((section: string, dirty: boolean) => {
+    setDirtySections(prev => {
+      const next = new Set(prev);
+      dirty ? next.add(section) : next.delete(section);
+      setHasUnsavedData(next.size > 0);
+      return next;
+    });
+  }, [setHasUnsavedData]);
+
+  // Lets FlagManagerModal/CaseTeamModal (and similar action-modals)
+  // report their own local draft's dirty state into the SAME
+  // dirtySections mechanism content fields already use -- critical that
+  // this ADDS/REMOVES just its own named entry and recomputes
+  // hasUnsavedData from the total remaining set, rather than blindly
+  // setting true/false, otherwise closing a clean modal could wrongly
+  // clear a warning that's still legitimately active for an unrelated
+  // dirty content field.
   const [activeSpecimenId, setActiveSpecimenId] = useState<string>('');
   const [showCaseCommentModal, setShowCaseCommentModal] = useState(false);
   const [showSpecimenCommentModal, setShowSpecimenCommentModal] = useState(false);
@@ -1042,7 +1068,7 @@ const SynopticReportPage: React.FC = () => {
   // with the Computational tab earlier), on top of depending on the
   // Sidecar itself, which is now gone too. Doubly dead code.
 
-  const {
+ const {
     flagCaseData, setFlagCaseData: _setFlagCaseData,
     flagDefinitions,
     showFlagManager, setShowFlagManager,
@@ -4492,7 +4518,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
           flagDefinitions={flagDefinitions}
           onApplyFlags={async (...args: Parameters<typeof onApplyFlags>) => { await onApplyFlags(...args); }}
           onRemoveFlag={async (...args: Parameters<typeof onRemoveFlag>) => { await onRemoveFlag(...args); }}
+          onDirtyChange={(dirty: boolean) => setSectionDirty('Flags', dirty)}
           onClose={() => {
+            // FlagManagerModal now edits a local draft internally and
+            // only calls the real onApplyFlags/onRemoveFlag from its own
+            // Save button -- by the time onClose fires, flagCaseData
+            // (kept in sync by those calls) is always accurate, whether
+            // Save ran or Cancel closed with nothing changed. Safe to
+            // sync unconditionally.
             if (flagCaseData && caseData) {
               setCaseData(prev => prev ? {
                 ...prev,
@@ -4512,7 +4545,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
         <CaseTeamModal
           caseData={caseData}
           onClose={() => setShowTeamModal(false)}
-          onUpdated={(updated) => { setCaseData(updated); markDirty('Case data'); }}
+          onUpdated={(updated) => { setCaseData(updated); }}
+          onDirtyChange={(dirty: boolean) => setSectionDirty('Team', dirty)}
           onDelegate={() => { setShowTeamModal(false); setDelegateReturnTo('team'); setShowDelegateModal(true); }}
         />
       )}

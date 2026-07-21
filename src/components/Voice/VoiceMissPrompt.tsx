@@ -60,7 +60,7 @@ export const VoiceMissPrompt: React.FC = () => {
       background: '#0f172a',
       border: '1px solid rgba(245,158,11,0.4)',
       borderRadius: '12px', padding: '14px 18px',
-      zIndex: 10001, color: '#fff', minWidth: '300px', maxWidth: '420px',
+      zIndex: 10000, color: '#fff', minWidth: '300px', maxWidth: '420px',
       boxShadow: '0 0 24px rgba(245,158,11,0.15)',
       animation: 'missIn 0.2s ease-out',
     }}>

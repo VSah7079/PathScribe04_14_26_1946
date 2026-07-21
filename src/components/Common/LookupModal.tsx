@@ -52,7 +52,7 @@ export const LookupModal: React.FC<LookupModalProps> = ({
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 10000,
+        position: 'fixed', inset: 0, zIndex: 9000,
         backgroundColor: 'rgba(0,0,0,0.85)',
         backdropFilter: 'blur(10px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

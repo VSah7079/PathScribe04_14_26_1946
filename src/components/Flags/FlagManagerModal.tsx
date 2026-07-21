@@ -5,6 +5,22 @@
 //   RIGHT        — search + flag catalog filtered by selected target level.
 //   FOOTER       — Cancel (reverts all changes) | Save (commits + closes)
 //
+// July 2026: restored to this file's own originally-documented design above.
+// The implementation had drifted into persisting every click immediately
+// (with a 5-second "undo toast" band-aid layered on top) despite this
+// header always saying Cancel/Save. That drift caused two real bugs:
+// (1) closing the modal after zero real edits could still trip the page's
+// unsaved-changes warning (openFlagManager's own fetch-and-filter step
+// could differ from what was already loaded), and (2) the "Discard
+// changes?" prompt shown on close never actually reversed anything --
+// the flag was already permanently written the moment "+Apply" was
+// clicked, so "Discard" was a false promise. Fixed by actually building
+// the draft-then-commit model this file always said it had: nothing
+// touches the real backend until Save is clicked, so Cancel/Discard is
+// now genuinely true, and FlagChip's existing per-row Undo (clears
+// deletedAt on the same draft instance) is the safety net for removals,
+// matching CaseTeamModal's correct deferred/undo model in spirit.
+//
 // Styling: 100% via pathscribe.css classes (section 23 — Flag Manager).
 // Gradients match the Patient History modal (.ps-research-* system).
 
@@ -34,10 +50,6 @@ interface CaseWithFlags {
   specimens: Array<{ id: string; label?: string; flags: FlagInstance[] }>;
   [key: string]: any;
 }
-interface PendingOp {
-  type: "apply" | "remove";
-  payload: { flagDefinitionId?: string; flagInstanceId?: string; specimenId?: string };
-}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -47,6 +59,12 @@ interface Props {
   flagDefinitions: FlagDefinition[];
   onApplyFlags: (payload: ApplyFlagPayload) => Promise<void>;
   onRemoveFlag:  (payload: DeleteFlagPayload) => Promise<void>;
+  /** Reports whether the LOCAL DRAFT currently differs from what was
+   *  loaded when the modal opened -- lets the page know a real unsaved
+   *  edit is sitting in this modal, independent of the page's own
+   *  content-field dirty-tracking. Called with false on unmount too, so
+   *  the page never thinks a closed modal still has pending edits. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -117,7 +135,7 @@ const ScopeDialog: React.FC<{
   flagName: string; otherCount: number;
   onSingle: () => void; onAll: () => void; onCancel: () => void;
 }> = ({ flagName, otherCount, onSingle, onAll, onCancel }) => (
-  <div data-capture-hide="true" className="fm-overlay" style={{ zIndex: 11000 }}>
+  <div data-capture-hide="true" className="fm-overlay" style={{ zIndex: 9500 }}>
     <div className="fm-dialog" style={{ width: 440 }}>
       <div className="fm-dialog-icon info"><IcoSpec /></div>
       <h3 className="fm-dialog-title">Remove from multiple specimens?</h3>
@@ -125,7 +143,7 @@ const ScopeDialog: React.FC<{
         <strong>{flagName}</strong> is also applied to{" "}
         <strong>{otherCount} other specimen{otherCount !== 1 ? "s" : ""}</strong>.
       </p>
-      <p className="fm-dialog-hint">All removals will be recorded in the audit trail.</p>
+      <p className="fm-dialog-hint">This will apply once you click Save — all removals will be recorded in the audit trail.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <button onClick={onSingle} className="fm-dialog-option neutral">
           Remove from this specimen only
@@ -144,8 +162,13 @@ const ScopeDialog: React.FC<{
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const FlagManagerModal: React.FC<Props> = ({
-  onClose, caseData: initialCaseData, flagDefinitions, onApplyFlags, onRemoveFlag,
+  onClose, caseData: initialCaseData, flagDefinitions, onApplyFlags, onRemoveFlag, onDirtyChange,
 }) => {
+  // The ONLY thing edited while this modal is open. Nothing here touches
+  // the real backend until handleSave runs. initialCaseData itself is
+  // kept around, untouched, as the "what did this look like when we
+  // opened" snapshot used to compute both the Save diff and the dirty
+  // check -- never mutated.
   const [localCase, setLocalCase] = useState<CaseWithFlags>(() => {
     const clone = deepClone(initialCaseData);
     if (!Array.isArray(clone.flags)) clone.flags = [];
@@ -155,6 +178,7 @@ const FlagManagerModal: React.FC<Props> = ({
   const [caseOn, setCaseOn]         = useState(true);
   const [spIds, setSpIds]           = useState<Set<string>>(new Set());
   const [query, setQuery]           = useState("");
+  const [isSaving, setIsSaving]     = useState(false);
 
   const [scopeDialog, setScopeDialog] = useState<{
     flagName: string; defId: string; specimenId: string;
@@ -162,13 +186,8 @@ const FlagManagerModal: React.FC<Props> = ({
     onConfirm: (removeAll: boolean) => void;
   } | null>(null);
 
-  // Undo stack — brief 5-second window after a flag is removed
-  type UndoEntry = { id: string; inst: any; specimenId: string | undefined; timer: ReturnType<typeof setTimeout> };
-  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
-  const [, setPendingOps] = useState<PendingOp[]>([]);
-  const [isDirty, setIsDirty] = useState(false);
-  const { log } = useAuditLog();
   const [showDirtyWarn, setShowDirtyWarn] = useState(false);
+  const { log } = useAuditLog();
 
   const allIds  = localCase.specimens.map((s: any) => s.id);
   const allOn   = allIds.length > 0 && allIds.every((id: string) => spIds.has(id));
@@ -189,9 +208,8 @@ const FlagManagerModal: React.FC<Props> = ({
     setSpIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }, []);
 
-  // ── local state helpers ───────────────────────────────────────────────────────
+  // ── draft edits — local only, no API calls ────────────────────────────────────
   const addFlagLocally = useCallback((defId: string, specimenId?: string) => {
-    setIsDirty(true);
     const def = flagDefinitions.find(f => f.id === defId);
     if (def) log('flag_applied', { caseId: localCase?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const inst: FlagInstance = {
@@ -205,7 +223,6 @@ const FlagManagerModal: React.FC<Props> = ({
     };
     setLocalCase(prev => {
       const next = deepClone(prev);
-      // Ensure flags arrays exist
       if (!Array.isArray(next.flags)) next.flags = [];
       next.specimens.forEach((s: any) => { if (!Array.isArray(s.flags)) s.flags = []; });
 
@@ -219,11 +236,16 @@ const FlagManagerModal: React.FC<Props> = ({
       }
       return next;
     });
-  }, []);
+  }, [flagDefinitions, log, localCase?.id]);
 
+  // Soft-delete within the draft only. If the instance was added THIS
+  // session (local- id), this is the only trace of it ever existing --
+  // no confirmation needed, nothing real is at risk. If it's a
+  // previously-saved instance, this marks it for real removal on Save;
+  // FlagChip's own Undo button (unchanged, see below) is the safety net,
+  // not a blocking dialog -- see this file's header note on that choice.
   const removeFlagLocally = useCallback((instanceId: string, specimenId?: string) => {
-    setIsDirty(true);
-    const inst = [...(localCase?.caseFlags ?? []), ...(localCase?.specimenFlags?.flatMap(sf => sf.flags) ?? [])].find(f => f.instanceId === instanceId);
+    const inst = [...(localCase?.flags ?? []), ...(localCase?.specimens?.flatMap((sp: any) => sp.flags) ?? [])].find((f: any) => f.id === instanceId);
     const def  = inst ? flagDefinitions.find(f => f.id === inst.flagDefinitionId) : undefined;
     if (def) log('flag_removed', { caseId: localCase?.id ?? '', flagName: def.name ?? def.id, specimenId });
     const now = new Date().toISOString();
@@ -242,51 +264,33 @@ const FlagManagerModal: React.FC<Props> = ({
       }
       return next;
     });
-  }, []);
+  }, [flagDefinitions, log, localCase]);
 
-  // ── apply — immediate save ────────────────────────────────────────────────────
-  const handleApply = useCallback(async (def: FlagDefinition) => {
+  // ── apply — draft only ────────────────────────────────────────────────────────
+  const handleApply = useCallback((def: FlagDefinition) => {
     if (!hasTarget) return;
     if (caseOn) {
       addFlagLocally(def.id);
-      await onApplyFlags({ caseId: localCase.id, flagDefinitionId: def.id });
     } else {
       for (const spId of Array.from(spIds)) {
         const sp = localCase.specimens.find((s: any) => s.id === spId);
         if (!activeInst(sp?.flags ?? []).some((f: FlagInstance) => f.flagDefinitionId === def.id)) {
           addFlagLocally(def.id, spId);
-          await onApplyFlags({ caseId: localCase.id, flagDefinitionId: def.id, specimenId: spId });
         }
       }
     }
-  }, [hasTarget, caseOn, spIds, localCase, addFlagLocally, onApplyFlags]);
+  }, [hasTarget, caseOn, spIds, localCase, addFlagLocally]);
 
-  // ── remove — immediate save + 5-second undo toast ────────────────────────────
-  const doRemoveSingle = useCallback(async (inst: FlagInstance, specimenId: string | undefined) => {
+  // ── remove — draft only ───────────────────────────────────────────────────────
+  const doRemoveSingle = useCallback((inst: FlagInstance, specimenId: string | undefined) => {
     removeFlagLocally(inst.id, specimenId);
-    if (!inst.id.startsWith("local-")) {
-      await onRemoveFlag({ caseId: localCase.id, flagInstanceId: inst.id, specimenId });
-    }
-    // Offer a brief undo window
-    const undoId = `undo-${inst.id}-${Date.now()}`;
-    const timer = setTimeout(() => {
-      setUndoStack(prev => prev.filter(e => e.id !== undoId));
-    }, 5000);
-    setUndoStack(prev => [...prev, { id: undoId, inst, specimenId, timer }]);
-  }, [removeFlagLocally, localCase.id, onRemoveFlag]);
+  }, [removeFlagLocally]);
 
-  const handleUndo = useCallback(async (entry: { id: string; inst: any; specimenId: string | undefined; timer: ReturnType<typeof setTimeout> }) => {
-    clearTimeout(entry.timer);
-    setUndoStack(prev => prev.filter(e => e.id !== entry.id));
-    addFlagLocally(entry.inst.flagDefinitionId, entry.specimenId ?? undefined);
-    await onApplyFlags({ caseId: localCase.id, flagDefinitionId: entry.inst.flagDefinitionId, specimenId: entry.specimenId ?? undefined });
-  }, [addFlagLocally, localCase.id, onApplyFlags]);
-
-  const doRemoveAll = useCallback(async (defId: string, specimenIds: string[]) => {
+  const doRemoveAll = useCallback((defId: string, specimenIds: string[]) => {
     for (const spId of specimenIds) {
       const sp   = localCase.specimens.find((s: any) => s.id === spId);
       const inst = sp ? activeInst(sp.flags).find((f: FlagInstance) => f.flagDefinitionId === defId) : undefined;
-      if (inst) await doRemoveSingle(inst, spId);
+      if (inst) doRemoveSingle(inst, spId);
     }
   }, [localCase.specimens, doRemoveSingle]);
 
@@ -314,35 +318,74 @@ const FlagManagerModal: React.FC<Props> = ({
       }
     }
 
-    // No confirmation needed — user will Save or Cancel to commit
     doRemoveSingle(inst, specimenId);
   }, [flagDefinitions, localCase.specimens, doRemoveSingle, doRemoveAll]);
 
-  // ── save / cancel ─────────────────────────────────────────────────────────────
-  const handleClose = useCallback((force = false) => {
-    if (!force && isDirty) { setShowDirtyWarn(true); return; }
-    undoStack.forEach(e => clearTimeout(e.timer));
-    setIsDirty(false);
-    onClose();
-  }, [onClose, undoStack, isDirty]);
+  // ── dirty check — real ID-set comparison against the original snapshot ────────
+  const isDraftDirty = useMemo(() => {
+    const diff = (origFlags: FlagInstance[], nowFlags: FlagInstance[]) => {
+      const origIds = new Set(activeInst(origFlags).map(f => f.id));
+      const nowIds  = new Set(activeInst(nowFlags).map(f => f.id));
+      if (origIds.size !== nowIds.size) return true;
+      for (const id of origIds) if (!nowIds.has(id)) return true;
+      for (const id of nowIds) if (!origIds.has(id)) return true;
+      return false;
+    };
+    if (diff(initialCaseData.flags ?? [], localCase.flags)) return true;
+    for (const sp of localCase.specimens) {
+      const origSp = initialCaseData.specimens.find((s: any) => s.id === sp.id);
+      if (diff(origSp?.flags ?? [], sp.flags)) return true;
+    }
+    return false;
+  }, [initialCaseData, localCase]);
 
-  const handleDirtyConfirm = useCallback(() => {
+  // Report dirty state up to the page -- reset to false on unmount so a
+  // closed modal never leaves a stale "dirty" flag behind.
+  useEffect(() => {
+    onDirtyChange?.(isDraftDirty);
+    return () => { onDirtyChange?.(false); };
+  }, [isDraftDirty, onDirtyChange]);
+
+  // ── save / cancel ─────────────────────────────────────────────────────────────
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      const commit = async (origFlags: FlagInstance[], nowFlags: FlagInstance[], specimenId?: string) => {
+        const origIds = new Set(activeInst(origFlags).map(f => f.id));
+        for (const f of nowFlags) {
+          const wasActive = origIds.has(f.id);
+          const isActive  = !f.deletedAt;
+          if (!wasActive && isActive) {
+            await onApplyFlags({ caseId: localCase.id, flagDefinitionId: f.flagDefinitionId, specimenId });
+          } else if (wasActive && !isActive) {
+            await onRemoveFlag({ caseId: localCase.id, flagInstanceId: f.id, specimenId });
+          }
+        }
+      };
+      await commit(initialCaseData.flags ?? [], localCase.flags);
+      for (const sp of localCase.specimens) {
+        const origSp = initialCaseData.specimens.find((s: any) => s.id === sp.id);
+        await commit(origSp?.flags ?? [], sp.flags, sp.id);
+      }
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [localCase, initialCaseData, onApplyFlags, onRemoveFlag, onClose]);
+
+  const handleClose = useCallback(() => {
+    if (isDraftDirty) { setShowDirtyWarn(true); return; }
+    onClose();
+  }, [isDraftDirty, onClose]);
+
+  const handleDiscardConfirm = useCallback(() => {
     setShowDirtyWarn(false);
-    handleClose(true);
-  }, [handleClose]);
+    onClose();
+  }, [onClose]);
 
   // ── catalog ───────────────────────────────────────────────────────────────────
   const catalog = useMemo(() => {
-    // Previously filtered out COMPUTATIONAL flags here, on the
-    // assumption they'd be "driven by the LIS, not manually applied" —
-    // that assumption no longer holds; there's no ordering apparatus
-    // left to drive anything, and this was the only place a flag could
-    // be applied at all, so the filter was actively hiding usable
-    // flags rather than protecting against a real conflict. tagClass
-    // itself is vestigial now — see IFlagService.ts — every flag shows
-    // here uniformly.
     let pool = flagDefinitions.filter(d =>
-      // Handle both legacy 'active' boolean and new 'status' string
       (d.active === true || (d as any).status?.toLowerCase() === 'active')
     );
     if (hasTarget) pool = pool.filter(d =>
@@ -372,7 +415,7 @@ const FlagManagerModal: React.FC<Props> = ({
     const selectCase    = () => toggleCase();
     const selectAllSpec = () => toggleAll();
     const deselectAll   = () => { setCaseOn(false); setSpIds(new Set()); };
-    const saveFlags     = () => handleClose(); // immediate save — close is enough
+    const saveFlags     = () => handleSave();
     const cancelFlags   = () => handleClose();
 
     window.addEventListener("PATHSCRIBE_FLAG_SELECT_CASE",          selectCase);
@@ -387,7 +430,7 @@ const FlagManagerModal: React.FC<Props> = ({
       window.removeEventListener("PATHSCRIBE_FLAG_SAVE",                 saveFlags);
       window.removeEventListener("PATHSCRIBE_FLAG_CANCEL",               cancelFlags);
     };
-  }, [isDirty, toggleCase, toggleAll, handleClose]);
+  }, [toggleCase, toggleAll, handleSave, handleClose]);
 
   // ── derived ───────────────────────────────────────────────────────────────────
   const totalFlags =
@@ -403,7 +446,6 @@ const FlagManagerModal: React.FC<Props> = ({
       const name     = def?.name ?? inst.flagDefinitionId;
 
       const handleUndo = () => {
-        // Restore locally and remove the pending remove op
         setLocalCase(prev => {
           const next = deepClone(prev);
           if (!specimenId) {
@@ -416,9 +458,6 @@ const FlagManagerModal: React.FC<Props> = ({
           }
           return next;
         });
-        setPendingOps(ops => ops.filter(op =>
-          !(op.type === "remove" && op.payload.flagInstanceId === inst.id)
-        ));
       };
 
       return (
@@ -475,7 +514,7 @@ const FlagManagerModal: React.FC<Props> = ({
                 )}
               </div>
             </div>
-            <button onClick={() => handleClose()} aria-label="Close"
+            <button onClick={handleClose} aria-label="Close"
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '2px 8px', lineHeight: 1, flexShrink: 0 }}
               onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
@@ -660,31 +699,30 @@ const FlagManagerModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* ── FOOTER ── */}
+          {/* ── FOOTER — Cancel (reverts) | Save (commits + closes) ── */}
           <div className="fm-footer">
-            {/* Undo toasts — appear briefly after each removal */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-              {undoStack.map(entry => {
-                const def = flagDefinitions.find((d: any) => d.id === entry.inst.flagDefinitionId);
-                return (
-                  <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', borderRadius: 6, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', fontSize: 12 }}>
-                    <span style={{ color: '#94a3b8', flex: 1 }}>
-                      Removed: <strong style={{ color: '#f59e0b' }}>{def?.name ?? entry.inst.flagDefinitionId}</strong>
-                    </span>
-                    <button
-                      onClick={() => handleUndo(entry)}
-                      style={{ padding: '2px 10px', borderRadius: 5, border: '1px solid rgba(245,158,11,0.5)', background: 'transparent', color: '#f59e0b', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                    >
-                      Undo
-                    </button>
-                  </div>
-                );
-              })}
-              {undoStack.length === 0 && (
-                <span style={{ fontSize: 11, color: '#475569' }}>Changes apply immediately</span>
-              )}
-            </div>
-            <button className="fm-btn-cancel" onClick={() => handleClose()} style={{ flexShrink: 0 }}>Close</button>
+            <span style={{ fontSize: 11, color: isDraftDirty ? '#f59e0b' : '#475569', flex: 1 }}>
+              {isDraftDirty ? 'You have unsaved flag changes' : 'No changes'}
+            </span>
+            <button className="fm-btn-cancel" onClick={handleClose} style={{ flexShrink: 0 }}>
+              Cancel
+            </button>
+            <button
+              className="fm-btn-cancel"
+              onClick={handleSave}
+              disabled={!isDraftDirty || isSaving}
+              style={{
+                flexShrink: 0,
+                background: isDraftDirty ? 'rgba(34,197,94,0.15)' : undefined,
+                borderColor: isDraftDirty ? 'rgba(34,197,94,0.5)' : undefined,
+                color: isDraftDirty ? '#4ade80' : undefined,
+                fontWeight: 700,
+                opacity: isSaving ? 0.6 : 1,
+                cursor: (!isDraftDirty || isSaving) ? 'default' : 'pointer',
+              }}
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
           </div>
         </div>
       </div>
@@ -698,18 +736,20 @@ const FlagManagerModal: React.FC<Props> = ({
           onCancel={() => setScopeDialog(null)}
         />
       )}
-      {/* ── Dirty-state warning ── */}
+
+      {/* ── Discard-changes warning — now genuinely accurate: the draft
+          is discarded and nothing was ever written to the backend ── */}
       {showDirtyWarn && ReactDOM.createPortal(
-        <div className="ps-overlay" style={{ zIndex: 32000 }}>
+        <div className="ps-overlay" style={{ zIndex: 9500 }}>
           <div className="ps-modal-dark ps-modal-dark--sm">
             <div className="ps-modal-dark-header">
               <span className="ps-modal-dark-emoji">⚠️</span>
               <span className="ps-modal-dark-title">Discard changes?</span>
             </div>
-            <p className="ps-modal-dark-body">You have unsaved flag changes. Closing will discard them.</p>
+            <p className="ps-modal-dark-body">You have unsaved flag changes. Closing will discard them — nothing has been saved yet.</p>
             <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
               <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={() => setShowDirtyWarn(false)}>Keep editing</button>
-              <button className="ps-btn-red ps-modal-dark-footer__flex-btn" onClick={handleDirtyConfirm}>Discard changes</button>
+              <button className="ps-btn-red ps-modal-dark-footer__flex-btn" onClick={handleDiscardConfirm}>Discard changes</button>
             </div>
           </div>
         </div>,

@@ -118,7 +118,7 @@ export const ProtocolChangeModal: React.FC<ProtocolChangeModalProps> = ({
   if (!show || changes.length === 0) return null;
 
   return (
-    <div className="ps-overlay" style={{ zIndex: 10500 }}>
+    <div className="ps-overlay" style={{ zIndex: 9500 }}>
       <div className="ps-modal-dark ps-proto-modal">
 
         {/* Header */}

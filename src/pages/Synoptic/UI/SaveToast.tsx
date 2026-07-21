@@ -3,7 +3,7 @@ import '../../../pathscribe.css';
 
 const SaveToast: React.FC<{ message: string; visible: boolean }> = ({ message, visible }) => (
   <div style={{
-    position: 'fixed', bottom: '90px', right: '40px', zIndex: 9999,
+    position: 'fixed', bottom: '90px', right: '40px', zIndex: 10000,
     background: '#1e293b', color: 'white', padding: '10px 18px',
     borderRadius: '8px', fontSize: '13px', fontWeight: 600,
     boxShadow: '0 4px 16px rgba(0,0,0,0.2)',

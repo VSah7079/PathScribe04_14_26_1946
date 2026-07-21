@@ -44,7 +44,7 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    zIndex: 20000,
+    zIndex: 9000,
   },
   modal: {
     background: dark,

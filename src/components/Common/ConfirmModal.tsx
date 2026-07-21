@@ -28,7 +28,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!show) return null;
 
   return (
-    <div className="ps-overlay" style={{ zIndex: 30000, ...overlayStyle }}>
+    <div className="ps-overlay" style={{ zIndex: 9000, ...overlayStyle }}>
       <div className="ps-modal-dark ps-modal-sm">
         {title && <span className="ps-modal-dark-title" style={{ display: 'block', marginBottom: 10 }}>{title}</span>}
         <p className="ps-modal-dark-body" style={{ marginBottom: 24 }}>{message}</p>

@@ -3,9 +3,27 @@
 // Case Team modal — drag staff cards onto participation type drop zones.
 // Left: participation type lanes (drop targets)
 // Right: staff directory (draggable cards)
+//
+// July 2026: converted to the same draft-then-save model as
+// FlagManagerModal (see that file's header note for the fuller
+// reasoning) -- nothing is persisted to the real backend until Save is
+// clicked. Assign used to persist immediately on drop; Remove used to
+// defer the real persist by 5 seconds with Undo cancelling that timer.
+// Both are now purely local-draft edits, resolved into ONE real
+// updateCase() call on Save. The existing removedKeys mechanism
+// (strikethrough + Undo in the list) is unchanged and now doubles as the
+// draft's "pending removal" marker, resolved at Save time instead of
+// auto-committing after 5 seconds.
+//
+// NOTE: the auto-assign-from-order.assignedTo reconciliation on initial
+// load (see the load effect below) still persists immediately -- that's
+// syncing existing real case data (who the order was assigned to), not a
+// user's in-progress draft edit, so it's deliberately left out of scope
+// for this change.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import {
   DndContext, DragEndEvent, DragStartEvent, DragOverlay,
   useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
@@ -196,7 +214,7 @@ const DropZone: React.FC<DropZoneProps> = ({
 // ─── Self-removal blocked modal ───────────────────────────────────────────────
 
 const SelfRemoveBlockedModal: React.FC<{ onClose: () => void; onDelegate: () => void }> = ({ onClose, onDelegate }) => (
-  <div className="ps-overlay" style={{ zIndex: 30000 }}>
+  <div className="ps-overlay" style={{ zIndex: 9000 }}>
     <div className="ps-modal-dark" style={{ width: 'min(460px, 90vw)' }}>
       <div className="ps-modal-dark-header">
         <span style={{ fontSize: 18 }}>⚠</span>
@@ -225,21 +243,31 @@ interface Props {
   onClose:     () => void;
   onUpdated:   (updated: Case) => void;
   onDelegate?: () => void;
+  /** Reports whether the draft (pending assigns + pending removedKeys)
+   *  currently differs from what was loaded -- same purpose as
+   *  FlagManagerModal's onDirtyChange, see that file for the full
+   *  reasoning. Called with false on unmount. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, onDelegate }) => {
+export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, onDelegate, onDirtyChange }) => {
   const { user } = useAuth();
   const [staffList,    setStaffList]    = useState<StaffUser[]>([]);
   const [roles,        setRoles]        = useState<Role[]>([]);
   const [allTypes,     setAllTypes]     = useState<ParticipationType[]>([]);
   const [participants, setParticipants] = useState<CaseParticipant[]>([]);
+  // Snapshot of participants at the moment loading finished -- the
+  // baseline for the dirty-check and the Save diff. Never mutated after
+  // being set.
+  const initialParticipantsRef = useRef<CaseParticipant[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
   const [activeId,     setActiveId]     = useState<string | null>(null);
   const [overId,       setOverId]       = useState<string | null>(null);
   const [removedKeys,  setRemovedKeys]  = useState<Set<string>>(new Set());
   const [showSelfBlock,setShowSelfBlock]= useState(false);
-  const undoTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [showDirtyWarn,setShowDirtyWarn]= useState(false);
+  const [isSaving,     setIsSaving]     = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -252,9 +280,13 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
       setAllTypes(typesRes.ok ? typesRes.data : []);
       const existing: CaseParticipant[] = (caseData as any).participants ?? [];
       const assignedId = caseData.order?.assignedTo;
+      let finalExisting = existing;
       if (assignedId && !existing.find(p => p.staffId === assignedId && p.status === 'active')) {
         const staffMember = users.find(u => u.id === assignedId);
         if (staffMember) {
+          // Reconciling existing real case data (who the order was
+          // assigned to), not a draft edit -- persists immediately,
+          // deliberately out of scope for the draft/save conversion.
           const autoP: CaseParticipant = {
             staffId: staffMember.id,
             staffName: `${staffMember.firstName} ${staffMember.lastName}`,
@@ -263,14 +295,14 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
             source: 'system', participationTypeIds: ['primary'],
             addedBy: 'system', addedAt: caseData.createdAt, status: 'active',
           };
-          const merged = [autoP, ...existing];
-          setParticipants(merged);
-          mockCaseService.updateCase(caseData.id, { participants: merged } as any);
-        } else { setParticipants(existing); }
-      } else { setParticipants(existing); }
+          finalExisting = [autoP, ...existing];
+          mockCaseService.updateCase(caseData.id, { participants: finalExisting } as any);
+        }
+      }
+      setParticipants(finalExisting);
+      initialParticipantsRef.current = finalExisting;
       setLoading(false);
     });
-    return () => { Object.values(undoTimers.current).forEach(clearTimeout); };
   }, []);
 
   const relevantTypeIds = useMemo(() => {
@@ -298,7 +330,8 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const handleDragStart = (event: DragStartEvent) => { setActiveId(String(event.active.id)); };
   const handleDragOver  = (event: any)             => { setOverId(event.over ? String(event.over.id) : null); };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  // ── assign — draft only, no API call ──────────────────────────────────────────
+  const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null); setOverId(null);
     const { active, over } = event;
     if (!over) return;
@@ -314,7 +347,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     if (alreadyAssigned) return;
 
     let updated: CaseParticipant[];
-    let newP: CaseParticipant | null = null;
     const existingP = activeParticipants.find(p => p.staffId === staffId);
     if (existingP) {
       updated = participants.map(p =>
@@ -322,7 +354,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
           ? { ...p, participationTypeIds: [...p.participationTypeIds, typeId] } : p
       );
     } else {
-      newP = {
+      const newP: CaseParticipant = {
         staffId: staff.id, staffName: `${staff.firstName} ${staff.lastName}`,
         externalId: (staff as any).gmcNumber || staff.npi || undefined,
         externalIdType: (staff as any).gmcNumber ? 'GMC' : staff.npi ? 'NPI' : undefined,
@@ -332,10 +364,12 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
       updated = [...participants, newP];
     }
     setParticipants(updated);
-    await mockCaseService.updateCase(caseData.id, { participants: updated } as any);
-    onUpdated({ ...caseData, participants: updated } as any);
   };
 
+  // ── remove — draft only, resolved at Save time ────────────────────────────────
+  // No more deferred timer/auto-commit. Marking removedKeys IS the draft
+  // edit; Save (below) applies every pending removal in one pass before
+  // persisting once.
   const handleRemove = (staffId: string, typeId: string) => {
     const isSelf        = staffId === user?.id;
     const isPrimary     = typeId === 'primary';
@@ -344,33 +378,74 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
 
     const key = `${staffId}-${typeId}`;
     setRemovedKeys(prev => new Set(prev).add(key));
-    undoTimers.current[key] = setTimeout(async () => {
-      const updated = participants.map(p => {
-        if (p.staffId !== staffId || p.status !== 'active') return p;
-        const newTypes = p.participationTypeIds.filter((id: string) => id !== typeId);
-        return newTypes.length === 0 ? { ...p, status: 'removed' as const } : { ...p, participationTypeIds: newTypes };
-      });
-      setParticipants(updated);
-      setRemovedKeys(prev => { const n = new Set(prev); n.delete(key); return n; });
-      await mockCaseService.updateCase(caseData.id, { participants: updated } as any);
-      onUpdated({ ...caseData, participants: updated } as any);
-      delete undoTimers.current[key];
-    }, 5000);
   };
 
   const handleUndoRemove = (staffId: string, typeId: string) => {
     const key = `${staffId}-${typeId}`;
-    clearTimeout(undoTimers.current[key]);
-    delete undoTimers.current[key];
     setRemovedKeys(prev => { const n = new Set(prev); n.delete(key); return n; });
   };
+
+  // Resolve current participants + pending removedKeys into the final
+  // list that would actually be saved -- used by both the dirty-check
+  // and handleSave, so they can never disagree with each other.
+  const resolveFinalParticipants = useCallback((): CaseParticipant[] => {
+    if (removedKeys.size === 0) return participants;
+    return participants.map(p => {
+      if (p.status !== 'active') return p;
+      const keptTypes = p.participationTypeIds.filter((id: string) => !removedKeys.has(`${p.staffId}-${id}`));
+      if (keptTypes.length === p.participationTypeIds.length) return p;
+      return keptTypes.length === 0 ? { ...p, status: 'removed' as const } : { ...p, participationTypeIds: keptTypes };
+    });
+  }, [participants, removedKeys]);
+
+  // ── dirty check — real comparison against the load-time snapshot ──────────────
+  const isDraftDirty = useMemo(() => {
+    if (removedKeys.size > 0) return true;
+    const final = resolveFinalParticipants();
+    const orig  = initialParticipantsRef.current;
+    if (final.length !== orig.length) return true;
+    const key = (p: CaseParticipant) => `${p.staffId}|${p.status}|${[...p.participationTypeIds].sort().join(',')}`;
+    const origKeys  = new Set(orig.map(key));
+    const finalKeys = new Set(final.map(key));
+    if (origKeys.size !== finalKeys.size) return true;
+    for (const k of origKeys) if (!finalKeys.has(k)) return true;
+    return false;
+  }, [resolveFinalParticipants, removedKeys]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDraftDirty);
+    return () => { onDirtyChange?.(false); };
+  }, [isDraftDirty, onDirtyChange]);
+
+  // ── save / cancel ─────────────────────────────────────────────────────────────
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      const final = resolveFinalParticipants();
+      await mockCaseService.updateCase(caseData.id, { participants: final } as any);
+      onUpdated({ ...caseData, participants: final } as any);
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [resolveFinalParticipants, caseData, onUpdated, onClose]);
+
+  const handleClose = useCallback(() => {
+    if (isDraftDirty) { setShowDirtyWarn(true); return; }
+    onClose();
+  }, [isDraftDirty, onClose]);
+
+  const handleDiscardConfirm = useCallback(() => {
+    setShowDirtyWarn(false);
+    onClose();
+  }, [onClose]);
 
   const draggingStaff = activeId ? staffList.find(s => `staff-${s.id}` === activeId) : null;
 
   return (
     <>
       {/* ── Modal shell uses fm-overlay + ps-research-modal pattern ── */}
-      <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-overlay" onClick={handleClose}>
         <div onClick={e => e.stopPropagation()} style={{
           width: '100%', maxWidth: 960, height: '88vh',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -390,7 +465,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
                 <span onClick={() => { onDelegate?.(); }} style={{ color: '#0891B2', cursor: 'pointer', textDecoration: 'underline' }}>Delegate</span>
               </div>
             </div>
-            <button className="ps-research-close" onClick={onClose} aria-label="Close">✕</button>
+            <button className="ps-research-close" onClick={handleClose} aria-label="Close">✕</button>
           </div>
 
           {/* Body */}
@@ -461,12 +536,28 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
             </DragOverlay>
           </DndContext>
 
-          {/* Footer */}
+          {/* Footer — Cancel (reverts) | Save (commits + closes) */}
           <div className="fm-footer">
-            <span className="fm-footer-status">
-              {activeParticipants.length} team member{activeParticipants.length !== 1 ? 's' : ''} · Changes save automatically
+            <span className="fm-footer-status" style={{ color: isDraftDirty ? '#f59e0b' : undefined }}>
+              {activeParticipants.length} team member{activeParticipants.length !== 1 ? 's' : ''}
+              {isDraftDirty ? ' · Unsaved changes' : ''}
             </span>
-            <button className="fm-btn-cancel" onClick={onClose}>Close</button>
+            <button className="fm-btn-cancel" onClick={handleClose}>Cancel</button>
+            <button
+              className="fm-btn-cancel"
+              onClick={handleSave}
+              disabled={!isDraftDirty || isSaving}
+              style={{
+                background: isDraftDirty ? 'rgba(34,197,94,0.15)' : undefined,
+                borderColor: isDraftDirty ? 'rgba(34,197,94,0.5)' : undefined,
+                color: isDraftDirty ? '#4ade80' : undefined,
+                fontWeight: 700,
+                opacity: isSaving ? 0.6 : 1,
+                cursor: (!isDraftDirty || isSaving) ? 'default' : 'pointer',
+              }}
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
           </div>
 
         </div>
@@ -477,6 +568,26 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
           onClose={() => setShowSelfBlock(false)}
           onDelegate={() => { setShowSelfBlock(false); onClose(); onDelegate?.(); }}
         />
+      )}
+
+      {/* Discard-changes warning — genuinely accurate: nothing is
+          persisted until Save, so discarding really does mean nothing
+          was ever written to the backend. */}
+      {showDirtyWarn && ReactDOM.createPortal(
+        <div className="ps-overlay" style={{ zIndex: 9500 }}>
+          <div className="ps-modal-dark ps-modal-dark--sm">
+            <div className="ps-modal-dark-header">
+              <span className="ps-modal-dark-emoji">⚠️</span>
+              <span className="ps-modal-dark-title">Discard changes?</span>
+            </div>
+            <p className="ps-modal-dark-body">You have unsaved team changes. Closing will discard them — nothing has been saved yet.</p>
+            <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
+              <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={() => setShowDirtyWarn(false)}>Keep editing</button>
+              <button className="ps-btn-red ps-modal-dark-footer__flex-btn" onClick={handleDiscardConfirm}>Discard changes</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

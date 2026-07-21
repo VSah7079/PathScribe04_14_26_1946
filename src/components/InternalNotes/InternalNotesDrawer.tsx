@@ -197,7 +197,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2999 }}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1199 }}
       />
 
       {/* Drawer */}
@@ -206,7 +206,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
         width: '420px', height: '100vh',
         background: '#0F172A',
         borderLeft: '1px solid rgba(255,255,255,0.08)',
-        zIndex: 3000,
+        zIndex: 1200,
         display: 'flex', flexDirection: 'column',
         animation: 'internalNoteSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         fontFamily: "'Inter', -apple-system, sans-serif",

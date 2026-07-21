@@ -237,7 +237,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
   return (
     <div
-className="ps-overlay" style={{ zIndex: 10000 }}
+className="ps-overlay" style={{ zIndex: 9000 }}
       onClick={onClose}
     >
       <div

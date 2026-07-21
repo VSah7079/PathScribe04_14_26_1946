@@ -85,7 +85,7 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
   const cc           = confColor(current.confidence);
 
   return (
-    <div className="ps-overlay" style={{ zIndex: 10001 }}>
+    <div className="ps-overlay" style={{ zIndex: 9500 }}>
       <div className="ps-modal-dark ps-ai-review-modal">
 
         <div className="ps-ai-review-header">

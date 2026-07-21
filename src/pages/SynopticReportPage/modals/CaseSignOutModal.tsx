@@ -21,7 +21,7 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
   if (!show) return null;
 
   return (
-    <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 22000 }}>
+    <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 9000 }}>
       <div className="ps-modal-dark ps-modal-dark--sm ps-modal-dark--centered">
 
         <div className="ps-modal-dark-emoji">✍️</div>

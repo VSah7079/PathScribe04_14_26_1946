@@ -213,7 +213,7 @@ const ConfigurationPage: React.FC = () => {
       {showWarning && (
         <div
           onClick={() => setShowWarning(false)}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 }}
         >
           <div
             onClick={e => e.stopPropagation()}

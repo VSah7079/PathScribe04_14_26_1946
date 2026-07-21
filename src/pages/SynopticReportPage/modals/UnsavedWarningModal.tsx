@@ -33,7 +33,7 @@ const UnsavedWarningModal: React.FC<UnsavedWarningModalProps> = ({
     <div
       data-capture-hide="true"
       className="ps-overlay"
-      style={{ zIndex: 40000, ...overlayStyle }}
+      style={{ zIndex: 9500, ...overlayStyle }}
       onClick={onCancel}
     >
       <div

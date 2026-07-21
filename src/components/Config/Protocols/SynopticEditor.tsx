@@ -442,7 +442,7 @@ const PreviewModal: React.FC<{ template: EditorTemplate; onClose: () => void }> 
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '660px', maxHeight: '88vh', background: '#fff', borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -784,7 +784,7 @@ const requestMeta  = searchParams.get('meta') ? JSON.parse(decodeURIComponent(se
       {showPreview && <PreviewModal template={template} onClose={() => setShowPreview(false)} />}
 
       {showSubmitConfirm && (
-        <div onClick={() => setShowSubmitConfirm(false)} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div onClick={() => setShowSubmitConfirm(false)} style={{ position: 'fixed', inset: 0, zIndex: 9500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '420px', background: T.surface, borderRadius: '14px', border: `1px solid ${T.border}`, boxShadow: '0 25px 50px rgba(0,0,0,0.6)', padding: '24px' }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: T.text, marginBottom: '8px' }}>Submit for Review?</div>
             <p style={{ fontSize: '13px', color: T.muted, lineHeight: 1.7, margin: '0 0 20px' }}>This will move <strong>{template.name || 'this template'}</strong> to the Review Queue and notify admins and clinical leads. You won't be able to edit it until it's returned for changes.</p>
@@ -797,7 +797,7 @@ const requestMeta  = searchParams.get('meta') ? JSON.parse(decodeURIComponent(se
       )}
 
       {showDiscardConfirm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '420px', background: T.surface, borderRadius: '14px', border: '1px solid rgba(239,68,68,0.3)', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', padding: '24px' }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: T.text, marginBottom: '8px' }}>Unsaved Changes</div>
             <p style={{ fontSize: '13px', color: T.muted, lineHeight: 1.7, margin: '0 0 20px' }}>You have unsaved changes to <strong>{template.name || 'this template'}</strong>. Would you like to save a draft before leaving, or discard your changes?</p>

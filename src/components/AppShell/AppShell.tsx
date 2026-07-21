@@ -647,7 +647,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   return ReactDOM.createPortal(
     <div
       onClick={onClose}
-      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:31000, display:'flex', alignItems:'center', justifyContent:'center' }}
+      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -1226,10 +1226,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
       {portalOpen && ReactDOM.createPortal(
         <>
-          <div onClick={handleCloseDrawer} style={{ position: 'fixed', top: '70px', right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', zIndex: 29998 }} />
+          <div onClick={handleCloseDrawer} style={{ position: 'fixed', top: '70px', right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1199 }} />
 
           {/* ── Unified messaging surface ── */}
-          <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 30000 }} onClick={e => e.stopPropagation()}>
+          <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 1200 }} onClick={e => e.stopPropagation()}>
 
             {/* ── Unified top bar ── */}
             <div className="ps-msg-topbar">
@@ -1446,7 +1446,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       )}
 {/* Secure email toast — kept for voice trigger fallback */}
       {secureEmailToast && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#0f1d2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#d0daea', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 5000, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#0f1d2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#d0daea', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 10000, whiteSpace: 'nowrap' }}>
           <span style={{ color: '#38bdf8', fontSize: 16 }}>🔒</span>
           {secureEmailToast}
         </div>

@@ -548,7 +548,7 @@ Rules:
   const ContextMenu = contextMenu ? (
     <div
       onClick={() => setContextMenu(null)}
-      className="ps-overlay" style={{ zIndex: 39000 }}
+      className="ps-overlay" style={{ zIndex: 9000 }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -562,7 +562,7 @@ Rules:
           borderRadius: 8,
           boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
           overflow: 'hidden',
-          zIndex: 100000,
+          zIndex: 9001,
         }}
       >
         <div className="acd-ctx-menu-label">

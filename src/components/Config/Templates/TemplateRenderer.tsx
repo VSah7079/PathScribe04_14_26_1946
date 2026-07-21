@@ -224,7 +224,7 @@ const ModalOverlay: React.FC<{ children: React.ReactNode; onClose: () => void }>
   <div
     onClick={onClose}
     style={{
-      position: 'fixed', inset: 0, zIndex: 50000,
+      position: 'fixed', inset: 0, zIndex: 9000,
       background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}

@@ -144,7 +144,7 @@ const ScreenshotPreview: React.FC<{
       <div
         onClick={() => setLightbox(false)}
         style={{
-          position: 'fixed', inset: 0, zIndex: 200000,
+          position: 'fixed', inset: 0, zIndex: 9500,
           background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'zoom-out', padding: '32px',
@@ -280,7 +280,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     <div
       data-enhancement-modal="true"
       onClick={onClose}
-      className="ps-overlay" style={{ zIndex: 60000, alignItems: 'flex-start', paddingTop: 40, paddingBottom: 40, overflowY: 'auto' }}
+      className="ps-overlay" style={{ zIndex: 9000, alignItems: 'flex-start', paddingTop: 40, paddingBottom: 40, overflowY: 'auto' }}
     >
       <div
         onClick={e => e.stopPropagation()}

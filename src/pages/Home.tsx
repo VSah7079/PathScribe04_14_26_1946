@@ -216,7 +216,7 @@ const cards = [
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10000
+            zIndex: 9000
           }}
           tabIndex={-1}
           onClick={() => setIsProfileOpen(false)}
@@ -436,7 +436,7 @@ const cards = [
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10000
+            zIndex: 9000
           }}
           tabIndex={-1}
           onClick={() => setIsResourcesOpen(false)}
@@ -707,7 +707,7 @@ const cards = [
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10000
+            zIndex: 9000
           }}
           tabIndex={-1}
           onClick={() => setShowAbout(false)}
@@ -793,5 +793,5 @@ const cards = [
 }
 
 // Global Styles
-const overlayStyle = { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 };
+const overlayStyle = { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 };
 const warningCardStyle = { width: '400px', backgroundColor: '#111', padding: '40px', borderRadius: '28px', textAlign: 'center' as const, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' };

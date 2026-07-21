@@ -395,7 +395,7 @@ export const UploadProtocolModal: React.FC<{
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '500px', background: '#1e293b', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
 
         {/* Header */}
@@ -492,7 +492,7 @@ export const BuildCustomiseModal: React.FC<{
     : publishedTemplates;
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '500px', background: '#1e293b', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
 
         {/* Header */}

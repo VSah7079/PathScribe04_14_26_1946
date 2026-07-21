@@ -14,7 +14,7 @@ const ResourcesModal: React.FC<ResourcesModalProps> = ({ isOpen, onClose, quickL
   if (!isOpen) return null;
   return (
     <div
-      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
+      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 }}
       onClick={onClose}
     >
       <div
