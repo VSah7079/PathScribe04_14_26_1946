@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RequestReviewModal from '@/components/RequestReview/RequestReviewModal';
 import { PoolClaimModal } from '@/components/Worklist/PoolClaimModal';
-import EMRSidecarModal from './EMRSidecarModal';
+import EMRSidecarDrawer from './EMRSidecarDrawer';
+import { useCompanionWindow } from '@/hooks/useCompanionWindow';
 
 
 interface BottomActionBarProps {
@@ -148,21 +149,47 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [claimOpen,  setClaimOpen]  = useState(false);
   const [emrOpen,    setEmrOpen]    = useState(false);
+  const { openCompanion, closeCompanion, isWindowOpen: isEmrWindowOpen } = useCompanionWindow({
+    windowName: 'PathScribeEMRSidecar',
+    preferredWidth: 1200,
+    preferredHeight: 800,
+  });
   const status = caseData?.status ?? 'draft';
   const isFinalized = status === 'finalized';
   const isPool = status === 'pool';
 
-  // Auto-close the EMR sidecar when the case changes, so a stale
-  // patient's record is never left showing -- replaces the previous
-  // window.open()-based popup and its two separate window-closing
-  // effects (one keyed on MRN, one on case id) with one consolidated
-  // effect, since this is now just local component state instead of a
-  // raw Window reference to manage.
+  // Safety requirement: never let a stale patient's EMR keep showing
+  // after the case changes. If a real companion window is currently
+  // open, proactively navigate it to the new patient (reusing the same
+  // window rather than leaving it stale or abruptly closing it) --
+  // otherwise just close the embedded drawer fallback, which is safe by
+  // construction (see EMRSidecarDrawer.tsx's key={patientId}).
   useEffect(() => {
+    if (isEmrWindowOpen) {
+      const mrn = caseData?.patient?.mrn ?? '100004';
+      openCompanion(`${window.location.origin}/mock-emr?patientId=${mrn}`);
+    }
     setEmrOpen(false);
   }, [caseData?.id]);
 
-  const handleLaunchEMR = () => setEmrOpen(true);
+  const handleLaunchEMR = async () => {
+    const mrn = caseData?.patient?.mrn ?? '100004';
+    const targetUrl = `${window.location.origin}/mock-emr?patientId=${mrn}`;
+    // Dev-only testing shortcut: append ?forceEmrFallback=1 to the URL
+    // to skip straight to the embedded drawer without even attempting
+    // openCompanion(). Useful for quickly iterating on the drawer's UI
+    // without repeatedly toggling browser popup-block settings -- does
+    // NOT test the real blocked-detection logic. To verify that for
+    // real, block popups for this site in the browser's own settings
+    // and launch normally (no query param) -- see this function's
+    // header note for the real end-to-end test.
+    if (new URLSearchParams(window.location.search).get('forceEmrFallback') === '1') {
+      setEmrOpen(true);
+      return;
+    }
+    const result = await openCompanion(targetUrl);
+    if (result === 'blocked') setEmrOpen(true);
+  };
 
   const hasCodes = ((caseData as any)?.coding?.icd10?.length ?? 0) > 0 ||
                    ((caseData as any)?.coding?.snomed?.length ?? 0) > 0;
@@ -348,7 +375,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
       onClose={() => setClaimOpen(false)}
     />
 
-    <EMRSidecarModal
+    <EMRSidecarDrawer
       isOpen={emrOpen}
       patientId={caseData?.patient?.mrn ?? '100004'}
       onClose={() => setEmrOpen(false)}

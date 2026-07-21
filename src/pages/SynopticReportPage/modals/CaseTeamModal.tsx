@@ -4,22 +4,29 @@
 // Left: participation type lanes (drop targets)
 // Right: staff directory (draggable cards)
 //
-// July 2026: converted to the same draft-then-save model as
-// FlagManagerModal (see that file's header note for the fuller
-// reasoning) -- nothing is persisted to the real backend until Save is
-// clicked. Assign used to persist immediately on drop; Remove used to
-// defer the real persist by 5 seconds with Undo cancelling that timer.
-// Both are now purely local-draft edits, resolved into ONE real
-// updateCase() call on Save. The existing removedKeys mechanism
-// (strikethrough + Undo in the list) is unchanged and now doubles as the
-// draft's "pending removal" marker, resolved at Save time instead of
-// auto-committing after 5 seconds.
+// July 2026, draft-then-save conversion: nothing is persisted to the real
+// backend until Save is clicked -- see the earlier version of this file's
+// header note for the fuller reasoning (matches FlagManagerModal's model).
 //
-// NOTE: the auto-assign-from-order.assignedTo reconciliation on initial
-// load (see the load effect below) still persists immediately -- that's
-// syncing existing real case data (who the order was assigned to), not a
-// user's in-progress draft edit, so it's deliberately left out of scope
-// for this change.
+// July 2026, second pass — real drag validation added after a confirmed
+// bug report: 'pathologist'/'resident' roles had ZERO participationTypeIds
+// configured, meaning EVERY drag involving either role was silently
+// rejected with no feedback -- effectively the whole feature was
+// non-functional for the two most common roles in the app. Fixed at the
+// data layer (services/roles/mockRoleService.ts), but the silent-failure
+// UX itself was a real, separate bug worth fixing regardless of correct
+// data -- added here:
+//   1. Live eligibility preview: the moment a drag starts, EVERY zone
+//      immediately shows whether it would accept the dragged person (not
+//      just on hover) -- red/dashed for role-ineligible, amber for
+//      "occupied, will offer to replace", normal highlight for eligible.
+//   2. Real rejection messages instead of a silent no-op.
+//   3. Single-occupancy conflicts (allowsMultiple: false, someone else
+//      already assigned) offer a Replace confirmation rather than a hard
+//      block -- per Pete's real clinical-workflow spec: Primary
+//      Pathologist etc. must stay single-occupancy for medico-legal
+//      reasons, but the common case (correcting a mis-assignment) should
+//      be one click, not "remove them first, then drag the right person."
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -49,6 +56,8 @@ import type { ParticipationTypeRecord as ParticipationType } from '@/services/pa
 import type { StaffUser }                from '@/services/users/IUserService';
 import type { Role }                     from '@/services/roles/IRoleService';
 import { useAuth }                       from '@/contexts/AuthContext';
+
+type DragEligibility = 'eligible' | 'role-ineligible' | 'occupied';
 
 // ─── Draggable staff card ─────────────────────────────────────────────────────
 
@@ -118,6 +127,7 @@ interface DropZoneProps {
   participants:  CaseParticipant[];
   currentUserId: string;
   isOver:        boolean;
+  dragEligibility: DragEligibility | null; // null = nothing currently being dragged
   onRemove:      (staffId: string, typeId: string) => void;
   onUndoRemove:  (staffId: string, typeId: string) => void;
   removedKeys:   Set<string>;
@@ -125,31 +135,67 @@ interface DropZoneProps {
 }
 
 const DropZone: React.FC<DropZoneProps> = ({
-  type, participants, currentUserId, isOver, onRemove, onUndoRemove, removedKeys, onDelegate,
+  type, participants, currentUserId, isOver, dragEligibility, onRemove, onUndoRemove, removedKeys, onDelegate,
 }) => {
   const { setNodeRef } = useDroppable({ id: `type-${type.id}` });
   const inType = participants.filter(p => p.status === 'active' && p.participationTypeIds.includes(type.id));
+
+  // Live preview colors — shown for EVERY zone the instant a drag starts,
+  // not just on hover, so the user can see at a glance which zones will
+  // work before they even move the cursor there.
+  let borderColor = 'rgba(255,255,255,0.08)';
+  let bgColor = 'rgba(255,255,255,0.02)';
+  let borderStyle: 'dashed' | 'solid' = 'dashed';
+  let previewLabel: string | null = null;
+
+  if (dragEligibility === 'role-ineligible') {
+    borderColor = isOver ? 'rgba(239,68,68,0.6)' : 'rgba(239,68,68,0.35)';
+    bgColor = isOver ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.04)';
+    borderStyle = 'dashed';
+    previewLabel = '⊘ Not eligible for this role';
+  } else if (dragEligibility === 'occupied') {
+    borderColor = isOver ? 'rgba(245,158,11,0.6)' : 'rgba(245,158,11,0.35)';
+    bgColor = isOver ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.04)';
+    borderStyle = isOver ? 'solid' : 'dashed';
+    previewLabel = isOver ? 'Drop to replace' : 'Already assigned — will offer to replace';
+  } else if (dragEligibility === 'eligible') {
+    borderColor = isOver ? type.color + '66' : 'rgba(255,255,255,0.14)';
+    bgColor = isOver ? type.color + '12' : 'rgba(255,255,255,0.02)';
+    borderStyle = isOver ? 'solid' : 'dashed';
+    previewLabel = isOver ? 'Drop to assign' : null;
+  }
 
   return (
     <div
       ref={setNodeRef}
       style={{
         borderRadius: 10, padding: 12,
-        background: isOver ? type.color + '12' : 'rgba(255,255,255,0.02)',
-        border: `2px ${isOver ? 'solid' : 'dashed'} ${isOver ? type.color + '66' : 'rgba(255,255,255,0.08)'}`,
+        background: bgColor,
+        border: `2px ${borderStyle} ${borderColor}`,
         transition: 'all 0.15s', minHeight: 80,
+        cursor: dragEligibility === 'role-ineligible' ? 'not-allowed' : undefined,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: type.color + '22', color: type.color, border: `1px solid ${type.color}44` }}>{type.abbreviation}</span>
         <span style={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb', flex: 1 }}>{type.label}</span>
+        {!type.allowsMultiple && <span style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: '0.04em' }}>SINGLE</span>}
         {type.requiresCountersign && <span style={{ fontSize: 10, color: '#f59e0b', padding: '1px 5px', borderRadius: 4, border: '1px solid rgba(245,158,11,0.2)', background: 'rgba(245,158,11,0.06)' }}>Countersign req.</span>}
         {type.canFinalize        && <span style={{ fontSize: 10, color: '#22c55e', padding: '1px 5px', borderRadius: 4, border: '1px solid rgba(34,197,94,0.2)',   background: 'rgba(34,197,94,0.06)' }}>Can finalise</span>}
       </div>
 
-      {inType.length === 0 && (
-        <div style={{ padding: '8px 0', textAlign: 'center', fontSize: 11, color: isOver ? type.color : '#475569', fontStyle: 'italic' }}>
-          {isOver ? 'Drop to assign' : 'Drag staff here'}
+      {previewLabel && (
+        <div style={{
+          padding: '6px 0', textAlign: 'center', fontSize: 11, fontStyle: 'italic',
+          color: dragEligibility === 'role-ineligible' ? '#f87171' : dragEligibility === 'occupied' ? '#fbbf24' : type.color,
+        }}>
+          {previewLabel}
+        </div>
+      )}
+
+      {inType.length === 0 && !previewLabel && (
+        <div style={{ padding: '8px 0', textAlign: 'center', fontSize: 11, color: '#475569', fontStyle: 'italic' }}>
+          Drag staff here
         </div>
       )}
 
@@ -236,6 +282,38 @@ const SelfRemoveBlockedModal: React.FC<{ onClose: () => void; onDelegate: () => 
   </div>
 );
 
+// ─── Replace confirmation modal ───────────────────────────────────────────────
+
+interface ReplaceConfirmState {
+  typeId: string; typeLabel: string;
+  newStaffId: string; newStaffName: string;
+  existingStaffId: string; existingStaffName: string;
+}
+
+const ReplaceConfirmModal: React.FC<{ state: ReplaceConfirmState; onConfirm: () => void; onCancel: () => void }> = ({ state, onConfirm, onCancel }) => (
+  <div className="ps-overlay" style={{ zIndex: 9500 }}>
+    <div className="ps-modal-dark" style={{ width: 'min(460px, 90vw)' }}>
+      <div className="ps-modal-dark-header">
+        <span style={{ fontSize: 18 }}>⚠</span>
+        <span className="ps-modal-dark-title">{state.typeLabel} already assigned</span>
+      </div>
+      <p className="ps-modal-dark-body">
+        <strong style={{ color: '#e2e8f0' }}>{state.existingStaffName}</strong> is currently the {state.typeLabel}.
+        Replace with <strong style={{ color: '#e2e8f0' }}>{state.newStaffName}</strong>?
+      </p>
+      <p className="ps-modal-dark-hint">
+        This only changes the draft — nothing is saved until you click Save below.
+      </p>
+      <div className="ps-modal-dark-footer">
+        <button className="ps-btn-ghost-dark" onClick={onCancel}>Cancel</button>
+        <button onClick={onConfirm} style={{ padding: '8px 18px', background: '#0891B2', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          Replace
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -243,10 +321,6 @@ interface Props {
   onClose:     () => void;
   onUpdated:   (updated: Case) => void;
   onDelegate?: () => void;
-  /** Reports whether the draft (pending assigns + pending removedKeys)
-   *  currently differs from what was loaded -- same purpose as
-   *  FlagManagerModal's onDirtyChange, see that file for the full
-   *  reasoning. Called with false on unmount. */
   onDirtyChange?: (dirty: boolean) => void;
 }
 
@@ -256,9 +330,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const [roles,        setRoles]        = useState<Role[]>([]);
   const [allTypes,     setAllTypes]     = useState<ParticipationType[]>([]);
   const [participants, setParticipants] = useState<CaseParticipant[]>([]);
-  // Snapshot of participants at the moment loading finished -- the
-  // baseline for the dirty-check and the Save diff. Never mutated after
-  // being set.
   const initialParticipantsRef = useRef<CaseParticipant[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
@@ -268,6 +339,9 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const [showSelfBlock,setShowSelfBlock]= useState(false);
   const [showDirtyWarn,setShowDirtyWarn]= useState(false);
   const [isSaving,     setIsSaving]     = useState(false);
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
+  const [replaceConfirm, setReplaceConfirm] = useState<ReplaceConfirmState | null>(null);
+  const rejectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -284,9 +358,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
       if (assignedId && !existing.find(p => p.staffId === assignedId && p.status === 'active')) {
         const staffMember = users.find(u => u.id === assignedId);
         if (staffMember) {
-          // Reconciling existing real case data (who the order was
-          // assigned to), not a draft edit -- persists immediately,
-          // deliberately out of scope for the draft/save conversion.
           const autoP: CaseParticipant = {
             staffId: staffMember.id,
             staffName: `${staffMember.firstName} ${staffMember.lastName}`,
@@ -327,10 +398,55 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const activeParticipants = participants.filter(p => p.status === 'active');
   const staffOnCase        = new Set(activeParticipants.map(p => p.staffId));
 
+  // ── rejection banner — auto-dismisses ─────────────────────────────────────────
+  const showRejection = useCallback((msg: string) => {
+    setRejectionMessage(msg);
+    if (rejectionTimerRef.current) clearTimeout(rejectionTimerRef.current);
+    rejectionTimerRef.current = setTimeout(() => setRejectionMessage(null), 4500);
+  }, []);
+  useEffect(() => () => { if (rejectionTimerRef.current) clearTimeout(rejectionTimerRef.current); }, []);
+
+  // ── eligibility check — single source of truth, used for BOTH the live
+  //    drag-preview highlighting AND the actual drop validation, so they
+  //    can never disagree with each other ──────────────────────────────────────
+  const getDragEligibility = useCallback((staffId: string, typeId: string): DragEligibility => {
+    const staffMember = staffList.find(s => s.id === staffId);
+    const type = allTypes.find(t => t.id === typeId);
+    if (!staffMember || !type) return 'role-ineligible';
+    const staffRoles = roles.filter(r => staffMember.roles.includes(r.name));
+    const allowedIds = new Set(staffRoles.flatMap(r => (r as any).participationTypeIds ?? []));
+    if (!allowedIds.has(typeId)) return 'role-ineligible';
+    const occupant = activeParticipants.find(p => p.participationTypeIds.includes(typeId) && p.staffId !== staffId);
+    if (occupant && !type.allowsMultiple) return 'occupied';
+    return 'eligible';
+  }, [staffList, allTypes, roles, activeParticipants]);
+
+  const draggedStaffId = activeId?.startsWith('staff-') ? activeId.replace('staff-', '') : null;
+
   const handleDragStart = (event: DragStartEvent) => { setActiveId(String(event.active.id)); };
   const handleDragOver  = (event: any)             => { setOverId(event.over ? String(event.over.id) : null); };
 
   // ── assign — draft only, no API call ──────────────────────────────────────────
+  const assignStaffToType = useCallback((staff: StaffUser, typeId: string) => {
+    setParticipants(prev => {
+      const existingP = prev.find(p => p.staffId === staff.id && p.status === 'active');
+      if (existingP) {
+        return prev.map(p =>
+          p.staffId === staff.id && p.status === 'active'
+            ? { ...p, participationTypeIds: [...p.participationTypeIds, typeId] } : p
+        );
+      }
+      const newP: CaseParticipant = {
+        staffId: staff.id, staffName: `${staff.firstName} ${staff.lastName}`,
+        externalId: (staff as any).gmcNumber || staff.npi || undefined,
+        externalIdType: (staff as any).gmcNumber ? 'GMC' : staff.npi ? 'NPI' : undefined,
+        source: 'manual', participationTypeIds: [typeId],
+        addedBy: user?.id ?? 'unknown', addedAt: new Date().toISOString(), status: 'active',
+      };
+      return [...prev, newP];
+    });
+  }, [user?.id]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null); setOverId(null);
     const { active, over } = event;
@@ -340,36 +456,67 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     const staff   = staffList.find(s => s.id === staffId);
     const type    = allTypes.find(t => t.id === typeId);
     if (!staff || !type) return;
-    const staffRoles = roles.filter(r => staff.roles.includes(r.name));
-    const allowedIds = new Set(staffRoles.flatMap(r => (r as any).participationTypeIds ?? []));
-    if (!allowedIds.has(typeId)) return;
-    const alreadyAssigned = activeParticipants.find(p => p.staffId === staffId && p.participationTypeIds.includes(typeId));
-    if (alreadyAssigned) return;
 
-    let updated: CaseParticipant[];
-    const existingP = activeParticipants.find(p => p.staffId === staffId);
-    if (existingP) {
-      updated = participants.map(p =>
-        p.staffId === staffId && p.status === 'active'
-          ? { ...p, participationTypeIds: [...p.participationTypeIds, typeId] } : p
-      );
-    } else {
-      const newP: CaseParticipant = {
-        staffId: staff.id, staffName: `${staff.firstName} ${staff.lastName}`,
-        externalId: (staff as any).gmcNumber || staff.npi || undefined,
-        externalIdType: (staff as any).gmcNumber ? 'GMC' : staff.npi ? 'NPI' : undefined,
-        source: 'manual', participationTypeIds: [typeId],
-        addedBy: user?.id ?? 'unknown', addedAt: new Date().toISOString(), status: 'active',
-      };
-      updated = [...participants, newP];
+    const eligibility = getDragEligibility(staffId, typeId);
+
+    if (eligibility === 'role-ineligible') {
+      const roleName = staff.roles[0] ?? 'This role';
+      showRejection(`${roleName}s cannot be assigned as ${type.label}.`);
+      return;
     }
-    setParticipants(updated);
+
+    const alreadyAssigned = activeParticipants.find(p => p.staffId === staffId && p.participationTypeIds.includes(typeId));
+    if (alreadyAssigned) return; // no-op, already there
+
+    if (eligibility === 'occupied') {
+      const occupant = activeParticipants.find(p => p.participationTypeIds.includes(typeId) && p.staffId !== staffId);
+      if (occupant) {
+        setReplaceConfirm({
+          typeId, typeLabel: type.label,
+          newStaffId: staff.id, newStaffName: `${staff.firstName} ${staff.lastName}`,
+          existingStaffId: occupant.staffId, existingStaffName: occupant.staffName,
+        });
+        return;
+      }
+    }
+
+    assignStaffToType(staff, typeId);
   };
 
+  const resolveReplace = useCallback((confirmed: boolean) => {
+    if (confirmed && replaceConfirm) {
+      const { typeId, existingStaffId, newStaffId } = replaceConfirm;
+      setParticipants(prev => {
+        let updated = prev.map(p => {
+          if (p.staffId === existingStaffId && p.status === 'active') {
+            const remaining = p.participationTypeIds.filter(id => id !== typeId);
+            return remaining.length === 0 ? { ...p, status: 'removed' as const } : { ...p, participationTypeIds: remaining };
+          }
+          return p;
+        });
+        const staff = staffList.find(s => s.id === newStaffId);
+        if (staff) {
+          const existingNewP = updated.find(p => p.staffId === staff.id && p.status === 'active');
+          if (existingNewP) {
+            updated = updated.map(p => p.staffId === staff.id && p.status === 'active' ? { ...p, participationTypeIds: [...p.participationTypeIds, typeId] } : p);
+          } else {
+            const newP: CaseParticipant = {
+              staffId: staff.id, staffName: `${staff.firstName} ${staff.lastName}`,
+              externalId: (staff as any).gmcNumber || staff.npi || undefined,
+              externalIdType: (staff as any).gmcNumber ? 'GMC' : staff.npi ? 'NPI' : undefined,
+              source: 'manual', participationTypeIds: [typeId],
+              addedBy: user?.id ?? 'unknown', addedAt: new Date().toISOString(), status: 'active',
+            };
+            updated = [...updated, newP];
+          }
+        }
+        return updated;
+      });
+    }
+    setReplaceConfirm(null);
+  }, [replaceConfirm, staffList, user?.id]);
+
   // ── remove — draft only, resolved at Save time ────────────────────────────────
-  // No more deferred timer/auto-commit. Marking removedKeys IS the draft
-  // edit; Save (below) applies every pending removal in one pass before
-  // persisting once.
   const handleRemove = (staffId: string, typeId: string) => {
     const isSelf        = staffId === user?.id;
     const isPrimary     = typeId === 'primary';
@@ -385,9 +532,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     setRemovedKeys(prev => { const n = new Set(prev); n.delete(key); return n; });
   };
 
-  // Resolve current participants + pending removedKeys into the final
-  // list that would actually be saved -- used by both the dirty-check
-  // and handleSave, so they can never disagree with each other.
   const resolveFinalParticipants = useCallback((): CaseParticipant[] => {
     if (removedKeys.size === 0) return participants;
     return participants.map(p => {
@@ -398,7 +542,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     });
   }, [participants, removedKeys]);
 
-  // ── dirty check — real comparison against the load-time snapshot ──────────────
   const isDraftDirty = useMemo(() => {
     if (removedKeys.size > 0) return true;
     const final = resolveFinalParticipants();
@@ -417,7 +560,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     return () => { onDirtyChange?.(false); };
   }, [isDraftDirty, onDirtyChange]);
 
-  // ── save / cancel ─────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -444,7 +586,6 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
 
   return (
     <>
-      {/* ── Modal shell uses fm-overlay + ps-research-modal pattern ── */}
       <div className="ps-overlay" onClick={handleClose}>
         <div onClick={e => e.stopPropagation()} style={{
           width: '100%', maxWidth: 960, height: '88vh',
@@ -468,6 +609,19 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
             <button className="ps-research-close" onClick={handleClose} aria-label="Close">✕</button>
           </div>
 
+          {/* Rejection banner — real feedback instead of a silent no-op */}
+          {rejectionMessage && (
+            <div style={{
+              margin: '10px 20px 0', padding: '8px 14px', borderRadius: 8,
+              background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+              display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 13 }}>⊘</span>
+              <span style={{ fontSize: 12, color: '#fca5a5', flex: 1 }}>{rejectionMessage}</span>
+              <button onClick={() => setRejectionMessage(null)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontSize: 13 }}>✕</button>
+            </div>
+          )}
+
           {/* Body */}
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 340px', minHeight: 0, overflow: 'hidden' }}>
@@ -485,6 +639,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
                   <DropZone
                     key={type.id} type={type} participants={participants}
                     currentUserId={user?.id ?? ''} isOver={overId === `type-${type.id}`}
+                    dragEligibility={draggedStaffId ? getDragEligibility(draggedStaffId, type.id) : null}
                     onRemove={handleRemove} onUndoRemove={handleUndoRemove}
                     removedKeys={removedKeys} onDelegate={() => { onClose(); onDelegate?.(); }}
                   />
@@ -570,9 +725,14 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
         />
       )}
 
-      {/* Discard-changes warning — genuinely accurate: nothing is
-          persisted until Save, so discarding really does mean nothing
-          was ever written to the backend. */}
+      {replaceConfirm && (
+        <ReplaceConfirmModal
+          state={replaceConfirm}
+          onConfirm={() => resolveReplace(true)}
+          onCancel={() => resolveReplace(false)}
+        />
+      )}
+
       {showDirtyWarn && ReactDOM.createPortal(
         <div className="ps-overlay" style={{ zIndex: 9500 }}>
           <div className="ps-modal-dark ps-modal-dark--sm">

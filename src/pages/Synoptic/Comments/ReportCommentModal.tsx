@@ -82,7 +82,9 @@ const ReportCommentModal: React.FC<ReportCommentModalProps> = ({
             content={draft}
             placeholder={`Add a comment for ${titleName}…`}
             onChange={setDraft}
-            minHeight="140px"
+            minHeight="220px"
+            theme="dark"
+            allowThemeToggle
             showRulerDefault={false}
             macros={[]}
             approvedFonts={['Arial', 'Times New Roman', 'Calibri', 'Courier New']}

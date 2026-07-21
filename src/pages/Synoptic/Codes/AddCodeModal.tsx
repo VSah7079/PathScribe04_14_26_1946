@@ -145,19 +145,30 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   const [focused,      setFocused]      = useState(-1);
   const [target,       setTarget]       = useState<number | null>(null);
   const [applied,      setApplied]      = useState<PendingCode[]>(() =>
-    existingCodes.map(c => {
-      // Resolve specimenId back to specimenIndex so left panel groups correctly
-      const specOption = (c as any).specimenId
-        ? allSpecimens.find(s => s.specimenId === (c as any).specimenId)
-        : null;
-      return {
-        code:          c.code,
-        display:       c.display,
-        system:        c.system,
-        specimenIndex: specOption ? specOption.index : null,
-        pendingDelete: false,
-      };
-    })
+    existingCodes
+      // Guards against malformed entries with an empty/missing code --
+      // these were rendering as blank rows (grabber + trash icon, no
+      // visible text) with no indication anything was wrong. Filtering
+      // here means they're excluded from the very first render, and
+      // since handleSave's diff logic works entirely off this `applied`
+      // array (not existingCodes directly), any of these already sitting
+      // in the real backend data get silently dropped the next time this
+      // case's codes are saved for any reason -- no separate cleanup
+      // migration needed.
+      .filter(c => !!c.code)
+      .map(c => {
+        // Resolve specimenId back to specimenIndex so left panel groups correctly
+        const specOption = (c as any).specimenId
+          ? allSpecimens.find(s => s.specimenId === (c as any).specimenId)
+          : null;
+        return {
+          code:          c.code,
+          display:       c.display,
+          system:        c.system,
+          specimenIndex: specOption ? specOption.index : null,
+          pendingDelete: false,
+        };
+      })
   );
   const [isDirty, setIsDirty] = useState(false);
   const [aiSuggestions,    setAiSuggestions]    = useState<AiCodeSuggestion[]>([]);
@@ -842,7 +853,7 @@ Rules:
 
             {/* Search */}
             <div className="fm-search-wrap acd-search-mb">
-              <IcoSearch />
+              <span className="fm-search-icon"><IcoSearch /></span>
               <input
                 ref={inputRef}
                 autoFocus

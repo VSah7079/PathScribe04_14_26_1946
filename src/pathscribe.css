@@ -2217,6 +2217,7 @@
 
 /* Modal shell — reuses ps-research-modal sizing */
 .fm-modal {
+  --modal-max-w: 1440px;      /* the later safety-net rule (.fm-modal, [class*="-modal"] { max-width: min(var(--modal-max-w, 900px), 96vw) !important; }) was silently overriding this to 900px, since nothing set the variable it expects. This restores the deliberate 1440px sizing below without removing the safety net's real purpose (still correctly caps on small screens via 96vw). */
   width: min(1440px, 96vw);   /* delegate: 340+240+right+dept = balanced; flag manager: 340+240+right = plenty */
   height: 760px;
   display: flex;
@@ -10580,18 +10581,28 @@ select.ps-conf-select optgroup { background: #0f0f0f; color: #9ca3af; font-weigh
 /* ── CommentModalShell ───────────────────────────────────────────────────── */
 .ps-cmnt-overlay             { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; pointer-events: auto; }
 .ps-cmnt-overlay--dimmed     { background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
-.ps-cmnt-modal               { width: 75vw; height: 85vh; background: white; border-radius: 16px; box-shadow: 0 32px 80px rgba(0,0,0,0.35); display: flex; flex-direction: column; overflow: hidden; z-index: 1; transition: box-shadow 0.2s; }
-.ps-cmnt-header              { padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0; cursor: grab; background: #f8fafc; border-radius: 16px 16px 0 0; user-select: none; }
+.ps-cmnt-modal                { width: 75vw; height: 85vh; background: #0b1120; border: 1px solid rgba(148,163,184,0.4); border-radius: 16px; box-shadow: 0 32px 80px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; z-index: 1; transition: box-shadow 0.2s; }
+/* Was a light theme (white/#f8fafc) — the ONE modal in the app that
+   never got converted to match everything else. Its own thread text
+   colors (#67e8f9, #64748b, #DEE4E7 below) were ALREADY correctly tuned
+   for a dark background, which is why near-white body text on a white
+   container was nearly invisible -- only the container needed fixing,
+   not the text. */
+.ps-cmnt-header               { padding: 16px 24px; border-bottom: 1px solid rgba(51,65,85,0.9); display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0; cursor: grab; background: rgba(255,255,255,0.02); border-radius: 16px 16px 0 0; user-select: none; }
 .ps-cmnt-header-left         { flex: 1; min-width: 0; }
 .ps-cmnt-header-title-row    { display: flex; align-items: center; gap: 8px; }
 .ps-cmnt-grip                { color: #cbd5e1; font-size: 14px; letter-spacing: 1px; flex-shrink: 0; }
-.ps-cmnt-title               { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; }
+.ps-cmnt-title                { font-size: 16px; font-weight: 700; color: #e2e8f0; margin: 0; }
 .ps-cmnt-subtitle            { font-size: 12px; color: #64748b; padding-left: 22px; margin-top: 4px; }
-.ps-cmnt-close-btn           { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 20px; line-height: 1; padding: 2px 0 0 16px; flex-shrink: 0; }
-.ps-cmnt-close-btn:hover     { color: #475569; }
+.ps-cmnt-close-btn            { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 20px; line-height: 1; padding: 2px 0 0 16px; flex-shrink: 0; }
+.ps-cmnt-close-btn:hover      { color: #ef4444; }
+/* Was darkening on hover (#475569) -- correct direction for a light
+   background, backwards for a dark one (moves toward invisible). Now
+   matches the red-on-hover convention used by every other close button
+   built tonight. */
 .ps-cmnt-body                { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
 .ps-cmnt-body--editor        { flex: 1; overflow-y: auto; padding: 0; display: flex; flex-direction: column; gap: 0; }
-.ps-cmnt-footer              { padding: 12px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: #f8fafc; }
+.ps-cmnt-footer                { padding: 12px 24px; border-top: 1px solid rgba(51,65,85,0.9); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: rgba(255,255,255,0.02); }
 .ps-cmnt-footer-note         { font-size: 11px; color: #94a3b8; max-width: 60%; }
 .ps-cmnt-save-btn            { padding: 8px 22px; background: #0891B2; border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
 .ps-cmnt-save-btn:hover      { background: #0e7490; }
@@ -10601,7 +10612,7 @@ select.ps-conf-select optgroup { background: #0f0f0f; color: #9ca3af; font-weigh
 .ps-cmnt-role-note           { font-size: 11px; color: #94a3b8; }
 .ps-cmnt-status-empty        { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #fef3c7; color: #92400e; font-weight: 600; }
 .ps-cmnt-status-saved        { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #d1fae5; color: #065f46; font-weight: 600; }
-.ps-cmnt-status-finalized    { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #f1f5f9; color: #94a3b8; font-weight: 600; }
+.ps-cmnt-status-finalized      { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; font-weight: 600; }
 .ps-cmnt-status-none         { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #fee2e2; color: #991b1b; font-weight: 600; }
 .ps-cmnt-other-wrap          { margin-top: 24px; }
 .ps-cmnt-badge               { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 10px; }

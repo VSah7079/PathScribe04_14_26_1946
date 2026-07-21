@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
+import {
+  DndContext, DragEndEvent, DragStartEvent, DragOverlay,
+  useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { IActionRegistryService } from '../../../services/actionRegistry/IActionRegistryService';
 import { userService } from '../../../services';
 import type { StaffUser } from '../../../services';
@@ -31,13 +36,117 @@ interface DelegateModalProps {
   synopticInstances?: SynopticOption[];
 }
 
+// ─── Draggable recipient card — staff or pool ────────────────────────────────
+
+interface RecipientCardProps {
+  id: string; // 'staff-<id>' or 'pool-<id>'
+  primary: string;
+  secondary: string;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+const RecipientCard: React.FC<RecipientCardProps> = ({ id, primary, secondary, isSelected, onClick }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onClick}
+      style={{
+        padding: '9px 12px',
+        background: isDragging ? 'rgba(138,180,248,0.15)' : isSelected ? 'rgba(8,145,178,0.12)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isDragging ? 'rgba(138,180,248,0.4)' : isSelected ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.08)'}`,
+        borderLeft: isSelected ? '2px solid #0891B2' : '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 8, cursor: 'grab', marginBottom: 4,
+        transform: transform ? CSS.Translate.toString(transform) : undefined,
+        userSelect: 'none', touchAction: 'none',
+        transition: isDragging ? 'none' : 'all 0.12s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+          background: 'rgba(138,180,248,0.15)', border: '1.5px solid rgba(138,180,248,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10, fontWeight: 700, color: '#8AB4F8',
+        }}>
+          {primary.replace(/^Dr\.\s*/, '').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{primary}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{secondary}</div>
+        </div>
+        <div style={{ fontSize: 14, color: '#374151', flexShrink: 0 }}>⠿</div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Delegation type — now a real drop zone ───────────────────────────────────
+
+interface TypeZoneProps {
+  dt: any;
+  isSelected: boolean;
+  isOver: boolean;
+  selectedRecipientLabel: string | null;
+  onSelectType: () => void;
+  onClearRecipient: () => void;
+}
+
+const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRecipientLabel, onSelectType, onClearRecipient }) => {
+  const { setNodeRef } = useDroppable({ id: `type-${dt.id}` });
+
+  return (
+    <div
+      ref={setNodeRef}
+      onClick={onSelectType}
+      style={{
+        padding: '10px 12px', marginBottom: 6, borderRadius: 10, cursor: 'pointer',
+        background: isOver ? dt.color + '14' : isSelected ? 'rgba(8,145,178,0.08)' : 'rgba(255,255,255,0.02)',
+        border: `1.5px ${isOver ? 'solid' : isSelected ? 'solid' : 'dashed'} ${isOver ? dt.color + '66' : isSelected ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.08)'}`,
+        transition: 'all 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', padding: '2px 6px', borderRadius: 5, flexShrink: 0,
+          background: isSelected ? dt.color + '22' : 'rgba(255,255,255,0.06)', color: isSelected ? dt.color : '#94a3b8',
+        }}>
+          {dt.id.replace('_', ' ')}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb', flex: 1 }}>{dt.label}</span>
+        {isSelected && <span style={{ color: '#0891B2', fontSize: 13, fontWeight: 700 }}>✓</span>}
+      </div>
+      <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{dt.description}</div>
+      {dt.transfersOwnership && (
+        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>transfers ownership</span>
+      )}
+      {isSelected && (
+        selectedRecipientLabel ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '6px 10px', background: 'rgba(8,145,178,0.1)', border: '1px solid rgba(8,145,178,0.25)', borderRadius: 7 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#7dd3fc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedRecipientLabel}</span>
+            <button onClick={e => { e.stopPropagation(); onClearRecipient(); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 13, padding: 0 }}>✕</button>
+          </div>
+        ) : (
+          <div style={{ marginTop: 8, padding: '6px 10px', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 7, fontSize: 11, color: '#475569', textAlign: 'center' }}>
+            {isOver ? 'Drop to assign' : 'Drag a recipient here, or click one on the right'}
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
 export const DelegateModal: React.FC<DelegateModalProps> = ({
   isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = []
 }) => {
   const { subspecialties } = useSubspecialties();
   const [searchTerm,         setSearchTerm]         = useState('');
   const [selectedId,         setSelectedId]         = useState<string | null>(null);
-  const [tab,                setTab]                = useState<'individuals' | 'pools'>('individuals');
+  const [filter,             setFilter]             = useState<'individuals' | 'pools'>('individuals');
   const [confirming,         setConfirming]         = useState(false);
   const [delegationType,     setDelegationType]     = useState<string | null>(null);
   const [note,               setNote]               = useState('');
@@ -45,6 +154,10 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
   const [delegationTypes,    setDelegationTypes]    = useState(() => loadDelegationTypes().filter((d: any) => d.active));
   const [staff,              setStaff]              = useState<{id:string;name:string;role:string;subspecialty:string}[]>([]);
   const [loading,            setLoading]            = useState(false);
+  const [activeId,           setActiveId]           = useState<string | null>(null);
+  const [overId,             setOverId]             = useState<string | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const contextPools: Pool[] = subspecialties
     .filter(s => s.active)
@@ -78,7 +191,6 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                 name:        prefix + parts.join(' '),
                 role:        u.roles.find(r => r === 'Pathologist' || r === 'Resident') ?? u.roles[0] ?? 'Staff',
                 subspecialty: u.department,
-
               };
             });
           setStaff(delegates);
@@ -120,6 +232,31 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
     !(selectedDelegType?.requiresNote && !note) &&
     !(delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && !selectedInstanceId);
 
+  // ── drag handling — sets BOTH delegationType and selectedId at once ──────────
+  // Click-to-select (below, on each type zone and each recipient card) still
+  // works independently -- this is a faster additive gesture, not a
+  // replacement. Deliberately does NOT auto-confirm: dropping only sets the
+  // selection, same as clicking would -- the explicit Confirm Delegation
+  // button is still required before anything real happens. A couple of
+  // these delegation types transfer case ownership; a single accidental
+  // drag is a much easier mistake than a deliberate click sequence, so the
+  // final confirm step stays mandatory regardless of how the selection was made.
+  const handleDragStart = (event: DragStartEvent) => { setActiveId(String(event.active.id)); };
+  const handleDragOver  = (event: any)             => { setOverId(event.over ? String(event.over.id) : null); };
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null); setOverId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const recipientId = String(active.id).replace(/^(staff|pool)-/, '');
+    const typeId = String(over.id).replace('type-', '');
+    setDelegationType(typeId);
+    setSelectedId(recipientId);
+    setSelectedInstanceId(null);
+  };
+
+  const draggingStaff = activeId?.startsWith('staff-') ? staff.find(s => `staff-${s.id}` === activeId) : null;
+  const draggingPool  = activeId?.startsWith('pool-')  ? contextPools.find(p => `pool-${p.id}` === activeId) : null;
+
   const handleConfirm = async () => {
     if (!canConfirm) return;
     setConfirming(true);
@@ -154,7 +291,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
 
   return (
     <div className="ps-overlay" onClick={onClose}>
-      <div className="ps-research-modal fm-modal" onClick={e => e.stopPropagation()}>
+      <div className="ps-research-modal fm-modal" onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column' }}>
 
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="ps-research-header">
@@ -170,7 +307,6 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
               )}
             </div>
           </div>
-          {/* X — matches all other modals */}
           <button className="ps-close-btn" onClick={onClose} aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
@@ -178,218 +314,159 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
           </button>
         </div>
 
-        {/* ── Three-panel body ───────────────────────────────── */}
-        <div className="fm-body">
+        {/* ── Two-panel body — matches CaseTeamModal's drop-zone pattern ── */}
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 340px', minHeight: 0, overflow: 'hidden' }}>
 
-          {/* Panel 1 — Delegation Type */}
-          <div className="fm-left fm-del-left-panel">
-            <div className="fm-section-label fm-del-slabel-padded">Delegation Type</div>
-            <div className="fm-del-type-list">
-              {delegationTypes.map(dt => {
-                const isSelected = delegationType === dt.id;
-                return (
-                  <button
-                    key={dt.id}
-                    onClick={() => {
-                      setDelegationType(isSelected ? null : dt.id);
-                      if (!isSelected) setSelectedInstanceId(null);
-                    }}
-                    className={'fm-flag-card fm-del-type-btn' + (isSelected ? ' applied' : '')}
-                  >
-                    <div className="fm-del-type-btn-row">
-                      <span
-                        className="fm-code-chip"
-                        style={{ fontSize: 9, letterSpacing: '0.03em', background: isSelected ? dt.color + '22' : undefined, color: isSelected ? dt.color : undefined, flexShrink: 0 }}
+            {/* LEFT — delegation types, each a real drop zone */}
+            <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto', padding: '16px 20px' }}>
+              <div className="fm-section-label" style={{ marginBottom: 8 }}>Delegation Type</div>
+              {delegationTypes.map(dt => (
+                <TypeZone
+                  key={dt.id}
+                  dt={dt}
+                  isSelected={delegationType === dt.id}
+                  isOver={overId === `type-${dt.id}`}
+                  selectedRecipientLabel={delegationType === dt.id ? selectedLabel : null}
+                  onSelectType={() => {
+                    const isSel = delegationType === dt.id;
+                    setDelegationType(isSel ? null : dt.id);
+                    if (!isSel) setSelectedInstanceId(null);
+                  }}
+                  onClearRecipient={() => setSelectedId(null)}
+                />
+              ))}
+
+              {/* Synoptic picker — unchanged from before */}
+              {delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="fm-section-label" style={{ marginBottom: 6 }}>Select Synoptic</div>
+                  {synopticInstances.map(inst => {
+                    const isSel = selectedInstanceId === inst.instanceId;
+                    return (
+                      <div
+                        key={inst.instanceId}
+                        onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
+                        style={{
+                          padding: '8px 12px', marginBottom: 4, borderRadius: 8, cursor: 'pointer',
+                          background: isSel ? 'rgba(8,145,178,0.12)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isSel ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        }}
                       >
-                        {dt.id.replace('_', ' ')}
-                      </span>
-                      <span className="fm-flag-name fm-del-flex1">{dt.label}</span>
-                      {isSelected && <span className="fm-del-type-check">✓</span>}
-                    </div>
-                    <div className="fm-flag-desc fm-del-desc-text">
-                      {dt.description}
-                    </div>
-                    {dt.transfersOwnership && (
-                      <span className="fm-del-ownership-warn">transfers ownership</span>
-                    )}
-                  </button>
-                );
-              })}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{inst.specimenDescription}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{inst.templateName}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Note field if required — unchanged from before */}
+              {selectedDelegType?.requiresNote && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="fm-section-label" style={{ marginBottom: 4 }}>Note (required)</div>
+                  <input
+                    type="text"
+                    placeholder="Add a note…"
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    className="fm-del-note-textarea"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Synoptic picker */}
-            {delegationType === 'SYNOPTIC_ASSIGN' && synopticInstances.length > 0 && (
-              <div className="fm-del-synoptic-section">
-                <div className="fm-section-label fm-del-slabel-mb6">Select Synoptic</div>
-                {synopticInstances.map(inst => {
-                  const isSel = selectedInstanceId === inst.instanceId;
-                  return (
-                    <div
-                      key={inst.instanceId}
-                      className={'fm-flag-card fm-del-synoptic-row' + (isSel ? ' applied' : '')}
-                      onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
-                    >
-                      <span className="fm-flag-name">{inst.specimenDescription}</span>
-                      <span className="fm-flag-desc">{inst.templateName}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Panel 2 — Delegate To */}
-          <div className="fm-middle">
-            <div className="fm-section-label fm-del-slabel-padded">Delegate To</div>
-
-            <button
-              className={'fm-target-row' + (tab === 'individuals' ? ' active' : '')}
-              onClick={() => { setTab('individuals'); setSelectedId(null); }}
-            >
-              <span className="fm-del-tab-icon">👤</span>
-              <span className="fm-del-tab-label">Individual</span>
-            </button>
-
-            <button
-              className={'fm-target-row' + (tab === 'pools' ? ' active' : '')}
-              onClick={() => { setTab('pools'); setSelectedId(null); }}
-            >
-              <span className="fm-del-tab-icon">👥</span>
-              <span className="fm-del-tab-label">Pool / Queue</span>
-            </button>
-
-            <div className="fm-divider" />
-
-            {/* Selected summary */}
-            {selectedLabel && (
-              <div className="fm-del-selected-box">
-                <div className="fm-section-label fm-del-slabel-mb6">Selected</div>
-                <div className="fm-del-selected-name">{selectedLabel}</div>
-                {selectedStaff && (
-                  <div className="fm-del-selected-role">{selectedStaff.role}</div>
-                )}
-              </div>
-            )}
-
-            {/* Note field if required */}
-            {selectedDelegType?.requiresNote && (
-              <div className="fm-del-note-section">
-                <div className="fm-section-label fm-del-slabel-mb4">Note (required)</div>
-                <input
-                  type="text"
-                  placeholder="Add a note…"
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  className="fm-del-note-textarea"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Panel 3 — Search & Results */}
-          <div className="fm-right">
-
-            <div className="fm-del-search-wrap">
-              <div className="fm-del-search-rel">
-                <span className="fm-del-search-icon">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
-                    <path d="M10 10l4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                  </svg>
-                </span>
+            {/* RIGHT — recipient directory (filter + search + draggable cards) */}
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 16px 0', flexShrink: 0 }}>
+                <div className="fm-section-label" style={{ marginBottom: 8 }}>Delegate To</div>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+                  <button
+                    onClick={() => { setFilter('individuals'); }}
+                    style={{
+                      flex: 1, padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: `1px solid ${filter === 'individuals' ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                      background: filter === 'individuals' ? 'rgba(8,145,178,0.12)' : 'transparent',
+                      color: filter === 'individuals' ? '#7dd3fc' : '#94a3b8',
+                    }}
+                  >
+                    👤 Individual
+                  </button>
+                  <button
+                    onClick={() => { setFilter('pools'); }}
+                    style={{
+                      flex: 1, padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: `1px solid ${filter === 'pools' ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                      background: filter === 'pools' ? 'rgba(8,145,178,0.12)' : 'transparent',
+                      color: filter === 'pools' ? '#7dd3fc' : '#94a3b8',
+                    }}
+                  >
+                    👥 Pool / Queue
+                  </button>
+                </div>
                 <input
                   autoFocus
                   className="fm-search-input"
                   type="text"
-                  placeholder={tab === 'individuals' ? 'Search by name or role…' : 'Search pools…'}
+                  placeholder={filter === 'individuals' ? 'Search by name or role…' : 'Search pools…'}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
-                {searchTerm && (
-                  <button className="fm-search-clear" onClick={() => setSearchTerm('')}>✕</button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 16px' }}>
+                {loading && <div style={{ padding: 24, textAlign: 'center', color: '#475569', fontSize: 12 }}>Loading…</div>}
+
+                {filter === 'individuals' && !loading && (
+                  filteredStaff.length === 0
+                    ? <div style={{ padding: 24, textAlign: 'center', color: '#475569', fontSize: 12 }}>No results for "{searchTerm}"</div>
+                    : filteredStaff.map(s => (
+                        <RecipientCard
+                          key={s.id}
+                          id={`staff-${s.id}`}
+                          primary={s.name}
+                          secondary={`${s.role} · ${s.subspecialty || '—'}`}
+                          isSelected={selectedId === s.id}
+                          onClick={() => setSelectedId(selectedId === s.id ? null : s.id)}
+                        />
+                      ))
+                )}
+
+                {filter === 'pools' && !loading && (
+                  filteredPools.length === 0
+                    ? <div style={{ padding: 24, textAlign: 'center', color: '#475569', fontSize: 12 }}>No pools found</div>
+                    : filteredPools.map(pool => (
+                        <RecipientCard
+                          key={pool.id}
+                          id={`pool-${pool.id}`}
+                          primary={pool.name}
+                          secondary={`POOL · ${pool.memberCount} members available`}
+                          isSelected={selectedId === pool.id}
+                          onClick={() => setSelectedId(selectedId === pool.id ? null : pool.id)}
+                        />
+                      ))
                 )}
               </div>
             </div>
-
-            <div className="fm-del-col-headers fm-del-col-headers--3col">
-              <span className="fm-col-label">ROLE</span>
-              <span className="fm-col-label">{tab === 'individuals' ? 'NAME' : 'NAME · MEMBERS'}</span>
-              <span className="fm-col-label">DEPARTMENT</span>
-              <span />
-            </div>
-
-            <div className="fm-flag-list fm-del-flag-list">
-              {loading && (
-                <div className="fm-empty"><div className="fm-empty-hint">Loading…</div></div>
-              )}
-
-              {tab === 'individuals' && !loading && (
-                filteredStaff.length === 0
-                  ? <div className="fm-empty"><div className="fm-empty-heading">No results for "{searchTerm}"</div><div className="fm-empty-hint">Try a different name or role</div></div>
-                  : filteredStaff.map(s => {
-                      const isSelected = selectedId === s.id;
-                      return (
-                        <div
-                          key={s.id}
-                          className={'fm-flag-card fm-del-row-grid' + (isSelected ? ' applied' : '')}
-                          onClick={() => setSelectedId(isSelected ? null : s.id)}
-                        >
-                          <span className="fm-code-chip fm-del-role-chip">
-                            {s.role}
-                          </span>
-                          <div className="fm-flag-info">
-                            <div className="fm-flag-name-row">
-                              <span className="fm-flag-name">{s.name}</span>
-                              {(s as any).credentials && <span className="fm-del-cred">{(s as any).credentials}</span>}
-                            </div>
-                          </div>
-                          <span className="fm-del-dept">
-                            {(s as any).department ?? '—'}
-                          </span>
-                          <span className={`fm-del-check-col${isSelected ? ' fm-del-check-col--selected' : ' fm-del-check-col--default'}`}>
-                            {isSelected
-                              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5l4 4.5-4 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            }
-                          </span>
-                        </div>
-                      );
-                    })
-              )}
-
-              {tab === 'pools' && !loading && (
-                filteredPools.length === 0
-                  ? <div className="fm-empty"><div className="fm-empty-heading">No pools found</div><div className="fm-empty-hint">Try a different search term</div></div>
-                  : filteredPools.map(pool => {
-                      const isSelected = selectedId === pool.id;
-                      return (
-                        <div
-                          key={pool.id}
-                          className={'fm-flag-card fm-del-row-grid' + (isSelected ? ' applied' : '')}
-                          onClick={() => setSelectedId(isSelected ? null : pool.id)}
-                        >
-                          <span className="fm-code-chip fm-del-pool-chip">POOL</span>
-                          <div className="fm-flag-info">
-                            <div className="fm-flag-name-row">
-                              <span className="fm-flag-name">{pool.name}</span>
-                            </div>
-                            <div className="fm-flag-desc">{pool.memberCount} members available</div>
-                          </div>
-                          <span className={`fm-del-check-col${isSelected ? ' fm-del-check-col--selected' : ' fm-del-check-col--default'}`}>
-                            {isSelected
-                              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 2.5l4 4.5-4 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            }
-                          </span>
-                        </div>
-                      );
-                    })
-              )}
-            </div>
           </div>
-        </div>
 
-        {/* ── Footer ─────────────────────────────────────────── */}
+          <DragOverlay>
+            {(draggingStaff || draggingPool) && (
+              <div style={{ padding: '9px 12px', background: '#1e293b', border: '2px solid #8AB4F8', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', cursor: 'grabbing', opacity: 0.95, width: 300 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(138,180,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#8AB4F8' }}>
+                    {(draggingStaff?.name ?? draggingPool?.name ?? '').replace(/^Dr\.\s*/, '').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb' }}>{draggingStaff?.name ?? draggingPool?.name}</div>
+                </div>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+
+        {/* ── Footer — unchanged ─────────────────────────────── */}
         <div className="fm-footer">
           <span className={'fm-footer-status' + (delegationType || selectedLabel ? ' dirty' : '')}>
             {!delegationType

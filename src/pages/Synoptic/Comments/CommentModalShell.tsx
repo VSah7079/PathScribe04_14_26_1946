@@ -1,6 +1,39 @@
 import React from 'react';
 import '../../../pathscribe.css';
 
+// Shared by both Case and Specimen comment modals -- one remembered
+// position for "the comment dialog" generally, not split per-context.
+// Same persistence pattern already used for the EMR companion window:
+// load on mount, save on drag-end, clamp against the CURRENT viewport
+// (not just whatever was true when it was last dragged) so it can never
+// get stranded off-screen if the window/monitor changes.
+const STORAGE_KEY = 'ps-cmnt-modal-pos';
+
+interface Pos { x: number; y: number; }
+
+function loadPos(): Pos | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Pos;
+    if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
+    // Offset is from viewport center. Clamp so the modal's header stays
+    // reachable even if this position was saved on a larger screen.
+    const maxX = window.innerWidth  * 0.35;
+    const maxY = window.innerHeight * 0.35;
+    return {
+      x: Math.min(Math.max(parsed.x, -maxX), maxX),
+      y: Math.min(Math.max(parsed.y, -maxY), maxY),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function savePos(pos: Pos) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)); } catch { /* ignore quota errors */ }
+}
+
 const CommentModalShell: React.FC<{
   title: string;
   subtitle?: React.ReactNode;
@@ -9,7 +42,7 @@ const CommentModalShell: React.FC<{
   footerLeft?: React.ReactNode;
   editorMode?: boolean;
 }> = ({ title, subtitle, onClose, children, footerLeft, editorMode }) => {
-  const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
+  const [pos, setPos] = React.useState<Pos | null>(() => loadPos());
   const dragging   = React.useRef(false);
   const dragStart  = React.useRef({ mx: 0, my: 0, px: 0, py: 0 });
 
@@ -26,7 +59,11 @@ const CommentModalShell: React.FC<{
       if (!dragging.current) return;
       setPos({ x: dragStart.current.px + (e.clientX - dragStart.current.mx), y: dragStart.current.py + (e.clientY - dragStart.current.my) });
     };
-    const onUp = () => { dragging.current = false; };
+    const onUp = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      setPos(p => { if (p) savePos(p); return p; });
+    };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };

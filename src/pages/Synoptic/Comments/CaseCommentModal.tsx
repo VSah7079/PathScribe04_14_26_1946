@@ -74,7 +74,9 @@ const CaseCommentModal: React.FC<CaseCommentModalProps> = ({
           content={draft}
           placeholder="Add a comment — visible to everyone who opens this case…"
           onChange={setDraft}
-          minHeight="140px"
+          minHeight="220px"
+          theme="dark"
+          allowThemeToggle
           showRulerDefault={false}
           macros={[]}
           approvedFonts={['Arial', 'Times New Roman', 'Calibri', 'Courier New']}

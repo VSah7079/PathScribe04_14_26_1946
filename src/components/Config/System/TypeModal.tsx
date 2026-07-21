@@ -100,7 +100,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, isBuiltIn, onSave, on
           <div>
             <div className="fm-eyebrow">Configuration Â· Participation Types</div>
             <h2 className="fm-title" style={{ fontSize: 16 }}>
-              {mode === 'add' ? 'Add Participation Type' : 'Edit â€” ' + (type?.label ?? '')}
+              {mode === 'add' ? 'Add Participation Type' : 'Edit — ' + (type?.label ?? '')}
               {isBuiltIn && (
                 <span className="ps-idf-tier-badge ps-idf-tier-badge--2" style={{ marginLeft: 8 }}>
                   built-in

@@ -4,8 +4,16 @@ import { DEFAULT_ROLE_PERMISSIONS } from '../../constants/systemActions';
 import { storageGet, storageSet } from '../mockStorage';
 
 const SEED_ROLES: Role[] = [
-  { id: 'pathologist', name: 'Pathologist', canViewPediatric: false, canViewOrchestration: false, description: 'Licensed pathologist with full clinical case access and sign-out authority.',   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true  },
-  { id: 'resident',    name: 'Resident',    canViewPediatric: false, canViewOrchestration: false,    description: 'Pathology resident with case access and co-sign capability.',                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true  },
+  // participationTypeIds added per real CLIA/CAP/ACGME eligibility matrix
+  // (Pete, July 2026): sign-out authority (primary, attending/co-sign,
+  // frozen section — time-critical intraoperative diagnosis) is restricted
+  // to credentialed Pathologists. Hands-on/collaborative work (grossing,
+  // consultant review) is open to both. 'resident' here is the
+  // PARTICIPATION TYPE ("Resident/Fellow" slot for supervised primary
+  // drafting), distinct from this being the Resident ROLE — see Pete's own
+  // suggested "Resident / Primary Drafter" alternative workflow.
+  { id: 'pathologist', name: 'Pathologist', canViewPediatric: false, canViewOrchestration: false, description: 'Licensed pathologist with full clinical case access and sign-out authority.',   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true, participationTypeIds: ['primary', 'grossing', 'attending', 'consultant', 'frozen']  },
+  { id: 'resident',    name: 'Resident',    canViewPediatric: false, canViewOrchestration: false,    description: 'Pathology resident with case access and co-sign capability.',                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true, participationTypeIds: ['grossing', 'consultant', 'resident']  },
   // participationTypeIds: ['prelim'] is a BEST GUESS, same caveat as PA's
   // ['grossing'] below — not yet confirmed against the real Participation
   // Types data file. Maps conceptually to a type described in passing as

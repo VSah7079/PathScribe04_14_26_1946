@@ -14,6 +14,7 @@ import {
   Table as TableIcon,
   Search,
   Undo2, Redo2,
+  Sun, Moon,
   PilcrowSquare,
   Zap, PenLine,
   ArrowUpDown, PaintBucket, SquareDashedBottom,
@@ -64,6 +65,15 @@ export interface PathScribeEditorProps {
   suppressToolbar?: boolean;
   toolbarPortalId?: string;
   theme?: 'light' | 'dark';
+  /** Shows a real toggle button in the toolbar letting the user switch
+   *  themes themselves. `theme` above becomes only the STARTING point --
+   *  once the user has ever clicked the toggle anywhere it appears, that
+   *  becomes their real preference (persisted to localStorage), shared
+   *  across every editor instance that opts into this, overriding
+   *  whatever `theme` any individual screen was built with. Off by
+   *  default so contexts that shouldn't show it (e.g. a small font
+   *  preview box) don't get one uninvited. */
+  allowThemeToggle?: boolean;
   // ── Tab width — industry-standard user preference ────────────────────────────
   // Number of spaces a Tab keypress inserts. Word/Docs/Notion all expose this as
   // a user setting rather than hardcoding it. Defaults to 4, persisted by the
@@ -114,7 +124,7 @@ const DARK_THEME: EditorThemeTokens = {
   dividerColor: 'rgba(148,163,184,0.18)',
   panelBg: '#252d3a', panelBorder: 'rgba(148,163,184,0.18)', panelShadow: '0 8px 24px rgba(0,0,0,0.5)', panelText: '#e9edf2', panelHoverBg: 'rgba(148,163,184,0.12)',
   inputBg: 'rgba(148,163,184,0.08)', inputBorder: 'rgba(148,163,184,0.18)', inputText: '#e2e8f0',
-  contentBg: 'white', contentText: '#1e293b', contentBorder: 'rgba(148,163,184,0.15)',
+  contentBg: '#0f172a', contentText: '#e2e8f0', contentBorder: 'rgba(148,163,184,0.15)',
   rulerBg: '#1a212c', rulerBorder: 'rgba(148,163,184,0.15)', rulerMarkColor: '#94a3b8',
   accent: '#22b8d8', accentText: 'white',
 };
@@ -615,12 +625,30 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
     suppressToolbar = false,
     toolbarPortalId,
     theme: themeProp = 'light',
+    allowThemeToggle = false,
     tabWidthChars = DEFAULT_TAB_WIDTH_CHARS,
     onTabWidthChange,
   },
   ref
 ) => {
-  const theme = themeProp === 'dark' ? DARK_THEME : LIGHT_THEME;
+  // themeProp is only the STARTING point -- see allowThemeToggle's doc
+  // comment above. A real saved user preference, once one exists, always
+  // wins over whatever theme an individual screen was built with.
+  const THEME_PREF_KEY = 'ps-editor-theme-preference';
+  const [activeThemeName, setActiveThemeName] = useState<'light' | 'dark'>(() => {
+    if (!allowThemeToggle) return themeProp;
+    try {
+      const saved = localStorage.getItem(THEME_PREF_KEY);
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch { /* ignore */ }
+    return themeProp;
+  });
+  const theme = activeThemeName === 'dark' ? DARK_THEME : LIGHT_THEME;
+  const toggleTheme = () => {
+    const next = activeThemeName === 'dark' ? 'light' : 'dark';
+    setActiveThemeName(next);
+    try { localStorage.setItem(THEME_PREF_KEY, next); } catch { /* ignore quota errors */ }
+  };
 
   // ── UI State ──────────────────────────────────────────────────────────────
   const [showFormatMarks, setShowFormatMarks] = useState(false);
@@ -905,6 +933,11 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       <Divider />
       <TBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo (Ctrl+Z)"><Undo2 size={IC} /></TBtn>
       <TBtn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo (Ctrl+Shift+Z)"><Redo2 size={IC} /></TBtn>
+      {allowThemeToggle && (
+        <TBtn onClick={toggleTheme} title={activeThemeName === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {activeThemeName === 'dark' ? <Sun size={IC} /> : <Moon size={IC} />}
+        </TBtn>
+      )}
       <Divider />
       <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
         <TBtn onClick={() => setShowTabWidthMenu(v => !v)} isActive={showTabWidthMenu} title={`Tab width: ${tabWidthChars} spaces`} width="auto">
