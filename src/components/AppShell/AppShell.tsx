@@ -645,14 +645,8 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div
-      onClick={onClose}
-      style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ width: 560, background:'#0b1120', border:'1px solid rgba(148,163,184,0.3)', borderRadius:18, boxShadow:'0 24px 60px rgba(0,0,0,0.6)', display:'flex', flexDirection:'column', overflow:'hidden' }}
-      >
+    <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-modal-dark" style={{ width: 560, padding: 0 }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding:'18px 24px 14px', borderBottom:'1px solid rgba(51,65,85,0.9)', background:'radial-gradient(circle at top left, rgba(56,189,248,0.08), transparent 55%), #0b1120', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div>
@@ -1226,7 +1220,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
       {portalOpen && ReactDOM.createPortal(
         <>
-          <div onClick={handleCloseDrawer} style={{ position: 'fixed', top: '70px', right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1199 }} />
+          <div className="ps-drawer-backdrop" onClick={handleCloseDrawer} style={{ zIndex: 1199 }} />
 
           {/* ── Unified messaging surface ── */}
           <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 1200 }} onClick={e => e.stopPropagation()}>
@@ -1479,10 +1473,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {systemInfoOpen && <SystemInfoModal onClose={() => setSystemInfoOpen(false)} />}
 
       {aboutOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setAboutOpen(false)}>
-          <div style={{ background: '#1a2336', width: '340px', borderRadius: '18px', padding: '28px 24px 20px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
-            onClick={e => e.stopPropagation()}>
+        <div className="ps-overlay" onClick={() => setAboutOpen(false)}>
+          <div className="ps-modal-dark" style={{ width: 340, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: '64px', height: '64px', borderRadius: '14px', border: '2px solid #0891B2', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '24px', fontWeight: 800 }}>{userInitials}</div>
             <h2 style={{ margin: '0 0 4px', color: '#f1f5f9', fontSize: 18 }}>{user?.name || 'Dr. Sarah Johnson'}</h2>
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>{user?.role ?? 'Pathologist'}</div>
