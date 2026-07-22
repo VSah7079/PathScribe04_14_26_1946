@@ -25,6 +25,31 @@ const VERSIONED_KEYS = [
 const SETTINGS_KEYS = [
   'pathscribe_subspecialties',
   'pathscribe_report_templates',
+  'pathscribe_participation_types_v2', // the real, canonical key (services/participationTypes/mockParticipationTypeService.ts)
+  'pathscribe_participation_types',    // orphaned old key from ParticipationTypesSection.tsx's now-removed separate local list -- included so any stale leftover data gets cleared too
+  // Added after a full audit of every storageGet/storageSet key across
+  // services/ against this list -- these 16 real service storage keys
+  // were previously missing entirely, meaning this data silently
+  // survived a "Demo Reset". Deliberately NOT included:
+  // pathscribe_audit_logs / pathscribe_error_logs (shouldn't reset with
+  // demo data -- an audit trail and error log surviving a demo reset is
+  // the correct behavior, not a gap).
+  'pathscribe_roles',
+  'pathscribe_users',
+  'pathscribe_clients',
+  'pathscribe_physicians',
+  'pathscribe_protocols',
+  'pathscribe_macros',
+  'pathscribe_fonts',
+  'pathscribe_models',
+  'pathscribe_deficiency_types',
+  'pathscribe_resolution_types',
+  'pathscribe_specimen_categories',
+  'pathscribe_specimen_crosswalk',
+  'pathscribe_specimen_deficiencies',
+  'pathscribe_grossing_routing_overrides',
+  'pathscribe_incoming_orders',
+  'pathscribe_management_reviews',
 ];
 
 const CASE_KEYS = [

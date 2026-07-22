@@ -4,7 +4,7 @@ Shared, reusable UI primitives used across multiple pages.
 
 ## Files
 
-- **`ConfirmModal.tsx`** — **MOVED HERE this pass** (was
+- **`ConfirmModal.tsx`** — **MOVED HERE** (was
   `components/UI/ConfirmModal.tsx`, a whole folder that existed for this
   one file). Reusable dark confirmation dialog, explicitly meant to
   replace `window.confirm()` throughout the app. Genuinely used — the
@@ -12,7 +12,7 @@ Shared, reusable UI primitives used across multiple pages.
   Report" delete confirmation on the main case reporting page. `UI/` is
   now deleted (was already empty of anything else). See Notes for why
   this file matters beyond its own folder.
-- **`InlineCommentThread.tsx`** — **MOVED HERE this pass** (was
+- **`InlineCommentThread.tsx`** — **MOVED HERE** (was
   `components/PatientReportPage/Comments/InlineCommentThread.tsx` — the
   page that folder was named for was deleted earlier this session as
   dead code, leaving this genuinely shared component sitting alone in a
@@ -28,6 +28,18 @@ Shared, reusable UI primitives used across multiple pages.
   (overlay, header, close-on-Escape/overlay-click), used across
   SearchPage's SNOMED/ICD-10/ICD-O/Specimen/Synoptic/Flags/Pathologist/
   Attending lookups. No issues.
+- **`Dropdown.tsx`** — **NEW.** A minimal, genuinely custom single-select
+  dropdown, built because a native `<select>`'s closed box can be
+  restyled via CSS (see `.ps-conf-select`) but its *open* option list is
+  OS-rendered and largely ignores CSS regardless of browser — no CSS-only
+  fix exists once a native select is actually open. First real usage:
+  `Config/Staff/StaffTab.tsx`'s "add a role" dropdown, which visibly
+  looked inconsistent with the app's dark theme once opened. Deliberately
+  simple (single-select, fires `onSelect` immediately, no search/keyboard
+  nav) — extend if a future use case genuinely needs more, don't
+  over-build ahead of need. ~36 other native `<select>` elements remain
+  across `Config/System/` alone; this is the proof-of-concept, not a full
+  sweep — logged as its own `PRIORITY_FIXES.md` item.
 
 ## Deleted this pass
 
@@ -40,11 +52,11 @@ Shared, reusable UI primitives used across multiple pages.
 
 ## Notes
 
-- **RESOLVED this pass:** `ConfirmModal.tsx` used to live in its own
-  single-file folder, `components/UI/` — about as generic a name as
-  possible, containing exactly one file. Moved here, next to
-  `LookupModal.tsx` (the same category of thing — a shared modal shell),
-  which is where it always should have been. `UI/` is deleted.
+- **RESOLVED:** `ConfirmModal.tsx` used to live in its own single-file
+  folder, `components/UI/` — about as generic a name as possible,
+  containing exactly one file. Moved here, next to `LookupModal.tsx` (the
+  same category of thing — a shared modal shell), which is where it
+  always should have been. `UI/` is deleted.
 - **FOUND, not fixed — real consolidation opportunity.** The modal-overlay
   shell pattern (`Common/LookupModal.tsx` already does this) is
   independently reimplemented in at least 14 other files instead of being

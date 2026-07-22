@@ -5,12 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@contexts/AuthContext";
 import { useLogout } from '@hooks/useLogout';
 import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
+import LogoutWarningModal from './WorklistPage/LogoutWarningModal';
+import ResourcesModal from './WorklistPage/ResourcesModal';
 
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const handleLogout = useLogout();
-  
+
   // --- UI State ---
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -113,7 +115,7 @@ const cards = [
 
       {/* UI Content */}
       <div className="ps-page-content">
-        
+
 
         <main className="ps-home-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 var(--ps-layout-padding-x)', overflow: 'auto' }}>
           <header style={{ marginBottom: '32px' }}>
@@ -133,44 +135,44 @@ const cards = [
                 onMouseEnter={() => setHoveredCard(index)}
                 onMouseLeave={() => setHoveredCard(null)}
                 style={{
-                  position: 'relative', 
-                  height: 'clamp(160px, 20vh, 200px)', 
-                  borderRadius: '20px', 
-                  cursor: 'pointer', 
+                  position: 'relative',
+                  height: 'clamp(160px, 20vh, 200px)',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
                   overflow: 'hidden',
-                  transition: 'all 0.3s ease', 
+                  transition: 'all 0.3s ease',
                   transform: hoveredCard === index ? 'translateY(-8px)' : 'none',
-                  border: hoveredCard === index 
-                    ? `2px solid ${card.color}` 
-                    : '1px solid var(--border-color)', 
+                  border: hoveredCard === index
+                    ? `2px solid ${card.color}`
+                    : '1px solid var(--border-color)',
                   background: 'rgba(255,255,255,0.02)',
-                  boxShadow: hoveredCard === index 
-                    ? `0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px ${card.color}40` 
+                  boxShadow: hoveredCard === index
+                    ? `0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px ${card.color}40`
                     : '0 2px 8px rgba(0,0,0,0.1)'
                 }}
               >
                 {/* Background Image */}
                 {card.image && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    inset: 0, 
-                    backgroundImage: `url(${card.image})`, 
-                    backgroundSize: 'cover', 
-                    backgroundPosition: 'center', 
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundImage: `url(${card.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                     opacity: 0.25,
                     transition: 'opacity 0.3s ease',
                     imageRendering: '-webkit-optimize-contrast'
                   } as React.CSSProperties} />
                 )}
-                
+
                 {/* Gradient Overlay - Static */}
-                <div style={{ 
-                  position: 'absolute', 
-                  inset: 0, 
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
                   background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
                   transition: 'background 0.3s ease'
                 }} />
-                
+
                 {/* Text Content */}
                 <div style={{ position: 'relative', zIndex: 2, height: '100%', padding: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                   <h3 style={{ fontSize: '28px', fontWeight: 800, margin: 0 }}>{card.title}</h3>
@@ -182,21 +184,21 @@ const cards = [
         </main>
 
         {/* Footer Status */}
-        <footer style={{ 
-          padding: '30px var(--ps-layout-padding-x)', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          color: '#64748b', 
+        <footer style={{
+          padding: '30px var(--ps-layout-padding-x)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: '#64748b',
           fontSize: '12px',
           borderTop: '1px solid var(--border-color)'
         }}>
           <div>© 2026 PathScribe AI Systems • HIPAA Compliant</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ 
-              width: '8px', 
-              height: '8px', 
-              background: '#10B981', 
+            <span style={{
+              width: '8px',
+              height: '8px',
+              background: '#10B981',
               borderRadius: '50%',
               boxShadow: '0 0 8px #10B981'
             }} />
@@ -207,17 +209,8 @@ const cards = [
 
       {/* PROFILE MODAL */}
       {isProfileOpen && (
-        <div 
-          style={{ 
-            position: 'fixed', 
-            inset: 0, 
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9000
-          }}
+        <div
+          className="ps-overlay"
           tabIndex={-1}
           onClick={() => setIsProfileOpen(false)}
           onKeyDown={(e) => {
@@ -225,22 +218,11 @@ const cards = [
             if (e.key === 'Escape') setIsProfileOpen(false);
           }}
         >
-          <div 
-            style={{ 
-              width: '400px',
-              backgroundColor: '#111', 
-              borderRadius: '20px', 
-              padding: '40px', 
-              border: '1px solid rgba(8, 145, 178, 0.3)', 
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-              textAlign: 'center'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ 
-              color: '#0891B2', 
-              fontSize: '24px', 
-              fontWeight: 700, 
+          <div className="ps-modal-dark" style={{ width: 400, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              color: '#0891B2',
+              fontSize: '24px',
+              fontWeight: 700,
               marginBottom: '24px'
             }}>
               User Preferences
@@ -251,8 +233,8 @@ const cards = [
                 Appearance
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <button 
-                  onClick={() => { setCurrentTheme('light'); setIsProfileOpen(false); }} 
+                <button
+                  onClick={() => { setCurrentTheme('light'); setIsProfileOpen(false); }}
                   style={{
                     background: currentTheme === 'light' ? 'rgba(8, 145, 178, 0.2)' : 'rgba(255,255,255,0.05)',
                     border: currentTheme === 'light' ? '2px solid #0891B2' : '1px solid rgba(255,255,255,0.1)',
@@ -276,8 +258,8 @@ const cards = [
                   <SunIcon />
                   <span style={{ fontSize: '12px', fontWeight: 600 }}>Light</span>
                 </button>
-                <button 
-                  onClick={() => { setCurrentTheme('dark'); setIsProfileOpen(false); }} 
+                <button
+                  onClick={() => { setCurrentTheme('dark'); setIsProfileOpen(false); }}
                   style={{
                     background: currentTheme === 'dark' ? 'rgba(8, 145, 178, 0.2)' : 'rgba(255,255,255,0.05)',
                     border: currentTheme === 'dark' ? '2px solid #0891B2' : '1px solid rgba(255,255,255,0.1)',
@@ -301,8 +283,8 @@ const cards = [
                   <MoonIcon />
                   <span style={{ fontSize: '12px', fontWeight: 600 }}>Dark</span>
                 </button>
-                <button 
-                  onClick={() => { setCurrentTheme('auto'); setIsProfileOpen(false); }} 
+                <button
+                  onClick={() => { setCurrentTheme('auto'); setIsProfileOpen(false); }}
                   style={{
                     background: currentTheme === 'auto' ? 'rgba(8, 145, 178, 0.2)' : 'rgba(255,255,255,0.05)',
                     border: currentTheme === 'auto' ? '2px solid #0891B2' : '1px solid rgba(255,255,255,0.1)',
@@ -330,11 +312,11 @@ const cards = [
             </div>
 
             <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button 
-                onClick={() => { 
-                  window.open('https://www.cap.org/', '_blank'); 
-                  setIsProfileOpen(false); 
-                }} 
+              <button
+                onClick={() => {
+                  window.open('https://www.cap.org/', '_blank');
+                  setIsProfileOpen(false);
+                }}
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
@@ -362,12 +344,12 @@ const cards = [
               >
                 <HelpIcon /> Support & Protocols
               </button>
-              
-              <button 
-                onClick={() => { 
-                  setShowAbout(true); 
-                  setIsProfileOpen(false); 
-                }} 
+
+              <button
+                onClick={() => {
+                  setShowAbout(true);
+                  setIsProfileOpen(false);
+                }}
                 style={{
                   padding: '12px 16px',
                   borderRadius: '10px',
@@ -397,8 +379,8 @@ const cards = [
               </button>
             </div>
 
-            <button 
-              onClick={() => setIsProfileOpen(false)} 
+            <button
+              onClick={() => setIsProfileOpen(false)}
               autoFocus
               style={{
                 padding: '12px 24px',
@@ -425,290 +407,22 @@ const cards = [
         </div>
       )}
 
-      {/* QUICK LINKS MODAL */}
-      {isResourcesOpen && (
-        <div 
-          style={{ 
-            position: 'fixed', 
-            inset: 0, 
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9000
-          }}
-          tabIndex={-1}
-          onClick={() => setIsResourcesOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') setIsResourcesOpen(false);
-            if (e.key === 'Escape') setIsResourcesOpen(false);
-          }}
-        >
-          <div 
-            style={{ 
-              width: '500px',
-              maxHeight: '80vh',
-              overflowY: 'auto' as const,
-              backgroundColor: '#111', 
-              borderRadius: '20px', 
-              padding: '40px', 
-              border: '1px solid rgba(8, 145, 178, 0.3)', 
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ 
-              color: '#0891B2', 
-              fontSize: '24px', 
-              fontWeight: 700, 
-              marginBottom: '24px',
-              textAlign: 'center' as const
-            }}>
-              Quick Links
-            </div>
+      <ResourcesModal
+        isOpen={isResourcesOpen}
+        onClose={() => setIsResourcesOpen(false)}
+        quickLinks={quickLinks}
+      />
 
-            {/* Protocols Section */}
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ 
-                color: '#94a3b8', 
-                fontSize: '12px', 
-                fontWeight: 700, 
-                marginBottom: '12px',
-                textTransform: 'uppercase' as const
-              }}>
-                Protocols
-              </div>
-              {quickLinks.protocols.map((link, i) => (
-                <a            
-                  key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsResourcesOpen(false)}
-                  style={{
-                    display: 'block',
-                    color: '#cbd5e1',
-                    textDecoration: 'none',
-                    padding: '12px 16px',
-                    fontSize: '16px',
-                    transition: 'all 0.2s',
-                    borderRadius: '8px',
-                    marginBottom: '8px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#0891B2';
-                    e.currentTarget.style.backgroundColor = 'rgba(8, 145, 178, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#cbd5e1';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  → {link.title}
-                </a>
-              ))}
-            </div>
+      <LogoutWarningModal
+        isOpen={showWarning}
+        onClose={() => setShowWarning(false)}
+        onLogout={handleLogout}
+      />
 
-            {/* References Section */}
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ 
-                color: '#94a3b8', 
-                fontSize: '12px', 
-                fontWeight: 700, 
-                marginBottom: '12px',
-                textTransform: 'uppercase' as const
-              }}>
-                References
-              </div>
-              {quickLinks.references.map((link, i) => (
-                <a
-                  key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsResourcesOpen(false)}
-                  style={{
-                    display: 'block',
-                    color: '#cbd5e1',
-                    textDecoration: 'none',
-                    padding: '12px 16px',
-                    fontSize: '16px',
-                    transition: 'all 0.2s',
-                    borderRadius: '8px',
-                    marginBottom: '8px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#0891B2';
-                    e.currentTarget.style.backgroundColor = 'rgba(8, 145, 178, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#cbd5e1';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  → {link.title}
-                </a>
-              ))}
-            </div>
-
-            {/* Systems Section */}
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ 
-                color: '#94a3b8', 
-                fontSize: '12px', 
-                fontWeight: 700, 
-                marginBottom: '12px',
-                textTransform: 'uppercase' as const
-              }}>
-                Systems
-              </div>
-              {quickLinks.systems.map((link, i) => (
-                <a
-                  key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsResourcesOpen(false)}
-                  style={{
-                    display: 'block',
-                    color: '#cbd5e1',
-                    textDecoration: 'none',
-                    padding: '12px 16px',
-                    fontSize: '16px',
-                    transition: 'all 0.2s',
-                    borderRadius: '8px',
-                    marginBottom: '8px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#0891B2';
-                    e.currentTarget.style.backgroundColor = 'rgba(8, 145, 178, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#cbd5e1';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  → {link.title}
-                </a>
-              ))}
-            </div>
-
-            <button 
-              onClick={() => setIsResourcesOpen(false)} 
-              autoFocus
-              style={{
-                padding: '12px 24px',
-                borderRadius: '10px',
-                background: 'rgba(8, 145, 178, 0.15)',
-                border: '1px solid rgba(8, 145, 178, 0.3)',
-                color: '#0891B2',
-                fontWeight: 600,
-                fontSize: '15px',
-                cursor: 'pointer',
-                width: '100%',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(8, 145, 178, 0.25)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(8, 145, 178, 0.15)';
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* IMPROVED SAFETY MODAL */}
-      {showWarning && (
-        <div 
-          style={overlayStyle}
-          tabIndex={-1}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') setShowWarning(false);
-            if (e.key === 'Escape') setShowWarning(false);
-          }}
-        >
-          <div style={warningCardStyle}>
-             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-               <WarningIcon color="#F59E0B" />
-             </div>
-             <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: '0 0 12px 0' }}>
-               Unsaved Data
-             </h2>
-             <p style={{ color: '#94a3b8', marginBottom: '30px', lineHeight: '1.6', fontSize: '15px' }}>
-               You have an active session with unsaved changes. Logging out now will discard your current progress.
-             </p>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-               {/* PRIMARY BUTTON - Solid Teal (Safe Default) */}
-               <button 
-                 onClick={() => setShowWarning(false)} 
-                 autoFocus
-                 style={{
-                   padding: '16px 24px',
-                   borderRadius: '12px',
-                   background: '#0891B2',
-                   border: 'none',
-                   color: '#fff',
-                   fontWeight: 700,
-                   fontSize: '16px',
-                   cursor: 'pointer',
-                   width: '100%',
-                   transition: 'all 0.2s ease'
-                 }}
-                 onMouseEnter={(e) => e.currentTarget.style.background = '#0E7490'}
-                 onMouseLeave={(e) => e.currentTarget.style.background = '#0891B2'}
-               >
-                 ← Return to Page
-               </button>
-               
-               {/* SECONDARY BUTTON - Ghost Yellow (Warning) */}
-               <button 
-                 onClick={handleLogout}
-                 style={{
-                   padding: '16px 24px',
-                   borderRadius: '12px',
-                   background: 'transparent',
-                   border: '2px solid #F59E0B',
-                   color: '#F59E0B',
-                   fontWeight: 600,
-                   fontSize: '15px',
-                   cursor: 'pointer',
-                   width: '100%',
-                   transition: 'all 0.2s ease'
-                 }}
-                 onMouseEnter={(e) => {
-                   e.currentTarget.style.background = '#F59E0B';
-                   e.currentTarget.style.color = '#000';
-                 }}
-                 onMouseLeave={(e) => {
-                   e.currentTarget.style.background = 'transparent';
-                   e.currentTarget.style.color = '#F59E0B';
-                 }}
-               >
-                 Log Out & Discard Changes
-               </button>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ABOUT MODAL - Light Frosted Glass Style */}
+      {/* ABOUT MODAL - Light Frosted Glass Style (deliberately distinct from the app's dark theme -- inner box styling intentionally untouched) */}
       {showAbout && (
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9000
-          }}
+        <div
+          className="ps-overlay"
           tabIndex={-1}
           onClick={() => setShowAbout(false)}
           onKeyDown={(e) => {
@@ -716,9 +430,9 @@ const cards = [
             if (e.key === 'Escape') setShowAbout(false);
           }}
         >
-          <div 
+          <div
             style={{
-              width: '400px',
+              width: 400,
               backgroundColor: 'rgba(220, 220, 220, 0.75)',
               backdropFilter: 'blur(40px)',
               padding: '40px',
@@ -729,44 +443,44 @@ const cards = [
             }}
             onClick={(e) => e.stopPropagation()}
           >
-             <h2 style={{ 
-               fontSize: '32px', 
-               fontWeight: 700, 
-               color: '#1a1a1a', 
+             <h2 style={{
+               fontSize: '32px',
+               fontWeight: 700,
+               color: '#1a1a1a',
                margin: '0 0 16px 0',
                letterSpacing: '-0.5px'
              }}>
                PathScribe<span style={{ color: '#0891B2', fontSize: '0.6em', verticalAlign: 'super', marginLeft: '0.1em' }}>AI</span>
              </h2>
-             
-             <p style={{ 
-               color: '#3a3a3a', 
-               marginBottom: '8px', 
+
+             <p style={{
+               color: '#3a3a3a',
+               marginBottom: '8px',
                fontSize: '15px',
                lineHeight: '1.6'
              }}>
                Version 1.0.0 | Build: 2026-02-14
              </p>
-             
-             <p style={{ 
-               color: '#3a3a3a', 
-               marginBottom: '20px', 
+
+             <p style={{
+               color: '#3a3a3a',
+               marginBottom: '20px',
                fontSize: '15px',
                lineHeight: '1.6'
              }}>
                Developed by the PathScribe AI Team
              </p>
-             
-             <p style={{ 
-               color: '#5a5a5a', 
-               marginBottom: '30px', 
+
+             <p style={{
+               color: '#5a5a5a',
+               marginBottom: '30px',
                fontSize: '14px'
              }}>
                © 2026 PathScribe
              </p>
-             
-             <button 
-               onClick={() => setShowAbout(false)} 
+
+             <button
+               onClick={() => setShowAbout(false)}
                autoFocus
                style={{
                  padding: '12px 32px',
@@ -791,7 +505,3 @@ const cards = [
     </div>
   );
 }
-
-// Global Styles
-const overlayStyle = { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 };
-const warningCardStyle = { width: '400px', backgroundColor: '#111', padding: '40px', borderRadius: '28px', textAlign: 'center' as const, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' };

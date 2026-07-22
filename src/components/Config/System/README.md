@@ -67,8 +67,24 @@ usually backed by a real `services/` interface/mock pair.
   `modalStyles.ts` inline-constant pattern, per that file's own header
   marking it deprecated). No issues.
 - **`DemoResetTab.tsx`** — Real two-level mock data reset (full vs.
-  "my hospital's data only"), both paths gated behind confirmation. No
-  issues.
+  "my hospital's data only"), both paths gated behind confirmation.
+
+  **FIXED this pass:** the participation-types real storage key
+  (`pathscribe_participation_types_v2`) and its now-orphaned predecessor
+  (`pathscribe_participation_types`, no `_v2` — see
+  `ParticipationTypesSection.tsx` below) were both missing from
+  `SETTINGS_KEYS`; added.
+
+  **FOUND, not fixed — real, larger gap.** A full audit of every
+  `storageGet`/`storageSet` key across `services/` against this file's
+  known-key lists found **~13 more real service storage keys missing**,
+  including `pathscribe_roles` and `pathscribe_users` — meaning role and
+  staff data (among others) currently survive a "Demo Reset." Deliberately
+  NOT included: `pathscribe_audit_logs`/`pathscribe_error_logs` (probably
+  shouldn't reset with demo data) and `pathscribe_models` (unconfirmed
+  what this actually governs). Logged in `PRIORITY_FIXES.md` as its own
+  item — real, separate work, not folded into tonight's fix.
+
 - **`GoverningBodiesSection.tsx`** — Standard bodies (CAP/RCPath/ICCR/RCPA)
   toggle-only, custom bodies full CRUD with an ID-conflict guard. **See
   Notes — hardcoded `isSuperAdmin`.**
@@ -78,7 +94,33 @@ usually backed by a real `services/` interface/mock pair.
   documenting architecture role + state model concisely. No issues.
 - **`ParticipationTypesSection.tsx`** — System-level master list; roles
   then select from it. Same pattern as Client Dictionary/Subspecialties.
-  No issues.
+
+  **CORRECTION — this file's "no issues" assessment was wrong.** It
+  maintained its own separate local list (`BUILT_IN_PARTICIPATION_TYPES`
+  + a localStorage key with no `_v2` suffix), completely disconnected from
+  `services/participationTypes/mockParticipationTypeService.ts` — the
+  real service `CaseTeamModal.tsx` actually uses. The two lists had
+  drifted to **different type membership entirely** (this screen showed
+  Second Opinion/Preliminary Report/Observer/Cytotechnologist/Tumour
+  Board; the service had Attending/Transcriptionist/Clinician/External/
+  Resident), and this screen's own "● System Live Sync" footer label was
+  actively misleading — nothing was synced with the real feature at all.
+  Found via a direct user report tracing a drag-and-drop bug in
+  `CaseTeamModal` back through the data layer, not by inspection alone.
+
+  **FIXED this pass:** rewritten to read/write through
+  `mockParticipationTypeService` directly (async, replacing the old
+  synchronous local calls). The final canonical 8-type list was defined
+  directly by Pete, reconciling both prior lists against real CLIA/CAP/
+  ACGME clinical workflow requirements — see the service file's own header
+  comment for the full list and an international-naming reference table
+  (UK/Canada/ANZ/EU role-name equivalents) captured for future
+  localization work. `ParticipationTypeRecord` (the real interface)
+  extended with two fields this screen needed but the interface didn't
+  have: `canBeAssignedTemplate`, `canViewWholeCase`. `TypeModal.tsx`
+  (below) and `Staff/RoleDictionary.tsx` updated to match — see their own
+  entries.
+
 - **`FontsSection.tsx`** — Approved-fonts toggle list feeding
   `PathScribeEditor`'s toolbar via `SystemConfigContext`. Enforces at
   least one font stays enabled. No issues. **This is the real dictionary
@@ -90,11 +132,31 @@ usually backed by a real `services/` interface/mock pair.
   documented as a pragmatic, revisit-later scope call, not an oversight.
 - **`TypeModal.tsx`** — Rewritten from scratch specifically to avoid the
   same OXC/rolldown parse issue `RuleModal.tsx` was extracted to avoid.
-  **MINOR — mojibake:** several comment lines show garbled box-drawing
-  characters (`â”€â”€` instead of `─────`) and the file starts with a BOM —
-  a lossy-encoding artifact from some past copy/paste. Purely cosmetic
-  (comments only, doesn't affect behavior), but worth a clean re-save next
-  time this file is touched.
+
+  **CORRECTION — the earlier "purely cosmetic, comments only" assessment
+  missed a real, separate bug.** The garbled box-drawing comment
+  characters noted previously *were* cosmetic, as assessed. But a
+  **different** instance of the same underlying problem — genuine
+  double-encoding mojibake (a correct UTF-8 em-dash corrupted into a
+  3-character garbled sequence at some point in this file's history) —
+  existed in the actual modal title string (`'Edit — ' + type?.label`),
+  rendering visibly wrong in the live UI across every admin screen that
+  reuses this shared modal (confirmed affecting all 9 files using this
+  pattern, not just this one). **FIXED this pass**, traced through the
+  raw bytes to confirm root cause rather than guessed at; a full-`src/`
+  grep for the same corrupted byte sequence afterward came back clean —
+  this was the only occurrence.
+
+  Also updated this pass as part of the participation-types
+  consolidation above: imports `ParticipationTypeRecord` directly from
+  `services/participationTypes/IParticipationTypeService.ts` instead of
+  the now-removed local type re-export from `ParticipationTypesSection.tsx`;
+  `Draft` type now aliased to the service's own `NewParticipationType`
+  rather than redefining an equivalent (and, it turned out, slightly
+  wrong — missing `requiresNote`) `Omit` locally; `isBuiltIn` prop now
+  driven from the real interface's `isSystem` field (was `builtIn`,
+  which doesn't exist on the real type).
+
 - **`GrossingRouteOverridesSection.tsx`** — Own header is an excellent,
   specific bug-history note: documents that it verified the real matching
   logic in `mockCaseService.ts` directly rather than assuming, and
@@ -139,7 +201,7 @@ usually backed by a real `services/` interface/mock pair.
   this prop isn't actually wired to a real permission check yet. Worth a
   targeted look before treating either section as genuinely
   access-controlled.
-- **Fixes applied this pass:** `CaseRoutingSection.tsx` → 
+- **Fixes applied this pass (earlier):** `CaseRoutingSection.tsx` → 
   `CasePoolAssignmentSection.tsx` rename (file + component + import site);
   `specimenTypes.ts` comment cleanup; **`specimenTypes.ts` relocated to
   `services/specimenDictionary/specimenTypes.ts`** — Pete caught that a
@@ -148,7 +210,16 @@ usually backed by a real `services/` interface/mock pair.
   dependency every other dictionary in this codebase doesn't have. All 10
   real consumers updated; see `services/specimenDictionary/README.md` for
   the full writeup.
-- **Not fixed, flagged only:** `TypeModal.tsx` mojibake comments (cosmetic).
+- **Fixes applied this pass (later, same session as the CaseTeamModal
+  drag-and-drop bug fix):** the participation-types consolidation
+  (`ParticipationTypesSection.tsx` + `TypeModal.tsx`, both above), plus
+  the two `DemoResetTab.tsx` key additions. All four resulted from tracing
+  one user-reported drag-and-drop bug in `pages/SynopticReportPage/`'s
+  `CaseTeamModal.tsx` all the way back through the data layer — not found
+  by inspection.
+- **Previously flagged as cosmetic-only, now corrected and fixed:**
+  `TypeModal.tsx`'s mojibake — see its own entry above for why the
+  original assessment was incomplete.
 
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*

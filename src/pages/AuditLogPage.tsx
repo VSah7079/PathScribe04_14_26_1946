@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../pathscribe.css';
 import { useNavigate } from 'react-router-dom';
+import ResourcesModal from './WorklistPage/ResourcesModal';
 
 // ── Types & Data ─────────────────────────────────────────────────────────────
 // Components import ONLY from services/index.ts — never directly from mock/firestore files.
@@ -437,23 +438,11 @@ const AuditLogPage: React.FC = () => {
         </footer>
       </div>
 
-      {/* Quick Links Modal */}
-      {isResourcesOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 }} onClick={() => setIsResourcesOpen(false)}>
-          <div style={{ width: '500px', maxHeight: '80vh', overflowY: 'auto', backgroundColor: '#111', borderRadius: '20px', padding: '40px', border: '1px solid rgba(8,145,178,0.3)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ color: '#0891B2', fontSize: '24px', fontWeight: 700, marginBottom: '24px', textAlign: 'center' }}>Quick Links</div>
-            {Object.entries(quickLinks).map(([section, links]) => (
-              <div key={section} style={{ marginBottom: '24px' }}>
-                <div style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase' }}>{section}</div>
-                {links.map((link, i) => (
-                  <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" onClick={() => setIsResourcesOpen(false)} style={{ display: 'block', color: '#cbd5e1', textDecoration: 'none', padding: '12px 16px', fontSize: '16px', borderRadius: '8px', marginBottom: '8px', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.color = '#0891B2'; e.currentTarget.style.backgroundColor = 'rgba(8,145,178,0.1)'; }} onMouseLeave={e => { e.currentTarget.style.color = '#cbd5e1'; e.currentTarget.style.backgroundColor = 'transparent'; }}>→ {link.title}</a>
-                ))}
-              </div>
-            ))}
-            <button onClick={() => setIsResourcesOpen(false)} style={{ padding: '12px 24px', borderRadius: '10px', background: 'rgba(8,145,178,0.15)', border: '1px solid rgba(8,145,178,0.3)', color: '#0891B2', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%' }}>Close</button>
-          </div>
-        </div>
-      )}
+      <ResourcesModal
+        isOpen={isResourcesOpen}
+        onClose={() => setIsResourcesOpen(false)}
+        quickLinks={quickLinks}
+      />
     </div>
   );
 };

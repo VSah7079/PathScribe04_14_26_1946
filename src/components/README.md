@@ -17,7 +17,7 @@ changes, or a folder is added/removed/split/merged.
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
 | [ClientDictionary/](./ClientDictionary/README.md) | Client Dictionary table + editor modal |
 | [Contribution/](./Contribution/README.md) | My Contribution dashboard — 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
-| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect` |
+| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown` |
 | [Worklist/](./Worklist/README.md) | Case worklist table |
 | [Icons/](./Icons/README.md) | Icon components |
 | [Flags/](./Flags/README.md) | Flag display components |
@@ -84,8 +84,7 @@ remains the first real check on your end).
 - **Hardcoded `isSuperAdmin={true}`** (Config/System/) — see
   `ACCESS_CONTROL_PLAN.md` at repo root. Planned, not blocking, revisit
   before first real customer deployment.
-- **`TypeModal.tsx` mojibake comments** (Config/System/) — cosmetic
-  encoding artifact, not urgent.
+
 - **`TemplatePreviewPanel.tsx` still on the old node-list preview shape**
   (TemplateBuilder/) — works correctly today via a real adapter, not
   urgent.
@@ -110,6 +109,19 @@ subfolder work — summarized here for a single cross-folder view:
 - **`specimenTypes.ts` relocated** from `components/Config/System/` to
   `services/specimenDictionary/` — was an inverted dependency. Caught by
   Pete.
+- **Participation-types consolidation** — `Config/System/ParticipationTypesSection.tsx`
+  and `Config/Staff/RoleDictionary.tsx` each maintained a separate,
+  disconnected local list of participation types, drifted to different
+  type membership entirely from `services/participationTypes/mockParticipationTypeService.ts`
+  (the real service `CaseTeamModal.tsx` actually uses). Found by tracing
+  a user-reported drag-and-drop bug back through the data layer. Both
+  screens now use the real service directly; final 8-type canonical list
+  defined by Pete against real CLIA/CAP/ACGME clinical role requirements.
+  `TypeModal.tsx`'s mojibake — previously assessed here as cosmetic
+  comments-only — turned out to include a separate instance actually
+  rendering wrong in the live UI across all 9 admin screens sharing that
+  modal; traced to root cause via raw bytes and fixed. Full detail in
+  `Config/README.md`, `Config/Staff/README.md`, `Config/System/README.md`.
 - **`TemplateRenderer.tsx` fully rewritten** to consume real
   `EditorTemplate` content via `getTemplate()` instead of a hardcoded
   placeholder — 19 real seeded templates now display correctly, plus new
