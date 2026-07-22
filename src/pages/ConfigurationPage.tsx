@@ -211,29 +211,13 @@ const ConfigurationPage: React.FC = () => {
 
       {/* Unsaved Changes Modal */}
       {showWarning && (
-        <div
-          onClick={() => setShowWarning(false)}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000 }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: '420px', background: '#1e293b', borderRadius: '16px', padding: '32px', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)' }}
-          >
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>Unsaved Changes</h2>
-            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px' }}>You have unsaved changes. Are you sure you want to leave?</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowWarning(false)}
-                style={{ padding: '10px 20px', border: '1px solid #334155', borderRadius: '8px', background: 'transparent', color: '#94a3b8', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Stay
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                style={{ padding: '10px 20px', background: '#ef4444', color: 'white', borderRadius: '8px', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Leave
-              </button>
+        <div className="ps-overlay" onClick={() => setShowWarning(false)}>
+          <div className="ps-modal-dark" style={{ width: 420 }} onClick={e => e.stopPropagation()}>
+            <span className="ps-modal-dark-title">Unsaved Changes</span>
+            <p className="ps-modal-dark-body">You have unsaved changes. Are you sure you want to leave?</p>
+            <div className="ps-modal-dark-footer">
+              <button className="ps-btn-ghost-dark" onClick={() => setShowWarning(false)}>Stay</button>
+              <button className="ps-btn-red" onClick={() => navigate('/')}>Leave</button>
             </div>
           </div>
         </div>
