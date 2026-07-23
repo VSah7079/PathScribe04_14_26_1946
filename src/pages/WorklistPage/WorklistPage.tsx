@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable      from '../../components/Worklist/WorklistTable';
 import ResourcesModal     from './ResourcesModal';
-import LogoutWarningModal from './LogoutWarningModal';
+import LogoutWarningModal from '@/components/Common/LogoutWarningModal';
 import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../../constants/systemActions';
 import { useAuditLog } from '../../components/Audit/useAuditLog';

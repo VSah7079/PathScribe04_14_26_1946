@@ -1,3 +1,17 @@
+// src/components/Common/LogoutWarningModal.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Moved here from pages/WorklistPage/LogoutWarningModal.tsx -- was one of
+// TWO separate implementations of the same "unsaved changes, log out
+// anyway?" dialog (the other lived at
+// pages/SynopticReportPage/modals/LogoutWarningModal.tsx, with a
+// different prop interface: show/onCancel/onConfirm instead of this
+// one's isOpen/onClose/onLogout, and its own separate, uncorrected
+// zIndex: 25000 bug). Consolidated into one shared component specifically
+// because SynopticReportPage.tsx is a critical, high-traffic file where
+// two same-named components with different behavior is a real support-
+// analyst confusion risk, not just a style inconsistency.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import React from 'react';
 
 interface LogoutWarningModalProps {

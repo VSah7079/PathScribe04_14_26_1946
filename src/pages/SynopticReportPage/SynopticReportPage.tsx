@@ -39,7 +39,7 @@ import { DiscordanceReconciliationModal } from './modals/DiscordanceReconciliati
 import { CopilotReportViewModal } from './modals/CopilotReportViewModal';
 import type { CopilotReportInstance } from './modals/CopilotReportViewModal';
 import FinalizeSynopticModal from './modals/FinalizeSynopticModal';
-import LogoutWarningModal    from './modals/LogoutWarningModal';
+import LogoutWarningModal    from '@/components/Common/LogoutWarningModal';
 import UnsavedWarningModal   from './modals/UnsavedWarningModal';
 
 import { useSynopticFinalize } from '../Synoptic/useSynopticFinalize';
@@ -4037,10 +4037,9 @@ Original report issued pending ancillary studies. This amendment incorporates th
       />
 
       <LogoutWarningModal
-        show={showLogoutModal}
-        overlayStyle={overlayStyle}
-        onCancel={() => setShowLogoutModal(false)}
-        onConfirm={() => { setShowLogoutModal(false); handleLogout(); }}
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onLogout={() => { setShowLogoutModal(false); handleLogout(); }}
       />
 
       <AddOrdersModal

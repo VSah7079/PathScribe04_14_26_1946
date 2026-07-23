@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@contexts/AuthContext";
 import { useLogout } from '@hooks/useLogout';
 import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
-import LogoutWarningModal from './WorklistPage/LogoutWarningModal';
+import LogoutWarningModal from '@/components/Common/LogoutWarningModal';
 import ResourcesModal from './WorklistPage/ResourcesModal';
 
 export default function Home() {
