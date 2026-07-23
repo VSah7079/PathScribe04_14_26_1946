@@ -395,8 +395,8 @@ export const UploadProtocolModal: React.FC<{
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '500px', background: '#1e293b', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+    <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-modal-dark" style={{ width: 500, padding: 0 }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -492,8 +492,8 @@ export const BuildCustomiseModal: React.FC<{
     : publishedTemplates;
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '500px', background: '#1e293b', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+    <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-modal-dark" style={{ width: 500, padding: 0 }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
