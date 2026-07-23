@@ -72,8 +72,9 @@ const LoginPage: React.FC = () => {
           {/* Brand */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             {/* ForMedrix — dominant */}
-            <img src="/formedrix-logo.svg" alt="ForMedrix AI"
-              style={{ height: 90, display: 'block', margin: '0 auto' }} />
+            <img src="/formedrixlogotemp.jpg" alt="ForMedrix AI"
+              style={{ height: 120
+              , display: 'block', margin: '0 auto' }} />
 
             {/* PathScribe product logo */}
             <div style={{ marginTop: 18, marginBottom: 6 }}>
