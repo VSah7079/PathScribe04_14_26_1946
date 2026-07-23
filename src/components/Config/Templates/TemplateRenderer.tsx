@@ -221,19 +221,8 @@ const CodingBadges: React.FC<{ snomed?: string; icd?: string }> = ({ snomed, icd
 // ─── Overlay modal shell ──────────────────────────────────────────────────────
 
 const ModalOverlay: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({ children, onClose }) => (
-  <div
-    onClick={onClose}
-    style={{
-      position: 'fixed', inset: 0, zIndex: 9000,
-      background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}
-  >
-    <div onClick={e => e.stopPropagation()} style={{
-      width: '440px', background: '#1e293b', borderRadius: '14px',
-      border: '1px solid rgba(255,255,255,0.1)',
-      boxShadow: '0 25px 50px rgba(0,0,0,0.6)', padding: '28px',
-    }}>
+  <div className="ps-overlay" onClick={onClose}>
+    <div className="ps-modal-dark" style={{ width: 440 }} onClick={e => e.stopPropagation()}>
       {children}
     </div>
   </div>
