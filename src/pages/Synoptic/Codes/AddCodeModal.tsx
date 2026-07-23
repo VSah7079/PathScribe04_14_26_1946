@@ -577,7 +577,7 @@ Rules:
   const ContextMenu = contextMenu ? (
     <div
       onClick={() => setContextMenu(null)}
-      className="ps-overlay" style={{ zIndex: 9000 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9000 }}
     >
       <div
         onClick={e => e.stopPropagation()}
