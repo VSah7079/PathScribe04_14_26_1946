@@ -46,7 +46,6 @@ export interface FieldOverride {
 
 interface AmendmentModalProps {
   show: boolean;
-  overlayStyle?: React.CSSProperties;
   amendmentMode: 'amendment' | 'addendum';
   amendmentText: string;
   activeSynopticTitle: string;
@@ -281,7 +280,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
   };
 
   return (
-    <div data-capture-hide="true" className="ps-overlay ps-overlay--amendment">
+    <div data-capture-hide="true" className="ps-overlay">
       <div className="ps-modal-dark ps-amendment-wizard" onClick={e => e.stopPropagation()}>
 
         {isAmendment && (

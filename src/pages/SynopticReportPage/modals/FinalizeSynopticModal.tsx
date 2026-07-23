@@ -3,7 +3,6 @@ type SynopticReport = any;
 
 interface FinalizeSynopticModalProps {
   show: boolean;
-  overlayStyle?: React.CSSProperties;
   activeSynoptic: SynopticReport | null;
   finalizePassword: string;
   finalizeError: string;
@@ -20,7 +19,7 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
   if (!show) return null;
 
   return (
-    <div data-capture-hide="true" className="ps-overlay" style={{ zIndex: 9000 }}>
+    <div data-capture-hide="true" className="ps-overlay">
       <div className="ps-modal-dark ps-modal-dark--narrow ps-modal-dark--centered">
 
         <div className="ps-modal-dark-emoji">🔒</div>

@@ -96,13 +96,6 @@ import { buildContext, resolveAnswers } from '@/orchestrator/contextBuilder';
 import type { StructuredContext } from '@/orchestrator/contextBuilder';
 import { aiBehaviorService } from '@/services';
 
-// ─── Shared overlay style (passed to all modals) ──────────────
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed', inset: 0,
-  background: 'rgba(0,0,0,0.6)',
-  zIndex: 9000,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
 
 // Report PDF generation — Firebase Cloud Function (Python/ReportLab), see
 // functions-render-report/main.py. Not secret (it's a function URL, not a
@@ -3876,7 +3869,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
       <CaseSignOutModal
         show={showSignOutModal}
-        overlayStyle={overlayStyle}
         accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
         signOutUser={signOutUser}
         signOutPassword={signOutPassword}
@@ -3992,7 +3984,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
       {/* Legacy per-synoptic password confirm — kept for deferred/amendment flow */}
       <FinalizeSynopticModal
         show={showFinalizeModal}
-        overlayStyle={overlayStyle}
         activeSynoptic={null}
         finalizePassword={finalizePassword}
         finalizeError={finalizeError}
@@ -4012,7 +4003,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
       <AmendmentModal
         show={showAmendmentModal}
-        overlayStyle={overlayStyle}
         amendmentMode={amendmentMode}
         amendmentText={amendmentText}
         activeSynopticTitle={(() => {
@@ -4633,7 +4623,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
       <UnsavedWarningModal
         show={!!pendingNavigation || !!pendingPath}
-        overlayStyle={overlayStyle}
         dirtySections={Array.from(dirtySections)}
         onCancel={() => {
           setPendingNavigation(null);

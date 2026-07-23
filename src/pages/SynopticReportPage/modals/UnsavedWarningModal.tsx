@@ -15,7 +15,6 @@ import '@/pathscribe.css';
 
 interface UnsavedWarningModalProps {
   show:            boolean;
-  overlayStyle?:   React.CSSProperties;
   dirtySections?:  string[];           // which sections have unsaved changes
   onSaveAndLeave?: () => void;         // save draft then navigate
   onConfirm:       () => void;         // discard and navigate
@@ -23,7 +22,7 @@ interface UnsavedWarningModalProps {
 }
 
 const UnsavedWarningModal: React.FC<UnsavedWarningModalProps> = ({
-  show, overlayStyle, dirtySections = [], onSaveAndLeave, onConfirm, onCancel,
+  show, dirtySections = [], onSaveAndLeave, onConfirm, onCancel,
 }) => {
   if (!show) return null;
 
@@ -33,7 +32,7 @@ const UnsavedWarningModal: React.FC<UnsavedWarningModalProps> = ({
     <div
       data-capture-hide="true"
       className="ps-overlay"
-      style={{ zIndex: 9500, ...overlayStyle }}
+      style={{ zIndex: 9500 }}
       onClick={onCancel}
     >
       <div
