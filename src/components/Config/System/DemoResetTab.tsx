@@ -25,6 +25,8 @@ const VERSIONED_KEYS = [
 const SETTINGS_KEYS = [
   'specimen_dictionary',
   'container_types',
+  'pathscribe_delegation_types_v2',
+  'pathscribe_internal_notes_v2',
   'pathscribe_subspecialties',
   'pathscribe_report_templates',
   'pathscribe_participation_types_v2', // the real, canonical key (services/participationTypes/mockParticipationTypeService.ts)
