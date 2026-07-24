@@ -12,7 +12,7 @@ import { useCallback } from 'react';
 import { logEvent } from '../audit/auditLogger';
 import type { AuditEvent } from '../types/AuditEvent';
 import { SynopticAuditEvent } from '../types/SynopticAuditEvents';
-import { sendSynopticNotification } from '../services/synopticNotificationService';
+import { sendSynopticNotification } from '../services/communications';
 
 // Omit user — hook resolves it. Callers can override by passing user explicitly.
 type AuditInput = Omit<SynopticAuditEvent, 'user'> & { user?: string };

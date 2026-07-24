@@ -385,7 +385,13 @@ export const TemplateRenderer: React.FC = () => {
 
     auditAndNotify({
       category:     'user',
-      action:       'state_transition',
+      action:       (
+        target === 'needs_changes' ? 'template.needs_changes' :
+        target === 'approved'      ? 'template.approved' :
+        target === 'published'     ? 'template.published' :
+        target === 'in_review'     ? 'template.submitted_for_review' :
+        'state_transition' // fallback for any target not in NOTIFY_ON_ACTIONS -- won't trigger a notification, matches prior (silent) behavior for anything unrecognized
+      ) as any,
       templateId,
       templateName: template?.name ?? templateId,
       stateFrom:    prev,
