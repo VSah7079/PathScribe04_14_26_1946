@@ -2,6 +2,8 @@
 // Rich case header — white bar with accession, patient info, progress steps.
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMessaging } from '@/contexts/MessagingContext';
 import type { Case } from '@/types/case/Case';
 import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
@@ -94,6 +96,17 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   const isCopilotCase = caseData?.reportingMode === 'copilot';
   const [syncState, setSyncState] = useState<LisSyncState | null>(null);
   const [checkingNow, setCheckingNow] = useState(false);
+
+  // "Back to Messages" — this page's own breadcrumb trail is fully
+  // separate from AppShell's (see this file's own header comment
+  // history), so this needs its own copy of the same reactive
+  // sessionStorage check rather than anything AppShell tracks.
+  const navigate = useNavigate();
+  const { setPortalOpen } = useMessaging();
+  const [showBackToMessages, setShowBackToMessages] = useState(false);
+  useEffect(() => {
+    setShowBackToMessages(sessionStorage.getItem('ps_reopen_messages') === '1');
+  }, [caseData?.id]);
 
   useEffect(() => {
     if (!isCopilotCase || !caseData?.id) { setSyncState(null); return; }
@@ -265,6 +278,18 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
 
       {/* Breadcrumb */}
       <div className="ps-hb-breadcrumb">
+        {showBackToMessages && (
+          <>
+            <span
+              className="ps-hb-crumb"
+              style={{ color: '#0891B2', fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => { sessionStorage.removeItem('ps_reopen_messages'); setShowBackToMessages(false); setPortalOpen(true); navigate(-1); }}
+            >
+              ← Back to Messages
+            </span>
+            <span className="ps-hb-crumb-sep">│</span>
+          </>
+        )}
         <span className="ps-hb-crumb" onClick={() => onNavigate('/')}>Home</span>
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb" onClick={() => onNavigate('/worklist')}>Worklist</span>
