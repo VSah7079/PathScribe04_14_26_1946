@@ -1,7 +1,7 @@
 # components/Config/
 
 The biggest, most central components folder — every admin/configuration
-screen in PathScribe (analogous to `services/cases/` in scale). 53 files
+screen in PathScribe (analogous to `services/cases/` in scale). 54 files
 across 11 subfolders.
 
 **Maintenance rule:** when a subfolder's *contents* change, update that
@@ -21,21 +21,21 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
 | [Search/](./Search/README.md) | Configuration page's own search bar | βœ… Reviewed |
 | [Staff/](./Staff/README.md) | Staff directory + role/permission dictionary | βœ… Reviewed β€” 2 fixes applied |
 | [Terminology/](./Terminology/README.md) | Terminology endpoint config + health monitor | βœ… Reviewed |
-| [System/](./System/README.md) | 28 files β€” client/case/routing/TAT/dictionary admin | βœ… Reviewed β€” 1 rename, 5 fixes applied |
+| [System/](./System/README.md) | 29 files β€” client/case/routing/TAT/session/dictionary admin | βœ… Reviewed β€” 1 rename, 6 fixes applied |
 | [Protocols/](./Protocols/README.md) | Protocol registry + review queue + the real template builder | βœ… Reviewed β€” see TemplateRenderer bug below |
 
 ## Known issues (cross-folder)
 
-- **Macros/index.tsx hardcoded fonts** β€” drift risk vs. `services/fonts/`
-  (the real dictionary is `System/FontsSection.tsx`'s own data).
+- **Macros/index.tsx hardcoded fonts** (Config/) β€” drift risk vs.
+  `services/fonts/` (the real dictionary is `System/FontsSection.tsx`'s
+  own data).
 - **Hardcoded `isSuperAdmin={true}`** (System/) β€” `GoverningBodiesSection`
   and `TerminologyServicesSection` are never called with a real,
   role-derived value. See `ACCESS_CONTROL_PLAN.md` (repo root) β€” planned,
   not blocking, revisit before first real customer deployment.
-- **~13 real service storage keys missing from `DemoResetTab.tsx`**
-  (System/) β€” found via a full audit prompted by the participation-types
-  fix below; includes `pathscribe_roles`, `pathscribe_users`, and others.
-  Logged in `PRIORITY_FIXES.md` as its own item.
+- **~9 real service storage keys missing from `DemoResetTab.tsx`**
+  (System/) β€” down from ~13 after this session's `CASE_KEYS` fix; the
+  remaining gap is logged in `PRIORITY_FIXES.md` as its own item.
 
 ## Fixes applied this pass
 
@@ -84,10 +84,42 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
   real service directly; the final 8-type canonical list was defined
   directly by Pete against real CLIA/CAP/ACGME clinical role
   requirements. `TypeModal.tsx`'s mojibake (previously assessed as
-  cosmetic/comments-only) turned out to include a separate, more serious
-  instance actually rendering wrong in the live UI across all 9 admin
-  screens sharing this modal β€” traced to root cause via raw bytes and
-  fixed. Full detail in `Staff/README.md` and `System/README.md`.
+  cosmetic) turned out to include a separate instance actually rendering
+  wrong in the live UI across all 9 admin screens sharing this modal β€”
+  traced to root cause via raw bytes and fixed. Full detail in
+  `Staff/README.md` and `System/README.md`.
+- **Demo Reset critical fix.** Same investigation surfaced that
+  `DemoResetTab.tsx`'s `CASE_KEYS` referenced `'ps_cases'` β€” a key
+  `mockCaseService.ts` never actually wrote to (its real key is
+  `'cases'`) β€” meaning Demo Reset had likely never correctly cleared
+  primary case data at all. Found via a full, unrestricted
+  `storageGet`/`storageSet` audit across `services/`, not limited to the
+  `pathscribe_` prefix (the exact reason this and 8 other keys had gone
+  undetected by an earlier, narrower pass).
+- **Session Security β€” Phase 1 of the Inactivity Timeout & Draft Recovery
+  feature, complete (full spec in `PRIORITY_FIXES.md`).** A real
+  idle-detection timer, honest warning modal, and forced logout, replacing
+  what turned out to be nothing at all β€” `AuthContext.tsx` had zero
+  timeout logic anywhere, while `services/auditlog/mockAuditService.ts`
+  had two fabricated demo entries claiming a "session expired after 60
+  min inactivity" event had fired successfully in the past. Those
+  entries were removed immediately, ahead of any technical or IP
+  diligence review, independent of when the real feature shipped.
+  Resolution is deliberately per-currently-open-case (an org-wide
+  default, overridden by whichever client performs the work on the case
+  on screen) rather than a multi-institution "strictest among all active
+  permissions" model β€” matches PathScribe's actual single-case-focused
+  UI, and avoids inventing a user-to-client permissions concept that
+  doesn't exist anywhere in the data model. New:
+  `System/SessionSecuritySection.tsx` (org-default admin screen),
+  `services/session/sessionTimeoutConfig.ts` (resolution logic, mirrors
+  `orchestratorModeConfig.ts`'s proven org-default/per-client-override
+  structure), `hooks/useIdleTimeout.ts`, `Common/SessionExpiryWarningModal.tsx`.
+  `Client.idleTimeoutMinutesOverride` added to `IClientService.ts` and
+  wired into the Client Dictionary edit modal. Modal copy deliberately
+  reworded from the original spec to avoid claiming draft auto-save
+  exists (that's Phase 2, not built) β€” same false-claim risk just
+  removed from the audit log.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

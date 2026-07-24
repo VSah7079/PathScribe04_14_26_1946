@@ -1,10 +1,11 @@
 # components/Config/System/
 
 The biggest, most central components folder after Config/ itself — every
-system-wide dictionary/admin screen (28 files → 27 after the rename below,
-26 after `specimenTypes.ts`'s relocation — see Notes).
+system-wide dictionary/admin screen (29 files — was 28 → 27 after an
+earlier rename → 26 after `specimenTypes.ts`'s relocation → 27 again with
+`SessionSecuritySection.tsx`'s addition this pass — see Notes).
 Wired entirely through `index.tsx`'s `SECTIONS` registry + `renderSection()`
-switch; every section listed there is confirmed live (all 21 sidebar items
+switch; every section listed there is confirmed live (all 22 sidebar items
 render a real, non-stub component — see Notes on `TATConfigSection.tsx`).
 
 **Pattern:** Each dictionary/admin concern is one file — table + modal,
@@ -14,11 +15,39 @@ usually backed by a real `services/` interface/mock pair.
 
 - **`index.tsx`** — Section registry + sidebar nav + URL deep-linking
   (`?tab=system&section=...`) + a `PATHSCRIBE_SYSTEM_NAVIGATE` custom-event
-  listener for voice navigation. Two leftover breadcrumb comments
-  (`// ← was never registered here despite existing` on `PhysiciansSection`,
-  `// ← create this component` on `TATConfigSection`) are stale — both are
-  now fully registered and built; harmless, just old history not yet
-  cleaned from the comments.
+  listener for voice navigation.
+
+  **RESOLVED this pass — the "two leftover breadcrumb comments" noted
+  previously turned out to be five, all confirmed stale and safe to
+  remove:** `// ← was never registered here despite existing` on the
+  `PhysiciansSection` import, plus four separate `// ← new`/`// ← create
+  this component` markers on `TATConfigSection` (its import, its type
+  union entry, its `SECTIONS` entry, and its switch case) — all confirmed
+  fully registered and built, nothing outstanding behind any of them.
+  Pete removing manually.
+
+  **Also this pass:** new `'session_security'` section registered
+  (`SessionSecuritySection.tsx`, below) — type union entry, `SECTIONS`
+  array entry, and switch case all added. One real bug hit and fixed
+  along the way: the type-union edit was initially missed (only the
+  `SECTIONS`/switch entries were added), which `tsc` correctly caught —
+  `SystemSection` needed `'session_security'` added alongside `'tat_config'`
+  for the other two additions to type-check at all.
+
+- **`SessionSecuritySection.tsx`** — **NEW.** Org-wide default admin
+  screen for the idle-session-timeout feature (Phase 1 of the Inactivity
+  Timeout & Draft Recovery spec — full detail in `PRIORITY_FIXES.md`).
+  Reads/writes `services/session/sessionTimeoutConfig.ts`'s org-default
+  getter/setter. Deliberately its own small section rather than folded
+  into `RetentionSection.tsx` (a related-sounding but conceptually
+  different concept — how long *data* is retained, not how long an
+  *active session* stays live) — also a natural home for Phase 2/3's
+  related settings (draft retention days, encryption toggle) once those
+  are built, rather than needing a second new section added later.
+  Per-performing-lab overrides are set separately, on the Client
+  Dictionary edit modal (`Client.idleTimeoutMinutesOverride`) — this
+  screen only controls the org-wide fallback.
+
 - **`CasePoolAssignmentSection.tsx`** — **RENAMED this pass** (was
   `CaseRoutingSection.tsx`). Closes PRIORITY_FIXES.md #3: the component
   name collided with `services/cases/CaseRouter.ts` even though it
@@ -69,21 +98,17 @@ usually backed by a real `services/` interface/mock pair.
 - **`DemoResetTab.tsx`** — Real two-level mock data reset (full vs.
   "my hospital's data only"), both paths gated behind confirmation.
 
-  **FIXED this pass:** the participation-types real storage key
-  (`pathscribe_participation_types_v2`) and its now-orphaned predecessor
-  (`pathscribe_participation_types`, no `_v2` — see
-  `ParticipationTypesSection.tsx` below) were both missing from
-  `SETTINGS_KEYS`; added.
-
-  **FOUND, not fixed — real, larger gap.** A full audit of every
-  `storageGet`/`storageSet` key across `services/` against this file's
-  known-key lists found **~13 more real service storage keys missing**,
-  including `pathscribe_roles` and `pathscribe_users` — meaning role and
-  staff data (among others) currently survive a "Demo Reset." Deliberately
-  NOT included: `pathscribe_audit_logs`/`pathscribe_error_logs` (probably
-  shouldn't reset with demo data) and `pathscribe_models` (unconfirmed
-  what this actually governs). Logged in `PRIORITY_FIXES.md` as its own
-  item — real, separate work, not folded into tonight's fix.
+  **FIXED, both passes:** the participation-types real storage key plus
+  its orphaned predecessor were added to `SETTINGS_KEYS`. Separately, a
+  **critical** fix: `CASE_KEYS` had referenced `'ps_cases'`, a key
+  `mockCaseService.ts` never actually wrote to (its real key is `'cases'`)
+  — meaning Demo Reset had likely never correctly cleared primary case
+  data at all. Found via a full, unrestricted `storageGet`/`storageSet`
+  audit across `services/` (not limited to the `pathscribe_` prefix, which
+  is exactly how both this and 8 other missing keys — including
+  `pathscribe_roles`/`pathscribe_users` — had gone undetected by an
+  earlier, narrower audit pass). All now correctly categorized into
+  `CASE_KEYS`/`SETTINGS_KEYS`/`STATE_KEYS`.
 
 - **`GoverningBodiesSection.tsx`** — Standard bodies (CAP/RCPath/ICCR/RCPA)
   toggle-only, custom bodies full CRUD with an ID-conflict guard. **See
@@ -108,18 +133,16 @@ usually backed by a real `services/` interface/mock pair.
   Found via a direct user report tracing a drag-and-drop bug in
   `CaseTeamModal` back through the data layer, not by inspection alone.
 
-  **FIXED this pass:** rewritten to read/write through
-  `mockParticipationTypeService` directly (async, replacing the old
-  synchronous local calls). The final canonical 8-type list was defined
-  directly by Pete, reconciling both prior lists against real CLIA/CAP/
-  ACGME clinical workflow requirements — see the service file's own header
-  comment for the full list and an international-naming reference table
-  (UK/Canada/ANZ/EU role-name equivalents) captured for future
-  localization work. `ParticipationTypeRecord` (the real interface)
-  extended with two fields this screen needed but the interface didn't
-  have: `canBeAssignedTemplate`, `canViewWholeCase`. `TypeModal.tsx`
-  (below) and `Staff/RoleDictionary.tsx` updated to match — see their own
-  entries.
+  **FIXED:** rewritten to read/write through `mockParticipationTypeService`
+  directly (async, replacing the old synchronous local calls). The final
+  canonical 8-type list was defined directly by Pete, reconciling both
+  prior lists against real CLIA/CAP/ACGME clinical workflow requirements —
+  see the service file's own header comment for the full list and an
+  international-naming reference table (UK/Canada/ANZ/EU role-name
+  equivalents) captured for future localization work. `ParticipationTypeRecord`
+  (the real interface) extended with two fields this screen needed but the
+  interface didn't have: `canBeAssignedTemplate`, `canViewWholeCase`.
+  `TypeModal.tsx` (below) and `Staff/RoleDictionary.tsx` updated to match.
 
 - **`FontsSection.tsx`** — Approved-fonts toggle list feeding
   `PathScribeEditor`'s toolbar via `SystemConfigContext`. Enforces at
@@ -142,13 +165,13 @@ usually backed by a real `services/` interface/mock pair.
   existed in the actual modal title string (`'Edit — ' + type?.label`),
   rendering visibly wrong in the live UI across every admin screen that
   reuses this shared modal (confirmed affecting all 9 files using this
-  pattern, not just this one). **FIXED this pass**, traced through the
-  raw bytes to confirm root cause rather than guessed at; a full-`src/`
-  grep for the same corrupted byte sequence afterward came back clean —
-  this was the only occurrence.
+  pattern, not just this one). **FIXED**, traced through the raw bytes
+  to confirm root cause rather than guessed at; a full-`src/` grep for
+  the same corrupted byte sequence afterward came back clean — this was
+  the only occurrence.
 
-  Also updated this pass as part of the participation-types
-  consolidation above: imports `ParticipationTypeRecord` directly from
+  Also updated as part of the participation-types consolidation above:
+  imports `ParticipationTypeRecord` directly from
   `services/participationTypes/IParticipationTypeService.ts` instead of
   the now-removed local type re-export from `ParticipationTypesSection.tsx`;
   `Draft` type now aliased to the service's own `NewParticipationType`
@@ -201,25 +224,29 @@ usually backed by a real `services/` interface/mock pair.
   this prop isn't actually wired to a real permission check yet. Worth a
   targeted look before treating either section as genuinely
   access-controlled.
-- **Fixes applied this pass (earlier):** `CaseRoutingSection.tsx` → 
+- **Fixes applied, earliest pass:** `CaseRoutingSection.tsx` →
   `CasePoolAssignmentSection.tsx` rename (file + component + import site);
   `specimenTypes.ts` comment cleanup; **`specimenTypes.ts` relocated to
   `services/specimenDictionary/specimenTypes.ts`** — Pete caught that a
   data-layer service (`ISpecimenDictionaryService.ts`) was importing its
   core `SpecimenEntry` type from inside `components/`, an inverted
   dependency every other dictionary in this codebase doesn't have. All 10
-  real consumers updated; see `services/specimenDictionary/README.md` for
-  the full writeup.
-- **Fixes applied this pass (later, same session as the CaseTeamModal
+  real consumers updated; see `services/specimenDictionary/README.md`.
+- **Fixes applied, second pass (same session as the CaseTeamModal
   drag-and-drop bug fix):** the participation-types consolidation
   (`ParticipationTypesSection.tsx` + `TypeModal.tsx`, both above), plus
-  the two `DemoResetTab.tsx` key additions. All four resulted from tracing
-  one user-reported drag-and-drop bug in `pages/SynopticReportPage/`'s
-  `CaseTeamModal.tsx` all the way back through the data layer — not found
-  by inspection.
-- **Previously flagged as cosmetic-only, now corrected and fixed:**
-  `TypeModal.tsx`'s mojibake — see its own entry above for why the
-  original assessment was incomplete.
+  the `DemoResetTab.tsx` key additions/critical `'cases'` fix. All
+  resulted from tracing one user-reported drag-and-drop bug in
+  `pages/SynopticReportPage/`'s `CaseTeamModal.tsx` all the way back
+  through the data layer — not found by inspection.
+- **Fixes applied, third pass:** `SessionSecuritySection.tsx` added
+  (Phase 1 of the Inactivity Timeout & Draft Recovery feature); five
+  stale breadcrumb-style comments in `index.tsx` identified as fully
+  addressed and confirmed safe to remove. This pass also removed two
+  fabricated "session expired after 60 min inactivity" audit log entries
+  from `services/auditlog/mockAuditService.ts` — found while investigating
+  whether a real timeout mechanism existed (it didn't, until this pass);
+  those entries falsely implied one had fired successfully in the past.
 
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*

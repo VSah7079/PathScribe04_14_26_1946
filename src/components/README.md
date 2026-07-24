@@ -11,13 +11,13 @@ changes, or a folder is added/removed/split/merged.
 
 | Folder | What it is |
 |---|---|
-| [Config/](./Config/README.md) | Every admin/configuration screen — 53 files across 11 subfolders, see its own index |
-| [TemplateBuilder/](./TemplateBuilder/README.md) | Report *layout/assembly* builder — distinct from Config/Protocols/'s synoptic *data-capture* templates |
+| [Config/](./Config/README.md) | Every admin/configuration screen β€” 54 files across 11 subfolders, see its own index |
+| [TemplateBuilder/](./TemplateBuilder/README.md) | Report *layout/assembly* builder β€” distinct from Config/Protocols/'s synoptic *data-capture* templates |
 | [Editor/](./Editor/README.md) | Tiptap rich text editor + `tiptapBridge/` (AI-integration bridge) |
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
 | [ClientDictionary/](./ClientDictionary/README.md) | Client Dictionary table + editor modal |
-| [Contribution/](./Contribution/README.md) | My Contributio| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal`, `SessionExpiryWarningModal` |n dashboard — 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
-| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal` |
+| [Contribution/](./Contribution/README.md) | My Contribution dashboard β€” 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
+| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal`, `SessionExpiryWarningModal` |
 | [Worklist/](./Worklist/README.md) | Case worklist table |
 | [Icons/](./Icons/README.md) | Icon components |
 | [Flags/](./Flags/README.md) | Flag display components |
@@ -37,7 +37,7 @@ changes, or a folder is added/removed/split/merged.
 ## Naming/structure pass (July 2026)
 
 Prompted by a direct question: does `Common/` being this thin, in a
-codebase this size, actually make sense? It didn't — the deeper look
+codebase this size, actually make sense? It didn't β€” the deeper look
 found several folders whose *names* didn't communicate their contents,
 independent of whether the code itself was correct. Renamed/consolidated:
 
@@ -46,16 +46,16 @@ independent of whether the code itself was correct. Renamed/consolidated:
 | `system/` (lowercase) | `ClientDictionary/` | Collided by capitalization only with `Config/System/` (a much bigger, unrelated folder); told you nothing about Client Dictionary being what's inside |
 | `UI/` | folded into `Common/` | Single-file folder named as generically as possible; `ConfirmModal.tsx` is exactly the same category of thing as `Common/LookupModal.tsx` |
 | `PatientReportPage/` | folded into `Common/` | The page that name referred to was deleted as dead code earlier this session; only `InlineCommentThread.tsx` (a genuinely shared component) was left behind in a folder named after something that no longer existed |
-| `AccessionPage/` | `SpecimenPicker/` | Identical name to `pages/AccessionPage/`, a completely different folder — this one is just a picker component, not the page |
-| `CasePanel/` | `PatientHistory/` | Gave no signal the folder contains the patient history modal specifically — no other "case panel" concept existed to distinguish it from |
+| `AccessionPage/` | `SpecimenPicker/` | Identical name to `pages/AccessionPage/`, a completely different folder β€” this one is just a picker component, not the page |
+| `CasePanel/` | `PatientHistory/` | Gave no signal the folder contains the patient history modal specifically β€” no other "case panel" concept existed to distinguish it from |
 | `synoptic/` (lowercase) | `Synoptic/` | The only folder in all of `components/` breaking PascalCase convention |
-| `Dashboards/` | folded into `Contribution/` | Both files (`FlagRow.tsx`, `CaseMixTile.tsx`) exclusively serve `ContributionDashboardPage.tsx` — same audience as everything already in `Contribution/`; "Dashboards" (plural, generic) didn't say which dashboard |
+| `Dashboards/` | folded into `Contribution/` | Both files (`FlagRow.tsx`, `CaseMixTile.tsx`) exclusively serve `ContributionDashboardPage.tsx` β€” same audience as everything already in `Contribution/`; "Dashboards" (plural, generic) didn't say which dashboard |
 
-**Kept as-is, deliberately** — flagged as overloaded terminology rather
+**Kept as-is, deliberately** β€” flagged as overloaded terminology rather
 than renamed, since each name is individually accurate for what it
 contains:
 
-- **"Search"** means three different things depending on folder —
+- **"Search"** means three different things depending on folder β€”
   `components/Search/CaseSearchBar.tsx` (global case search),
   `Config/Search/ConfigSearchBar.tsx` (Configuration page's own search),
   and `pages/SearchPage.tsx` (the dedicated SNOMED/ICD/specimen lookup
@@ -63,15 +63,15 @@ contains:
   confusing if you forget which folder you're in.
 - **"Template"** means genuinely different things in `Config/Protocols/`
   (data-capture) vs. `TemplateBuilder/` (report layout) vs.
-  `TemplateRequest/` (a request form for a new one) — already documented
+  `TemplateRequest/` (a request form for a new one) β€” already documented
   in `TemplateBuilder/README.md`'s own Notes section.
 - **"Review"** means different things in `RequestReview/` (ask a
   colleague to informally look at a case) vs. `Config/Protocols/ReviewQueueSection.tsx`
-  (formal protocol lifecycle review) — different domains, not a naming
+  (formal protocol lifecycle review) β€” different domains, not a naming
   mistake.
 - **"Editor"** means different things in `components/Editor/` (Tiptap
   narrative writing surface) vs. `Config/Protocols/SynopticEditor.tsx`
-  (structured template *definition* builder) — a fourth confirmed
+  (structured template *definition* builder) β€” a fourth confirmed
   instance of this same pattern, prompted by a direct question and
   checked rather than assumed correct. See `Config/Protocols/README.md`.
 
@@ -79,37 +79,37 @@ Every rename above: confirmed sole/all real consumers via full-`src/`
 grep before moving, updated every import path and self-documented header
 comment, verified zero dangling references afterward, and ran each moved
 file through `esbuild` as a syntax/resolution sanity check (this
-environment has no `tsconfig`/`node_modules` for a real `tsc` run — that
+environment has no `tsconfig`/`node_modules` for a real `tsc` run β€” that
 remains the first real check on your end).
 
 ## Known issues found across components/
 
-- **Macros/index.tsx hardcoded fonts** (Config/) — drift risk vs.
+- **Macros/index.tsx hardcoded fonts** (Config/) β€” drift risk vs.
   `services/fonts/`.
-- **Hardcoded `isSuperAdmin={true}`** (Config/System/) — see
+- **Hardcoded `isSuperAdmin={true}`** (Config/System/) β€” see
   `ACCESS_CONTROL_PLAN.md` at repo root. Planned, not blocking, revisit
   before first real customer deployment.
 - **`TemplatePreviewPanel.tsx` still on the old node-list preview shape**
-  (TemplateBuilder/) — works correctly today via a real adapter, not
+  (TemplateBuilder/) β€” works correctly today via a real adapter, not
   urgent.
 
 ## Fixes applied across components/
 
 See `Config/README.md`'s own fixes log for full detail on the Config/
-subfolder work — summarized here for a single cross-folder view:
+subfolder work β€” summarized here for a single cross-folder view:
 
-- `Staff/RoleDictionary.tsx`, `ClientDictionary/ClientTable.tsx` — stale
+- `Staff/RoleDictionary.tsx`, `ClientDictionary/ClientTable.tsx` β€” stale
   header path comments fixed.
-- **Orchestrator Mode** — real, previously-nonfunctional toggle rebuilt
+- **Orchestrator Mode** β€” real, previously-nonfunctional toggle rebuilt
   with org default + per-internal-client override
   (`Client.internalAiOrchestratorEnabled`). Dead `NarrativeTemplatesTab`
   cluster deleted.
-- **`CaseRoutingSection.tsx` → `CasePoolAssignmentSection.tsx`** rename,
+- **`CaseRoutingSection.tsx` β†’ `CasePoolAssignmentSection.tsx`** rename,
   matching the services/ side.
 - **`specimenTypes.ts` relocated** from `components/Config/System/` to
-  `services/specimenDictionary/` — was an inverted dependency. Caught by
+  `services/specimenDictionary/` β€” was an inverted dependency. Caught by
   Pete.
-- **Participation-types consolidation** — `Config/System/ParticipationTypesSection.tsx`
+- **Participation-types consolidation** β€” `Config/System/ParticipationTypesSection.tsx`
   and `Config/Staff/RoleDictionary.tsx` each maintained a separate,
   disconnected local list of participation types, drifted to different
   type membership entirely from `services/participationTypes/mockParticipationTypeService.ts`
@@ -117,72 +117,73 @@ subfolder work — summarized here for a single cross-folder view:
   a user-reported drag-and-drop bug back through the data layer. Both
   screens now use the real service directly; final 8-type canonical list
   defined by Pete against real CLIA/CAP/ACGME clinical role requirements.
-  `TypeModal.tsx`'s mojibake — previously assessed here as cosmetic
-  comments-only — turned out to include a separate instance actually
+  `TypeModal.tsx`'s mojibake β€” previously assessed here as cosmetic
+  comments-only β€” turned out to include a separate instance actually
   rendering wrong in the live UI across all 9 admin screens sharing that
-  modal; traced to root cause via raw bytes and fixed. Full detail in
-  `Config/README.md`, `Config/Staff/README.md`, `Config/System/README.md`.
+  modal; traced to root cause via raw bytes and fixed. Same investigation
+  also surfaced a critical Demo Reset bug: `CASE_KEYS` referenced
+  `'ps_cases'`, a key `mockCaseService.ts` never actually wrote to (real
+  key: `'cases'`) β€” Demo Reset had likely never correctly cleared primary
+  case data. Full detail in `Config/README.md`, `Config/Staff/README.md`,
+  `Config/System/README.md`.
 - **`TemplateRenderer.tsx` fully rewritten** to consume real
   `EditorTemplate` content via `getTemplate()` instead of a hardcoded
-  placeholder — 19 real seeded templates now display correctly, plus new
+  placeholder β€” 19 real seeded templates now display correctly, plus new
   SNOMED/ICD coding display. `types/templateTypes.ts` and
   `src/templates/mockDcisTemplate.ts` deleted as fully dead.
-- **Orphaned third protocol-editing system deleted** — `src/protocols/`
+- **Orphaned third protocol-editing system deleted** β€” `src/protocols/`
   and `src/types/ProtocolDefinition.ts`, plus the unreachable route in
   `App.tsx`. Caught by Pete.
 - **`PathScribeEditorHandle` duplicate declaration consolidated**
-  (Editor/) — now a single source of truth in `PathScribeEditorRef.ts`.
+  (Editor/) β€” now a single source of truth in `PathScribeEditorRef.ts`.
 - **`Editor/integration/` renamed to `Editor/tiptapBridge/`** for clarity.
-- **`system/clients/desktop.ini` deleted** — Windows Explorer metadata
+- **`system/clients/desktop.ini` deleted** β€” Windows Explorer metadata
   file, not source code. Recommend adding `desktop.ini` to `.gitignore`.
-- **`Common/Button/Button.test.tsx` deleted** — confirmed empty scaffold,
+- **`Common/Button/Button.test.tsx` deleted** β€” confirmed empty scaffold,
   no `Button.tsx` ever existed.
-- **`PatientReportPage.tsx` deleted** — routed but genuinely unreachable;
+- **`PatientReportPage.tsx` deleted** β€” routed but genuinely unreachable;
   every real navigation goes to `/case/${id}/synoptic` instead. Confirmed
-  with Pete. `mock/mockReports.ts` kept — still used by `FullReportPage.tsx`.
-- `Audit/useAuditLog.ts` — removed a literally duplicated header comment.
-- **Full naming/structure pass** — see the table above. 7 folders
+  with Pete. `mock/mockReports.ts` kept β€” still used by `FullReportPage.tsx`.
+- `Audit/useAuditLog.ts` β€” removed a literally duplicated header comment.
+- **Full naming/structure pass** β€” see the table above. 7 folders
   renamed or consolidated; every move verified via grep + esbuild.
 - **`RequestReviewModal.tsx`'s reviewer list rebuilt** on the real
   `services/users/mockUserService.ts` directory (filtered to active
   Pathologists), replacing a standalone hardcoded array that had drifted
   into real ID collisions with `AppShell.tsx`'s directory. Collision-free
   by construction now, not just patched around.
-- **PRIORITY_FIXES.md #8 — CLOSED. Modal-overlay shell consolidation,
+- **PRIORITY_FIXES.md #8 β€” CLOSED. Modal-overlay shell consolidation,
   all 14 files.** What started as `components/UI/ConfirmModal.tsx` found
-  with exactly 1 real consumer (the evidence that triggered this whole
-  effort) became a full sweep: `LogoutWarningModal.tsx`,
-  `ResourcesModal.tsx` (WorklistPage), `EnhancementRequestModal.tsx`
-  (already correct, confirmed not touched), `AuditLogPage.tsx`,
-  `ConfigurationPage.tsx`, `AppShell.tsx`, `SynopticEditor.tsx`,
-  `protocolShared.tsx`, `TemplateRenderer.tsx`, `PathScribeEditor.tsx`,
-  `SynopticReportPage.tsx`, `AddCodeModal.tsx` — plus `Home.tsx`, found
-  along the way with **two** of its own duplicate modals (Quick Links,
-  Safety) eliminated entirely by reusing the already-fixed shared
-  components rather than reformatting a third copy. `AuditLogPage.tsx`
-  turned out to have a *third* copy of the same Quick Links modal,
-  also consolidated. Every file individually verified against its real,
-  current content (not assumed from an earlier snapshot) before editing,
-  after several edits based on stale local copies caused real, if
-  quickly-recovered, corruption — recovered cleanly via git each time,
-  nothing lost.
-- **`LogoutWarningModal.tsx` consolidation, prompted directly by Pete
-  given the reliability stakes of `SynopticReportPage.tsx`.** Investigating
-  that page's own `modals/` folder for the same class of risk found a
-  *second*, separate `LogoutWarningModal.tsx` there — same name,
-  different prop interface (`show`/`onCancel`/`onConfirm` vs.
-  `isOpen`/`onClose`/`onLogout`), carrying its own uncorrected
-  `zIndex: 25000` bug. Consolidated into this one shared
-  `Common/LogoutWarningModal.tsx`, all 3 real consumers
-  (`WorklistPage.tsx`, `Home.tsx`, `SynopticReportPage.tsx`) updated.
-  Same investigation also found and removed a dead `overlayStyle` prop
-  — declared but never used — across `AmendmentModal.tsx`,
-  `CaseSignOutModal.tsx`, `FinalizeSynopticModal.tsx`, and
-  `UnsavedWarningModal.tsx` (all in `pages/SynopticReportPage/modals/`),
-  plus the now-fully-dead parent constant and pass-throughs in
-  `SynopticReportPage.tsx` itself, and one redundant CSS modifier
-  (`.ps-overlay--amendment`, which turned out to just restate
-  `.ps-overlay`'s own default z-index).
+  with exactly 1 real consumer became a full sweep across
+  `LogoutWarningModal.tsx`, `ResourcesModal.tsx`, `EnhancementRequestModal.tsx`
+  (already correct, confirmed), `AuditLogPage.tsx`, `ConfigurationPage.tsx`,
+  `AppShell.tsx`, `SynopticEditor.tsx`, `protocolShared.tsx`,
+  `TemplateRenderer.tsx`, `PathScribeEditor.tsx`, `SynopticReportPage.tsx`,
+  `AddCodeModal.tsx`, plus `Home.tsx` (found along the way, with two of
+  its own duplicate modals eliminated by reuse rather than reformatted a
+  third time) and `AuditLogPage.tsx`'s own third copy of the same Quick
+  Links modal.
+- **`LogoutWarningModal.tsx` consolidation**, prompted directly by Pete
+  given the reliability stakes of `SynopticReportPage.tsx` β€” a second,
+  separate implementation with a different prop interface and its own
+  uncorrected z-index bug was found in that page's own `modals/` folder
+  and merged into one shared `Common/LogoutWarningModal.tsx`. Same
+  investigation found and removed a dead `overlayStyle` prop across four
+  of that page's other modals, plus one redundant CSS modifier.
+- **Session Security β€” Phase 1 of the Inactivity Timeout & Draft Recovery
+  feature, complete.** A real idle-detection timer, honest warning modal,
+  and forced logout, closing a genuine gap: `AuthContext.tsx` had no
+  timeout mechanism at all, while the audit log had two fabricated demo
+  entries falsely implying one had worked successfully in the past
+  (removed immediately, ahead of any diligence review). Resolved per the
+  currently-open case (org default, overridden by whichever client
+  performs the work on that case) rather than a multi-institution
+  "strictest among all active permissions" model, matching PathScribe's
+  actual single-case-focused UI. New: `Config/System/SessionSecuritySection.tsx`,
+  `services/session/sessionTimeoutConfig.ts`, `hooks/useIdleTimeout.ts`,
+  `Common/SessionExpiryWarningModal.tsx`. `Client.idleTimeoutMinutesOverride`
+  added and wired into the Client Dictionary edit modal. Full detail in
+  `Config/README.md` and `Config/System/README.md`.
 
 ---
 *Tracking docs (`PRIORITY_FIXES.md`, `ACCESS_CONTROL_PLAN.md`) live at the

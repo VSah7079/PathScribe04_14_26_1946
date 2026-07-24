@@ -13,7 +13,7 @@ import FontsSection              from './FontsSection';
 import LISSection                from './LISSection';
 import RetentionSection          from './RetentionSection';
 import { ClientDictionaryPage }  from '../../../pages/system/ClientDictionaryPage';
-import PhysiciansSection         from './PhysiciansSection'; // ← was never registered here despite existing
+import PhysiciansSection         from './PhysiciansSection'; 
 import DeficienciesSection       from './DeficienciesSection';
 import IdentifierFormatsSection  from './IdentifierFormatsSection';
 import GoverningBodiesSection    from './GoverningBodiesSection';
@@ -22,7 +22,8 @@ import ParticipationTypesSection from './ParticipationTypesSection';
 import CasePoolAssignmentSection from './CasePoolAssignmentSection';
 import RoutingRulesSection       from './RoutingRulesSection';
 import TerminologyServicesSection from '../Terminology/TerminologyServicesSection';
-import TATConfigSection          from './TATConfigSection'; // ← create this component
+import TATConfigSection          from './TATConfigSection'; 
+import SessionSecuritySection    from './SessionSecuritySection';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ type SystemSection =
   | 'fonts'
   | 'lis'
   | 'retention'
+  | 'session_security'
   | 'clients'
   | 'physicians'
   | 'protocols'
@@ -48,7 +50,8 @@ type SystemSection =
   | 'case_routing'
   | 'routing_rules'
   | 'terminology'
-  | 'tat_config';   // ← new
+  | 'tat_config'
+  | 'session_security';
 
 // Alphabetical by label
 const SECTIONS: { id: SystemSection; emoji: string; label: string }[] = [
@@ -72,7 +75,8 @@ const SECTIONS: { id: SystemSection; emoji: string; label: string }[] = [
   { id: 'specimens',           emoji: '🔬', label: 'Specimen Dictionary'   },
   { id: 'stains',              emoji: '🧪', label: 'Stain Dictionary'      },
   { id: 'subspecialties',      emoji: '🩺', label: 'Subspecialties'        },
-  { id: 'tat_config',          emoji: '⏱️', label: 'TAT Configuration'     }, // ← new
+  { id: 'tat_config',          emoji: '⏱️', label: 'TAT Configuration'     }, 
+  { id: 'session_security',    emoji: 'πŸ”’', label: 'Session Security'      },
   { id: 'terminology',         emoji: '🔌', label: 'Terminology Services'  },
 ];
 
@@ -114,7 +118,8 @@ const SystemTab: React.FC = () => {
       case 'case_routing':        return <CasePoolAssignmentSection />;
       case 'routing_rules':       return <RoutingRulesSection />;
       case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
-      case 'tat_config':          return <TATConfigSection />;  // ← new
+      case 'tat_config':          return <TATConfigSection />; 
+      case 'session_security':    return <SessionSecuritySection />;
       default:                    return null;
     }
   };
