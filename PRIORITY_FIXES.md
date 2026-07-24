@@ -161,3 +161,4 @@ one flagged instance (StaffTab.tsx role-add) as a proof of concept. The
 other ~36 need individual review (options shown, single/multi-select,
 search needs) before swapping, not a mechanical find-replace. No bearing
 on the copyright deposit β€” purely a UX-consistency item.
+Template creation/setup workflow needs review β€” the full synoptic template lifecycle (build in SynopticEditor.tsx β†’ save draft β†’ submit for review β†’ TemplateRenderer.tsx approve/reject β†’ publish) is a genuinely complex, multi-step process spanning multiple files and states (draft/in_review/needs_changes/approved/published), surfaced while tracing tonight's notification bugs. Worth a dedicated review of whether the actual setup process is clearly documented/discoverable for someone doing it for the first time, independent of whether the underlying code itself is correct. Not a code bug β€” a workflow-clarity/documentation concern.

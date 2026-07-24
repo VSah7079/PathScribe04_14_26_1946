@@ -1,4 +1,4 @@
-// src/services/templates/ISynopticTemplateSuggestionService.ts
+// src/services/templateSuggestions/ISynopticTemplateSuggestionService.ts
 // ─────────────────────────────────────────────────────────────
 // The diagnostic-template analog of IGrossingEvaluationService — same
 // real callAi() pattern, same confidence-threshold gating, same

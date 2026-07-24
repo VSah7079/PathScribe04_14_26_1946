@@ -1,4 +1,4 @@
-// src/services/cases/caseRoutingService.ts
+// src/services/cases/casePoolAssignmentService.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Automatic case pool routing when no LIS assignment is available.
 //

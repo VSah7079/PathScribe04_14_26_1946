@@ -1,4 +1,4 @@
-// src/services/templates/ITemplateSuggestionSignalService.ts
+// src/services/templateSuggestions/ITemplateSuggestionSignalService.ts
 // ─────────────────────────────────────────────────────────────
 // The template-selection analog of narrativeSignals — same real
 // precedent (Level 1 AI learning, de-identified, safe to aggregate),

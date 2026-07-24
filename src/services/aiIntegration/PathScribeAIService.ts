@@ -1,4 +1,4 @@
-// src/services/aiIntegration/GeminiAIIntegrationService.ts
+// src/services/aiIntegration/PathScribeAIService.ts
 // ─────────────────────────────────────────────────────────────
 // Concrete AI integration that routes through the configured
 // provider (Anthropic, OpenAI, Azure, Bedrock, or custom) via
