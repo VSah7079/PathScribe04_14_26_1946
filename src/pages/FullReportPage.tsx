@@ -5,6 +5,7 @@ import '../pathscribe.css';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getMockReport, FullReport, MinimalReport } from "../mock/mockReports";
 import { useAuth } from "../contexts/AuthContext";
+import { useMessaging } from "../contexts/MessagingContext";
 import { internalNoteService } from "../services";
 import { PoolClaimModal } from "../components/Worklist/PoolClaimModal";
 import InternalNotesDrawer from "../components/InternalNotes/InternalNotesDrawer";
@@ -88,10 +89,15 @@ export default function FullReportPage() {
   const [internalNotesOpen, setInternalNotesOpen] = useState(false);
 
   const fromFilter = (location.state as any)?.fromFilter as string | undefined;
+  const fromMessages = (location.state as any)?.fromMessages as boolean | undefined;
+  const { setPortalOpen } = useMessaging();
 
   const handleBack = () => {
     if (fromFilter) {
       navigate('/worklist', { state: { restoreFilter: fromFilter } });
+    } else if (fromMessages) {
+      setPortalOpen(true);
+      navigate(-1);
     } else {
       navigate(-1);
     }

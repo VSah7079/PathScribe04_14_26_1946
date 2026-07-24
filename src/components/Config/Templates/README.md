@@ -4,7 +4,7 @@ Admin protocol/template review workflow — the review queue list and the
 full-page lifecycle reviewer.
 
 **Pattern:** Standard page-pair (list → detail), plus one confirmed,
-non-trivial open bug.
+non-trivial open bug (now fixed — see Notes).
 
 ## Files
 
@@ -15,7 +15,15 @@ non-trivial open bug.
   (draft → in_review → approved → published, with needs_changes as a
   rejection branch, reset as an admin escape hatch) and source-aware
   terminology (CAP "Accept/Release" vs RCPath "Ratify/Publish" vs
-  ICCR/Custom "Approve/Publish"). **KNOWN BUG, see Notes.**
+  ICCR/Custom "Approve/Publish"). **KNOWN BUG, see Notes (now fixed).**
+
+  **Also fixed this pass (PRIORITY_FIXES.md #8):** this file's own
+  `ModalOverlay` component — already a single, extracted, reused-in-place
+  component rather than copy-pasted — had its internals converted to
+  `ps-overlay`/`ps-modal-dark`. The cleanest case of this whole
+  modal-consolidation effort: one edit to the component definition
+  correctly fixed every place in the file that renders `<ModalOverlay>`,
+  with no risk of missing a duplicate instance.
 
 ## Notes
 

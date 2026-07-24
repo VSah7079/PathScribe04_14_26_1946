@@ -17,7 +17,7 @@ changes, or a folder is added/removed/split/merged.
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
 | [ClientDictionary/](./ClientDictionary/README.md) | Client Dictionary table + editor modal |
 | [Contribution/](./Contribution/README.md) | My Contribution dashboard — 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
-| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown` |
+| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal` |
 | [Worklist/](./Worklist/README.md) | Case worklist table |
 | [Icons/](./Icons/README.md) | Icon components |
 | [Flags/](./Flags/README.md) | Flag display components |
@@ -69,6 +69,11 @@ contains:
   colleague to informally look at a case) vs. `Config/Protocols/ReviewQueueSection.tsx`
   (formal protocol lifecycle review) — different domains, not a naming
   mistake.
+- **"Editor"** means different things in `components/Editor/` (Tiptap
+  narrative writing surface) vs. `Config/Protocols/SynopticEditor.tsx`
+  (structured template *definition* builder) — a fourth confirmed
+  instance of this same pattern, prompted by a direct question and
+  checked rather than assumed correct. See `Config/Protocols/README.md`.
 
 Every rename above: confirmed sole/all real consumers via full-`src/`
 grep before moving, updated every import path and self-documented header
@@ -84,14 +89,9 @@ remains the first real check on your end).
 - **Hardcoded `isSuperAdmin={true}`** (Config/System/) — see
   `ACCESS_CONTROL_PLAN.md` at repo root. Planned, not blocking, revisit
   before first real customer deployment.
-
 - **`TemplatePreviewPanel.tsx` still on the old node-list preview shape**
   (TemplateBuilder/) — works correctly today via a real adapter, not
   urgent.
-- **Modal-overlay shell reimplemented ~14 times** instead of using
-  `Common/LookupModal.tsx` or `Common/ConfirmModal.tsx` (both real,
-  working, barely adopted) — see `Common/README.md`. Logged as
-  PRIORITY_FIXES.md #8.
 
 ## Fixes applied across components/
 
@@ -141,8 +141,6 @@ subfolder work — summarized here for a single cross-folder view:
   every real navigation goes to `/case/${id}/synoptic` instead. Confirmed
   with Pete. `mock/mockReports.ts` kept — still used by `FullReportPage.tsx`.
 - `Audit/useAuditLog.ts` — removed a literally duplicated header comment.
-- **`components/UI/ConfirmModal.tsx`** found with exactly 1 real consumer
-  — key evidence for the modal-consolidation opportunity.
 - **Full naming/structure pass** — see the table above. 7 folders
   renamed or consolidated; every move verified via grep + esbuild.
 - **`RequestReviewModal.tsx`'s reviewer list rebuilt** on the real
@@ -150,6 +148,41 @@ subfolder work — summarized here for a single cross-folder view:
   Pathologists), replacing a standalone hardcoded array that had drifted
   into real ID collisions with `AppShell.tsx`'s directory. Collision-free
   by construction now, not just patched around.
+- **PRIORITY_FIXES.md #8 — CLOSED. Modal-overlay shell consolidation,
+  all 14 files.** What started as `components/UI/ConfirmModal.tsx` found
+  with exactly 1 real consumer (the evidence that triggered this whole
+  effort) became a full sweep: `LogoutWarningModal.tsx`,
+  `ResourcesModal.tsx` (WorklistPage), `EnhancementRequestModal.tsx`
+  (already correct, confirmed not touched), `AuditLogPage.tsx`,
+  `ConfigurationPage.tsx`, `AppShell.tsx`, `SynopticEditor.tsx`,
+  `protocolShared.tsx`, `TemplateRenderer.tsx`, `PathScribeEditor.tsx`,
+  `SynopticReportPage.tsx`, `AddCodeModal.tsx` — plus `Home.tsx`, found
+  along the way with **two** of its own duplicate modals (Quick Links,
+  Safety) eliminated entirely by reusing the already-fixed shared
+  components rather than reformatting a third copy. `AuditLogPage.tsx`
+  turned out to have a *third* copy of the same Quick Links modal,
+  also consolidated. Every file individually verified against its real,
+  current content (not assumed from an earlier snapshot) before editing,
+  after several edits based on stale local copies caused real, if
+  quickly-recovered, corruption — recovered cleanly via git each time,
+  nothing lost.
+- **`LogoutWarningModal.tsx` consolidation, prompted directly by Pete
+  given the reliability stakes of `SynopticReportPage.tsx`.** Investigating
+  that page's own `modals/` folder for the same class of risk found a
+  *second*, separate `LogoutWarningModal.tsx` there — same name,
+  different prop interface (`show`/`onCancel`/`onConfirm` vs.
+  `isOpen`/`onClose`/`onLogout`), carrying its own uncorrected
+  `zIndex: 25000` bug. Consolidated into this one shared
+  `Common/LogoutWarningModal.tsx`, all 3 real consumers
+  (`WorklistPage.tsx`, `Home.tsx`, `SynopticReportPage.tsx`) updated.
+  Same investigation also found and removed a dead `overlayStyle` prop
+  — declared but never used — across `AmendmentModal.tsx`,
+  `CaseSignOutModal.tsx`, `FinalizeSynopticModal.tsx`, and
+  `UnsavedWarningModal.tsx` (all in `pages/SynopticReportPage/modals/`),
+  plus the now-fully-dead parent constant and pass-throughs in
+  `SynopticReportPage.tsx` itself, and one redundant CSS modifier
+  (`.ps-overlay--amendment`, which turned out to just restate
+  `.ps-overlay`'s own default z-index).
 
 ---
 *Tracking docs (`PRIORITY_FIXES.md`, `ACCESS_CONTROL_PLAN.md`) live at the

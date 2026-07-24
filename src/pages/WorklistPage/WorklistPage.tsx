@@ -1,4 +1,4 @@
-// src/pages/WorklistPage.tsx
+// src/pages/WorklistPage/WorklistPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDelegations } from '@/services/cases/mockCaseService';
 import { caseRouter } from '@/services/cases/CaseRouter';

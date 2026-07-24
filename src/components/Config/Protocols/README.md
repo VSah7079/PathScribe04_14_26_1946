@@ -21,14 +21,34 @@ builder.
   helpers with sensible defaults. `PROTOCOL_REGISTRY` correctly excludes
   the 19 real synoptic templates seeded directly into `editorStore` (see
   its own comment) and confirms the CAP/RCPath content-licensing cleanup
-  removed registry entries entirely, not just disabled them. No issues —
-  this file does exactly what it says.
+  removed registry entries entirely, not just disabled them.
+
+  **FIXED this pass (PRIORITY_FIXES.md #8):** two hand-rolled modal
+  shells — "Upload Protocol" and "Build / Customise" — converted to
+  `ps-overlay`/`ps-modal-dark`. Confirmed these were a genuine duplicated
+  shell (the exact background color appeared nowhere else in the file),
+  not part of a broader deliberate internal theme, so safe to fully
+  standardize rather than just convert the backdrop.
+
 - **`SynopticEditor.tsx`** (816 lines, the real template builder) — Add/
   reorder/delete sections and fields, 6 field types (dropdown/radio/
   checkboxes/numeric/text/longtext), per-field AND per-option SNOMED+ICD
   coding, preview modal. This is where `EditorTemplate`/`EditorSection`/
   `EditorField` — the actual rich content model — are defined. **See
   Notes — this is the other half of the TemplateRenderer bug.**
+
+  **FIXED this pass (PRIORITY_FIXES.md #8):** three overlay backdrops
+  converted to `ps-overlay`. The live-preview modal's inner box was
+  deliberately left white/light-themed — it renders the template as it
+  would actually look in a real document, same "should look like paper"
+  reasoning as the main report editor, not an oversight. The two confirm
+  dialogs (Submit for Review, Unsaved Changes) had their backdrops
+  converted; their inner boxes use this file's own `T.surface`/`T.border`
+  theme tokens, applied *consistently* throughout the whole file (unlike
+  `protocolShared.tsx`'s genuinely duplicated shell above) — left as-is
+  rather than force onto slightly different exact shared-class values
+  without being asked.
+
 - **`ReviewQueueSection.tsx`** — Pre-publish lifecycle list
   (draft/in_review/needs_changes/approved). Routes to `TemplateRenderer.tsx`
   ("Open Reviewer") or `SynopticEditor.tsx` ("Open Editor"). No issues.
@@ -40,6 +60,18 @@ builder.
 - **`TerminologyAlertBanner.tsx`** — SNOMED/ICD deprecation alerts inline
   in `SynopticEditor.tsx`, plus a compact `TerminologyAlertBadge` used in
   protocol cards elsewhere in this folder. No issues.
+
+## Notes
+
+- **On naming:** "Editor" here (`SynopticEditor.tsx`) means something
+  genuinely different from `components/Editor/` (the Tiptap narrative
+  writing surface) — this one edits structured template *definitions*
+  (sections, fields, conditional visibility), not free-text content.
+  Prompted by a direct question about whether this file was mis-grouped;
+  it isn't — same overloaded-terminology pattern already documented in
+  the top-level `components/README.md` for "Search"/"Template"/"Review",
+  now a fourth confirmed instance with "Editor". Correctly placed, folder
+  path disambiguates rather than the bare filename.
 
 ## Notes — TemplateRenderer bug, fully diagnosed and FIXED (July 2026)
 

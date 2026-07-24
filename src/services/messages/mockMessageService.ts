@@ -24,14 +24,14 @@ const SEED_MESSAGES: Message[] = [
     recipientName: 'Dr. Sarah Johnson',
     subject: 'Urgent: Morphology Review',
     body: 'Please review the secondary morphology for this case immediately.',
-    caseNumber: '24-8821',
+    caseNumber: 'O26-0007',
     timestamp: new Date(),
     isUrgent: true,
     isRead: false,
     isDeleted: false,
     thread: [
       { sender: 'Lab Manager',       senderId: 'u2', text: 'Please review the secondary morphology for this case immediately.',  timestamp: new Date(Date.now() - 1000 * 60 * 20) },
-      { sender: 'Dr. Sarah Johnson', senderId: 'PATH-001', text: 'Checking now. Is this for Case 24-8821?',                            timestamp: new Date(Date.now() - 1000 * 60 * 10) },
+      { sender: 'Dr. Sarah Johnson', senderId: 'PATH-001', text: 'Checking now. Is this for Case O26-0007?',                            timestamp: new Date(Date.now() - 1000 * 60 * 10) },
       { sender: 'Lab Manager',       senderId: 'u2', text: 'Correct. Block A-4 specifically.',                                   timestamp: new Date(Date.now() - 1000 * 60 * 5)  },
     ],
   },
@@ -75,7 +75,7 @@ const SEED_MESSAGES: Message[] = [
     recipientName: 'Dr. Sarah Johnson',
     subject: 'Consultation Request',
     body: 'I have shared a complex lung biopsy case for your review.',
-    caseNumber: '24-7710',
+    caseNumber: 'S26-4437',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6),
     isUrgent: false,
     isRead: true,
@@ -139,18 +139,18 @@ const SEED_MESSAGES: Message[] = [
     recipientId: 'PATH-001',
     recipientName: 'Dr. Sarah Johnson',
     subject: 'Slide Retrieval',
-    body: 'The historical slides for patient Case-8829 have been pulled.',
+    body: 'The historical slides for patient MFT26-8805-CR-FIN have been pulled.',
     timestamp: new Date('2026-02-13T10:00:00'),
     isUrgent: false,
     isRead: true,
     isDeleted: false,
     thread: [
-      { sender: 'Archives', senderId: 'u9', text: 'The historical slides for patient Case-8829 have been pulled.', timestamp: new Date('2026-02-13T10:00:00') },
+      { sender: 'Archives', senderId: 'u9', text: 'The historical slides for patient MFT26-8805-CR-FIN have been pulled.', timestamp: new Date('2026-02-13T10:00:00') },
     ],
   },
   { id: 'm9',  senderId: 'u10', senderName: 'QA Team',         recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Audit Review',    body: 'Stats ready.',             timestamp: new Date('2026-02-12'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'QA Team',         senderId: 'u10', text: 'Stats ready.',             timestamp: new Date('2026-02-12') }] },
   { id: 'm10', senderId: 'u11', senderName: 'Dr. Patel',        recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'GI Consult',      body: 'Unusual case.',            timestamp: new Date('2026-02-11'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Dr. Patel',        senderId: 'u11', text: 'Unusual case.',            timestamp: new Date('2026-02-11') }] },
-  { id: 'm11', senderId: 'u12', senderName: 'Transcription',    recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Draft Ready',     body: 'Case 24-110.',             timestamp: new Date('2026-02-10'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Transcription',    senderId: 'u12', text: 'Case 24-110.',             timestamp: new Date('2026-02-10') }] },
+  { id: 'm11', senderId: 'u12', senderName: 'Transcription',    recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Draft Ready',     body: 'Case O26-0007.',             timestamp: new Date('2026-02-10'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Transcription',    senderId: 'u12', text: 'Case O26-0007.',             timestamp: new Date('2026-02-10') }] },
   { id: 'm12', senderId: 'u13', senderName: 'Medical Records',  recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Patient History', body: 'Prior pathology.',         timestamp: new Date('2026-02-09'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Medical Records',  senderId: 'u13', text: 'Prior pathology.',         timestamp: new Date('2026-02-09') }] },
   { id: 'm13', senderId: 'u14', senderName: 'Dr. Wilson',       recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Tumor Board',     body: 'Agenda attached.',         timestamp: new Date('2026-02-08'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Dr. Wilson',       senderId: 'u14', text: 'Agenda attached.',         timestamp: new Date('2026-02-08') }] },
   { id: 'm14', senderId: 'u15', senderName: 'Compliance',       recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Training Due',    body: 'Annual update.',           timestamp: new Date('2026-02-07'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Compliance',       senderId: 'u15', text: 'Annual update.',           timestamp: new Date('2026-02-07') }] },
@@ -489,7 +489,7 @@ const SEED_MESSAGES: Message[] = [
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'pathscribe_messages';
-const MESSAGES_VERSION = '6'; // bumped: added Amber seed messages
+const MESSAGES_VERSION = '7'; // bumped: added Amber seed messages
 const VERSION_KEY = 'pathscribe_messages_version';
 
 const load = (): Message[] => {

@@ -23,6 +23,8 @@ const VERSIONED_KEYS = [
 ];
 
 const SETTINGS_KEYS = [
+  'specimen_dictionary',
+  'container_types',
   'pathscribe_subspecialties',
   'pathscribe_report_templates',
   'pathscribe_participation_types_v2', // the real, canonical key (services/participationTypes/mockParticipationTypeService.ts)
@@ -53,8 +55,16 @@ const SETTINGS_KEYS = [
 ];
 
 const CASE_KEYS = [
-  'ps_cases',
+  'cases', // CRITICAL FIX: was 'ps_cases', which mockCaseService.ts never actually wrote to — Demo Reset had never actually been clearing primary case data
   'orch_cases_v3',
+  // Found via a full storageGet/storageSet audit across services/ that
+  // wasn't limited to the pathscribe_ prefix (that earlier, narrower
+  // search is exactly how 'cases' and everything below was missed):
+  'discordance_records',
+  'amendment_records',
+  'report_version_records',
+  'lis_amendment_notices',
+  'intraop_entries',
 ];
 
 const FLAG_KEYS = [
@@ -64,6 +74,7 @@ const FLAG_KEYS = [
 
 const STATE_KEYS = [
   'pathscribe_ped_requested',
+  'ps_learned_triggers',
 ];
 
 // Hospital → user mapping (mirrors mockCaseService USER_HOSPITAL_MAP)

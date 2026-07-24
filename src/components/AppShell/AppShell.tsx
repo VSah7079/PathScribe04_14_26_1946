@@ -1291,7 +1291,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                           <span style={{ fontSize: '12px', color: '#6b7f99', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentMsg.subject}</span>
                         )}
                         {currentMsg.caseNumber && (
-                          <button onClick={() => navigate(`/report/${currentMsg.caseNumber}`)}
+                          <button onClick={() => { setPortalOpen(false); navigate(`/report/${currentMsg.caseNumber}`, { state: { fromMessages: true } }); }}
                             style={{ background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.2)', borderRadius: '5px', cursor: 'pointer', color: '#0891B2', fontSize: '11px', fontWeight: 600, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, transition: 'all 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.15)'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.08)'; }}

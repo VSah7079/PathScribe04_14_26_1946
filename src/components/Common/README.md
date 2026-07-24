@@ -28,7 +28,7 @@ Shared, reusable UI primitives used across multiple pages.
   (overlay, header, close-on-Escape/overlay-click), used across
   SearchPage's SNOMED/ICD-10/ICD-O/Specimen/Synoptic/Flags/Pathologist/
   Attending lookups. No issues.
-- **`Dropdown.tsx`** — **NEW.** A minimal, genuinely custom single-select
+- **`Dropdown.tsx`** — A minimal, genuinely custom single-select
   dropdown, built because a native `<select>`'s closed box can be
   restyled via CSS (see `.ps-conf-select`) but its *open* option list is
   OS-rendered and largely ignores CSS regardless of browser — no CSS-only
@@ -40,6 +40,19 @@ Shared, reusable UI primitives used across multiple pages.
   over-build ahead of need. ~36 other native `<select>` elements remain
   across `Config/System/` alone; this is the proof-of-concept, not a full
   sweep — logged as its own `PRIORITY_FIXES.md` item.
+- **`LogoutWarningModal.tsx`** — **MOVED HERE**, consolidating what were
+  TWO separate implementations of the same "unsaved changes, log out
+  anyway?" dialog: this one (was `pages/WorklistPage/LogoutWarningModal.tsx`)
+  and a second one at `pages/SynopticReportPage/modals/LogoutWarningModal.tsx`
+  with a genuinely different prop interface (`show`/`onCancel`/`onConfirm`
+  vs. this one's `isOpen`/`onClose`/`onLogout`) and its own uncorrected
+  `zIndex: 25000` bug. Consolidated specifically because
+  `SynopticReportPage.tsx` is a critical, high-traffic file where two
+  same-named components with different behavior is a real support-analyst
+  confusion risk during an on-call situation, not just a style
+  inconsistency — raised directly by Pete. All 3 real consumers
+  (`WorklistPage.tsx`, `Home.tsx`, `SynopticReportPage.tsx`) now import
+  this one component.
 
 ## Deleted this pass
 
@@ -57,38 +70,21 @@ Shared, reusable UI primitives used across multiple pages.
   containing exactly one file. Moved here, next to `LookupModal.tsx` (the
   same category of thing — a shared modal shell), which is where it
   always should have been. `UI/` is deleted.
-- **FOUND, not fixed — real consolidation opportunity.** The modal-overlay
-  shell pattern (`Common/LookupModal.tsx` already does this) is
-  independently reimplemented in at least 14 other files instead of being
-  reused: `Config/Protocols/SynopticEditor.tsx`, `Config/Protocols/protocolShared.tsx`,
-  `Config/Templates/TemplateRenderer.tsx`, `AppShell/AppShell.tsx`,
-  `InternalNotes/InternalNotesDrawer.tsx`, `EnhancementRequest/EnhancementRequestModal.tsx`,
-  `Editor/PathScribeEditor.tsx`, `pages/AuditLogPage.tsx`,
-  `pages/WorklistPage/ResourcesModal.tsx`,
-  `pages/WorklistPage/LogoutWarningModal.tsx`, `pages/ConfigurationPage.tsx`,
-  `pages/SynopticReportPage/SynopticReportPage.tsx`, and more. Each
-  hand-rolls the same backdrop/blur/close-on-click-outside shell. Raised
-  by Pete: `Common/` being this thin, in a codebase this size, was itself
-  the signal that shared patterns exist but aren't consolidated here.
-  **Cheaper fix path than originally scoped:** `Flags/FlagManagerModal.tsx`
-  shows the codebase already has a *working* shared solution —
-  `pathscribe.css`'s `ps-modal-dark`/`ps-modal-dark-header`/etc. classes,
-  used with `ReactDOM.createPortal`. Most of the 14 offending files could
-  likely just adopt those existing classes rather than needing a brand
-  new shared component built from scratch. **Stronger still:**
-  `components/UI/ConfirmModal.tsx` is an already-built, purpose-stated
-  ("replaces `window.confirm()` throughout the app") reusable component
-  using that same CSS pattern — with exactly **1 real consumer in the
-  entire app**. The opportunity here isn't "build something," it's "use
-  what's already built and barely adopted." **Logged for later, not
-  attempted this pass** — still a scoped project of its own (~14 call
-  sites), not a quick fix folded into a folder review.
-- Methodology note for future folders: "right file in the right place"
-  now explicitly includes checking for exactly this — patterns
-  reimplemented in many places that should be consolidated into a shared
-  folder — not just whether an individual file's own location matches its
-  dependency direction (the `specimenTypes.ts` class of check). Applying
-  this standard going forward for the rest of `components/`.
+- **RESOLVED — PRIORITY_FIXES.md #8, modal-overlay shell consolidation,
+  now fully closed across all 14 originally-identified files.** The
+  pattern flagged here (`Common/LookupModal.tsx`/`Common/ConfirmModal.tsx`
+  barely adopted despite being real, working shared solutions) turned
+  into a complete sweep — see the top-level `components/README.md`'s
+  Fixes Applied section for the full file list and what was found along
+  the way, including two further real duplicate components
+  (`LogoutWarningModal.tsx` above, and `Home.tsx`'s own separate copies
+  of the Quick Links / Safety modals, eliminated by reuse rather than
+  reformatted a third time).
+- Methodology note, still relevant for future folders: "right file in
+  the right place" includes checking for patterns reimplemented in many
+  places that should be consolidated into a shared folder — not just
+  whether an individual file's own location matches its dependency
+  direction (the `specimenTypes.ts` class of check).
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
