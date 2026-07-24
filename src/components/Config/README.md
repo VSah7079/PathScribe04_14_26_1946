@@ -118,8 +118,26 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
   `Client.idleTimeoutMinutesOverride` added to `IClientService.ts` and
   wired into the Client Dictionary edit modal. Modal copy deliberately
   reworded from the original spec to avoid claiming draft auto-save
-  exists (that's Phase 2, not built) β€” same false-claim risk just
-  removed from the audit log.
+  exists (at the time, that was Phase 2, not yet built) β€” same
+  false-claim risk just removed from the audit log.
+
+  **Phase 2 now also complete.** Real draft caching + recovery, wired
+  into `SynopticReportPage.tsx` via new `services/drafts/` (matching
+  the `I`/`mock`/`firestore`-stub convention exactly β€” an earlier draft
+  was a single non-conforming file, caught and corrected before anything
+  depended on it) and `hooks/useDraftCache.ts`. Caches the full case,
+  not just synoptic answers β€” a full audit of this page's own
+  `markDirty()` call sites found 18 distinct dirty-able things (Priority,
+  Flags, Case comments, Specimens, Codes, etc.), meaning an earlier,
+  narrower version would have silently missed most real editable
+  content. Explicitly excludes the `patient` object (name/DOB/MRN) β€”
+  HIPAA minimum-necessary reasoning plus a real data-integrity concern
+  (patient demographics are read-only LIS/EHR master data; restoring a
+  stale cached copy over freshly-fetched current data would be a
+  correctness bug, not just a privacy one). Restore is local-only, no
+  auto-persist β€” marks the case dirty via the existing mechanism so the
+  pathologist's normal Save Draft review serves as the actual
+  verification step. Full detail in `Common/README.md`.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

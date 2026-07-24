@@ -53,33 +53,53 @@ Shared, reusable UI primitives used across multiple pages.
   inconsistency — raised directly by Pete. All 3 real consumers
   (`WorklistPage.tsx`, `Home.tsx`, `SynopticReportPage.tsx`) now import
   this one component.
-- **`SessionExpiryWarningModal.tsx`** — **NEW.** Phase 1 of the
-  Inactivity Timeout & Draft Recovery feature (full spec in
-  `PRIORITY_FIXES.md`) — the warning dialog shown before a genuinely real
-  15-minute idle timeout forces logout, wired via
-  `src/hooks/useIdleTimeout.ts` and `src/ProtectedRoute.tsx` (neither
-  under `components/`, so tracked in `PRIORITY_FIXES.md` rather than a
-  folder README here — no `hooks/` or root-`src/` README system exists
-  yet). Built after discovering a real, separate problem worth knowing
-  about: `services/auditlog/mockAuditService.ts` had two fabricated
-  demo audit log entries claiming a "session expired after 60 min
-  inactivity" event had actually fired successfully in the past — while
-  no such mechanism existed anywhere in `AuthContext.tsx` at all. Those
-  entries were removed immediately, before this real feature was even
-  started, specifically because a false claim like that sitting in the
-  codebase during any technical or IP diligence review is a real
-  credibility risk independent of when the actual feature ships.
+- **`SessionExpiryWarningModal.tsx`** — Phase 1 of the Inactivity
+  Timeout & Draft Recovery feature (full spec in `PRIORITY_FIXES.md`) —
+  the warning dialog shown before a real 15-minute idle timeout forces
+  logout, wired via `src/hooks/useIdleTimeout.ts` and
+  `src/ProtectedRoute.tsx`. Built after discovering that
+  `services/auditlog/mockAuditService.ts` had two fabricated demo audit
+  log entries claiming a "session expired after 60 min inactivity" event
+  had actually fired successfully in the past — while no such mechanism
+  existed anywhere in `AuthContext.tsx` at all. Those entries were
+  removed immediately, before this real feature was even started.
   **Worth its own callout on the modal's copy:** the original feature
   spec's wireframe text ("Any unsaved changes will be safely cached on
-  this device") describes Phase 2 (draft preservation), which doesn't
-  exist yet — using that wording in Phase 1 would have recreated the
-  exact same false-claim problem just removed from the audit log.
-  Reworded to honestly reflect what Phase 1 actually does: nothing is
-  auto-saved, so the user is told to save manually. Revisit this
-  specific copy once Phase 2 lands for real. Phase 2 (local draft
-  caching + recovery UI) and Phase 3 (encryption, full diff-based
-  restore, concurrency conflict detection) are deliberately deferred,
-  not yet started.
+  this device") describes Phase 2 (draft preservation) — at the time
+  this modal was built, that didn't exist yet, so using that wording
+  would have recreated the exact false-claim problem just removed from
+  the audit log. Reworded to honestly reflect what existed at the time.
+  **Phase 2 is now built (see `DraftRecoveryModal.tsx` below) — this
+  modal's copy may be worth revisiting now that the claim is actually
+  true**, not yet done, flagged for a follow-up pass.
+- **`DraftRecoveryModal.tsx`** — **NEW.** Phase 2 (Step B) of the same
+  feature — the recovery prompt shown when a cached draft exists for the
+  case being opened. Wired into `SynopticReportPage.tsx` via
+  `src/hooks/useDraftCache.ts` and `src/services/drafts/` (new
+  `I`/`mock`/`firestore`-stub three-file service, matching this
+  codebase's established convention — the first draft of this feature
+  was a single non-conforming file, caught and corrected before anything
+  depended on it). Deliberately simpler than the original spec's own
+  wireframe (a full field-by-field diff with individual checkboxes):
+  local-only restore (no auto-persist to the server), marks the case
+  dirty via the page's existing `markDirty` mechanism, and lets the
+  pathologist's normal Save Draft review serve as the actual
+  verification step — no custom diff-rendering UI needed. Two real,
+  substantive design corrections happened before landing on this final
+  shape, both raised directly by Pete: (1) an earlier version only
+  cached `synopticReports.answers` specifically — a full audit of this
+  page's own `markDirty()` call sites found **18 distinct dirty-able
+  things** (Priority, Flags, Case comments, Specimens, Codes, Report
+  sequence, etc.), meaning that narrower version would have silently
+  missed the large majority of real editable content; now caches the
+  full case instead. (2) Caching the full case raised a real PHI
+  question — the cached payload explicitly **excludes the `patient`
+  object** (name/DOB/MRN), both for HIPAA minimum-necessary reasoning
+  (unencrypted demographics at rest in `localStorage` is unnecessary
+  risk — payload encryption is genuinely Phase 3, not built yet) and for
+  data integrity (patient demographics are read-only master data from
+  the LIS/EHR; restoring a stale cached copy over freshly-fetched current
+  data would be a real correctness bug, not just a privacy one).
 
 ## Deleted this pass
 
@@ -113,11 +133,12 @@ Shared, reusable UI primitives used across multiple pages.
   whether an individual file's own location matches its dependency
   direction (the `specimenTypes.ts` class of check).
 - **Scope boundary, worth stating explicitly:** this README tracks
-  `components/Common/`'s own files only. `SessionExpiryWarningModal.tsx`
-  lives here and is documented above, but its two real dependencies
-  (`hooks/useIdleTimeout.ts`, root-level `ProtectedRoute.tsx`) fall
-  outside any existing README system and are tracked in
-  `PRIORITY_FIXES.md` instead, not duplicated here.
+  `components/Common/`'s own files only. `SessionExpiryWarningModal.tsx`/
+  `DraftRecoveryModal.tsx` live here and are documented above, but their
+  real dependencies (`hooks/useIdleTimeout.ts`, `hooks/useDraftCache.ts`,
+  `services/drafts/`, root-level `ProtectedRoute.tsx`) fall outside any
+  existing README system and are tracked in `PRIORITY_FIXES.md` instead,
+  not duplicated here.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

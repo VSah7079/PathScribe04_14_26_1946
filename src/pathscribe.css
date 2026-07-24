@@ -1751,6 +1751,9 @@
 }
 .ps-login-social + .ps-login-social { margin-left: 8px; }
 .ps-login-social:hover { border-color: #38bdf8; color: #e2e8f0; }
+.ps-login-social:disabled { opacity: 0.5; cursor: not-allowed; }
+.ps-login-social:disabled:hover { border-color: inherit; color: inherit; }
+.ps-login-social-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; margin-left: 6px; }
 
 /* Footer text */
 .ps-login-footer-text {

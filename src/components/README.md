@@ -182,8 +182,17 @@ subfolder work β€” summarized here for a single cross-folder view:
   actual single-case-focused UI. New: `Config/System/SessionSecuritySection.tsx`,
   `services/session/sessionTimeoutConfig.ts`, `hooks/useIdleTimeout.ts`,
   `Common/SessionExpiryWarningModal.tsx`. `Client.idleTimeoutMinutesOverride`
-  added and wired into the Client Dictionary edit modal. Full detail in
-  `Config/README.md` and `Config/System/README.md`.
+  added and wired into the Client Dictionary edit modal.
+
+  **Phase 2 (draft caching + recovery) also now complete** β€” new
+  `services/drafts/`, `hooks/useDraftCache.ts`, `Common/DraftRecoveryModal.tsx`,
+  wired into `SynopticReportPage.tsx`. Caches the full case (18 distinct
+  dirty-able things found via a full `markDirty()` call-site audit, not
+  just synoptic answers β€” an earlier, narrower version would have missed
+  most of them), explicitly excluding patient demographics for HIPAA
+  minimum-necessary reasoning and data-integrity (avoiding a stale
+  restore overwriting fresh LIS/EHR data). Local-only restore, no
+  auto-persist. Full detail in `Config/README.md` and `Common/README.md`.
 
 ---
 *Tracking docs (`PRIORITY_FIXES.md`, `ACCESS_CONTROL_PLAN.md`) live at the

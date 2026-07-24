@@ -151,11 +151,11 @@ const LoginPage: React.FC = () => {
             <div className="ps-login-divider-line" />
           </div>
 
-          <button type="button" className="ps-login-social">
-            <GoogleIcon /> Google
+          <button type="button" className="ps-login-social" disabled title="Coming soon">
+            <GoogleIcon /> Google <span className="ps-login-social-badge">Coming Soon</span>
           </button>
-          <button type="button" className="ps-login-social">
-            <MicrosoftIcon /> Microsoft
+          <button type="button" className="ps-login-social" disabled title="Coming soon">
+            <MicrosoftIcon /> Microsoft <span className="ps-login-social-badge">Coming Soon</span>
           </button>
 
           <p className="ps-login-footer-text">
