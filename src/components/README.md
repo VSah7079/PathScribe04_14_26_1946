@@ -16,7 +16,7 @@ changes, or a folder is added/removed/split/merged.
 | [Editor/](./Editor/README.md) | Tiptap rich text editor + `tiptapBridge/` (AI-integration bridge) |
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
 | [ClientDictionary/](./ClientDictionary/README.md) | Client Dictionary table + editor modal |
-| [Contribution/](./Contribution/README.md) | My Contribution dashboard — 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
+| [Contribution/](./Contribution/README.md) | My Contributio| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal`, `SessionExpiryWarningModal` |n dashboard — 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
 | [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal` |
 | [Worklist/](./Worklist/README.md) | Case worklist table |
 | [Icons/](./Icons/README.md) | Icon components |

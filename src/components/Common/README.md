@@ -53,6 +53,33 @@ Shared, reusable UI primitives used across multiple pages.
   inconsistency — raised directly by Pete. All 3 real consumers
   (`WorklistPage.tsx`, `Home.tsx`, `SynopticReportPage.tsx`) now import
   this one component.
+- **`SessionExpiryWarningModal.tsx`** — **NEW.** Phase 1 of the
+  Inactivity Timeout & Draft Recovery feature (full spec in
+  `PRIORITY_FIXES.md`) — the warning dialog shown before a genuinely real
+  15-minute idle timeout forces logout, wired via
+  `src/hooks/useIdleTimeout.ts` and `src/ProtectedRoute.tsx` (neither
+  under `components/`, so tracked in `PRIORITY_FIXES.md` rather than a
+  folder README here — no `hooks/` or root-`src/` README system exists
+  yet). Built after discovering a real, separate problem worth knowing
+  about: `services/auditlog/mockAuditService.ts` had two fabricated
+  demo audit log entries claiming a "session expired after 60 min
+  inactivity" event had actually fired successfully in the past — while
+  no such mechanism existed anywhere in `AuthContext.tsx` at all. Those
+  entries were removed immediately, before this real feature was even
+  started, specifically because a false claim like that sitting in the
+  codebase during any technical or IP diligence review is a real
+  credibility risk independent of when the actual feature ships.
+  **Worth its own callout on the modal's copy:** the original feature
+  spec's wireframe text ("Any unsaved changes will be safely cached on
+  this device") describes Phase 2 (draft preservation), which doesn't
+  exist yet — using that wording in Phase 1 would have recreated the
+  exact same false-claim problem just removed from the audit log.
+  Reworded to honestly reflect what Phase 1 actually does: nothing is
+  auto-saved, so the user is told to save manually. Revisit this
+  specific copy once Phase 2 lands for real. Phase 2 (local draft
+  caching + recovery UI) and Phase 3 (encryption, full diff-based
+  restore, concurrency conflict detection) are deliberately deferred,
+  not yet started.
 
 ## Deleted this pass
 
@@ -85,6 +112,12 @@ Shared, reusable UI primitives used across multiple pages.
   places that should be consolidated into a shared folder — not just
   whether an individual file's own location matches its dependency
   direction (the `specimenTypes.ts` class of check).
+- **Scope boundary, worth stating explicitly:** this README tracks
+  `components/Common/`'s own files only. `SessionExpiryWarningModal.tsx`
+  lives here and is documented above, but its two real dependencies
+  (`hooks/useIdleTimeout.ts`, root-level `ProtectedRoute.tsx`) fall
+  outside any existing README system and are tracked in
+  `PRIORITY_FIXES.md` instead, not duplicated here.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

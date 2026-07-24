@@ -170,6 +170,16 @@ export interface Client {
    * still want this on or off.
    */
   internalAiOrchestratorEnabled?: boolean | null;
+  /**
+   * Per-performing-lab idle-session-timeout override, in minutes. Resolved
+   * the same way as internalAiOrchestratorEnabled — via
+   * resolvePerformingLabClientId() against whichever client is actually
+   * performing the work on the currently-open case, not the ordering
+   * client if those differ. When set, wins over the org-wide default
+   * (services/session/sessionTimeoutConfig.ts) for anyone viewing a case
+   * performed at this lab. undefined/null = inherit the org default.
+   */
+  idleTimeoutMinutesOverride?: number | null;
 
   status: 'Active' | 'Inactive' | 'Unverified';
   /** True if this client was auto-created by order-intake resolution
