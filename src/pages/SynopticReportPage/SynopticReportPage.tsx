@@ -41,6 +41,7 @@ import type { CopilotReportInstance } from './modals/CopilotReportViewModal';
 import FinalizeSynopticModal from './modals/FinalizeSynopticModal';
 import LogoutWarningModal    from '@/components/Common/LogoutWarningModal';
 import UnsavedWarningModal   from './modals/UnsavedWarningModal';
+import DraftRecoveryModal    from '@/components/Common/DraftRecoveryModal';
 
 import { useSynopticFinalize } from '../Synoptic/useSynopticFinalize';
 import { useSynopticModals }   from '../Synoptic/useSynopticModals';
@@ -148,20 +149,26 @@ const SynopticReportPage: React.FC = () => {
   const [caseData, setCaseData]     = useState<Case | null>(null);
 
   // Phase 2 of the Inactivity Timeout & Draft Recovery spec (see
-  // PRIORITY_FIXES.md). Step A ONLY -- purely observational caching of
-  // whatever's already in caseData.synopticReports, no changes to any
-  // existing editing/rendering logic. Restore-on-recovery (Step B) is a
-  // deliberately separate, later piece -- applying a recovered draft back
-  // onto caseData needs its own careful look at this page's actual
-  // per-instance save mechanism, not guessed at here.
-  const draftableAnswers = useMemo(
-    () => (caseData?.synopticReports ?? []).map(r => ({ instanceId: (r as any).instanceId, answers: r.answers })),
-    [caseData?.synopticReports]
-  );
-  const { hasExistingDraft, existingDraftSavedAt } = useDraftCache(
+  // PRIORITY_FIXES.md). Caches the FULL case (not just synoptic answers --
+  // this page has 18 distinct dirty-able things per its own markDirty()
+  // call sites, from Priority to Case comments to Codes; an earlier,
+  // narrower version of this only caught synoptic answers and would have
+  // silently lost everything else). EXCLUDES `patient` specifically --
+  // pure read-only master data from the LIS/EHR (name/DOB/MRN), never
+  // edited on this page, and re-fetched fresh on restore rather than
+  // risking overwriting updated demographics with a stale cached copy.
+  // Local-only restore -- no auto-persist to the server; see the restore
+  // handler below.
+  const draftableCaseSlice = useMemo(() => {
+    if (!caseData) return null;
+    const { patient, ...rest } = caseData as any;
+    return rest;
+  }, [caseData]);
+
+  const { hasExistingDraft, existingDraftPayload, existingDraftSavedAt, confirmRestore, discardDraft } = useDraftCache(
     signingUser?.id ?? null,
     caseId ?? null,
-    draftableAnswers,
+    draftableCaseSlice,
   );
 
   // ── Voice context activation ────────────────────────────────────────────────
@@ -191,6 +198,18 @@ const SynopticReportPage: React.FC = () => {
     setHasUnsavedData(true);
     setDirtySections(prev => new Set(prev).add(section));
   }, [setHasUnsavedData]);
+
+  // Phase 2 (Step B) restore handler -- local-only, no auto-persist (see
+  // the hook-setup block above for why). Marks a single generic section
+  // dirty rather than trying to detect exactly which of this page's 18
+  // dirty-able things changed -- matches the simplified (non-diffing)
+  // recovery design.
+  const handleRestoreDraft = useCallback(() => {
+    if (!caseData || !existingDraftPayload) return;
+    setCaseData({ ...caseData, ...(existingDraftPayload as object) } as typeof caseData);
+    markDirty('Restored draft');
+    confirmRestore();
+  }, [caseData, existingDraftPayload, markDirty, confirmRestore]);
 
   const clearDirty = React.useCallback(() => {
     setHasUnsavedData(false);
@@ -4637,6 +4656,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
             </div>
           </div>
         </div>
+      )}
+
+      {hasExistingDraft && existingDraftSavedAt && (
+        <DraftRecoveryModal
+          savedAt={existingDraftSavedAt}
+          onRestore={handleRestoreDraft}
+          onDiscard={discardDraft}
+        />
       )}
 
       <UnsavedWarningModal

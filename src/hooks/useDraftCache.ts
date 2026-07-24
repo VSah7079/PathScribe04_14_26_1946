@@ -2,18 +2,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Phase 2 of the Inactivity Timeout & Draft Recovery spec (see PRIORITY_FIXES.md).
 //
-// Usage sketch (NOT yet wired into SynopticReportPage.tsx — see this feature's
-// PRIORITY_FIXES.md entry for why that integration is deliberately still
-// pending its own discussion, given that page's size/complexity):
+// Usage sketch (see SynopticReportPage.tsx for the real, wired usage):
 //
-//   const { hasExistingDraft, existingDraftSavedAt, restoreDraft, discardDraft } =
+//   const { hasExistingDraft, existingDraftPayload, existingDraftSavedAt,
+//           confirmRestore, discardDraft } =
 //     useDraftCache(user?.id ?? null, caseId, currentFormState);
 //
-//   // On mount, if hasExistingDraft is true, show a recovery prompt before
-//   // the user starts editing — call restoreDraft() (async) to get the
-//   // cached payload back, or discardDraft() to clear it and start fresh.
-//   // Once the prompt is resolved, ongoing edits to currentFormState are
-//   // auto-saved (debounced) automatically — no further calls needed.
+//   // Once hasExistingDraft is true, existingDraftPayload is already
+//   // available — compute a diff against currentFormState and show it
+//   // (DraftRecoveryModal) BEFORE the user decides anything, rather than
+//   // fetching only after they click Restore. If they restore, apply
+//   // existingDraftPayload to your own state yourself, then call
+//   // confirmRestore() to clear the cache entry. If they discard, call
+//   // discardDraft() instead.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -26,12 +27,15 @@ interface UseDraftCacheResult<T> {
    *  real prior-session draft, not one just created by this mount). Checked
    *  once on mount/entityId-change; does not update afterward. */
   hasExistingDraft: boolean;
+  /** The cached payload itself, available as soon as hasExistingDraft is
+   *  true — lets the caller compute/show a diff before asking the user
+   *  to decide anything. */
+  existingDraftPayload: T | null;
   existingDraftSavedAt: string | null;
-  /** Async — returns the cached payload and clears the "existing draft"
-   *  flag. Caller is responsible for actually applying it to their own
-   *  state. */
-  restoreDraft: () => Promise<T | null>;
-  /** Clears the cached draft without restoring it. */
+  /** Call after you've applied existingDraftPayload to your own state —
+   *  clears the cache entry so the same draft doesn't prompt again. */
+  confirmRestore: () => void;
+  /** Clears the cached draft without applying it. */
   discardDraft: () => void;
 }
 
@@ -41,7 +45,8 @@ export function useDraftCache<T>(
   currentState: T,
   enabled: boolean = true,
 ): UseDraftCacheResult<T> {
-  const [hasExistingDraft, setHasExistingDraft]     = useState(false);
+  const [hasExistingDraft, setHasExistingDraft]         = useState(false);
+  const [existingDraftPayload, setExistingDraftPayload] = useState<T | null>(null);
   const [existingDraftSavedAt, setExistingDraftSavedAt] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkedKeyRef = useRef<string | null>(null);
@@ -55,9 +60,10 @@ export function useDraftCache<T>(
 
     let cancelled = false;
     mockDraftCacheService.getDraft<T>(userId, entityId).then(res => {
-      if (cancelled || !res.ok) return;
-      setHasExistingDraft(!!res.data);
-      setExistingDraftSavedAt(res.data?.savedAt ?? null);
+      if (cancelled || !res.ok || !res.data) return;
+      setHasExistingDraft(true);
+      setExistingDraftPayload(res.data.payload);
+      setExistingDraftSavedAt(res.data.savedAt);
     });
     return () => { cancelled = true; };
   }, [enabled, userId, entityId]);
@@ -72,18 +78,19 @@ export function useDraftCache<T>(
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [enabled, userId, entityId, currentState]);
 
-  const restoreDraft = useCallback(async (): Promise<T | null> => {
-    if (!userId || !entityId) return null;
-    const res = await mockDraftCacheService.getDraft<T>(userId, entityId);
+  const confirmRestore = useCallback(() => {
+    if (!userId || !entityId) return;
+    mockDraftCacheService.clearDraft(userId, entityId);
     setHasExistingDraft(false);
-    return res.ok ? (res.data?.payload ?? null) : null;
+    setExistingDraftPayload(null);
   }, [userId, entityId]);
 
   const discardDraft = useCallback(() => {
     if (!userId || !entityId) return;
     mockDraftCacheService.clearDraft(userId, entityId);
     setHasExistingDraft(false);
+    setExistingDraftPayload(null);
   }, [userId, entityId]);
 
-  return { hasExistingDraft, existingDraftSavedAt, restoreDraft, discardDraft };
+  return { hasExistingDraft, existingDraftPayload, existingDraftSavedAt, confirmRestore, discardDraft };
 }
