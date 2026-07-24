@@ -21,7 +21,7 @@ const ProtectedRoute = () => {
   const { showWarning, secondsRemaining, expired, stayLoggedIn } = useIdleTimeout(isAuthenticated);
 
   useEffect(() => {
-    if (expired) logout();
+    if (expired) logout(false);
   }, [expired, logout]);
 
   if (loading) {
@@ -39,7 +39,7 @@ const ProtectedRoute = () => {
         <SessionExpiryWarningModal
           secondsRemaining={secondsRemaining}
           onStayLoggedIn={stayLoggedIn}
-          onLogOutNow={logout}
+          onLogOutNow={() => logout(true)}
         />
       )}
     </>

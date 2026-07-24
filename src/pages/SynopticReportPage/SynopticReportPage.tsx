@@ -68,6 +68,7 @@ import type { Flag }      from '@/services/flags/IFlagService';
 import SynopticSidebar    from '../../components/Synoptic/SynopticSidebar';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { useLogout } from '@/hooks/useLogout';
+import { useDraftCache } from '@/hooks/useDraftCache';
 import '@/pathscribe.css';
 
 import type { Case, SynopticReportInstance, ProtocolChange } from '@/types/case/Case';
@@ -145,6 +146,23 @@ const SynopticReportPage: React.FC = () => {
 
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
+
+  // Phase 2 of the Inactivity Timeout & Draft Recovery spec (see
+  // PRIORITY_FIXES.md). Step A ONLY -- purely observational caching of
+  // whatever's already in caseData.synopticReports, no changes to any
+  // existing editing/rendering logic. Restore-on-recovery (Step B) is a
+  // deliberately separate, later piece -- applying a recovered draft back
+  // onto caseData needs its own careful look at this page's actual
+  // per-instance save mechanism, not guessed at here.
+  const draftableAnswers = useMemo(
+    () => (caseData?.synopticReports ?? []).map(r => ({ instanceId: (r as any).instanceId, answers: r.answers })),
+    [caseData?.synopticReports]
+  );
+  const { hasExistingDraft, existingDraftSavedAt } = useDraftCache(
+    signingUser?.id ?? null,
+    caseId ?? null,
+    draftableAnswers,
+  );
 
   // ── Voice context activation ────────────────────────────────────────────────
   // This page — the entire SynopticReportPage tree, including whatever's

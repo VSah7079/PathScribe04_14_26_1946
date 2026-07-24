@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { VoiceProfileId } from "../constants/voiceProfiles";
 import { getBiometricPolicy, getCredentialForUser } from "../services/biometric/mockBiometricService";
+import { mockDraftCacheService } from "../services/drafts/mockDraftCacheService";
 
 export interface User {
   id: string;
@@ -34,7 +35,11 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  /** clearDrafts defaults to true (explicit logout) — the idle-timeout-
+   *  triggered call in ProtectedRoute.tsx must pass false, per the
+   *  Inactivity Timeout & Draft Recovery spec's Timeout Preservation
+   *  rule (see PRIORITY_FIXES.md). */
+  logout: (clearDrafts?: boolean) => void;
   updateUserProfile: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -174,7 +179,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => saveUser(null);
+  const logout = (clearDrafts: boolean = true) => {
+    if (clearDrafts && user?.id) {
+      // Fire-and-forget — logout shouldn't block on this, and the
+      // synchronous public signature stays unchanged for every existing
+      // caller throughout the app that doesn't await it.
+      mockDraftCacheService.clearAllDraftsForUser(user.id);
+    }
+    saveUser(null);
+  };
 
   const updateUserProfile = (updates: Partial<User>) => {
     if (user) {
