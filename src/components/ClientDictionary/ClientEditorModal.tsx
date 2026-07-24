@@ -88,6 +88,7 @@ const blank = (): ClientInput => ({
   escalationTargets:  [],
   escalationPriority: 'high',
   internalAiOrchestratorEnabled: null,
+  idleTimeoutMinutesOverride: null,
 });
 
 // ─── Style constants ──────────────────────────────────────────────────────────
@@ -375,6 +376,27 @@ className="ps-modal-close"
                       <option value="inherit">Inherit organisation default (Configuration → AI Behavior)</option>
                       <option value="on">Enabled for this lab</option>
                       <option value="off">Disabled for this lab</option>
+                    </select>
+                  </Field>
+                )}
+                {form.clientType === 'internal' && (
+                  <Field label="Idle session timeout override">
+                    <select
+                      style={INPUT}
+                      value={form.idleTimeoutMinutesOverride == null ? 'inherit' : String(form.idleTimeoutMinutesOverride)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        set("idleTimeoutMinutesOverride", v === 'inherit' ? null : Number(v));
+                      }}
+                      onFocus={onF} onBlur={onB}
+                    >
+                      <option value="inherit">Inherit organisation default (Configuration → System)</option>
+                      <option value="5">5 minutes</option>
+                      <option value="10">10 minutes</option>
+                      <option value="15">15 minutes</option>
+                      <option value="20">20 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="60">60 minutes</option>
                     </select>
                   </Field>
                 )}
