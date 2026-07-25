@@ -15,6 +15,14 @@ what was actually inside; this one does.
   `services/clients/README.md` for the `internalAiOrchestratorEnabled`
   field added there.
 
+  **Also added this session:** `idleTimeoutMinutesOverride` — the
+  per-performing-lab override for the Inactivity Timeout feature
+  (`PRIORITY_FIXES.md` #13), same tab and same inherit/override select
+  pattern as `internalAiOrchestratorEnabled` right next to it. Resolved
+  via `services/session/mockSessionTimeoutService.ts`, not this file
+  directly — this is just the admin UI for setting the value. See
+  `services/session/README.md` for the resolution logic.
+
 Both files' self-documented path comments and relative imports updated
 for the new location; sole consumer (`pages/system/ClientDictionaryPage.tsx`)
 updated. `desktop.ini` (a Windows Explorer metadata file, not code) was

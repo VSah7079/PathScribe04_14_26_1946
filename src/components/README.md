@@ -180,9 +180,11 @@ subfolder work β€” summarized here for a single cross-folder view:
   performs the work on that case) rather than a multi-institution
   "strictest among all active permissions" model, matching PathScribe's
   actual single-case-focused UI. New: `Config/System/SessionSecuritySection.tsx`,
-  `services/session/sessionTimeoutConfig.ts`, `hooks/useIdleTimeout.ts`,
-  `Common/SessionExpiryWarningModal.tsx`. `Client.idleTimeoutMinutesOverride`
-  added and wired into the Client Dictionary edit modal.
+  `services/session/` (restructured mid-session into a proper
+  interface/mock/firestore-stub trio, see `services/session/README.md`),
+  `hooks/useIdleTimeout.ts`, `Common/SessionExpiryWarningModal.tsx`.
+  `Client.idleTimeoutMinutesOverride` added and wired into the Client
+  Dictionary edit modal.
 
   **Phase 2 (draft caching + recovery) also now complete** β€” new
   `services/drafts/`, `hooks/useDraftCache.ts`, `Common/DraftRecoveryModal.tsx`,
@@ -192,7 +194,8 @@ subfolder work β€” summarized here for a single cross-folder view:
   most of them), explicitly excluding patient demographics for HIPAA
   minimum-necessary reasoning and data-integrity (avoiding a stale
   restore overwriting fresh LIS/EHR data). Local-only restore, no
-  auto-persist. Full detail in `Config/README.md` and `Common/README.md`.
+  auto-persist. Full detail in `Config/README.md`, `Common/README.md`,
+  and `ClientDictionary/README.md` (the per-client override field).
 
 ---
 *Tracking docs (`PRIORITY_FIXES.md`, `ACCESS_CONTROL_PLAN.md`) live at the

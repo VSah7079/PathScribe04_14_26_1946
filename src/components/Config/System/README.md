@@ -37,16 +37,22 @@ usually backed by a real `services/` interface/mock pair.
 - **`SessionSecuritySection.tsx`** — **NEW.** Org-wide default admin
   screen for the idle-session-timeout feature (Phase 1 of the Inactivity
   Timeout & Draft Recovery spec — full detail in `PRIORITY_FIXES.md`).
-  Reads/writes `services/session/sessionTimeoutConfig.ts`'s org-default
-  getter/setter. Deliberately its own small section rather than folded
-  into `RetentionSection.tsx` (a related-sounding but conceptually
-  different concept — how long *data* is retained, not how long an
-  *active session* stays live) — also a natural home for Phase 2/3's
-  related settings (draft retention days, encryption toggle) once those
-  are built, rather than needing a second new section added later.
+  Calls `services/session/mockSessionTimeoutService.ts`'s async
+  `getOrgDefault()`/`setOrgDefault()`. Deliberately its own small section
+  rather than folded into `RetentionSection.tsx` (a related-sounding but
+  conceptually different concept — how long *data* is retained, not how
+  long an *active session* stays live) — also a natural home for Phase
+  2/3's related settings (draft retention days, encryption toggle) once
+  those are built, rather than needing a second new section added later.
   Per-performing-lab overrides are set separately, on the Client
   Dictionary edit modal (`Client.idleTimeoutMinutesOverride`) — this
   screen only controls the org-wide fallback.
+  **Corrected mid-session:** this originally called a single
+  non-conforming file (`sessionTimeoutConfig.ts`) with bare sync
+  functions — restructured into the proper interface/mock/firestore
+  pattern once caught (see `services/session/README.md`), which is why
+  this screen now loads its initial value via a real `useEffect` rather
+  than a synchronous `useState` initializer.
 
 - **`CasePoolAssignmentSection.tsx`** — **RENAMED this pass** (was
   `CaseRoutingSection.tsx`). Closes PRIORITY_FIXES.md #3: the component

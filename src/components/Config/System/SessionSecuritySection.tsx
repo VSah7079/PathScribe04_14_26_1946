@@ -1,7 +1,7 @@
 // src/components/Config/System/SessionSecuritySection.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Org-wide default for idle session timeout (Phase 1 of the Inactivity
-// Timeout & Draft Recovery spec — see PRIORITY_FIXES.md). Per-performing-lab
+// Timeout & Draft Recovery spec — see PRIORITY_FIXES.md #13). Per-performing-lab
 // overrides are set on the Client Dictionary edit modal instead — this
 // screen only controls the org-wide fallback used when a lab has no
 // override, or when no case is currently open (Worklist, Home, etc.).
@@ -14,21 +14,31 @@
 // than needing a second new section added later.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
-import { getOrgIdleTimeoutDefault, setOrgIdleTimeoutDefault } from '../../../services/session/sessionTimeoutConfig';
+import { mockSessionTimeoutService } from '../../../services/session/mockSessionTimeoutService';
 
 const PRESET_MINUTES = [5, 10, 15, 20, 30, 60];
 
 const SessionSecuritySection: React.FC = () => {
-  const [minutes, setMinutes] = useState<number>(getOrgIdleTimeoutDefault());
+  const [minutes, setMinutes] = useState<number>(15);
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved]     = useState(false);
 
-  const handleChange = (value: number) => {
+  useEffect(() => {
+    mockSessionTimeoutService.getOrgDefault().then(res => {
+      if (res.ok) setMinutes(res.data);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleChange = async (value: number) => {
     setMinutes(value);
-    setOrgIdleTimeoutDefault(value);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    const res = await mockSessionTimeoutService.setOrgDefault(value);
+    if (res.ok) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   };
 
   return (
@@ -50,6 +60,7 @@ const SessionSecuritySection: React.FC = () => {
         <select
           value={minutes}
           onChange={e => handleChange(Number(e.target.value))}
+          disabled={loading}
           className="ps-conf-select"
           style={{ width: 240 }}
         >

@@ -1,4 +1,4 @@
-// src/components/Config/Users/RoleDictionary.tsx
+// src/components/Config/Staff/RoleDictionary.tsx
 // Two-panel layout: category groups left, permissions/clients/cheat-sheet right
 
 import React, { useState, useEffect, useMemo } from 'react';

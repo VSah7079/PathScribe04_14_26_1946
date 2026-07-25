@@ -8,21 +8,23 @@
 // hook only reports state; the caller (ProtectedRoute) decides what to do
 // with it. Keeps this hook reusable/testable independent of auth wiring.
 //
-// Timeout DURATION is resolved via sessionTimeoutConfig.ts -- org default,
-// overridden per the currently-open case's performing lab if one has a
-// stricter/looser value set. Starts with the sync org default immediately
-// (no flash of the wrong duration while the async per-case lookup runs),
-// then refines once that lookup resolves. Re-resolves whenever the case in
-// the URL changes, not on every path change (e.g. switching tabs within the
-// same case shouldn't re-trigger a lookup).
+// Timeout DURATION is resolved via services/session/mockSessionTimeoutService.ts
+// -- org default, overridden per the currently-open case's performing lab
+// if one has a stricter/looser value set. Starts with a hardcoded fallback
+// (15 min) immediately (no flash of an undefined duration while the async
+// resolution runs), then refines once that resolves. Re-resolves whenever
+// the case in the URL changes, not on every path change (e.g. switching
+// tabs within the same case shouldn't re-trigger a lookup).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { extractCaseIdFromPath, getOrgIdleTimeoutDefault, resolveIdleTimeoutMinutes } from '@/services/session/sessionTimeoutConfig';
+import { extractCaseIdFromPath } from '@/services/session/ISessionTimeoutService';
+import { mockSessionTimeoutService } from '@/services/session/mockSessionTimeoutService';
 
 const WARNING_WINDOW_SECONDS = 60;
+const FALLBACK_MINUTES = 15; // used only until the real org default resolves async
 
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
   'mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click',
@@ -43,7 +45,7 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
   const location = useLocation();
   const caseId = extractCaseIdFromPath(location.pathname);
 
-  const [effectiveMinutes, setEffectiveMinutes] = useState<number>(getOrgIdleTimeoutDefault());
+  const [effectiveMinutes, setEffectiveMinutes] = useState<number>(FALLBACK_MINUTES);
   const [showWarning, setShowWarning]           = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(WARNING_WINDOW_SECONDS);
   const [expired, setExpired]                   = useState(false);
@@ -54,16 +56,24 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
   // ── Resolve the effective timeout for the currently-open case ──────────────
   useEffect(() => {
     if (!enabled) return;
-    if (!caseId) { setEffectiveMinutes(getOrgIdleTimeoutDefault()); return; }
-
     let cancelled = false;
+
+    if (!caseId) {
+      mockSessionTimeoutService.getOrgDefault().then(res => {
+        if (!cancelled && res.ok) setEffectiveMinutes(res.data);
+      });
+      return () => { cancelled = true; };
+    }
+
     caseRouter.getCase(caseId).then(async (caseData) => {
       if (cancelled) return;
       const orderingClientId = (caseData as any)?.order?.clientId as string | undefined;
-      const minutes = await resolveIdleTimeoutMinutes(orderingClientId);
-      if (!cancelled) setEffectiveMinutes(minutes);
-    }).catch(() => {
-      if (!cancelled) setEffectiveMinutes(getOrgIdleTimeoutDefault());
+      const res = await mockSessionTimeoutService.resolveEffectiveMinutes(orderingClientId);
+      if (!cancelled && res.ok) setEffectiveMinutes(res.data);
+    }).catch(async () => {
+      if (cancelled) return;
+      const res = await mockSessionTimeoutService.getOrgDefault();
+      if (!cancelled && res.ok) setEffectiveMinutes(res.data);
     });
 
     return () => { cancelled = true; };

@@ -112,9 +112,11 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
   UI, and avoids inventing a user-to-client permissions concept that
   doesn't exist anywhere in the data model. New:
   `System/SessionSecuritySection.tsx` (org-default admin screen),
-  `services/session/sessionTimeoutConfig.ts` (resolution logic, mirrors
-  `orchestratorModeConfig.ts`'s proven org-default/per-client-override
-  structure), `hooks/useIdleTimeout.ts`, `Common/SessionExpiryWarningModal.tsx`.
+  `services/session/` (resolution logic β€” restructured mid-session into
+  a proper interface/mock/firestore-stub trio after an earlier single-file
+  version was caught not matching this codebase's established convention;
+  see `services/session/README.md`), `hooks/useIdleTimeout.ts`,
+  `Common/SessionExpiryWarningModal.tsx`.
   `Client.idleTimeoutMinutesOverride` added to `IClientService.ts` and
   wired into the Client Dictionary edit modal. Modal copy deliberately
   reworded from the original spec to avoid claiming draft auto-save
@@ -137,7 +139,8 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
   correctness bug, not just a privacy one). Restore is local-only, no
   auto-persist β€” marks the case dirty via the existing mechanism so the
   pathologist's normal Save Draft review serves as the actual
-  verification step. Full detail in `Common/README.md`.
+  verification step. Full detail in `Common/README.md` and
+  `ClientDictionary/README.md` (the per-client override field).
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

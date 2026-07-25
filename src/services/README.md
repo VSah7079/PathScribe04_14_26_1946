@@ -31,7 +31,9 @@ Where a folder deviates from this pattern, its own `README.md` explains
 why (e.g. `services/ai/` is a provider-abstraction layer, not a CRUD
 service; `services/grossing/` is deliberately types-only because its real
 logic lives in `services/cases/mockCaseService.ts`; `services/hl7/` is a
-larger, multi-file scaffolded subsystem).
+larger, multi-file scaffolded subsystem; `services/session/` is a small
+resolution module, not a CRUD service — see its own README for why it
+still follows the interface/mock/firestore split despite that).
 
 ## Root-level files (not in a subfolder)
 
@@ -46,14 +48,24 @@ larger, multi-file scaffolded subsystem).
   mocks.
 - **`enhancementRequestService.ts`** — routes user-submitted enhancement
   requests (Email or Portal/webhook mode). Mock phase logs to console.
-- **`synopticNotificationService.ts`** — STUB, deliberately: notifications
-  for high-stakes synoptic audit events. Logs to console until a real
-  `POST /api/v1/notifications` backend exists.
 - **`phiSelectors.ts`** — central registry of DOM selectors marking PHI/PII
   elements, used by `useScreenCapture` to redact sensitive data before a
   screenshot is attached to an Enhancement Request or QA Feedback
   submission. **Tag new PHI-bearing UI with `data-phi="true"` — see this
   file's own header for how.**
+
+**REMOVED (July 2026):** `synopticNotificationService.ts` (root-level) —
+this was the item listed here as "STUB, deliberately... Logs to console
+until a real backend exists." Deleted after being found to be a genuine,
+active bug rather than an intentional stub: `hooks/useSynopticAudit.ts`
+was importing from *this* file instead of the real, complete
+implementation at `services/communications/synopticNotificationService.ts`
+(recipient resolution, real email templates — correctly exported via its
+own barrel, just never actually wired to the hook). Real protocol
+lifecycle notifications (approve/reject/publish) were silently never
+sent, with no visible error anywhere. Fixed the import, confirmed zero
+other consumers of the root-level file, deleted it. Full detail in
+`PRIORITY_FIXES.md` #15.
 
 ## Folder index
 
@@ -75,6 +87,7 @@ larger, multi-file scaffolded subsystem).
 | [deficiencies/](./deficiencies/README.md) | Specimen/requisition deficiency tracking |
 | [delegationTypes/](./delegationTypes/README.md) | Case delegation type dictionary |
 | [diagnosisCodes/](./diagnosisCodes/README.md) | Referring physician's order-time diagnosis code |
+| [drafts/](./drafts/README.md) | **NEW (July 2026)** — local caching of in-progress unsaved work (Inactivity Timeout & Draft Recovery Phase 2) |
 | [flags/](./flags/README.md) | Case/specimen flag dictionary |
 | [fonts/](./fonts/README.md) | Editor font dictionary |
 | [grossing/](./grossing/README.md) | Grossing template routing (types only, real logic in cases/) |
@@ -101,6 +114,7 @@ larger, multi-file scaffolded subsystem).
 | [roles/](./roles/README.md) | Staff role/permission dictionary |
 | [routingRules/](./routingRules/README.md) | Admin template routing rule overrides |
 | [savedSearches/](./savedSearches/README.md) | Saved search/filter presets |
+| [session/](./session/README.md) | **NEW (July 2026)** — idle-session-timeout resolution (org default + per-performing-lab override), Inactivity Timeout Phase 1 |
 | [specimenCategories/](./specimenCategories/README.md) | Coarse-grained specimen classification |
 | [specimenDictionary/](./specimenDictionary/README.md) | Fine-grained Specimen Dictionary (SpecimenEntry) — the real backend |
 | [stains/](./stains/README.md) | Stain catalog (3 sub-concepts: type/sectioning/order macro) |
@@ -115,17 +129,29 @@ larger, multi-file scaffolded subsystem).
 
 ## Known issues (as of this review — see PRIORITY_FIXES.md in project root)
 
-- `src/templates/mockDcisTemplate.ts` (a different, top-level, non-services/
-  folder) still needs relocating into `services/templates/` or
-  `components/Config/Templates/`. Not yet done.
-- `components/Config/Templates/TemplateRenderer.tsx` has a self-documented
-  bug — ignores `templateId`, always loads the DCIS placeholder. Not yet
-  fixed.
 - `services/stains/firestoreStainService.ts`'s auto-generated stub comment
   names only one of its three real mocks as "the active implementation" —
   should name all three. Cosmetic, not yet fixed.
 - `services/aiBehavior/IAIBehaviorService.ts`'s own header comment has a
   stale file path. Cosmetic, not yet fixed.
+
+**RESOLVED, removed from this list (July 2026):**
+- ~~`src/templates/mockDcisTemplate.ts` needs relocating~~ — resolved by
+  elimination, not relocation. Deleted as fully dead once
+  `TemplateRenderer.tsx` was rewritten (see next item) — it was typed
+  against a schema (`types/templateTypes.ts`) that no longer exists.
+  `src/templates/` is now an empty folder. See `PRIORITY_FIXES.md` #3.
+- ~~`TemplateRenderer.tsx` ignores `templateId`~~ — fixed. Rewritten to
+  consume `templateService.ts`'s real `getTemplate()`/`EditorTemplate`
+  directly; 19 real seeded templates now display correctly. See
+  `PRIORITY_FIXES.md` #2.
+- ~~stale header path comments~~ (5 files: `aiIntegration/PathScribeAIService.ts`,
+  `cases/casePoolAssignmentService.ts`, `templates/templateService.ts`,
+  `templateSuggestions/{ISynopticTemplateSuggestionService,ITemplateSuggestionSignalService}.ts`) —
+  all confirmed benign (matching the documented renames below) and fixed.
+  Found via `scripts/check-organization.cjs`, which now reports zero
+  findings across `pages/`, `services/`, `hooks/`, and `contexts/`. See
+  `PRIORITY_FIXES.md` #16.
 
 ## Renames executed July 2026 (for anyone using old references/bookmarks)
 
@@ -136,3 +162,16 @@ larger, multi-file scaffolded subsystem).
 - `services/templates/{ISynopticTemplateSuggestionService,ITemplateSuggestionSignalService,mockTemplateSuggestionSignalService,synopticTemplateSuggestionService}.ts` → moved to new `services/templateSuggestions/`
 - `pages/Synoptic/Codes/codeSearchService.ts` → `services/terminologySearch/codeSearchService.ts`
 - `services/internalNotes/{ICaseNoteService,firestoreCaseNoteService}.ts` — deleted (dead legacy lineage, superseded by `IInternalNoteService`/`mockInternalNoteService`)
+
+## New folders added July 2026
+
+- **`session/`** — built for the Inactivity Timeout & Draft Recovery
+  feature (`PRIORITY_FIXES.md` #13), Phase 1. Worth its own callout: the
+  first version of this folder was a single, non-conforming file with
+  bare exported functions instead of a proper service object — caught
+  and restructured into the standard interface/mock/firestore-stub
+  pattern before it became a second precedent for future folders to copy
+  incorrectly. See its own README for the full correction.
+- **`drafts/`** — built for the same feature's Phase 2. Followed the
+  standard pattern correctly from the start (learned from `session/`'s
+  correction above).
