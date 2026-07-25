@@ -1394,6 +1394,79 @@
       ]
     },
     {
+      "id": "biomarkers",
+      "title": "Biomarkers",
+      "fields": [
+        {
+          "id": "pdl1_tps",
+          "label": "PD-L1 Tumor Proportion Score (TPS)",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "pdl1_tps_lt1",     "label": "<1%",   "snomed": "", "icd": "" },
+            { "id": "pdl1_tps_1_49",    "label": "1-49%", "snomed": "", "icd": "" },
+            { "id": "pdl1_tps_ge50",    "label": "≥50%",  "snomed": "", "icd": "" },
+            { "id": "pdl1_tps_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "egfr_status",
+          "label": "EGFR Mutation Status",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "egfr_detected",     "label": "Detected",     "snomed": "", "icd": "" },
+            { "id": "egfr_not_detected", "label": "Not Detected", "snomed": "", "icd": "" },
+            { "id": "egfr_not_tested",   "label": "Not Tested",   "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "egfr_variant",
+          "label": "EGFR Variant (if detected)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. Exon 19 deletion, L858R"
+        },
+        {
+          "id": "alk_status",
+          "label": "ALK Rearrangement",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "alk_rearranged",     "label": "Rearranged",     "snomed": "", "icd": "" },
+            { "id": "alk_non_rearranged", "label": "Non-rearranged", "snomed": "", "icd": "" },
+            { "id": "alk_not_tested",     "label": "Not Tested",     "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "ros1_status",
+          "label": "ROS1 Rearrangement",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "ros1_positive",   "label": "Positive",   "snomed": "", "icd": "" },
+            { "id": "ros1_negative",   "label": "Negative",   "snomed": "", "icd": "" },
+            { "id": "ros1_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
       "id": "comments",
       "title": "Comments",
       "fields": [

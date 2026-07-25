@@ -1105,6 +1105,127 @@
           "note": ""
         }
       ]
+    },
+    {
+      "id": "biomarkers",
+      "title": "Biomarkers",
+      "fields": [
+        {
+          "id": "er_status",
+          "label": "ER (Estrogen Receptor) Status",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "er_status_positive",   "label": "Positive",   "snomed": "", "icd": "" },
+            { "id": "er_status_negative",   "label": "Negative",   "snomed": "", "icd": "" },
+            { "id": "er_status_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "er_percent_positive",
+          "label": "ER % Positivity",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. 95%"
+        },
+        {
+          "id": "er_intensity",
+          "label": "ER Intensity",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "er_intensity_1", "label": "1+", "snomed": "", "icd": "" },
+            { "id": "er_intensity_2", "label": "2+", "snomed": "", "icd": "" },
+            { "id": "er_intensity_3", "label": "3+", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "pr_status",
+          "label": "PR (Progesterone Receptor) Status",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "pr_status_positive",   "label": "Positive",   "snomed": "", "icd": "" },
+            { "id": "pr_status_negative",   "label": "Negative",   "snomed": "", "icd": "" },
+            { "id": "pr_status_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "pr_percent_positive",
+          "label": "PR % Positivity",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. 80%"
+        },
+        {
+          "id": "pr_intensity",
+          "label": "PR Intensity",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "pr_intensity_1", "label": "1+", "snomed": "", "icd": "" },
+            { "id": "pr_intensity_2", "label": "2+", "snomed": "", "icd": "" },
+            { "id": "pr_intensity_3", "label": "3+", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "her2_ihc_score",
+          "label": "HER2 IHC Score",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "her2_ihc_0",  "label": "0",  "snomed": "", "icd": "" },
+            { "id": "her2_ihc_1p", "label": "1+", "snomed": "", "icd": "" },
+            { "id": "her2_ihc_2p", "label": "2+", "snomed": "", "icd": "" },
+            { "id": "her2_ihc_3p", "label": "3+", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "her2_ish_status",
+          "label": "HER2 ISH Status",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "her2_ish_amplified",     "label": "Amplified",     "snomed": "", "icd": "" },
+            { "id": "her2_ish_nonamplified",  "label": "Non-amplified", "snomed": "", "icd": "" },
+            { "id": "her2_ish_not_performed", "label": "Not Performed", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "ki67_index",
+          "label": "Ki-67 Proliferation Index",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. 15%"
+        }
+      ]
     }
   ]
 }

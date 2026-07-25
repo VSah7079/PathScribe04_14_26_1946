@@ -67,6 +67,7 @@ const CASE_KEYS = [
   'report_version_records',
   'lis_amendment_notices',
   'intraop_entries',
+  'pathscribe_drafts',
 ];
 
 const FLAG_KEYS = [

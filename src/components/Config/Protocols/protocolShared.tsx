@@ -139,6 +139,130 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     status: 'published', fields: 17, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-17', owner: 'System',
   },
+  // 19 generic templates below -- registered here for the first time (see
+  // this file's own comment above: these were seeded into editorStore at
+  // module load but never had a PROTOCOL_REGISTRY entry, so they were
+  // reachable only by direct URL, invisible to normal browsing/assignment).
+  // Content is genericized placeholder (CAP/RCPath-derived structure, no
+  // licensed wording) pending a confirmed CAP/RCPath license -- version
+  // strings' "-generic" suffix marks this; will be bumped to a real
+  // version number at the same time real licensed content replaces the
+  // placeholder options, rather than tracking a separate status for the
+  // interim period.
+  {
+    id: 'breast_invasive', name: 'Generic Template — Breast Invasive',
+    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 44, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'breast_dcis_resection', name: 'Generic Template — Breast Dcis Resection',
+    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 20, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'lung_adeno', name: 'Generic Template — Lung Adeno',
+    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_needle_biopsy', name: 'Generic Template — Prostate Needle Biopsy',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colon_resection', name: 'Generic Template — Colon Resection',
+    category: 'COLON', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 46, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'skin_melanoma_bx', name: 'Generic Template — Skin Melanoma Bx',
+    category: 'SKIN', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'kidney_resection', name: 'Generic Template — Kidney Resection',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 25, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'kidney_biopsy', name: 'Generic Template — Kidney Biopsy',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 10, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'wilms_resection', name: 'Generic Template — Wilms Resection',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 32, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'wilms_biopsy', name: 'Generic Template — Wilms Biopsy',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_resection', name: 'Generic Template — Prostate Resection',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 28, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'lung_resection', name: 'Generic Template — Lung Resection',
+    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'breast_surgical_excision', name: 'Generic Template — Breast Surgical Excision',
+    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 96, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colorectal_resection_b', name: 'Generic Template — Colorectal Resection B',
+    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colorectal_local_excision', name: 'Generic Template — Colorectal Local Excision',
+    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colorectal_further_investigations', name: 'Generic Template — Colorectal Further Investigations',
+    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 26, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_biopsy', name: 'Generic Template — Prostate Biopsy',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 45, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_radical_prostatectomy', name: 'Generic Template — Prostate Radical Prostatectomy',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 38, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_turp_enucleation', name: 'Generic Template — Prostate Turp Enucleation',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
   {
     id: 'liver_biopsy_medical', name: 'Liver Biopsy -- Medical (Native)',
     category: 'LIVER', version: '1.0.1', source: 'Custom', type: 'Non-cancer / Custom',
