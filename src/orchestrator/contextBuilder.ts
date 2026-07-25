@@ -668,3 +668,22 @@ export async function buildContext(
     warnings,
   };
 }
+
+// Phase D of the biomarker display work (see PRIORITY_FIXES.md). Filters
+// resolveAnswers' output down to just the fields belonging to a template's
+// dedicated "biomarkers" section, if it has one -- generic and
+// template-agnostic by design: works automatically for any template with
+// a biomarkers section (present or future), without needing per-template
+// display logic anywhere else in the app. Returns [] for templates with
+// no biomarkers section (most of the 19 generic templates don't have one
+// yet) or with no answered marker fields.
+export function getMarkersFromAnswers(
+  rawAnswers: Record<string, string | string[]>,
+  synopticTemplate: EditorTemplate | null
+): ResolvedAnswer[] {
+  if (!synopticTemplate) return [];
+  const biomarkerSection = synopticTemplate.sections.find(sec => sec.id === 'biomarkers');
+  if (!biomarkerSection) return [];
+  const biomarkerFieldIds = new Set(biomarkerSection.fields.map(f => f.id));
+  return resolveAnswers(rawAnswers, synopticTemplate).filter(r => biomarkerFieldIds.has(r.fieldId));
+}

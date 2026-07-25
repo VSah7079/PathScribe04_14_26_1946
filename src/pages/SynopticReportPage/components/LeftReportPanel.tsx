@@ -4,6 +4,9 @@ import type { Case } from '@/types/case/Case';
 import { useAuth } from '@/contexts/AuthContext';
 import InternalNotesDrawer from '@/components/InternalNotes/InternalNotesDrawer';
 import { internalNoteService } from '@/services';
+import { getMarkersFromAnswers, type ResolvedAnswer } from '@/orchestrator/contextBuilder';
+import { getTemplate } from '@/services/templates/templateService';
+import MarkersPanel from './MarkersPanel';
 
 interface LeftReportPanelProps {
   caseData: Case | null;
@@ -66,6 +69,27 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
     }).catch(() => {});
   }, [caseData, user?.id]);
   const markRef   = React.useRef<HTMLElement | null>(null);
+
+  // Phase D of the biomarker display work (see PRIORITY_FIXES.md). Resolves
+  // markers across ALL of this case's synoptic report instances (a case can
+  // have more than one specimen, each with its own template) -- template-
+  // agnostic by design via getMarkersFromAnswers(), so this works
+  // automatically for any template with a "biomarkers" section, present or
+  // future, with zero changes needed here.
+  const [markers, setMarkers] = React.useState<ResolvedAnswer[]>([]);
+  useEffect(() => {
+    if (!caseData?.synopticReports?.length) { setMarkers([]); return; }
+    let cancelled = false;
+    Promise.all(
+      caseData.synopticReports.map(async (inst: any) => {
+        const detail = await getTemplate(inst.templateId);
+        return detail ? getMarkersFromAnswers(inst.answers ?? {}, detail.template) : [];
+      })
+    ).then(results => {
+      if (!cancelled) setMarkers(results.flat());
+    }).catch(() => { if (!cancelled) setMarkers([]); });
+    return () => { cancelled = true; };
+  }, [caseData?.synopticReports]);
 
   const sections = caseData ? [
     { title: 'CLINICAL HISTORY',     text: caseData.order?.clinicalIndication ?? '(not recorded)' },
@@ -206,6 +230,8 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
               ))}
             </div>
           </div>
+
+          <MarkersPanel markers={markers} />
 
           {/* Report sections */}
           {sections.map(s => (
