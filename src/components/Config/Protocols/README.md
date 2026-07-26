@@ -14,14 +14,28 @@ builder.
 - **`index.tsx`** — Sidebar orchestrator for 3 sections (Active/Review
   Queue/All), URL-aware so navigating back from `TemplateRenderer.tsx` or
   `SynopticEditor.tsx` lands on the right section. No issues.
-- **`protocolShared.tsx`** (597 lines) — `PROTOCOL_REGISTRY`: the shared
+- **`protocolShared.tsx`** (721+ lines) — `PROTOCOL_REGISTRY`: the shared
   metadata/lifecycle registry (status, owner, review notes, `fields` as a
   **count**, not content) consumed across this folder and `Config/Templates/`.
   `protocolGroup()`/`isDiagnosticProtocol()` are well-reasoned derivation
-  helpers with sensible defaults. `PROTOCOL_REGISTRY` correctly excludes
-  the 19 real synoptic templates seeded directly into `editorStore` (see
-  its own comment) and confirms the CAP/RCPath content-licensing cleanup
-  removed registry entries entirely, not just disabled them.
+  helpers with sensible defaults.
+
+  **CORRECTION (July 2026) — the 19 templates' registry exclusion was
+  never intentional.** This README previously stated `PROTOCOL_REGISTRY`
+  "correctly excludes" the 19 generic synoptic templates seeded directly
+  into `editorStore` (breast_invasive, lung_adeno, colon_resection, etc.),
+  framing it as a deliberate consequence of CAP/RCPath content-licensing
+  cleanup. That was wrong — these templates were simply never given
+  registry entries to begin with, meaning they were reachable only by
+  direct URL (`/template-editor/breast_invasive`) and completely invisible
+  to normal browsing/assignment via Configuration → Synoptic Library →
+  All Protocols. Fixed by adding all 19 as `published` entries (see
+  `scripts/add-generic-template-registry-entries.cjs`), each retaining
+  the existing `-generic` version suffix as the honest signal that these
+  are placeholder content pending a confirmed CAP/RCPath license — the
+  license swap will replace file content in place, same template IDs,
+  rather than needing a separate interim status. `PROTOCOL_REGISTRY` is
+  now 32 entries (was 13).
 
   **FIXED this pass (PRIORITY_FIXES.md #8):** two hand-rolled modal
   shells — "Upload Protocol" and "Build / Customise" — converted to
@@ -30,12 +44,22 @@ builder.
   not part of a broader deliberate internal theme, so safe to fully
   standardize rather than just convert the backdrop.
 
-- **`SynopticEditor.tsx`** (816 lines, the real template builder) — Add/
+- **`SynopticEditor.tsx`** (816+ lines, the real template builder) — Add/
   reorder/delete sections and fields, 6 field types (dropdown/radio/
   checkboxes/numeric/text/longtext), per-field AND per-option SNOMED+ICD
   coding, preview modal. This is where `EditorTemplate`/`EditorSection`/
   `EditorField` — the actual rich content model — are defined. **See
   Notes — this is the other half of the TemplateRenderer bug.**
+
+  **`EditorField.markerGroup?: string`** (added for the biomarker display
+  work, July 2026) — optional metadata grouping related fields under one
+  card in the `MarkersPanel` display (`pages/SynopticReportPage/
+  components/MarkersPanel.tsx`) — e.g. "ER Status"/"ER % Positivity"/
+  "ER Intensity" all tagged `markerGroup: "ER"` render together rather
+  than as separate, disconnected badges. Only meaningful within a
+  template's `biomarkers` section (currently only `breast_invasive` and
+  `lung_adeno` have one); falls back to the field's own label if unset,
+  so untagged fields/templates degrade gracefully rather than breaking.
 
   **FIXED this pass (PRIORITY_FIXES.md #8):** three overlay backdrops
   converted to `ps-overlay`. The live-preview modal's inner box was
