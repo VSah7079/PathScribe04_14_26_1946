@@ -64,6 +64,14 @@ interface HeaderBarProps {
    *  apply any flags a simulated LIS check returns onto the real case.
    *  Omit to leave the indicator read-only (no case mutation possible). */
   onCaseUpdate?: (updatedCase: Case) => void;
+  /** User-manual compact toggle -- separate from the automatic
+   *  (isOrchestrationMode && leftTab === 'draft') compact trigger. Either
+   *  can independently put the header into compact mode; this prop/
+   *  callback pair controls only the manual one. Omit to hide the
+   *  toggle button entirely (e.g. contexts where shrinking doesn't make
+   *  sense). */
+  isManuallyCompact?: boolean;
+  onToggleManualCompact?: () => void;
 }
 
 type StepStatus = 'completed' | 'current' | 'pending' | 'alert';
@@ -88,7 +96,7 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, isManuallyCompact = false, onToggleManualCompact }) => {
   const isOrchestration = getOrchestratorMode();
 
   // CoPilot-only — Orchestration mode is the system of record; there's no
@@ -263,11 +271,20 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               </span>
             )
           )}
-          <button
-            className="ps-hb-compact-nav-btn"
-            onClick={() => onNavigate('/worklist')}
-            title="Back to worklist"
-          >← Worklist</button>
+          <div className="ps-hb-compact-nav-group">
+            <button
+              className="ps-hb-compact-nav-btn"
+              onClick={() => onNavigate('/worklist')}
+              title="Back to worklist"
+            >← Worklist</button>
+            {onToggleManualCompact && (
+              <button
+                className="ps-hb-compact-nav-btn"
+                onClick={onToggleManualCompact}
+                title="Show full patient header"
+              >⌄ Full view</button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -295,6 +312,15 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         <span className="ps-hb-crumb" onClick={() => onNavigate('/worklist')}>Worklist</span>
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb ps-hb-crumb--active">Case Report</span>
+
+        {onToggleManualCompact && (
+          <button
+            className="ps-hb-compact-nav-btn"
+            style={{ marginLeft: 'auto' }}
+            onClick={onToggleManualCompact}
+            title="Shrink to a compact single-line header -- more room for the report"
+          >⌃ Compact view</button>
+        )}
 
         {isCopilotCase && syncState && (
           <div className="ps-hb-lis-sync">

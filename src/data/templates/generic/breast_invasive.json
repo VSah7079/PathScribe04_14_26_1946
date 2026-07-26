@@ -1,6 +1,6 @@
 {
   "id": "breast_invasive",
-  "name": "Generic Template \u2014 Breast Invasive",
+  "name": "Generic Template — Breast Invasive",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "BREAST",
@@ -1118,11 +1118,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "er_status_positive",   "label": "Positive",   "snomed": "", "icd": "" },
-            { "id": "er_status_negative",   "label": "Negative",   "snomed": "", "icd": "" },
-            { "id": "er_status_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+            {
+              "id": "er_status_positive",
+              "label": "Positive",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_status_negative",
+              "label": "Negative",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_status_not_tested",
+              "label": "Not Tested",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "ER"
         },
         {
           "id": "er_percent_positive",
@@ -1132,7 +1148,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "e.g. 95%"
+          "note": "e.g. 95%",
+          "markerGroup": "ER"
         },
         {
           "id": "er_intensity",
@@ -1142,11 +1159,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "er_intensity_1", "label": "1+", "snomed": "", "icd": "" },
-            { "id": "er_intensity_2", "label": "2+", "snomed": "", "icd": "" },
-            { "id": "er_intensity_3", "label": "3+", "snomed": "", "icd": "" }
+            {
+              "id": "er_intensity_1",
+              "label": "1+",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_intensity_2",
+              "label": "2+",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_intensity_3",
+              "label": "3+",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "ER"
         },
         {
           "id": "pr_status",
@@ -1156,11 +1189,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "pr_status_positive",   "label": "Positive",   "snomed": "", "icd": "" },
-            { "id": "pr_status_negative",   "label": "Negative",   "snomed": "", "icd": "" },
-            { "id": "pr_status_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+            {
+              "id": "pr_status_positive",
+              "label": "Positive",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_status_negative",
+              "label": "Negative",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_status_not_tested",
+              "label": "Not Tested",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "PR"
         },
         {
           "id": "pr_percent_positive",
@@ -1170,7 +1219,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "e.g. 80%"
+          "note": "e.g. 80%",
+          "markerGroup": "PR"
         },
         {
           "id": "pr_intensity",
@@ -1180,11 +1230,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "pr_intensity_1", "label": "1+", "snomed": "", "icd": "" },
-            { "id": "pr_intensity_2", "label": "2+", "snomed": "", "icd": "" },
-            { "id": "pr_intensity_3", "label": "3+", "snomed": "", "icd": "" }
+            {
+              "id": "pr_intensity_1",
+              "label": "1+",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_intensity_2",
+              "label": "2+",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_intensity_3",
+              "label": "3+",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "PR"
         },
         {
           "id": "her2_ihc_score",
@@ -1194,12 +1260,33 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "her2_ihc_0",  "label": "0",  "snomed": "", "icd": "" },
-            { "id": "her2_ihc_1p", "label": "1+", "snomed": "", "icd": "" },
-            { "id": "her2_ihc_2p", "label": "2+", "snomed": "", "icd": "" },
-            { "id": "her2_ihc_3p", "label": "3+", "snomed": "", "icd": "" }
+            {
+              "id": "her2_ihc_0",
+              "label": "0",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ihc_1p",
+              "label": "1+",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ihc_2p",
+              "label": "2+",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ihc_3p",
+              "label": "3+",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "HER2"
         },
         {
           "id": "her2_ish_status",
@@ -1209,11 +1296,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "her2_ish_amplified",     "label": "Amplified",     "snomed": "", "icd": "" },
-            { "id": "her2_ish_nonamplified",  "label": "Non-amplified", "snomed": "", "icd": "" },
-            { "id": "her2_ish_not_performed", "label": "Not Performed", "snomed": "", "icd": "" }
+            {
+              "id": "her2_ish_amplified",
+              "label": "Amplified",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ish_nonamplified",
+              "label": "Non-amplified",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ish_not_performed",
+              "label": "Not Performed",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "HER2"
         },
         {
           "id": "ki67_index",
@@ -1223,7 +1326,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "e.g. 15%"
+          "note": "e.g. 15%",
+          "markerGroup": "Ki-67"
         }
       ]
     }

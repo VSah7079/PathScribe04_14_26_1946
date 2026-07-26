@@ -43,6 +43,14 @@ export interface EditorField {
   id: string; label: string; type: FieldType; required: boolean;
   snomed: string; icd: string; options: FieldOption[];
   hint?: string; visibleWhen?: VisibilityCondition;
+  /** Groups related fields under one marker card in the Biomarkers display
+   *  (e.g. "ER Status", "ER % Positivity", "ER Intensity" all tagged
+   *  markerGroup: "ER" render as one card with those details listed
+   *  together, rather than as separate, disconnected badges). Only
+   *  meaningful within a template's "biomarkers" section. Falls back to
+   *  the field's own label if unset, so older/untagged templates still
+   *  degrade gracefully rather than breaking. */
+  markerGroup?: string;
 }
 
 export interface EditorSection {

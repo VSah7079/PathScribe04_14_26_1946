@@ -1,6 +1,6 @@
 {
   "id": "lung_adeno",
-  "name": "Generic Template \u2014 Lung Adeno",
+  "name": "Generic Template — Lung Adeno",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "LUNG",
@@ -1405,12 +1405,33 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "pdl1_tps_lt1",     "label": "<1%",   "snomed": "", "icd": "" },
-            { "id": "pdl1_tps_1_49",    "label": "1-49%", "snomed": "", "icd": "" },
-            { "id": "pdl1_tps_ge50",    "label": "≥50%",  "snomed": "", "icd": "" },
-            { "id": "pdl1_tps_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+            {
+              "id": "pdl1_tps_lt1",
+              "label": "<1%",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pdl1_tps_1_49",
+              "label": "1-49%",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pdl1_tps_ge50",
+              "label": "≥50%",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pdl1_tps_not_tested",
+              "label": "Not Tested",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "PD-L1"
         },
         {
           "id": "egfr_status",
@@ -1420,11 +1441,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "egfr_detected",     "label": "Detected",     "snomed": "", "icd": "" },
-            { "id": "egfr_not_detected", "label": "Not Detected", "snomed": "", "icd": "" },
-            { "id": "egfr_not_tested",   "label": "Not Tested",   "snomed": "", "icd": "" }
+            {
+              "id": "egfr_detected",
+              "label": "Detected",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "egfr_not_detected",
+              "label": "Not Detected",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "egfr_not_tested",
+              "label": "Not Tested",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "EGFR"
         },
         {
           "id": "egfr_variant",
@@ -1434,7 +1471,8 @@
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "e.g. Exon 19 deletion, L858R"
+          "note": "e.g. Exon 19 deletion, L858R",
+          "markerGroup": "EGFR"
         },
         {
           "id": "alk_status",
@@ -1444,11 +1482,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "alk_rearranged",     "label": "Rearranged",     "snomed": "", "icd": "" },
-            { "id": "alk_non_rearranged", "label": "Non-rearranged", "snomed": "", "icd": "" },
-            { "id": "alk_not_tested",     "label": "Not Tested",     "snomed": "", "icd": "" }
+            {
+              "id": "alk_rearranged",
+              "label": "Rearranged",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "alk_non_rearranged",
+              "label": "Non-rearranged",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "alk_not_tested",
+              "label": "Not Tested",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "ALK"
         },
         {
           "id": "ros1_status",
@@ -1458,11 +1512,27 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "ros1_positive",   "label": "Positive",   "snomed": "", "icd": "" },
-            { "id": "ros1_negative",   "label": "Negative",   "snomed": "", "icd": "" },
-            { "id": "ros1_not_tested", "label": "Not Tested", "snomed": "", "icd": "" }
+            {
+              "id": "ros1_positive",
+              "label": "Positive",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ros1_negative",
+              "label": "Negative",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ros1_not_tested",
+              "label": "Not Tested",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "markerGroup": "ROS1"
         }
       ]
     },

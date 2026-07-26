@@ -4,7 +4,7 @@ import type { Case } from '@/types/case/Case';
 import { useAuth } from '@/contexts/AuthContext';
 import InternalNotesDrawer from '@/components/InternalNotes/InternalNotesDrawer';
 import { internalNoteService } from '@/services';
-import { getMarkersFromAnswers, type ResolvedAnswer } from '@/orchestrator/contextBuilder';
+import { getMarkersFromAnswers, type MarkerAnswer } from '@/orchestrator/contextBuilder';
 import { getTemplate } from '@/services/templates/templateService';
 import MarkersPanel from './MarkersPanel';
 
@@ -76,7 +76,7 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   // agnostic by design via getMarkersFromAnswers(), so this works
   // automatically for any template with a "biomarkers" section, present or
   // future, with zero changes needed here.
-  const [markers, setMarkers] = React.useState<ResolvedAnswer[]>([]);
+  const [markers, setMarkers] = React.useState<MarkerAnswer[]>([]);
   useEffect(() => {
     if (!caseData?.synopticReports?.length) { setMarkers([]); return; }
     let cancelled = false;
@@ -212,23 +212,27 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
         <p style={{ color: '#94a3b8', fontSize: '14px' }}>No case loaded.</p>
       ) : (
         <>
-          {/* Patient info grid */}
-          <div style={{ background: 'rgba(8,145,178,0.06)', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', fontSize: '13px', border: '1px solid rgba(8,145,178,0.2)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              {[
-                { label: 'Accession', value: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '—', mono: true },
-                { label: 'Patient',   value: caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—' },
-                { label: 'DOB',       value: caseData.patient?.dateOfBirth ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '—' },
-                { label: 'MRN',       value: caseData.patient?.mrn ?? '—' },
-                { label: 'Sex',       value: caseData.patient?.sex ?? '—' },
-                { label: 'Priority',  value: caseData.order?.priority ?? '—' },
-              ].map(({ label, value, mono }) => (
-                <div key={label}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#0891B2', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>{label}</div>
-                  <div style={{ color: '#e2e8f0', fontFamily: mono ? 'monospace' : undefined, fontSize: '13px', fontWeight: 600 }}>{value}</div>
-                </div>
-              ))}
-            </div>
+          {/* Patient info row — compact single row, CAP two-identifier
+              minimum (Pete: case number, MRN, Name, DOB). Sex/Priority
+              dropped from always-visible display -- not patient
+              identifiers, and keeping this simple rather than adding
+              another toggle/overlay so soon after removing the broken
+              full-screen review feature. Case number kept even though
+              it's a case (not patient) identifier -- it's what ties this
+              panel to a specific specimen while scrolling a long report. */}
+          <div className="ps-patient-info-row">
+            {[
+              { label: 'Case',    value: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '—', mono: true },
+              { label: 'MRN',     value: caseData.patient?.mrn ?? '—' },
+              { label: 'Patient', value: caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—' },
+              { label: 'DOB',     value: caseData.patient?.dateOfBirth ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '—' },
+            ].map(({ label, value, mono }, i) => (
+              <React.Fragment key={label}>
+                {i > 0 && <span className="ps-patient-info-sep">·</span>}
+                <span className="ps-patient-info-label">{label}</span>
+                <span className={`ps-patient-info-value${mono ? ' ps-patient-info-value--mono' : ''}`}>{value}</span>
+              </React.Fragment>
+            ))}
           </div>
 
           <MarkersPanel markers={markers} />

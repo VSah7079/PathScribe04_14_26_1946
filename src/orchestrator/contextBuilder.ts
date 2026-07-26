@@ -677,13 +677,22 @@ export async function buildContext(
 // display logic anywhere else in the app. Returns [] for templates with
 // no biomarkers section (most of the 19 generic templates don't have one
 // yet) or with no answered marker fields.
+export interface MarkerAnswer extends ResolvedAnswer {
+  markerGroup: string;
+}
+
 export function getMarkersFromAnswers(
   rawAnswers: Record<string, string | string[]>,
   synopticTemplate: EditorTemplate | null
-): ResolvedAnswer[] {
+): MarkerAnswer[] {
   if (!synopticTemplate) return [];
   const biomarkerSection = synopticTemplate.sections.find(sec => sec.id === 'biomarkers');
   if (!biomarkerSection) return [];
-  const biomarkerFieldIds = new Set(biomarkerSection.fields.map(f => f.id));
-  return resolveAnswers(rawAnswers, synopticTemplate).filter(r => biomarkerFieldIds.has(r.fieldId));
+  // Falls back to the field's own label if markerGroup isn't set, so
+  // older/untagged templates still degrade gracefully (each such field
+  // just becomes its own single-field "group") rather than breaking.
+  const fieldGroupMap = new Map(biomarkerSection.fields.map(f => [f.id, f.markerGroup ?? f.label]));
+  return resolveAnswers(rawAnswers, synopticTemplate)
+    .filter(r => fieldGroupMap.has(r.fieldId))
+    .map(r => ({ ...r, markerGroup: fieldGroupMap.get(r.fieldId)! }));
 }

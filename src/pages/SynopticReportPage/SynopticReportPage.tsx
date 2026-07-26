@@ -392,7 +392,19 @@ const SynopticReportPage: React.FC = () => {
   const [isAlertExpanded, setIsAlertExpanded] = useState(false);
   const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState(false);
   const [showCodesModal, setShowCodesModal] = useState(false);
-  const [panelMode, setPanelMode] = useState<null | 'expanded'>(null);
+  // User-manual toggle for HeaderBar's compact mode -- see the render's
+  // own comment for why this shares the existing compact render path
+  // rather than building a new shrink mechanism from scratch. Sticky
+  // (persists across cases/sessions via localStorage) since this is a
+  // display preference, not clinical data -- matches the pathscribe_*
+  // naming convention so it's correctly caught by the existing Demo
+  // Reset prefix catch-all.
+  const [isHeaderCompactManual, setIsHeaderCompactManual] = useState<boolean>(() => {
+    try { return localStorage.getItem('pathscribe_header_compact_manual') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('pathscribe_header_compact_manual', isHeaderCompactManual ? '1' : '0'); } catch {}
+  }, [isHeaderCompactManual]);
   const [highlightText, setHighlightText] = useState<string | null>(null);
   // Honest signal for when the AI's cited source couldn't actually be
   // located in the report text — see LeftReportPanel's matchResult.
@@ -3039,14 +3051,19 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onProfileClick={() => setIsProfileOpen(!isProfileOpen)}
         />
 
-        {/* HeaderBar — compact single-strip when in Report Draft (maximises editor space) */}
+        {/* HeaderBar — compact single-strip when in Report Draft (maximises
+            editor space), or when the user manually toggles it via the new
+            Compact/Full view buttons -- either trigger independently puts
+            the header into the same, already-existing compact render path. */}
         <HeaderBar
           caseData={caseData}
           onNavigate={guard}
           onSignOut={() => setShowSignOutModal(true)}
           aiSynthesisStatus={aiSynthesisStatus}
           onAiStatusClick={handleAiStatusReviewClick}
-          compact={isOrchestrationMode && leftTab === 'draft'}
+          compact={(isOrchestrationMode && leftTab === 'draft') || isHeaderCompactManual}
+          isManuallyCompact={isHeaderCompactManual}
+          onToggleManualCompact={() => setIsHeaderCompactManual(v => !v)}
           onChangePriority={canEditPriority ? handleChangePriority : undefined}
           priorityLevels={priorityLevels}
           deficiencyCount={caseDeficiencies.length}
@@ -3484,14 +3501,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
             </div>
           </div>
 
-          {/* Expand button — hidden in orchestration draft mode */}
-          <div className={`ps-syn-expand-btn-wrap${isOrchestrationMode && leftTab === 'draft' ? ' ps-syn-expand-btn-wrap--hidden' : ''}`}>
-            <button
-              onClick={() => setPanelMode(m => m ? null : 'expanded')}
-              title="Full-screen review mode"
-              className="ps-syn-expand-btn"
-            >⤢</button>
-          </div>
 
           {/* Right panel — hidden in orchestration draft mode (Sequencer provides synoptic access) */}
           <div className={`ps-syn-right-panel${isOrchestrationMode && leftTab === 'draft' ? ' ps-syn-right-panel--collapsed' : ''}`}>
@@ -3517,303 +3526,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
           </div>
         </div>
 
-        {/* Fullscreen review overlay */}
-        {panelMode === 'expanded' && caseData && (() => {
-          const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
-          const patient   = caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
-          const dob       = caseData.patient?.dateOfBirth ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '';
-          const sex       = caseData.patient?.sex ?? '';
-          return (
-            <div
-              className="ps-syn-sequencer-overlay"
-              onKeyDown={e => { if (e.key === 'Escape') setPanelMode(null); }}
-              tabIndex={-1}
-            >
-              <div className="ps-syn-sequencer-header">
-                <div className="ps-syn-sequencer-header-row">
-                  <span className="ps-syn-sequencer-accession">{accession}</span>
-                  {patient && <><span className="ps-syn-sequencer-sep">·</span><span className="ps-syn-sequencer-patient">{patient}</span></>}
-                  {sex  && <><span className="ps-syn-sequencer-sep">·</span><span className="ps-syn-sequencer-value">{sex}</span></>}
-                  {dob  && <><span className="ps-syn-sequencer-sep">·</span><span className="ps-syn-sequencer-label">DOB</span><span className="ps-syn-sequencer-value ps-syn-sequencer-value--spaced">{dob}</span></>}
-                </div>
-                {caseData.specimens && caseData.specimens.length > 0 && (
-                  <div className="ps-syn-sequencer-specimen-row">
-                    <span className="ps-syn-sequencer-specimen-label">Specimen:</span>
-                    {caseData.specimens.map((sp: any) => {
-                      const reports  = (caseData.synopticReports ?? []).filter((r: any) => r.specimenId === sp.id);
-                      const hasNone  = reports.length === 0;
-                      const hasMulti = reports.length > 1;
-                      const isActive = sp.id === activeSpecimenId;
-                      const pillStateClass = hasNone ? 'ps-specimen-pill--warning' : isActive ? 'ps-specimen-pill--active' : 'ps-specimen-pill--inactive';
-                      return (
-                        <div key={sp.id} className="ps-syn-sequencer-specimen-item">
-                          <button
-                            className={`ps-specimen-pill ${pillStateClass}${hasNone ? ' warning' : ''}`}
-                            onClick={() => {
-                              setActiveSpecimenId(sp.id);
-                              if (hasNone) { setShowAddSynopticModal(true); }
-                              else if (!hasMulti) { setActiveReportInstanceId(reports[0].instanceId); }
-                            }}
-                          >
-                            <span className="ps-specimen-pill-letter">{sp.label}:</span>
-                            <span>{sp.description}</span>
-                            {hasNone && <span className="ps-syn-sequencer-warn-icon">⚠</span>}
-                          </button>
-                          {hasMulti && (
-                            <select
-                              className="ps-specimen-pill ps-specimen-pill-select"
-                              value={isActive ? activeReportInstanceId : reports[0].instanceId}
-                              onChange={e => { setActiveSpecimenId(sp.id); setActiveReportInstanceId(e.target.value); }}
-                            >
-                              {reports.map((r: any, i: number) => (
-                                <option key={r.instanceId} value={r.instanceId}>
-                                  {sp.label}: {r.templateId ? r.templateId.replace(/-/g, ' ') : `Report ${i + 1}`}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="ps-syn-sequencer-body">
-                <div className="ps-syn-sequencer-left-col">
-                  <div className="ps-syn-tabbar">
-                    {(['draft', 'sequencer', 'report', 'material'] as const).map(tab => {
-                      const isActive = leftTab === tab;
-                      const label    = tab === 'draft' ? '✍️ Report Draft' : tab === 'sequencer' ? '🔀 Sequencer' : tab === 'report' ? '📑 Synoptic Reporting' : '🧱 Material';
-                      // Status dot for Full Report tab — colour reflects case status
-                      const st = caseData?.status ?? 'draft';
-                      // 'pending-countersign' is a per-synoptic-instance status (SynopticReportInstance),
-                      // not a CaseStatus value — check whether any instance on this case needs it.
-                      const needsCountersign = (caseData?.synopticReports ?? []).some(r => r.status === 'pending-countersign');
-                      const statusDotClass = st === 'finalized' ? 'ps-syn-tab-dot--finalized'
-                        : st === 'pending-review' || needsCountersign ? 'ps-syn-tab-dot--pending'
-                        : st === 'in-progress' ? 'ps-syn-tab-dot--in-progress'
-                        : 'ps-syn-tab-dot--draft';
-                      const statusLabel = String(st);
-                      return (
-                        <button key={tab} onClick={() => safeSetLeftTab(tab)} className={`ps-syn-tab-btn${isActive ? ' ps-syn-tab-btn--active' : ''}`}>
-                          {label}
-                          {/* Status dot on Full Report tab — after label, visible on all states */}
-                          {tab === 'report' && (
-                            <span
-                              title={`Report status: ${statusLabel}`}
-                              className={`ps-syn-tab-dot ${statusDotClass}`}
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="ps-syn-tab-content">
-                    <div className={`ps-syn-tab-panel${leftTab === 'draft' ? ' ps-syn-tab-panel--visible-flex' : ''}`}>
-                      <div className="ps-ose-centre-pane-wrap">
-                        <div className="ps-ose-centre-header">
-                          <div className="ps-ose-centre-header-left">
-                            <span className="ps-ose-centre-tmpl-name">{resolvedTemplateName ?? 'Gold Standard — General Surgical Pathology'}</span>
-                            <span className="ps-ose-centre-tmpl-by">
-                              {overrideTemplateId ? 'pathologist override' : `by ${(resolvedBy ?? 'gold-standard').replace(/-/g, ' ')}`}
-                            </span>
-                            <div className="ps-ose-tmpl-change-wrap">
-                              <button className="ps-ose-centre-btn" onClick={() => setShowCentreTemplatePicker(v => !v)}>Change ▾</button>
-                              {showCentreTemplatePicker && (
-                                <div className="ps-ose-tmpl-picker">
-                                  <div className="ps-ose-tmpl-picker-title">Select report template</div>
-                                  {orchSections.some(s => s.text) && (
-                                    <div className="ps-ose-tmpl-picker-warn">⚠️ Changing template will regenerate all sections.</div>
-                                  )}
-                                  {centreTemplates.map(t => (
-                                    <div
-                                      key={t.id}
-                                      className={`ps-ose-tmpl-option${(overrideTemplateId ?? '') === t.id ? ' ps-ose-tmpl-option--active' : ''}`}
-                                      onClick={() => { setOverrideTemplateId(t.id); setShowCentreTemplatePicker(false); }}
-                                    >
-                                      <span className="ps-ose-tmpl-option-name">{t.name}</span>
-                                      {t.specialty && <span className="ps-ose-tmpl-option-meta">{t.specialty}</span>}
-                                    </div>
-                                  ))}
-                                  <div className="ps-ose-tmpl-option" onClick={() => { setOverrideTemplateId(null); setShowCentreTemplatePicker(false); }}>
-                                    <span className="ps-ose-tmpl-option-name">↺ System-resolved</span>
-                                    <span className="ps-ose-tmpl-option-meta">{resolvedTemplateName ?? 'Gold Standard'}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="ps-ose-centre-header-right">
-                            {import.meta.env.DEV && caseData && (
-                              <button
-                                className="ps-ose-centre-btn ps-ose-centre-btn--sim"
-                                onClick={() => handleProtocolChangesDetected([{
-                                  id: 'demo-proto-1',
-                                  specimenId:           caseData.specimens?.[0]?.id ?? 'sp-1',
-                                  specimenLabel:        (caseData.specimens?.[0] as any)?.label ?? 'A',
-                                  specimenDesc:         caseData.specimens?.[0]?.description ?? 'Core biopsy',
-                                  currentTemplateId:    'breast_core_general',
-                                  currentTemplateName:  'Breast Core Biopsy (General)',
-                                  proposedTemplateId:   'breast_invasive_carcinoma',
-                                  proposedTemplateName: 'Breast Invasive Carcinoma',
-                                  reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
-                                  confidence:           92,
-                                }])}
-                                title="DEV: Simulate microscopic slide received"
-                              >⚡ Sim Microscopic</button>
-                            )}
-                            <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title="Open report sequencer">
-                              🔀 Sequencer ↗
-                            </button>
-                            <button className="ps-ose-centre-btn" onClick={handleOrchPrint} title="Print report">
-                              🖨 Print
-                            </button>
-                          </div>
-                        </div>
-                        <div className="ps-ose-centre-pane">
-                          <ReportPreviewRenderer
-                            sections={orchSections}
-                            bodyAssembly={resolvedContext?.narrativeTemplate.bodyAssembly ?? []}
-                            structuredContext={resolvedContext}
-                            caseData={caseData}
-                            templateName={resolvedTemplateName}
-                            resolvedBy={resolvedBy}
-                            activeSectionId={activeSectionId}
-                            onSectionClick={setActiveSectionId}
-                          />
-                        </div>
-                      </div>
-                      <div className="ps-ose-right-pane">
-                        <OrchestratorSectionEditor
-                    tabWidthChars={tabWidthChars}
-                    onTabWidthChange={handleTabWidthChange}
-                          sections={orchSections}
-                          isGenerating={isOrchestrating}
-                          lastGeneratedAt={lastGeneratedAt}
-                          caseData={caseData}
-                          resolvedTemplateName={resolvedTemplateName}
-                          resolvedBy={resolvedBy}
-                          overrideTemplateId={overrideTemplateId}
-                          onOverrideTemplate={setOverrideTemplateId}
-                          activeSectionId={activeSectionId}
-                          onActiveSectionChange={setActiveSectionId}
-                          onSectionChange={(id, html) => {
-                            const updated = orchSections.map(s =>
-                              s.id === id ? { ...s, text: html, userEdited: html !== s.aiGenerated } : s
-                            );
-                            setOrchSections(updated);
-                          }}
-                          onAcceptSection={(id, finalText) => setOrchSections(prev =>
-                            prev.map(s => s.id === id
-                              ? { ...s, text: finalText, userEdited: true }
-                              : s)
-                          )}
-                          onAcceptDraft={id => setOrchSections(prev =>
-                            prev.map(s => s.id === id && s.pendingDraft != null
-                              ? { ...s, text: s.pendingDraft, aiGenerated: s.pendingDraft, userEdited: false, pendingDraft: undefined }
-                              : s)
-                          )}
-                          onKeepVersion={id => setOrchSections(prev =>
-                            prev.map(s => s.id === id ? { ...s, pendingDraft: undefined } : s)
-                          )}
-                          onRegenerateSection={handleRegenerateSection}
-                          onAcceptAll={() => setOrchSections(prev =>
-                            prev.map(s =>
-                              s.aiGenerated && !s.userEdited && !s.committed
-                                ? { ...s, userEdited: true }
-                                : s
-                            )
-                          )}
-                        />
-                      </div>
-                    </div>
-                    <div className={`ps-syn-tab-panel ps-syn-tab-panel--column${leftTab === 'sequencer' ? ' ps-syn-tab-panel--visible-flex' : ''}`}>
-                      <SequencerPanel
-                        show={leftTab === 'sequencer'}
-                        onClose={() => safeSetLeftTab('report')}
-                        onSave={(specimenOrder, synopticOrders) => {
-                  setCaseData(prev => {
-                    if (!prev) return prev;
-                    // Reorder specimens
-                    const specimenMap = Object.fromEntries((prev.specimens ?? []).map(s => [s.id, s]));
-                    const reorderedSpecimens = specimenOrder.map(id => specimenMap[id]).filter(Boolean);
-                    // Reorder synoptic reports within each specimen
-                    const synopticMap = Object.fromEntries(((prev as any).synopticReports ?? []).map((r: any) => [r.instanceId, r]));
-                    const reorderedReports: any[] = [];
-                    specimenOrder.forEach(spId => {
-                      (synopticOrders[spId] ?? []).forEach(instId => {
-                        if (synopticMap[instId]) reorderedReports.push(synopticMap[instId]);
-                      });
-                    });
-                    return { ...prev, specimens: reorderedSpecimens, synopticReports: reorderedReports } as any;
-                  });
-                  markDirty('Report sequence');
-                  showToast('Sequence saved');
-                }}
-                        caseData={caseData}
-                        activeReportInstanceId={activeReportInstanceId}
-                        onSelectReport={(instanceId, specimenId, reportType) => {
-                          setActiveReportInstanceId(instanceId);
-                          setActiveSpecimenId(specimenId);
-                          setActiveReportType(reportType);
-                        }}
-                      />
-                    </div>
-                    <div className={`ps-syn-tab-panel ps-syn-tab-panel--scroll${leftTab === 'report' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
-                      {pendingLisNotice && (
-                  <div className="ps-lis-triage-banner">
-                    <div>
-                      <div className="ps-lis-triage-title">⚠ LIS Amendment — Review Required</div>
-                      <p className="ps-lis-triage-summary">{pendingLisNotice.lisAmendmentSummary}</p>
-                    </div>
-                    <button className="ps-conf-btn-primary" onClick={handleMarkReviewedNoChanges}>
-                      Mark Reviewed — No PathScribe Changes Required
-                    </button>
-                  </div>
-                )}
-                <AmendmentDraftBanner caseData={caseData} activeReportInstanceId={activeReportInstanceId} onEdit={handleRequestAmendment} />
-                <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} />
-                <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} onMatchResolved={found => setHighlightNotFound(!found)} />
-                    </div>
-                    <div className={`ps-syn-tab-panel${leftTab === 'material' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
-                      <MaterialTreePanel
-                  caseData={caseData}
-                  onOpenBlockEditor={() => setShowBlockEditor(true)}
-                  onAddSpecimen={() => { setEditingSpecimen(null); setShowSpecimenEdit(true); }}
-                  onAddBlock={handleAddBlock}
-                />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ps-syn-expand-btn-wrap">
-                  <button
-                    onClick={() => setPanelMode(null)}
-                    title="Exit full-screen (Esc)"
-                    className="ps-syn-expand-btn"
-                  >⤡</button>
-                </div>
-
-                <div className="ps-syn-right-panel-scroll ps-syn-right-panel-scroll--flex">
-                  <RightSynopticPanel
-                    caseData={caseData}
-                    activeTab={activeTab}
-                    activeReportInstanceId={activeReportInstanceId}
-                    activeReportType={activeReportType}
-                    onReportInstanceChange={setActiveReportInstanceId}
-                    onReportTypeChange={setActiveReportType}
-                    onCaseUpdate={(updated) => { setCaseData(updated); markDirty('Synoptic fields'); }}
-                    scrollToField={alertFieldId}
-                    onScrollComplete={() => setAlertFieldId(null)}
-                    onHighlight={setHighlightText}
-                highlightNotFound={highlightNotFound}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Bottom action bar */}
         <BottomActionBar
