@@ -318,3 +318,45 @@ Surfaced while reviewing orchestrator/contextBuilder.ts β€” discussed initi
 
 Digital pathology viewer / material-list provenance β€” CoPilot mode needs real LIS integration, not PathScribe's own mock blocks. If a future digital pathology viewer links biomarker results back to specific blocks/slides, the material list (blocks, stains, slide scans) must come from the host LIS in CoPilot mode (likely via the existing services/hl7/ scaffolding), not from Specimen.blocks's own mock/demo model β€” that model is real and appropriate for Orchestration mode (where PathScribe owns the lifecycle), but presenting it as CoPilot material data would misrepresent PathScribe's own placeholder as real LIS-sourced data. Raised while discussing the Markers panel's provenance-tag idea; not blocking, since the current Markers panel scope shows resolved values only, no image links yet.
 Deferred to full UI/UX usability study β€” faint border pattern (rgba(148,163,184,0.2)) used inconsistently across 24 locations in pathscribe.css. Some are appropriately subtle (modals, dropdowns, input fields); others are interactive elements that may benefit from stronger visual treatment, similar to the fix applied to .ps-hb-compact-nav-btn (the compact header's Worklist/Full-view buttons) during tonight's session. Not to be addressed piecemeal β€” hold for the study's own findings and treat as a broader UI/UX cleanup pass, the same way the codebase itself has been getting a systematic review.
+
+Future enhancement: real, granular material-status tracking, sourced from actual lab systems rather than derived internally.
+
+Today's stepper fix uses caseData.status (case-level) and the existing HistologyBlock.status/StainOrder.status fields as PathScribe's own best-available internal signal β€” appropriate for a pre-integration, demo-stage app, but explicitly an interim stand-in, not the real architecture.
+
+The real architecture, once lab-system integrations exist:
+
+LIS (CoPilot mode) owns the clinical report and patient demographics β€” the case-level source of truth.
+Lab tracking/middleware systems (e.g., Roche Vantage/navifyΒ® Pathology Lab Advantage, Leica CEREBRO) own the physical bench state β€” real-time location and preparation status of every block and slide, tracked via barcode verification at each touchpoint (grossing station, microtome, stainer). These are genuinely the source of truth for material status, not the LIS and not PathScribe.
+Integration pattern: HL7 v2.x (ORM/ORU messages) or vendor-specific REST/WebSockets, depending on query-based vs. pub/sub event delivery. Expected payload shape: AccessionNumber/CaseID, SpecimenID/BlockID/SlideID, StationID/TechID/Timestamp, MaterialStatus (e.g., CUT_AND_PLACED, STAINING, COVERSLIPPED), StainProtocol (e.g., H&E, IHC ER/PR, Ki-67).
+
+Granular stepper taxonomy (specimen β†’ block β†’ slide level), for whenever real per-touchpoint status becomes available:
+
+Entity	Status	Stepper Stage	Triggering Event
+Specimen	Received/In-Transit	0 (Accessioning)	Container logged at intake
+Specimen	Accessioned	0 (Accessioning)	Barcode scanned, case ID assigned
+Specimen	Grossing/In-Grossing	0 (Grossing)	Dissected, measured, cut
+Specimen	Gross Complete	0 (Grossing)	Returned to fixative bench
+Block	Cassette Printed	0 (Grossing)	Barcode cassette generated
+Block	Tissue Placed/Loaded	0 (Grossing)	Section placed in cassette
+Block	Fixing/In-Fixative	1 (Processing)	Submerged in NBF
+Block	Processing	1 (Processing)	Automated tissue processor run
+Block	Embedding	1 (Processing)	Paraffin poured, cooled
+Block	Block Ready	1 (Processing)	Trimmed, queued for cutting
+Slide	Label Printed	2 (Sectioning)	Slide label generated
+Slide	Cut & Floating	2 (Sectioning)	Ribbon cut, floated
+Slide	Mounted & Drying	2 (Sectioning)	Baked in drying oven
+Slide	Staining	2 (Staining)	Automated stainer run
+Slide	Coverslipped	2 (Staining)	Coverslip applied
+Slide	Ready for Review/Digitized	2 (Staining/WSI)	Scanned or trayed
+Case/Slide	Pending/In-Review	3 (Synoptic/Sign-Out)	Pathologist opens case
+Case/Slide	Recut/Special Ordered	3 β†’ re-enters Stage 2	Deepers/IHC ordered
+Case/Specimen	Finalized/Signed-Out	3/4 (Sign-Out)	Report electronically signed
+
+Regional terminology variants (relevant once real per-region LIS/lab-system integrations exist β€” cosmetic without them):
+
+US (CAP/CLIA/APLIS): PA-centric workflow, S26-12345 A1 specimen/block format, discrete LIS timestamps for In-Grossing/Embedded/Coverslipped, IHC Ordered/Reflex Staining/Level or Deeper Requested.
+UK/Ireland: England/Wales use Booking-In rather than "Accessioning"; Scotland (NSS standards) uses Cassettes pre-embedding, Cut & Stained/Trayed for Pathologist; Northern Ireland (BSO/HSC) uses BMS Validation; Ireland (HSE/INAB/ISO 15189) uses Cut & Placed/H&E Complete/Dispatched to Consultant.
+Canada: CSMLS/provincial (Ontario Health, AHS) terms β€” Receiving/Accessioning, Cut/Grossed, Processed, Cut & Stained, Distributed; BC/Quebec add Scanned/Pushed to PACS.
+Australia/NZ (RCPA/NATA/IANZ): "Grossing" β†’ Cut-Up/Gross Examination; Cassette Cut-Up, Tissue Processing, Embedding, Sectioning; slides Sectioned β†’ Stained & Coverslipped β†’ Assigned to Pathologist.
+
+Not urgent, not a current capability gap β€” the existing block.status/stain.status fields give a pathologist/PA the practical signal they need today (is material ready to work with). This entry is for when PathScribe pursues deeper LIS-adjacent integration or serves customers where region-accurate terminology genuinely matters, not before.

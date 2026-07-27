@@ -175,23 +175,60 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // ── Mode-aware final step label ───────────────────────────────────────────
   const finalStepLabel = isOrchestration ? 'Sign Out' : 'Finalise';
 
-  const progressSteps: ProgressStep[] = [
-    { id: 1, label: 'Grossing',       status: 'completed' },
-    { id: 2, label: 'Processing',     status: 'completed' },
-    { id: 3, label: 'Synoptic',       status: 'current'   },
-    { id: 4, label: finalStepLabel,   status: 'pending'   },
-  ];
+  // ── Real, dynamic workflow stage — shared by both compact and full
+  // render paths below.
+  //
+  // FIXED (two layers): (1) the full/non-compact header previously used
+  // a completely static progressSteps array, always showing the same
+  // fake state regardless of actual case progress. (2) the compact
+  // mode's own "already correct" logic turned out to be equally broken
+  // -- it read caseData.orchStage, a field that is NEVER SET anywhere
+  // in this entire codebase (confirmed via full-repo grep), so it
+  // always silently fell back to stage 0 for every case. Both paths
+  // now share one real, correctly-sourced computation below.
+  //
+  // Deliberately mode-aware, not one blended signal: in Orchestration
+  // mode, PathScribe owns the full case lifecycle, so caseData.status
+  // (a real, well-populated 17-value enum -- see types/case/CaseStatus.ts)
+  // is a genuinely accurate signal for all four stages. In CoPilot mode,
+  // the LIS owns the case -- PathScribe doesn't reliably track or claim
+  // ownership of Grossing/Processing for LIS-owned cases, so those two
+  // stages default to complete rather than asserting something
+  // PathScribe doesn't actually know. What PathScribe DOES know for
+  // certain in either mode is its own synoptic report instance's status
+  // (draft/finalized), so that drives the Synoptic/Sign-Out stages for
+  // CoPilot cases specifically. Real, granular material-status tracking
+  // (block/slide-level, ideally sourced from an actual lab system like
+  // Roche Vantage or Leica CEREBRO rather than derived internally) is a
+  // deliberately deferred future enhancement -- see PRIORITY_FIXES.md.
+  const orchestrationStageMap: Record<string, number> = {
+    'draft': 0, 'accessioned': 0,
+    'gross-complete': 1, 'intraoperative-complete': 1,
+    'pending-review': 2, 'in-progress': 2,
+    'pathologist-review': 3, 'finalizing': 3,
+    'finalized': 4, 'amended': 4, 'closed': 4,
+  };
+
+  const activeSynopticStatus = (caseData as any)?.synopticReports?.find(
+    (r: any) => r.instanceId === (caseData as any)?.activeReportInstanceId
+  )?.status ?? (caseData as any)?.synopticReports?.[0]?.status;
+
+  const currentStageIdx = isOrchestration
+    ? (orchestrationStageMap[caseData?.status ?? ''] ?? 0)
+    : (activeSynopticStatus === 'finalized' ? 4
+        : activeSynopticStatus ? 2  // draft/in-progress synoptic exists — Synoptic stage current
+        : 2);                        // no synoptic yet — still Synoptic stage (Grossing/Processing default complete for CoPilot)
+
+  const stageLabels = ['Grossing', 'Processing', 'Synoptic', finalStepLabel];
+
+  const progressSteps: ProgressStep[] = stageLabels.map((label, i) => ({
+    id: i + 1,
+    label,
+    status: (i < currentStageIdx ? 'completed' : i === currentStageIdx ? 'current' : 'pending') as StepStatus,
+  }));
 
   // ── Compact mode — single 36px strip for Report Draft ──────────────────
   if (compact) {
-    const orchStage = (caseData as any)?.orchStage ?? '';
-    const stageMap: Record<string, number> = {
-      received: 0, grossing: 1, gross_complete: 1,
-      micro_pending: 2, micro_complete: 2,
-      draft_generated: 3, signed_out: 4,
-    };
-    const currentStageIdx = stageMap[orchStage] ?? 0;
-    const stages = ['Grossing', 'Processing', 'Synoptic', finalStepLabel];
 
     return (
       <div className="ps-hb-compact">
@@ -234,7 +271,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
 
         {/* Centre: workflow stage dots */}
         <div className="ps-hb-compact-stages">
-          {stages.map((label, i) => (
+          {stageLabels.map((label, i) => (
             <React.Fragment key={label}>
               <div className="ps-hb-compact-stage">
                 <span className={`ps-hb-compact-dot${i < currentStageIdx ? ' done' : i === currentStageIdx ? ' active' : ''}`}>
@@ -242,7 +279,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                 </span>
                 <span className={`ps-hb-compact-stage-lbl${i === currentStageIdx ? ' active' : ''}`}>{label}</span>
               </div>
-              {i < stages.length - 1 && (
+              {i < stageLabels.length - 1 && (
                 <div className={`ps-hb-compact-connector${i < currentStageIdx ? ' done' : ''}`} />
               )}
             </React.Fragment>

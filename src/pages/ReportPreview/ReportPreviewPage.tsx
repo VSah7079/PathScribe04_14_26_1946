@@ -19,7 +19,7 @@ import { useParams } from 'react-router-dom';
 import { usePreviewReceiver } from '@/hooks/usePreviewChannel';
 import ReportPreviewRenderer from './ReportPreviewRenderer';
 import { mockOrchestratorCaseService } from '@/services/cases/mockOrchestratorCaseService';
-import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorReportPanel';
+import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
 
 const ReportPreviewPage: React.FC = () => {

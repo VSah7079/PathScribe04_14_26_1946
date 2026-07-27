@@ -4301,7 +4301,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           }}
           registry={mockActionRegistryService}
           caseId={caseId}
-          currentUserId="PATH-001"
+          currentUserId={signingUser?.id}
           onDelegated={() => {
             setShowDelegateModal(false);
             showToast('Case delegated successfully');

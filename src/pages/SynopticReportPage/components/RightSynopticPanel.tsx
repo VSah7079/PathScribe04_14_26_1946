@@ -3,6 +3,7 @@
 
 import React, { useImperativeHandle, forwardRef, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Case } from '@/types/case/Case';
+import { useAuth } from '@/contexts/AuthContext';
 import type {
   
   EditorField,
@@ -415,6 +416,13 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
 
   const orchestratorMode = useMemo(() => getOrchestratorMode(), []);
   const caseData = initialCaseData;
+  // Fixes a confirmed bug: this used to hardcode 'PATH-001' for both
+  // the assignment-validation check and the "Assigned to you" badge,
+  // meaning any pathologist other than that one specific demo user
+  // would see incorrect results regardless of who was actually logged
+  // in and actually assigned. Now compares against the real signed-in
+  // user.
+  const { user } = useAuth();
 
   // This panel is a generic template-field editor — it doesn't care
   // whether it's editing a Grossing instance or a diagnostic Synoptic
@@ -616,7 +624,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     validateRequired(): MissingRequiredField[] {
       if (!templateDetail) return [];
       const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as any;
-      if (inst?.assignedTo && inst.assignedTo !== 'PATH-001') {
+      if (inst?.assignedTo && inst.assignedTo !== user?.id) {
         return [{
           sectionId: '__assignment__', sectionTitle: 'Assignment',
           fieldId: '__assigned__',
@@ -1066,7 +1074,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
             {(() => {
               const inst = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as any;
               if (!inst?.assignedTo) return null;
-              const isAssignee = inst.assignedTo === 'PATH-001';
+              const isAssignee = inst.assignedTo === user?.id;
               return (
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,

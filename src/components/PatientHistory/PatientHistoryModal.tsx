@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { mockMessageService } from '@/services/messages/mockMessageService';
+import { useAuth } from '@/contexts/AuthContext';
+import { mockUserService } from '@/services/users/mockUserService';
 import {
   MOCK_PRIOR_PATHOLOGY,
   PatientHistoryCase,
@@ -318,6 +320,13 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
   const [showCompose, setShowCompose] = useState(false);
   const [composeNote, setComposeNote]  = useState('');
   const [sending, setSending]          = useState(false);
+  // Fixes a confirmed bug: senderId/senderName were hardcoded to a
+  // specific demo user (Pete Nimmo's ID, mislabeled here as "Dr. Sarah
+  // Johnson"), and recipientId was hardcoded to that SAME id -- meaning
+  // every message sent from this modal was actually addressed back to
+  // the sender, never to the physician shown on screen. The comment
+  // "in real app: look up physician ID" acknowledged this was a stub.
+  const { user } = useAuth();
   const [sent, setSent]                = useState(false);
 
   const physicianName = selectedItem
@@ -335,10 +344,23 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
   async function handleSendMessage() {
     if (!composeNote.trim()) return;
     setSending(true);
+
+    // Best-effort physician lookup by name -- imperfect (name-matching,
+    // not a stable ID) but the only option available: case history only
+    // stores the physician's display name, no real physician ID exists
+    // anywhere in this data yet. Strips a leading "Dr." before matching
+    // since physicianName typically includes it but the directory's
+    // firstName/lastName fields don't.
+    const usersResult = await mockUserService.getAll();
+    const normalizedTarget = (physicianName ?? '').replace(/^dr\.?\s*/i, '').trim().toLowerCase();
+    const matchedPhysician = usersResult.ok
+      ? usersResult.data.find(u => `${u.firstName} ${u.lastName}`.trim().toLowerCase() === normalizedTarget)
+      : undefined;
+
     await mockMessageService.send({
-      senderId: 'PATH-001',
-      senderName: 'Dr. Sarah Johnson',
-      recipientId: 'PATH-001', // in real app: look up physician ID
+      senderId: user?.id ?? '',
+      senderName: user?.name ?? 'Unknown',
+      recipientId: matchedPhysician?.id ?? '',
       recipientName: physicianName,
       subject: `Case ${caseId} — Pathologist Query`,
       body: composeNote,
