@@ -367,16 +367,6 @@ const PreviewPane: React.FC<{
   );
 };
 
-// ── Doc section (header / footer placeholders) ─────────────────
 
-const DocSection: React.FC<{ icon: string; label: string; sublabel: string; muted?: boolean }> = ({ icon, label, sublabel }) => (
-  <div className="ps-seq-finalized-badge">
-    <span style={{ fontSize: 13, color: '#94a3b8', flexShrink: 0 }}>{icon}</span>
-    <div>
-      <div className="ps-seq-finalized-title">{label}</div>
-      <div className="ps-seq-finalized-sub">{sublabel}</div>
-    </div>
-  </div>
-);
 
 export default SequencerPanel;

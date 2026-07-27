@@ -68,7 +68,7 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
       }
     }).catch(() => {});
   }, [caseData, user?.id]);
-  const markRef   = React.useRef<HTMLElement | null>(null);
+  
 
   // Phase D of the biomarker display work (see PRIORITY_FIXES.md). Resolves
   // markers across ALL of this case's synoptic report instances (a case can
@@ -137,7 +137,6 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
 
   // Scroll the panel to bring the highlighted mark into view whenever it changes
   const handleMarkMount = React.useCallback((el: HTMLElement | null) => {
-    markRef.current = el;
     if (el && scrollRef.current) {
       // Small delay so the DOM has settled before we measure
       setTimeout(() => {
