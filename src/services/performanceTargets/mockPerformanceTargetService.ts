@@ -1,6 +1,6 @@
 // src/services/performanceTargets/mockPerformanceTargetService.ts
 import type { PerformanceTarget, IPerformanceTargetService } from './IPerformanceTargetService';
-import type { ServiceResult, ID } from '../types';
+import type { ServiceResult } from '../types';
 
 const ok  = <T>(d: T): ServiceResult<T>     => ({ ok: true,  data: d });
 const err = <T>(m: string): ServiceResult<T> => ({ ok: false, error: m });

@@ -3,7 +3,7 @@ import type { ServiceResult, ID } from '../types';
 
 export interface ClientSLA {
   id:                       string;
-  clientCode:               string;
+  assigningAuthority:       string;
   clientName:               string;
   firstTouchTargetHrs:      number;
   totalTatTargetHrs:        number;
@@ -16,7 +16,7 @@ export interface ClientSLA {
 export interface IClientSLAService {
   getAll():                                         Promise<ServiceResult<ClientSLA[]>>;
   getById(id: ID):                                  Promise<ServiceResult<ClientSLA | null>>;
-  getByClientCode(code: string):                    Promise<ServiceResult<ClientSLA | null>>;
+  getByAssigningAuthority(assigningAuthority: string): Promise<ServiceResult<ClientSLA | null>>;
   add(sla: Omit<ClientSLA, 'id'>):                 Promise<ServiceResult<ClientSLA>>;
   update(id: ID, changes: Partial<ClientSLA>):      Promise<ServiceResult<ClientSLA>>;
   delete(id: ID):                                   Promise<ServiceResult<void>>;

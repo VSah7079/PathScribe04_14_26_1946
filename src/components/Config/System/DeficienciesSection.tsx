@@ -19,7 +19,6 @@ import '../../../pathscribe.css';
 import {
   deficiencyTypeService, resolutionTypeService,
 } from '../../../services';
-import type { DeficiencyType, ResolutionType } from '../../../services';
 
 // ─── Shared type-dictionary tab (Deficiency Types / Resolution Types) ────────
 

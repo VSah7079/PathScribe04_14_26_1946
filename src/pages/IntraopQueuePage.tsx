@@ -67,7 +67,6 @@ const NewEntryForm: React.FC<{
   const [adtMatched, setAdtMatched] = useState(false);
   const [orNumber, setOrNumber] = useState('');
   const [surgeon, setSurgeon] = useState('');
-  const [showManualEntry, setShowManualEntry] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [specimenLabel, setSpecimenLabel] = useState('');
   const [quickGross, setQuickGross] = useState('');
@@ -332,7 +331,11 @@ const MergeModal: React.FC<{
   candidates: MatchCandidate[];
   onConfirm: (caseId: string) => void;
   onClose: () => void;
-}> = ({ entry, candidates, onConfirm, onClose }) => {
+}> = ({ entry: _entry, candidates, onConfirm, onClose }) => {
+  // _entry: genuine minor UX gap, not dead code — the modal below never
+  // actually displays which patient/entry is being merged (no name/MRN
+  // shown anywhere in the body), even though it's passed in specifically
+  // for that purpose. Flagged rather than silently deleted.
   const [selected, setSelected] = useState(candidates[0]?.caseId ?? '');
   const [manualCaseId, setManualCaseId] = useState('');
   const finalCaseId = selected === '__manual__' ? manualCaseId.trim() : selected;

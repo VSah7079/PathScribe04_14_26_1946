@@ -652,7 +652,7 @@ export async function buildContext(
   return {
     builtAt:          new Date().toISOString(),
     caseId:           caseData.id,
-    reportingMode:    caseData.reportingMode ?? 'pathscribe',
+    reportingMode:    caseData.reportingMode ?? 'orchestrator',
     patient:          patientContext,
     accession:        accessionContext,
     order:            orderContext,

@@ -58,7 +58,7 @@ const blank = (): ClientInput => ({
   clientType: "external",
   jurisdiction: "US",
   specimenLabelStyle: "alpha-specimen",
-  code: "",
+  assigningAuthority: "",
   contactNamePrefix: "",
   contactGivenNames: "",
   contactFamilyNames: "",
@@ -203,7 +203,7 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
   const validate = (): boolean => {
     const e: typeof errors = {};
     if (!form.name.trim()) e.name = "Client name is required";
-    if (!form.code.trim()) e.code = "Client code is required";
+    if (!form.assigningAuthority.trim()) e.assigningAuthority = "Assigning Authority is required";
     if (!form.email.trim() || !form.email.includes("@"))
       e.email = "Valid email required";
     if (form.hl7.enabled && !form.hl7.receivingFacility.trim())
@@ -282,16 +282,16 @@ className="ps-modal-close"
                   />
                   {errors.name && <div className="ps-client-editor-field-error">{errors.name}</div>}
                 </Field>
-                <Field label="Client Code *">
+                <Field label="Assigning Authority *">
                   <input
-                    className={`ps-modal-dark-input${errors.code ? " ps-modal-dark-input--error" : ""}`} style={{ fontFamily: "monospace", textTransform: "uppercase" as const }}
-                    value={form.code}
-                    onChange={(e) => set("code", e.target.value.toUpperCase())}
+                    className={`ps-modal-dark-input${errors.assigningAuthority ? " ps-modal-dark-input--error" : ""}`} style={{ fontFamily: "monospace", textTransform: "uppercase" as const }}
+                    value={form.assigningAuthority}
+                    onChange={(e) => set("assigningAuthority", e.target.value.toUpperCase())}
                     onFocus={onF} onBlur={onB}
                     placeholder="e.g. NWOG"
                     maxLength={10}
                   />
-                  {errors.code && <div className="ps-client-editor-field-error">{errors.code}</div>}
+                  {errors.assigningAuthority && <div className="ps-client-editor-field-error">{errors.assigningAuthority}</div>}
                 </Field>
                 <Field label="Status">
                   <select

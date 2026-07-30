@@ -281,7 +281,12 @@ const SubspecialtiesSection: React.FC = () => {
             </thead>
             <tbody>
               {filtered.map(sub => {
-                const badge    = getBadge(sub.name);
+                // badge computed but never rendered in this row — BADGE_STYLES
+                // exists and getBadge() resolves a real style per subspecialty,
+                // but nothing in the row markup below actually displays it.
+                // Flagged rather than silently deleted or guess-placed.
+                const _badge   = getBadge(sub.name);
+                void _badge; // underscore alone doesn't suppress noUnusedLocals for a local const
                 const isActive = sub.active !== false;
                 return (
                   <tr key={sub.id} className="ps-sub-row">
@@ -504,7 +509,7 @@ const SubspecialtiesSection: React.FC = () => {
                         ? <div className="ps-sub-tab-empty">{clientSearch ? "No clients match." : "No clients available."}</div>
                         : filteredClients.map(c => (
                             <CheckRow
-                              key={c.id} label={c.name} sub={c.code}
+                              key={c.id} label={c.name} sub={c.assigningAuthority}
                               checked={draft.clientIds.includes(c.id)}
                               onChange={() => setDraft(prev => ({
                                 ...prev,

@@ -48,7 +48,7 @@ export interface IPhysicianService {
    *  method: exact-match by parsed name, case-insensitive: if found,
    *  merges clientId into its clientIds if not already present; if not
    *  found, auto-creates an 'Unverified' record, same posture as
-   *  Client.findOrCreateByCode / SpecimenCategory.findOrCreateByName —
+   *  Client.findOrCreateByAssigningAuthority / SpecimenCategory.findOrCreateByName —
    *  never blocks case creation on an unrecognized provider. */
   findOrCreateByName(name: string, clientId?: string): Promise<ServiceResult<Physician>>;
   add(physician: Omit<Physician, 'id'>): Promise<ServiceResult<Physician>>;

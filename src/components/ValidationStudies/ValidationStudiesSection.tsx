@@ -65,7 +65,7 @@ const StudiesTab: React.FC<{
   templates:  ReportTemplate[];
   onRefresh:    () => void;
   isSuperAdmin?: boolean;
-}> = ({ studies, clients, physicians, templates, onRefresh, isSuperAdmin = false }) => {
+}> = ({ studies, clients, physicians, templates, onRefresh, isSuperAdmin: _isSuperAdmin = false }) => {
   const { log } = useAuditLog();
   const [showNew,    setShowNew]    = useState(false);
   const [editId,     setEditId]     = useState<string | null>(null);
@@ -454,7 +454,7 @@ const StudyFormModal: React.FC<{
   existing?:  ValidationStudy;
   onSave:     (data: Partial<ValidationStudy>) => void;
   onClose:    () => void;
-}> = ({ clients, physicians, templates, existing, onSave, onClose }) => {
+}> = ({ clients, physicians, templates: _templates, existing, onSave, onClose }) => {
   const isEdit = !!existing;
   const [name,           setName]           = useState(existing?.name ?? '');
   const [description,    setDescription]    = useState(existing?.description ?? '');
@@ -465,6 +465,7 @@ const StudyFormModal: React.FC<{
   const [startDate,      setStartDate]      = useState(existing?.startDate ? existing.startDate.slice(0,10) : new Date().toISOString().slice(0,10));
   const [irbRef,         setIrbRef]         = useState(existing?.committeeApproval?.irbReference ?? '');
   const [piId,           setPiId]           = useState(existing?.principalInvestigatorId ?? '');
+  void setPiId; // genuine gap: no input field lets a user actually choose a specific PI; always falls back to pathIds[0] at submission (line ~569). Flagged, not deleted.
 
   const toggleClient = (id: string) => {
     const next = clientIds.includes(id) ? clientIds.filter(x => x !== id) : [...clientIds, id];
@@ -582,7 +583,7 @@ const StudyFormModal: React.FC<{
 const DashboardTab: React.FC<{
   studies:      ValidationStudy[];
   isSuperAdmin?: boolean;
-}> = ({ studies, isSuperAdmin = false }) => {
+}> = ({ studies, isSuperAdmin: _isSuperAdmin = false }) => {
   const [selectedId, setSelectedId] = useState<string>(studies[0]?.id ?? '');
   const [stats,      setStats]      = useState<NarrativeSignalStats | null>(null);
   const [caseCount,  setCaseCount]  = useState(0);
@@ -697,7 +698,7 @@ const DashboardTab: React.FC<{
 
 // ── Reports Tab ───────────────────────────────────────────────────────────────
 
-const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean }> = ({ studies, isSuperAdmin = false }) => {
+const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean }> = ({ studies, isSuperAdmin: _isSuperAdmin = false }) => {
   const { log } = useAuditLog();
   const [selectedId, setSelectedId] = useState<string>(studies[0]?.id ?? '');
   const [stats,      setStats]      = useState<NarrativeSignalStats | null>(null);

@@ -271,13 +271,14 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
           );
         } else {
           const isPool = selectedPool !== undefined;
-          await delegateCase(
-            caseId, currentUserId, delegationType!,
-            isPool ? undefined   : (selectedId ?? undefined),
-            isPool ? (selectedId ?? undefined) : undefined,
-            isPool ? selectedLabel : undefined,
-            note || undefined,
-          );
+          await delegateCase({
+            caseId, requestorId: currentUserId, delegationType: delegationType!,
+            targetUserId:   isPool ? undefined : (selectedId ?? undefined),
+            targetUserName: isPool ? undefined : (selectedLabel ?? undefined),
+            targetPoolId:   isPool ? (selectedId ?? undefined) : undefined,
+            targetPoolName: isPool ? selectedLabel ?? undefined : undefined,
+            note: note || undefined,
+          });
         }
       }
       onDelegated?.();

@@ -8,12 +8,16 @@
 
 import { ICaseService } from "./ICaseService";
 import { callAi } from '../aiIntegration/aiProviderService';
-import { Case, ProtocolChange } from "../../types/case/Case";
+import { Case, CaseParticipant, ProtocolChange } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
 import { storageSet } from "../mockStorage";
 import type { SynopticEvaluationInput, SynopticEvaluationResult } from '../aiIntegration/IAIIntegrationService';
 import type { GrossingEvaluationInput, GrossingEvaluationResult, GrossingTemplateAssignment } from '../grossing/IGrossingEvaluationService';
 import { applyCaseFilters } from './caseFilterUtils';
+import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
+import { mockDelegationTypeService } from '../delegationTypes/mockDelegationTypeService';
+import { syncPrimaryAssignee } from './caseAssignmentSync';
+import { mapDelegationTypeToParticipationRole } from '../delegationTypeMapper';
 
 const STORAGE_KEY = 'cases';
 
@@ -160,7 +164,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'pending_clin_cor',     name: 'Pending Clinical Correlation',              color: '#f59e0b', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
   },
 
@@ -274,7 +278,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',    color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C18.7'], snomed: ['363346000'] },
   },
 
@@ -364,7 +368,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'thoracic_mdt',        name: 'Thoracic MDT — Fri 09:00', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C34.11'], snomed: ['254637007'] },
   },
 
@@ -442,7 +446,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { tagClass: 'ADMINISTRATIVE', id: 'psma_ihc_pending',    name: 'PSMA IHC Noted Positive',  color: '#10b981',  level: 'Case', status: 'Active', severity: 1 },
     ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C61'], snomed: ['254900004'] },
   },
 
@@ -513,7 +517,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { tagClass: 'ADMINISTRATIVE', id: 'margins_close',       name: 'Close Margin — 3mm',       color: '#f59e0b', level: 'Case', status: 'Active', severity: 3 },
     ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['D05.11'], snomed: ['397201007'] },
   },
 
@@ -556,7 +560,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'frozen_section',      name: 'Frozen Section Pending',   color: '#f97316', level: 'Case', status: 'Active', severity: 4 },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
   },
 
   // ── Case 7: Colorectal — rectal resection, multi-specimen ─────────────────
@@ -640,7 +644,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [
       { tagClass: 'ADMINISTRATIVE', id: 'comp-mol-4407', name: 'Molecular Panel', lisCode: 'MOL', color: '#10b981', level: 'Case', status: 'Active', severity: 3 },
     ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C20'], snomed: ['363346000'] },
   },
 
@@ -746,7 +750,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'stat_rush',           name: 'STAT — Rush Processing',     color: '#ef4444',    level: 'Case', status: 'Active', severity: 5 },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
   },
 
@@ -809,7 +813,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'geriatric_patient', name: 'Geriatric Patient — 100y', color: '#8b5cf6', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C50.412'], snomed: ['413448000'] },
   },
 
@@ -852,7 +856,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'poc_case', name: 'Products of Conception', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
   },
 
   // ── Case 11: Pending Review — awaiting attending sign-off ────────────────
@@ -905,11 +909,11 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'ihc_pending',        name: 'ER/PR/HER2 Pending',          color: '#3b82f6',   level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C50.411'], snomed: ['413448000'] },
   },
 
-  // ── Case 12: Amended — addendum after finalization ────────────────────────
+  // ── Case 12: Final (Amended) — Gleason grade amendment, already released ──
   {
     id: 'S26-4412',
     accession: { accessionNumber: '4412', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4412' },
@@ -956,14 +960,15 @@ const MOCK_CASES: Case[] = [
         createdAt: isoDaysAgo(5), updatedAt: isoDaysAgo(1),
       },
     ],
-    status: 'amended' as CaseStatus,
+    status: 'finalized' as CaseStatus,
+    lastRevisionType: 'amendment',
     createdAt: isoDaysAgo(6), updatedAt: isoDaysAgo(1),
     caseFlags: [
       { tagClass: 'ADMINISTRATIVE', id: 'amended_report',    name: 'Amended Report',              color: '#8b5cf6', level: 'Case', status: 'Active', severity: 4 },
       { tagClass: 'ADMINISTRATIVE', id: 'second_opinion',    name: 'Second Opinion — MDT Review', color: '#3b82f6',   level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C61'], snomed: ['254900004'] },
   },
 
@@ -982,7 +987,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Gastrointestinal',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'copilot', coding: {},
+    reportingMode: 'assist', coding: {},
   } as any,
 
   {
@@ -999,7 +1004,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Dermatopathology',
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'copilot', coding: {},
+    reportingMode: 'assist', coding: {},
   } as any,
 
   {
@@ -1017,7 +1022,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'stat_rush', name: 'STAT — Rush Processing', color: '#ef4444', level: 'Case', status: 'Active', severity: 5 }],
     specimenFlags: [],
-    reportingMode: 'copilot', coding: {},
+    reportingMode: 'assist', coding: {},
   } as any,
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -1148,7 +1153,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'kras_result',    name: 'KRAS Result — Oncology Notified', color: '#10b981', level: 'Case', status: 'Active', severity: 1 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: {
       icd10: ['C20'],
       snomed: ['413448001'],
@@ -1223,7 +1228,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'psma_positive', name: 'PSMA IHC — Positive', color: '#f59e0b', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C61'], snomed: [] },
   },
 
@@ -1306,7 +1311,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'second_opinion', name: 'Second Opinion Requested', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C20'], snomed: ['413448001'] },
   },
 
@@ -1376,7 +1381,7 @@ const MOCK_CASES: Case[] = [
       { userId: 'PATH-UK-001', role: 'Attending', name: 'Paul Carter' },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C61'], snomed: [] },
   },
 
@@ -1464,7 +1469,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(8), updatedAt: isoDaysAgo(5),
     caseFlags: [],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C18.0'], snomed: ['413448001'] },
   },
 
@@ -1504,7 +1509,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'perforation', name: 'Tumour Perforation — pT4', color: '#ef4444', level: 'Case', status: 'Active', severity: 3 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C18.7'], snomed: [] },
   },
 
@@ -1525,7 +1530,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Gastrointestinal',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'copilot', coding: {},
+    reportingMode: 'assist', coding: {},
   } as any,
 
   {
@@ -1544,7 +1549,7 @@ const MOCK_CASES: Case[] = [
     poolName: 'Uropathology',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [],
-    reportingMode: 'copilot', coding: {},
+    reportingMode: 'assist', coding: {},
   } as any,
 
   {
@@ -1562,7 +1567,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     caseFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'stat_rush', name: 'STAT — Rush Processing', color: '#ef4444', level: 'Case', status: 'Active', severity: 5 }],
     specimenFlags: [],
-    reportingMode: 'copilot', coding: {},
+    reportingMode: 'assist', coding: {},
   } as any,
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1664,7 +1669,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'sentinel_pos',   name: 'Sentinel Node Positive — Completion Dissection?',  color: '#ef4444',   level: 'Case', status: 'Active', severity: 4 },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C43.61'], snomed: ['372244006'] },
   },
 
@@ -1709,7 +1714,7 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     caseTeam: [{ userId: 'PATH-US-001', role: 'Attending', name: 'Amber Fehrs-Battey' }],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
-    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
 
   // HFHS-002 — Amber: Colorectal adenocarcinoma, post-neoadjuvant
@@ -1746,7 +1751,7 @@ const MOCK_CASES: Case[] = [
     }],
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
-    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
 
   // HFHS-003 — Amber: Prostate adenocarcinoma, radical prostatectomy
@@ -1790,7 +1795,7 @@ const MOCK_CASES: Case[] = [
     }],
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
-    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
 
   // HFHS-004 — Tuthill: Lung adenocarcinoma — Pathology Informatics focus, AI routing demo
@@ -1831,7 +1836,7 @@ const MOCK_CASES: Case[] = [
     status: 'in-progress' as CaseStatus,
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [{ tagClass: 'ADMINISTRATIVE', id: 'egfr_actionable', name: 'Actionable Mutation — Oncology Alert', color: '#0891b2', level: 'Case', status: 'Active', severity: 4 }],
-    specimenFlags: [], reportingMode: 'copilot', coding: {},
+    specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
 
   // HFHS-005 — Tuthill: STAT frozen section — routing/workflow demo
@@ -1856,7 +1861,7 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'stat_frozen', name: 'STAT — Intraoperative Frozen Section', color: '#ef4444', level: 'Case', status: 'Active', severity: 5 },
       { tagClass: 'ADMINISTRATIVE', id: 'or_pending', name: 'OR Awaiting Result', color: '#f59e0b', level: 'Case', status: 'Active', severity: 4 },
     ],
-    specimenFlags: [], reportingMode: 'copilot', coding: {},
+    specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
 
   // HFHS-006 — Pool case (unassigned, routes to Surgical Pathology pool)
@@ -1874,7 +1879,7 @@ const MOCK_CASES: Case[] = [
     status: 'pool' as CaseStatus,
     poolId: 'GYN-MPA', poolName: 'Gynaecologic Pathology',
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
-    caseFlags: [], specimenFlags: [], reportingMode: 'copilot', coding: {},
+    caseFlags: [], specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
 
   // MPA26-1007-PED — Amber: Pediatric Wilms tumor (nephroblastoma)
@@ -1955,7 +1960,7 @@ const MOCK_CASES: Case[] = [
     specimenFlags: [],
     status: 'draft' as CaseStatus,
     pediatricRestricted: true,
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: {},
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
   } as any,
@@ -2040,7 +2045,7 @@ const MOCK_CASES: Case[] = [
       { id: 'braf-positive', tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive',lisCode: 'BRAF',  color: '#f59e0b', severity: 2, level: 'Case', status: 'Active' },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C73'], snomed: ['363478007'] },
   },
 
@@ -2107,7 +2112,7 @@ const MOCK_CASES: Case[] = [
       { id: 'gynaec-oncol', tagClass: 'ADMINISTRATIVE', name: 'Gynaecology Oncology', lisCode: 'GYNOC', color: '#3b82f6', severity: 2, level: 'Case', status: 'Active' },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C54.1'], snomed: ['413448000'] },
   },
 
@@ -2184,7 +2189,7 @@ const MOCK_CASES: Case[] = [
       { id: 'urology-mdt', tagClass: 'ADMINISTRATIVE', name: 'Urology MDT',            lisCode: 'UROL',  color: '#3b82f6', severity: 3, level: 'Case', status: 'Active' },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C64.1'], snomed: ['41607009'] },
   },
 
@@ -2266,7 +2271,7 @@ const MOCK_CASES: Case[] = [
       { id: 'braf-positive',tagClass: 'ADMINISTRATIVE', name: 'BRAF V600E Positive', lisCode: 'BRAF', color: '#10b981', severity: 2, level: 'Case', status: 'Active' },
     ],
     specimenFlags: [    ],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['C43.59'], snomed: ['372244006'] },
   },
 
@@ -2326,7 +2331,7 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: {},
   },
 
@@ -2387,7 +2392,7 @@ const MOCK_CASES: Case[] = [
       { id: 'demo-birads-4c', tagClass: 'ADMINISTRATIVE', name: 'BIRADS 4C', lisCode: 'BI4C', color: '#f59e0b', severity: 3, level: 'Case', status: 'Active' },
     ],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: {},
   },
 
@@ -2484,10 +2489,254 @@ const MOCK_CASES: Case[] = [
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
     caseFlags: [],
     specimenFlags: [],
-    reportingMode: 'copilot',
+    reportingMode: 'assist',
     coding: { icd10: ['K63.5'], snomed: ['68526002'] },
   },
 
+
+  // ── Completed demo cases (CoPilot) ─────────────────────────────────────────
+  // Added per Pete's request alongside the 3 Orchestration completed demo
+  // cases in mockOrchestratorCaseService.ts — a known set of finalized
+  // CoPilot cases restored on every data reset. CoPilot mode has no
+  // grossingReports (LIS owns the report; PathScribe only needs the
+  // structured synoptic diagnostic data), so Gross/Microscopic narrative
+  // lives in diagnostic.grossDescription/microscopicDescription as plain
+  // text, same as every other CoPilot case in this file.
+  {
+    id: 'S26-4490',
+    accession: { accessionNumber: '4490', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4490' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-090', mrn: '100090',
+      firstName: 'Deborah', lastName: 'Whitfield',
+      dateOfBirth: isoYearsAgo(61, 4, 8), sex: 'F',
+      phone: '555-441-2290', email: 'deborah.whitfield@example.org',
+      address: '14 Ocotillo Ln, Tucson, AZ 85718',
+    },
+    specimens: [
+      { id: 'S26-4490-SP-1', label: 'A', description: 'Right total mastectomy', receivedAt: isoDaysAgo(8), collectedAt: isoDaysAgo(8), specimenFlags: [] },
+      { id: 'S26-4490-SP-2', label: 'B', description: 'Right axillary sentinel lymph nodes — two', receivedAt: isoDaysAgo(8), collectedAt: isoDaysAgo(8), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Nina Foster', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: '3.4 cm right breast mass, BI-RADS 5. Core biopsy confirmed invasive ductal carcinoma, HER2 amplified on prior testing. Proceeding to mastectomy with sentinel node biopsy.', receivedDate: isoDaysAgo(8), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "right total mastectomy," is a breast specimen measuring 21.0 x 17.0 x 5.5 cm with attached skin ellipse and nipple. Sectioning reveals a firm, tan-white mass measuring 3.4 x 2.9 x 2.4 cm at the 2 o\'clock position, 1.1 cm from the deep margin. Representative sections submitted.\n\nReceived separately, labeled "right axillary sentinel lymph nodes," are two lymph nodes, entirely submitted.',
+      microscopicDescription: 'Sections of the mass show invasive ductal carcinoma, Grade 3, with associated high-grade DCIS. Margins are free of invasive and in situ carcinoma. Both sentinel lymph nodes are negative for metastatic carcinoma.',
+      ancillaryStudies: 'ER, PR, and HER2 immunohistochemistry performed — see synoptic Biomarkers section.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4490-SP-1_breast_001',
+        specimenId: 'S26-4490-SP-1',
+        templateId: 'breast_invasive',
+        templateName: 'Generic Template — Breast Invasive',
+        status: 'finalized',
+        answers: {
+          procedure: 'procedure_opt_1', specimen_laterality: 'specimen_laterality_opt_2', tumor_site: ['tumor_site_opt_1'],
+          histologic_type: 'histologic_type_opt_1', histologic_grade: 'Grade 3', tumor_size: '3.4 cm', tumor_focality: 'tumor_focality_opt_1',
+          dcis: 'Present, high nuclear grade, comprising approximately 20% of tumor volume', tumor_extent: 'Confined to breast parenchyma, no chest wall or skin involvement',
+          lvi: 'lvi_opt_2', dermal_lvi: 'dermal_lvi_opt_1', microcalcifications: ['microcalcifications_opt_1'],
+          treatment_effect_breast: 'treatment_effect_breast_opt_1', treatment_effect_nodes: 'treatment_effect_nodes_opt_1',
+          rcb_parameters: 'Not applicable — no neoadjuvant therapy administered',
+          margin_status_invasive: 'margin_status_invasive_opt_1', closest_margins_invasive: ['closest_margins_invasive_opt_1'],
+          margins_involved_invasive: ['margins_involved_invasive_opt_1'], distance_invasive_to_named_margins: '1.1 cm to deep margin',
+          margin_status_dcis: 'margin_status_dcis_opt_1', closest_margins_dcis: ['closest_margins_dcis_opt_1'], margins_involved_dcis: ['margins_involved_dcis_opt_1'],
+          distance_dcis_to_named_margins: '1.3 cm to deep margin', margin_comment: 'All margins free of invasive and in situ carcinoma.',
+          regional_ln_status: 'regional_ln_status_opt_1', number_ln_macrometastases: '0', number_ln_micrometastases: '0', number_ln_itc: '0',
+          largest_nodal_met_mm: '0', extranodal_extension: 'extranodal_extension_opt_1', total_ln_examined: '2', sentinel_ln_examined: '2',
+          regional_ln_comment: 'Two sentinel nodes identified and examined, both negative for metastatic carcinoma.',
+          distant_metastasis: ['distant_metastasis_opt_1'], ptnm_classification: 'pT2 N0 (sn) — per AJCC 8th edition',
+          er_status: 'er_status_positive', er_percent_positive: '60%', er_intensity: 'er_intensity_2',
+          pr_status: 'pr_status_positive', pr_percent_positive: '30%', pr_intensity: 'pr_intensity_1',
+          her2_ihc_score: 'her2_ihc_3p', her2_ish_status: 'her2_ish_amplified', ki67_index: '35%',
+        },
+        createdAt: isoDaysAgo(7), updatedAt: isoDaysAgo(5),
+      },
+    ],
+    status: 'finalized' as CaseStatus,
+    createdAt: isoDaysAgo(8), updatedAt: isoDaysAgo(5),
+    caseFlags: [],
+    specimenFlags: [],
+    reportingMode: 'assist',
+    coding: { icd10: ['C50.911'], snomed: ['254837009'] },
+  },
+
+  {
+    id: 'S26-4491',
+    accession: { accessionNumber: '4491', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4491' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-091', mrn: '100091',
+      firstName: 'Thomas', lastName: 'Reilly',
+      dateOfBirth: isoYearsAgo(72, 11, 19), sex: 'M',
+      phone: '555-441-3391', email: 'thomas.reilly@example.org',
+      address: '870 Saguaro Blvd, Tucson, AZ 85704',
+    },
+    specimens: [
+      { id: 'S26-4491-SP-1', label: 'A', description: 'Left lower lobe wedge resection', receivedAt: isoDaysAgo(6), collectedAt: isoDaysAgo(6), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Karen Osei', clientId: 'c2', clientName: 'Riverside Medical Center', clinicalIndication: '2.2 cm left lower lobe nodule, PET-avid. Never-smoker. Proceeding to wedge resection with intraoperative frozen section.', receivedDate: isoDaysAgo(6), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "left lower lobe wedge resection," is a wedge of lung parenchyma measuring 6.0 x 4.5 x 2.0 cm with a stapled margin along one edge. Sectioning reveals a firm, tan-white mass measuring 2.2 x 1.9 x 1.6 cm, 1.0 cm from the staple line. Representative sections submitted.',
+      microscopicDescription: 'Sections show invasive adenocarcinoma, acinar-predominant pattern, without visceral pleural invasion. Margins are free of tumor.',
+      ancillaryStudies: 'EGFR, ALK, ROS1, and PD-L1 testing performed — see synoptic Biomarkers section.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4491-SP-1_lung_001',
+        specimenId: 'S26-4491-SP-1',
+        templateId: 'lung_adeno',
+        templateName: 'Generic Template — Lung Adeno',
+        status: 'finalized',
+        answers: {
+          synchronous_tumors: 'synchronous_tumors_opt_1', procedure: ['procedure_opt_4'], specimen_laterality: 'specimen_laterality_opt_1',
+          tumor_focality: 'tumor_focality_opt_1', tumor_site: ['tumor_site_opt_2'], tumor_size: '2.2 cm', invasive_component_size: '2.2 cm',
+          histologic_type: 'histologic_type_opt_3', histologic_grade: 'histologic_grade_opt_2', stas: 'stas_opt_2',
+          visceral_pleura_invasion: 'visceral_pleura_invasion_opt_1', adjacent_structure_invasion: 'None identified',
+          treatment_effect: 'Not applicable — no prior neoadjuvant therapy', lymphovascular_invasion: ['lymphovascular_invasion_opt_1'],
+          tumor_comment: 'Tumor confined to lung parenchyma without pleural involvement.',
+          margin_status_invasive: 'Negative, closest margin 1.0 cm', margin_status_noninvasive: ['margin_status_noninvasive_opt_1'],
+          margin_comment: 'Staple margin free of tumor.',
+          prior_ln_sampling: 'prior_ln_sampling_opt_2', regional_ln_status: 'regional_ln_status_opt_1', ln_with_tumor_count: '0',
+          nodal_sites_with_tumor: 'None', extranodal_extension: 'extranodal_extension_opt_1', ln_examined_count: '0',
+          nodal_sites_examined: 'Not sampled — wedge resection only', regional_ln_comment: 'No lymph nodes submitted with this specimen.',
+          distant_metastasis_sites: ['distant_metastasis_sites_opt_1'], tnm_descriptors: ['tnm_descriptors_opt_1'],
+          stage_category_a: 'stage_category_a_opt_2', stage_category_b: 'stage_category_b_opt_1', stage_category_c: 'stage_category_c_opt_1',
+          additional_findings: ['additional_findings_opt_1'], special_studies_note: 'Molecular profiling performed per institutional reflex-testing protocol; see Biomarkers section.',
+          comments: 'Findings consistent with primary pulmonary adenocarcinoma, stage pT1cNx.',
+          pdl1_tps: 'pdl1_tps_ge50', egfr_status: 'egfr_detected', egfr_variant: 'Exon 19 deletion', alk_status: 'alk_non_rearranged', ros1_status: 'ros1_not_tested',
+        },
+        createdAt: isoDaysAgo(5), updatedAt: isoDaysAgo(3),
+      },
+    ],
+    status: 'finalized' as CaseStatus,
+    createdAt: isoDaysAgo(6), updatedAt: isoDaysAgo(3),
+    caseFlags: [],
+    specimenFlags: [],
+    reportingMode: 'assist',
+    coding: { icd10: ['C34.32'], snomed: ['254637007'] },
+  },
+
+  {
+    id: 'S26-4492',
+    accession: { accessionNumber: '4492', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4492' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-092', mrn: '100092',
+      firstName: 'Carol', lastName: 'Simmons',
+      dateOfBirth: isoYearsAgo(66, 1, 30), sex: 'F',
+      phone: '555-441-4492', email: 'carol.simmons@example.org',
+      address: '502 Palo Verde Dr, Tucson, AZ 85712',
+    },
+    specimens: [
+      { id: 'S26-4492-SP-1', label: 'A', description: 'Left breast lumpectomy', receivedAt: isoDaysAgo(4), collectedAt: isoDaysAgo(4), specimenFlags: [] },
+      { id: 'S26-4492-SP-2', label: 'B', description: 'Left axillary sentinel lymph node — one', receivedAt: isoDaysAgo(4), collectedAt: isoDaysAgo(4), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Michael Trent', clientId: 'c3', clientName: 'Foothills Regional Clinic', clinicalIndication: '1.3 cm left breast mass, BI-RADS 4. Core biopsy confirmed invasive ductal carcinoma. Proceeding to lumpectomy with sentinel node biopsy.', receivedDate: isoDaysAgo(4), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "left breast lumpectomy," is an irregular fragment of fibrofatty breast tissue measuring 5.5 x 4.0 x 2.5 cm. Sectioning reveals a firm, gray-white mass measuring 1.3 x 1.1 x 1.0 cm, 0.6 cm from the closest (lateral) inked margin. Representative sections submitted.\n\nReceived separately, labeled "left axillary sentinel lymph node," is one lymph node, entirely submitted.',
+      microscopicDescription: 'Sections of the mass show invasive ductal carcinoma, Grade 2, without associated DCIS. Margins are free of invasive carcinoma. The sentinel lymph node is negative for metastatic carcinoma.',
+      ancillaryStudies: 'ER, PR, and HER2 immunohistochemistry performed — see synoptic Biomarkers section.',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4492-SP-1_breast_001',
+        specimenId: 'S26-4492-SP-1',
+        templateId: 'breast_invasive',
+        templateName: 'Generic Template — Breast Invasive',
+        status: 'finalized',
+        answers: {
+          procedure: 'procedure_opt_2', specimen_laterality: 'specimen_laterality_opt_1', tumor_site: ['tumor_site_opt_4'],
+          histologic_type: 'histologic_type_opt_1', histologic_grade: 'Grade 2', tumor_size: '1.3 cm', tumor_focality: 'tumor_focality_opt_1',
+          dcis: 'Not identified', tumor_extent: 'Confined to breast parenchyma, no chest wall or skin involvement',
+          lvi: 'lvi_opt_2', dermal_lvi: 'dermal_lvi_opt_1', microcalcifications: ['microcalcifications_opt_2'],
+          treatment_effect_breast: 'treatment_effect_breast_opt_1', treatment_effect_nodes: 'treatment_effect_nodes_opt_1',
+          rcb_parameters: 'Not applicable — no neoadjuvant therapy administered',
+          margin_status_invasive: 'margin_status_invasive_opt_1', closest_margins_invasive: ['closest_margins_invasive_opt_3'],
+          margins_involved_invasive: ['margins_involved_invasive_opt_1'], distance_invasive_to_named_margins: '0.6 cm to lateral margin',
+          margin_status_dcis: 'margin_status_dcis_opt_1', closest_margins_dcis: ['closest_margins_dcis_opt_1'], margins_involved_dcis: ['margins_involved_dcis_opt_1'],
+          distance_dcis_to_named_margins: 'Not applicable — no DCIS identified', margin_comment: 'All margins free of invasive carcinoma.',
+          regional_ln_status: 'regional_ln_status_opt_1', number_ln_macrometastases: '0', number_ln_micrometastases: '0', number_ln_itc: '0',
+          largest_nodal_met_mm: '0', extranodal_extension: 'extranodal_extension_opt_1', total_ln_examined: '1', sentinel_ln_examined: '1',
+          regional_ln_comment: 'One sentinel node identified and examined, negative for metastatic carcinoma.',
+          distant_metastasis: ['distant_metastasis_opt_1'], ptnm_classification: 'pT1c N0 (sn) — per AJCC 8th edition',
+          er_status: 'er_status_positive', er_percent_positive: '70%', er_intensity: 'er_intensity_3',
+          pr_status: 'pr_status_negative', pr_percent_positive: '0%', pr_intensity: 'pr_intensity_1',
+          her2_ihc_score: 'her2_ihc_1p', her2_ish_status: 'her2_ish_nonamplified', ki67_index: '18%',
+        },
+        createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(1),
+      },
+    ],
+    status: 'finalized' as CaseStatus,
+    createdAt: isoDaysAgo(4), updatedAt: isoDaysAgo(1),
+    caseFlags: [],
+    specimenFlags: [],
+    reportingMode: 'assist',
+    coding: { icd10: ['C50.912'], snomed: ['254837009'] },
+  },
+
+  // ── Status-coverage case ─────────────────────────────────────────────────
+  // The CoPilot counterpart to O26-0028 in mockOrchestratorCaseService.ts —
+  // confirms 'pathologist-review' (real, wired display logic, previously
+  // never seeded) isn't Orchestration-only. See that file's header comment
+  // for why the other unused CaseStatus values weren't seeded.
+  {
+    id: 'S26-4493',
+    accession: { accessionNumber: '4493', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4493' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    patient: {
+      id: 'PAT-093', mrn: '100093',
+      firstName: 'Angela', lastName: 'Weiss',
+      dateOfBirth: isoYearsAgo(59, 8, 21), sex: 'F',
+      phone: '555-441-4493', email: 'angela.weiss@example.org',
+      address: '318 Camino Real, Tucson, AZ 85718',
+    },
+    specimens: [
+      { id: 'S26-4493-SP-1', label: 'A', description: 'Right lung, upper lobe wedge resection', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Samuel Ortega', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: '1.8 cm right upper lobe nodule, PET-avid. Proceeding to wedge resection.', receivedDate: isoDaysAgo(2), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "right lung, upper lobe wedge resection," is a wedge of lung parenchyma measuring 5.5 x 4.0 x 1.8 cm with a stapled margin. Sectioning reveals a firm, tan-white mass measuring 1.8 x 1.6 x 1.3 cm, 1.4 cm from the staple line. Representative sections submitted.',
+      microscopicDescription: 'Sections show invasive adenocarcinoma, acinar-predominant pattern, without visceral pleural invasion. Margins are free of tumor.',
+      ancillaryStudies: 'EGFR, ALK, ROS1, and PD-L1 testing performed — see synoptic Biomarkers section.',
+    },
+    synopticReports: [
+      {
+        // Content complete, but instance stays 'draft' — this case sits at
+        // 'pathologist-review' (ready for sign-out) rather than
+        // 'finalized', the CoPilot counterpart to O26-0028.
+        instanceId: 'S26-4493-SP-1_lung_001',
+        specimenId: 'S26-4493-SP-1',
+        templateId: 'lung_adeno',
+        templateName: 'Generic Template — Lung Adeno',
+        status: 'draft',
+        answers: {
+          synchronous_tumors: 'synchronous_tumors_opt_1', procedure: ['procedure_opt_4'], specimen_laterality: 'specimen_laterality_opt_2',
+          tumor_focality: 'tumor_focality_opt_1', tumor_site: ['tumor_site_opt_1'], tumor_size: '1.8 cm', invasive_component_size: '1.8 cm',
+          histologic_type: 'histologic_type_opt_3', histologic_grade: 'histologic_grade_opt_2', stas: 'stas_opt_2',
+          visceral_pleura_invasion: 'visceral_pleura_invasion_opt_1', adjacent_structure_invasion: 'None identified',
+          treatment_effect: 'Not applicable — no prior neoadjuvant therapy', lymphovascular_invasion: ['lymphovascular_invasion_opt_1'],
+          tumor_comment: 'Tumor confined to lung parenchyma without pleural involvement.',
+          margin_status_invasive: 'Negative, closest margin 1.4 cm', margin_status_noninvasive: ['margin_status_noninvasive_opt_1'],
+          margin_comment: 'Staple margin free of tumor.',
+          prior_ln_sampling: 'prior_ln_sampling_opt_2', regional_ln_status: 'regional_ln_status_opt_1', ln_with_tumor_count: '0',
+          nodal_sites_with_tumor: 'None', extranodal_extension: 'extranodal_extension_opt_1', ln_examined_count: '0',
+          nodal_sites_examined: 'Not sampled — wedge resection only', regional_ln_comment: 'No lymph nodes submitted with this specimen.',
+          distant_metastasis_sites: ['distant_metastasis_sites_opt_1'], tnm_descriptors: ['tnm_descriptors_opt_1'],
+          stage_category_a: 'stage_category_a_opt_2', stage_category_b: 'stage_category_b_opt_1', stage_category_c: 'stage_category_c_opt_1',
+          additional_findings: ['additional_findings_opt_1'], special_studies_note: 'Molecular profiling performed per institutional reflex-testing protocol; see Biomarkers section.',
+          comments: 'Findings consistent with primary pulmonary adenocarcinoma, stage pT1bNx.',
+          pdl1_tps: 'pdl1_tps_lt1', egfr_status: 'egfr_not_detected', egfr_variant: 'Not applicable', alk_status: 'alk_non_rearranged', ros1_status: 'ros1_not_tested',
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'pathologist-review' as CaseStatus,
+    createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(0),
+    caseFlags: [],
+    specimenFlags: [],
+    reportingMode: 'assist',
+    coding: { icd10: ['C34.12'], snomed: ['254637007'] },
+  },
 
 ];
 
@@ -3219,18 +3468,60 @@ export async function claimPoolCase(caseId: string, userId: string): Promise<Cla
   return { success: true };
 }
 
-/** Accept a pool case — assigns to pathologist, removes from pool */
-export async function acceptPoolCase(caseId: string, userId: string): Promise<void> {
+// Dispatch helpers — mirror CaseRouter's own 'O26-' prefix rule, duplicated
+// here rather than importing caseRouter: CaseRouter.ts already imports
+// mockCaseService, so importing caseRouter back here would create a
+// circular import. This means delegation/pool-claim actions don't produce
+// CaseRouter's own case.write audit-log entries the way ordinary case
+// edits do — DelegationRecord (below) is this flow's own audit trail, and
+// that split isn't new here, it's how delegateCase already worked before
+// this change; just noting the boundary explicitly.
+function isOrchCaseId(caseId: string): boolean {
+  return caseId.startsWith('O26-');
+}
+
+async function getCaseAnyMode(caseId: string): Promise<Case | undefined> {
+  if (isOrchCaseId(caseId)) return mockOrchestratorCaseService.getCase(caseId);
+  return CASES.find((c: any) => c.id === caseId);
+}
+
+async function updateCaseAnyMode(caseId: string, updates: Partial<Case>): Promise<void> {
+  if (isOrchCaseId(caseId)) {
+    await mockOrchestratorCaseService.updateCase(caseId, updates);
+    return;
+  }
+  const idx = CASES.findIndex((c: any) => c.id === caseId);
+  if (idx >= 0) {
+    CASES[idx] = { ...CASES[idx], ...updates, updatedAt: new Date().toISOString() } as any;
+    storageSet(STORAGE_KEY, CASES);
+  }
+}
+
+/** Accept a pool case — assigns to pathologist, removes from pool.
+ *  Previously only ever touched the CoPilot CASES array directly, so
+ *  accepting a pool O26- (Orchestration) case silently no-op'd — the
+ *  claim was released but the case itself was never actually updated.
+ *  Now dispatches by case-id prefix like everything else added in this
+ *  pass, and syncs participants[] via syncPrimaryAssignee rather than
+ *  writing order.assignedTo alone. CaseStatus mutation to 'in-progress'
+ *  is Orchestrator-mode-only per the reportingMode operational matrix —
+ *  CoPilot's diagnostic lifecycle status is LIS-owned. */
+export async function acceptPoolCase(caseId: string, userId: string, userName?: string): Promise<void> {
   await delay(300);
   const claims = loadClaims();
   delete claims[caseId];
   saveClaims(claims);
-  // Update case in CASES array
-  const idx = CASES.findIndex((c: any) => c.id === caseId);
-  if (idx >= 0) {
-    CASES[idx] = { ...CASES[idx], status: 'in-progress' as CaseStatus, order: { ...CASES[idx].order, assignedTo: userId }, updatedAt: new Date().toISOString() } as any;
-    storageSet(STORAGE_KEY, CASES);
+
+  const caseData = await getCaseAnyMode(caseId);
+  if (caseData) {
+    const syncUpdates = syncPrimaryAssignee(caseData, userId, userId, userName);
+    const updates: Partial<Case> = { ...syncUpdates };
+    if (caseData.reportingMode === 'orchestrator') {
+      updates.status = 'in-progress' as CaseStatus;
+    }
+    await updateCaseAnyMode(caseId, updates);
   }
+
   const delegations = loadDelegations();
   const delIdx = delegations.findIndex(d => d.caseId === caseId && d.status === 'pending');
   if (delIdx >= 0) { delegations[delIdx].status = 'accepted'; saveDelegations(delegations); }
@@ -3244,37 +3535,101 @@ export async function passPoolCase(caseId: string): Promise<void> {
   saveClaims(claims);
 }
 
-/** Delegate a case to an individual or pool */
-export async function delegateCase(
-  caseId: string,
-  fromUserId: string,
-  delegationType: string,
-  toUserId?: string,
-  toPoolId?: string,
-  toPoolName?: string,
-  note?: string,
-): Promise<DelegationRecord> {
+export interface DelegatePayload {
+  caseId: string;
+  requestorId: string;
+  requestorName?: string;
+  delegationType: string;
+  targetUserId?: string;
+  targetUserName?: string;
+  targetPoolId?: string;
+  targetPoolName?: string;
+  note?: string;
+}
+
+/** Add a non-primary participant (consult/review/second opinion/etc.) —
+ *  targetRoleId must be a real seeded participation type id (see
+ *  mapDelegationTypeToParticipationRole), never the raw delegationType
+ *  string. */
+function addNonPrimaryParticipant(
+  participants: CaseParticipant[],
+  targetUserId: string,
+  targetUserName: string | undefined,
+  roleId: string,
+  addedBy: string,
+): CaseParticipant[] {
+  const idx = participants.findIndex(p => p.staffId === targetUserId);
+  if (idx >= 0) {
+    const roles = new Set(participants[idx].participationTypeIds);
+    roles.add(roleId);
+    const updated = [...participants];
+    updated[idx] = { ...updated[idx], participationTypeIds: Array.from(roles), status: 'active' };
+    return updated;
+  }
+  return [...participants, {
+    staffId: targetUserId,
+    staffName: targetUserName ?? targetUserId,
+    source: 'manual',
+    participationTypeIds: [roleId],
+    addedBy, addedAt: new Date().toISOString(), status: 'active',
+  }];
+}
+
+/** Delegate a case to an individual or pool.
+ *
+ *  Previously: unconditionally overwrote CaseStatus based on a hardcoded
+ *  delegationType === 'POOL'/'REASSIGN' switch, and only ever touched the
+ *  CoPilot CASES array — delegating an Orchestration case silently
+ *  no-op'd on the case itself while still recording a (misleading)
+ *  DelegationRecord. Now: ownership transfer is driven by the real
+ *  DelegationType.transfersOwnership flag (admin-configurable, including
+ *  custom types — not a hardcoded ID switch), CaseStatus is never mutated
+ *  except the POOL branch on Orchestrator-mode cases, and both case
+ *  stores are reachable via the dispatch helpers above. */
+export async function delegateCase(payload: DelegatePayload): Promise<DelegationRecord> {
   await delay(400);
+
   const record: DelegationRecord = {
     id: Math.random().toString(36).slice(2),
-    caseId, fromUserId, toUserId, toPoolId, toPoolName, delegationType,
-    note, timestamp: new Date().toISOString(), status: 'pending',
+    caseId: payload.caseId, fromUserId: payload.requestorId,
+    toUserId: payload.targetUserId, toPoolId: payload.targetPoolId, toPoolName: payload.targetPoolName,
+    delegationType: payload.delegationType, note: payload.note,
+    timestamp: new Date().toISOString(), status: 'pending',
   };
-  const idx = CASES.findIndex((c: any) => c.id === caseId);
-  if (idx >= 0) {
-    const newStatus: CaseStatus = delegationType === 'POOL' ? 'pool'
-      : delegationType === 'REASSIGN' ? 'in-progress'
-      : 'pending-review';
-    CASES[idx] = {
-      ...CASES[idx],
-      status: newStatus,
-      ...(toPoolId   ? { poolId: toPoolId }     : {}),
-      ...(toPoolName ? { poolName: toPoolName }  : {}),
-      order: { ...CASES[idx].order, assignedTo: toUserId ?? CASES[idx].order?.assignedTo },
-      updatedAt: new Date().toISOString(),
-    } as any;
-    storageSet(STORAGE_KEY, CASES);
+
+  const caseData = await getCaseAnyMode(payload.caseId);
+  if (caseData) {
+    const configRes = await mockDelegationTypeService.getById(payload.delegationType);
+    const transfersOwnership = configRes.ok && !!configRes.data?.transfersOwnership;
+
+    const updates: Partial<Case> = {};
+
+    if (transfersOwnership && payload.targetUserId) {
+      Object.assign(updates, syncPrimaryAssignee(caseData, payload.targetUserId, payload.requestorId, payload.targetUserName));
+    } else if (payload.delegationType === 'POOL') {
+      updates.order = { ...caseData.order, assignedTo: undefined };
+      if (payload.targetPoolId)   (updates as any).poolId = payload.targetPoolId;
+      if (payload.targetPoolName) (updates as any).poolName = payload.targetPoolName;
+      if (caseData.reportingMode === 'orchestrator') {
+        updates.status = 'pool' as CaseStatus;
+      }
+    } else if (payload.targetUserId) {
+      // Non-ownership delegation (consult, review, second opinion, tumor
+      // board, teaching, etc.) — adds the target as a participant with
+      // the mapped real role, never touches order.assignedTo or CaseStatus.
+      const roleId = mapDelegationTypeToParticipationRole(payload.delegationType);
+      updates.participants = addNonPrimaryParticipant(
+        caseData.participants ?? [], payload.targetUserId, payload.targetUserName, roleId, payload.requestorId,
+      );
+    }
+
+    // CRITICAL: no CaseStatus mutation anywhere above except the POOL
+    // branch on an Orchestrator-mode case.
+    if (Object.keys(updates).length > 0) {
+      await updateCaseAnyMode(payload.caseId, updates);
+    }
   }
+
   const delegations = loadDelegations();
   delegations.push(record);
   saveDelegations(delegations);

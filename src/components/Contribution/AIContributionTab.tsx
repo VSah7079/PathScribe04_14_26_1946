@@ -22,7 +22,7 @@ interface BreakdownRow {
 }
 
 interface OverriddenCase {
-  id: string; caseType: string; clientCode?: string;
+  id: string; caseType: string; assigningAuthority?: string;
   aiSuggestion: string; finalDiagnosis: string; reason: string; date: string; daysAgo: number;
 }
 
@@ -63,7 +63,7 @@ interface WorkflowDataset {
 // ─── Mock Data — Synoptic AI (CoPilot field-suggestion AI) ────────────────────
 
 const synopticDataset: WorkflowDataset = {
-  label: "Synoptic AI (CoPilot)",
+  label: "Synoptic AI (Assist)",
   tileAssistedLabel:   "AI-Assisted Cases",
   tileAssistedIcon:    "🤖",
   tileOverridesLabel:  "Overrides",
@@ -137,11 +137,11 @@ const narrativeDataset: WorkflowDataset = {
     { label: "Westview Surgery Center",  code: "WSC", rate: 58, cases: 9  },
   ],
   overridden: [
-    { id: "OUT-2024-0512", caseType: "Skin Excision", clientCode: "WSC", aiSuggestion: "Margins widely clear of significant pathology with no residual atypia identified.",            finalDiagnosis: "Margins clear; rare residual junctional atypia noted near the inferior margin.",        reason: "Added margin nuance",             date: "Aug 12", daysAgo: 13 },
-    { id: "OUT-2024-0498", caseType: "GI Biopsy",     clientCode: "MGH", aiSuggestion: "Findings are consistent with chronic inactive gastritis without Helicobacter organisms.",       finalDiagnosis: "Findings consistent with chronic gastritis; rare H. pylori organisms on special stain.", reason: "Incorporated special stain result", date: "Aug 6",  daysAgo: 19 },
-    { id: "OUT-2024-0471", caseType: "Breast Core Bx",clientCode: "RMC", aiSuggestion: "No definitive evidence of invasive carcinoma identified in the submitted tissue.",              finalDiagnosis: "No invasive carcinoma; atypical ductal hyperplasia present, correlation recommended.",   reason: "Added clinical correlation",      date: "Jul 22", daysAgo: 34 },
-    { id: "OUT-2024-0440", caseType: "Prostate Bx",   clientCode: "MGH", aiSuggestion: "Benign prostatic tissue with no evidence of malignancy in the cores examined.",                 finalDiagnosis: "Benign prostatic tissue; focal atypical small acinar proliferation, repeat advised.",    reason: "Flagged ASAP finding",            date: "Jun 30", daysAgo: 56 },
-    { id: "OUT-2024-0398", caseType: "Thyroid FNA",   clientCode: "WSC", aiSuggestion: "Specimen is adequate and consistent with a benign colloid nodule.",                              finalDiagnosis: "Specimen adequate; findings most consistent with benign nodule, Bethesda II.",            reason: "Added Bethesda classification",   date: "May 28", daysAgo: 89 },
+    { id: "OUT-2024-0512", caseType: "Skin Excision", assigningAuthority: "WSC", aiSuggestion: "Margins widely clear of significant pathology with no residual atypia identified.",            finalDiagnosis: "Margins clear; rare residual junctional atypia noted near the inferior margin.",        reason: "Added margin nuance",             date: "Aug 12", daysAgo: 13 },
+    { id: "OUT-2024-0498", caseType: "GI Biopsy",     assigningAuthority: "MGH", aiSuggestion: "Findings are consistent with chronic inactive gastritis without Helicobacter organisms.",       finalDiagnosis: "Findings consistent with chronic gastritis; rare H. pylori organisms on special stain.", reason: "Incorporated special stain result", date: "Aug 6",  daysAgo: 19 },
+    { id: "OUT-2024-0471", caseType: "Breast Core Bx",assigningAuthority: "RMC", aiSuggestion: "No definitive evidence of invasive carcinoma identified in the submitted tissue.",              finalDiagnosis: "No invasive carcinoma; atypical ductal hyperplasia present, correlation recommended.",   reason: "Added clinical correlation",      date: "Jul 22", daysAgo: 34 },
+    { id: "OUT-2024-0440", caseType: "Prostate Bx",   assigningAuthority: "MGH", aiSuggestion: "Benign prostatic tissue with no evidence of malignancy in the cores examined.",                 finalDiagnosis: "Benign prostatic tissue; focal atypical small acinar proliferation, repeat advised.",    reason: "Flagged ASAP finding",            date: "Jun 30", daysAgo: 56 },
+    { id: "OUT-2024-0398", caseType: "Thyroid FNA",   assigningAuthority: "WSC", aiSuggestion: "Specimen is adequate and consistent with a benign colloid nodule.",                              finalDiagnosis: "Specimen adequate; findings most consistent with benign nodule, Bethesda II.",            reason: "Added Bethesda classification",   date: "May 28", daysAgo: 89 },
   ],
   comparison: [
     { caseType: "Breast", aiAssisted: 9, manual: 2, aiTat: 2.6, manualTat: 3.8 },
@@ -374,7 +374,7 @@ const AIContributionTab: React.FC = () => {
                 <div key={r.label} className="ps-quality-bar-row">
                   <div className="ps-quality-bar-row__label-row">
                     <span className="ps-quality-bar-row__type">
-                      {r.code && <span className="ps-client-code-badge" style={{ marginRight: "6px" }}>{r.code}</span>}
+                      {r.code && <span className="ps-client-authority-badge" style={{ marginRight: "6px" }}>{r.code}</span>}
                       {r.label}
                     </span>
                     <span className="ps-quality-bar-row__meta">{r.cases} {ds.breakdownUnit} &middot; <span className="ps-quality-bar-row__rate">{r.rate}%</span></span>
@@ -439,7 +439,7 @@ const AIContributionTab: React.FC = () => {
                       <td className="ps-quality-td ps-quality-td--accent">{c.id}</td>
                       <td className="ps-quality-td">{c.caseType}</td>
                       {workflow === "narrative" && (
-                        <td className="ps-quality-td">{c.clientCode && <span className="ps-client-code-badge">{c.clientCode}</span>}</td>
+                        <td className="ps-quality-td">{c.assigningAuthority && <span className="ps-client-authority-badge">{c.assigningAuthority}</span>}</td>
                       )}
                       <td className="ps-quality-td ps-quality-td--muted">{c.aiSuggestion}</td>
                       <td className="ps-quality-td ps-quality-td--primary">{c.finalDiagnosis}</td>

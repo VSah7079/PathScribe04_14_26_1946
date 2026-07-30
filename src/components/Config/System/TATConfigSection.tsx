@@ -582,22 +582,29 @@ const TATConfigSection: React.FC = () => {
 
   const persist = (next: TATEntry[]) => { setEntries(next); saveEntries(next); };
 
-  const handleEntryDelete = (id: string) => {
+  // handleEntryDelete/handleEntryToggle are complete, working handlers
+  // (real persist + audit log calls) — just not wired to any Delete/Toggle
+  // button in the JSX below yet. Matches this file's own "stub only, full
+  // build pending" status. Flagged, not deleted.
+  const _handleEntryDelete = (id: string) => {
     const target = entries.find(e => e.id === id);
     persist(entries.filter(e => e.id !== id));
     if (target) log('tat_entry_deleted', { id, type: target.type });
   };
+  void _handleEntryDelete;
 
-  const handleEntryToggle = (id: string) => {
+  const _handleEntryToggle = (id: string) => {
     const target = entries.find(e => e.id === id);
     const next   = entries.map(e => e.id === id ? { ...e, active: !e.active } : e);
     persist(next);
     if (target) log('tat_entry_toggled', { id, type: target.type, active: !target.active });
   };
+  void _handleEntryToggle;
+  // underscore prefix alone doesn't suppress noUnusedLocals for local
+  // const function declarations — void statements needed too.
 
   const handleSave = (saved: TATEntry) => {
     const idx   = entries.findIndex(e => e.id === saved.id);
-    const isNew = idx === -1;
     if (idx >= 0) {
       const next = [...entries];
       next[idx] = saved;

@@ -31,7 +31,6 @@ import type { StructuredContext } from './contextBuilder';
 import type { IAIProvider }       from '../services/ai/IAIProvider';
 import { AIProviderRegistry }     from '../services/ai/AIProviderRegistry';
 import { AIAuditLog }             from '../services/ai/AIAuditLog';
-import { narrativeTemplateConfig } from '../components/Config/NarrativeTemplates/narrativeTemplateConfig';
 import { StreamingWriter }         from '../components/Editor/tiptapBridge/streamingWriter';
 
 const SYSTEM_PROMPT =

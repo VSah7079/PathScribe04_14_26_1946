@@ -87,4 +87,36 @@ export const mockSpecimenDictionaryService: ISpecimenDictionaryService = {
     persist(DICTIONARY);
     return ok([...DICTIONARY]);
   },
+
+  async findOrCreateByName(name, note) {
+    await delay();
+    // Case-insensitive exact match — same "don't fuzzy-match silently"
+    // posture as SpecimenCategory.findOrCreateByName: a near-miss
+    // creates a new pending entry for a human to reconcile, not a
+    // silent guess.
+    const existing = DICTIONARY.find(e => e.name.toLowerCase() === name.toLowerCase());
+    if (existing) return ok({ ...existing });
+
+    const nowIso = new Date().toISOString();
+    const newEntry: SpecimenEntry = {
+      id: 'sp-auto-' + Date.now(),
+      name,
+      description: '',
+      // type/procedure required by the interface but genuinely unknown
+      // at auto-create time — left blank rather than guessed, same
+      // "safest default, force explicit admin setup" posture Client's
+      // auto-create uses for jurisdiction.
+      type: '', procedure: '',
+      normalizedLabel: name,
+      synonyms: [],
+      active: true, // never blocks order processing — see the governance-fields comment on SpecimenEntry itself
+      version: 1, updatedBy: 'system', updatedAt: nowIso,
+      autoCreated: true,
+      autoCreatedAt: nowIso.split('T')[0],
+      autoCreatedNote: note,
+    };
+    DICTIONARY = [...DICTIONARY, newEntry];
+    persist(DICTIONARY);
+    return ok({ ...newEntry });
+  },
 };

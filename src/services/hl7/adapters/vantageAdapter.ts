@@ -19,7 +19,7 @@ import type { IHL7VendorAdapter } from './IHL7VendorAdapter';
 
 export const vantageAdapter: IHL7VendorAdapter = {
   name: 'Roche navify Pathology Lab Advantage (Vantage) — NOT YET IMPLEMENTED',
-  adapt(standardMessage, context) {
+  adapt(_standardMessage, context) {
     throw new Error(
       `vantageAdapter is a stub — no verified Vantage integration spec exists yet ` +
       `(case ${context.caseId}, specimen ${context.specimenLabel}, block ${context.blockLabel}). ` +

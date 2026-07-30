@@ -15,7 +15,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import '@/pathscribe.css';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { mockRoutingRuleService }       from '@/services/routingRules/mockRoutingRuleService';
-import { resolveReportTemplate, traceReportTemplateResolution } from '@/services/reportTemplates/TemplateRoutingService';
+import { traceReportTemplateResolution } from '@/services/reportTemplates/TemplateRoutingService';
 import { mockReportTemplateService }    from '@/services/reportTemplates/mockReportTemplateService';
 import { mockClientService }            from '@/services/clients/mockClientService';
 import { mockPhysicianService }         from '@/services/physicians/mockPhysicianService';
@@ -43,7 +43,7 @@ const RuleModal: React.FC<{
 
   const entityLabel = type === 'client' ? 'Client' : type === 'physician' ? 'Physician' : 'Protocol';
   const entityList  = type === 'client'
-    ? clients.map(c => ({ id: c.id as string, name: `${c.name} (${c.code})` }))
+    ? clients.map(c => ({ id: c.id as string, name: `${c.name} (${c.assigningAuthority})` }))
     : type === 'physician'
     ? physicians.map(p => ({ id: p.id as string, name: `${p.lastName}, ${p.firstName} — ${p.specialty}` }))
     : protocols.map(p => ({ id: p.id, name: `${p.name}${p.status !== 'published' ? ` (${p.status})` : ''}` }));

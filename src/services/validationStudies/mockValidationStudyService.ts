@@ -140,7 +140,7 @@ export const mockValidationStudyService: IValidationStudyService = {
     if (!study?.committeeApproval?.irbReference) {
       return err('Cannot activate study without recorded committee approval and IRB reference');
     }
-    return mockValidationStudyService.update(id, { status: 'active' });
+    return mockValidationStudyService.update(id, { status: 'active', activatedBy, activatedAt: new Date().toISOString() });
   },
   async close(id)        { return mockValidationStudyService.update(id, { status: 'closed', endDate: new Date().toISOString() }); },
   async remove(id)       { save(load().filter(s => s.id !== id)); return ok(undefined as void); },

@@ -244,7 +244,7 @@ const ALL_CLIENTS = [
 // 'gross-complete', 'intraoperative-complete'.
 const CASE_STATUS_OPTIONS = [
   'draft','accessioned','gross-complete','in-progress','intraoperative-complete',
-  'pending-review','pathologist-review','finalizing','finalized','pool','amended',
+  'pending-review','pathologist-review','finalizing','finalized','pool',
 ] as const;
 
 // Label + accent color per status — kept in one place instead of inline so the
@@ -262,7 +262,6 @@ const STATUS_PILL_META: Record<typeof CASE_STATUS_OPTIONS[number], { label: stri
   'finalizing':                { label: 'Finalizing',        color: '#EC4899' },
   'finalized':                 { label: 'Completed',         color: '#10B981' },
   'pool':                      { label: 'Pool',              color: '#F97316' },
-  'amended':                   { label: 'Amended',           color: '#8B5CF6' },
 };
 const PRIORITY_OPTIONS    = ['Routine','STAT'] as const;
 

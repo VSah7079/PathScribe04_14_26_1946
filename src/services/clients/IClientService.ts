@@ -51,7 +51,13 @@ export interface ClientReportingPreferences {
 export interface Client {
   id: ID;
   name: string;
-  code: string;
+  /** HL7v2/FHIR Assigning Authority — the organizational namespace/
+   *  facility/system that assigns identifiers (case numbers, accession
+   *  numbers, local specimen IDs) for this client. Renamed from `code`
+   *  for terminology alignment; same field, same crosswalk role
+   *  (matched against IncomingOrder.externalAssigningAuthority) — not a
+   *  new concept. */
+  assigningAuthority: string;
   address: string;
   /** Optional — not populated by existing seed data or most consumers.
    *  Kept from the pre-reconciliation IClientService.ts shape. */
@@ -251,5 +257,5 @@ export interface IClientService {
    * until an admin reconciles it. Mirrors IPhysicianService.findOrCreateByNpi
    * and ISpecimenCategoryService.findOrCreateByName exactly.
    */
-  findOrCreateByCode(code: string, name: string, note?: string): Promise<ServiceResult<Client>>;
+  findOrCreateByAssigningAuthority(assigningAuthority: string, name: string, note?: string): Promise<ServiceResult<Client>>;
 }

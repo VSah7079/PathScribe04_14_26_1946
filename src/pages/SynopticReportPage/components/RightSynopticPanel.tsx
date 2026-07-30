@@ -412,7 +412,7 @@ const TEMPLATE_CACHE = new Map<string, any>();
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
-  ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', onReportTypeChange, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate }, ref) => {
+  ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate }, ref) => {
 
   const orchestratorMode = useMemo(() => getOrchestratorMode(), []);
   const caseData = initialCaseData;

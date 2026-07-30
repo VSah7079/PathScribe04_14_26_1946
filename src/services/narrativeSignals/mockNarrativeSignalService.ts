@@ -1,5 +1,5 @@
 // src/services/narrativeSignals/mockNarrativeSignalService.ts
-import type { INarrativeSignalService, NarrativeEditSignal, NarrativeSignalStats, SectionStats } from './INarrativeSignalService';
+import type { INarrativeSignalService, NarrativeEditSignal, SectionStats } from './INarrativeSignalService';
 import { deidentifySignal } from './deidentification';
 import type { StructuralEditType } from './deidentification';
 import { storageGet, storageSet } from '../mockStorage';

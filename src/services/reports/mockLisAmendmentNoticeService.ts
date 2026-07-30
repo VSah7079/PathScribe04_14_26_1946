@@ -1,7 +1,7 @@
 // src/services/reports/mockLisAmendmentNoticeService.ts
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import type { LisAmendmentNotice, LisAmendmentNoticeStatus } from '@/types/reports/LisAmendmentNotice';
+import type { LisAmendmentNotice } from '@/types/reports/LisAmendmentNotice';
 import type { ILisAmendmentNoticeService } from './ILisAmendmentNoticeService';
 
 const STORAGE_KEY = 'lis_amendment_notices';

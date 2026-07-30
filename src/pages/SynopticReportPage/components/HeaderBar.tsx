@@ -9,6 +9,7 @@ import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
 import { lisSyncService } from '@/services';
 import type { LisSyncState } from '@/services/lisSync/mockLisSyncService';
+import { getCaseStatusLabel, hasDisplayableRevision } from '@/utils/caseRevisionDisplay';
 import '@/pathscribe.css';
 
 // ── AI Synthesis Status — Gatekeeper Badge model. Matches the type defined
@@ -88,7 +89,6 @@ const CASE_STATE_CLASS: Record<string, string> = {
   'in-progress':    'ps-case-status--draft',
   'finalized':      'ps-case-status--finalized',
   'pending-review': 'ps-case-status--pending-review',
-  'amended':        'ps-case-status--amended',
 };
 
 // ── Step circle class helper ──────────────────────────────────────────────────
@@ -96,12 +96,12 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, isManuallyCompact = false, onToggleManualCompact }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
   const isOrchestration = getOrchestratorMode();
 
   // CoPilot-only — Orchestration mode is the system of record; there's no
   // separate LIS for anything here to be "as of" relative to.
-  const isCopilotCase = caseData?.reportingMode === 'copilot';
+  const isAssistCase = caseData?.reportingMode === 'assist';
   const [syncState, setSyncState] = useState<LisSyncState | null>(null);
   const [checkingNow, setCheckingNow] = useState(false);
 
@@ -117,13 +117,13 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   }, [caseData?.id]);
 
   useEffect(() => {
-    if (!isCopilotCase || !caseData?.id) { setSyncState(null); return; }
+    if (!isAssistCase || !caseData?.id) { setSyncState(null); return; }
     let cancelled = false;
     lisSyncService.getSyncState(caseData.id).then(res => {
       if (!cancelled && res.ok) setSyncState(res.data);
     });
     return () => { cancelled = true; };
-  }, [isCopilotCase, caseData?.id]);
+  }, [isAssistCase, caseData?.id]);
 
   const handleCheckNow = async () => {
     if (!caseData?.id || checkingNow) return;
@@ -170,7 +170,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   const status    = caseData?.status ?? 'draft';
   const hospital    = getOrganisationByHospitalId(caseData?.originHospitalId ?? '');
   const clientName  = caseData?.order?.clientName ?? null;
-  const statusClass  = CASE_STATE_CLASS[status] ?? CASE_STATE_CLASS['draft'];
+  const isRevisedFinal = hasDisplayableRevision(status, caseData?.lastRevisionType);
+  const statusClass  = isRevisedFinal ? 'ps-case-status--amended' : (CASE_STATE_CLASS[status] ?? CASE_STATE_CLASS['draft']);
+  const statusDisplayLabel = getCaseStatusLabel(status, caseData?.lastRevisionType);
 
   // ── Mode-aware final step label ───────────────────────────────────────────
   const finalStepLabel = isOrchestration ? 'Sign Out' : 'Finalise';
@@ -206,7 +208,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
     'gross-complete': 1, 'intraoperative-complete': 1,
     'pending-review': 2, 'in-progress': 2,
     'pathologist-review': 3, 'finalizing': 3,
-    'finalized': 4, 'amended': 4, 'closed': 4,
+    'finalized': 4, 'closed': 4,
   };
 
   const activeSynopticStatus = (caseData as any)?.synopticReports?.find(
@@ -359,7 +361,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           >⌃ Compact view</button>
         )}
 
-        {isCopilotCase && syncState && (
+        {isAssistCase && syncState && (
           <div className="ps-hb-lis-sync">
             <span className="ps-hb-lis-sync-label">{formatSyncLabel(syncState.lastCheckedAt)}</span>
             <button
@@ -424,7 +426,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             )}
             <div className={`ps-hb-status-pill ${statusClass}`} title="Overall case status — separate from the AI review confidence indicator on synoptic fields">
               <div className="ps-hb-status-dot" />
-              <span className="ps-hb-status-text">Case: {status}</span>
+              <span className="ps-hb-status-text">Case: {statusDisplayLabel}</span>
             </div>
           </div>
 
@@ -480,7 +482,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         <div className="ps-hb-right">
           <div className="ps-hb-confidence-card">
             <div className="ps-hb-confidence-header">
-              <span className="ps-hb-confidence-status" title="Overall case status">Case: {status}</span>
+              <span className="ps-hb-confidence-status" title="Overall case status">Case: {statusDisplayLabel}</span>
               <span className="ps-hb-confidence-priority">{caseData?.order?.priority ?? 'Routine'}</span>
             </div>
             {aiSynthesisStatus && aiSynthesisStatus.state !== 'none' ? (
@@ -516,7 +518,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               // something meaningful instead of looking unfinished/blank.
               <div className="ps-hb-confidence-score ps-hb-confidence-score--status">
                 <span className={`ps-hb-confidence-pct ${statusClass}`}>
-                  {status.replace(/-/g, ' ').toUpperCase()}
+                  {statusDisplayLabel.toUpperCase()}
                 </span>
                 <span className="ps-hb-confidence-label">No AI suggestions yet</span>
               </div>

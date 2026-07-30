@@ -7,7 +7,7 @@
 // Trigger: microscopic saved → AI evaluates → if changes proposed → this modal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import '../../../pathscribe.css';
 import type { ProtocolChange, ProtocolChangeAction } from '@/types/case/Case';
 

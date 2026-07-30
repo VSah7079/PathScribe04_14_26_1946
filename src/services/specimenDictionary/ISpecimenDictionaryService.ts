@@ -37,4 +37,13 @@ export interface ISpecimenDictionaryService {
   /** Wholesale replace — used by spreadsheet "replace entire dictionary"
    *  flows, distinct from addEntries/updateEntries' incremental merge. */
   replaceDictionary(entries: SpecimenEntry[]): Promise<ServiceResult<SpecimenEntry[]>>;
+
+  /** Same "unblock now, admin reviews after" pattern as
+   *  Client.findOrCreateByAssigningAuthority / Physician.findOrCreateByName /
+   *  SpecimenCategory.findOrCreateByName. Case-insensitive exact match on
+   *  name; no fuzzy matching, on purpose — a near-miss creates a new
+   *  pending entry for a human to reconcile, not a silent guess. Added
+   *  for order-intake specimen crosswalk resolution — see
+   *  IOrderIntakeService.ts's SpecimenCodeCrosswalkEntry.dictionaryEntryId. */
+  findOrCreateByName(name: string, note?: string): Promise<ServiceResult<SpecimenEntry>>;
 }

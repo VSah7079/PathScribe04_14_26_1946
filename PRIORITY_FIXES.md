@@ -360,3 +360,36 @@ Canada: CSMLS/provincial (Ontario Health, AHS) terms β€” Receiving/Accessio
 Australia/NZ (RCPA/NATA/IANZ): "Grossing" β†’ Cut-Up/Gross Examination; Cassette Cut-Up, Tissue Processing, Embedding, Sectioning; slides Sectioned β†’ Stained & Coverslipped β†’ Assigned to Pathologist.
 
 Not urgent, not a current capability gap β€” the existing block.status/stain.status fields give a pathologist/PA the practical signal they need today (is material ready to work with). This entry is for when PathScribe pursues deeper LIS-adjacent integration or serves customers where region-accurate terminology genuinely matters, not before.
+## No case locking / concurrency control exists anywhere in the application
+
+**Confirmed via direct code search (July 2026)** — no `isLocked`, `lockedBy`,
+version field, or any conflict-detection mechanism exists anywhere in
+`services/cases/` or the pages that call into it. `caseRouter.updateCase()`
+unconditionally overwrites whatever's in the mock/backend service with
+whatever patch it's given — there is no check for whether the record has
+changed since it was last read.
+
+**Real-world risk:** if two sessions have the same case open at once (two
+browser tabs, two pathologists, a pathologist and someone they delegated
+to) and both save, the second save silently and completely overwrites the
+first — with zero warning to either user, and no record in the audit log
+that a conflicting write occurred. This is a genuine data-integrity risk
+in a clinical application, not a cosmetic gap — it's a materially
+different category from most other items on this list.
+
+**Why it matters more than it might for a typical app:** PathScribe
+already has multiple real workflows where more than one person can
+reasonably touch the same case — Delegation, Pool claiming, Case Team
+assignment. Any of these could plausibly result in two people having the
+same case open concurrently, especially as usage scales beyond a single
+pathologist.
+
+**Not designed here — needs its own dedicated discussion.** Several
+legitimate approaches exist with different trade-offs (a "someone else
+has this case open" warning banner, optimistic locking via a version
+number with a conflict-resolution UI on save, pessimistic checkout/lock
+on open, etc.) — this entry is deliberately scoped to documenting that
+the gap exists and why it matters, not prescribing the fix.
+
+**Status:** flagged, not yet prioritized. Pete to decide when this moves
+up the queue.

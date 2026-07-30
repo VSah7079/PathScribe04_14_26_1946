@@ -108,7 +108,7 @@ function humanizeKey(key: string): string {
 // seeded template's assembly. Pulled out to its own function (called
 // before the main switch, not as a case inside it) so the switch
 // keeps real discriminated-union narrowing for every formal node type.
-function renderSynopticBlock(node: any, ctx: StructuredContext) {
+function renderSynopticBlock(ctx: StructuredContext) {
   const primary = (ctx as any).primarySynoptic ?? (ctx as any).synopticReports?.[0] ?? null;
   const answers: Record<string, string> = primary?.answers ?? {};
   const entries = Object.entries(answers);
@@ -198,7 +198,7 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
   // cast) — handled here, before the switch, so the switch below keeps
   // its real discriminated-union narrowing for every formal node type.
   if ((node.type as string) === 'synoptic-block') {
-    return renderSynopticBlock(node as any, ctx);
+    return renderSynopticBlock(ctx);
   }
   switch (node.type) {
     case 'static-label': {

@@ -33,22 +33,14 @@ interface SynRow {
 const statusColor = (s: string) =>
   s === 'finalized' ? '#10b981' : s === 'in-progress' ? '#0891B2' : '#64748b';
 
-const fmt = (v: unknown): string => {
-  if (v === null || v === undefined || v === '') return '—';
-  if (Array.isArray(v)) return v.join(', ') || '—';
-  return String(v);
-};
-
 const SequencerPanel: React.FC<SequencerPanelProps> = ({
   show, onClose, onSave, caseData, activeReportInstanceId, onSelectReport,
 }) => {
   const [specimenOrder,     setSpecimenOrder]     = useState<string[]>([]);
   const [synopticOrders,    setSynopticOrders]     = useState<Record<string, string[]>>({});
   const [expandedSpecimens, setExpandedSpecimens]  = useState<Set<string>>(new Set());
-  const [expandedSynoptics, setExpandedSynoptics]  = useState<Set<string>>(new Set());
   const [dragSrc,           setDragSrc]            = useState<{ level: 'specimen' | 'synoptic'; id: string; parentId?: string } | null>(null);
   const [isDirty,           setIsDirty]            = useState(false);
-  const [initialOrder,      setInitialOrder]        = useState<{ specimens: string[]; synoptics: Record<string, string[]> }>({ specimens: [], synoptics: {} });
 
   // Keyboard close
   useEffect(() => {
@@ -95,7 +87,6 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
       setSpecimenOrder(spOrder);
       setSynopticOrders(orders);
       setExpandedSpecimens(new Set(rows.map(r => r.specimenId)));
-      setInitialOrder({ specimens: spOrder, synoptics: orders });
       setIsDirty(false);
     }
   }, [show, rows]);
@@ -219,12 +210,6 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                     <div className="ps-seq-synoptics">
                       {orderedSyns.map((syn, si) => {
                         const isActive = syn.instanceId === activeReportInstanceId;
-                        const answeredFields = syn.fieldOrder
-                          .filter(k => { const v = syn.answers[k]; return v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0); })
-                          .map(k => ({ label: syn.fieldLabels[k] ?? k, value: fmt(syn.answers[k]) }));
-                        const isExpandedSyn = expandedSynoptics.has(syn.instanceId);
-                        const visibleFields = isExpandedSyn ? answeredFields : answeredFields.slice(0, 5);
-                        const overflow = isExpandedSyn ? 0 : Math.max(0, answeredFields.length - 5);
                         const pct = syn.totalCount > 0 ? Math.round((syn.filledCount / syn.totalCount) * 100) : 0;
 
                         return (
@@ -236,7 +221,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                             onDragOver={e => { if (dragSrc?.level === 'synoptic' && dragSrc.parentId === row.specimenId) e.preventDefault(); }}
                             onDrop={e => onDropSyn(e, syn.instanceId, row.specimenId)}
                             onDragEnd={() => setDragSrc(null)}
-                            onClick={() => { onSelectReport(syn.instanceId, row.specimenId); onClose(); }}
+                            onClick={() => onSelectReport(syn.instanceId, row.specimenId)}
                           >
                             <svg width="10" height="12" viewBox="0 0 12 14" fill="#475569" aria-hidden="true" className="ps-seq-drag-handle">
                               <circle cx="3.5" cy="3" r="1.2"/><circle cx="8.5" cy="3" r="1.2"/>
@@ -307,7 +292,8 @@ const PreviewPane: React.FC<{
   activeReportInstanceId: string | null;
   onSelectReport: (instanceId: string, specimenId: string, reportType?: 'grossing' | 'synoptic') => void;
   onClose: () => void;
-}> = ({ rows, synopticOrders, activeReportInstanceId, onSelectReport, onClose }) => {
+}> = ({ rows, synopticOrders, activeReportInstanceId, onSelectReport }) => {
+  const [expandedSynoptics, setExpandedSynoptics] = useState<Set<string>>(new Set());
   if (rows.length === 0) return <div className="ps-seq-empty">No report preview available.</div>;
 
   const fmt = (v: unknown): string => {
@@ -334,10 +320,14 @@ const PreviewPane: React.FC<{
                 .filter(k => { const v = syn.answers[k]; return v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0); })
                 .map(k => ({ label: syn.fieldLabels[k] ?? k, value: fmt(syn.answers[k]) }));
 
+              const isExpanded = expandedSynoptics.has(syn.instanceId);
+              const visibleFields = isExpanded ? answeredFields : answeredFields.slice(0, 6);
+              const overflow = isExpanded ? 0 : Math.max(0, answeredFields.length - 6);
+
               return (
                 <div
                   key={syn.instanceId}
-                  onClick={() => { onSelectReport(syn.instanceId, row.specimenId); onClose(); }}
+                  onClick={() => onSelectReport(syn.instanceId, row.specimenId)}
                   style={{ marginBottom: 12, padding: '12px 14px', background: isActive ? 'rgba(8,145,178,0.06)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isActive ? 'rgba(8,145,178,0.2)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 8, cursor: 'pointer' }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -347,15 +337,34 @@ const PreviewPane: React.FC<{
                   {answeredFields.length === 0 ? (
                     <div style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>No fields completed yet</div>
                   ) : (
-                    answeredFields.slice(0, 6).map(({ label, value }) => (
+                    visibleFields.map(({ label, value }) => (
                       <div key={label} className="ps-seq-field-row">
                         <span className="ps-seq-field-label">{label}</span>
                         <span className="ps-seq-field-value">{value}</span>
                       </div>
                     ))
                   )}
-                  {answeredFields.length > 6 && (
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, fontStyle: 'italic' }}>+{answeredFields.length - 6} more fields</div>
+                  {overflow > 0 && (
+                    <div
+                      className="ps-seq-overflow-link"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setExpandedSynoptics(prev => new Set(prev).add(syn.instanceId));
+                      }}
+                    >
+                      +{overflow} more field{overflow !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  {isExpanded && answeredFields.length > 6 && (
+                    <div
+                      className="ps-seq-collapse-link"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setExpandedSynoptics(prev => { const next = new Set(prev); next.delete(syn.instanceId); return next; });
+                      }}
+                    >
+                      Show less
+                    </div>
                   )}
                 </div>
               );

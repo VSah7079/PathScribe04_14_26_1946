@@ -55,7 +55,7 @@ import {
 } from 'firebase/firestore';
 
 import type { Case }                                          from '../../types/case/Case';
-import type { ICaseService, PathologyCase, CaseFilterParams } from './ICaseService';
+import type { ICaseService, CaseFilterParams } from './ICaseService';
 import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
 
@@ -200,10 +200,48 @@ export const firestoreCaseService: ICaseService = {
   async updateCase(caseId: string, updates: Partial<Case>): Promise<void> {
     const db = getFirestore();
 
-    // Guard: block writes to LIS-owned fields from the client
+    // Guard: block writes to LIS-owned fields from the client.
+    //
+    // 'order' carve-out (Option A, decided over 'move assignment out of
+    // order' — see design discussion): assignedTo/assignedParticipationTypeId
+    // live nested inside the LIS-owned `order` object, but they're
+    // PathScribe's own case-routing metadata, not LIS order data — the
+    // sync logic in caseAssignmentSync.ts needs to be able to write them.
+    // Every OTHER order sub-field (orderNumber, requestingProvider,
+    // clientId, etc.) stays blocked exactly as before.
+    //
+    // IMPORTANT: this can't just become `updates.order = { assignedTo,
+    // assignedParticipationTypeId }` — Firestore's updateDoc REPLACES an
+    // entire nested map field when you hand it a plain object, it doesn't
+    // merge at the leaf level. Writing that would silently wipe every
+    // other real order field (orderNumber, requestingProvider, clientId…)
+    // the first time this ran. Firestore's dot-path field syntax
+    // ('order.assignedTo') is what actually performs a true partial
+    // merge, touching only that one nested field and leaving the rest of
+    // `order` — including fields not even loaded into `updates` — intact.
+    const ALLOWED_ORDER_SUBFIELDS = ['assignedTo', 'assignedParticipationTypeId'] as const;
+    const dotPathUpdates: Record<string, any> = {};
+    if (updates.order && typeof updates.order === 'object') {
+      const orderKeys = Object.keys(updates.order);
+      const allowedPresent = orderKeys.filter(k => (ALLOWED_ORDER_SUBFIELDS as readonly string[]).includes(k));
+      const blockedPresent = orderKeys.filter(k => !(ALLOWED_ORDER_SUBFIELDS as readonly string[]).includes(k));
+
+      for (const key of allowedPresent) {
+        dotPathUpdates[`order.${key}`] = (updates.order as any)[key];
+      }
+      if (blockedPresent.length > 0) {
+        console.warn(
+          `firestoreCaseService.updateCase: ignoring LIS-owned order sub-fields [${blockedPresent.join(', ')}]. ` +
+          'These are managed by the Cloud Function sync and must not be overwritten by the client. ' +
+          `Only [${ALLOWED_ORDER_SUBFIELDS.join(', ')}] may be client-written within order.`
+        );
+      }
+      delete (updates as any).order;
+    }
+
     const LIS_OWNED_FIELDS = [
       'patient', 'specimens', 'accession', 'grossDescription',
-      'microscopicDescription', 'order', 'hospitalId',
+      'microscopicDescription', 'hospitalId',
     ] as const;
 
     const blocked = LIS_OWNED_FIELDS.filter(f => f in updates);
@@ -218,6 +256,7 @@ export const firestoreCaseService: ICaseService = {
     try {
       await updateDoc(doc(db, COLLECTION_NAME, caseId), {
         ...updates,
+        ...dotPathUpdates,
         updatedAt: new Date().toISOString(),
       });
       audit.log({ eventType: 'case.write', caseId, userId: 'system', outcome: 'success' });

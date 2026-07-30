@@ -137,6 +137,39 @@ const SEED_ENTRIES: IntraoperativeEntry[] = [
     status: 'pending', // deliberately no real case candidate matches this one — a session genuinely awaiting a formal accession that hasn't arrived yet
     createdAt: '2026-07-11T09:42:00.000Z',
   },
+  {
+    id: 'intraop-004',
+    // The only seed entry with status: 'merged' — the other three above
+    // are deliberately left 'pending' to demo the queue itself. This one
+    // demos the other half: what a completed merge looks like, and backs
+    // O26-0027's CaseStatus 'intraoperative-complete' (real, wired in
+    // SearchPage.tsx's status pills and HeaderBar.tsx's stage mapping,
+    // but previously never produced by any seed case).
+    patientMatch: { source: 'barcode', patientName: 'Higashi, Kenji', mrn: 'MRN-90144', dateOfBirth: '1965-05-14', confirmedAt: '2026-07-19T10:05:00.000Z' },
+    performedBy: { userId: 'user-owusu', userName: 'Dr. Owusu' },
+    orNumber: 'OR-3', surgeon: 'Dr. Owusu',
+    specimens: [
+      {
+        id: 'spec-004-a',
+        specimenLabel: 'Specimen A: Left thyroid lobe',
+        arrivalTimestamp: '2026-07-19T10:03:00.000Z',
+        milestones: [
+          { id: 'm1', milestone: 'gross_logged',         timestamp: '2026-07-19T10:04:10.000Z' },
+          { id: 'm2', milestone: 'touch_prep_performed', timestamp: '2026-07-19T10:05:35.000Z' },
+          { id: 'm3', milestone: 'frozen_section_cut',   timestamp: '2026-07-19T10:07:20.000Z' },
+        ],
+        preliminaryCytologyDictation: 'Touch prep shows follicular cells without clear-cut nuclear features of papillary carcinoma.',
+        quickGrossDictation: 'Received fresh, labeled "left thyroid lobe." Encapsulated tan-brown nodule, 1.9 cm greatest dimension, well-circumscribed.',
+        frozenSectionDiagnosis: 'Follicular lesion, deferred to permanent sections for definitive classification.',
+        frozenCategory: 'deferred',
+      },
+    ],
+    verbalReportLog: { timestamp: '2026-07-19T10:09:00.000Z', note: 'Spoke with Dr. Owusu. Frozen deferred to permanent — capsular/vascular invasion cannot be reliably assessed on frozen section.' },
+    status: 'merged',
+    mergedIntoCaseId: 'O26-0027',
+    mergedAt: '2026-07-19T11:30:00.000Z',
+    createdAt: '2026-07-19T10:03:00.000Z',
+  },
 ];
 
 const load    = (): IntraoperativeEntry[] => storageGet<IntraoperativeEntry[]>(STORAGE_KEY, SEED_ENTRIES);

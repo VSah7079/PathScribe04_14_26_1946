@@ -7,9 +7,9 @@
 // Design (from the multi-turn discussion this implements):
 //   1. An order arrives from wherever (HL7 listener, partner API, manual
 //      entry) as a raw IncomingOrder — never written directly into Case.
-//   2. Client resolution reuses Client.code as the crosswalk key directly
+//   2. Client resolution reuses Client.assigningAuthority as the crosswalk key directly
 //      — no separate client crosswalk table needed. clientService.
-//      findOrCreateByCode() already does exact-match-or-auto-create.
+//      findOrCreateByAssigningAuthority() already does exact-match-or-auto-create.
 //   3. Specimen resolution needs its own crosswalk (SpecimenCodeCrosswalkEntry)
 //      because the same external code means different things for
 //      different clients — "TISSUE-01" at one hospital's LIS is not
@@ -18,7 +18,7 @@
 //      auto-create-pending + notify-admin posture as everywhere else in
 //      this app (IPhysicianService.findOrCreateByNpi, etc.) — order
 //      processing is never blocked by an unrecognized code.
-//   4. Resolution never mutates the raw order's externalClientCode/
+//   4. Resolution never mutates the raw order's externalAssigningAuthority/
 //      externalSpecimenCode fields — those stay as received, for audit,
 //      even after clientId/specimenCategoryId are filled in alongside them.
 // ─────────────────────────────────────────────────────────────
@@ -29,15 +29,21 @@ import type { Icd10Code } from '../diagnosisCodes/IDiagnosisCodesService';
 // ─── Crosswalk ──────────────────────────────────────────────────────────────
 
 /**
- * Maps one client's local specimen code to a SpecimenCategory. Scoped per
- * client (not global) because the same code string means different things
- * at different sending systems.
+ * Maps one client's local specimen code to a specific Specimen Dictionary
+ * entry (SpecimenEntry) — not directly to a SpecimenCategory. Resolving to
+ * the specific dictionary entry first (e.g. "Left breast core biopsy")
+ * preserves the actual specimen type; the coarse category then follows
+ * transitively via that entry's own specimenCategoryId, rather than
+ * collapsing the crosswalk straight down to the category and losing the
+ * specific type. Scoped per client (not global) because the same code
+ * string means different things at different sending systems.
  */
 export interface SpecimenCodeCrosswalkEntry {
   id: ID;
   clientId: string;
   externalCode: string;
-  specimenCategoryId: string;
+  /** References SpecimenEntry.id (Specimen Dictionary). */
+  dictionaryEntryId: string;
   createdAt: string;
   /** 'system' for an entry auto-learned from a confirmed AI suggestion
    *  (per the "unblock now, admin approves after" design) — vs an admin's
@@ -55,6 +61,21 @@ export interface IncomingOrderSpecimen {
   externalSpecimenCode?: string;
   /** Filled in once resolved via crosswalk or findOrCreateByName —
    *  undefined until resolveIncomingOrder() has run. */
+  /** Filled in once resolved via the crosswalk (SpecimenCodeCrosswalkEntry
+   *  → SpecimenEntry) or SpecimenDictionaryService.findOrCreateByName —
+   *  the specific dictionary entry, e.g. "Left breast core biopsy". */
+  dictionaryEntryId?: string;
+  /** True if dictionaryEntryId came from findOrCreateByName's fallback
+   *  (i.e. a brand-new pending dictionary entry) rather than an existing
+   *  crosswalk match — lets the Accession page flag it for extra
+   *  attention, same role categoryWasAutoCreated used to play. */
+  dictionaryEntryWasAutoCreated?: boolean;
+  /** Derived transitively from dictionaryEntryId's own specimenCategoryId
+   *  (Specimen Dictionary entries carry their category — see
+   *  SpecimenEntry.specimenCategoryId) rather than resolved directly
+   *  against SpecimenCategory itself. Still populated here, unchanged
+   *  in shape, so existing consumers (grossing-template routing,
+   *  accession-number series selection) don't need to change. */
   specimenCategoryId?: string;
   /** True if specimenCategoryId came from findOrCreateByName's fallback
    *  (i.e. a brand-new pending category) rather than an existing crosswalk
@@ -76,13 +97,13 @@ export interface IncomingOrder {
    *  Accession page's "Import from Order" flow. */
   linkedCaseId?: string;
 
-  /** Raw client code exactly as received — always kept, even after
+  /** Raw assigning authority exactly as received — always kept, even after
    *  clientId is resolved, for audit/debugging. */
-  externalClientCode: string;
+  externalAssigningAuthority: string;
   /** Filled in by resolveIncomingOrder() — the real Client.id, existing
-   *  or freshly auto-created via findOrCreateByCode. */
+   *  or freshly auto-created via findOrCreateByAssigningAuthority. */
   clientId?: string;
-  /** True if clientId came from findOrCreateByCode's fallback (a
+  /** True if clientId came from findOrCreateByAssigningAuthority's fallback (a
    *  brand-new pending client) rather than an existing match. */
   clientWasAutoCreated?: boolean;
 
@@ -133,7 +154,7 @@ export interface IOrderIntakeService {
 
   /**
    * Runs client + per-specimen category resolution on a pending order:
-   * Client.code exact match (or findOrCreateByCode fallback), then
+   * Client.assigningAuthority exact match (or findOrCreateByAssigningAuthority fallback), then
    * per-specimen crosswalk match (or SpecimenCategory.findOrCreateByName
    * fallback). Idempotent — safe to call again on an already-resolved
    * order (re-resolves from current crosswalk state, e.g. after an admin

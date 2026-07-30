@@ -278,8 +278,7 @@ export async function routeUnassignedCases(cases: Case[]): Promise<{
   const unassigned = cases.filter(c =>
     !c.order?.assignedTo &&
     c.status !== 'pool' &&
-    c.status !== 'finalized' &&
-    c.status !== 'amended'
+    c.status !== 'finalized'
   );
 
   const results: { caseId: string; result: RoutingResult }[] = [];

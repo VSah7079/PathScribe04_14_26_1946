@@ -5,7 +5,7 @@
  * When SystemConfigContext adds retention fields, replace localStorage with context.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import '../../../pathscribe.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

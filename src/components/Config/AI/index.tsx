@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
 import { aiBehaviorService } from '../../../services/aiBehavior/IAIBehaviorService';
 import type { AIBehaviorConfig } from '../../../services/aiBehavior/IAIBehaviorService';
-import { resolveAiConfig, PROVIDER_MODELS } from './aiProviderConfig';
+import { resolveAiConfig } from './aiProviderConfig';
 import AiProviderSettings from './AiProviderSettings';
 import OrchestratorConfigSection from './OrchestratorConfigSection';
 

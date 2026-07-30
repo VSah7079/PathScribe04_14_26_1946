@@ -32,7 +32,7 @@
  */
 
 import type { Case }                                          from '@/types/case/Case';
-import type { ICaseService, PathologyCase, CaseFilterParams } from './ICaseService';
+import type { ICaseService, CaseFilterParams } from './ICaseService';
 import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
 import { mockCaseService }             from './mockCaseService';

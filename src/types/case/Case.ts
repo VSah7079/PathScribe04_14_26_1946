@@ -12,6 +12,7 @@ import { CaseComment } from "./CaseComment";
 import type { Icd10Code } from "@/services/diagnosisCodes/IDiagnosisCodesService";
 import { CaseStatus } from "./CaseStatus";
 import type { FieldLineageEntry } from '@/types/reports/FieldLineage';
+import type { RevisionType } from '@/types/reports/AmendmentRecord';
 
 export interface CaseCoding {
   icd10?: string[];
@@ -58,6 +59,17 @@ export interface OrderMetadata {
   clientId?: string;
   /** Cached display name — avoids async lookup on every render */
   clientName?: string;
+  /** Physical facility within originHospitalId's organisation — Site.id
+   *  from Organisation.sites[] (e.g. 'SITE-MRI'), NOT a bare shortName
+   *  like 'MRI'. Optional: not every accessioning flow captures this yet,
+   *  and originHospitalId alone remains the org-level identity — this is
+   *  additional, finer-grained routing info, not a replacement for it.
+   *  Added for Mode A hardware dispatch (services/hardware/
+   *  ModeAInterfaceService.ts) — an organisation with multiple physical
+   *  sites (MFT has three: MRI, WYT, NMGH) may need to route to a
+   *  different local Vantage/Cerebro instance per site, which
+   *  originHospitalId alone can't distinguish. */
+  siteId?: string;
   /**
    * LIS/requisition cross-reference fields — added June 2026. These
    * existed in seed data for a while but were never part of this type,
@@ -130,7 +142,25 @@ export interface AccessionMetadata {
   accessionNumber: string;
   accessionPrefix?: string;
   accessionYear?: number;
+  /** The human-facing accession identifier — what appears on labels,
+   *  cassettes, and report headers (orchestratorEngine.ts's narrative
+   *  header reads this field directly). Distinct from Case.id, which
+   *  stays a stable, always-'O26-'-prefixed internal routing key —
+   *  CaseRouter.isOrchCase() and friends key off Case.id specifically
+   *  because it has to be resolvable before the Case object is even
+   *  fetched, so it can never be allowed to vary with an org's mask
+   *  config. fullAccession is what's actually driven by the org-scoped
+   *  CaseMaskConfig registry (services/caseRegistry/) — see
+   *  AccessionPage.tsx's handleSubmit. */
   fullAccession?: string;
+  /** Which mask pattern actually produced fullAccession — kept as its
+   *  own field (not re-derived) specifically so that if an organisation
+   *  changes their mask pattern later, historical cases still show
+   *  which pattern generated their number rather than being silently
+   *  reinterpreted under the new one. */
+  formatPatternUsed?: string;
+  accessionedAt?: string;
+  accessionedBy?: string;
   caseNumber?: number;
   externalAccession?: string;
 }
@@ -199,6 +229,13 @@ export interface SynopticReportInstance {
   /** Was in seed data already but never formally typed. True once this
    *  instance has been finalized at least once before. */
   previouslyFinalizedForAmendment?: boolean;
+  /** The revision kind of the most recent release on this instance —
+   *  'original' (never revised) | 'amendment' | 'correction' | 'addendum'.
+   *  Source of truth for the Final (Amended)/(Corrected)/(Addendum)
+   *  display label; set in releasePendingAmendmentOrAddendum
+   *  (SynopticReportPage.tsx) from the released AmendmentRecord's own
+   *  `type`. See AMENDMENT_STATUS_REDESIGN_BRIEF.md. */
+  lastRevisionType?: RevisionType;
   /** NEW (DR-2) — field-level provenance for delta fields chosen during
    *  amendment reseeding. Only present for fields that differed across
    *  the version history being compared; unchanged fields' provenance
@@ -389,6 +426,17 @@ export interface Case {
 
   accession: AccessionMetadata;
   originHospitalId: string;
+  /** Physical facility within originHospitalId's organisation — e.g.
+   *  'SITE-MRI' (Site.id, from Organisation.sites[]), not a bare
+   *  shortName like 'MRI'. Optional: most orgs today have exactly one
+   *  site, and originHospitalId alone is sufficient for anything that
+   *  doesn't need facility-level routing. Only populated where it's
+   *  actually captured — see AccessionPage.tsx. Added specifically for
+   *  ModeAInterfaceService's site-level hardware routing (an
+   *  organisation like MFT can have multiple physical Vantage/Cerebro
+   *  endpoints, one per site, which originHospitalId alone can't
+   *  distinguish between). */
+  originSiteId?: string;
   originEnterpriseId: string;
   isReferenceLabCase?: boolean;
 
@@ -401,24 +449,89 @@ export interface Case {
   caseFlags?: CaseFlag[];
   specimenFlags?: SpecimenFlag[];
   status: CaseStatus;
+  /** Denormalized mirror of the active/most-recently-touched synoptic
+   *  instance's SynopticReportInstance.lastRevisionType — kept in sync
+   *  at the same moment (releasePendingAmendmentOrAddendum in
+   *  SynopticReportPage.tsx) purely so list views (WorklistPage,
+   *  WorklistTable, SearchPage) can render the Final (Amended)/
+   *  (Corrected)/(Addendum) badge without joining against amendment
+   *  records for every row. The instance-level field is the source of
+   *  truth for any per-instance question; this is a display convenience
+   *  only. See AMENDMENT_STATUS_REDESIGN_BRIEF.md. */
+  lastRevisionType?: RevisionType;
   createdAt: string;
   updatedAt: string;
   sharedWith?: string[];
   acceptedBy?: string;
   returnedBy?: string;
   closedBy?: string;
-  /**
-   * 'orchestrator' added — mockOrchestratorCaseService.ts's own header
-   * comment confirms this was a deliberate fix ("was 'pathscribe', now
-   * 'orchestrator'"), but this type was never updated to match, and every
-   * case object in that file is cast `as any`, which silently hid the
-   * mismatch from the compiler. Before this fix, 'pathscribe' === Orchestration
-   * was the only reading the type supported, but zero real Orchestration
-   * cases actually carry that value — they all carry 'orchestrator'. Any
-   * code checking `reportingMode === 'pathscribe'` to detect Orchestration
-   * mode (e.g. contextBuilder.ts's default) was matching nothing real.
-   * 'pathscribe' is left in the union for backward compat with anything
-   * already relying on it as a default/fallback value.
-   */
-  reportingMode?: "pathscribe" | "orchestrator" | "native" | "copilot";
+  /** See ReportingMode's doc comment below for the full history of this
+   *  field's value set (why 'pathscribe' and 'native' were dropped). */
+  reportingMode?: ReportingMode;
+  /** Structured multi-person team roster — formerly only writable via
+   *  `as any` from CaseTeamModal.tsx with no declared type. See
+   *  CaseParticipant below. order.assignedTo/assignedParticipationTypeId
+   *  remain the indexed "who owns this case" fields that
+   *  listCasesForUser() filters on — participants[] is kept in sync with
+   *  them via syncPrimaryAssignee() (caseAssignmentSync.ts), not a
+   *  replacement for them. */
+  participants?: CaseParticipant[];
+  /** Local workflow overlay for 'assist'-mode cases, where CaseStatus is
+   *  LIS-owned and off-limits to PathScribe. NOTE: not yet wired to
+   *  anything — no code in this pass reads or writes it. Added because
+   *  it's been specified across several design-doc revisions, but same
+   *  standard as the CaseStatus cleanup earlier in this project: an
+   *  unused field is worth flagging, not silently shipping. Wire it up
+   *  for real once something actually needs it, same as the other
+   *  once-speculative fields that got seeded properly rather than left
+   *  inert. */
+  pathscribeWorkflowState?: 'idle' | 'ai_processing' | 'suggestions_ready' | 'draft_in_progress';
+}
+
+/** 'assist' = LIS owns the report, PathScribe is read-only on lifecycle —
+ *  operates as a visual overlay / intelligent assistant only, mutating
+ *  pathscribeWorkflowState, never CaseStatus. 'orchestrator' = PathScribe
+ *  owns the full report lifecycle, native/owned CaseStatus, transitions
+ *  only via explicit clinical actions (Sign-out, Submit for Review, Claim
+ *  from Pool).
+ *
+ *  Renamed from 'copilot' (was the value here previously) for trademark
+ *  safety — Microsoft holds a live registered trademark on COPILOT
+ *  (USPTO Reg #6256123, Computer & Software Services class), and while
+ *  the term has been used informally by other companies, this codebase's
+ *  own use of "CoPilot" wasn't purely an internal code name — it
+ *  surfaced in user-facing strings (a Contribution-dashboard label, a
+ *  BottomActionBar tooltip). 'assist' was chosen specifically because
+ *  it's a generic/descriptive word — legally the *safer* category, since
+ *  generic terms are too weak to function as anyone's exclusive
+ *  trademark, unlike a coined/stylized term like "Copilot" that reads as
+ *  source-identifying. Not a substitute for real trademark clearance —
+ *  a defensive rename made ahead of that, not instead of it.
+ *
+ *  Narrowed from the old 4-value union ("pathscribe" | "orchestrator" |
+ *  "native" | "copilot") before this rename — 'native' had zero real
+ *  usage anywhere in the app, and 'pathscribe' was already dead for
+ *  detecting Orchestration mode (mockOrchestratorCaseService.ts switched
+ *  to 'orchestrator' for that; see contextBuilder.ts's fallback, also
+ *  fixed). */
+export type ReportingMode = 'assist' | 'orchestrator';
+
+// ── Case Team / Delegation domain types ─────────────────────────────────────
+// Formalizes what was previously a locally-declared, `as any`-cast-only type
+// inside CaseTeamModal.tsx (the only place it existed) into a real, shared
+// domain type — per the Case Assignment Synchronization TDS. Real seeded
+// participation type IDs today: 'primary', 'attending', 'consultant',
+// 'resident', 'cytotechnologist', 'frozen', 'grossing', 'second_opinion'
+// (see mockParticipationTypeService.ts) — participationTypeIds should only
+// ever contain values from that set, not invented strings.
+export interface CaseParticipant {
+  staffId: string;
+  staffName: string;
+  externalId?: string;
+  externalIdType?: 'GMC' | 'NPI';
+  source: 'system' | 'manual';
+  participationTypeIds: string[];
+  addedBy: string;
+  addedAt: string;
+  status: 'active' | 'removed';
 }

@@ -52,10 +52,46 @@ const STATUS_MAP: Record<string, string> = {
   'registered':   'draft',
   'preliminary':  'in-progress',
   'final':        'finalized',
-  'amended':      'amended',
-  'corrected':    'amended',
+  'amended':      'finalized',
+  'corrected':    'finalized',
   'cancelled':    'finalized',
   'unknown':      'draft',
+};
+
+// A FHIR DiagnosticReport.status value conflates two different things:
+// workflow progress ('preliminary', 'final') and the *kind* of update
+// ('amended', 'corrected', 'appended'). In principle 'corrected' should be
+// PathScribe's 'correction' (administrative/clerical, diagnosis
+// unchanged) and 'amended' should be PathScribe's 'amendment' (diagnostic
+// change) — but standard FHIR implementations rarely carry the granular
+// audit meta-reasoning (an explicit CAP-aligned reason code, or similar)
+// needed to actually distinguish the two on the wire. Trusting the status
+// code alone to make that call risks silently misclassifying a genuine
+// diagnostic revision as a clerical correction (or vice versa) — a much
+// worse outcome than under-classifying.
+//
+// So both 'amended' and 'corrected' map to PathScribe's 'amendment' here
+// as the safe default: it's the stricter bucket (full explanation +
+// Clinical Notification gate), so a real diagnostic change coming in
+// mislabeled 'corrected' still gets the audit trail it needs; the reverse
+// error (a true clerical fix landing in 'amendment') only costs an
+// unnecessary notification prompt, not a compliance gap. This is inbound-
+// integrity-safe, not a claim that FHIR's 'corrected' always means a real
+// PathScribe correction.
+//
+// Preserving the finer 'correction' distinction on inbound FHIR data would
+// require one of:
+//   (a) a custom FHIR Extension on DiagnosticReport carrying an explicit
+//       CAP-aligned reason/classification code, agreed with the sending
+//       trust's LIS team, or
+//   (b) an out-of-band workflow metadata channel (a side-channel message,
+//       a shared reference table) carrying that classification separately
+//       from the FHIR resource itself.
+// Neither exists yet — this mapping should be revisited once one does,
+// not worked around by guessing at status-code semantics.
+const REVISION_TYPE_MAP: Record<string, 'amendment' | 'correction' | 'addendum' | undefined> = {
+  'amended':   'amendment',
+  'corrected': 'amendment',
 };
 
 // ── FHIR priority → PathScribe priority ─────────────────────────────────────
@@ -118,8 +154,9 @@ function mapDiagnosticReportToCase(
   return {
     id:     accessionNumber,
     status: STATUS_MAP[report.status] ?? 'draft',
+    lastRevisionType: REVISION_TYPE_MAP[report.status],
 
-    reportingMode: 'copilot', // LIS-owned reports are always Copilot mode
+    reportingMode: 'assist', // LIS-owned reports are always Assist mode
 
     accession: {
       accessionNumber,
@@ -161,10 +198,17 @@ async function fhirFetch(path: string): Promise<any> {
   return res.json();
 }
 
-async function resolveReference(ref: string): Promise<any | null> {
+// _resolveReference: real, working FHIR reference resolver — zero callers
+// anywhere in this file today. Not exported either. Likely built ahead
+// of actually needing to resolve a reference (e.g. a DiagnosticReport's
+// Patient reference) before that consumer was written. Flagged, not
+// deleted — this is exactly the kind of real logic that'd be needed the
+// moment FHIR reference resolution actually gets wired up.
+async function _resolveReference(ref: string): Promise<any | null> {
   try { return await fhirFetch(ref.startsWith('/') ? ref.slice(1) : ref); }
   catch { return null; }
 }
+void _resolveReference; // underscore alone doesn't suppress noUnusedLocals for a top-level function declaration
 
 // ── Service implementation ───────────────────────────────────────────────────
 const audit = new AuditLogger('FHIR-LIS');

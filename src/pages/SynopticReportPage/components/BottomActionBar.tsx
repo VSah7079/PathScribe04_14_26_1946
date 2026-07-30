@@ -149,7 +149,12 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [claimOpen,  setClaimOpen]  = useState(false);
   const [emrOpen,    setEmrOpen]    = useState(false);
-  const { openCompanion, closeCompanion, isWindowOpen: isEmrWindowOpen } = useCompanionWindow({
+  const { openCompanion, closeCompanion: _closeCompanion, isWindowOpen: isEmrWindowOpen } = useCompanionWindow({
+    // _closeCompanion unused — openCompanion/isEmrWindowOpen are both
+    // actively used below, but nothing in this component ever explicitly
+    // closes the EMR companion window (presumably left to the user
+    // closing the actual browser window). Flagged, not deleted, in case
+    // an explicit "Close EMR" action is wanted later.
     windowName: 'PathScribeEMRSidecar',
     preferredWidth: 1200,
     preferredHeight: 800,
@@ -315,7 +320,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             </ActionButton>
           </>
         )}
-        {!isPool && caseData?.reportingMode !== 'copilot' && (allFinalized || isFinalized) && status !== 'finalized' && (
+        {!isPool && caseData?.reportingMode !== 'assist' && (allFinalized || isFinalized) && status !== 'finalized' && (
           <ActionButton
             onClick={onSignOut}
             variant="solid"
@@ -327,12 +332,12 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             ✍️ Sign Out Case
           </ActionButton>
         )}
-        {!isPool && caseData?.reportingMode === 'copilot' && (allFinalized || isFinalized) && (
-          <span className="ps-bab-copilot-complete" title="CoPilot cases are completed via Finalize — the LIS owns official sign-out for this reporting mode, not PathScribe.">
+        {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized) && (
+          <span className="ps-bab-assist-complete" title="Assist-mode cases are completed via Finalize — the LIS owns official sign-out for this reporting mode, not PathScribe.">
             ✓ Finalized — structured data complete, LIS handles official sign-out
           </span>
         )}
-        {!isPool && caseData?.reportingMode === 'copilot' && (allFinalized || isFinalized) && onPrint && (
+        {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized) && onPrint && (
           <ActionButton onClick={onPrint} variant="outline" color="#0891B2" title="Print this report">
             🖨 Print
           </ActionButton>

@@ -30,8 +30,8 @@
 
     // Linting
     "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": false,
     "noImplicitAny": false,
     "noImplicitThis": false,

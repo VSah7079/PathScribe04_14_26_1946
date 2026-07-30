@@ -5,6 +5,8 @@ import { messageService, clientService, auditService, specimenDeficiencyService 
 import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
 import { formatDate as formatDateLocale, localeForJurisdiction } from '@/utils/formatDate';
+import { getCaseStatusLabel, hasDisplayableRevision, REVISION_ACCENT } from '@/utils/caseRevisionDisplay';
+import type { RevisionType } from '@/types/reports/AmendmentRecord';
 import type { Jurisdiction } from '@/types/systemConfig';
 import '../../pathscribe.css';
 import { Case } from "../../types/case/Case";
@@ -201,8 +203,6 @@ const getStatusStyle = (status: string) => {
       return { bg: 'rgba(245,158,11,0.15)',  color: '#F59E0B', border: 'rgba(245,158,11,0.3)'  }; // amber  — matches Needs Review tile
     case 'finalized':
       return { bg: 'rgba(16,185,129,0.15)',  color: '#10B981', border: 'rgba(16,185,129,0.3)'  }; // green  — matches Completed tile
-    case 'amended':
-      return { bg: 'rgba(139,92,246,0.15)',  color: '#8B5CF6', border: 'rgba(139,92,246,0.3)'  }; // violet — matches Amended tile
     case 'finalizing':
       return { bg: 'rgba(236,72,153,0.15)',  color: '#EC4899', border: 'rgba(236,72,153,0.3)'  }; // pink — matches Finalizing tile
     case 'pool':
@@ -281,9 +281,10 @@ const SpecimenChip: React.FC<{
  * won't reflect PA grossing-bench completion for Orchestration cases. See
  * GrossingReportInstance in Case.ts.
  */
-const StatusDot: React.FC<{ status: string; isGrossed?: boolean }> = React.memo(({ status, isGrossed }) => {
-  const s = getStatusStyle(status);
-  const label = status.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
+const StatusDot: React.FC<{ status: string; isGrossed?: boolean; lastRevisionType?: RevisionType }> = React.memo(({ status, isGrossed, lastRevisionType }) => {
+  const isRevisedFinal = hasDisplayableRevision(status, lastRevisionType);
+  const s = isRevisedFinal ? REVISION_ACCENT : getStatusStyle(status);
+  const label = getCaseStatusLabel(status, lastRevisionType);
   const isPool = status === 'pool';
 
   return (
@@ -328,7 +329,14 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   onRowSelect,
   onFirstCaseId,
   onDisplayOrder,
-  flagDefinitions = [],
+  // flagDefinitions is a real prop three callers (SearchPage, WorklistPage,
+  // SynopticReportPage) actively pass in, but nothing in this component
+  // reads it — likely orphaned when the Sidecar overlay (mentioned in
+  // renderFlag's own comment below) was removed. Not dead code to delete;
+  // flagged here rather than silently suppressed. If Computational-flag
+  // styling in renderFlag was the intended consumer, that's real,
+  // separate follow-up work.
+  flagDefinitions: _flagDefinitions = [],
   forceCardView = false,
 }) => {
   const navigate = useNavigate();
@@ -659,7 +667,12 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       // 4. Status-based filters — cast to any to bypass CaseStatus union constraint
       if (activeFilter === 'review')     return c.status === 'pending-review';
       if (activeFilter === 'inprogress') return c.status === 'in-progress';
-      if (activeFilter === 'amended')    return c.status === 'amended';
+      // 'amended' (displayed as "Amendment & Addenda") is no longer a
+      // CaseStatus value to match against — WorklistPage computes it via
+      // live open-draft/LIS-notice lookups (async) and pre-filters
+      // filteredCases before it ever reaches this component, so this is
+      // a pass-through rather than a second status-string check.
+      if (activeFilter === 'amended')    return true;
       if (activeFilter === 'draft')      return c.status === 'draft';
       if (activeFilter === 'finalizing') return c.status === 'finalizing';
 
@@ -943,19 +956,19 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // removed along with the Sidecar entirely (see SidecarDrawer.tsx's
   // deletion). The pill's own tooltip now carries the description
   // that was the only real information the overlay ever added.
-  const renderFlag = (appliedFlag: any, caseId: string, idx: number, isSpecimen: boolean) => {
+  const renderFlag = (appliedFlag: any, idx: number, isSpecimen: boolean) => {
     return <FlagChip key={`flag-${appliedFlag.id ?? idx}-${idx}`} flag={appliedFlag} isSpecimen={isSpecimen} />;
   };
 
 
-  const renderFlags = (caseFlags: any[], specimenFlags: any[], caseId: string) => {
+  const renderFlags = (caseFlags: any[], specimenFlags: any[], _caseId: string) => {
     const allFlags = [
       ...caseFlags.map(f => ({ f, isSpecimen: false })),
       ...specimenFlags.map(f => ({ f, isSpecimen: true })),
     ];
     return (
       <div className="wl-flags-wrap">
-        {allFlags.map(({ f, isSpecimen }, idx) => renderFlag(f, caseId, idx, isSpecimen))}
+        {allFlags.map(({ f, isSpecimen }, idx) => renderFlag(f, idx, isSpecimen))}
       </div>
     );
   };
@@ -1016,8 +1029,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                 const isRush = (c.order as any)?.priority === 'Rush';
                 const hasOpenDeficiency = caseIdsWithOpenDeficiency.has(c.id);
                 const isSelected = selectedCaseId ? c.id === selectedCaseId : false;
-                const statusStyle = getStatusStyle(c.status);
-                const statusLabel = c.status.replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+                const isRevisedFinalCard = hasDisplayableRevision(c.status, c.lastRevisionType);
+                const statusStyle = isRevisedFinalCard ? REVISION_ACCENT : getStatusStyle(c.status);
+                const statusLabel = getCaseStatusLabel(c.status, c.lastRevisionType);
 
                 let cardClass = 'wl-card';
                 if (isSelected) cardClass += ' wl-card--selected';
@@ -1370,6 +1384,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       <StatusDot
                         status={c.status}
                         isGrossed={!!(c as any)?.grossingReports?.some((r: any) => r.status === 'finalized')}
+                        lastRevisionType={c.lastRevisionType}
                       />
                     </td>
                   </tr>

@@ -13,7 +13,7 @@
 // and resolved by whoever has the context to resolve it — deliberately
 // NOT the "unblock now, admin approves later" governance pattern used
 // for Physician/Client/SpecimenCategory. That pattern fits an unrecognized
-// *code* with an unambiguous key to dedupe against (NPI, Client.code).
+// *code* with an unambiguous key to dedupe against (NPI, Client.assigningAuthority).
 // A deficiency doesn't have that — it's a workflow event, not an entity
 // needing deduplication — and per the design discussion, the person
 // best positioned to resolve it (the accessioner, looking at the actual

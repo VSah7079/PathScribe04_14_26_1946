@@ -4,7 +4,6 @@ import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 
 const KEY     = 'pathscribe_routing_rules_v1';
-const VERSION = 'routing_rules_v1';
 
 function load(): RoutingRule[] {
   return storageGet<RoutingRule[]>(KEY, []) ?? [];

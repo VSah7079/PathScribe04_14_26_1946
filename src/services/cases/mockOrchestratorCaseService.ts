@@ -1339,9 +1339,408 @@ const STAGE0_CASES: Case[] = [
   } as any,
 ];
 
+// ─── Completed demo cases ───────────────────────────────────────────────────
+// 3 fully-completed Orchestration cases, added per Pete's request so a data
+// reset always restores a known set of finalized cases for demoing the
+// completed-report / Final (No Revision) view — distinct from PETE_CASES/
+// PAUL_CASES above, which are deliberately left mid-workflow (gross-complete,
+// awaiting Microscopic, etc.) to demo those earlier stages and shouldn't be
+// disturbed. Both Gross and Microscopic are genuinely complete: grossingReports
+// finalized, synopticReports finalized with every required field answered
+// (diagnostic field values are generic placeholders — the templates
+// themselves only have placeholder "Option N" labels outside the Biomarkers
+// section, per the CAP/RCPath content-licensing cleanup noted at the top of
+// mockCaseService.ts) plus a fully completed Biomarkers panel, since only
+// breast_invasive and lung_adeno carry real markerGroup-tagged fields today.
+const COMPLETED_DEMO_CASES: Case[] = [
+
+  {
+    id: 'O26-0024', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0024', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0024' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    status: 'finalized' as any,
+    patient: { id: 'OPAT-024', mrn: '200024', firstName: 'Walter', lastName: 'Higgins', dateOfBirth: isoYearsAgo(69, 2, 14), sex: 'M' },
+    specimens: [
+      { id: 'O26-0024-SP-A', label: 'A', description: 'Right upper lobectomy', receivedAt: isoDaysAgo(9), collectedAt: isoDaysAgo(9), specimenFlags: [{ id: 'comp-mprof-0024', name: 'Molecular Profiling', lisCode: 'MPROF', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0024-SP-A' }],
+        blocks: [
+          { id: 'blk-0024-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-0024-a1-1', stainName: 'H&E', status: 'Coverslipped' },
+            { id: 'stn-0024-a1-2', stainName: 'PD-L1 (22C3)', status: 'Coverslipped' },
+          ] },
+          { id: 'blk-0024-a2', label: '2', status: 'Embedded', stains: [{ id: 'stn-0024-a2-1', stainName: 'H&E', status: 'Coverslipped' }] },
+        ] },
+      { id: 'O26-0024-SP-B', label: 'B', description: 'Mediastinal lymph node stations 4R, 7, 10R', receivedAt: isoDaysAgo(9), collectedAt: isoDaysAgo(9), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Helen Marsh', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: 'Incidental 3.1 cm right upper lobe nodule on CT surveillance. PET-avid, SUV 8.4. Proceeding to lobectomy with mediastinal lymph node dissection.', receivedDate: isoDaysAgo(9), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    caseFlags: [
+      { id: 'thoracic-mdt', tagClass: 'ADMINISTRATIVE', name: 'Thoracic MDT Scheduled', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
+    ],
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "right upper lobectomy," is a lung lobe measuring 12.0 x 8.5 x 4.0 cm with an intact pleural surface. Sectioning reveals a firm, tan-white, spiculated mass measuring 3.1 x 2.8 x 2.5 cm situated 1.8 cm from the nearest staple line and grossly distant from the visceral pleura. Representative sections submitted.\n\nReceived separately, labeled "mediastinal lymph node stations 4R, 7, 10R," are three aggregates of fibrofatty tissue containing multiple lymph nodes, entirely submitted.',
+      microscopicDescription: '', ancillaryStudies: 'PD-L1 (22C3), EGFR, ALK, and ROS1 testing performed on the primary tumor block — see Biomarkers section.',
+    },
+    synopticReports: [{
+      instanceId: `O26-0024-SP-A_lung_${iid()}`, specimenId: 'O26-0024-SP-A',
+      templateId: 'lung_adeno', templateName: 'Generic Template — Lung Adeno',
+      status: 'finalized',
+      answers: {
+        synchronous_tumors: 'synchronous_tumors_opt_1', procedure: ['procedure_opt_2'], specimen_laterality: 'specimen_laterality_opt_2',
+        tumor_focality: 'tumor_focality_opt_1', tumor_site: ['tumor_site_opt_1'], tumor_size: '3.1 cm', invasive_component_size: '2.8 cm',
+        histologic_type: 'histologic_type_opt_3', histologic_grade: 'histologic_grade_opt_2', stas: 'stas_opt_2',
+        visceral_pleura_invasion: 'visceral_pleura_invasion_opt_1', adjacent_structure_invasion: 'None identified',
+        treatment_effect: 'Not applicable — no prior neoadjuvant therapy', lymphovascular_invasion: ['lymphovascular_invasion_opt_1'],
+        tumor_comment: 'Tumor confined to lung parenchyma without pleural involvement.',
+        margin_status_invasive: 'Negative, closest margin 1.8 cm', margin_status_noninvasive: ['margin_status_noninvasive_opt_1'],
+        margin_comment: 'Bronchial and vascular margins free of tumor.',
+        prior_ln_sampling: 'prior_ln_sampling_opt_1', regional_ln_status: 'regional_ln_status_opt_1', ln_with_tumor_count: '0',
+        nodal_sites_with_tumor: 'None', extranodal_extension: 'extranodal_extension_opt_1', ln_examined_count: '9',
+        nodal_sites_examined: 'Stations 4R, 7, 10R', regional_ln_comment: 'All examined lymph nodes negative for malignancy.',
+        distant_metastasis_sites: ['distant_metastasis_sites_opt_1'], tnm_descriptors: ['tnm_descriptors_opt_1'],
+        stage_category_a: 'stage_category_a_opt_3', stage_category_b: 'stage_category_b_opt_1', stage_category_c: 'stage_category_c_opt_1',
+        additional_findings: ['additional_findings_opt_1'], special_studies_note: 'Molecular profiling performed per institutional reflex-testing protocol; see Biomarkers section.',
+        comments: 'Findings consistent with primary pulmonary adenocarcinoma, stage pT2aN0.',
+        pdl1_tps: 'pdl1_tps_1_49', egfr_status: 'egfr_not_detected', egfr_variant: 'Not applicable', alk_status: 'alk_non_rearranged', ros1_status: 'ros1_not_tested',
+      },
+      createdAt: isoDaysAgo(8), updatedAt: isoDaysAgo(6),
+    }],
+    grossingReports: [
+      {
+        instanceId: `O26-0024-SP-A_grossing_${iid()}`, specimenId: 'O26-0024-SP-A',
+        templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+        status: 'finalized', previouslyFinalized: true,
+        answers: {
+          label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_intact',
+          number_of_containers: '1', specimen_type: 'Right upper lobectomy', weight: '210',
+          overall_dimensions: '12.0 x 8.5 x 4.0 cm', external_surface_features: ['surface_smooth_glistening'], color: ['color_tan_pink'],
+          orientation_inking: 'orientation_by_surgeon', orientation_inking_detail: 'Staple line marks the parenchymal resection margin',
+          lesion_present: 'lesion_present_yes', number_of_lesions: '1', lesion_type: 'lesion_ulcerated',
+          lesion_dimensions: '3.1 x 2.8 x 2.5 cm', lesion_color_consistency: 'lesion_color_white_tan_firm',
+          distance_to_closest_margin: '1.8 cm to staple line', cut_surface: 'Firm, tan-white, spiculated, distant from the visceral pleura',
+          submission_status: 'submission_representative', total_cassettes: '6',
+          cassette_key: '1-2: Tumor with adjacent parenchyma; 3: Closest staple margin; 4: Uninvolved lung; 5-6: Pleura',
+          megablock_used: 'megablock_no', gross_photography_taken: 'photography_yes', frozen_section_performed: 'frozen_section_no',
+          comments: 'Specimen oriented by surgeon; staple line marks the bronchovascular margin.',
+        },
+        createdAt: isoDaysAgo(9), updatedAt: isoDaysAgo(9),
+      },
+      {
+        instanceId: `O26-0024-SP-B_grossing_${iid()}`, specimenId: 'O26-0024-SP-B',
+        templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+        status: 'finalized', previouslyFinalized: true,
+        answers: {
+          label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_fragmented',
+          number_of_containers: '3', specimen_type: 'Mediastinal lymph node stations 4R, 7, 10R', weight: '14',
+          overall_dimensions: 'Three aggregates, largest 4.0 x 2.5 x 1.5 cm', external_surface_features: ['surface_smooth_glistening'],
+          color: ['color_tan_pink', 'color_yellow_adipose'], orientation_inking: 'orientation_not_oriented', lesion_present: 'lesion_present_no_diffuse',
+          submission_status: 'submission_entire', total_cassettes: '3', cassette_key: '1: Station 4R; 2: Station 7; 3: Station 10R',
+          megablock_used: 'megablock_no', gross_photography_taken: 'photography_no', frozen_section_performed: 'frozen_section_no',
+          comments: 'Nine discrete lymph nodes identified across the three station packets.',
+        },
+        createdAt: isoDaysAgo(9), updatedAt: isoDaysAgo(9),
+      },
+    ],
+    createdAt: isoDaysAgo(9), updatedAt: isoDaysAgo(6),
+  } as any,
+
+  {
+    id: 'O26-0025', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0025', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0025' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    status: 'finalized' as any,
+    patient: { id: 'OPAT-025', mrn: '200025', firstName: 'Diane', lastName: 'Castellano', dateOfBirth: isoYearsAgo(55, 6, 2), sex: 'F' },
+    specimens: [
+      { id: 'O26-0025-SP-A', label: 'A', description: 'Left total mastectomy', receivedAt: isoDaysAgo(7), collectedAt: isoDaysAgo(7), specimenFlags: [{ id: 'comp-erh2-0025', name: 'ER / PR / HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0025-SP-A' }],
+        blocks: [
+          { id: 'blk-0025-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-0025-a1-1', stainName: 'H&E', status: 'Coverslipped' },
+            { id: 'stn-0025-a1-2', stainName: 'ER', status: 'Coverslipped' },
+            { id: 'stn-0025-a1-3', stainName: 'PR', status: 'Coverslipped' },
+            { id: 'stn-0025-a1-4', stainName: 'HER2', status: 'Coverslipped' },
+          ] },
+          { id: 'blk-0025-a2', label: '2', status: 'Embedded', stains: [{ id: 'stn-0025-a2-1', stainName: 'H&E', status: 'Coverslipped' }] },
+        ] },
+      { id: 'O26-0025-SP-B', label: 'B', description: 'Left axillary sentinel lymph nodes — three', receivedAt: isoDaysAgo(7), collectedAt: isoDaysAgo(7), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Priya Nathan', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: '2.8 cm left breast mass on screening mammogram, BI-RADS 5. Core biopsy confirmed invasive ductal carcinoma. Proceeding to mastectomy with sentinel node biopsy.', receivedDate: isoDaysAgo(7), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    caseFlags: [
+      { id: 'breast-mdt', tagClass: 'ADMINISTRATIVE', name: 'Breast MDT Scheduled', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
+    ],
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "left total mastectomy," is a breast specimen measuring 20.0 x 16.0 x 5.0 cm with attached skin ellipse and nipple. Sectioning reveals a firm, tan-white mass measuring 2.8 x 2.4 x 2.0 cm located at the 10 o\'clock position, 0.8 cm from the deep (posterior) margin. Representative sections submitted.\n\nReceived separately, labeled "left axillary sentinel lymph nodes," are three lymph nodes, entirely submitted.',
+      microscopicDescription: '', ancillaryStudies: 'ER, PR, and HER2 immunohistochemistry performed on the primary tumor block — see Biomarkers section.',
+    },
+    synopticReports: [{
+      instanceId: `O26-0025-SP-A_breast_${iid()}`, specimenId: 'O26-0025-SP-A',
+      templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive',
+      status: 'finalized',
+      answers: {
+        procedure: 'procedure_opt_1', specimen_laterality: 'specimen_laterality_opt_1', tumor_site: ['tumor_site_opt_2'],
+        histologic_type: 'histologic_type_opt_1', histologic_grade: 'Grade 2', tumor_size: '2.8 cm', tumor_focality: 'tumor_focality_opt_1',
+        dcis: 'Present, low nuclear grade, comprising approximately 10% of tumor volume', tumor_extent: 'Confined to breast parenchyma, no chest wall or skin involvement',
+        lvi: 'lvi_opt_2', dermal_lvi: 'dermal_lvi_opt_1', microcalcifications: ['microcalcifications_opt_1'],
+        treatment_effect_breast: 'treatment_effect_breast_opt_1', treatment_effect_nodes: 'treatment_effect_nodes_opt_1',
+        rcb_parameters: 'Not applicable — no neoadjuvant therapy administered',
+        margin_status_invasive: 'margin_status_invasive_opt_1', closest_margins_invasive: ['closest_margins_invasive_opt_1'],
+        margins_involved_invasive: ['margins_involved_invasive_opt_1'], distance_invasive_to_named_margins: '0.8 cm to posterior margin',
+        margin_status_dcis: 'margin_status_dcis_opt_1', closest_margins_dcis: ['closest_margins_dcis_opt_1'], margins_involved_dcis: ['margins_involved_dcis_opt_1'],
+        distance_dcis_to_named_margins: '1.0 cm to posterior margin', margin_comment: 'All margins free of invasive and in situ carcinoma.',
+        regional_ln_status: 'regional_ln_status_opt_1', number_ln_macrometastases: '0', number_ln_micrometastases: '0', number_ln_itc: '0',
+        largest_nodal_met_mm: '0', extranodal_extension: 'extranodal_extension_opt_1', total_ln_examined: '3', sentinel_ln_examined: '3',
+        regional_ln_comment: 'Three sentinel nodes identified and examined, all negative for metastatic carcinoma.',
+        distant_metastasis: ['distant_metastasis_opt_1'], ptnm_classification: 'pT2 N0 (sn) — per AJCC 8th edition',
+        er_status: 'er_status_positive', er_percent_positive: '95%', er_intensity: 'er_intensity_3',
+        pr_status: 'pr_status_positive', pr_percent_positive: '80%', pr_intensity: 'pr_intensity_2',
+        her2_ihc_score: 'her2_ihc_1p', her2_ish_status: 'her2_ish_nonamplified', ki67_index: '14%',
+      },
+      createdAt: isoDaysAgo(6), updatedAt: isoDaysAgo(4),
+    }],
+    grossingReports: [
+      {
+        instanceId: `O26-0025-SP-A_grossing_${iid()}`, specimenId: 'O26-0025-SP-A',
+        templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+        status: 'finalized', previouslyFinalized: true,
+        answers: {
+          label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_intact',
+          number_of_containers: '1', specimen_type: 'Left total mastectomy', weight: '620',
+          overall_dimensions: '20.0 x 16.0 x 5.0 cm', external_surface_features: ['surface_smooth_glistening'], color: ['color_tan_pink'],
+          orientation_inking: 'orientation_by_surgeon', orientation_inking_detail: 'Superior surface inked black, deep margin inked blue per surgeon',
+          lesion_present: 'lesion_present_yes', number_of_lesions: '1', lesion_type: 'lesion_ulcerated',
+          lesion_dimensions: '2.8 x 2.4 x 2.0 cm', lesion_color_consistency: 'lesion_color_white_tan_firm',
+          distance_to_closest_margin: '0.8 cm to deep (posterior) margin', cut_surface: 'Firm, tan-white, stellate, infiltrating margins',
+          submission_status: 'submission_representative', total_cassettes: '8',
+          cassette_key: '1-3: Tumor with adjacent parenchyma; 4: Deep margin; 5: Superior margin; 6: Nipple; 7-8: Uninvolved parenchyma',
+          megablock_used: 'megablock_no', gross_photography_taken: 'photography_yes', frozen_section_performed: 'frozen_section_no',
+          comments: 'Specimen oriented by surgeon with inked margins as noted.',
+        },
+        createdAt: isoDaysAgo(7), updatedAt: isoDaysAgo(7),
+      },
+      {
+        instanceId: `O26-0025-SP-B_grossing_${iid()}`, specimenId: 'O26-0025-SP-B',
+        templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+        status: 'finalized', previouslyFinalized: true,
+        answers: {
+          label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_intact',
+          number_of_containers: '1', specimen_type: 'Left axillary sentinel lymph nodes', weight: '9',
+          overall_dimensions: 'Three nodes, largest 1.8 cm', external_surface_features: ['surface_smooth_glistening'], color: ['color_tan_pink'],
+          orientation_inking: 'orientation_not_oriented', lesion_present: 'lesion_present_no_diffuse',
+          submission_status: 'submission_entire', total_cassettes: '3', cassette_key: '1-3: Sentinel nodes 1-3, entirely submitted',
+          megablock_used: 'megablock_no', gross_photography_taken: 'photography_no', frozen_section_performed: 'frozen_section_no',
+          comments: 'Three sentinel nodes identified by blue dye and radiotracer, submitted entirely.',
+        },
+        createdAt: isoDaysAgo(7), updatedAt: isoDaysAgo(7),
+      },
+    ],
+    createdAt: isoDaysAgo(7), updatedAt: isoDaysAgo(4),
+  } as any,
+
+  {
+    id: 'O26-0026', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0026', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0026' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    status: 'finalized' as any,
+    patient: { id: 'OPAT-026', mrn: '200026', firstName: 'Monica', lastName: 'Ferreira', dateOfBirth: isoYearsAgo(48, 10, 27), sex: 'F' },
+    specimens: [
+      { id: 'O26-0026-SP-A', label: 'A', description: 'Right breast lumpectomy', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(5), specimenFlags: [{ id: 'comp-erh2-0026', name: 'ER / PR / HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0026-SP-A' }],
+        blocks: [
+          { id: 'blk-0026-a1', label: '1', status: 'Embedded', stains: [
+            { id: 'stn-0026-a1-1', stainName: 'H&E', status: 'Coverslipped' },
+            { id: 'stn-0026-a1-2', stainName: 'ER', status: 'Coverslipped' },
+            { id: 'stn-0026-a1-3', stainName: 'PR', status: 'Coverslipped' },
+            { id: 'stn-0026-a1-4', stainName: 'HER2', status: 'Coverslipped' },
+          ] },
+        ] },
+      { id: 'O26-0026-SP-B', label: 'B', description: 'Right axillary sentinel lymph nodes — two', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(5), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Priya Nathan', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: '1.6 cm right breast mass, BI-RADS 5. Core biopsy confirmed invasive carcinoma, hormone-receptor studies pending. Proceeding to lumpectomy with sentinel node biopsy.', receivedDate: isoDaysAgo(5), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    caseFlags: [
+      { id: 'breast-mdt', tagClass: 'ADMINISTRATIVE', name: 'Breast MDT Scheduled', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
+    ],
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "right breast lumpectomy," is an irregular fragment of fibrofatty breast tissue measuring 6.5 x 5.0 x 3.0 cm. Sectioning reveals a firm, gray-white mass measuring 1.6 x 1.4 x 1.2 cm, 0.5 cm from the closest (superior) inked margin. Representative sections submitted.\n\nReceived separately, labeled "right axillary sentinel lymph nodes," are two lymph nodes, entirely submitted.',
+      microscopicDescription: '', ancillaryStudies: 'ER, PR, and HER2 immunohistochemistry performed on the primary tumor block — see Biomarkers section.',
+    },
+    synopticReports: [{
+      instanceId: `O26-0026-SP-A_breast_${iid()}`, specimenId: 'O26-0026-SP-A',
+      templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive',
+      status: 'finalized',
+      answers: {
+        procedure: 'procedure_opt_2', specimen_laterality: 'specimen_laterality_opt_2', tumor_site: ['tumor_site_opt_3'],
+        histologic_type: 'histologic_type_opt_1', histologic_grade: 'Grade 3', tumor_size: '1.6 cm', tumor_focality: 'tumor_focality_opt_1',
+        dcis: 'Not identified', tumor_extent: 'Confined to breast parenchyma, no chest wall or skin involvement',
+        lvi: 'lvi_opt_2', dermal_lvi: 'dermal_lvi_opt_1', microcalcifications: ['microcalcifications_opt_2'],
+        treatment_effect_breast: 'treatment_effect_breast_opt_1', treatment_effect_nodes: 'treatment_effect_nodes_opt_1',
+        rcb_parameters: 'Not applicable — no neoadjuvant therapy administered',
+        margin_status_invasive: 'margin_status_invasive_opt_1', closest_margins_invasive: ['closest_margins_invasive_opt_2'],
+        margins_involved_invasive: ['margins_involved_invasive_opt_1'], distance_invasive_to_named_margins: '0.5 cm to superior margin',
+        margin_status_dcis: 'margin_status_dcis_opt_1', closest_margins_dcis: ['closest_margins_dcis_opt_1'], margins_involved_dcis: ['margins_involved_dcis_opt_1'],
+        distance_dcis_to_named_margins: 'Not applicable — no DCIS identified', margin_comment: 'All margins free of invasive carcinoma.',
+        regional_ln_status: 'regional_ln_status_opt_1', number_ln_macrometastases: '0', number_ln_micrometastases: '0', number_ln_itc: '0',
+        largest_nodal_met_mm: '0', extranodal_extension: 'extranodal_extension_opt_1', total_ln_examined: '2', sentinel_ln_examined: '2',
+        regional_ln_comment: 'Two sentinel nodes identified and examined, both negative for metastatic carcinoma.',
+        distant_metastasis: ['distant_metastasis_opt_1'], ptnm_classification: 'pT1c N0 (sn) — per AJCC 8th edition',
+        er_status: 'er_status_negative', er_percent_positive: '0%', er_intensity: 'er_intensity_1',
+        pr_status: 'pr_status_negative', pr_percent_positive: '0%', pr_intensity: 'pr_intensity_1',
+        her2_ihc_score: 'her2_ihc_0', her2_ish_status: 'her2_ish_not_performed', ki67_index: '42%',
+      },
+      createdAt: isoDaysAgo(4), updatedAt: isoDaysAgo(2),
+    }],
+    grossingReports: [
+      {
+        instanceId: `O26-0026-SP-A_grossing_${iid()}`, specimenId: 'O26-0026-SP-A',
+        templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+        status: 'finalized', previouslyFinalized: true,
+        answers: {
+          label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_intact',
+          number_of_containers: '1', specimen_type: 'Right breast lumpectomy', weight: '58',
+          overall_dimensions: '6.5 x 5.0 x 3.0 cm', external_surface_features: ['surface_smooth_glistening'], color: ['color_tan_pink'],
+          orientation_inking: 'orientation_by_surgeon', orientation_inking_detail: 'Superior margin inked blue, all other margins inked black per surgeon',
+          lesion_present: 'lesion_present_yes', number_of_lesions: '1', lesion_type: 'lesion_ulcerated',
+          lesion_dimensions: '1.6 x 1.4 x 1.2 cm', lesion_color_consistency: 'lesion_color_white_tan_firm',
+          distance_to_closest_margin: '0.5 cm to superior margin', cut_surface: 'Firm, gray-white, irregular margins',
+          submission_status: 'submission_representative', total_cassettes: '5',
+          cassette_key: '1-2: Tumor with adjacent parenchyma; 3: Superior margin; 4: Deep margin; 5: Uninvolved parenchyma',
+          megablock_used: 'megablock_no', gross_photography_taken: 'photography_yes', frozen_section_performed: 'frozen_section_no',
+          comments: 'Specimen oriented by surgeon with inked margins as noted.',
+        },
+        createdAt: isoDaysAgo(5), updatedAt: isoDaysAgo(5),
+      },
+      {
+        instanceId: `O26-0026-SP-B_grossing_${iid()}`, specimenId: 'O26-0026-SP-B',
+        templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+        status: 'finalized', previouslyFinalized: true,
+        answers: {
+          label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_intact',
+          number_of_containers: '1', specimen_type: 'Right axillary sentinel lymph nodes', weight: '5',
+          overall_dimensions: 'Two nodes, largest 1.2 cm', external_surface_features: ['surface_smooth_glistening'], color: ['color_tan_pink'],
+          orientation_inking: 'orientation_not_oriented', lesion_present: 'lesion_present_no_diffuse',
+          submission_status: 'submission_entire', total_cassettes: '2', cassette_key: '1-2: Sentinel nodes 1-2, entirely submitted',
+          megablock_used: 'megablock_no', gross_photography_taken: 'photography_no', frozen_section_performed: 'frozen_section_no',
+          comments: 'Two sentinel nodes identified by blue dye and radiotracer, submitted entirely.',
+        },
+        createdAt: isoDaysAgo(5), updatedAt: isoDaysAgo(5),
+      },
+    ],
+    createdAt: isoDaysAgo(5), updatedAt: isoDaysAgo(2),
+  } as any,
+
+  // ── Status-coverage cases ────────────────────────────────────────────────
+  // 2 more minimal cases added per Pete's request, covering the two
+  // CaseStatus values that have real, wired display logic (SearchPage.tsx
+  // status pills, HeaderBar.tsx stage mapping) but had never actually been
+  // produced by any seed case: 'intraoperative-complete' and
+  // 'pathologist-review'. The other unused CaseStatus values ('closed',
+  // 'returned', 'accepted', 'ai-assisted', 'claiming') were deliberately
+  // NOT seeded — checked and confirmed zero consuming logic anywhere in the
+  // app for any of them (the Case fields they'd back — sharedWith/
+  // acceptedBy/returnedBy/closedBy — are themselves unread everywhere, and
+  // 'claiming' is a same-named but unrelated local Step type in
+  // PoolClaimModal.tsx, never actually written to case.status). Seeding
+  // those now would just be an inert label with no workflow behind it to
+  // test — worth building for real once those features exist, not before.
+
+  {
+    id: 'O26-0027', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0027', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0027' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    status: 'intraoperative-complete' as any,
+    patient: { id: 'OPAT-027', mrn: '90144', firstName: 'Kenji', lastName: 'Higashi', dateOfBirth: '1965-05-14', sex: 'M' },
+    specimens: [
+      { id: 'O26-0027-SP-A', label: 'A', description: 'Left thyroid lobe', receivedAt: '2026-07-19T10:03:00.000Z', collectedAt: '2026-07-19T10:03:00.000Z', specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Owusu', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: '1.9 cm left thyroid nodule, indeterminate on FNA (Bethesda IV). Proceeding to left lobectomy with intraoperative frozen section.', receivedDate: isoDaysAgo(1), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    caseFlags: [],
+    diagnostic: {
+      grossDescription: '', microscopicDescription: '',
+      ancillaryStudies: 'Intraoperative frozen section performed — see merged intraop session for milestone history and frozen diagnosis.',
+    },
+    grossingReports: [{
+      instanceId: `O26-0027-SP-A_grossing_${iid()}`, specimenId: 'O26-0027-SP-A',
+      templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+      status: 'draft', answers: {},
+      createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+    }],
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1),
+  } as any,
+
+  {
+    id: 'O26-0028', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0028', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0028' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    status: 'pathologist-review' as any,
+    patient: { id: 'OPAT-028', mrn: '200028', firstName: 'Renata', lastName: 'Alves', dateOfBirth: isoYearsAgo(58, 3, 12), sex: 'F' },
+    specimens: [
+      { id: 'O26-0028-SP-A', label: 'A', description: 'Left breast lumpectomy', receivedAt: isoDaysAgo(3), collectedAt: isoDaysAgo(3), specimenFlags: [{ id: 'comp-erh2-0028', name: 'ER / PR / HER2', lisCode: 'ERH2', color: '#3b82f6', severity: 2, tagClass: 'COMPUTATIONAL', orderedVia: 'lis', specimenId: 'O26-0028-SP-A' }],
+        blocks: [{ id: 'blk-0028-a1', label: '1', status: 'Embedded', stains: [
+          { id: 'stn-0028-a1-1', stainName: 'H&E', status: 'Coverslipped' },
+          { id: 'stn-0028-a1-2', stainName: 'ER', status: 'Coverslipped' },
+          { id: 'stn-0028-a1-3', stainName: 'PR', status: 'Coverslipped' },
+          { id: 'stn-0028-a1-4', stainName: 'HER2', status: 'Coverslipped' },
+        ] }] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Priya Nathan', clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital", clinicalIndication: '1.7 cm left breast mass, BI-RADS 5. Core biopsy confirmed invasive ductal carcinoma. Proceeding to lumpectomy.', receivedDate: isoDaysAgo(3), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    caseFlags: [],
+    diagnostic: {
+      grossDescription: 'Received fresh, labeled "left breast lumpectomy," is an irregular fragment of fibrofatty breast tissue measuring 5.8 x 4.2 x 2.6 cm. Sectioning reveals a firm, gray-white mass measuring 1.7 x 1.5 x 1.2 cm, 0.9 cm from the closest (medial) inked margin. Representative sections submitted.',
+      microscopicDescription: '', ancillaryStudies: 'ER, PR, and HER2 immunohistochemistry performed — see Biomarkers section.',
+    },
+    synopticReports: [{
+      // Content is fully complete — every required field and the full
+      // Biomarkers panel answered — but the instance stays 'draft' and
+      // the case sits at 'pathologist-review' rather than 'finalized':
+      // this represents the report as ready-for-sign-out, before the
+      // pathologist has actually clicked Sign Out. Distinct from the
+      // finalized/lastRevisionType cases added earlier, which are already
+      // past that point.
+      instanceId: `O26-0028-SP-A_breast_${iid()}`, specimenId: 'O26-0028-SP-A',
+      templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive',
+      status: 'draft',
+      answers: {
+        procedure: 'procedure_opt_2', specimen_laterality: 'specimen_laterality_opt_1', tumor_site: ['tumor_site_opt_2'],
+        histologic_type: 'histologic_type_opt_1', histologic_grade: 'Grade 2', tumor_size: '1.7 cm', tumor_focality: 'tumor_focality_opt_1',
+        dcis: 'Not identified', tumor_extent: 'Confined to breast parenchyma, no chest wall or skin involvement',
+        lvi: 'lvi_opt_2', dermal_lvi: 'dermal_lvi_opt_1', microcalcifications: ['microcalcifications_opt_2'],
+        treatment_effect_breast: 'treatment_effect_breast_opt_1', treatment_effect_nodes: 'treatment_effect_nodes_opt_1',
+        rcb_parameters: 'Not applicable — no neoadjuvant therapy administered',
+        margin_status_invasive: 'margin_status_invasive_opt_1', closest_margins_invasive: ['closest_margins_invasive_opt_2'],
+        margins_involved_invasive: ['margins_involved_invasive_opt_1'], distance_invasive_to_named_margins: '0.9 cm to medial margin',
+        margin_status_dcis: 'margin_status_dcis_opt_1', closest_margins_dcis: ['closest_margins_dcis_opt_1'], margins_involved_dcis: ['margins_involved_dcis_opt_1'],
+        distance_dcis_to_named_margins: 'Not applicable — no DCIS identified', margin_comment: 'All margins free of invasive carcinoma.',
+        regional_ln_status: 'regional_ln_status_opt_1', number_ln_macrometastases: '0', number_ln_micrometastases: '0', number_ln_itc: '0',
+        largest_nodal_met_mm: '0', extranodal_extension: 'extranodal_extension_opt_1', total_ln_examined: '0', sentinel_ln_examined: '0',
+        regional_ln_comment: 'No nodal tissue submitted with this specimen.',
+        distant_metastasis: ['distant_metastasis_opt_1'], ptnm_classification: 'pT1c Nx — nodal status pending',
+        er_status: 'er_status_positive', er_percent_positive: '85%', er_intensity: 'er_intensity_3',
+        pr_status: 'pr_status_positive', pr_percent_positive: '55%', pr_intensity: 'pr_intensity_2',
+        her2_ihc_score: 'her2_ihc_1p', her2_ish_status: 'her2_ish_nonamplified', ki67_index: '16%',
+      },
+      createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(0),
+    }],
+    grossingReports: [{
+      instanceId: `O26-0028-SP-A_grossing_${iid()}`, specimenId: 'O26-0028-SP-A',
+      templateId: 'grossing_standard_tissue', templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+      status: 'finalized', previouslyFinalized: true,
+      answers: {
+        label_id_verified: 'label_verified_yes', received_in: 'received_nbf', specimen_integrity: 'integrity_intact',
+        number_of_containers: '1', specimen_type: 'Left breast lumpectomy', weight: '52',
+        overall_dimensions: '5.8 x 4.2 x 2.6 cm', external_surface_features: ['surface_smooth_glistening'], color: ['color_tan_pink'],
+        orientation_inking: 'orientation_by_surgeon', orientation_inking_detail: 'Medial margin inked blue, all other margins inked black per surgeon',
+        lesion_present: 'lesion_present_yes', number_of_lesions: '1', lesion_type: 'lesion_ulcerated',
+        lesion_dimensions: '1.7 x 1.5 x 1.2 cm', lesion_color_consistency: 'lesion_color_white_tan_firm',
+        distance_to_closest_margin: '0.9 cm to medial margin', cut_surface: 'Firm, gray-white, irregular margins',
+        submission_status: 'submission_representative', total_cassettes: '4',
+        cassette_key: '1-2: Tumor with adjacent parenchyma; 3: Medial margin; 4: Uninvolved parenchyma',
+        megablock_used: 'megablock_no', gross_photography_taken: 'photography_yes', frozen_section_performed: 'frozen_section_no',
+        comments: 'Specimen oriented by surgeon with inked margins as noted.',
+      },
+      createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(3),
+    }],
+    createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(0),
+  } as any,
+];
+
 // ─── Seed ─────────────────────────────────────────────────────
 
-const ORCH_CASES: Case[] = [...PETE_CASES, ...PAUL_CASES, ...AMBER_CASES, ...BRONWYN_CASES, ...POOL_CASES, ...STAGE0_CASES];
+const ORCH_CASES: Case[] = [...PETE_CASES, ...PAUL_CASES, ...AMBER_CASES, ...BRONWYN_CASES, ...POOL_CASES, ...STAGE0_CASES, ...COMPLETED_DEMO_CASES];
 
 // Version-gated re-seed — same mechanism as mockCaseService.ts's
 // MOCK_VERSION. Without this, a stale localStorage snapshot silently

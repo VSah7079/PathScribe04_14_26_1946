@@ -16,7 +16,7 @@
 //     initial_signout trigger, since there's no amendment yet.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ReportVersionMode = 'copilot' | 'orchestration';
+export type ReportVersionMode = 'assist' | 'orchestration';
 export type ReportVersionTrigger = 'initial_signout' | 'amendment';
 
 export interface ReportVersionRecord {

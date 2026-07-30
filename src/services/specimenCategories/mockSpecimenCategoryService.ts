@@ -14,7 +14,12 @@ const SEED_SPECIMEN_CATEGORIES: SpecimenCategory[] = [
     name: 'Surgical Tissue',
     description: 'Solid tissue biopsies and resections — sectioned, measured, inked, submitted for histology. Core needle biopsy, excisional biopsy, lumpectomy, colectomy, hysterectomy, lobectomy, radical prostatectomy, lymph node dissection, skin excision.',
     defaultGrossingTemplateId: 'grossing_standard_tissue',
-    accessionPrefix: 'O',
+    // Real per-category numbering, wired into mockCaseRegistryService's
+    // allocateNextCaseNumber (previously every category shared the same
+    // hardcoded 'O' prefix and no category ever had its own series,
+    // despite these fields existing). 'S' for Surgical Pathology.
+    accessionPrefix: 'S',
+    numberSeries: 'SURGICAL',
     status: 'Active',
   },
   {
@@ -22,7 +27,11 @@ const SEED_SPECIMEN_CATEGORIES: SpecimenCategory[] = [
     name: 'Fluid / Cytology',
     description: 'Fluid, wash, or cytological specimens processed for cell block/smear rather than sectioning. Pleural fluid, peritoneal lavage, BAL, urine cytology, CSF, ascites, pericardial fluid, thyroid FNA, bronchial wash.',
     defaultGrossingTemplateId: 'grossing_fluid_cytology',
-    accessionPrefix: 'O',
+    // 'NG' — Non-GYN Cytology. This category's description is entirely
+    // non-gynecologic specimen types (no Pap smears), so it maps cleanly
+    // onto the standard Non-GYN Cytology series without splitting into two.
+    accessionPrefix: 'NG',
+    numberSeries: 'CYTOLOGY_NONGYN',
     status: 'Active',
   },
   {
@@ -30,12 +39,23 @@ const SEED_SPECIMEN_CATEGORIES: SpecimenCategory[] = [
     name: 'Histology-Only / Consultation',
     description: 'Previously processed specimens needing histology prep only — no grossing steps. Outside consultation slides, previously embedded tissue for re-cut/re-stain, decalcified bone already grossed elsewhere, EM specimens.',
     defaultGrossingTemplateId: 'grossing_histology_only',
-    accessionPrefix: 'O',
+    // 'CS' — Consultation series, distinct from primary Surgical
+    // accessions. A reasonable inference, not a universally fixed CAP
+    // convention the way S/surgical and NG/non-GYN cytology are — worth
+    // a quick sanity check against real lab practice.
+    accessionPrefix: 'CS',
+    numberSeries: 'CONSULTATION',
     status: 'Active',
   },
   // Deliberately Unverified/autoCreated — gives the admin approval screen
   // (once built) something real to display before any live order intake
   // exists, same reasoning as ph4/ph6 in mockPhysicianService.ts.
+  // Left with the old inherited 'O' prefix and no numberSeries on
+  // purpose: this isn't a settled real category yet (that's the whole
+  // point of Unverified), and in real practice a frozen section is a
+  // phase within its parent surgical case, not a separately-accessioned
+  // specimen type — sharing the surgical series by default is
+  // operationally correct here, not just unconfigured.
   {
     id: 'cat-auto-000001',
     name: 'Frozen Section',

@@ -38,7 +38,6 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import type { Editor } from '@tiptap/react';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 

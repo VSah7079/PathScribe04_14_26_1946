@@ -13,9 +13,7 @@ interface SidebarProps {
   onSelectSpecimen?: (specimenId: string) => void;
   onAddSynoptic?: () => void;
   onEditSpecimen?: (specimenId: string) => void;
-  onAddSpecimen?: () => void;
-  onAddBlock?: () => void;
-  onAddStain?: () => void;
+  
   onOpenCaseComment?: () => void;
   onOpenSpecimenComment?: (specimenId: string) => void;
   hasCaseComment?: boolean;
@@ -79,9 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSelectSpecimen,
   onAddSynoptic,
   onEditSpecimen,
-  onAddSpecimen,
-  onAddBlock,
-  onAddStain,
+  
   onOpenCaseComment,
   onOpenSpecimenComment,
   hasCaseComment = false,

@@ -78,4 +78,19 @@ export interface SpecimenEntry {
    * genuinely just "one specimen, one block."
    */
   protocolId?: string;
+
+  /** Governance trio matching Client/Physician/SpecimenCategory's
+   *  "unblock now, admin reviews after" pattern — added alongside
+   *  findOrCreateByName below. Deliberately additive to the existing
+   *  active:boolean rather than a new tri-state status field: active
+   *  has 6 real consumers already (AccessionPage, SpecimenEditModal,
+   *  SearchPage, SpecimenDictionarySection, TATConfigSection,
+   *  SubspecialtiesSection per this file's sibling interface's own
+   *  header note) and doesn't need to change meaning — an auto-created
+   *  entry is seeded active:true (order processing must never block on
+   *  an unmatched specimen code) and separately flagged here for admin
+   *  review, rather than sitting inactive/unusable until reviewed. */
+  autoCreated?: boolean;
+  autoCreatedAt?: string;
+  autoCreatedNote?: string;
 }

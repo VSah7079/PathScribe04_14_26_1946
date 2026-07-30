@@ -7,6 +7,6 @@
 import { IClientSLAService } from './IClientSLAService';
 const notImpl = (): never => { throw new Error('firestoreClientSLAService: not yet implemented'); };
 export const firestoreClientSLAService: IClientSLAService = {
-  getAll: notImpl, getById: notImpl, getByClientCode: notImpl,
+  getAll: notImpl, getById: notImpl, getByAssigningAuthority: notImpl,
   add: notImpl, update: notImpl, delete: notImpl,
 };

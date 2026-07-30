@@ -287,10 +287,3 @@ function countNodes(template: ReportTemplate): number {
   return template.assembly?.filter(s => s.enabled).length ?? 0;
 }
 
-function btn(color: string, small = false): React.CSSProperties {
-  return {
-    background: color, border: 'none', borderRadius: small ? 5 : 7,
-    color: '#fff', cursor: 'pointer', fontSize: small ? 11 : 12,
-    fontWeight: 600, padding: small ? '4px 10px' : '7px 16px', whiteSpace: 'nowrap',
-  };
-}

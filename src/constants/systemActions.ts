@@ -463,10 +463,10 @@ export const ACTION_GROUPS: ActionGroup[] = [
   },
 
 
-  // ── AI CoPilot ───────────────────────────────────────────────────────────
+  // ── AI Assist ────────────────────────────────────────────────────────────
   {
-    id: 'ai_copilot',
-    title: 'AI CoPilot',
+    id: 'ai_assist',
+    title: 'AI Assist',
     actions: [
       { id: 'ai.diagnosisSuggest',   label: 'AI Diagnosis Suggestions',      description: 'View and interact with AI-suggested synoptic field values', internalKey: 'F17+PS001', shortcutable: true },
       { id: 'ai.grossAssist',        label: 'AI Gross Description Assist',   description: 'AI assistance when entering gross description', internalKey: 'F17+PS002' },
@@ -599,7 +599,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'physician.view': true, 'client.view': true,
     'qc.viewQueue': true, 'qc.claimReview': true, 'qc.submitReview': true,
     'qc.escalateDiscordance': true, 'qc.viewDashboard': true,
-    // AI CoPilot
+    // AI Assist
     'ai.reviewTriage': true, 'ai.codeSuggest': true, 'ai.narrativeGenerate': true,
     // Orchestration — narrative template selection and section management
     'ai.changeReportTemplate': true, 'ai.acceptNarrativeSection': true, 'ai.regenerateSection': true,
@@ -653,7 +653,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.markUrgent': true,
     'physician.view': true, 'client.view': true,
     'qc.viewQueue': true, 'qc.viewDashboard': true,
-    // AI CoPilot — residents can use AI but not narrative generation
+    // AI Assist — residents can use AI but not narrative generation
     'ai.reviewTriage': true, 'ai.codeSuggest': true,
     // Delegation — residents can request review but not reassign or countersign
     'delegation.open': true, 'delegation.secondOpinion': true,

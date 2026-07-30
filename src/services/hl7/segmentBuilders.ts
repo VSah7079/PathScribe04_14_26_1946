@@ -91,7 +91,18 @@ export function buildPV1(patientClass: 'O' | 'I' = 'O', setId = 1): string {
  * value for a fresh request — confirmed across every real ORM^O01
  * example checked.
  */
-export function buildORC(placerOrderNumber: string, fillerOrderNumber: string, orderedAt?: string, setId = 1): string {
+// setId unused — every OTHER segment builder in this file (buildPID,
+// buildPV1, buildOBR, buildNTE, buildSPM) uses setId as the literal
+// first field after the segment name, but ORC-1 is already the Order
+// Control code ('NW'), not a set-sequence slot the way those other
+// segments' position 1 is. Inheriting the setId parameter for
+// signature consistency with the other builders, then not using it,
+// left this exact gap. NOT guess-fixed here — inserting String(setId)
+// into the wrong ORC field position would produce a non-compliant HL7
+// message, the same class of mistake vantageAdapter.ts's stub exists
+// to avoid. If ORC genuinely needs multi-instance set tracking, that
+// needs a real HL7 v2.x ORC field-table lookup, not a guess.
+export function buildORC(placerOrderNumber: string, fillerOrderNumber: string, orderedAt?: string, _setId = 1): string {
   return [
     'ORC', 'NW',
     placerOrderNumber, // ORC-2

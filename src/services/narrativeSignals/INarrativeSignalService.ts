@@ -8,7 +8,7 @@
 // This makes stored signals safe for aggregation and partner sharing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ServiceResult, ID } from '../types';
+import type { ServiceResult } from '../types';
 import type { StructuralEditType } from './deidentification';
 
 export interface NarrativeEditSignal {

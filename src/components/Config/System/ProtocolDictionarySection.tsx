@@ -15,7 +15,7 @@ import '../../../pathscribe.css';
 import { protocolService, stainTypeService } from '../../../services';
 import { useSpecimenDictionary } from './useSpecimenDictionary';
 import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
-import type { Protocol, ProtocolPathway, PathwayTask, StainType, ProtocolHistoryEntry } from '../../../services';
+import type { Protocol, ProtocolPathway, PathwayTask, StainType } from '../../../services';
 
 type Draft = Omit<Protocol, 'id' | 'version' | 'updatedBy' | 'updatedAt'>;
 
@@ -159,26 +159,6 @@ function rowsToProtocols(rows: any[], stainTypes: StainType[]): ParsedProtocolsR
   return { drafts, unmatchedStainNames };
 }
 
-const TEMPLATE_EXAMPLE_ROWS: ProtocolRow[] = [
-  {
-    'Protocol Name': 'Standard Small Biopsy', 'Description': 'Routine small specimens — gallbladder, appendix, skin shave, etc.',
-    'Requires Triage': 'No', 'Triage Checklist': '',
-    'Track Name': 'Routine', 'Fixative': '10% Neutral Buffered Formalin', 'Processing Format': 'Standard', 'Requires Decal': 'No',
-    'Step Order': 1, 'Step Action': 'Cut Level 1', 'Slide Count': 1, 'Hold': 'No', 'Stains': 'H&E',
-  },
-  {
-    'Protocol Name': 'Medical Renal Protocol', 'Description': 'Native/transplant kidney biopsy — three parallel tracks.',
-    'Requires Triage': 'Yes', 'Triage Checklist': 'Verify specimen adequacy; Split core into three segments',
-    'Track Name': 'Light Microscopy', 'Fixative': '10% Neutral Buffered Formalin', 'Processing Format': 'Standard', 'Requires Decal': 'No',
-    'Step Order': 1, 'Step Action': 'Cut Level 1', 'Slide Count': 1, 'Hold': 'No', 'Stains': 'H&E',
-  },
-  {
-    'Protocol Name': 'Medical Renal Protocol', 'Description': 'Native/transplant kidney biopsy — three parallel tracks.',
-    'Requires Triage': 'Yes', 'Triage Checklist': 'Verify specimen adequacy; Split core into three segments',
-    'Track Name': 'Immunofluorescence', 'Fixative': "Michel's Transport Medium", 'Processing Format': 'Frozen Block', 'Requires Decal': 'No',
-    'Step Order': 1, 'Step Action': 'Frozen Section', 'Slide Count': 7, 'Hold': 'No', 'Stains': 'IgG, IgA, IgM, C3, C1q, Kappa, Lambda',
-  },
-];
 
 // ── Real search + multi-select for stains — a scalable replacement for a ────
 // ── flat pill grid, since a real Stain Dictionary can run to hundreds ───────

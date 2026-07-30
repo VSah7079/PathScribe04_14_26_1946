@@ -24,7 +24,7 @@ export type OrganisationType =
 export type LisType =
   | 'WinPath' | 'Telepath' | 'Epic' | 'CoPath' | 'Beaker' | 'Other';
 
-export type WorkflowMode = 'copilot' | 'orchestration';
+export type WorkflowMode = 'assist' | 'orchestration';
 
 export type TemplateStandard = 'CAP' | 'RCPath';
 export type CodingSystem = 'SNOMED' | 'ICD10' | 'ICD11' | 'LOINC' | 'ICDO' | 'CPT' | 'OPCS4';
@@ -99,7 +99,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.dvmc.org:2575',
         defaultTemplateStandard: 'CAP',
         defaultLocale: 'en-US',
-        defaultWorkflowMode: 'copilot',
+        defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
         secureEmailGateway: 'Paubox',
       },
@@ -140,7 +140,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.mft.nhs.uk:2575',
         defaultTemplateStandard: 'RCPath',
         defaultLocale: 'en-GB',
-        defaultWorkflowMode: 'copilot',
+        defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'OPCS4', 'LOINC'],
       },
       {
@@ -155,7 +155,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.mft.nhs.uk:2575',
         defaultTemplateStandard: 'RCPath',
         defaultLocale: 'en-GB',
-        defaultWorkflowMode: 'copilot',
+        defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'OPCS4', 'LOINC'],
       },
       {
@@ -170,7 +170,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.mft.nhs.uk:2575',
         defaultTemplateStandard: 'RCPath',
         defaultLocale: 'en-GB',
-        defaultWorkflowMode: 'copilot',
+        defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'OPCS4', 'LOINC'],
       },
     ],
@@ -210,7 +210,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.midwestpath.com:2575',
         defaultTemplateStandard: 'CAP',
         defaultLocale: 'en-US',
-        defaultWorkflowMode: 'copilot',
+        defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
         secureEmailGateway: 'Paubox',
       },
@@ -251,7 +251,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.henryford.org:2575',
         defaultTemplateStandard: 'CAP',
         defaultLocale: 'en-US',
-        defaultWorkflowMode: 'copilot',
+        defaultWorkflowMode: 'assist',
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
         secureEmailGateway: 'Paubox',
       },
@@ -349,6 +349,21 @@ export function getHospitalIdForOrganisation(organisationId: string): string | n
     'ORG-HFHS': 'HOSP-HFHS',
   };
   return legacyReverseMap[organisationId] ?? null;
+}
+
+/** Fallback site for an organisation when no explicit originSiteId was
+ *  captured at accessioning — used by ModeAInterfaceService's context
+ *  resolution. Deliberately just the first entry in the organisation's
+ *  real sites[] array, not a dedicated "primary site" field — no such
+ *  field exists on Organisation today, and this codebase already has one
+ *  documented lesson (Site.siteCode being shared across MFT's three
+ *  sites) about not inventing a designation that isn't actually modeled.
+ *  If a genuine "which site is primary" concept is needed later, it
+ *  should be a real field with an admin UI to set it, not inferred from
+ *  array order. */
+export function getDefaultSiteId(organisationId: string): string | null {
+  const org = MOCK_ORGANISATIONS.find(o => o.id === organisationId);
+  return org?.sites?.[0]?.id ?? null;
 }
 
 /** Get display name for a hospital ID (used in UI until full migration) */

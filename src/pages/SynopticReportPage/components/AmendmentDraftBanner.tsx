@@ -66,7 +66,7 @@ export const AmendmentDraftBanner: React.FC<{
       <span className="ps-amendment-draft-banner-icon">🔶</span>
       <div className="ps-amendment-draft-banner-body">
         <div className="ps-amendment-draft-banner-header-row">
-          <div className="ps-amendment-draft-banner-title">AMENDMENT IN PROGRESS — not yet transmitted</div>
+          <div className="ps-amendment-draft-banner-title">{record?.type === 'correction' ? 'CORRECTION' : 'AMENDMENT'} IN PROGRESS — not yet transmitted</div>
           {onEdit && (
             <button type="button" className="ps-amendment-draft-banner-edit" onClick={onEdit}>✏️ Edit</button>
           )}
@@ -75,7 +75,7 @@ export const AmendmentDraftBanner: React.FC<{
         {record && (
           <div className="ps-amendment-summary-box ps-amendment-summary-box--compact">
             <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">Reason</span> {record.explanationOfChange}</div>
-            <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">Amended by</span> {record.authoringPathologist.userName}</div>
+            <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">{record.type === 'correction' ? 'Corrected by' : 'Amended by'}</span> {record.authoringPathologist.userName}</div>
             <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">Started</span> {formatDateTime(record.initiatedAt)}</div>
             {record.notification && (
               <div className="ps-amendment-summary-row">

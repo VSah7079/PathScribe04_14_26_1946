@@ -23,7 +23,25 @@
 // works, not something to half-build silently inside this pass.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AmendmentType = 'addendum' | 'amendment';
+// Three parallel revision kinds, matching CAP accreditation language and
+// HL7 result-status semantics ('C' = corrected vs. a revised-narrative
+// amendment) rather than a single 'amendment' bucket with an internal
+// severity flag — see AMENDMENT_STATUS_REDESIGN_BRIEF.md for the full
+// rationale. 'correction' is administrative/clerical only (specimen site
+// label, misspelled name) with the diagnosis unchanged — it does NOT
+// carry the Clinical Notification hard gate that 'amendment' does (see
+// captureFields/release in mockAmendmentService.ts), but still requires
+// explanationOfChange for the audit trail.
+export type AmendmentType = 'addendum' | 'amendment' | 'correction';
+
+// Mirrors AmendmentType, plus 'original' for a report that has never been
+// revised. Lives on SynopticReportInstance/Case (as `lastRevisionType`) —
+// the case/instance-level "what was the most recent revision" flag that
+// drives the Final (Amended) / Final (Corrected) / Final (Addendum)
+// display label once status is 'finalized'. Kept separate from
+// AmendmentType (the AmendmentRecord's own type) rather than reused
+// directly, since 'original' has no meaning on an AmendmentRecord itself.
+export type RevisionType = 'original' | AmendmentType;
 
 export type NotificationMethod = 'verbal_phone' | 'secure_page' | 'direct_lis_flag';
 

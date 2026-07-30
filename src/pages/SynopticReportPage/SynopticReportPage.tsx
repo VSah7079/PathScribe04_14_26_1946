@@ -51,7 +51,7 @@ import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { priorityService } from '@/services';
-import { intraoperativeService, discordanceService } from '@/services';
+import { intraoperativeService } from '@/services';
 import { amendmentService, reportVersionService } from '@/services';
 import { lisAmendmentNoticeService, messageService } from '@/services';
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
@@ -64,8 +64,6 @@ import type { CaseComment } from '@/types/case/CaseComment';
 import { specimenDeficiencyService } from '@/services';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
 import { FixativeTimeGateModal, type FixativeGateSpecimen, type FixativeResolution } from './modals/FixativeTimeGateModal';
-import { flagService }    from '@/services';
-import type { Flag }      from '@/services/flags/IFlagService';
 import SynopticSidebar    from '../../components/Synoptic/SynopticSidebar';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { useLogout } from '@/hooks/useLogout';
@@ -233,14 +231,6 @@ const SynopticReportPage: React.FC = () => {
     });
   }, [setHasUnsavedData]);
 
-  // Lets FlagManagerModal/CaseTeamModal (and similar action-modals)
-  // report their own local draft's dirty state into the SAME
-  // dirtySections mechanism content fields already use -- critical that
-  // this ADDS/REMOVES just its own named entry and recomputes
-  // hasUnsavedData from the total remaining set, rather than blindly
-  // setting true/false, otherwise closing a clean modal could wrongly
-  // clear a warning that's still legitimately active for an unrelated
-  // dirty content field.
   const [activeSpecimenId, setActiveSpecimenId] = useState<string>('');
   const [showCaseCommentModal, setShowCaseCommentModal] = useState(false);
   const [showSpecimenCommentModal, setShowSpecimenCommentModal] = useState(false);
@@ -584,7 +574,13 @@ const SynopticReportPage: React.FC = () => {
   }, [leftTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isOrchestrating,      setIsOrchestrating]      = useState(false);
-  const [resolvedTemplateId,   setResolvedTemplateId]   = useState<string>('tmpl-gold-standard');
+  const [_resolvedTemplateId,   setResolvedTemplateId]   = useState<string>('tmpl-gold-standard');
+  // _resolvedTemplateId is write-only — setResolvedTemplateId is called
+  // twice elsewhere with real, deliberately-resolved data
+  // (ctx.narrativeTemplate.templateId), but the value itself is never
+  // read anywhere in this file. Flagged as a likely real gap (this looks
+  // like it should feed into which physical report template renders, or
+  // the print/PDF flow) rather than silently deleted.
   const [resolvedTemplateName, setResolvedTemplateName] = useState<string>('Gold Standard — General Surgical Pathology');
   const [resolvedBy,           setResolvedBy]           = useState<string>('gold-standard');
   const [overrideTemplateId,   setOverrideTemplateId]   = useState<string | null>(null);
@@ -649,7 +645,13 @@ const SynopticReportPage: React.FC = () => {
 
   // AI suggestions lifted from RightSynopticPanel
   const [aiSuggestions,        setAiSuggestions]        = useState<Record<string, AiSuggestion>>({});
-  const [computationalResults, setComputationalResults] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
+  const [computationalResults, _setComputationalResults] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
+  // _setComputationalResults never called anywhere — computationalResults
+  // (the value) IS read in 3 real places (generateAiSuggestionsForReport,
+  // a useCallback dependency, and passed as a prop further down), so this
+  // stays permanently {} forever rather than ever holding real ancillary
+  // lab/computational data. A genuine functional gap, not cosmetic dead
+  // code — flagged rather than silently deleted.
 
   // ── AI Synthesis Status — fed to HeaderBar's badge ───────────────────────
   // SHORT-TERM SAFE FALLBACK, per Dr. Carter's review: a true tiered
@@ -1360,7 +1362,7 @@ const SynopticReportPage: React.FC = () => {
     specimenId: string; caseType: string; frozenCategory: import('@/types/intraop/IntraoperativeEntry').FrozenCategory; frozenDx: string;
   } | null>(null);
 
-  const sendMaterialOrderToLis = useCallback(async (order: {
+  const sendMaterialOrderToLis = useCallback(async (_order: {
     kind: 'block_recut' | 'stain';
     specimenId: string;
     label: string;
@@ -1667,7 +1669,7 @@ const SynopticReportPage: React.FC = () => {
         // no external LIS transmission to wait on the way CoPilot has.
         // It commits immediately; CoPilot still gates on a real,
         // confirmed send before releasing.
-        if (caseData.reportingMode !== 'copilot') {
+        if (caseData.reportingMode !== 'assist') {
           await amendmentService.release(anyInstance.pendingAmendmentId, {
             body: `Synoptic instance ${anyInstance.instanceId} corrected and re-signed out.`,
           });
@@ -1692,7 +1694,7 @@ const SynopticReportPage: React.FC = () => {
           if (generationError) showToast(`Version saved, but PDF snapshot failed to generate: ${generationError}`);
           await reportVersionService.create({
             caseId: caseData.id,
-            mode: 'copilot',
+            mode: 'assist',
             trigger: 'amendment',
             createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
             pdfBase64, generationError,
@@ -1950,19 +1952,22 @@ const SynopticReportPage: React.FC = () => {
       const hasConcurrentAmendment = (caseData.synopticReports ?? []).some(
         (r: any) => r.instanceId !== activeReportInstanceId && r.pendingAmendmentId
       );
-      await amendmentService.release(activeInstance.pendingAddendumId, {
+      const addendumReleaseRes = await amendmentService.release(activeInstance.pendingAddendumId, {
         addendumTitle: activeInstance.templateName,
         body: `Addendum synoptic instance ${activeInstance.instanceId} finalized.`,
       });
+      const releasedAddendumType = addendumReleaseRes.ok ? addendumReleaseRes.data.type : 'addendum';
       setCaseData(prev => prev ? {
         ...prev,
+        lastRevisionType: releasedAddendumType as any,
         synopticReports: (prev.synopticReports ?? []).map((r: any) =>
-          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined } : r
+          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined, lastRevisionType: releasedAddendumType } : r
         ),
       } as any : prev);
       caseRouter.updateCase(caseData.id, {
+        lastRevisionType: releasedAddendumType as any,
         synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
-          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined } : r
+          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined, lastRevisionType: releasedAddendumType } : r
         ),
       } as any).catch(console.error);
       sendSynopticReportToLis({
@@ -1976,23 +1981,30 @@ const SynopticReportPage: React.FC = () => {
 
     if (activeInstance?.pendingAmendmentId) {
       releasedAmendmentId = activeInstance.pendingAmendmentId;
-      await amendmentService.release(activeInstance.pendingAmendmentId, {
+      const amendmentReleaseRes = await amendmentService.release(activeInstance.pendingAmendmentId, {
         body: `Synoptic instance ${activeInstance.instanceId} corrected and re-signed out.`,
       });
+      // Whichever revision kind was actually released — 'amendment' today,
+      // 'correction' once that entry point exists — drives the Final
+      // (Amended)/(Corrected) display label. Falls back to 'amendment'
+      // only if the release call itself failed to return the record.
+      const releasedRevisionType = amendmentReleaseRes.ok ? amendmentReleaseRes.data.type : 'amendment';
       setCaseData(prev => prev ? {
         ...prev,
         status: 'finalized' as CaseStatus,
+        lastRevisionType: releasedRevisionType as any,
         synopticReports: (prev.synopticReports ?? []).map((r: any) =>
           r.instanceId === activeReportInstanceId
-            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined }
+            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined, lastRevisionType: releasedRevisionType }
             : r
         ),
       } as any : prev);
       caseRouter.updateCase(caseData.id, {
         status: 'finalized' as CaseStatus,
+        lastRevisionType: releasedRevisionType as any,
         synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
           r.instanceId === activeReportInstanceId
-            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined }
+            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined, lastRevisionType: releasedRevisionType }
             : r
         ),
       } as any).catch(console.error);
@@ -2005,12 +2017,12 @@ const SynopticReportPage: React.FC = () => {
     // CoPilot's real completion moment — version record, tagged correctly
     // based on what actually happened above rather than always assuming
     // first-time finalize.
-    if (caseData?.reportingMode === 'copilot' && activeInstance) {
+    if (caseData?.reportingMode === 'assist' && activeInstance) {
       const { pdfBase64, generationError } = await generateReportPdfSnapshot();
       if (generationError) showToast(`Version saved, but PDF snapshot failed to generate: ${generationError}`);
       await reportVersionService.create({
         caseId: caseData.id,
-        mode: 'copilot',
+        mode: 'assist',
         trigger: releasedAmendmentId ? 'amendment' : 'initial_signout',
         createdBy: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
         pdfBase64, generationError,
@@ -2102,7 +2114,14 @@ const SynopticReportPage: React.FC = () => {
   // stain orders straight to local state, bypassing this seam entirely —
   // the same gap handleAddBlock had before it was wired. This is the fix
   // for that: the picker now awaits this before adding anything locally.
-  const handleSendStainOrder = useCallback(async (specimenId: string, blockId: string, stainName: string): Promise<{ ok: boolean }> => {
+  const handleSendStainOrder = useCallback(async (specimenId: string, _blockId: string, stainName: string): Promise<{ ok: boolean }> => {
+    // _blockId unused — sendMaterialOrderToLis's own order type only
+    // has {kind, specimenId, label}, so there's nowhere to pass this
+    // through even though it's captured here. Harmless while
+    // sendMaterialOrderToLis is a simulation stub, but a real LIS
+    // transmission would need to know which physical block the new
+    // stain is being cut from — worth adding to that type when this
+    // stops being simulated.
     const result = await sendMaterialOrderToLis({ kind: 'stain', specimenId, label: stainName });
     if (!result.ok) {
       showToast(`LIS did not acknowledge the ${stainName} order — nothing was recorded. Try again.`);
@@ -2617,14 +2636,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
   const [amendmentSubmitError, setAmendmentSubmitError] = React.useState<string | null>(null);
   const [versionHistory, setVersionHistory] = React.useState<VersionHistoryEntry[]>([]);
   const [preOverrideSnapshot, setPreOverrideSnapshot] = React.useState<Record<string, unknown> | null>(null);
-  const [pendingFieldOverrides, setPendingFieldOverrides] = React.useState<Record<string, FieldOverride>>({});
+  const [_pendingFieldOverrides, setPendingFieldOverrides] = React.useState<Record<string, FieldOverride>>({});
   const [resumingAmendment, setResumingAmendment] = React.useState<{ clinicianName?: string; method?: NotificationMethod; notifiedAt?: string } | undefined>(undefined);
 
   // Opens a real draft record the moment the modal appears — captures
   // initiatedAt now, distinct from whenever it's actually released,
   // matching the spec's explicit "date/time workspace was opened"
   // requirement rather than only timestamping at submit.
-  const openAmendmentDraft = useCallback(async (mode: 'amendment' | 'addendum') => {
+  const openAmendmentDraft = useCallback(async (mode: 'amendment' | 'correction' | 'addendum') => {
     if (!caseData?.id) return;
     setAmendmentSubmitError(null);
     const res = await amendmentService.startDraft({
@@ -2663,6 +2682,12 @@ Original report issued pending ancillary studies. This amendment incorporates th
   const handleFieldOverridesConfirmed = useCallback((overrides: Record<string, FieldOverride>) => {
     if (!caseData || !activeReportInstanceId) return;
     setPendingFieldOverrides(overrides);
+    // pendingFieldOverrides (the state) is never read anywhere in this
+    // file — this function immediately continues using the local
+    // `overrides` parameter directly for everything below, not the
+    // state it just set. Looks genuinely redundant rather than a
+    // half-built feature; flagged rather than silently removed in case
+    // something elsewhere was meant to read this reactively.
     if (Object.keys(overrides).length === 0) return;
 
     const now = new Date().toISOString();
@@ -2699,13 +2724,18 @@ Original report issued pending ancillary studies. This amendment incorporates th
   // checks first and resumes the existing draft's reason/notification
   // for editing when one exists.
   const handleRequestAmendment = useCallback(async () => {
-    setAmendmentMode('amendment');
     const activeInstance = (caseData?.synopticReports ?? []).find((r: any) => r.instanceId === activeReportInstanceId);
 
     if (activeInstance?.pendingAmendmentId && caseData?.id) {
       const res = await amendmentService.getByCaseId(caseData.id);
       const record = res.ok ? res.data.find(r => r.id === activeInstance.pendingAmendmentId) : undefined;
       if (record) {
+        // Resume as whatever this draft actually is — 'amendment' or
+        // 'correction' — not a hardcoded 'amendment'. Getting this wrong
+        // would silently demand a Clinical Notification Log on a
+        // correction draft that never needed one (and was never
+        // captured with one), blocking release entirely.
+        setAmendmentMode(record.type === 'correction' ? 'correction' : 'amendment');
         setAmendmentDraftId(record.id);
         setAmendmentSequenceNumber(record.sequenceNumber);
         setAmendmentText(record.explanationOfChange ?? '');
@@ -2720,6 +2750,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
     }
 
     // No existing draft on this instance — genuinely new amendment.
+    // Defaults to 'amendment' (Major); the modal's own mode buttons let
+    // the pathologist switch to Minor Amendment or Addendum before
+    // submitting.
+    setAmendmentMode('amendment');
     setResumingAmendment(undefined);
     setShowAmendmentModal(true);
     openAmendmentDraft('amendment');
@@ -2732,7 +2766,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
       : undefined;
 
     // Real architectural extension: this used to be CoPilot-only
-    // (isCopilotAmendment required reportingMode === 'copilot'). Real
+    // (isCopilotAmendment required reportingMode === 'assist'). Real
     // gap, caught directly: Orchestration's amendment needs the exact
     // same two-stage unlock-and-re-edit behavior — stay open across
     // sessions, only clear from triage at actual re-finalize — not the
@@ -2740,7 +2774,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
     // (finalizeSignOut) already checks for pendingAmendmentId
     // mode-agnostically, so this is the only change needed to make
     // both modes work identically here.
-    const isUnlockAmendment = amendmentMode === 'amendment';
+    const isUnlockAmendment = amendmentMode === 'amendment' || amendmentMode === 'correction';
 
     if (isUnlockAmendment) {
       // Stage 1 only — captures Reason + Notification up front and
@@ -2762,7 +2796,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
       const res = await amendmentService.captureFields(amendmentDraftId, {
         explanationOfChange: fields.explanationOfChange ?? '',
-        notification: notification!,
+        notification,
         originalReportSnapshot,
       });
       if (!res.ok) { setAmendmentSubmitError('error' in res ? res.error : 'Could not proceed — check required fields.'); return; }
@@ -2772,9 +2806,9 @@ Original report issued pending ancillary studies. This amendment incorporates th
           ? { ...r, status: 'draft', previouslyFinalizedForAmendment: true, pendingAmendmentId: amendmentDraftId }
           : r
       );
-      setCaseData({ ...caseData, status: 'amended' as CaseStatus, synopticReports: unlockedReports } as any);
-      caseRouter.updateCase(caseData.id, { status: 'amended' as CaseStatus, synopticReports: unlockedReports } as any).catch(console.error);
-      showToast('Report unlocked for correction — edit the synoptic fields, then re-finalize and sign out to transmit.');
+      setCaseData({ ...caseData, status: 'in-progress' as CaseStatus, synopticReports: unlockedReports } as any);
+      caseRouter.updateCase(caseData.id, { status: 'in-progress' as CaseStatus, synopticReports: unlockedReports } as any).catch(console.error);
+      showToast(`Report unlocked for ${amendmentMode === 'correction' ? 'correction' : 'amendment'} — edit the synoptic fields, then re-finalize and sign out to transmit.`);
 
       setAmendmentSubmitError(null);
       setShowAmendmentModal(false);
@@ -3143,10 +3177,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 setEditingSpecimen(sp ?? null);
                 setShowSpecimenEdit(true);
               }}
-              onAddSpecimen={() => {
-                setAddOrdersInitialTab(undefined);
-                setShowAddOrdersModal(true);
-              }}
               onOpenCaseComment={() => setShowCaseCommentModal(true)}
               onOpenSpecimenComment={(id) => { setActiveSpecimenCommentId(id); setShowSpecimenCommentModal(true); }}
               hasCaseComment={hasCaseComment}
@@ -3364,8 +3394,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                       <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title="Open report sequencer">
                         🔀 Sequencer ↗
                       </button>
-                      <button className="ps-ose-centre-btn" onClick={handleOrchPrint} title="Print report">
-                        🖨 Print
+                      <button className="ps-ose-centre-btn" onClick={handleOrchPrint} disabled={isPrinting} title="Print report">
+                        {isPrinting ? '🖨 Printing…' : '🖨 Print'}
                       </button>
                     </div>
                   </div>
@@ -3595,7 +3625,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           }}
           onFinalize={() => handleRequestFinalize(false)}
           onFinalizeAndNext={() => handleRequestFinalize(true)}
-          onSignOut={() => { if (caseData?.reportingMode !== 'copilot') setShowSignOutModal(true); }}
+          onSignOut={() => { if (caseData?.reportingMode !== 'assist') setShowSignOutModal(true); }}
           onRequestAmendment={handleRequestAmendment}
           onPrint={openCopilotReportView}
           
@@ -3713,14 +3743,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
       {/* Pre-finalisation review — two-pane: specimen list + Q&A preview + signing */}
       <PreFinalisationModal
         show={showPreFinalise}
-        onJumpToField={(instanceId, fieldKey) => {
+        onJumpToField={(_instanceId, fieldKey) => {
           setShowPreFinalise(false);
           safeSetLeftTab('draft');
           setTimeout(() => setAlertFieldId(fieldKey), 100);
         }}
         caseAccession={caseData?.accession?.fullAccession ?? ''}
         patientName={`${caseData?.patient?.firstName ?? ''} ${caseData?.patient?.lastName ?? ''}`.trim()}
-        reportingMode={caseData?.reportingMode === 'copilot' ? 'assisted' : 'pathscribe'}
+        reportingMode={caseData?.reportingMode === 'assist' ? 'assisted' : 'pathscribe'}
         synoptics={preFinalSynoptics}
         userId={(caseData as any)?.order?.assignedTo ?? 'current'}
         userDisplayName={(caseData as any)?.assignedPathologistName ?? 'Pathologist'}

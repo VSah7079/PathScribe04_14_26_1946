@@ -4,7 +4,7 @@ import '../pathscribe.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@contexts/AuthContext";
 import { useLogout } from '@hooks/useLogout';
-import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
+import { SunIcon, MoonIcon, HelpIcon, MonitorIcon } from '../components/Icons';
 import LogoutWarningModal from '@/components/Common/LogoutWarningModal';
 import ResourcesModal from './WorklistPage/ResourcesModal';
 

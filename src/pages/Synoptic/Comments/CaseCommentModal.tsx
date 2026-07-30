@@ -40,7 +40,11 @@ const OriginBadge: React.FC<{ comment: CaseComment }> = ({ comment }) => {
 };
 
 const CaseCommentModal: React.FC<CaseCommentModalProps> = ({
-  accession, comments, currentUserId, currentUserName, onAddComment, onClose,
+  accession, comments, currentUserId: _currentUserId, currentUserName, onAddComment, onClose,
+  // _currentUserId: genuine prop, no consumer yet — no delete/edit-own-
+  // comment logic exists in this modal at all today (checked). Likely
+  // intended for a future authorship permission check ("can this user
+  // edit/delete their own comment"), not dead code to remove.
 }) => {
   const [draft, setDraft] = useState('');
   const isDraftEmpty = !draft.trim() || draft === '<p></p>';

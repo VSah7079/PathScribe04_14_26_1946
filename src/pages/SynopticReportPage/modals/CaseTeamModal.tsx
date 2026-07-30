@@ -36,20 +36,9 @@ import {
   DndContext, DragEndEvent, DragStartEvent, DragOverlay,
   useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
-import type { Case }    from '@/types/case/Case';
-
-interface CaseParticipant {
-  staffId: string;
-  staffName: string;
-  externalId?: string;
-  externalIdType?: 'GMC' | 'NPI';
-  source: 'system' | 'manual';
-  participationTypeIds: string[];
-  addedBy: string;
-  addedAt: string;
-  status: 'active' | 'removed';
-}
-import { mockCaseService }               from '@/services/cases/mockCaseService';
+import type { Case, CaseParticipant } from '@/types/case/Case';
+import { caseRouter }                    from '@/services/cases/CaseRouter';
+import { syncPrimaryAssignee }           from '@/services/cases/caseAssignmentSync';
 import { userService, roleService }      from '@/services';
 import { mockParticipationTypeService } from '@/services/participationTypes/mockParticipationTypeService';
 import type { ParticipationTypeRecord as ParticipationType } from '@/services/participationTypes/IParticipationTypeService';
@@ -301,7 +290,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
       setStaffList(users);
       setRoles(rolesData);
       setAllTypes(typesRes.ok ? typesRes.data : []);
-      const existing: CaseParticipant[] = (caseData as any).participants ?? [];
+      const existing: CaseParticipant[] = caseData.participants ?? [];
       const assignedId = caseData.order?.assignedTo;
       let finalExisting = existing;
       if (assignedId && !existing.find(p => p.staffId === assignedId && p.status === 'active')) {
@@ -316,7 +305,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
             addedBy: 'system', addedAt: caseData.createdAt, status: 'active',
           };
           finalExisting = [autoP, ...existing];
-          mockCaseService.updateCase(caseData.id, { participants: finalExisting } as any);
+          caseRouter.updateCase(caseData.id, { participants: finalExisting });
         }
       }
       setParticipants(finalExisting);
@@ -507,8 +496,32 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     setIsSaving(true);
     try {
       const final = resolveFinalParticipants();
-      await mockCaseService.updateCase(caseData.id, { participants: final } as any);
-      onUpdated({ ...caseData, participants: final } as any);
+
+      // The actual fix for the "split-brain assignment" gap: this modal
+      // used to write participants[] without ever touching
+      // order.assignedTo, so a case whose primary changed here would
+      // still show up under the OLD assignee's listCasesForUser() query
+      // (the real fetch-time filter — see caseAssignmentSync.ts's header
+      // comment) while looking correct in this modal's own roster view.
+      // If the active 'primary' participant changed, run it through
+      // syncPrimaryAssignee against the user's actual edits (`final`,
+      // not the stale caseData.participants) so any other roster changes
+      // made in this same save aren't lost.
+      const newPrimary = final.find(p => p.status === 'active' && p.participationTypeIds.includes('primary'));
+      const primaryChanged = newPrimary && newPrimary.staffId !== caseData.order?.assignedTo;
+
+      let updates: Partial<Case>;
+      if (primaryChanged && newPrimary) {
+        const syncUpdates = syncPrimaryAssignee(
+          { ...caseData, participants: final }, newPrimary.staffId, user?.id ?? 'unknown', newPrimary.staffName,
+        );
+        updates = { ...syncUpdates };
+      } else {
+        updates = { participants: final };
+      }
+
+      await caseRouter.updateCase(caseData.id, updates);
+      onUpdated({ ...caseData, ...updates });
       onClose();
     } finally {
       setIsSaving(false);

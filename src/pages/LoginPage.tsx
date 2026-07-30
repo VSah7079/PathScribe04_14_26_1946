@@ -72,7 +72,7 @@ const LoginPage: React.FC = () => {
           {/* Brand */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             {/* ForMedrix — dominant */}
-            <img src="/formedrixlogotemp.jpg" alt="ForMedrix AI"
+            <img src="/reverse on blue.png"
               style={{ height: 120
               , display: 'block', margin: '0 auto' }} />
 

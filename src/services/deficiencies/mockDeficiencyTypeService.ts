@@ -1,6 +1,6 @@
 // src/services/deficiencies/mockDeficiencyTypeService.ts
 
-import type { ServiceResult, ID } from '../types';
+import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { DeficiencyType, IDeficiencyTypeService } from './IDeficiencyService';
 

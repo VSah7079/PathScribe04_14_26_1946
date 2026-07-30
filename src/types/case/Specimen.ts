@@ -134,6 +134,16 @@ export interface Specimen {
   description: string;
   /** Full display label ("Specimen A — Left breast biopsy") */
   displayName?: string;
+  /** Cassette/slide/report label derived from the case's human-facing
+   *  accession.fullAccession (e.g. "MFT-2026-000029-A"), NOT from `id`
+   *  (internal UUID) or Case.id (internal routing key). What a
+   *  pathologist dictates and what a cassette printer actually prints —
+   *  see AccessionPage.tsx's handleSubmit for where this is set at
+   *  specimen creation. Optional because it's only populated for
+   *  specimens created after the accession-mask registry existed —
+   *  older seed specimens don't have one and fall back to id/label in
+   *  any UI that reads this field. */
+  displayId?: string;
   /** Collection metadata (FHIR Specimen.collection) */
   collection?: SpecimenCollection;
   /** Processing metadata (fixative, processing steps) */

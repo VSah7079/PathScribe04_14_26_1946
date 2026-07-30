@@ -23,15 +23,22 @@ export interface IAmendmentService {
     triggeredByLisNotice?: boolean;
   }): Promise<ServiceResult<AmendmentRecord>>;
 
-  /** Stage 1 of the amendment pipeline — fires when "Amend" is clicked,
-   *  before any editing happens. The real hard gate lives here: rejects
-   *  without both an explanation and the Clinical Notification Log.
-   *  Record stays 'draft' — nothing transmitted yet, purely internal
-   *  tracking while the template is unlocked for editing. Amendment-only;
-   *  addenda release in a single step via release() below. */
+  /** Stage 1 of the amendment/correction pipeline — fires when "Amend" or
+   *  "Correct" is clicked, before any editing happens. Record stays
+   *  'draft' — nothing transmitted yet, purely internal tracking while
+   *  the template is unlocked for editing. Addenda skip this and release
+   *  in a single step via release() below.
+   *
+   *  The Clinical Notification hard gate is 'amendment'-only: CAP focuses
+   *  clinical notification on changes that alter patient management or
+   *  diagnostic interpretation, not clerical fixes where the diagnosis is
+   *  unchanged. A 'correction' record still requires explanationOfChange
+   *  (the audit trail — what/why, who), just not the notification log.
+   *  See AMENDMENT_STATUS_REDESIGN_BRIEF.md. */
   captureFields(id: string, fields: {
     explanationOfChange: string;
-    notification: ClinicalNotification;
+    /** Required for 'amendment', not required for 'correction'. */
+    notification?: ClinicalNotification;
     /** The real "immutable archive" snapshot — must be captured here,
      *  at Stage 1, before the template unlocks for editing. There's no
      *  reliable way to recover it later. */

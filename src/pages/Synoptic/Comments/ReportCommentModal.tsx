@@ -40,7 +40,9 @@ const OriginBadge: React.FC<{ comment: CaseComment }> = ({ comment }) => {
 };
 
 const ReportCommentModal: React.FC<ReportCommentModalProps> = ({
-  specimenName, specimenId, comments, isFinalized, currentUserId, currentUserName, onAddComment, onClose,
+  specimenName, specimenId, comments, isFinalized, currentUserId: _currentUserId, currentUserName, onAddComment, onClose,
+  // _currentUserId: same as CaseCommentModal.tsx — genuine prop, no
+  // authorship-permission consumer built yet.
 }) => {
   const [draft, setDraft] = useState('');
   const isDraftEmpty = !draft.trim() || draft === '<p></p>';

@@ -63,11 +63,20 @@ export type CaseStatus =
   /** Awaiting review, QA, or sign-out — pathologist has reviewed and is ready for sign-out */
   | "pathologist-review"
 
-  /** Fully finalized (no changes pending) */
+  /**
+   * Fully finalized (no changes pending). A finalized case that has been
+   * revised carries that fact on `lastRevisionType` (Case.ts) — NOT as
+   * its own CaseStatus value. There is deliberately no 'amended' status
+   * anymore: that value's real meaning in the old code was "currently
+   * unlocked, revision in progress" (see handleAmendmentSubmit /
+   * releasePendingAmendmentOrAddendum in SynopticReportPage.tsx), which
+   * collided with "has amendment history" and was the root cause behind
+   * the Worklist Amended-tab gap documented in
+   * AMENDMENT_STATUS_REDESIGN_BRIEF.md. "Currently unlocked for revision"
+   * is now just 'in-progress'/'draft' like any other in-progress case;
+   * "has amendment history" is `lastRevisionType` alongside `'finalized'`.
+   */
   | "finalized"
-
-  /** Case has been amended after finalization */
-  | "amended"
 
   /** Case is closed (no further changes allowed) */
   | "closed"
@@ -77,9 +86,6 @@ export type CaseStatus =
 
   /** Case accepted by another pathologist (shared workflow) */
   | "accepted"
-
-  /** Case is awaiting addendum */
-  | "addendum-pending"
 
   /** Case is in AI-assisted drafting mode */
   | "ai-assisted"

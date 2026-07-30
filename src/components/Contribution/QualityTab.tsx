@@ -27,18 +27,18 @@ interface AmendedCase {
 }
 interface FirstTouchOutlier {
   id: string; caseType: string; date: string;
-  firstTouchHrs: number; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number;
+  firstTouchHrs: number; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number;
 }
 interface TotalTATOutlier {
   id: string; caseType: string; date: string;
-  tatHrs: number; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number;
+  tatHrs: number; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number;
 }
 interface GenericTatOutlier {
   id: string; caseType: string; date: string;
-  actualHrs: number; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number;
+  actualHrs: number; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number;
 }
 interface ClientTatRow {
-  id: string; name: string; code: string;
+  id: string; name: string; assigningAuthority: string;
   target:   { firstTouch: number; total: number };
   mine:     { firstTouch: number; total: number };
   peer:     { firstTouch: number; total: number };
@@ -80,66 +80,66 @@ const mockAmended: AmendedCase[] = [
 ];
 
 const mockFirstTouchOutliers: FirstTouchOutlier[] = [
-  { id: "PSA-2024-1199", caseType: "Renal Biopsy",  date: "Aug 14", firstTouchHrs: 7.2,  targetHrs: 4, overByHrs: 3.2, clientCode: "MGH", daysAgo: 11  },
-  { id: "PSA-2024-1188", caseType: "Lung Wedge",    date: "Aug 10", firstTouchHrs: 9.1,  targetHrs: 4, overByHrs: 5.1, clientCode: "MGH", daysAgo: 15  },
-  { id: "PSA-2024-1173", caseType: "Liver Core Bx", date: "Aug 6",  firstTouchHrs: 10.4, targetHrs: 8, overByHrs: 2.4, clientCode: "RMC", daysAgo: 19  },
-  { id: "PSA-2024-1099", caseType: "Brain Biopsy",  date: "Jul 1",  firstTouchHrs: 6.8,  targetHrs: 4, overByHrs: 2.8, clientCode: "MGH", daysAgo: 55  },
-  { id: "PSA-2024-1052", caseType: "Bone Marrow",   date: "Jun 8",  firstTouchHrs: 11.2, targetHrs: 8, overByHrs: 3.2, clientCode: "RMC", daysAgo: 78  },
-  { id: "PSA-2024-0997", caseType: "Skin Punch Bx", date: "Apr 30", firstTouchHrs: 8.4,  targetHrs: 6, overByHrs: 2.4, clientCode: "WSC", daysAgo: 116 },
+  { id: "PSA-2024-1199", caseType: "Renal Biopsy",  date: "Aug 14", firstTouchHrs: 7.2,  targetHrs: 4, overByHrs: 3.2, assigningAuthority: "MGH", daysAgo: 11  },
+  { id: "PSA-2024-1188", caseType: "Lung Wedge",    date: "Aug 10", firstTouchHrs: 9.1,  targetHrs: 4, overByHrs: 5.1, assigningAuthority: "MGH", daysAgo: 15  },
+  { id: "PSA-2024-1173", caseType: "Liver Core Bx", date: "Aug 6",  firstTouchHrs: 10.4, targetHrs: 8, overByHrs: 2.4, assigningAuthority: "RMC", daysAgo: 19  },
+  { id: "PSA-2024-1099", caseType: "Brain Biopsy",  date: "Jul 1",  firstTouchHrs: 6.8,  targetHrs: 4, overByHrs: 2.8, assigningAuthority: "MGH", daysAgo: 55  },
+  { id: "PSA-2024-1052", caseType: "Bone Marrow",   date: "Jun 8",  firstTouchHrs: 11.2, targetHrs: 8, overByHrs: 3.2, assigningAuthority: "RMC", daysAgo: 78  },
+  { id: "PSA-2024-0997", caseType: "Skin Punch Bx", date: "Apr 30", firstTouchHrs: 8.4,  targetHrs: 6, overByHrs: 2.4, assigningAuthority: "WSC", daysAgo: 116 },
 ];
 
 const mockTotalTATOutliers: TotalTATOutlier[] = [
-  { id: "PSA-2024-1198", caseType: "Soft Tissue Mass", date: "Aug 13", tatHrs: 31.2, targetHrs: 24, overByHrs: 7.2,  clientCode: "MGH", daysAgo: 12  },
-  { id: "PSA-2024-1176", caseType: "Decalcified Bone", date: "Aug 8",  tatHrs: 52.4, targetHrs: 48, overByHrs: 4.4,  clientCode: "RMC", daysAgo: 17  },
-  { id: "PSA-2024-1160", caseType: "Lymph Node Panel", date: "Aug 2",  tatHrs: 28.6, targetHrs: 24, overByHrs: 4.6,  clientCode: "MGH", daysAgo: 23  },
-  { id: "PSA-2024-1104", caseType: "Placenta",          date: "Jun 30", tatHrs: 36.1, targetHrs: 24, overByHrs: 12.1, clientCode: "WSC", daysAgo: 56  },
-  { id: "PSA-2024-1058", caseType: "Liver Resection",   date: "Jun 10", tatHrs: 58.2, targetHrs: 48, overByHrs: 10.2, clientCode: "MGH", daysAgo: 76  },
-  { id: "PSA-2024-0995", caseType: "Bone Marrow Bx",    date: "Apr 28", tatHrs: 74.4, targetHrs: 48, overByHrs: 26.4, clientCode: "RMC", daysAgo: 118 },
+  { id: "PSA-2024-1198", caseType: "Soft Tissue Mass", date: "Aug 13", tatHrs: 31.2, targetHrs: 24, overByHrs: 7.2,  assigningAuthority: "MGH", daysAgo: 12  },
+  { id: "PSA-2024-1176", caseType: "Decalcified Bone", date: "Aug 8",  tatHrs: 52.4, targetHrs: 48, overByHrs: 4.4,  assigningAuthority: "RMC", daysAgo: 17  },
+  { id: "PSA-2024-1160", caseType: "Lymph Node Panel", date: "Aug 2",  tatHrs: 28.6, targetHrs: 24, overByHrs: 4.6,  assigningAuthority: "MGH", daysAgo: 23  },
+  { id: "PSA-2024-1104", caseType: "Placenta",          date: "Jun 30", tatHrs: 36.1, targetHrs: 24, overByHrs: 12.1, assigningAuthority: "WSC", daysAgo: 56  },
+  { id: "PSA-2024-1058", caseType: "Liver Resection",   date: "Jun 10", tatHrs: 58.2, targetHrs: 48, overByHrs: 10.2, assigningAuthority: "MGH", daysAgo: 76  },
+  { id: "PSA-2024-0995", caseType: "Bone Marrow Bx",    date: "Apr 28", tatHrs: 74.4, targetHrs: 48, overByHrs: 26.4, assigningAuthority: "RMC", daysAgo: 118 },
 ];
 
 const mockFrozenSectionOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1196", caseType: "Breast Margin",     date: "Aug 13", actualHrs: 0.78, targetHrs: 0.5, overByHrs: 0.28, clientCode: "MGH", daysAgo: 12  },
-  { id: "PSA-2024-1182", caseType: "Sentinel Node",      date: "Aug 9",  actualHrs: 0.65, targetHrs: 0.5, overByHrs: 0.15, clientCode: "RMC", daysAgo: 16  },
-  { id: "PSA-2024-1149", caseType: "Thyroid Margin",     date: "Jul 30", actualHrs: 0.91, targetHrs: 0.5, overByHrs: 0.41, clientCode: "MGH", daysAgo: 26  },
-  { id: "PSA-2024-1087", caseType: "GI Margin",          date: "Jun 26", actualHrs: 0.62, targetHrs: 0.5, overByHrs: 0.12, clientCode: "WSC", daysAgo: 60  },
-  { id: "PSA-2024-1011", caseType: "Lung Margin",        date: "May 4",  actualHrs: 0.84, targetHrs: 0.5, overByHrs: 0.34, clientCode: "MGH", daysAgo: 113 },
+  { id: "PSA-2024-1196", caseType: "Breast Margin",     date: "Aug 13", actualHrs: 0.78, targetHrs: 0.5, overByHrs: 0.28, assigningAuthority: "MGH", daysAgo: 12  },
+  { id: "PSA-2024-1182", caseType: "Sentinel Node",      date: "Aug 9",  actualHrs: 0.65, targetHrs: 0.5, overByHrs: 0.15, assigningAuthority: "RMC", daysAgo: 16  },
+  { id: "PSA-2024-1149", caseType: "Thyroid Margin",     date: "Jul 30", actualHrs: 0.91, targetHrs: 0.5, overByHrs: 0.41, assigningAuthority: "MGH", daysAgo: 26  },
+  { id: "PSA-2024-1087", caseType: "GI Margin",          date: "Jun 26", actualHrs: 0.62, targetHrs: 0.5, overByHrs: 0.12, assigningAuthority: "WSC", daysAgo: 60  },
+  { id: "PSA-2024-1011", caseType: "Lung Margin",        date: "May 4",  actualHrs: 0.84, targetHrs: 0.5, overByHrs: 0.34, assigningAuthority: "MGH", daysAgo: 113 },
 ];
 
 const mockGrossingOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1191", caseType: "Whipple Resection",  date: "Aug 12", actualHrs: 7.8, targetHrs: 4, overByHrs: 3.8, clientCode: "MGH", daysAgo: 13  },
-  { id: "PSA-2024-1167", caseType: "Colon Resection",    date: "Aug 5",  actualHrs: 6.2, targetHrs: 4, overByHrs: 2.2, clientCode: "RMC", daysAgo: 20  },
-  { id: "PSA-2024-1120", caseType: "Hysterectomy",       date: "Jul 14", actualHrs: 5.4, targetHrs: 4, overByHrs: 1.4, clientCode: "WSC", daysAgo: 42  },
-  { id: "PSA-2024-1066", caseType: "Liver Resection",    date: "Jun 6",  actualHrs: 9.1, targetHrs: 4, overByHrs: 5.1, clientCode: "MGH", daysAgo: 80  },
+  { id: "PSA-2024-1191", caseType: "Whipple Resection",  date: "Aug 12", actualHrs: 7.8, targetHrs: 4, overByHrs: 3.8, assigningAuthority: "MGH", daysAgo: 13  },
+  { id: "PSA-2024-1167", caseType: "Colon Resection",    date: "Aug 5",  actualHrs: 6.2, targetHrs: 4, overByHrs: 2.2, assigningAuthority: "RMC", daysAgo: 20  },
+  { id: "PSA-2024-1120", caseType: "Hysterectomy",       date: "Jul 14", actualHrs: 5.4, targetHrs: 4, overByHrs: 1.4, assigningAuthority: "WSC", daysAgo: 42  },
+  { id: "PSA-2024-1066", caseType: "Liver Resection",    date: "Jun 6",  actualHrs: 9.1, targetHrs: 4, overByHrs: 5.1, assigningAuthority: "MGH", daysAgo: 80  },
 ];
 
 const mockSignOutOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1189", caseType: "Prostate Bx",        date: "Aug 11", actualHrs: 29.6, targetHrs: 24, overByHrs: 5.6,  clientCode: "RMC", daysAgo: 14  },
-  { id: "PSA-2024-1158", caseType: "Lymph Node Panel",   date: "Aug 1",  actualHrs: 38.2, targetHrs: 24, overByHrs: 14.2, clientCode: "MGH", daysAgo: 24  },
-  { id: "PSA-2024-1108", caseType: "Skin Excision",      date: "Jul 8",  actualHrs: 31.4, targetHrs: 24, overByHrs: 7.4,  clientCode: "WSC", daysAgo: 48  },
-  { id: "PSA-2024-1042", caseType: "Renal Biopsy",       date: "May 14", actualHrs: 41.0, targetHrs: 24, overByHrs: 17.0, clientCode: "MGH", daysAgo: 103 },
+  { id: "PSA-2024-1189", caseType: "Prostate Bx",        date: "Aug 11", actualHrs: 29.6, targetHrs: 24, overByHrs: 5.6,  assigningAuthority: "RMC", daysAgo: 14  },
+  { id: "PSA-2024-1158", caseType: "Lymph Node Panel",   date: "Aug 1",  actualHrs: 38.2, targetHrs: 24, overByHrs: 14.2, assigningAuthority: "MGH", daysAgo: 24  },
+  { id: "PSA-2024-1108", caseType: "Skin Excision",      date: "Jul 8",  actualHrs: 31.4, targetHrs: 24, overByHrs: 7.4,  assigningAuthority: "WSC", daysAgo: 48  },
+  { id: "PSA-2024-1042", caseType: "Renal Biopsy",       date: "May 14", actualHrs: 41.0, targetHrs: 24, overByHrs: 17.0, assigningAuthority: "MGH", daysAgo: 103 },
 ];
 
 const mockColdIschemiaOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1194", caseType: "Breast Resection",   date: "Aug 13", actualHrs: 0.72, targetHrs: 0.5, overByHrs: 0.22, clientCode: "MGH", daysAgo: 12  },
-  { id: "PSA-2024-1163", caseType: "Liver Wedge",        date: "Aug 3",  actualHrs: 0.95, targetHrs: 0.5, overByHrs: 0.45, clientCode: "RMC", daysAgo: 22  },
-  { id: "PSA-2024-1095", caseType: "Kidney Resection",    date: "Jun 30", actualHrs: 0.68, targetHrs: 0.5, overByHrs: 0.18, clientCode: "WSC", daysAgo: 56  },
+  { id: "PSA-2024-1194", caseType: "Breast Resection",   date: "Aug 13", actualHrs: 0.72, targetHrs: 0.5, overByHrs: 0.22, assigningAuthority: "MGH", daysAgo: 12  },
+  { id: "PSA-2024-1163", caseType: "Liver Wedge",        date: "Aug 3",  actualHrs: 0.95, targetHrs: 0.5, overByHrs: 0.45, assigningAuthority: "RMC", daysAgo: 22  },
+  { id: "PSA-2024-1095", caseType: "Kidney Resection",    date: "Jun 30", actualHrs: 0.68, targetHrs: 0.5, overByHrs: 0.18, assigningAuthority: "WSC", daysAgo: 56  },
 ];
 
 const mockConsultResponseOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1180", caseType: "Soft Tissue Mass",   date: "Aug 9",  actualHrs: 58.2, targetHrs: 48, overByHrs: 10.2, clientCode: "MGH", daysAgo: 16  },
-  { id: "PSA-2024-1126", caseType: "Thyroid FNA",        date: "Jul 17", actualHrs: 71.4, targetHrs: 48, overByHrs: 23.4, clientCode: "RMC", daysAgo: 39  },
-  { id: "PSA-2024-1059", caseType: "Lung Wedge",         date: "Jun 9",  actualHrs: 90.6, targetHrs: 48, overByHrs: 42.6, clientCode: "WSC", daysAgo: 77  },
+  { id: "PSA-2024-1180", caseType: "Soft Tissue Mass",   date: "Aug 9",  actualHrs: 58.2, targetHrs: 48, overByHrs: 10.2, assigningAuthority: "MGH", daysAgo: 16  },
+  { id: "PSA-2024-1126", caseType: "Thyroid FNA",        date: "Jul 17", actualHrs: 71.4, targetHrs: 48, overByHrs: 23.4, assigningAuthority: "RMC", daysAgo: 39  },
+  { id: "PSA-2024-1059", caseType: "Lung Wedge",         date: "Jun 9",  actualHrs: 90.6, targetHrs: 48, overByHrs: 42.6, assigningAuthority: "WSC", daysAgo: 77  },
 ];
 
 const mockConsultAwaitingOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1175", caseType: "Bone Marrow",        date: "Aug 7",  actualHrs: 62.0, targetHrs: 48, overByHrs: 14.0, clientCode: "RMC", daysAgo: 18  },
-  { id: "PSA-2024-1114", caseType: "Brain Biopsy",       date: "Jul 10", actualHrs: 96.5, targetHrs: 48, overByHrs: 48.5, clientCode: "MGH", daysAgo: 46  },
+  { id: "PSA-2024-1175", caseType: "Bone Marrow",        date: "Aug 7",  actualHrs: 62.0, targetHrs: 48, overByHrs: 14.0, assigningAuthority: "RMC", daysAgo: 18  },
+  { id: "PSA-2024-1114", caseType: "Brain Biopsy",       date: "Jul 10", actualHrs: 96.5, targetHrs: 48, overByHrs: 48.5, assigningAuthority: "MGH", daysAgo: 46  },
 ];
 
 const mockTatByClient: ClientTatRow[] = [
-  { id: 'c1', name: 'Metro General Hospital',   code: 'MGH', target: { firstTouch: 4,  total: 24 }, mine: { firstTouch: 2.4, total: 18.2 }, peer: { firstTouch: 3.1, total: 21.4 }, breaches: { firstTouch: 2, total: 1 } },
-  { id: 'c4', name: 'Westview Surgery Center',  code: 'WSC', target: { firstTouch: 6,  total: 36 }, mine: { firstTouch: 4.8, total: 28.6 }, peer: { firstTouch: 5.2, total: 31.0 }, breaches: { firstTouch: 0, total: 1 } },
-  { id: 'c2', name: 'Riverside Medical Center', code: 'RMC', target: { firstTouch: 8,  total: 48 }, mine: { firstTouch: 6.2, total: 39.1 }, peer: { firstTouch: 7.4, total: 42.0 }, breaches: { firstTouch: 1, total: 1 } },
+  { id: 'c1', name: 'Metro General Hospital',   assigningAuthority: 'MGH', target: { firstTouch: 4,  total: 24 }, mine: { firstTouch: 2.4, total: 18.2 }, peer: { firstTouch: 3.1, total: 21.4 }, breaches: { firstTouch: 2, total: 1 } },
+  { id: 'c4', name: 'Westview Surgery Center',  assigningAuthority: 'WSC', target: { firstTouch: 6,  total: 36 }, mine: { firstTouch: 4.8, total: 28.6 }, peer: { firstTouch: 5.2, total: 31.0 }, breaches: { firstTouch: 0, total: 1 } },
+  { id: 'c2', name: 'Riverside Medical Center', assigningAuthority: 'RMC', target: { firstTouch: 8,  total: 48 }, mine: { firstTouch: 6.2, total: 39.1 }, peer: { firstTouch: 7.4, total: 42.0 }, breaches: { firstTouch: 1, total: 1 } },
 ];
 
 const peerAvgTotal = 26.9;
@@ -329,7 +329,14 @@ const RefLineLabel: React.FC<RefLabelProps> = ({
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 
-const TatTooltip = ({ active, payload, label, data, cfg }: any) => {
+// TatTooltip was built as a reusable component (note the voice-context
+// side effect via mockActionRegistryService — real, deliberate logic, not
+// boilerplate) but the chart that renders below uses its own simpler
+// inline tooltip instead (single value vs. target, no FT/Total split, no
+// voice-context switching). Never actually wired to a <Tooltip content={}>
+// anywhere. Kept, not deleted — flagged as a real half-finished piece
+// rather than silently discarded or guessed into place.
+const _TatTooltip = ({ active, payload, label, data, cfg }: any) => {
   if (!active || !payload?.length) return null;
   const ft    = payload.find((p: any) => p.dataKey === 'firstTouch');
   const tt    = payload.find((p: any) => p.dataKey === 'total');
@@ -350,6 +357,7 @@ const TatTooltip = ({ active, payload, label, data, cfg }: any) => {
     </div>
   );
 };
+void _TatTooltip; // underscore alone doesn't suppress noUnusedLocals for a top-level const function
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -651,7 +659,7 @@ const QualityTab: React.FC = () => {
       {/* ── TAT Outliers — split sub-views, one per TAT category ── */}
       {section === "tat" && (() => {
         const OUTLIER_CONFIG: Record<TatTileKey, {
-          data: Array<{ id: string; caseType: string; date: string; targetHrs: number; overByHrs: number; clientCode: string; daysAgo: number } & Record<string, any>>;
+          data: Array<{ id: string; caseType: string; date: string; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number } & Record<string, any>>;
           valueLabel: string;
           subtitle: string;
           isMin: boolean;
@@ -700,7 +708,7 @@ const QualityTab: React.FC = () => {
                             <tr key={c.id}>
                               <td className="ps-quality-td ps-quality-td--accent">{c.id}</td>
                               <td className="ps-quality-td">{c.caseType}</td>
-                              <td className="ps-quality-td"><span className="ps-client-code-badge">{c.clientCode}</span></td>
+                              <td className="ps-quality-td"><span className="ps-client-authority-badge">{c.assigningAuthority}</span></td>
                               <td className="ps-quality-td ps-quality-td--warning">{fmtVal(getActual(c), cfg.isMin)}</td>
                               <td className="ps-quality-td ps-quality-td--muted">{fmtVal(c.targetHrs, cfg.isMin)}</td>
                               <td className="ps-quality-td"><span className="ps-quality-over-by">+{fmtVal(c.overByHrs, cfg.isMin)}</span></td>
@@ -748,7 +756,7 @@ const QualityTab: React.FC = () => {
                 <div key={client.id} className="ps-tat-client__card">
                   <div className="ps-tat-client__card-header">
                     <div className="ps-tat-client__card-left">
-                      <span className="ps-client-code-badge">{client.code}</span>
+                      <span className="ps-client-authority-badge">{client.assigningAuthority}</span>
                       <span className="ps-tat-client__card-name">{client.name}</span>
                     </div>
                     <div className="ps-tat-client__card-right">

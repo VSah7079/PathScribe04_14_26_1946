@@ -30,7 +30,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import type { AmendmentRecord, AmendmentType, ClinicalNotification } from '@/types/reports/AmendmentRecord';
+import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
 import type { IAmendmentService } from './IAmendmentService';
 
 // Phase 3 helper — reused wherever the "here's what changed since the
@@ -295,11 +295,18 @@ export const mockAmendmentService: IAmendmentService = {
     if (idx === -1) return err(`Amendment ${id} not found`);
     const record = records[idx];
 
-    if (record.type !== 'amendment') return err('captureFields is only for amendments — addenda release in a single step.');
+    if (record.type === 'addendum') return err('captureFields is only for amendments and corrections — addenda release in a single step.');
     if (!fields.explanationOfChange?.trim()) {
-      return err('Amendment requires an explanation of what changed and why.');
+      return err(record.type === 'correction'
+        ? 'Correction requires an explanation of what was fixed and why.'
+        : 'Amendment requires an explanation of what changed and why.');
     }
-    if (!fields.notification?.clinicianName?.trim() || !fields.notification?.method) {
+    // Clinical Notification hard gate — 'amendment' only. A 'correction'
+    // leaves the diagnosis untouched, so CAP's notification requirement
+    // (aimed at changes affecting patient management/interpretation)
+    // doesn't apply; the explanation above is still the required audit
+    // trail. See AMENDMENT_STATUS_REDESIGN_BRIEF.md.
+    if (record.type === 'amendment' && (!fields.notification?.clinicianName?.trim() || !fields.notification?.method)) {
       return err('Amendment cannot proceed without the Clinical Notification Log — who was notified and how.');
     }
 
@@ -330,16 +337,22 @@ export const mockAmendmentService: IAmendmentService = {
     const record = records[idx];
 
     if (!fields.body.trim()) {
-      return err(record.type === 'addendum' ? 'Addendum body cannot be empty.' : 'Correction body cannot be empty.');
+      return err(record.type === 'addendum' ? 'Addendum body cannot be empty.' : record.type === 'correction' ? 'Correction body cannot be empty.' : 'Amendment body cannot be empty.');
     }
     if (record.type === 'addendum' && !fields.addendumTitle?.trim()) {
       return err('Addendum requires a title describing what it contains.');
     }
-    if (record.type === 'amendment' && !record.explanationOfChange) {
+    // Fallback gate for a direct release() call that skipped captureFields
+    // (e.g. a same-step amendment/correction). Explanation is required for
+    // both; the Clinical Notification hard gate stays amendment-only —
+    // see captureFields above and AMENDMENT_STATUS_REDESIGN_BRIEF.md.
+    if (record.type !== 'addendum' && !record.explanationOfChange) {
       if (!fields.explanationOfChange?.trim()) {
-        return err('Amendment requires an explanation of what changed and why.');
+        return err(record.type === 'correction'
+          ? 'Correction requires an explanation of what was fixed and why.'
+          : 'Amendment requires an explanation of what changed and why.');
       }
-      if (!fields.notification?.clinicianName?.trim() || !fields.notification?.method) {
+      if (record.type === 'amendment' && (!fields.notification?.clinicianName?.trim() || !fields.notification?.method)) {
         return err('Amendment cannot be released without the Clinical Notification Log — who was notified and how.');
       }
     }

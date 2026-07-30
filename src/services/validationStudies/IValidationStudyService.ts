@@ -76,6 +76,12 @@ export interface ValidationStudy {
   createdAt:  string;
   createdBy:  string;
   updatedAt:  string;
+  /** Set by activate() — who/when a study actually went active. Added
+   *  alongside fixing activate()'s unused activatedBy parameter: the
+   *  method already accepted this on both the interface and
+   *  implementation, but nothing ever recorded it anywhere. */
+  activatedBy?: string;
+  activatedAt?: string;
 }
 
 export interface IValidationStudyService {

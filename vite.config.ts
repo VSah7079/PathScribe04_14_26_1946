@@ -21,6 +21,17 @@ export default defineConfig(({ mode }) => {
         '@contexts':   path.resolve(__dirname, 'src/contexts'),
       },
     },
+    // Without this, Vite's dependency scanner auto-discovers EVERY .html
+    // file in the project as a potential entry point — including
+    // docs/Pathscribe_Worklist_User_Guide.html and
+    // docs/Specs/qc_module_prototype.html, neither of which is a real app
+    // entry, and one or both of which has malformed markup that crashes
+    // the scanner outright ("Failed to run dependency scan"). Scoping
+    // explicitly to the real entry point is the fix, independent of
+    // whatever's actually wrong in those docs files.
+    optimizeDeps: {
+      entries: ['index.html'],
+    },
     server: {
       port: 5173,
       host: true,

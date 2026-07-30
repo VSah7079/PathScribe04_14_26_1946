@@ -8040,7 +8040,7 @@
 .ps-quality-over-by           { background:rgba(239,68,68,0.1); color:#f87171; border-radius:6px; padding:2px 7px; font-size:11px; font-weight:700; }
 
 /* Client code badge */
-.ps-client-code-badge     { background:rgba(8,145,178,0.15); color:#7dd3fc; border:1px solid rgba(8,145,178,0.3); border-radius:5px; padding:2px 7px; font-size:11px; font-weight:700; font-family:monospace; white-space:nowrap; }
+.ps-client-authority-badge     { background:rgba(8,145,178,0.15); color:#7dd3fc; border:1px solid rgba(8,145,178,0.3); border-radius:5px; padding:2px 7px; font-size:11px; font-weight:700; font-family:monospace; white-space:nowrap; }
 
 /* ── TAT Outliers ────────────────────────────────────────────── */
 .ps-quality-tat-outliers  { display:flex; flex-direction:column; gap:14px; }
@@ -8134,7 +8134,7 @@
 .ps-quality-severity--low,
 .ps-quality-severity--medium,
 .ps-quality-severity--high       { font-size: 12px !important; }
-.ps-client-code-badge            { font-size: 12px !important; }
+.ps-client-authority-badge            { font-size: 12px !important; }
 /* ps-quality-sub-toggle font-size set in base rule */
 
 /* ── TAT tile summary line (was missing — caused concatenation) ────────────── */
@@ -8598,6 +8598,8 @@
 .ps-amendment-mode-btn         { padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid; transition: all 0.15s; background: transparent; }
 .ps-amendment-mode-btn--amendment       { color: #d97706; border-color: #d97706; }
 .ps-amendment-mode-btn--amendment.active { background: #d97706; color: #fff; }
+.ps-amendment-mode-btn--correction       { color: #8B5CF6; border-color: #8B5CF6; }
+.ps-amendment-mode-btn--correction.active { background: #8B5CF6; color: #fff; }
 .ps-amendment-mode-btn--addendum         { color: #0891B2; border-color: #0891B2; }
 .ps-amendment-mode-btn--addendum.active  { background: #0891B2; color: #fff; }
 .ps-amendment-deferred-banner  { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: rgba(8,145,178,0.08); border: 1px solid rgba(8,145,178,0.2); border-radius: 8px; }
@@ -17810,7 +17812,7 @@ h3[data-section-id]:first-child {
 .ps-amendment-matrix td { padding: 6px 10px; border-bottom: 1px solid rgba(217,119,6,0.12); color: #cbd5e1; }
 .ps-amendment-matrix-current { color: #10b981; font-weight: 600; }
 .ps-amendment-matrix-previous { color: #f87171; text-decoration: line-through; }
-.ps-bab-copilot-complete { font-size: 12px; font-weight: 600; color: #10b981; padding: 8px 14px; }
+.ps-bab-assist-complete { font-size: 12px; font-weight: 600; color: #10b981; padding: 8px 14px; }
 
 /* ── CoPilot Report View (print) ─────────────────────────────────────── */
 .ps-copilot-report-view { background: #0b1120; color: #e2e8f0; width: 90vw; max-width: 900px; max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid #1e293b; margin: 5vh auto; }
@@ -17905,6 +17907,7 @@ h3[data-section-id]:first-child {
 .ps-triage-tile-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; flex-shrink: 0; }
 .ps-triage-tile-badge--lis_notice { background: rgba(239,68,68,0.2); color: #ef4444; }
 .ps-triage-tile-badge--amendment_draft { background: rgba(217,119,6,0.2); color: #d97706; }
+.ps-triage-tile-badge--correction_draft { background: rgba(139,92,246,0.2); color: #8b5cf6; }
 .ps-triage-tile-badge--addendum_draft { background: rgba(8,145,178,0.2); color: #0891B2; }
 .ps-triage-tile-case { font-size: 12px; font-weight: 700; color: #e2e8f0; flex-shrink: 0; }
 .ps-triage-tile-label { font-size: 12px; color: #94a3b8; flex-shrink: 0; }
@@ -17975,8 +17978,10 @@ h3[data-section-id]:first-child {
 
 /* Amendment modal — replacing inline styles with real classes */
 .ps-amendment-header-label--amendment { color: #d97706; }
+.ps-amendment-header-label--correction { color: #8B5CF6; }
 .ps-amendment-header-label--addendum { color: #0891b2; }
 .ps-amendment-submit--amendment { background: #d97706; }
+.ps-amendment-submit--correction { background: #8B5CF6; }
 .ps-amendment-submit--addendum { background: #0891b2; }
 .ps-amendment-notification-block { margin-top: 12px; }
 .ps-amendment-notification-label { color: #d97706; }
@@ -18651,3 +18656,6 @@ h3[data-section-id]:first-child {
 .ps-patient-info-chevron--expanded {
   transform: rotate(180deg);
 }
+
+.ps-seq-syn-row-header { display: flex; align-items: center; gap: 8px; }
+.ps-seq-syn-fields { padding-top: 4px; }

@@ -8,7 +8,7 @@
 // per block. This is that editor.
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../../../pathscribe.css';
 import { stainTypeService } from '@/services';
 import type { StainType } from '@/services/stains/IStainService';

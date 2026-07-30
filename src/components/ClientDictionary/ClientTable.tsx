@@ -47,7 +47,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
-        c.code.toLowerCase().includes(q) ||
+        c.assigningAuthority.toLowerCase().includes(q) ||
         (c.contactName ?? '').toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q) ||
         (c.hl7.receivingFacility ?? "").toLowerCase().includes(q)
@@ -231,7 +231,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                       <span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: 13 }}>{client.name}</span>
                       <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700,
                         background: "rgba(255,255,255,0.06)", color: "#0891b2",
-                        padding: "1px 6px", borderRadius: 4, flexShrink: 0 }}>{client.code}</span>
+                        padding: "1px 6px", borderRadius: 4, flexShrink: 0 }}>{client.assigningAuthority}</span>
                     </div>
                     <div style={{ fontSize: 11, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 0, minWidth: "100%" }}>
                       {client.address}

@@ -227,8 +227,7 @@ interface Props {
 
 const OrchestratorSectionEditor: React.FC<Props> = ({
   sections, isGenerating, onSectionChange, onAcceptDraft, onKeepVersion,
-  onRegenerateSection, onEditSynoptic, lastGeneratedAt, caseData,
-  resolvedTemplateName, resolvedBy, overrideTemplateId, onOverrideTemplate,
+  onRegenerateSection, lastGeneratedAt, caseData,
   onAcceptAll, activeSectionId, onActiveSectionChange,
   tabWidthChars = 4, onTabWidthChange, onAcceptSection,
 }) => {
@@ -294,7 +293,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   }, [viewMode, setActiveId]);
 
   // ── Voice dictation ───────────────────────────────────────────────────────────
-  const { startDictation, stopDictation, phase, dictationTarget } = useVoice();
+  const { startDictation, phase, dictationTarget } = useVoice();
 
   const registerDictationTarget = useCallback((section: OrchestratorSection) => {
     const editorHandle = editorRefs.current[section.id];

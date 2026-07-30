@@ -45,7 +45,7 @@ function withDerivedContactName(c: Client): Client {
 // for where this now actually drives display behavior (date format).
 const SEED_CLIENTS: Client[] = [
   {
-    id: 'c1', name: 'Metro General Hospital',   code: 'MGH',  address: '100 Main St',      phone: '555-2001', fax: '555-2002', email: 'lab@metrogeneral.org',
+    id: 'c1', name: 'Metro General Hospital',   assigningAuthority: 'MGH',  address: '100 Main St',      phone: '555-2001', fax: '555-2002', email: 'lab@metrogeneral.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: 18,   authorizedPediatricPathologistIds: [],
     // Academic centre — tight SLAs negotiated in contract
@@ -53,7 +53,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: ['pathGroup', 'admin'], escalationPriority: 'critical',
   },
   {
-    id: 'c2', name: 'Riverside Medical Center', code: 'RMC',  address: '200 River Rd',     phone: '555-2003', fax: '555-2004', email: 'lab@riverside.org',
+    id: 'c2', name: 'Riverside Medical Center', assigningAuthority: 'RMC',  address: '200 River Rd',     phone: '555-2003', fax: '555-2004', email: 'lab@riverside.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Community hospital — standard 2-day TAT
@@ -61,7 +61,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: ['admin'], escalationPriority: 'high',
   },
   {
-    id: 'c3', name: 'Northside Clinic',         code: 'NSC',  address: '300 North Ave',    phone: '555-2005', fax: '555-2006', email: 'lab@northside.org',
+    id: 'c3', name: 'Northside Clinic',         assigningAuthority: 'NSC',  address: '300 North Ave',    phone: '555-2005', fax: '555-2006', email: 'lab@northside.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Small clinic — no custom targets, inherits system defaults
@@ -69,7 +69,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: [], escalationPriority: 'high',
   },
   {
-    id: 'c4', name: 'Westview Surgery Center',  code: 'WSC',  address: '400 West Blvd',    phone: '555-2007', fax: '555-2008', email: 'lab@westview.org',
+    id: 'c4', name: 'Westview Surgery Center',  assigningAuthority: 'WSC',  address: '400 West Blvd',    phone: '555-2007', fax: '555-2008', email: 'lab@westview.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Surgical centre — rapid intra-op consults expected
@@ -77,7 +77,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: ['pathGroup', 'referrer'], escalationPriority: 'high',
   },
   {
-    id: 'c5', name: 'Eastpark Oncology',        code: 'EPO',  address: '500 East Park Dr', phone: '555-2009', fax: '555-2010', email: 'lab@eastpark.org',
+    id: 'c5', name: 'Eastpark Oncology',        assigningAuthority: 'EPO',  address: '500 East Park Dr', phone: '555-2009', fax: '555-2010', email: 'lab@eastpark.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Inactive', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Oncology centre — fast first touch, 24h total
@@ -89,7 +89,7 @@ const SEED_CLIENTS: Client[] = [
   // mockSpecimenCategoryService.ts: gives the admin approval screen
   // something real to show before any live order intake exists.
   {
-    id: 'c-auto-000001', name: 'Fairview Family Practice', code: 'FFP', address: '', phone: '', fax: '', email: '',
+    id: 'c-auto-000001', name: 'Fairview Family Practice', assigningAuthority: 'FFP', address: '', phone: '', fax: '', email: '',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Unverified', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     tatFirstTouchHours: null, tatTotalHours: null,
@@ -105,7 +105,7 @@ const SEED_CLIENTS: Client[] = [
   // via parentId. jurisdiction: 'GB_EW' — NHS Number (not CHI Number,
   // that's Scotland only) is the correct patient identifier standard here.
   {
-    id: 'c-trust-fenwick', name: 'Fenwick NHS Foundation Trust', code: 'FNHS',
+    id: 'c-trust-fenwick', name: 'Fenwick NHS Foundation Trust', assigningAuthority: 'FNHS',
     address: 'Trust Headquarters, Fenwick', phone: '+44 191 555 0100', fax: '', email: 'info@fenwicknhs.nhs.uk',
     clientType: 'internal', jurisdiction: 'GB_EW', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
@@ -113,7 +113,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: ['admin'], escalationPriority: 'high',
   },
   {
-    id: 'c-fenwick-general', name: 'Fenwick General Hospital', code: 'FGH', parentId: 'c-trust-fenwick',
+    id: 'c-fenwick-general', name: 'Fenwick General Hospital', assigningAuthority: 'FGH', parentId: 'c-trust-fenwick',
     address: '1 Trust Way, Fenwick', phone: '+44 191 555 0101', fax: '', email: 'pathology@fenwickgeneral.nhs.uk',
     clientType: 'internal', jurisdiction: 'GB_EW', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
@@ -121,7 +121,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: ['pathGroup', 'admin'], escalationPriority: 'high',
   },
   {
-    id: 'c-fenwick-womens', name: "Fenwick Women's Hospital", code: 'FWH', parentId: 'c-trust-fenwick',
+    id: 'c-fenwick-womens', name: "Fenwick Women's Hospital", assigningAuthority: 'FWH', parentId: 'c-trust-fenwick',
     address: '2 Trust Way, Fenwick', phone: '+44 191 555 0102', fax: '', email: 'pathology@fenwickwomens.nhs.uk',
     clientType: 'internal', jurisdiction: 'GB_EW', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
@@ -129,7 +129,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: ['pathGroup', 'admin'], escalationPriority: 'high',
   },
   {
-    id: 'c-fenwick-childrens', name: "Fenwick Children's Hospital", code: 'FCH', parentId: 'c-trust-fenwick',
+    id: 'c-fenwick-childrens', name: "Fenwick Children's Hospital", assigningAuthority: 'FCH', parentId: 'c-trust-fenwick',
     address: '3 Trust Way, Fenwick', phone: '+44 191 555 0103', fax: '', email: 'pathology@fenwickchildrens.nhs.uk',
     clientType: 'internal', jurisdiction: 'GB_EW', hl7: defaultHl7(), reporting: defaultReporting(),
     // Pediatric hospital — every patient is under threshold, so every case
@@ -147,7 +147,7 @@ const SEED_CLIENTS: Client[] = [
   // which the system already modeled correctly; this client is what
   // exercises that path for the first time.
   {
-    id: 'c-ardgowan-hb', name: 'Ardgowan NHS Health Board', code: 'ANHB',
+    id: 'c-ardgowan-hb', name: 'Ardgowan NHS Health Board', assigningAuthority: 'ANHB',
     address: 'Health Board House, Ardgowan', phone: '+44 141 555 0200', fax: '', email: 'labs@ardgowan.scot.nhs.uk',
     clientType: 'internal', jurisdiction: 'GB_SCT', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
@@ -163,7 +163,7 @@ const SEED_CLIENTS: Client[] = [
   // client; mockOrchestratorCaseService.ts's clientId fields updated to
   // match (see that file's own history note, June 2026).
   {
-    id: 'c-stcatherines', name: "St. Catherine's University Hospital", code: 'SCUH',
+    id: 'c-stcatherines', name: "St. Catherine's University Hospital", assigningAuthority: 'SCUH',
     address: '', phone: '', fax: '', email: 'pathology@stcatherines.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
@@ -171,7 +171,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: [], escalationPriority: 'high',
   },
   {
-    id: 'c-westside', name: 'Westside Surgical Centre', code: 'WSSC',
+    id: 'c-westside', name: 'Westside Surgical Centre', assigningAuthority: 'WSSC',
     address: '', phone: '', fax: '', email: 'pathology@westsidesurgical.org',
     clientType: 'external', jurisdiction: 'US', hl7: defaultHl7(), reporting: defaultReporting(),
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
@@ -179,7 +179,7 @@ const SEED_CLIENTS: Client[] = [
     escalationTargets: [], escalationPriority: 'high',
   },
   {
-    id: 'c-royal-manchester', name: 'Royal Manchester Centre', code: 'RMANC',
+    id: 'c-royal-manchester', name: 'Royal Manchester Centre', assigningAuthority: 'RMANC',
     address: '', phone: '', fax: '', email: 'pathology@royalmanchester.nhs.uk',
     clientType: 'external', jurisdiction: 'GB_EW', hl7: defaultHl7(), reporting: defaultReporting(),
     // Set specifically so the numeric-specimen style is immediately
@@ -232,15 +232,15 @@ export const mockClientService: IClientService = {
   async reactivate(id) { return mockClientService.update(id, { status: 'Active' }); },
   async verify(id) { return mockClientService.update(id, { status: 'Active' }); },
 
-  async findOrCreateByCode(code, name, note) {
+  async findOrCreateByAssigningAuthority(assigningAuthority, name, note) {
     await delay();
-    const existing = MOCK_CLIENTS.find(c => c.code.toLowerCase() === code.toLowerCase());
+    const existing = MOCK_CLIENTS.find(c => c.assigningAuthority.toLowerCase() === assigningAuthority.toLowerCase());
     if (existing) return ok({ ...existing });
 
     const nowIso = new Date().toISOString();
     const newC: Client = {
       id: 'c-auto-' + Date.now(),
-      name, code,
+      name, assigningAuthority,
       address: '', phone: '', fax: '', email: '',
       // jurisdiction defaults to 'US' for auto-created clients — same
       // "safest default, force explicit admin setup" posture as the

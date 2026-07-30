@@ -1,7 +1,7 @@
 // src/components/Contribution/ProductivityTab.tsx
 import React, { useState } from "react";
 import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis,
-         CartesianGrid, Tooltip as RechartsTooltip, ReferenceLine, Legend } from "recharts";
+         CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
 import { pathscribeTheme as theme } from "@theme/pathscribeTheme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

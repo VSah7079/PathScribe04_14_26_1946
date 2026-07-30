@@ -41,6 +41,8 @@ import { toast } from 'react-toastify';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { evaluateGrossingTemplateAssignment } from '@/services/cases/mockCaseService';
 import { mockClientService, Client } from '@/services/clients/mockClientService';
+import { mockSpecimenCategoryService } from '@/services/specimenCategories/mockSpecimenCategoryService';
+import type { SpecimenCategory } from '@/services/specimenCategories/ISpecimenCategoryService';
 import { mockUserService } from '@/services/users/mockUserService';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { Case, GrossingReportInstance } from '@/types/case/Case';
@@ -73,7 +75,8 @@ import type { CasePriority } from '@/services/cases/ICaseService';
 import { SuffixSelect } from '@/components/Common/SuffixSelect';
 import { formatFullDisplayName } from '@/utils/personName';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { getHospitalIdForOrganisation, getOrganisationDisplayName } from '@/services/organisation/organisationService';
+import { getHospitalIdForOrganisation, getOrganisationDisplayName, getOrganisationByHospitalId } from '@/services/organisation/organisationService';
+import { mockCaseRegistryService } from '@/services/caseRegistry/mockCaseRegistryService';
 import { PATIENT_ID_BY_JURISDICTION } from '@/types/systemConfig';
 import { SpecimenDictionaryPicker } from '@/components/SpecimenPicker/SpecimenDictionaryPicker';
 import { CaseCommentModal } from '@/pages/Synoptic/Comments/CaseCommentModal';
@@ -108,6 +111,11 @@ interface SpecimenDraft {
    *  independent AI reasoning per specimen. */
   resolvedCategoryName?: string;
   categoryWasAutoCreated?: boolean;
+  /** True if the imported order's dictionaryEntryId came from
+   *  findOrCreateByName's fallback (a brand-new pending Specimen
+   *  Dictionary entry) rather than an existing crosswalk match — same
+   *  role categoryWasAutoCreated plays for the category. */
+  dictionaryEntryWasAutoCreated?: boolean;
 
   /**
    * True when this specimen came from an imported order whose text
@@ -351,6 +359,8 @@ const AccessionPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [pathologists, setPathologists] = useState<StaffUser[]>([]);
   const [pendingOrders, setPendingOrders] = useState<IncomingOrder[]>([]);
+  const [specimenCategories, setSpecimenCategories] = useState<SpecimenCategory[]>([]);
+  const specimenCategoriesById = useMemo(() => new Map(specimenCategories.map(c => [c.id, c])), [specimenCategories]);
 
   const loadPendingOrders = () => {
     orderIntakeService.listPendingOrders().then(res => { if (res.ok) setPendingOrders(res.data); });
@@ -361,6 +371,7 @@ const AccessionPage: React.FC = () => {
     mockUserService.getAll().then(res => {
       if (res.ok) setPathologists(res.data.filter(u => u.status === 'Active' && u.roles.includes('Pathologist')));
     });
+    mockSpecimenCategoryService.getAll().then(res => { if (res.ok) setSpecimenCategories(res.data); });
     loadPendingOrders();
   }, []);
 
@@ -386,6 +397,20 @@ const AccessionPage: React.FC = () => {
   // an unresolvable org will itself be inaccessible to everyone except
   // superadmin, which is the correct fail-safe rather than guessing).
   const originHospitalId = (user?.organisationId && getHospitalIdForOrganisation(user.organisationId)) || 'HOSP-001';
+  // Real sites for the resolved organisation — e.g. MFT has three
+  // (Manchester Royal Infirmary, Wythenshawe, North Manchester General),
+  // each potentially routing to a different local Vantage/Cerebro
+  // hardware endpoint (see ModeAInterfaceService.resolveModeAOrgContext).
+  // Single-site organisations get no selector at all — nothing to choose.
+  const originOrganisation = useMemo(() => getOrganisationByHospitalId(originHospitalId), [originHospitalId]);
+  const originSites = originOrganisation?.sites ?? [];
+  const [originSiteId, setOriginSiteId] = useState('');
+  // Defaults to the first site the moment the org's sites resolve, same
+  // fallback resolveModeAOrgContext already applies server-side — this
+  // just makes that default visible and overridable instead of silent.
+  useEffect(() => {
+    if (!originSiteId && originSites.length > 0) setOriginSiteId(originSites[0].id);
+  }, [originSites, originSiteId]);
   const [priority, setPriority] = useState<CasePriority>('Routine');
   const [priorityLevels, setPriorityLevels] = useState<PriorityLevel[]>([]);
   useEffect(() => {
@@ -611,7 +636,7 @@ const AccessionPage: React.FC = () => {
       o.externalOrderNumber.toLowerCase().includes(q) ||
       `${o.patient.firstName} ${o.patient.lastName}`.toLowerCase().includes(q) ||
       (o.patient.mrn ?? '').toLowerCase().includes(q) ||
-      o.externalClientCode.toLowerCase().includes(q)
+      o.externalAssigningAuthority.toLowerCase().includes(q)
     );
   }, [pendingOrders, orderSearch]);
 
@@ -669,9 +694,16 @@ const AccessionPage: React.FC = () => {
       const importedClientStyle = clients.find(c => c.id === order.clientId)?.specimenLabelStyle;
 
       setSpecimens(order.specimens.map((sp, i) => {
-        const text = sp.description.trim().toLowerCase();
-        const exactMatch = activeDictionary.find(
-          e => e.name.trim().toLowerCase() === text || (e.normalizedLabel ?? '').trim().toLowerCase() === text
+        // Prefer the dictionaryEntryId resolveOrder() already resolved
+        // (crosswalk hit, or findOrCreateByName's fallback) over re-doing
+        // a separate text match here — this respects whatever the
+        // backend actually resolved rather than risking a second pass
+        // that disagrees with it (e.g. a crosswalk-matched entry whose
+        // name doesn't happen to exactly match the raw description text).
+        const resolvedEntry = sp.dictionaryEntryId ? activeDictionary.find(e => e.id === sp.dictionaryEntryId) : undefined;
+        const exactMatch = resolvedEntry ?? activeDictionary.find(
+          e => e.name.trim().toLowerCase() === sp.description.trim().toLowerCase()
+            || (e.normalizedLabel ?? '').trim().toLowerCase() === sp.description.trim().toLowerCase()
         );
         if (!exactMatch) unresolvedCount++;
         return {
@@ -680,6 +712,7 @@ const AccessionPage: React.FC = () => {
           description: exactMatch ? (exactMatch.normalizedLabel || exactMatch.name) : sp.description,
           resolvedCategoryName: sp.specimenCategoryId ? catNameById.get(sp.specimenCategoryId) : undefined,
           categoryWasAutoCreated: sp.categoryWasAutoCreated,
+          dictionaryEntryWasAutoCreated: sp.dictionaryEntryWasAutoCreated,
           needsDictionaryResolution: !exactMatch,
           unmatchedOrderText: exactMatch ? undefined : sp.description,
         };
@@ -707,7 +740,35 @@ const AccessionPage: React.FC = () => {
   const caseInfoValid = givenNames.trim() && familyNames.trim() && dob && clientId && requestingProvider.trim();
   const specimensValid = specimens.length > 0
     && specimens.every(s => s.description.trim().length > 0 && !s.needsDictionaryResolution);
-  const canSubmit = !!caseInfoValid && specimensValid && !submitting;
+
+  // Real specimen categories (Surgical/Non-GYN Cytology/Consultation) each
+  // draw from their own accession series — see mockCaseRegistryService's
+  // categoryOverride support. Per the CAP-adjacent labeling guideline and
+  // real specimen-handling policy this whole feature was researched
+  // against, specimens spanning genuinely different case types are
+  // standard practice to accession as SEPARATE cases, not combine under
+  // one number. Rather than building full automatic case-splitting (a
+  // much bigger feature — grouping specimens, creating N cases, routing
+  // blocks/grossing per case, a multi-case success screen), this blocks
+  // submission with a clear, actionable message instead of silently
+  // mislabeling specimens under the wrong prefix. Specimens with no
+  // dictionary match (no resolved category) don't count toward a
+  // conflict — only genuinely different resolved categories do.
+  const resolvedSpecimenCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const s of specimens) {
+      const entry = s.dictionaryEntryId ? dictionary.find(e => e.id === s.dictionaryEntryId) : undefined;
+      if (entry?.specimenCategoryId) ids.add(entry.specimenCategoryId);
+    }
+    return ids;
+  }, [specimens, dictionary]);
+  const categoryConflictNames = useMemo(() => {
+    if (resolvedSpecimenCategoryIds.size <= 1) return null;
+    const names = [...resolvedSpecimenCategoryIds].map(id => specimenCategoriesById.get(id)?.name ?? id);
+    return names;
+  }, [resolvedSpecimenCategoryIds, specimenCategoriesById]);
+
+  const canSubmit = !!caseInfoValid && specimensValid && !submitting && !categoryConflictNames;
 
   const selectedClient = useMemo(() => clients.find(c => c.id === clientId), [clients, clientId]);
   // Patient ID field label/format follows the selected client's
@@ -719,11 +780,18 @@ const AccessionPage: React.FC = () => {
 
   // ── ID generation ────────────────────────────────────────────────────────
   // TEMPORARY scheme — Stage 0 Requirements §4.2 (S0-CF-07/08/09/10) calls
-  // for a configurable per-institution mask plus a Case Registry; neither
-  // exists yet, so this mirrors the existing O26-NNNN convention by finding
-  // the current max and incrementing. Replace this function (not its
-  // callers) once S0-CF-07 lands — the rest of this page doesn't care how
-  // the id is produced.
+  // for a configurable per-institution mask plus a Case Registry. The
+  // Case Registry itself now exists (types/config/CaseMaskConfig.ts,
+  // services/caseRegistry/) but is NOT yet wired to Case.id here — doing
+  // so would break case routing. CaseRouter.isOrchCase(),
+  // mockCaseService's isOrchCaseId(), and SynopticReportPage's
+  // isOrchestrationMode all use a literal 'O26-' string-prefix check on
+  // the case id as their routing/mode signal, and CaseRouter's check in
+  // particular runs BEFORE the case is fetched — it can't check
+  // reportingMode instead, since that field lives on the object it
+  // doesn't have yet. An org-prefixed id like "MFT26-0029" would silently
+  // misroute. Left on the original scan-and-increment scheme until that's
+  // resolved — see the design discussion this comment came out of.
   async function generateNextCaseId(): Promise<string> {
     // bypassAccessControl: true — this needs to see every existing O26-
     // number across ALL organisations to avoid two different orgs'
@@ -754,10 +822,39 @@ const AccessionPage: React.FC = () => {
       const caseId = await generateNextCaseId();
       const nowIso = new Date().toISOString();
 
+      // The human-facing accession number — org-scoped, mask-driven,
+      // completely separate from caseId (which stays the stable internal
+      // 'O26-' routing key; see AccessionMetadata.fullAccession's doc
+      // comment for why these can't be the same string). Falls back
+      // gracefully inside allocateNextCaseNumber itself if this
+      // organisation has no CaseMaskConfig provisioned yet — never blocks
+      // submission.
+      const registryOrgId = user?.organisationId ?? originHospitalId;
+      // Resolve the one category governing this case (mixed categories
+      // are blocked from ever reaching handleSubmit — see canSubmit —
+      // so resolvedSpecimenCategoryIds.size is always 0 or 1 here).
+      // 0 means no dictionary matches at all — falls back to the org's
+      // own default series, same as before this feature existed.
+      const soleCategoryId = resolvedSpecimenCategoryIds.size === 1 ? [...resolvedSpecimenCategoryIds][0] : undefined;
+      const soleCategory = soleCategoryId ? specimenCategoriesById.get(soleCategoryId) : undefined;
+      const categoryOverride = soleCategory
+        ? { prefix: soleCategory.accessionPrefix, numberSeries: soleCategory.numberSeries }
+        : undefined;
+      const accessionRes = await mockCaseRegistryService.allocateNextCaseNumber(registryOrgId, originSiteId || undefined, categoryOverride);
+      const fullAccession = accessionRes.ok ? accessionRes.data : caseId; // last-resort fallback if the registry call itself errors (not just unconfigured — that's handled inside the service), so submission still can't hard-fail on this
+      const configRes = await mockCaseRegistryService.getConfig(registryOrgId);
+      const registryConfig = configRes.ok ? configRes.data : null;
+
       const specimenRecords = specimens.map(s => {
         const entry = s.dictionaryEntryId ? dictionary.find(e => e.id === s.dictionaryEntryId) : undefined;
         return {
           id: `${caseId}-SP-${s.label}`,
+          // Cassette/report label — derived from the human-facing
+          // accession number, never from the internal caseId. This is
+          // what a pathologist actually dictates and what a cassette
+          // printer actually prints (see Specimen.displayId's doc
+          // comment).
+          displayId: `${fullAccession}-${s.label}`,
           label: s.label,
           description: s.description.trim(),
           comments: s.comments.length ? s.comments : undefined,
@@ -853,8 +950,17 @@ const AccessionPage: React.FC = () => {
       const newCase: Case = {
         id: caseId,
         reportingMode: 'orchestrator',
-        accession: { accessionNumber: caseId.replace('O26-', 'O'), accessionPrefix: 'O', accessionYear: new Date().getFullYear(), fullAccession: caseId },
+        accession: {
+          accessionNumber: fullAccession,
+          accessionPrefix: registryConfig?.prefix ?? 'O',
+          accessionYear: new Date().getFullYear(),
+          fullAccession,
+          formatPatternUsed: registryConfig?.maskPattern,
+          accessionedAt: nowIso,
+          accessionedBy: user?.id ?? 'unknown',
+        },
         originHospitalId,
+        originSiteId: originSiteId || undefined,
         // Matches the convention value used across every case in
         // mockCaseService.ts's seed data — all demo data belongs to
         // the same single enterprise in this mock system.
@@ -1059,7 +1165,7 @@ const AccessionPage: React.FC = () => {
                           <strong>{o.externalOrderNumber}</strong> — {o.patient.firstName} {o.patient.lastName}
                           {o.patient.mrn && <span> · MRN {o.patient.mrn}</span>}
                         </div>
-                        <div className="ps-accession-order-picker-meta">{o.externalClientCode} · {o.source.toUpperCase()} · {o.priority ?? 'Routine'}</div>
+                        <div className="ps-accession-order-picker-meta">{o.externalAssigningAuthority} · {o.source.toUpperCase()} · {o.priority ?? 'Routine'}</div>
                       </div>
                     ))}
                   </div>
@@ -1142,6 +1248,14 @@ const AccessionPage: React.FC = () => {
                 <input className="ps-input-dark ps-input-readonly" readOnly disabled
                   value={user?.organisationId ? (getOrganisationDisplayName(originHospitalId) ?? originHospitalId) : 'No organisation on session — contact an admin'} />
               </div>
+              {originSites.length > 1 && (
+                <div>
+                  <label className="ps-label">Site / Facility</label>
+                  <select className="ps-input-dark" value={originSiteId} onChange={e => setOriginSiteId(e.target.value)}>
+                    {originSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="ps-label">Requesting Provider</label>
                 <input className="ps-input-dark" value={requestingProvider} onChange={e => setRequestingProvider(e.target.value)} placeholder="Dr. Jane Smith" />
@@ -1401,6 +1515,14 @@ const AccessionPage: React.FC = () => {
                 {selectedClient ? ` · ${selectedClient.name}` : ''}
               </p>
             </div>
+
+            {categoryConflictNames && (
+              <div className="ps-warning-banner">
+                These specimens span different case types — {categoryConflictNames.join(' and ')} — which standard
+                practice accessions as separate cases, each with its own accession number. Submit them as
+                separate accessions rather than one combined case.
+              </div>
+            )}
 
             <div className="ps-accession-actions ps-accession-actions--split">
               <button className="ps-btn-secondary" onClick={() => setTab('case')}>← Back</button>

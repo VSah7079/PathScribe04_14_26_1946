@@ -15,6 +15,7 @@ import { PoolClaimModal } from '../../components/Worklist/PoolClaimModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { AmendedAddendaTriageTile } from './AmendedAddendaTriageTile';
 import { flagService }    from '@/services';
+import { amendmentService, lisAmendmentNoticeService } from '@/services';
 import { Flag }           from '@/services/flags/IFlagService';
 
 const FILTER_TITLES: Record<string, string> = {
@@ -36,7 +37,13 @@ const FILTER_TITLES: Record<string, string> = {
 const WorklistPage: React.FC = () => {
   const handleLogout = useLogout();
   const { user } = useAuth();
-  const { log }  = useAuditLog();
+  const { log: _log }  = useAuditLog();
+  // _log unused — useAuditLog() is wired up but nothing in this file
+  // actually calls it. Flagged rather than removed, since audit logging
+  // is a deliberate, consistent pattern everywhere else in this app —
+  // this looks like a real gap (no worklist action, filter change, or
+  // case-open event gets logged here), not something intentionally
+  // left out.
   const navigate = useNavigate();
   const location  = useLocation();
 
@@ -57,6 +64,13 @@ const WorklistPage: React.FC = () => {
   // Note: orchestrator mode flag read via localStorage when needed at case open
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
   const [delegatedCaseIds, setDelegatedCaseIds]     = useState<string[]>([]);
+  // Amendment & Addenda — live open drafts + pending LIS notices, not a
+  // static status string. Replaces the old c.status === 'amended' check,
+  // which could only ever catch a case mid-amendment and completely
+  // missed open addendum drafts (the S26-4401 gap). Same two calls
+  // AmendedAddendaTriageTile already makes — see
+  // AMENDMENT_STATUS_REDESIGN_BRIEF.md.
+  const [amendmentAddendaCaseIds, setAmendmentAddendaCaseIds] = useState<Set<string>>(new Set());
   const [physicianFilter, setPhysicianFilter] = useState<string>('');
   const [physicianPrompt, setPhysicianPrompt] = useState<string | null>(null);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
@@ -119,7 +133,6 @@ const WorklistPage: React.FC = () => {
   }, [location.key]);
 
   useEffect(() => {
-    const canViewPeds = (user as any)?.canViewPediatric ?? false;
     // Load cases from both services via the unified router
     caseRouter.listCasesForUser(user?.id ?? 'current')
       .then(setRealCases)
@@ -129,6 +142,19 @@ const WorklistPage: React.FC = () => {
       const mine = all.filter(d => d.toUserId === CURRENT_USER_ID && d.status === 'pending');
       setDelegatedToMeCount(mine.length);
       setDelegatedCaseIds(mine.map(d => d.caseId).filter(Boolean));
+    }).catch(() => {});
+  }, [user?.id, location.key]);
+
+  useEffect(() => {
+    if (!user?.id) { setAmendmentAddendaCaseIds(new Set()); return; }
+    Promise.all([
+      lisAmendmentNoticeService.getPendingForPathologist(user.id),
+      amendmentService.getOpenDraftsForPathologist(user.id),
+    ]).then(([noticesRes, draftsRes]) => {
+      const ids = new Set<string>();
+      if (noticesRes.ok) for (const n of noticesRes.data) ids.add(n.caseId);
+      if (draftsRes.ok)  for (const d of draftsRes.data)  ids.add(d.caseId);
+      setAmendmentAddendaCaseIds(ids);
     }).catch(() => {});
   }, [user?.id, location.key]);
 
@@ -249,8 +275,9 @@ const WorklistPage: React.FC = () => {
   const lisCases  = React.useMemo(() => realCases.filter(c => (c as any).reportingMode !== 'orchestrator'), [realCases]);
   const orchCases = React.useMemo(() => realCases.filter(c => (c as any).reportingMode === 'orchestrator'),  [realCases]);
 
-  // displayCases stays simple — filteredCases handles the LIS/Outreach split explicitly
-  const displayCases = realCases;
+  // filteredCases (below) handles the LIS/Outreach split explicitly —
+  // a prior displayCases = realCases variable was fully superseded by
+  // it and has been removed.
 
   // Outreach sub-counts (always from orchCases regardless of active filter)
   const orchAssignedCount = React.useMemo(() => orchCases.filter(c => c.status !== 'pool').length,                                    [orchCases]);
@@ -280,14 +307,14 @@ const WorklistPage: React.FC = () => {
       if (activeFilter === 'completed')  return c.status === 'finalized';
       if (activeFilter === 'draft')      return c.status === 'draft';
       if (activeFilter === 'inprogress') return c.status === 'in-progress';
-      if (activeFilter === 'amended')    return c.status === 'amended';
+      if (activeFilter === 'amended')    return amendmentAddendaCaseIds.has(c.id);
       if (activeFilter === 'accessioned')   return c.status === 'accessioned';
       if (activeFilter === 'grosscomplete') return c.status === 'gross-complete';
       if (activeFilter === 'physician')  return (c.order?.requestingProvider ?? '').toLowerCase().includes(physicianFilter.toLowerCase());
       return true;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceCases, activeFilter, physicianFilter, thresholdsLoaded, clientThresholds]);
+  }, [sourceCases, activeFilter, physicianFilter, thresholdsLoaded, clientThresholds, amendmentAddendaCaseIds]);
 
   // Stats — always from sourceCases so tile counts match the current context
   const statsCases   = sourceCases;
@@ -310,7 +337,7 @@ const WorklistPage: React.FC = () => {
     urgent:         nonPoolStats.filter(c => c.order?.priority === 'STAT').length,
     inProgress:     nonPoolStats.filter(c => c.status === 'in-progress').length,
     needsReview:    nonPoolStats.filter(c => c.status === 'pending-review').length,
-    amended:        nonPoolStats.filter(c => c.status === 'amended').length,
+    amended:        nonPoolStats.filter(c => amendmentAddendaCaseIds.has(c.id)).length,
     draft:          nonPoolStats.filter(c => c.status === 'draft').length,
     finalizing:     nonPoolStats.filter(c => c.status === 'finalizing').length,
     accessioned:    nonPoolStats.filter(c => c.status === 'accessioned').length,
@@ -611,7 +638,7 @@ const WorklistPage: React.FC = () => {
                   { key: 'accessioned',   label: activeFilter === 'accessioned'   ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Awaiting Grossing', count: stats.accessioned,   color: '#38BDF8', bg: 'rgba(56,189,248,0.05)',  border: 'rgba(56,189,248,0.18)',  activeBg: 'rgba(56,189,248,0.18)',  activeBorder: '#38BDF8',  glow: '0 0 12px rgba(56,189,248,0.4)',  sublabel: undefined },
                   { key: 'grosscomplete', label: activeFilter === 'grosscomplete' ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Gross Complete',    count: stats.grossComplete, color: '#14B8A6', bg: 'rgba(20,184,166,0.05)',  border: 'rgba(20,184,166,0.18)',  activeBg: 'rgba(20,184,166,0.18)',  activeBorder: '#14B8A6',  glow: '0 0 12px rgba(20,184,166,0.4)',  sublabel: undefined },
                   { key: 'review',     label: activeFilter === 'review'     ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Needs Review',    count: stats.needsReview,    color: '#F59E0B', bg: 'rgba(245,158,11,0.05)',  border: 'rgba(245,158,11,0.18)',  activeBg: 'rgba(245,158,11,0.18)',  activeBorder: '#F59E0B',  glow: '0 0 12px rgba(245,158,11,0.4)',  sublabel: undefined },
-                  { key: 'amended',    label: activeFilter === 'amended'    ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Amended',         count: stats.amended,        color: '#8B5CF6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  activeBg: 'rgba(139,92,246,0.18)',  activeBorder: '#8B5CF6',  glow: '0 0 12px rgba(139,92,246,0.4)',  sublabel: undefined },
+                  { key: 'amended',    label: activeFilter === 'amended'    ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Amendment & Addenda', count: stats.amended,        color: '#8B5CF6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  activeBg: 'rgba(139,92,246,0.18)',  activeBorder: '#8B5CF6',  glow: '0 0 12px rgba(139,92,246,0.4)',  sublabel: undefined },
                   { key: 'completed',  label: activeFilter === 'completed'  ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Completed Today', count: stats.completedToday, color: '#10B981', bg: 'rgba(16,185,129,0.05)',  border: 'rgba(16,185,129,0.18)',  activeBg: 'rgba(16,185,129,0.18)',  activeBorder: '#10B981',  glow: '0 0 12px rgba(16,185,129,0.4)',  sublabel: undefined },
                   { key: 'draft',      label: activeFilter === 'draft'      ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Draft',           count: stats.draft,          color: '#94a3b8', bg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.18)', activeBg: 'rgba(148,163,184,0.18)', activeBorder: '#94a3b8',  glow: '0 0 12px rgba(148,163,184,0.3)', sublabel: undefined },
                   { key: 'finalizing', label: activeFilter === 'finalizing' ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Finalizing',      count: stats.finalizing,     color: '#EC4899', bg: 'rgba(236,72,153,0.05)',  border: 'rgba(236,72,153,0.18)',  activeBg: 'rgba(236,72,153,0.18)',  activeBorder: '#EC4899',  glow: '0 0 12px rgba(236,72,153,0.4)',  sublabel: undefined },

@@ -25,7 +25,7 @@ import { lisAmendmentNoticeService, amendmentService } from '@/services';
 
 interface TriageItem {
   caseId: string;
-  kind: 'lis_notice' | 'amendment_draft' | 'addendum_draft';
+  kind: 'lis_notice' | 'amendment_draft' | 'correction_draft' | 'addendum_draft';
   label: string;
   detail: string;
 }
@@ -49,10 +49,12 @@ export const AmendedAddendaTriageTile: React.FC<{ pathologistId: string }> = ({ 
       }
       if (draftsRes.ok) {
         for (const d of draftsRes.data) {
+          const kind: TriageItem['kind'] = d.type === 'amendment' ? 'amendment_draft' : d.type === 'correction' ? 'correction_draft' : 'addendum_draft';
+          const label = d.type === 'amendment' ? 'Amending Draft — In Progress' : d.type === 'correction' ? 'Correcting Draft — In Progress' : 'Addendum — In Progress';
           results.push({
             caseId: d.caseId,
-            kind: d.type === 'amendment' ? 'amendment_draft' : 'addendum_draft',
-            label: d.type === 'amendment' ? 'Amending Draft — In Progress' : 'Addendum — In Progress',
+            kind,
+            label,
             detail: d.explanationOfChange || d.addendumTitle || 'Draft not yet released',
           });
         }
@@ -78,7 +80,7 @@ export const AmendedAddendaTriageTile: React.FC<{ pathologistId: string }> = ({ 
               onClick={() => navigate(`/case/${item.caseId}/synoptic`)}
             >
               <span className={`ps-triage-tile-badge ps-triage-tile-badge--${item.kind}`}>
-                {item.kind === 'lis_notice' ? 'LIS' : item.kind === 'amendment_draft' ? 'Amending' : 'Addendum'}
+                {item.kind === 'lis_notice' ? 'LIS' : item.kind === 'amendment_draft' ? 'Amending' : item.kind === 'correction_draft' ? 'Correcting' : 'Addendum'}
               </span>
               <span className="ps-triage-tile-case">{item.caseId}</span>
               <span className="ps-triage-tile-label">{item.label}</span>

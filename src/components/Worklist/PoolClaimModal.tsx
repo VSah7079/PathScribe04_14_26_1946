@@ -67,7 +67,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   const handleAccept = async () => {
     if (!caseId) return;
     setStep('accepting');
-    await acceptPoolCase(caseId, currentUserId);
+    await acceptPoolCase(caseId, currentUserId, currentUserName);
     if (continueToReport) {
       navigate(`/case/${caseId}/synoptic`);
     }

@@ -46,7 +46,7 @@ export interface FieldOverride {
 
 interface AmendmentModalProps {
   show: boolean;
-  amendmentMode: 'amendment' | 'addendum';
+  amendmentMode: 'amendment' | 'correction' | 'addendum';
   amendmentText: string;
   activeSynopticTitle: string;
   sequenceNumber: number;
@@ -55,7 +55,7 @@ interface AmendmentModalProps {
    *  first. Length <= 1 means "first amendment" — the Delta step is
    *  skipped entirely and behavior is identical to before. */
   versionHistory: VersionHistoryEntry[];
-  onModeChange: (mode: 'amendment' | 'addendum') => void;
+  onModeChange: (mode: 'amendment' | 'correction' | 'addendum') => void;
   onTextChange: (value: string) => void;
   onClose: () => void;
   onSubmit: (fields: { addendumTitle?: string; explanationOfChange?: string; clinicianName?: string; method?: NotificationMethod; notifiedAt?: string }) => void;
@@ -248,12 +248,20 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
   if (!show) return null;
 
   const isAmendment = amendmentMode === 'amendment';
+  const isCorrection = amendmentMode === 'correction';
+  // Amendment (Major) and Correction (Minor) share the same two-stage
+  // unlock/reseed pipeline (Delta step, capture-then-edit) — only the
+  // notification requirement differs between them. Addendum stays its
+  // own single-stage release. See AMENDMENT_STATUS_REDESIGN_BRIEF.md.
+  const isUnlockFlow = isAmendment || isCorrection;
 
   const canSubmit = isAmendment
     ? amendmentText.trim().length > 0 && clinicianName.trim().length > 0 && !!method
+    : isCorrection
+    ? amendmentText.trim().length > 0
     : amendmentText.trim().length > 0 && addendumTitle.trim().length > 0;
 
-  const headerLabel = isAmendment ? 'AMENDED REPORT' : `ADDENDUM ${sequenceNumber}`;
+  const headerLabel = isAmendment ? 'AMENDED REPORT' : isCorrection ? 'CORRECTED REPORT' : `ADDENDUM ${sequenceNumber}`;
 
   const handleConfirmDelta = () => {
     const overrides: Record<string, FieldOverride> = {};
@@ -271,8 +279,8 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
 
   const handleSubmit = () => {
     onSubmit({
-      addendumTitle: !isAmendment ? addendumTitle : undefined,
-      explanationOfChange: isAmendment ? amendmentText : undefined,
+      addendumTitle: !isUnlockFlow ? addendumTitle : undefined,
+      explanationOfChange: isUnlockFlow ? amendmentText : undefined,
       clinicianName: isAmendment ? clinicianName : undefined,
       method: isAmendment && method ? method : undefined,
       notifiedAt: isAmendment ? (notifiedAt || new Date().toISOString()) : undefined,
@@ -283,16 +291,16 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
     <div data-capture-hide="true" className="ps-overlay">
       <div className="ps-modal-dark ps-amendment-wizard" onClick={e => e.stopPropagation()}>
 
-        {isAmendment && (
+        {isUnlockFlow && (
           <div className="ps-amendment-target-banner">
-            Amending: <strong>{activeSynopticTitle}</strong>
+            {isAmendment ? 'Amending' : 'Correcting'}: <strong>{activeSynopticTitle}</strong>
           </div>
         )}
 
-        {step === 'delta' && isAmendment && (
+        {step === 'delta' && isUnlockFlow && (
           <>
             <div className="ps-modal-dark-header">
-              <span className="ps-modal-dark-title ps-amendment-header-label ps-amendment-header-label--amendment">
+              <span className={`ps-modal-dark-title ps-amendment-header-label ${isAmendment ? 'ps-amendment-header-label--amendment' : 'ps-amendment-header-label--correction'}`}>
                 SELECT BASELINE VALUES
               </span>
             </div>
@@ -347,7 +355,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
 
             <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
               <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={onClose}>Cancel</button>
-              <button onClick={handleConfirmDelta} className="ps-amendment-submit ps-amendment-submit--amendment">
+              <button onClick={handleConfirmDelta} className={`ps-amendment-submit ${isAmendment ? 'ps-amendment-submit--amendment' : 'ps-amendment-submit--correction'}`}>
                 Confirm & Continue
               </button>
             </div>
@@ -358,13 +366,13 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
           <>
             {!triggeredBySynopticTitle && (
               <div className="ps-amendment-mode-row">
-                {(['amendment', 'addendum'] as const).map(mode => (
+                {(['correction', 'amendment', 'addendum'] as const).map(mode => (
                   <button
                     key={mode}
                     onClick={() => onModeChange(mode)}
                     className={`ps-amendment-mode-btn${amendmentMode === mode ? ' active' : ''} ps-amendment-mode-btn--${mode}`}
                   >
-                    {mode === 'amendment' ? '✏️ Amendment' : '📎 Addendum'}
+                    {mode === 'correction' ? '🩹 Minor Amendment' : mode === 'amendment' ? '✏️ Major Amendment' : '📎 Addendum'}
                   </button>
                 ))}
               </div>
@@ -384,21 +392,21 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
             )}
 
             <div className="ps-modal-dark-header">
-              <span className={`ps-modal-dark-title ps-amendment-header-label ${isAmendment ? 'ps-amendment-header-label--amendment' : 'ps-amendment-header-label--addendum'}`}>
+              <span className={`ps-modal-dark-title ps-amendment-header-label ${isAmendment ? 'ps-amendment-header-label--amendment' : isCorrection ? 'ps-amendment-header-label--correction' : 'ps-amendment-header-label--addendum'}`}>
                 {headerLabel}
               </span>
             </div>
 
             {/* Amendment Summary Box — FR-19 */}
-            {isAmendment && (
+            {isUnlockFlow && (
               <div className="ps-amendment-summary-box">
-                <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">Amended by</span> {amendedByName}</div>
+                <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">{isAmendment ? 'Amended by' : 'Corrected by'}</span> {amendedByName}</div>
                 <div className="ps-amendment-summary-row"><span className="ps-amendment-summary-label">Timestamp</span> {formatDateTime(new Date().toISOString())}</div>
               </div>
             )}
 
             {/* Changed Items Summary — FR-20, collapsible per UX-8 */}
-            {isAmendment && Object.keys(confirmedOverrides).length > 0 && (
+            {isUnlockFlow && Object.keys(confirmedOverrides).length > 0 && (
               <div className="ps-amendment-changed-items">
                 <button type="button" className="ps-amendment-changed-items-toggle" onClick={() => setChangedItemsOpen(o => !o)}>
                   {changedItemsOpen ? '▾' : '▸'} Changed Items Summary ({Object.keys(confirmedOverrides).length} field{Object.keys(confirmedOverrides).length === 1 ? '' : 's'} pulled from an earlier version)
@@ -418,13 +426,15 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
 
             <p className="ps-modal-dark-body">
               {isAmendment
-                ? 'An amendment is a corrective change to a finalized report — existing information was wrong and is being changed. Applies to major diagnostic shifts as well as minor clerical corrections.'
+                ? 'A Major Amendment is a diagnostic or clinical revision to a finalized report — staging, classification, or interpretation is changing. Requires a Clinical Notification Log.'
+                : isCorrection
+                ? 'A Minor Amendment (correction) fixes an administrative or clerical error — a specimen label, a misspelled name — without changing the diagnosis. No clinical notification required, but the explanation below is still the required audit trail.'
                 : 'An addendum is new, additional information appended to a finalized report (e.g. IHC, molecular/FISH results, outside consultation) that does not change the original diagnostic text. The original report remains entirely untouched.'
               }{' '}
               Applies to <strong className="ps-text-light">{activeSynopticTitle}</strong>.
             </p>
 
-            {!isAmendment && (
+            {!isUnlockFlow && (
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">Addendum title <span className="ps-conf-required">*</span></label>
                 <input className="ps-conf-input" value={addendumTitle} onChange={e => setAddendumTitle(e.target.value)}
@@ -438,7 +448,9 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
               onChange={e => onTextChange(e.target.value)}
               placeholder={
                 isAmendment
-                  ? 'Explanation of revision — describe the exact nature of the correction, e.g. "Amended to change diagnostic classification from adenoma to adenocarcinoma after department consensus review."'
+                  ? 'Explanation of revision — describe the exact nature of the diagnostic change, e.g. "Amended to change diagnostic classification from adenoma to adenocarcinoma after department consensus review."'
+                  : isCorrection
+                  ? 'Explanation of correction — describe the clerical/administrative error being fixed, e.g. "Corrected specimen site label from left to right per accession record."'
                   : 'Describe the new clinical or diagnostic data being appended…'
               }
               rows={5}
@@ -545,9 +557,9 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className={"ps-amendment-submit" + (canSubmit ? (isAmendment ? " ps-amendment-submit--amendment" : " ps-amendment-submit--addendum") : " disabled")}
+                className={"ps-amendment-submit" + (canSubmit ? (isAmendment ? " ps-amendment-submit--amendment" : isCorrection ? " ps-amendment-submit--correction" : " ps-amendment-submit--addendum") : " disabled")}
               >
-                {isAmendment ? '💾 Save Draft (unlocks for editing)' : '📎 Release Addendum'}
+                {isUnlockFlow ? '💾 Save Draft (unlocks for editing)' : '📎 Release Addendum'}
               </button>
             </div>
           </>
