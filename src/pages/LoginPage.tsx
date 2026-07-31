@@ -2,10 +2,14 @@
  * LoginPage.tsx — src/pages/LoginPage.tsx
  * Public route — shown when the user is not authenticated.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../pathscribe.css';
 import { useAuth } from '../contexts/AuthContext';
+import SessionSupersededNotice from '../components/Common/SessionSupersededNotice';
+import ConfirmModal from '../components/Common/ConfirmModal';
+
+const SUPERSEDED_NOTICE_KEY = 'pathscribe_show_superseded_notice';
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) => open ? (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -47,19 +51,36 @@ const LoginPage: React.FC = () => {
   const [showPw,   setShowPw]   = useState(false);
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
+  const [showSessionConflict, setShowSessionConflict] = useState(false);
+  const [showSupersededNotice, setShowSupersededNotice] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(SUPERSEDED_NOTICE_KEY) === '1') {
+        setShowSupersededNotice(true);
+        sessionStorage.removeItem(SUPERSEDED_NOTICE_KEY);
+      }
+    } catch {}
+  }, []);
+
+  const attemptLogin = async (forceSupersede: boolean) => {
+    setLoading(true);
+    const result = await login(email, password, forceSupersede);
+    setLoading(false);
+    if (result === 'success') {
+      navigate('/', { replace: true });
+    } else if (result === 'session_conflict') {
+      setShowSessionConflict(true);
+    } else {
+      setError('Incorrect email or password. Please try again.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { setError('Please enter your email and password.'); return; }
     setError('');
-    setLoading(true);
-    const ok = await login(email, password);
-    setLoading(false);
-    if (ok) {
-      navigate('/', { replace: true });
-    } else {
-      setError('Incorrect email or password. Please try again.');
-    }
+    await attemptLogin(false);
   };
 
   return (
@@ -72,7 +93,7 @@ const LoginPage: React.FC = () => {
           {/* Brand */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             {/* ForMedrix — dominant */}
-            <img src="/reverse on blue.png"
+            <img src="/formedrixlogotemp.jpg" alt="ForMedrix AI"
               style={{ height: 120
               , display: 'block', margin: '0 auto' }} />
 
@@ -163,6 +184,23 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {showSupersededNotice && (
+        <SessionSupersededNotice onDismiss={() => setShowSupersededNotice(false)} />
+      )}
+
+      <ConfirmModal
+        show={showSessionConflict}
+        title="Already signed in elsewhere"
+        message="This account is already signed in on another tab or window on this browser. Continuing here will sign that session out — any unsaved work there will be preserved and offered for review the next time it's opened. Continue?"
+        confirmLabel="Sign In Here"
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          setShowSessionConflict(false);
+          await attemptLogin(true);
+        }}
+        onCancel={() => setShowSessionConflict(false)}
+      />
     </div>
   );
 };

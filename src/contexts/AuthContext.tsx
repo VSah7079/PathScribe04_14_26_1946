@@ -2,6 +2,10 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { VoiceProfileId } from "../constants/voiceProfiles";
 import { getBiometricPolicy, getCredentialForUser } from "../services/biometric/mockBiometricService";
 import { mockDraftCacheService } from "../services/drafts/mockDraftCacheService";
+import {
+  getActiveSessionId, setActiveSessionId, clearActiveSessionId,
+  getOwnSessionId, setOwnSessionId, clearOwnSessionId, generateSessionId,
+} from "../services/session/sessionSupersedeService";
 
 export interface User {
   id: string;
@@ -23,6 +27,11 @@ export interface User {
   lastName?: string;
   canViewPediatric?: boolean;
   canViewOrchestration?: boolean;
+  /** Real, granular cross-tenant QA/compliance reporting permission — see
+   *  StaffUser.canAccessCrossTenantQa's own doc comment (IUserService.ts)
+   *  and services/auth/caseAccessControl.ts's canViewCrossTenantQaData()
+   *  for the full reasoning. Resolved the same way as the fields above. */
+  canAccessCrossTenantQa?: boolean;
   /** The tenant/organisation boundary — see StaffUser.organisationId's
    *  own doc comment (IUserService.ts) for the full reasoning. Resolved
    *  from StaffUser at login/session-restore, same as the fields above.
@@ -34,11 +43,19 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  /** forceSupersede: pass true only after the user has explicitly
+   *  confirmed they want to log out their other active session — see
+   *  LoginPage.tsx's handling of the 'session_conflict' result. Return
+   *  type distinguishes the three real outcomes rather than collapsing
+   *  "wrong password" and "you're already logged in elsewhere" into the
+   *  same boolean false. */
+  login: (email: string, password: string, forceSupersede?: boolean) => Promise<'success' | 'invalid_credentials' | 'session_conflict'>;
   /** clearDrafts defaults to true (explicit logout) — the idle-timeout-
    *  triggered call in ProtectedRoute.tsx must pass false, per the
    *  Inactivity Timeout & Draft Recovery spec's Timeout Preservation
-   *  rule (see PRIORITY_FIXES.md). */
+   *  rule (see PRIORITY_FIXES.md). Same rule applies to a session-
+   *  supersede-triggered logout — also false, for the same reason.
+   */
   logout: (clearDrafts?: boolean) => void;
   updateUserProfile: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
@@ -82,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resolveStaffFields = async (userId: string): Promise<{
     canViewPediatric: boolean;
     canViewOrchestration: boolean;
+    canAccessCrossTenantQa: boolean;
     credentials?: string;
     signatureUrl?: string;
     firstName?: string;
@@ -98,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return {
             canViewPediatric:     staffUser.canViewPediatric ?? false,
             canViewOrchestration: (staffUser as any).canViewOrchestration ?? false,
+            canAccessCrossTenantQa: (staffUser as any).canAccessCrossTenantQa ?? false,
             credentials:      staffUser.credentials ?? undefined,
             signatureUrl:     staffUser.signatureUrl ?? undefined,
             firstName:        staffUser.firstName ?? undefined,
@@ -111,11 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fail-safe default: no organisationId resolved means no case access
     // (deny by default) rather than silently falling back to some default
     // tenant — matches the same "fail safe, not fail open" posture as
-    // canViewPediatric/canViewOrchestration defaulting to false above.
-    return { canViewPediatric: false, canViewOrchestration: false };
+    // canViewPediatric/canViewOrchestration/canAccessCrossTenantQa
+    // defaulting to false above.
+    return { canViewPediatric: false, canViewOrchestration: false, canAccessCrossTenantQa: false };
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, forceSupersede = false): Promise<'success' | 'invalid_credentials' | 'session_conflict'> => {
     try {
       let authenticatedUser: User | null = null;
 
@@ -160,7 +180,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Debug
       console.log('[Auth Login]', { email: normalizedEmail, passwordLen: normalizedPassword.length, found: !!cred });
 
-      if (!authenticatedUser) return false;
+      if (!authenticatedUser) return 'invalid_credentials';
+
+      // Real session-conflict check — same user, another tab already
+      // active on this browser. forceSupersede is only ever true after
+      // the user explicitly confirmed on the warning LoginPage.tsx shows
+      // for this exact result.
+      if (!forceSupersede) {
+        const existing = getActiveSessionId(authenticatedUser.id);
+        if (existing) return 'session_conflict';
+      }
 
       // Resolve canViewPediatric and credentials from StaffUser record (Option C)
       const staffFields = await resolveStaffFields(authenticatedUser.id);
@@ -168,14 +197,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       saveUser(authenticatedUser);
 
+      // Establish this tab as the one true active session for this user —
+      // writing this triggers the native `storage` event in any OTHER tab
+      // that had this same user logged in, which is what lets that other
+      // tab detect it's just been superseded and log itself out (with
+      // drafts preserved, not discarded — see ProtectedRoute.tsx).
+      const newSessionId = generateSessionId();
+      setActiveSessionId(authenticatedUser.id, newSessionId);
+      setOwnSessionId(newSessionId);
+
       if (shouldShowBiometricWizard(authenticatedUser.id)) {
         setTimeout(() => setShowBiometricWizard(true), 800);
       }
 
-      return true;
+      return 'success';
     } catch (e) {
       console.error("Login error:", e);
-      return false;
+      return 'invalid_credentials';
     }
   };
 
@@ -185,6 +223,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // synchronous public signature stays unchanged for every existing
       // caller throughout the app that doesn't await it.
       mockDraftCacheService.clearAllDraftsForUser(user.id);
+    }
+    // Only clear the shared active-session marker if it still points to
+    // THIS tab's own session. If this tab has already been superseded by
+    // a newer login elsewhere, the marker correctly points to that other,
+    // still-active session now — clearing it here would incorrectly log
+    // that other session out too, right after it just logged in.
+    if (user?.id) {
+      const ownId = getOwnSessionId();
+      if (ownId && getActiveSessionId(user.id) === ownId) {
+        clearActiveSessionId(user.id);
+      }
+      clearOwnSessionId();
     }
     saveUser(null);
   };
@@ -212,14 +262,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ensure voiceProfile always has a fallback
         if (!parsed.voiceProfile) parsed.voiceProfile = 'EN-US';
 
-        // Resolve canViewPediatric/canViewOrchestration/organisationId if
-        // missing from stored session (covers a brand-new field on an old
-        // stored session). organisationId is included here deliberately —
+        // Resolve canViewPediatric/canViewOrchestration/
+        // canAccessCrossTenantQa/organisationId if missing from stored
+        // session (covers a brand-new field on an old stored session).
+        // organisationId is included here deliberately —
         // without it, a session logged in before this change would keep
         // its old canViewPediatric/canViewOrchestration and never get
         // organisationId backfilled, silently locking that session out of
         // all case access until a fresh login.
-        if (parsed.canViewPediatric === undefined || parsed.canViewOrchestration === undefined || parsed.organisationId === undefined) {
+        if (parsed.canViewPediatric === undefined || parsed.canViewOrchestration === undefined || parsed.canAccessCrossTenantQa === undefined || parsed.organisationId === undefined) {
           const fields = await resolveStaffFields(parsed.id);
           Object.assign(parsed, fields);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));

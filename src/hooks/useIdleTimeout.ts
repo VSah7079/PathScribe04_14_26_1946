@@ -52,6 +52,33 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
 
   const warningTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Tracks the CURRENT showWarning value for handleActivity to read below.
+  // handleActivity is registered inside an effect that intentionally only
+  // depends on [enabled, effectiveMinutes] (not showWarning) to avoid
+  // re-subscribing DOM listeners on every warning-state toggle — but that
+  // means the closure would otherwise capture whatever showWarning was
+  // AT REGISTRATION TIME and never see it change again. Since
+  // registration only happens once per enabled/effectiveMinutes change
+  // (essentially once per session), handleActivity's own showWarning
+  // check would be permanently stuck reading false — meaning any
+  // incidental activity (scroll momentum, a stray keypress) would keep
+  // resetting the timer even while the warning modal is actively
+  // showing, and the session would functionally never expire. A ref
+  // sidesteps this: it's mutated by the effect below on every render
+  // where showWarning changes, and handleActivity reads .current, which
+  // is always live regardless of when the listener closure was created.
+  const showWarningRef = useRef(showWarning);
+  useEffect(() => { showWarningRef.current = showWarning; }, [showWarning]);
+
+  // Real, absolute anchor for when the current countdown period started —
+  // in ms since epoch, immune to setTimeout/setInterval throttling. Two
+  // separate anchors: one for "when did the full idle period start" (used
+  // to detect a stale warning-timer), one for "when did the warning
+  // countdown start" (used to detect a stale countdown interval). Both are
+  // refs, not state — they're read inside recheckAgainstRealClock, never
+  // need to trigger a render themselves.
+  const idlePeriodStartedAtRef = useRef<number>(Date.now());
+  const warningStartedAtRef    = useRef<number | null>(null);
 
   // ── Resolve the effective timeout for the currently-open case ──────────────
   useEffect(() => {
@@ -87,6 +114,7 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
   }, []);
 
   const startWarningCountdown = useCallback(() => {
+    warningStartedAtRef.current = Date.now();
     setShowWarning(true);
     setSecondsRemaining(WARNING_WINDOW_SECONDS);
     countdownRef.current = setInterval(() => {
@@ -103,11 +131,64 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
 
   const resetIdleTimer = useCallback(() => {
     clearTimers();
+    idlePeriodStartedAtRef.current = Date.now();
+    warningStartedAtRef.current = null;
     setShowWarning(false);
     setSecondsRemaining(WARNING_WINDOW_SECONDS);
     const msUntilWarning = Math.max(0, effectiveMinutes * 60 - WARNING_WINDOW_SECONDS) * 1000;
     warningTimerRef.current = setTimeout(startWarningCountdown, msUntilWarning);
   }, [clearTimers, startWarningCountdown, effectiveMinutes]);
+
+  // The actual fix — setTimeout/setInterval are throttled (sometimes
+  // effectively paused) in backgrounded tabs, so a warning countdown can
+  // silently stall instead of reaching zero while the user is away. This
+  // recomputes against Date.now(), which keeps advancing regardless of
+  // timer throttling, and corrects whatever state the throttled timers
+  // left behind. Real elapsed time wins over however many ticks a
+  // throttled timer happened to fire.
+  const recheckAgainstRealClock = useCallback(() => {
+    const now = Date.now();
+    if (warningStartedAtRef.current !== null) {
+      const elapsedWarningMs = now - warningStartedAtRef.current;
+      if (elapsedWarningMs >= WARNING_WINDOW_SECONDS * 1000) {
+        clearTimers();
+        setExpired(true);
+        setSecondsRemaining(0);
+        return;
+      }
+      setSecondsRemaining(Math.max(0, WARNING_WINDOW_SECONDS - Math.floor(elapsedWarningMs / 1000)));
+      return;
+    }
+    const fullTimeoutMs = effectiveMinutes * 60 * 1000;
+    const msUntilWarning = Math.max(0, fullTimeoutMs - WARNING_WINDOW_SECONDS * 1000);
+    const elapsedIdleMs = now - idlePeriodStartedAtRef.current;
+    if (elapsedIdleMs >= fullTimeoutMs) {
+      clearTimers();
+      setExpired(true);
+      setSecondsRemaining(0);
+      return;
+    }
+    if (elapsedIdleMs >= msUntilWarning) {
+      // The warning should already have started, backdated to when it
+      // actually should have begun (not "now") so the countdown reflects
+      // real remaining time rather than resetting to a full 60s.
+      clearTimers();
+      warningStartedAtRef.current = idlePeriodStartedAtRef.current + msUntilWarning;
+      const elapsedWarningMs = now - warningStartedAtRef.current;
+      setShowWarning(true);
+      setSecondsRemaining(Math.max(0, WARNING_WINDOW_SECONDS - Math.floor(elapsedWarningMs / 1000)));
+      countdownRef.current = setInterval(() => {
+        setSecondsRemaining(prev => {
+          if (prev <= 1) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            setExpired(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  }, [clearTimers, effectiveMinutes]);
 
   const stayLoggedIn = useCallback(() => {
     setExpired(false);
@@ -123,14 +204,19 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
     // desk (a monitor saver nudging the mouse, a cat walking across the
     // keyboard) would silently defeat the whole point of the warning.
     const handleActivity = () => {
-      if (!showWarning) resetIdleTimer();
+      if (!showWarningRef.current) resetIdleTimer();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') recheckAgainstRealClock();
     };
 
     ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, handleActivity));
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     resetIdleTimer();
 
     return () => {
       ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, handleActivity));
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

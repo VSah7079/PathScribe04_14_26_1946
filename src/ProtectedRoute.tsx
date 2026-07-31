@@ -3,10 +3,13 @@ import './pathscribe.css';
 import { useEffect } from "react";
 import { useAuth } from "@contexts/AuthContext";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { useSessionSupersedeDetection } from "@/hooks/useSessionSupersedeDetection";
 import SessionExpiryWarningModal from "@/components/Common/SessionExpiryWarningModal";
 
+const SUPERSEDED_NOTICE_KEY = 'pathscribe_show_superseded_notice';
+
 const ProtectedRoute = () => {
-  const { isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
 
   // Force a re-check of auth state on mount.
   // This ensures Back/Forward cannot resurrect stale UI state.
@@ -23,6 +26,21 @@ const ProtectedRoute = () => {
   useEffect(() => {
     if (expired) logout(false);
   }, [expired, logout]);
+
+  // Same-browser session-supersede detection — same Timeout Preservation
+  // principle as idle-timeout: logout(false), never discard drafts. The
+  // notice itself can't usefully render here — this component unmounts
+  // and redirects to /login the instant logout() runs, so a modal shown
+  // here would never actually be seen. Instead, leave a real marker
+  // LoginPage.tsx checks for on arrival.
+  const superseded = useSessionSupersedeDetection(isAuthenticated, user?.id);
+
+  useEffect(() => {
+    if (superseded) {
+      try { sessionStorage.setItem(SUPERSEDED_NOTICE_KEY, '1'); } catch {}
+      logout(false);
+    }
+  }, [superseded, logout]);
 
   if (loading) {
     return <div style={{ background: "#0f172a", height: "100vh" }} />;
