@@ -10,6 +10,9 @@ import '../../pathscribe.css';
 // the real Specimen Dictionary service.
 import { specimenDictionaryService } from '@/services';
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
+import { getAiFeedbackLog, AiFeedbackEntry } from '@/services/cases/mockCaseService';
+import { caseRouter } from '@/services/cases/CaseRouter';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -240,6 +243,7 @@ function generateLast4WeeksAcceptance(monthly: MonthlyPoint[]): MonthlyPoint[] {
 }
 
 const AIContributionTab: React.FC = () => {
+  const { user } = useAuth();
   const [workflow,  setWorkflow]  = useState<AiWorkflow>("synoptic");
   const [section,   setSection]   = useState<Section>("acceptance");
   const [dateRange, setDateRange] = useState<DateRange>("30d");
@@ -253,19 +257,103 @@ const AIContributionTab: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // Real per-user AI feedback — was entirely hardcoded mock data before
+  // (summary.totalAssisted/totalCases/avgConfidence, the specific
+  // overridden cases, the comparison and trend numbers). recordAiFeedback
+  // already existed as a real, working, immediate-capture event log
+  // (see mockCaseService.ts) — it just had no user attribution and
+  // nothing could read it back. Both fixed; this is that real data.
+  // Only ever populated by RightSynopticPanel.tsx today, so this is
+  // genuinely synoptic-workflow-only — the Narrative AI (Outreach) tab
+  // below is NOT wired to real data yet and still shows the original
+  // mock numbers, flagged as such rather than silently left ambiguous.
+  const [myFeedback, setMyFeedback] = useState<AiFeedbackEntry[]>([]);
+  const [caseTypeById, setCaseTypeById] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!user?.id) return;
+    const log = getAiFeedbackLog().filter(e => e.userId === user.id);
+    setMyFeedback(log);
+    const caseIds = [...new Set(log.map(e => e.caseId).filter(Boolean))];
+    if (caseIds.length === 0) return;
+    caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }).then(res => {
+      if (!res.ok) return;
+      const map: Record<string, string> = {};
+      res.data.forEach((c: any) => {
+        if (caseIds.includes(c.id)) map[c.id] = c.specimens?.[0]?.description ?? c.specimens?.[0]?.label ?? c.id;
+      });
+      setCaseTypeById(map);
+    });
+  }, [user?.id]);
+
+  const myConfirmed  = myFeedback.filter(e => e.action === 'confirmed').length;
+  const myOverridden = myFeedback.filter(e => e.action === 'overridden').length;
+  const myTotal      = myConfirmed + myOverridden; // 'missed' entries aren't AI suggestions at all — no acceptance decision to measure
+  const myAvgConfidence = myTotal > 0
+    ? +(myFeedback.filter(e => e.action !== 'missed').reduce((s, e) => s + e.aiConfidence, 0) / myTotal).toFixed(1)
+    : null;
+
   const liveSynopticBreakdown = specimens ? deriveBreakdownFromSpecimens(specimens) : null;
 
   const ds = workflow === "synoptic" && liveSynopticBreakdown
-    ? { ...WORKFLOW_DATA[workflow], breakdown: liveSynopticBreakdown }
+    ? {
+        ...WORKFLOW_DATA[workflow],
+        breakdown: liveSynopticBreakdown,
+        // No fallback to the old mock summary when myTotal is 0 — showing
+        // fake-but-plausible numbers when there's genuinely no real usage
+        // yet is exactly the "looks real but isn't" problem this whole
+        // fix exists to close. An honest zero is the correct state.
+        summary: { totalAssisted: myTotal, totalCases: myTotal, avgConfidence: myAvgConfidence ?? 0 },
+        overridden: myFeedback.filter(e => e.action === 'overridden').slice(0, 6).map((e): OverriddenCase => ({
+          id: e.caseId,
+          caseType: caseTypeById[e.caseId] ?? e.caseId,
+          aiSuggestion: Array.isArray(e.aiValue) ? e.aiValue.join(', ') : e.aiValue,
+          finalDiagnosis: Array.isArray(e.userValue) ? e.userValue.join(', ') : e.userValue,
+          reason: e.fieldLabel,
+          date: new Date(e.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          daysAgo: Math.floor((Date.now() - new Date(e.timestamp).getTime()) / 86400000),
+          // assigningAuthority intentionally omitted — this is Synoptic AI
+          // Assist data (internal cases), not Narrative AI Outreach data
+          // (external client cases). Optional field, so leaving it unset
+          // is correct; only the type annotation above was needed to keep
+          // it part of the union so the narrative-workflow render branch
+          // (line ~523) still type-checks against both shapes.
+        })),
+      }
     : WORKFLOW_DATA[workflow];
+
+  // Real trend, built from actual event timestamps — replaces the
+  // synthetic interpolation buildYtdMonthly/generateLast4WeeksAcceptance
+  // produced from a hardcoded monthlyShape array. Only meaningful for
+  // synoptic (the only workflow with any real events); null when there's
+  // not enough real data for a period to compute a rate from, rather
+  // than interpolating a plausible-looking curve.
+  const buildRealTrend = (periodDays: number, buckets: number): MonthlyPoint[] => {
+    const now = Date.now();
+    const bucketMs = (periodDays * 86400000) / buckets;
+    const points: MonthlyPoint[] = [];
+    for (let i = buckets - 1; i >= 0; i--) {
+      const bucketEnd = now - i * bucketMs;
+      const bucketStart = bucketEnd - bucketMs;
+      const inBucket = myFeedback.filter(e => {
+        const t = new Date(e.timestamp).getTime();
+        return t >= bucketStart && t < bucketEnd && e.action !== 'missed';
+      });
+      const confirmed = inBucket.filter(e => e.action === 'confirmed').length;
+      const label = new Date(bucketEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      points.push({ month: label, rate: inBucket.length > 0 ? +((confirmed / inBucket.length) * 100).toFixed(1) : 0 });
+    }
+    return points;
+  };
 
   const cutoff = dateRange === "30d" ? 30 : dateRange === "90d" ? 90 : 366;
 
-  const monthly = buildYtdMonthly(ds.monthlyShape);
+  const monthly = workflow === "synoptic"
+    ? buildRealTrend(366, 12)
+    : buildYtdMonthly(ds.monthlyShape);
 
-  const trendRows = dateRange === "30d"
-    ? generateLast4WeeksAcceptance(monthly)
-    : dateRange === "90d" ? monthly.slice(-3) : monthly;
+  const trendRows = workflow === "synoptic"
+    ? (dateRange === "30d" ? buildRealTrend(28, 4) : dateRange === "90d" ? buildRealTrend(90, 3) : monthly)
+    : (dateRange === "30d" ? generateLast4WeeksAcceptance(monthly) : dateRange === "90d" ? monthly.slice(-3) : monthly);
 
   const ytdAvgRate = +(monthly.reduce((s, d) => s + d.rate, 0) / monthly.length).toFixed(1);
   const periodAvgRate = +(trendRows.reduce((s, d) => s + d.rate, 0) / trendRows.length).toFixed(1);

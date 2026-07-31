@@ -94,7 +94,7 @@ const cards = [
   { title: 'Configuration', description: 'System settings and AI preferences', route: '/configuration', color: '#F59E0B', image: '/config.webp' },
   { title: 'Search', description: 'Search completed and in-progress cases', route: '/search', color: '#8B5CF6', image: '/search.webp' },
   { title: 'System Audit', description: 'Review system activity and audit trails', route: '/audit', color: '#EF4444', image: '/logs.webp' },
-  { title: 'Deficiencies', description: 'Nonconformance tracking — open issues awaiting resolution', route: '/deficiencies', color: '#F97316', image: '/deficiencies.webp' },
+  { title: 'Quality Assurance', description: 'Deficiencies, Intraoperative Linkage, and Discordance & Reconciliation reporting', route: '/deficiencies', color: '#F97316', image: '/deficiencies.webp' },
   { title: 'Intraop Queue', description: 'Unlinked intraoperative entries awaiting a formal LIS accession to merge into', route: '/intraop-queue', color: '#0EA5E9', image: '/worklist.webp' },
 
   // ⭐ New tile

@@ -900,6 +900,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           instanceId: activeReportInstanceId ?? '', templateId: templateDetail?.template.id ?? '',
           fieldId, fieldLabel, aiValue: '', aiConfidence: 0, userValue: value,
           action: 'missed', source: 'AI had no suggestion for this field',
+          userId: user?.id, userName: user?.name,
         });
       }
     }
@@ -926,11 +927,12 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
           instanceId: activeReportInstanceId ?? '', templateId: templateDetail?.template.id ?? '',
           fieldId, fieldLabel, aiValue: sug.value, aiConfidence: sug.confidence,
           userValue: value, action: 'overridden', source: sug.source,
+          userId: user?.id, userName: user?.name,
         });
       }
       return nextSuggestions;
     });
-  }, [templateDetail, caseData, activeReportInstanceId, aiSuggestions]);
+  }, [templateDetail, caseData, activeReportInstanceId, aiSuggestions, user]);
 
   // ── handleVerify ──────────────────────────────────────────────────────────
   const handleVerify = useCallback((fieldId: string, v: 'verified' | 'disputed') => {
@@ -950,10 +952,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
         fieldId, fieldLabel, aiValue: sug.value, aiConfidence: sug.confidence,
         userValue: v === 'verified' ? sug.value : (answers[fieldId] ?? sug.value),
         action: v === 'verified' ? 'confirmed' : 'overridden', source: sug.source,
+        userId: user?.id, userName: user?.name,
       });
       return nextSuggestions;
     });
-  }, [caseData, activeReportInstanceId, templateDetail, answers]);
+  }, [caseData, activeReportInstanceId, templateDetail, answers, user]);
 
   // ── Early returns ─────────────────────────────────────────────────────────
   if (loading) return (

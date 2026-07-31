@@ -18,7 +18,10 @@ import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorMod
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router-dom';
-import { specimenDeficiencyService, deficiencyTypeService, discordanceService, intraoperativeService } from '../services';
+import { specimenDeficiencyService, deficiencyTypeService, reconciliationService, intraoperativeService, subspecialtyService, countersignService } from '../services';
+import type { Subspecialty } from '../services';
+import { caseRouter } from '../services/cases/CaseRouter';
+import * as XLSX from 'xlsx';
 import type { SpecimenDeficiency, DeficiencyType } from '../services/deficiencies/IDeficiencyService';
 
 
@@ -283,16 +286,36 @@ const ContributionDashboardPage: React.FC = () => {
   // overdue pending-verification or anything reopened at least once
   // reads as high, a fresh open item as medium, anything else shown
   // (non-overdue pending-verification) as low.
+  //
+  // Filtered to the current pathologist — previously this called
+  // specimenDeficiencyService.getAll()/discordanceService.getAll() with
+  // zero scoping, meaning "My Contribution" was silently showing
+  // department-wide data mislabeled as personal. Deficiencies are
+  // cross-referenced by caseId to the case's own order.assignedTo (not
+  // SpecimenDeficiency.raisedBy, which is often a tech/accessioner
+  // flagging the issue, not the case's owning pathologist — the wrong
+  // signal for "is this MY quality issue"). Discordances use
+  // recordedBy.userId directly, since that's genuinely who reconciled it.
   const [qualityFlags, setQualityFlags] = useState<ContributionFlag[]>([]);
   useEffect(() => {
-    Promise.all([specimenDeficiencyService.getAll(), deficiencyTypeService.getAll(), discordanceService.getAll()]).then(([defRes, typeRes, discRes]) => {
+    if (!user?.id) return;
+    Promise.all([
+      specimenDeficiencyService.getAll(), deficiencyTypeService.getAll(), reconciliationService.getAll(),
+      caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
+    ]).then(([defRes, typeRes, discRes, casesRes]) => {
       if (!defRes.ok) return;
       const types: DeficiencyType[] = typeRes.ok ? typeRes.data : [];
       const typeName = (id: string) => types.find(t => t.id === id)?.name ?? id;
       const isOverdue = (d: SpecimenDeficiency) => !!d.verificationDueDate && new Date(d.verificationDueDate).getTime() < Date.now();
 
+      const myCaseIds = new Set(
+        (casesRes.ok ? casesRes.data : [])
+          .filter((c: any) => c?.order?.assignedTo === user.id)
+          .map((c: any) => c.id)
+      );
+
       const deficiencyFlags: (ContributionFlag & { sortKey: string; score: number })[] = defRes.data
-        .filter(d => d.status !== 'closed')
+        .filter(d => d.status !== 'closed' && myCaseIds.has(d.caseId))
         .map(d => ({
           id: d.id,
           label: d.caseId,
@@ -311,7 +334,7 @@ const ContributionDashboardPage: React.FC = () => {
       // isn't the kind of thing that belongs in a short, urgent flag list.
       const discordanceFlags: (ContributionFlag & { sortKey: string; score: number })[] = discRes.ok
         ? discRes.data
-            .filter(d => d.severity !== 'low')
+            .filter(d => d.outcome === 'discordant' && d.severity !== 'low' && d.recordedBy?.userId === user.id)
             .map(d => ({
               id: d.id,
               label: d.caseId,
@@ -329,17 +352,90 @@ const ContributionDashboardPage: React.FC = () => {
 
       setQualityFlags(relevant.map(({ sortKey, score, ...flag }) => flag));
     });
-  }, []);
+  }, [user?.id]);
+
+  // ── My Teaching Cases — real reconciliation records where the current
+  // user is the draftedBy (their own draft was reconciled by an
+  // attending). Only meaningful for residents/fellows; empty for anyone
+  // whose cases are never drafted-then-countersigned by someone else.
+  const [teachingRecords, setTeachingRecords] = useState<import('@/types/quality/ReconciliationRecord').ReconciliationRecord[]>([]);
+  // General countersign records — the broader, more comprehensive
+  // teaching signal added this session: unlike teachingRecords above
+  // (scoped to frozen-section reconciliation only), this covers every
+  // resident-drafted case regardless of whether it ever touched a
+  // frozen section.
+  const [countersignRecords, setCountersignRecords] = useState<import('@/types/case/CountersignRecord').CountersignRecord[]>([]);
+  const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
+  useEffect(() => {
+    if (!user?.id) return;
+    reconciliationService.getAll().then(res => {
+      if (res.ok) setTeachingRecords(res.data.filter(r => r.draftedBy?.userId === user.id));
+    });
+    countersignService.getAll().then(res => {
+      if (res.ok) setCountersignRecords(res.data.filter(r => r.residentId === user.id && r.status === 'countersigned'));
+    });
+    subspecialtyService.getAll().then(res => { if (res.ok) setSubspecialties(res.data); });
+  }, [user?.id]);
+
+  // Trainee Case & Procedure Reference export — deliberately NOT an
+  // "ACGME export." Checked directly against ACGME's own documentation:
+  // no public vendor bulk-import/export schema exists, and ACGME
+  // maintains a Non-Endorsement Policy specifically against third-party
+  // tools claiming to speak its format. This is PathScribe's own
+  // reference table, meant for a resident to consult while manually
+  // entering their own cases into the real ADS portal — not a file
+  // meant to be uploaded anywhere.
+  //
+  // Sourced from real Case.participants[] involvement — NOT from
+  // ReconciliationRecord alone, which only exists for cases with a
+  // merged frozen section. A resident's real case volume includes
+  // plenty of cases with no frozen section at all; building this from
+  // reconciliation data alone would have silently hidden most of a
+  // resident's actual caseload. Reconciliation outcome is included as
+  // enrichment only for the cases where one genuinely exists.
+  const exportCaseLog = async () => {
+    if (!user?.id) return;
+    const [casesRes, reconRes] = await Promise.all([
+      caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
+      reconciliationService.getAll(),
+    ]);
+    const myCases = (casesRes.ok ? casesRes.data : []).filter((c: any) =>
+      c?.participants?.some((p: any) => p.staffId === user.id && p.participationTypeIds?.includes('resident') && p.status === 'active')
+    );
+    const reconByCase = new Map((reconRes.ok ? reconRes.data : []).map(r => [r.caseId, r]));
+    const subspecialtyName = (id?: string) => id ? (subspecialties.find(s => s.id === id)?.name ?? id) : '';
+
+    const rows = myCases.map((c: any) => {
+      const attending = c.participants?.find((p: any) => p.participationTypeIds?.includes('attending') || p.participationTypeIds?.includes('primary'));
+      const recon = reconByCase.get(c.id);
+      return {
+        'Case ID': c.accession?.fullAccession ?? c.accession?.accessionNumber ?? c.id,
+        'Subspecialty': subspecialtyName(c.subspecialtyId),
+        'Attending': attending?.staffName ?? '',
+        'Reconciliation Outcome': recon?.outcome ?? '(no frozen section on this case)',
+        'Reconciliation Severity': recon?.severity ?? '',
+        'Case Created': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Case Reference');
+    XLSX.writeFile(wb, `trainee-case-reference-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
   // ── Active Intraop Sessions — real, previously nothing on this
   // dashboard reflected intraop volume at all despite the feature
-  // being real now.
+  // being real now. Filtered to entries this pathologist personally
+  // performed (performedBy.userId) — same "this dashboard should
+  // actually be personal" fix as Quality Flags above.
   const [activeIntraopCount, setActiveIntraopCount] = useState<number | null>(null);
   useEffect(() => {
+    if (!user?.id) return;
     intraoperativeService.getPending().then(res => {
-      if (res.ok) setActiveIntraopCount(res.data.length);
+      if (res.ok) setActiveIntraopCount(res.data.filter(e => e.performedBy.userId === user.id).length);
     });
-  }, []);
+  }, [user?.id]);
 
 
   // ── Voice: set WORKLIST context on mount ──────────────────────────────────
@@ -467,6 +563,107 @@ const ContributionDashboardPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* My Teaching Cases — shows when the current user has
+                  EITHER kind of teaching record. Previously gated only on
+                  teachingRecords (frozen-section reconciliation), which
+                  meant a resident whose countersigned cases never
+                  happened to involve a frozen section would see nothing
+                  here at all, despite having real teaching data. */}
+              {(teachingRecords.length > 0 || countersignRecords.length > 0) && (() => {
+                const concordantCount = teachingRecords.filter(r => r.outcome === 'concordant').length;
+                const rate = teachingRecords.length > 0 ? (concordantCount / teachingRecords.length) * 100 : null;
+                const withFeedback = [...teachingRecords].filter(r => r.attendingFeedback).sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
+                const csWithFeedback = [...countersignRecords].filter(r => r.attendingFeedback).sort((a, b) => (b.countersignedAt ?? '').localeCompare(a.countersignedAt ?? ''));
+                const avgChangedFields = countersignRecords.length > 0
+                  ? countersignRecords.reduce((s, r) => s + (r.changedFieldCount ?? 0), 0) / countersignRecords.length
+                  : null;
+
+                // Per-subspecialty breakdown — the actual point of linking
+                // to real Subspecialty rather than just showing one
+                // aggregate rate: "98% in Breast vs 88% in Bone & Soft
+                // Tissue" highlights WHERE a trainee actually needs more
+                // work, not just how they're doing overall. Records with
+                // no subspecialtyId (the case never had one set) group
+                // under "Unspecified" rather than being silently dropped.
+                const bySubspecialty = new Map<string, { total: number; concordant: number }>();
+                teachingRecords.forEach(r => {
+                  const key = r.subspecialtyId ?? '__unspecified__';
+                  const bucket = bySubspecialty.get(key) ?? { total: 0, concordant: 0 };
+                  bucket.total += 1;
+                  if (r.outcome === 'concordant') bucket.concordant += 1;
+                  bySubspecialty.set(key, bucket);
+                });
+                const subspecialtyName = (id: string) => id === '__unspecified__' ? 'Unspecified' : (subspecialties.find(s => s.id === id)?.name ?? id);
+                const breakdown = [...bySubspecialty.entries()]
+                  .map(([id, b]) => ({ id, name: subspecialtyName(id), rate: (b.concordant / b.total) * 100, total: b.total }))
+                  .sort((a, b) => a.rate - b.rate); // lowest concordance first — that's the actual learning opportunity, surface it first
+
+                return (
+                  <div
+                    style={{ padding: "20px", borderRadius: "18px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, cursor: "pointer" }}
+                    onClick={() => navigate('/deficiencies')}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: "15px", fontWeight: 600 }}>My Teaching Cases</div>
+                        <div style={{ fontSize: "13px", color: t.colors.text.muted }}>Cases you drafted that were reviewed by an attending</div>
+                      </div>
+                      <button
+                        className="ps-conf-btn-secondary"
+                        style={{ fontSize: "11px", padding: "4px 10px" }}
+                        onClick={(e) => { e.stopPropagation(); exportCaseLog(); }}
+                        title="Trainee case reference for manual ACGME ADS entry — not an official ACGME file format"
+                      >
+                        Export Case Log
+                      </button>
+                    </div>
+                    {rate !== null && (
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "10px" }}>
+                        <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.5px" }}>{rate.toFixed(0)}%</span>
+                        <span style={{ fontSize: "13px", color: t.colors.text.muted }}>overall concordant (frozen section) · {teachingRecords.length} case{teachingRecords.length === 1 ? '' : 's'}</span>
+                      </div>
+                    )}
+                    {breakdown.length > 1 && (
+                      <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {breakdown.map(b => (
+                          <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
+                            <span style={{ color: t.colors.text.muted }}>{b.name} ({b.total})</span>
+                            <span style={{ fontWeight: 600, color: b.rate < 90 ? '#f59e0b' : t.colors.text.primary }}>{b.rate.toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {withFeedback[0]?.attendingFeedback && (
+                      <div style={{ marginTop: "10px", fontSize: "12px", color: t.colors.text.muted, fontStyle: "italic" }}>
+                        Latest reconciliation feedback: "{withFeedback[0].attendingFeedback}"
+                      </div>
+                    )}
+                    {/* General countersign summary — the broader signal,
+                        covers every drafted case regardless of frozen
+                        section involvement. Shown separately from the
+                        reconciliation numbers above rather than blended
+                        into one figure, since changedFieldCount and
+                        concordance rate aren't the same kind of metric. */}
+                    {countersignRecords.length > 0 && (
+                      <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: `1px solid ${t.colors.border.subtle}` }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                          <span style={{ fontSize: "20px", fontWeight: 800 }}>{countersignRecords.length}</span>
+                          <span style={{ fontSize: "13px", color: t.colors.text.muted }}>
+                            case{countersignRecords.length === 1 ? '' : 's'} countersigned
+                            {avgChangedFields !== null && ` · avg ${avgChangedFields.toFixed(1)} field${avgChangedFields === 1 ? '' : 's'} changed`}
+                          </span>
+                        </div>
+                        {csWithFeedback[0]?.attendingFeedback && (
+                          <div style={{ marginTop: "6px", fontSize: "12px", color: t.colors.text.muted, fontStyle: "italic" }}>
+                            Latest countersign feedback: "{csWithFeedback[0].attendingFeedback}"
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Active Intraop Sessions */}
               <div

@@ -69,7 +69,7 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   // AI Review Mode (triage before finalize)
   'AI_REVIEW_CONFIRM', 'AI_REVIEW_OVERRIDE', 'AI_REVIEW_SKIP', 'AI_REVIEW_NEXT', 'AI_REVIEW_CANCEL',
   // Pool Case actions
-  'POOL_ACCEPT_CASE', 'POOL_PASS_CASE',
+  'POOL_ACCEPT_CASE', 'POOL_PASS_CASE', 'INTRAOP_LOG_SURGEON_REPORT',
   // Case Team actions
   'OPEN_CASE_TEAM', 'CASE_TEAM_ADD', 'CASE_TEAM_ASSIGN',
   // Worklist participation filters
@@ -225,6 +225,23 @@ const SEED_ACTIONS: SystemAction[] = [
     shortcut: 'Alt+A',
     internalKey: 'F13+PS165',
     voiceTriggers: ['accept case', 'take this case', 'assign to me', 'accept'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'INTRAOP_LOG_SURGEON_REPORT',
+    label: 'Log Surgeon Report',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS275',
+    // Only meaningful — and only listened for — while a single entry's
+    // "Report to Surgeon" note field is already open (see
+    // IntraopQueuePage.tsx), the same way POOL_ACCEPT_CASE is only
+    // listened for while its modal is open. There's never more than one
+    // possible target, so no separate "which entry" selection step is
+    // needed.
+    voiceTriggers: ['report logged', 'surgeon notified', 'log the report', 'confirm report'],
     learnedTriggers: [],
     requiredRole: 'Pathologist',
     isActive: true,

@@ -7,7 +7,7 @@ export { mockPhysicianService     as physicianService     } from './physicians/m
 export { mockFlagService          as flagService          } from './flags/mockFlagService';
 export { mockContainerTypeService as containerTypeService } from './containerTypes/mockContainerTypeService';
 export { mockIntraoperativeService as intraoperativeService } from './intraop/mockIntraoperativeService';
-export { mockDiscordanceService as discordanceService } from './quality/mockDiscordanceService';
+export { mockReconciliationService as reconciliationService } from './quality/mockReconciliationService';
 export { mockAmendmentService as amendmentService } from './reports/mockAmendmentService';
 export { mockReportVersionService as reportVersionService } from './reports/mockReportVersionService';
 export { mockLisAmendmentNoticeService as lisAmendmentNoticeService } from './reports/mockLisAmendmentNoticeService';
@@ -37,6 +37,8 @@ export { mockModelService         as modelService         } from './models/mockM
 export { mockSavedSearchService   as savedSearchService   } from './savedSearches/mockSavedSearchService';
 export { mockAuditService         as auditService         } from './auditlog/mockAuditService';
 export { mockCaseService          as caseService          } from './cases/mockCaseService';
+export { mockCountersignService   as countersignService   } from './cases/mockCountersignService';
+export { mockFppeAssignmentService as fppeAssignmentService } from './cases/mockFppeAssignmentService';
 export { mockCodeService          as codeService          } from './codes/mockCodeService';
 export { mockMessageService       as messageService       } from './messages/mockMessageService';
 export { mockInternalNoteService  as internalNoteService  } from './internalNotes/mockInternalNoteService';

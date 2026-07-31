@@ -15292,6 +15292,12 @@ h3[data-section-id]:first-child {
   border: 1px solid rgba(16,185,129,0.3);
 }
 
+.wl-pool-substate--mixed {
+  background: rgba(167,139,250,0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(167,139,250,0.3);
+}
+
 /* ── Configuration settings search ───────────────────────────────────────── */
 .ps-config-search              { position:relative; max-width:420px; margin-bottom:20px; }
 .ps-config-search__icon        { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:13px; opacity:0.6; pointer-events:none; }
@@ -16925,6 +16931,14 @@ h3[data-section-id]:first-child {
   transition: all 0.15s;
 }
 .ps-confsys-nav-btn:hover { color: #DEE4E7; }
+.ps-confsys-nav-group-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  padding: 14px 14px 6px;
+}
 .ps-confsys-nav-btn--active {
   background: rgba(138, 180, 248, 0.15);
   color: #8AB4F8;
@@ -17451,6 +17465,15 @@ h3[data-section-id]:first-child {
   background: rgba(255,255,255,0.02);
 }
 
+.ps-qa-tab-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 12px 0 16px; }
+.ps-qa-scope-switcher { display: flex; flex-direction: column; gap: 4px; min-width: 260px; }
+.ps-qa-summary-tiles { display: flex; gap: 12px; flex-wrap: wrap; }
+.ps-qa-tile { flex: 1; min-width: 140px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; background: rgba(255,255,255,0.02); }
+.ps-qa-tile-value { font-size: 28px; font-weight: 800; color: #e2e8f0; }
+.ps-qa-tile-label { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.ps-conf-tr-clickable { cursor: pointer; }
+.ps-conf-tr-clickable:hover { background: rgba(8,145,178,0.06); }
+
 .ps-defic-review-banner {
   display: flex;
   align-items: center;
@@ -17749,6 +17772,7 @@ h3[data-section-id]:first-child {
 .ps-intraop-note { font-size: 12px; color: #cbd5e1; padding: 10px 0; border-top: 1px solid #1e293b; }
 .ps-intraop-note-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; margin-bottom: 3px; }
 
+.ps-intraop-merge-patient { font-size: 14px; font-weight: 700; color: #e2e8f0; margin: 0 0 6px; }
 .ps-intraop-merge-intro { font-size: 12px; color: #94a3b8; margin: 0 0 16px; }
 .ps-intraop-candidate-row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 6px; cursor: pointer; }
 .ps-intraop-candidate-row:hover { background: rgba(255,255,255,0.04); }
