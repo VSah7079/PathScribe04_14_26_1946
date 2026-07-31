@@ -97,4 +97,12 @@ export type CaseStatus =
   | "claiming"
 
   /** Case is in the process of being finalized — synoptic complete, awaiting sign-out */
-  | "finalizing";
+  | "finalizing"
+
+  /** A resident (or other non-finalizing assignee) has released this case's
+   *  synoptic report(s) — the attending must review and countersign before
+   *  it's genuinely finalized. Previously only a valid value on
+   *  SynopticReportInstance.status; one seed case was force-casting it onto
+   *  CaseStatus via `as CaseStatus`, which the type system was silently
+   *  allowing without it actually being a real member of this union. */
+  | "pending-countersign";

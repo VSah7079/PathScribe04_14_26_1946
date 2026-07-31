@@ -11,11 +11,18 @@ interface CaseSignOutModalProps {
   onUserChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onConfirm: () => void;
+  /** True when this case was released by a resident and is now
+   *  genuinely being countersigned, not just a routine sign-out. */
+  isCountersign?: boolean;
+  residentName?: string;
+  countersignFeedback?: string;
+  onCountersignFeedbackChange?: (value: string) => void;
 }
 
 const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
   show, accession, signOutUser, signOutPassword, signOutError,
   onClose, onUserChange, onPasswordChange, onConfirm,
+  isCountersign, residentName, countersignFeedback, onCountersignFeedbackChange,
 }) => {
   if (!show) return null;
 
@@ -23,18 +30,32 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
     <div data-capture-hide="true" className="ps-overlay">
       <div className="ps-modal-dark ps-modal-dark--sm ps-modal-dark--centered">
 
-        <div className="ps-modal-dark-emoji">✍️</div>
+        <div className="ps-modal-dark-emoji">{isCountersign ? '🎓' : '✍️'}</div>
 
         <div className="ps-modal-dark-header ps-modal-dark-header--center">
-          <span className="ps-modal-dark-title">Sign Out Case</span>
+          <span className="ps-modal-dark-title">{isCountersign ? 'Countersign Case' : 'Sign Out Case'}</span>
         </div>
 
         <p className="ps-modal-dark-body ps-modal-dark-body--center">
-          All synoptic reports for <strong className="ps-text-light" data-phi="accession">Case {accession}</strong> have been finalized.
+          {isCountersign
+            ? <>Released by <strong className="ps-text-light">{residentName ?? 'the resident'}</strong> for your countersign — <strong className="ps-text-light" data-phi="accession">Case {accession}</strong>.</>
+            : <>All synoptic reports for <strong className="ps-text-light" data-phi="accession">Case {accession}</strong> have been finalized.</>}
         </p>
         <p className="ps-modal-dark-hint ps-modal-dark-hint--center">
           Enter your username and password to sign out this case from PathScribe.
         </p>
+
+        {isCountersign && (
+          <div className="ps-conf-form-field" style={{ marginBottom: 12 }}>
+            <label className="ps-modal-dark-label">Feedback for {residentName ?? 'the resident'} — optional</label>
+            <textarea
+              className="ps-conf-input ps-conf-textarea"
+              value={countersignFeedback ?? ''}
+              onChange={e => onCountersignFeedbackChange?.(e.target.value)}
+              placeholder="Targeted feedback — captured here at countersign, not a separate note later."
+            />
+          </div>
+        )}
 
         <div className="ps-modal-dark-fields">
           <div>

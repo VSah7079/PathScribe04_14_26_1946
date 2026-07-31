@@ -22,7 +22,6 @@ import ParticipationTypesSection from './ParticipationTypesSection';
 import CasePoolAssignmentSection from './CasePoolAssignmentSection';
 import RoutingRulesSection       from './RoutingRulesSection';
 import TerminologyServicesSection from '../Terminology/TerminologyServicesSection';
-import TATConfigSection          from './TATConfigSection'; 
 import SessionSecuritySection    from './SessionSecuritySection';
 
 // ── Section registry ──────────────────────────────────────────────────────────
@@ -49,35 +48,46 @@ type SystemSection =
   | 'participation_types'
   | 'case_routing'
   | 'routing_rules'
-  | 'terminology'
-  | 'tat_config'
-  | 'session_security';
+  | 'terminology';
 
 // Alphabetical by label
-const SECTIONS: { id: SystemSection; emoji: string; label: string }[] = [
-  { id: 'fonts',               emoji: '🔤', label: 'Approved Fonts'        },
-  { id: 'case_routing',        emoji: '🔀', label: 'Case Routing'          },
-  { id: 'clients',             emoji: '🏥', label: 'Client Dictionary'     },
-  { id: 'container_types',     emoji: '🧪', label: 'Container Types'       },
-  { id: 'retention',           emoji: '🗄️', label: 'Data Retention'        },
-  { id: 'delegation_types',    emoji: '🔀', label: 'Delegation Types'      },
-  { id: 'flags',               emoji: '🚩', label: 'Flags'                 },
-  { id: 'governing_bodies',    emoji: '📋', label: 'Governing Bodies'      },
-  { id: 'grossing_route_overrides', emoji: '🔀', label: 'Grossing Route Overrides' },
-  { id: 'identifiers',         emoji: '🔍', label: 'Identifier Formats'    },
-  { id: 'lis',                 emoji: '🔗', label: 'LIS Integration'       },
-  { id: 'participation_types', emoji: '👥', label: 'Participation Types'   },
-  { id: 'physicians',          emoji: '🩻', label: 'Physicians'            },
-  { id: 'protocols',           emoji: '🧬', label: 'Protocol Dictionary'   },
-  { id: 'routing_rules',       emoji: '📋', label: 'Routing Rules'         },
-  { id: 'specimen_categories', emoji: '🗂️', label: 'Specimen Categories'   },
-  { id: 'deficiencies',        emoji: '⚠️', label: 'Specimen Deficiencies' },
-  { id: 'specimens',           emoji: '🔬', label: 'Specimen Dictionary'   },
-  { id: 'stains',              emoji: '🧪', label: 'Stain Dictionary'      },
-  { id: 'subspecialties',      emoji: '🩺', label: 'Subspecialties'        },
-  { id: 'tat_config',          emoji: '⏱️', label: 'TAT Configuration'     }, 
-  { id: 'session_security',    emoji: 'πŸ”’', label: 'Session Security'      },
-  { id: 'terminology',         emoji: '🔌', label: 'Terminology Services'  },
+// Grouped by verified dependency, not alphabetized. Group boundaries reflect
+// real code relationships checked before this reorganization — several
+// initially-plausible edges (Container Types, Stain Dictionary, Specimen
+// Deficiencies, Case Routing, Delegation Types, Participation Types) turned
+// out to have no actual field-level dependency anywhere in the codebase, so
+// they stay in the independent group rather than being force-fit into a
+// dependency story that doesn't hold up. Within a group, order is alphabetical
+// since there's no real ordering constraint there — only kept alphabetical
+// where it was already true, not applied as a fallback everywhere.
+const SECTIONS: { id: SystemSection; emoji: string; label: string; group: string }[] = [
+  // ── Foundational / independent — no confirmed dependency in either direction ──
+  { id: 'fonts',               emoji: '🔤', label: 'Approved Fonts'        , group: 'Independent' },
+  { id: 'case_routing',        emoji: '🔀', label: 'Case Routing'          , group: 'Independent' },
+  { id: 'container_types',     emoji: '🧪', label: 'Container Types'       , group: 'Independent' },
+  { id: 'retention',           emoji: '🗄️', label: 'Data Retention'        , group: 'Independent' },
+  { id: 'delegation_types',    emoji: '🔀', label: 'Delegation Types'      , group: 'Independent' },
+  { id: 'flags',               emoji: '🚩', label: 'Flags'                 , group: 'Independent' },
+  { id: 'identifiers',         emoji: '🔍', label: 'Identifier Formats'    , group: 'Independent' },
+  { id: 'lis',                 emoji: '🔗', label: 'LIS Integration'       , group: 'Independent' },
+  { id: 'participation_types', emoji: '👥', label: 'Participation Types'   , group: 'Independent' },
+  { id: 'protocols',           emoji: '🧬', label: 'Protocol Dictionary'   , group: 'Independent' },
+  { id: 'deficiencies',        emoji: '⚠️', label: 'Specimen Deficiencies' , group: 'Independent' },
+  { id: 'stains',              emoji: '🧪', label: 'Stain Dictionary'      , group: 'Independent' },
+  { id: 'session_security',    emoji: '🔒', label: 'Session Security'      , group: 'Independent' },
+
+  // ── Reference data — real dependents exist below, set these up first ──
+  { id: 'clients',             emoji: '🏥', label: 'Client Dictionary'     , group: 'Reference Data (set up first)' },
+  { id: 'governing_bodies',    emoji: '📋', label: 'Governing Bodies'      , group: 'Reference Data (set up first)' },
+  { id: 'specimen_categories', emoji: '🗂️', label: 'Specimen Categories'   , group: 'Reference Data (set up first)' },
+  { id: 'subspecialties',      emoji: '🩺', label: 'Subspecialties'        , group: 'Reference Data (set up first)' },
+
+  // ── Dependent settings — each references a real field from a group above ──
+  { id: 'grossing_route_overrides', emoji: '🔀', label: 'Grossing Route Overrides — uses Client Dictionary' , group: 'Depends on reference data above' },
+  { id: 'physicians',          emoji: '🩻', label: 'Physicians — uses Client Dictionary'                    , group: 'Depends on reference data above' },
+  { id: 'routing_rules',       emoji: '📋', label: 'Routing Rules — uses Subspecialties'                    , group: 'Depends on reference data above' },
+  { id: 'specimens',           emoji: '🔬', label: 'Specimen Dictionary — uses Specimen Categories'         , group: 'Depends on reference data above' },
+  { id: 'terminology',         emoji: '🔌', label: 'Terminology Services — uses Governing Bodies'           , group: 'Depends on reference data above' },
 ];
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -118,7 +128,6 @@ const SystemTab: React.FC = () => {
       case 'case_routing':        return <CasePoolAssignmentSection />;
       case 'routing_rules':       return <RoutingRulesSection />;
       case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
-      case 'tat_config':          return <TATConfigSection />; 
       case 'session_security':    return <SessionSecuritySection />;
       default:                    return null;
     }
@@ -139,14 +148,18 @@ const SystemTab: React.FC = () => {
 
       {/* ── Sidebar nav — sticky, own scroll if the list itself is tall ── */}
       <div className="ps-confsys-sidebar">
-        {SECTIONS.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActive(s.id)}
-            className={`ps-confsys-nav-btn${active === s.id ? ' ps-confsys-nav-btn--active' : ''}`}
-          >
-            {s.emoji} {s.label}
-          </button>
+        {SECTIONS.map((s, i) => (
+          <React.Fragment key={s.id}>
+            {(i === 0 || SECTIONS[i - 1].group !== s.group) && (
+              <div className="ps-confsys-nav-group-header">{s.group}</div>
+            )}
+            <button
+              onClick={() => setActive(s.id)}
+              className={`ps-confsys-nav-btn${active === s.id ? ' ps-confsys-nav-btn--active' : ''}`}
+            >
+              {s.emoji} {s.label}
+            </button>
+          </React.Fragment>
         ))}
       </div>
 

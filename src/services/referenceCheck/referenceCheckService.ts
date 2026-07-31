@@ -1,0 +1,76 @@
+// src/services/referenceCheck/referenceCheckService.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Checks whether a foundational config entity (Client, Subspecialty, Specimen
+// Category) is still referenced elsewhere before it gets deactivated. This
+// closes a real, confirmed gap: ClientDictionaryPage's deactivate() previously
+// just flipped status with zero check for whether Physicians, TAT entries, or
+// Grossing Route Overrides still pointed at it.
+//
+// Deliberately scoped to only the dependency edges actually verified in the
+// codebase (see the System-tab sidebar reorganization this session) — no
+// speculative checks for relationships that were checked and found not to
+// exist (e.g. Container Types, Stain Dictionary have no confirmed dependents).
+//
+// Governing Bodies → Terminology Services is deliberately excluded from this
+// checker: that relationship is a static, compile-time ICD-10-variant lookup
+// table (getIcd10VariantForBody), not a live stored reference that could go
+// stale — deactivating a Governing Body record doesn't corrupt any data the
+// way deactivating a Client while Physicians/TAT/overrides still reference it
+// would.
+// ─────────────────────────────────────────────────────────────────────────────
+import { physicianService, grossingRoutingOverrideService, specimenDictionaryService } from '../index';
+import { loadRoutingRules } from '../cases/casePoolAssignmentService';
+import { TAT_STORAGE_KEY } from '../../components/Config/System/TATConfigSection';
+import type { TATEntry } from '../../components/Config/System/TATConfigSection';
+
+export interface ReferenceSource {
+  label: string;
+  count: number;
+}
+
+export interface ReferenceCheckResult {
+  hasReferences: boolean;
+  sources: ReferenceSource[];
+}
+
+function loadTatEntries(): TATEntry[] {
+  try {
+    const raw = localStorage.getItem(TAT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function toResult(sources: ReferenceSource[]): ReferenceCheckResult {
+  const nonZero = sources.filter(s => s.count > 0);
+  return { hasReferences: nonZero.length > 0, sources: nonZero };
+}
+
+export async function checkClientReferences(clientId: string): Promise<ReferenceCheckResult> {
+  const [physiciansRes, overridesRes] = await Promise.all([
+    physicianService.getAll(),
+    grossingRoutingOverrideService.getAll(),
+  ]);
+  const physicianCount = physiciansRes.ok ? physiciansRes.data.filter((p: any) => p.clientIds?.includes(clientId)).length : 0;
+  const overrideCount = overridesRes.ok ? overridesRes.data.filter((o: any) => o.clientId === clientId && o.active !== false).length : 0;
+  const tatCount = loadTatEntries().filter(e => e.active && e.clientId === clientId).length;
+  return toResult([
+    { label: 'Physicians', count: physicianCount },
+    { label: 'Grossing Route Overrides', count: overrideCount },
+    { label: 'TAT Configuration entries', count: tatCount },
+  ]);
+}
+
+export async function checkSubspecialtyReferences(subspecialtyId: string): Promise<ReferenceCheckResult> {
+  const routingRuleCount = loadRoutingRules().filter(r => r.subspecialtyId === subspecialtyId && r.active).length;
+  const tatCount = loadTatEntries().filter(e => e.active && e.subspecialtyId === subspecialtyId).length;
+  return toResult([
+    { label: 'Routing Rules', count: routingRuleCount },
+    { label: 'TAT Configuration entries', count: tatCount },
+  ]);
+}
+
+export async function checkSpecimenCategoryReferences(specimenCategoryId: string): Promise<ReferenceCheckResult> {
+  const res = await specimenDictionaryService.getAll();
+  const count = res.ok ? res.data.filter((e: any) => e.specimenCategoryId === specimenCategoryId).length : 0;
+  return toResult([{ label: 'Specimen Dictionary entries', count }]);
+}

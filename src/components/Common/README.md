@@ -100,6 +100,18 @@ Shared, reusable UI primitives used across multiple pages.
   data integrity (patient demographics are read-only master data from
   the LIS/EHR; restoring a stale cached copy over freshly-fetched current
   data would be a real correctness bug, not just a privacy one).
+- **`SessionSupersededNotice.tsx`** — **NEW.** Shown on `pages/LoginPage.tsx`
+  after a same-browser session-supersede logout (the same user signing
+  in from a second tab). Deliberately rendered on the login page, not
+  `ProtectedRoute.tsx` — that component unmounts and redirects to
+  `/login` the instant `logout()` runs, so a modal shown there would
+  never actually be seen. `ProtectedRoute.tsx` leaves a real marker
+  (`sessionStorage`) that `LoginPage.tsx` checks for on arrival instead.
+  Same "preserve drafts, never discard" guarantee as
+  `SessionExpiryWarningModal.tsx`'s idle-timeout flow — a superseded
+  logout calls `logout(false)`, not `logout(true)`. See
+  `services/session/README.md` for the full mechanism this notice is the
+  visible endpoint of.
 
 ## Deleted this pass
 
@@ -139,6 +151,16 @@ Shared, reusable UI primitives used across multiple pages.
   `services/drafts/`, root-level `ProtectedRoute.tsx`) fall outside any
   existing README system and are tracked in `PRIORITY_FIXES.md` instead,
   not duplicated here.
+- **A real bug in `hooks/useIdleTimeout.ts`** (the consumer of
+  `SessionExpiryWarningModal.tsx` above) was found and fixed this
+  session, worth knowing if this modal ever seems to not fire when
+  expected: background-tab timer throttling could silently defeat the
+  whole idle-timeout control — a `setInterval`-based countdown can be
+  paused by the browser while a tab is backgrounded, so a user who
+  stepped away with the tab minimized could return to find the countdown
+  never actually reached zero. Fixed by anchoring to absolute timestamps
+  and rechecking on the `visibilitychange` event, not just counting
+  timer ticks.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

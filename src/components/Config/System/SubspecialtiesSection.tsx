@@ -3,6 +3,7 @@ import '../../../pathscribe.css';
 import { useSubspecialties, Subspecialty } from "../../../contexts/useSubspecialties";
 import { useSpecimenDictionary } from "./useSpecimenDictionary";
 import { userService } from "../../../services";
+import { checkSubspecialtyReferences } from "../../../services/referenceCheck/referenceCheckService";
 import { StaffUser } from "../Staff/StaffTab";
 import { mockClientService, Client } from "../../../services/clients/mockClientService";
 
@@ -107,6 +108,10 @@ type InactiveConfirm = {
   sub: Subspecialty; draft: Draft; specimenAssignments: string[];
   affectedSpecimens: { id: string; name: string }[];
   affectedUsers: { id: string; name: string; role: string }[];
+  /** Real edges verified this session — the existing check above only ever
+   *  looked at specimens/users, missing two confirmed dependents. */
+  affectedTatCount: number;
+  affectedRoutingRuleCount: number;
 };
 
 type ReactivateConfirm = {
@@ -170,20 +175,24 @@ const SubspecialtiesSection: React.FC = () => {
     setActiveTab("specimens"); setNameError(""); setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draft.name.trim()) { setNameError("Name is required"); return; }
     const wasActive = editTarget ? editTarget.active !== false : true;
 
     if (modalMode === "edit" && wasActive && !draft.active) {
       const affectedSpecimens = specimens.filter(sp => sp.subspecialty === editTarget!.name);
       const affectedUsers     = users.filter(u => editTarget!.userIds.includes(u.id));
-      if (affectedSpecimens.length > 0 || affectedUsers.length > 0) {
+      const refCheck = await checkSubspecialtyReferences(editTarget!.id);
+      const affectedTatCount = refCheck.sources.find(s => s.label === 'TAT Configuration entries')?.count ?? 0;
+      const affectedRoutingRuleCount = refCheck.sources.find(s => s.label === 'Routing Rules')?.count ?? 0;
+      if (affectedSpecimens.length > 0 || affectedUsers.length > 0 || affectedTatCount > 0 || affectedRoutingRuleCount > 0) {
         setInactiveConfirm({
           sub: editTarget!, draft, specimenAssignments,
           affectedSpecimens: affectedSpecimens.map(sp => ({ id: sp.id, name: sp.name })),
           affectedUsers: affectedUsers.map((u: any) => ({
             id: u.id, name: u.name ?? u.id, role: u.role ?? (u.roles?.[0] ?? ''),
           })),
+          affectedTatCount, affectedRoutingRuleCount,
         });
         return;
       }
@@ -580,6 +589,22 @@ const SubspecialtiesSection: React.FC = () => {
                   </div>
                   <div className="ps-sub-confirm-list">
                     {inactiveConfirm.affectedUsers.map(u => <ImpactRow key={u.id} name={u.name} sub={u.role} />)}
+                  </div>
+                </div>
+              )}
+              {inactiveConfirm.affectedTatCount > 0 && (
+                <div className="ps-sub-confirm-header">
+                  <div className="ps-sub-confirm-header-label">
+                    TAT Configuration entries still scoped to this subspecialty
+                    <span className="ps-sub-confirm-count">{inactiveConfirm.affectedTatCount}</span>
+                  </div>
+                </div>
+              )}
+              {inactiveConfirm.affectedRoutingRuleCount > 0 && (
+                <div className="ps-sub-confirm-header">
+                  <div className="ps-sub-confirm-header-label">
+                    Routing Rules still targeting this subspecialty's pool
+                    <span className="ps-sub-confirm-count">{inactiveConfirm.affectedRoutingRuleCount}</span>
                   </div>
                 </div>
               )}

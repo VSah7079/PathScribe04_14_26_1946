@@ -13,7 +13,7 @@
 // points in their own workflow.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
-import type { IntraoperativeEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
+import type { IntraoperativeEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory, MergeResolutionContext } from '@/types/intraop/IntraoperativeEntry';
 
 export interface IIntraoperativeService {
   /** Simulated ADT feed lookup by MRN — real, deterministic result for
@@ -53,5 +53,13 @@ export interface IIntraoperativeService {
 
   setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string, category?: FrozenCategory): Promise<ServiceResult<IntraoperativeEntry>>;
 
-  merge(entryId: string, caseId: string): Promise<ServiceResult<IntraoperativeEntry>>;
+  merge(entryId: string, caseId: string, resolution: MergeResolutionContext): Promise<ServiceResult<IntraoperativeEntry>>;
+
+  /** Real capture point for the verbal report to the surgeon — the
+   *  moment a Frozen Section TAT metric actually needs, and the one
+   *  that genuinely can't be inferred from any other system event (unlike
+   *  merge, which is automatic). Before this, verbalReportLog only ever
+   *  existed in hardcoded seed data with no real way to set it for a live
+   *  case — this is that missing capture path. */
+  recordVerbalReport(sessionId: string, note?: string): Promise<ServiceResult<IntraoperativeEntry>>;
 }

@@ -20,6 +20,8 @@
 import { useState, useEffect } from "react";
 import '../../pathscribe.css';
 import { clientService } from "../../services";
+import { checkClientReferences } from "../../services/referenceCheck/referenceCheckService";
+import ConfirmModal from "../../components/Common/ConfirmModal";
 import type { Client, ClientInput } from "../../services/clients/IClientService";
 import { ClientEditorModal } from "../../components/ClientDictionary/ClientEditorModal";
 import { ClientTable } from "../../components/ClientDictionary/ClientTable";
@@ -58,9 +60,30 @@ export const ClientDictionaryPage = () => {
     }
   };
 
+  const [pendingDeactivation, setPendingDeactivation] = useState<{ id: string; message: string } | null>(null);
+
   const handleToggleActive = async (id: string, activate: boolean) => {
-    const res = activate ? await clientService.reactivate(id) : await clientService.deactivate(id);
+    // Reactivating, or no references — proceed exactly as before, unchanged.
+    if (activate) {
+      const res = await clientService.reactivate(id);
+      if (res.ok) setClients(prev => prev.map(c => c.id === id ? res.data : c));
+      return;
+    }
+    const refCheck = await checkClientReferences(id);
+    if (refCheck.hasReferences) {
+      const detail = refCheck.sources.map(s => `${s.count} ${s.label}`).join(', ');
+      setPendingDeactivation({ id, message: `This client is still referenced by: ${detail}. Deactivating it now won't remove those references — they'll keep pointing at a client that's no longer active. Deactivate anyway?` });
+      return;
+    }
+    const res = await clientService.deactivate(id);
     if (res.ok) setClients(prev => prev.map(c => c.id === id ? res.data : c));
+  };
+
+  const confirmDeactivation = async () => {
+    if (!pendingDeactivation) return;
+    const res = await clientService.deactivate(pendingDeactivation.id);
+    if (res.ok) setClients(prev => prev.map(c => c.id === pendingDeactivation.id ? res.data : c));
+    setPendingDeactivation(null);
   };
 
   const handleVerify = async (id: string) => {
@@ -112,6 +135,16 @@ export const ClientDictionaryPage = () => {
           allClients={clients}
         />
       )}
+
+      <ConfirmModal
+        show={!!pendingDeactivation}
+        title="Client still in use"
+        message={pendingDeactivation?.message ?? ''}
+        confirmLabel="Deactivate Anyway"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeactivation}
+        onCancel={() => setPendingDeactivation(null)}
+      />
     </div>
   );
 };

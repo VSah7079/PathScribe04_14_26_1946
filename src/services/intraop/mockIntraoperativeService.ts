@@ -18,11 +18,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
+import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory, MergeResolutionContext } from '@/types/intraop/IntraoperativeEntry';
 import type { IIntraoperativeService } from './IIntraoperativeService';
+import { caseRouter } from '../cases/CaseRouter';
+import { mockAuditService } from '../auditlog/mockAuditService';
 
 const STORAGE_KEY = 'intraop_entries';
-const INTRAOP_VERSION = '4'; // bumped: session/specimen restructuring — one session can hold multiple specimens
+const INTRAOP_VERSION = '5'; // bumped: added MERGED_TAT_SEED batch for the linkage TAT trend chart
 const VERSION_KEY = 'pathscribe_mock_intraop_version';
 try {
   const storedVersion = localStorage.getItem(VERSION_KEY);
@@ -32,7 +34,10 @@ try {
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 
-// Stands in for "cases that arrived via formal LIS accession" — see file header.
+// Stands in for "cases that arrived via formal LIS accession" — see file
+// header. Shape used by findMatchCandidates' real live query below (was
+// previously also the shape of a hardcoded CANDIDATE_CASES array; that's
+// gone now, replaced by an actual caseRouter query).
 interface CandidateCase {
   caseId: string;
   patientName: string; // "Last, First"
@@ -40,15 +45,10 @@ interface CandidateCase {
   surgeon: string;
   accessionedAt: string;
 }
-const CANDIDATE_CASES: CandidateCase[] = [
-  { caseId: 'O26-0021', patientName: 'Whitfield, Margaret', mrn: 'MRN-88214', surgeon: 'Dr. Owusu',    accessionedAt: '2026-07-11T14:35:00.000Z' },
-  { caseId: 'O26-0022', patientName: 'Delacroix, Henri',    mrn: 'MRN-77002', surgeon: 'Dr. Faulkner',  accessionedAt: '2026-07-11T13:10:00.000Z' },
-  { caseId: 'O26-0023', patientName: 'Nakamura, Sato',      mrn: 'MRN-91045', surgeon: 'Dr. Reyes',     accessionedAt: '2026-07-11T15:02:00.000Z' },
-];
 
 // Stands in for a real ADT feed lookup — a site's hospital-wide patient
-// registry, not this app's own data. Deliberately separate from
-// CANDIDATE_CASES above (that's "cases already accessioned," this is
+// registry, not this app's own data. Deliberately separate from real
+// case data above (that's "cases already accessioned," this is
 // "patients the hospital knows about at all," a different real system
 // in a real deployment). '12345' included specifically so a demo
 // without a real barcode to scan can type a short, memorable MRN and
@@ -172,7 +172,45 @@ const SEED_ENTRIES: IntraoperativeEntry[] = [
   },
 ];
 
-const load    = (): IntraoperativeEntry[] => storageGet<IntraoperativeEntry[]>(STORAGE_KEY, SEED_ENTRIES);
+// Additional merged entries specifically so the Intraoperative Linkage
+// TAT trend (hours from frozen-section creation to actual merge) has
+// real data to show — before this, only ONE seed entry had a real
+// createdAt/mergedAt pair, nowhere near enough for a 6-month trend.
+// TAT durations vary naturally (1.5-9 hours) rather than being
+// engineered to show an artificially improving trend over time — that
+// would be its own kind of misleading data, just in the other direction.
+const MERGED_TAT_SEED: IntraoperativeEntry[] = Array.from({ length: 18 }, (_, i) => {
+  const daysAgo = 5 + i * 9; // spreads across roughly the last 165 days (~5.5 months)
+  const createdAt = new Date(Date.now() - daysAgo * 86400000);
+  const tatHours = 1.5 + ((i * 37) % 90) / 10; // varies 1.5-10.5h, not a designed trend
+  const mergedAt = new Date(createdAt.getTime() + tatHours * 3600000);
+  const surgeons = ['Dr. Owusu', 'Dr. Faulkner', 'Dr. Reyes'];
+  return {
+    id: `intraop-tat-${i + 1}`,
+    patientMatch: {
+      source: i % 2 === 0 ? 'barcode' : 'adt_match',
+      patientName: `Seed, Patient${i + 1}`,
+      mrn: `MRN-TAT-${1000 + i}`,
+      dateOfBirth: '1970-01-01',
+      confirmedAt: createdAt.toISOString(),
+    },
+    performedBy: { userId: `user-tat-${i % 3}`, userName: surgeons[i % 3] },
+    orNumber: `OR-${(i % 5) + 1}`,
+    surgeon: surgeons[i % 3],
+    specimens: [{
+      id: `spec-tat-${i + 1}`,
+      specimenLabel: `Specimen A`,
+      arrivalTimestamp: createdAt.toISOString(),
+      milestones: [],
+    }],
+    status: 'merged',
+    mergedIntoCaseId: `O26-TAT-${9000 + i}`,
+    mergedAt: mergedAt.toISOString(),
+    createdAt: createdAt.toISOString(),
+  } as IntraoperativeEntry;
+});
+
+const load    = (): IntraoperativeEntry[] => storageGet<IntraoperativeEntry[]>(STORAGE_KEY, [...SEED_ENTRIES, ...MERGED_TAT_SEED]);
 const persist = (data: IntraoperativeEntry[]) => storageSet(STORAGE_KEY, data);
 
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
@@ -186,19 +224,54 @@ const lastName = (fullName: string) => fullName.split(',')[0].trim().toLowerCase
 const sessionArrival = (entry: IntraoperativeEntry): string =>
   entry.specimens.reduce((earliest, s) => s.arrivalTimestamp < earliest ? s.arrivalTimestamp : earliest, entry.specimens[0]?.arrivalTimestamp ?? entry.createdAt);
 
-function findMatchCandidates(entry: IntraoperativeEntry): MatchCandidate[] {
+async function findMatchCandidates(entry: IntraoperativeEntry): Promise<MatchCandidate[]> {
   const candidates: MatchCandidate[] = [];
 
-  const exact = CANDIDATE_CASES.find(c => c.mrn === entry.patientMatch.mrn);
+  // Real, live query — was CANDIDATE_CASES, a hardcoded 3-entry array
+  // with zero connection to actual case data (confirmed during the
+  // PHI-redaction/merge-trigger design pass: it could never match a
+  // real newly-accessioned case, Assist or Orchestration, unless that
+  // case happened to have one of three fabricated MRNs). Now searches
+  // real cases across both reporting modes via caseRouter.
+  // bypassAccessControl: true — this is an internal matching operation
+  // finding which case to fold intraop data into, not data rendered
+  // directly to a user; the case itself still goes through normal
+  // PHI-redaction when actually displayed (see WorklistTable.tsx's
+  // isPoolRestricted et al).
+  const casesRes = await caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true });
+  const realCases: CandidateCase[] = (casesRes.ok ? casesRes.data : [])
+    .map((c: any) => {
+      const mrn = c?.patient?.mrn as string | undefined;
+      const familyNames = c?.patient?.familyNames as string | undefined;
+      const givenNames  = c?.patient?.givenNames as string | undefined;
+      const accessionedAt = c?.accession?.accessionedAt ?? c?.createdAt;
+      // requestingProvider is who ORDERED the pathology consult, not
+      // necessarily the surgeon who performed the procedure — a
+      // reasonable proxy for fuzzy-matching purposes in a system that
+      // doesn't separately capture "operating surgeon" on the case
+      // record today, not a claim they're clinically the same role.
+      const surgeon = c?.order?.requestingProvider as string | undefined;
+      if (!mrn || !familyNames || !givenNames || !accessionedAt) return null;
+      return {
+        caseId: c.id as string,
+        patientName: `${familyNames}, ${givenNames}`,
+        mrn,
+        surgeon: surgeon ?? '',
+        accessionedAt,
+      };
+    })
+    .filter((c: CandidateCase | null): c is CandidateCase => c !== null);
+
+  const exact = realCases.find(c => c.mrn === entry.patientMatch.mrn);
   if (exact) {
     candidates.push({ caseId: exact.caseId, matchType: 'mrn_exact', matchReason: 'MRN exact match', confidence: 'high' });
     return candidates; // an exact MRN match is decisive — no need to also surface weaker fuzzy candidates
   }
 
   const arrival = sessionArrival(entry);
-  for (const c of CANDIDATE_CASES) {
+  for (const c of realCases) {
     const sameLastName = lastName(c.patientName) === lastName(entry.patientMatch.patientName);
-    const sameSurgeon = c.surgeon.toLowerCase() === entry.surgeon.toLowerCase();
+    const sameSurgeon = !!c.surgeon && c.surgeon.toLowerCase() === entry.surgeon.toLowerCase();
     const minutesApart = Math.abs(new Date(c.accessionedAt).getTime() - new Date(arrival).getTime()) / 60000;
     if (sameLastName && sameSurgeon && minutesApart <= 90) {
       candidates.push({
@@ -301,7 +374,7 @@ export const mockIntraoperativeService: IIntraoperativeService = {
   async getMatchCandidates(entryId: string): Promise<ServiceResult<MatchCandidate[]>> {
     const entry = load().find(e => e.id === entryId);
     if (!entry) return err(`Intraoperative session ${entryId} not found`);
-    return ok(findMatchCandidates(entry));
+    return ok(await findMatchCandidates(entry));
   },
 
   async findMatchesForNewCase(caseInfo: { patientName: string; mrn: string; surgeon: string; accessionedAt: string }): Promise<ServiceResult<EntryMatch[]>> {
@@ -364,11 +437,47 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     return ok({ ...entries[idx] });
   },
 
-  async merge(entryId: string, caseId: string): Promise<ServiceResult<IntraoperativeEntry>> {
+  async merge(entryId: string, caseId: string, resolution: MergeResolutionContext): Promise<ServiceResult<IntraoperativeEntry>> {
     const entries = load();
     const idx = entries.findIndex(e => e.id === entryId);
     if (idx === -1) return err(`Intraoperative session ${entryId} not found`);
     entries[idx] = { ...entries[idx], status: 'merged', mergedIntoCaseId: caseId, mergedAt: new Date().toISOString() };
+    persist(entries);
+
+    // Real audit trail for the merge decision itself — previously only
+    // the entry's own mergedAt/mergedIntoCaseId fields recorded that a
+    // merge happened, with no record of HOW the match was resolved
+    // (exact vs fuzzy vs manual, confidence, whether a human overrode a
+    // suggestion) and no entry in the app's actual audit log at all.
+    // A merge links PHI across two records — that's exactly the kind of
+    // decision that needs a defensible trail. detail stays PHI-safe per
+    // AuditLog's own contract: entryId/caseId (an accession number, not
+    // a direct patient identifier) and match metadata only, no patient
+    // name/MRN/clinical content.
+    const matchTypeLabel = resolution.matchType === 'mrn_exact' ? 'MRN exact match'
+      : resolution.matchType === 'fuzzy' ? `fuzzy match (${resolution.confidence ?? 'unknown'} confidence)`
+      : 'manual case ID entry';
+    await mockAuditService.logEvent({
+      type: 'user',
+      event: 'Intraop Entry Merged',
+      detail: `Entry ${entryId} merged into case ${caseId} — resolved via ${matchTypeLabel}` +
+        (resolution.wasManualOverride ? ' (user overrode a system-suggested match)' : ''),
+      user: resolution.performedBy,
+      caseId,
+      confidence: null, // AuditLog.confidence is specifically for AI confidence % — this is a deterministic match algorithm, not an AI model; the descriptive high/medium confidence lives in `detail` instead
+    }).catch(() => {}); // never block the merge itself on an audit-log write failure
+
+    return ok({ ...entries[idx] });
+  },
+
+  async recordVerbalReport(sessionId: string, note?: string): Promise<ServiceResult<IntraoperativeEntry>> {
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === sessionId);
+    if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
+    entries[idx] = {
+      ...entries[idx],
+      verbalReportLog: { timestamp: new Date().toISOString(), note: note?.trim() || '(no note recorded)' },
+    };
     persist(entries);
     return ok({ ...entries[idx] });
   },

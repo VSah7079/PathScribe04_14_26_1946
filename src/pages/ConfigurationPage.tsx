@@ -15,6 +15,7 @@ import ModelsTab     from '../components/Config/Models/index';
 import ProtocolsTab  from '../components/Config/Protocols/index';
 import StaffTab      from '../components/Config/Staff/StaffTab';
 import SystemTab     from '../components/Config/System/index';
+import TATConfigSection from '../components/Config/System/TATConfigSection';
 import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
@@ -44,7 +45,7 @@ function useIsSuperAdmin(): boolean {
   } catch { return false; }
 }
 
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'actions', 'macros', 'templates', 'validation', 'demo'] as const;
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'tat', 'actions', 'macros', 'templates', 'validation', 'demo'] as const;
 type TabId = typeof VALID_TABS[number];
 
 const TAB_LABELS: { id: TabId; label: string }[] = [
@@ -55,6 +56,7 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'staff',      label: 'Staff'              },
   { id: 'protocols',  label: 'Synoptic Library'   },
   { id: 'system',     label: 'System'             },
+  { id: 'tat',        label: 'TAT Configuration'   },
   { id: 'validation', label: 'Validation Studies' },
   { id: 'voice',      label: 'Voice'              },
   // Pinned last deliberately, not alphabetized — a reset/destructive
@@ -132,6 +134,7 @@ const ConfigurationPage: React.FC = () => {
       case 'protocols': return <ProtocolsTab />;
       case 'staff':     return <StaffTab />;
       case 'system':    return <SystemTab />;
+      case 'tat':       return <TATConfigSection />;
       case 'actions':   return <ActionsTab />;
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;

@@ -3,6 +3,7 @@ import { VOICE_PROFILES, type VoiceProfileId } from '../../../constants/voicePro
 import '../../../pathscribe.css';
 import { useSubspecialties } from '../../../contexts/useSubspecialties';
 import RoleDictionary, { Role, DEFAULT_ROLES } from './RoleDictionary';
+import FppeAssignmentsSection from '../System/FppeAssignmentsSection';
 import { userService } from '../../../services';
 import { ServiceResult } from '../../../services/types';
 import { Dropdown } from '@/components/Common/Dropdown';
@@ -473,7 +474,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
 
 // ─── Staff Shell (sub-tabs) ───────────────────────────────────────────────────
 
-type StaffSubTab = 'members' | 'roles';
+type StaffSubTab = 'members' | 'roles' | 'credentialing';
 
 const StaffTab: React.FC = () => {
   const [subTab, setSubTab] = useState<StaffSubTab>('members');
@@ -486,9 +487,12 @@ const StaffTab: React.FC = () => {
           onClick={() => setSubTab('members')}>Staff Members</button>
         <button className={`ps-st-tab ${subTab === 'roles' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
           onClick={() => setSubTab('roles')}>Role Dictionary</button>
+        <button className={`ps-st-tab ${subTab === 'credentialing' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
+          onClick={() => setSubTab('credentialing')}>Credentialing Review</button>
       </div>
       {subTab === 'members' && <StaffMembers roles={roles} />}
       {subTab === 'roles'   && <RoleDictionary onRolesChange={setRoles} />}
+      {subTab === 'credentialing' && <FppeAssignmentsSection />}
     </div>
   );
 };

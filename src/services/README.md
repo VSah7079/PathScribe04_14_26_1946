@@ -114,7 +114,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [roles/](./roles/README.md) | Staff role/permission dictionary |
 | [routingRules/](./routingRules/README.md) | Admin template routing rule overrides |
 | [savedSearches/](./savedSearches/README.md) | Saved search/filter presets |
-| [session/](./session/README.md) | **NEW (July 2026)** — idle-session-timeout resolution (org default + per-performing-lab override), Inactivity Timeout Phase 1 |
+| [session/](./session/README.md) | **NEW (July 2026)** — idle-session-timeout resolution (org default + per-performing-lab override) + same-browser session-supersede detection |
 | [specimenCategories/](./specimenCategories/README.md) | Coarse-grained specimen classification |
 | [specimenDictionary/](./specimenDictionary/README.md) | Fine-grained Specimen Dictionary (SpecimenEntry) — the real backend |
 | [stains/](./stains/README.md) | Stain catalog (3 sub-concepts: type/sectioning/order macro) |

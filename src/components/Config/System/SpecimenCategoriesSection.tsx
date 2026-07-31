@@ -9,6 +9,8 @@
 import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
 import { specimenCategoryService } from '../../../services';
+import { checkSpecimenCategoryReferences } from '../../../services/referenceCheck/referenceCheckService';
+import ConfirmModal from '../../Common/ConfirmModal';
 import type { SpecimenCategory } from '../../../services/specimenCategories/ISpecimenCategoryService';
 
 // The three Grossing Templates that exist today — see protocolShared.tsx's
@@ -129,6 +131,7 @@ const SpecimenCategoriesSection: React.FC = () => {
   const [search,       setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive' | 'Unverified'>('All');
   const [modal,        setModal]        = useState<{ mode: 'add' | 'edit'; category?: SpecimenCategory } | null>(null);
+  const [pendingDeactivation, setPendingDeactivation] = useState<{ draft: Draft; message: string } | null>(null);
 
   useEffect(() => {
     specimenCategoryService.getAll().then(res => {
@@ -145,7 +148,7 @@ const SpecimenCategoriesSection: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
-  const handleSave = async (draft: Draft) => {
+  const persistSave = async (draft: Draft) => {
     const { active, ...rest } = draft;
     const payload = { ...rest, status: (active ? 'Active' : 'Inactive') as 'Active' | 'Inactive' };
     if (modal?.mode === 'add') {
@@ -158,9 +161,28 @@ const SpecimenCategoriesSection: React.FC = () => {
     setModal(null);
   };
 
+  const handleSave = async (draft: Draft) => {
+    const wasActive = modal?.category ? modal.category.status === 'Active' : true;
+    if (modal?.mode === 'edit' && modal.category && wasActive && !draft.active) {
+      const refCheck = await checkSpecimenCategoryReferences(modal.category.id);
+      if (refCheck.hasReferences) {
+        const detail = refCheck.sources.map(s => `${s.count} ${s.label}`).join(', ');
+        setPendingDeactivation({ draft, message: `This specimen category is still referenced by: ${detail}. Deactivating it now won't remove those references — they'll keep pointing at a category that's no longer active. Deactivate anyway?` });
+        return;
+      }
+    }
+    await persistSave(draft);
+  };
+
   const handleVerify = async (id: string) => {
     const res = await specimenCategoryService.verify(id);
     if (res.ok) setCategories(prev => prev.map(c => c.id === id ? res.data : c));
+  };
+
+  const confirmDeactivation = async () => {
+    if (!pendingDeactivation) return;
+    await persistSave(pendingDeactivation.draft);
+    setPendingDeactivation(null);
   };
 
   if (loading) return <div className="ps-conf-loading">Loading specimen categories...</div>;
@@ -237,6 +259,16 @@ const SpecimenCategoriesSection: React.FC = () => {
       </div>
 
       {modal && <CategoryModal mode={modal.mode} category={modal.category} onSave={handleSave} onClose={() => setModal(null)} />}
+
+      <ConfirmModal
+        show={!!pendingDeactivation}
+        title="Specimen category still in use"
+        message={pendingDeactivation?.message ?? ''}
+        confirmLabel="Deactivate Anyway"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeactivation}
+        onCancel={() => setPendingDeactivation(null)}
+      />
     </div>
   );
 };

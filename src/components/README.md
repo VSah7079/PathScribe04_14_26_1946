@@ -7,7 +7,7 @@ cross-linked to that folder's own `README.md` for real detail.
 folder's own `README.md`. Only touch *this* file if a folder's *purpose*
 changes, or a folder is added/removed/split/merged.
 
-## Folder index (22 folders, all reviewed)
+## Folder index (23 folders, all reviewed)
 
 | Folder | What it is |
 |---|---|
@@ -17,7 +17,8 @@ changes, or a folder is added/removed/split/merged.
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
 | [ClientDictionary/](./ClientDictionary/README.md) | Client Dictionary table + editor modal |
 | [Contribution/](./Contribution/README.md) | My Contribution dashboard β€” 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
-| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal`, `SessionExpiryWarningModal` |
+| [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal`, `SessionExpiryWarningModal`, `DraftRecoveryModal`, `SessionSupersededNotice` |
+| [QualityAssurance/](./QualityAssurance/README.md) | 5 QA/compliance reporting tabs (Countersign Turnaround, Intraop Linkage, Reconciliation, FPPE/Credentialing, Post-Finalization Drift) β€” newly indexed this session, the folder existed but had no README and was missing from this list entirely until now |
 | [Worklist/](./Worklist/README.md) | Case worklist table |
 | [Icons/](./Icons/README.md) | Icon components |
 | [Flags/](./Flags/README.md) | Flag display components |

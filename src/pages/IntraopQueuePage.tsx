@@ -34,6 +34,7 @@ import '../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { intraoperativeService } from '@/services';
+import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import type { IntraoperativeEntry, IntraopSpecimen, MatchCandidate, MilestoneType, SkipReason, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
 
 const MILESTONE_LABEL: Record<MilestoneType, string> = {
@@ -331,11 +332,7 @@ const MergeModal: React.FC<{
   candidates: MatchCandidate[];
   onConfirm: (caseId: string) => void;
   onClose: () => void;
-}> = ({ entry: _entry, candidates, onConfirm, onClose }) => {
-  // _entry: genuine minor UX gap, not dead code — the modal below never
-  // actually displays which patient/entry is being merged (no name/MRN
-  // shown anywhere in the body), even though it's passed in specifically
-  // for that purpose. Flagged rather than silently deleted.
+}> = ({ entry, candidates, onConfirm, onClose }) => {
   const [selected, setSelected] = useState(candidates[0]?.caseId ?? '');
   const [manualCaseId, setManualCaseId] = useState('');
   const finalCaseId = selected === '__manual__' ? manualCaseId.trim() : selected;
@@ -345,6 +342,12 @@ const MergeModal: React.FC<{
       <div className="ps-ms-modal">
         <div className="ps-ms-header">Merge Mobile Intake Data</div>
         <div className="ps-ms-body">
+          {/* The one legitimate place this reveals real PHI — the card
+              in the list stays redacted (🔒 Pending Match); this modal
+              only opens when a pathologist has actually chosen to
+              review/claim this specific entry, which is the moment
+              they have a real reason to see who it's for. */}
+          <p className="ps-intraop-merge-patient">{entry.patientMatch.patientName} · {entry.patientMatch.mrn}</p>
           <p className="ps-intraop-merge-intro">
             Appends dictation to Gross Description / Clinical History and attaches mobile photos to the case's media gallery, once merged.
           </p>
@@ -440,13 +443,47 @@ const EntryCard: React.FC<{
   entry: IntraoperativeEntry;
   onMergeClick: () => void;
   onRefresh: () => void;
-}> = ({ entry, onMergeClick, onRefresh }) => (
+}> = ({ entry, onMergeClick, onRefresh }) => {
+  const [reporting, setReporting] = useState(false);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const handleReportToSurgeon = async () => {
+    setBusy(true);
+    await intraoperativeService.recordVerbalReport(entry.id, note);
+    setBusy(false);
+    setReporting(false);
+    setNote('');
+    onRefresh();
+  };
+
+  // Voice: INTRAOP_LOG_SURGEON_REPORT. Only listened for while this
+  // specific card's reporting form is open (reporting === true) — same
+  // pattern as PoolClaimModal.tsx's POOL_ACCEPT_CASE: the action only
+  // ever means something with exactly this one form open, so there's
+  // never a "which entry" ambiguity to resolve. Gated on !busy so a
+  // stray recognition can't double-fire while the write is in flight.
+  useEffect(() => {
+    if (!reporting) return;
+    const unsubscribe = mockActionRegistryService.onAction((actionId: string) => {
+      if (busy) return;
+      if (actionId === 'INTRAOP_LOG_SURGEON_REPORT') handleReportToSurgeon();
+    });
+    return unsubscribe;
+  }, [reporting, busy, note]);
+
+  return (
   <div className="ps-intraop-card">
     <div className="ps-intraop-card-header">
       <div>
-        <div className="ps-intraop-card-patient">{entry.patientMatch.patientName}</div>
+        {/* Redacted the same way WorklistTable redacts pediatric/
+            orchestration/pool cases — nobody has a specific right to
+            this patient's PHI until the entry is actually claimed via
+            merge. Only non-identifying operational context (OR number,
+            surgeon, match source) stays visible; name and MRN don't. */}
+        <div className="ps-intraop-card-patient">🔒 Pending Match</div>
         <div className="ps-intraop-card-sub">
-          {entry.patientMatch.mrn} · {entry.orNumber} · {entry.surgeon} · {entry.performedBy.userName} · matched via {entry.patientMatch.source === 'barcode' ? 'barcode scan (simulated)' : 'manual / ADT entry'}
+          {entry.orNumber} · {entry.surgeon} · {entry.performedBy.userName} · matched via {entry.patientMatch.source === 'barcode' ? 'barcode scan (simulated)' : 'manual / ADT entry'}
         </div>
       </div>
       <button className="ps-conf-btn-primary" onClick={onMergeClick}>Merge Mobile Intake Data</button>
@@ -456,14 +493,39 @@ const EntryCard: React.FC<{
       <SpecimenCard key={spec.id} sessionId={entry.id} specimen={spec} onRefresh={onRefresh} />
     ))}
 
-    {entry.verbalReportLog && (
+    {entry.verbalReportLog ? (
       <div className="ps-intraop-note">
         <span className="ps-intraop-note-label">Verbal report to surgeon — {formatTime(entry.verbalReportLog.timestamp)}</span>
         {entry.verbalReportLog.note}
       </div>
+    ) : reporting ? (
+      <div className="ps-intraop-note">
+        <span className="ps-intraop-note-label">Report to surgeon</span>
+        <input
+          className="ps-conf-input"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder="What was said (optional) — e.g. margins clear, frozen pending"
+          autoFocus
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button className="ps-conf-btn-primary" disabled={busy} onClick={handleReportToSurgeon}>Log Now</button>
+          <button className="ps-conf-btn-secondary" disabled={busy} onClick={() => { setReporting(false); setNote(''); }}>Cancel</button>
+        </div>
+      </div>
+    ) : (
+      // The real, deliberate capture point this whole TAT metric
+      // depends on — the moment of verbal communication to the surgeon
+      // can't be inferred from any system event, unlike merge; a
+      // pathologist has to actively log it. Timestamped at the moment
+      // this button is pressed, not backdated or editable afterward —
+      // matches the same "immutable event, captured at the moment"
+      // principle as recordAiFeedback and the merge audit log.
+      <button className="ps-conf-btn-secondary" onClick={() => setReporting(true)}>📞 Report to Surgeon Now</button>
     )}
   </div>
-);
+  );
+};
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 const IntraopQueuePage: React.FC = () => {
@@ -519,7 +581,20 @@ const IntraopQueuePage: React.FC = () => {
 
   const confirmMerge = async (caseId: string) => {
     if (!mergeTarget) return;
-    const res = await intraoperativeService.merge(mergeTarget.entry.id, caseId);
+    // The modal only returns the final caseId, not which path produced
+    // it — inferred here instead of changing MergeModal's prop signature:
+    // if caseId matches one of the offered candidates, that candidate's
+    // real matchType/confidence apply; otherwise it was typed manually.
+    // wasManualOverride is true specifically when real candidates WERE
+    // offered but the user typed something else instead — not simply
+    // "no candidates existed at all," which isn't an override of anything.
+    const matchedCandidate = mergeTarget.candidates.find(c => c.caseId === caseId);
+    const res = await intraoperativeService.merge(mergeTarget.entry.id, caseId, {
+      matchType: matchedCandidate?.matchType ?? 'manual',
+      confidence: matchedCandidate?.confidence ?? null,
+      wasManualOverride: !matchedCandidate && mergeTarget.candidates.length > 0,
+      performedBy: user?.name ?? 'Unknown User',
+    });
     if (res.ok) setEntries(prev => prev.filter(e => e.id !== mergeTarget.entry.id));
     setMergeTarget(null);
   };

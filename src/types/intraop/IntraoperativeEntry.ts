@@ -158,3 +158,24 @@ export interface EntryMatch {
   matchReason: string;
   confidence: 'high' | 'medium';
 }
+
+/** Passed to merge() so the resulting audit log entry records HOW a
+ *  match was resolved, not just that it was — see mockIntraoperativeService
+ *  .merge()'s own comment for why this matters (a merge links PHI across
+ *  two records; "we merged it" without "into what we thought, at what
+ *  confidence, and whether a human overrode the suggestion" isn't a
+ *  defensible trail for a CAP/CLIA audit).
+ *  matchType is 'manual' when no system-suggested match was involved at
+ *  all (confidence is meaningless there, so it's null) — distinct from
+ *  wasManualOverride, which is true specifically when a real suggested
+ *  match EXISTED but the user chose to type a different case ID instead
+ *  of accepting it. Both can be true at once (typed a case ID with zero
+ *  suggestions ever shown = matchType 'manual', wasManualOverride false,
+ *  since there was nothing to override); typing over a real suggestion
+ *  sets both matchType 'manual' AND wasManualOverride true. */
+export interface MergeResolutionContext {
+  matchType: 'mrn_exact' | 'fuzzy' | 'manual';
+  confidence: 'high' | 'medium' | null;
+  wasManualOverride: boolean;
+  performedBy: string;
+}

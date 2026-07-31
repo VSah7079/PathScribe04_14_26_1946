@@ -3,19 +3,27 @@
 //
 // Data model:
 //   TATEntry { id, type, targetHours, urgency, clientId, specimenId,
-//               subspecialtyId, active, notes }
+//               subspecialtyId, roleId, active, notes }
 //
 // Uniqueness guard: no two ACTIVE entries share
-//   (type + urgency + clientId + specimenId + subspecialtyId)
+//   (type + urgency + clientId + specimenId + subspecialtyId + roleId)
+//   roleId added here — was previously absent from both this guard and the
+//   specificity scoring below despite being a real, used field (the "Role:
+//   Resident" / "Role: Pathologist" scoping visible in the real UI). Without
+//   it, two different-role rules sharing every other dimension would
+//   incorrectly conflict with each other, and true same-role duplicates
+//   could slip through unflagged.
 //
-// 7-level resolution hierarchy (most-specific-wins):
-//   1. client + specimen + urgency
+// 8-level resolution hierarchy (most-specific-wins):
+//   1. client + specimen + urgency (+ role)
 //   2. client + specimen
-//   3. client + subspecialty + urgency
+//   3. client + subspecialty + urgency (+ role)
 //   4. client + subspecialty
-//   5. client only
+//   5. client only (+ role/urgency modifiers)
 //   6. specimen only
-//   7. system default (no dimensions)
+//   7. role only (no institutional/anatomic scope, e.g. training-program-
+//      wide "Resident" targets)
+//   8. system default (no dimensions)
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSubspecialties } from '../../../contexts/useSubspecialties';
@@ -107,17 +115,17 @@ const SYSTEM_DEFAULTS: TATEntry[] = [
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'pathscribe_tat_entries_v2'; // v2: added roleId + consultation types
+export const TAT_STORAGE_KEY = 'pathscribe_tat_entries_v2'; // v2: added roleId + consultation types
 
 function loadEntries(): TATEntry[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(TAT_STORAGE_KEY);
     return raw ? JSON.parse(raw) : SYSTEM_DEFAULTS;
   } catch { return SYSTEM_DEFAULTS; }
 }
 
 function saveEntries(entries: TATEntry[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch {}
+  try { localStorage.setItem(TAT_STORAGE_KEY, JSON.stringify(entries)); } catch {}
 }
 
 // ── Uniqueness guard ──────────────────────────────────────────────────────────
@@ -134,7 +142,8 @@ function findConflict(
     e.urgency        === (draft.urgency ?? null) &&
     e.clientId       === (draft.clientId ?? null) &&
     e.specimenId     === (draft.specimenId ?? null) &&
-    e.subspecialtyId === (draft.subspecialtyId ?? null)
+    e.subspecialtyId === (draft.subspecialtyId ?? null) &&
+    e.roleId         === (draft.roleId ?? null)
   ) ?? null;
 }
 
@@ -169,6 +178,7 @@ function specificityScore(e: TATEntry): number {
   if (e.specimenId)     score += 2;
   if (e.subspecialtyId) score += 2;
   if (e.urgency)        score += 1;
+  if (e.roleId)         score += 1;
   return score;
 }
 
@@ -759,7 +769,10 @@ const TATConfigSection: React.FC = () => {
               return (
                 <tr key={e.id} style={{ opacity: e.active ? 1 : 0.5 }}>
                   <td className="ps-sub-td">
-                    <span className="ps-tat-type-badge">{TAT_TYPE_LABELS[e.type]}</span>
+                    <span className="ps-tat-type-badge" style={{ marginRight: 8 }}>
+                      {TAT_TYPE_LABELS[e.type]}
+                      {(e as any).roleId && <span style={{ opacity: 0.75, fontWeight: 500 }}> · {(e as any).roleId}</span>}
+                    </span>
                     {isSystem && <span className="ps-del-tag" style={{ marginLeft: 6 }}>🔒</span>}
                   </td>
                   <td className="ps-sub-td">
