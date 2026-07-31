@@ -34,6 +34,17 @@ export interface Organisation {
   name:          string;
   shortName:     string;
   type:          OrganisationType;
+  /** Real link to the enterprise this organisation belongs to — matches
+   *  EnterpriseConfig.id (contexts/SystemConfigContext.tsx). Added to
+   *  close a real gap: Case.originEnterpriseId was previously hardcoded
+   *  to a literal string at accession time ('ENT-ACME') rather than
+   *  resolved from anything, and that literal didn't even match
+   *  EnterpriseConfig's own default id ('ENT-DEFAULT') — two separate,
+   *  disagreeing hardcoded values for what was supposed to be the same
+   *  single demo enterprise. This field is the real, resolvable source
+   *  AccessionPage.tsx now reads from instead of hardcoding either one.
+   */
+  enterpriseId:  string;
   country:       'UK' | 'US' | 'AU' | 'CA';
   locale:        string;
   timezone:      string;
@@ -80,6 +91,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
     name: 'Desert Valley Medical Center',
     shortName: 'DVMC',
     type: 'health_system',
+    enterpriseId: 'ENT-DEFAULT',
     country: 'US',
     locale: 'en-US',
     timezone: 'America/Phoenix',
@@ -121,6 +133,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
     name: 'Manchester University NHS Foundation Trust',
     shortName: 'MFT',
     type: 'nhs_foundation_trust',
+    enterpriseId: 'ENT-DEFAULT',
     country: 'UK',
     locale: 'en-GB',
     timezone: 'Europe/London',
@@ -191,6 +204,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
     name: 'Midwest Pathology Associates',
     shortName: 'MPA',
     type: 'independent_lab',
+    enterpriseId: 'ENT-DEFAULT',
     country: 'US',
     locale: 'en-US',
     timezone: 'America/Chicago',
@@ -232,6 +246,7 @@ const MOCK_ORGANISATIONS: Organisation[] = [
     name: 'Henry Ford Health System',
     shortName: 'HFHS',
     type: 'health_system',
+    enterpriseId: 'ENT-DEFAULT',
     country: 'US',
     locale: 'en-US',
     timezone: 'America/Detroit',

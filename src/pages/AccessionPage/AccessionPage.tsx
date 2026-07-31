@@ -961,10 +961,18 @@ const AccessionPage: React.FC = () => {
         },
         originHospitalId,
         originSiteId: originSiteId || undefined,
-        // Matches the convention value used across every case in
-        // mockCaseService.ts's seed data — all demo data belongs to
-        // the same single enterprise in this mock system.
-        originEnterpriseId: 'ENT-ACME',
+        // Real fix: this was previously hardcoded to 'ENT-ACME' — a
+        // literal that didn't even match EnterpriseConfig's own default
+        // id ('ENT-DEFAULT' in contexts/SystemConfigContext.tsx), two
+        // separate, disagreeing hardcoded values for what was meant to
+        // be the same single demo enterprise. Now resolved the same way
+        // originHospitalId already was — from the real Organisation
+        // record (see Organisation.enterpriseId's own doc comment in
+        // organisationService.ts) — rather than a second, independent
+        // guess. Falls back to the same 'ENT-DEFAULT' EnterpriseConfig
+        // itself uses if the organisation somehow didn't resolve, not a
+        // third, different literal.
+        originEnterpriseId: originOrganisation?.enterpriseId ?? 'ENT-DEFAULT',
         status: 'accessioned' as any,
         patient: {
           id: `OPAT-${caseId.slice(4)}`,
@@ -1597,7 +1605,12 @@ const AccessionPage: React.FC = () => {
           caseId={intraopMatch.caseId}
           match={intraopMatch.match}
           onMergeNow={async () => {
-            await intraoperativeService.merge(intraopMatch.match.entry.id, intraopMatch.caseId);
+            await intraoperativeService.merge(intraopMatch.match.entry.id, intraopMatch.caseId, {
+              matchType: intraopMatch.match.matchType,
+              confidence: intraopMatch.match.confidence,
+              wasManualOverride: false, // this modal only offers Merge Now / Go to Queue Later / Dismiss — no manual case-ID entry
+              performedBy: user?.name ?? 'Unknown User',
+            });
             toast.success(`Intraoperative entry merged into ${intraopMatch.caseId}`);
             setIntraopMatch(null);
           }}
