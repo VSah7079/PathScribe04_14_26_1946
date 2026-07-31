@@ -11,7 +11,7 @@
 // This file is intentionally thin — layout + modal wiring only.
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AddSynopticModal       from './components/AddSynopticModal';
@@ -50,8 +50,15 @@ import { useSynopticFlags }    from '../Synoptic/useSynopticFlags';
 import { SaveToast }           from '../Synoptic/UI/SaveToast';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
 import { priorityService } from '@/services';
+import { countersignService, userService, fppeAssignmentService } from '@/services';
+import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
+import { sendEmail } from '@/services/communications/notificationService';
 import { intraoperativeService } from '@/services';
+import { IntraopMergePromptModal } from '@/pages/AccessionPage/IntraopMergePromptModal';
+import type { EntryMatch } from '@/types/intraop/IntraoperativeEntry';
 import { amendmentService, reportVersionService } from '@/services';
 import { lisAmendmentNoticeService, messageService } from '@/services';
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
@@ -145,6 +152,54 @@ const SynopticReportPage: React.FC = () => {
 
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
+  // Real optimistic-concurrency baseline — the version this session last
+  // knew about, either from initial load or this session's own last
+  // successful save. Passed as expectedVersion on every write; the server
+  // (or mock service, locally) performs the actual atomic compare-and-swap
+  // — this ref only needs to remember what THIS session last saw, not
+  // perform the check itself. A ref, not state, since it's read at save
+  // time and updated after saves, never needs to trigger a render.
+  const knownVersionRef = useRef<number>(0);
+  const [concurrencyConflict, setConcurrencyConflict] = useState<{ actualVersion: number; blockOverride?: boolean } | null>(null);
+
+  // Real conflict-resolution actions. "Reload" deliberately does a full page
+  // reload rather than trying to reconstruct orchSections from a fresh fetch
+  // in place — this file's initial-load derivation logic is complex enough
+  // that duplicating it inline risks a subtly wrong reconstruction, and a
+  // full reload guarantees correctness at the cost of losing this session's
+  // own unsaved local changes, which is the whole point of choosing this
+  // option (someone else's saved changes win).
+  const handleConcurrencyReload = () => {
+    window.location.reload();
+  };
+  const handleConcurrencyForceSave = async () => {
+    if (!caseData?.id || !concurrencyConflict) { setConcurrencyConflict(null); return; }
+    try {
+      // Deliberately omits expectedVersion — bypasses the check entirely
+      // rather than racing to guess the current version, matching "Save
+      // Mine Anyway"'s actual intent (overwrite regardless of what's
+      // there). The service still increments version normally; this
+      // session's known baseline is set from the conflict's own
+      // actualVersion (not a blind +1 on whatever this session last
+      // knew), since other writes may have landed between the conflict
+      // being detected and this force-save actually running.
+      if (caseId?.startsWith('O26-')) {
+        await caseRouter.updateCase(caseData.id, { orchSections } as any);
+        localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
+      } else {
+        // Real fix found while consolidating the save paths: this
+        // previously always wrote orchSections regardless of mode — "Save
+        // Mine Anyway" was silently broken for CoPilot-mode cases, since
+        // orchSections means nothing there and synopticReports (the field
+        // CoPilot actually persists) was never touched.
+        await caseRouter.updateCase(caseData.id, { synopticReports: caseData.synopticReports } as any);
+      }
+      knownVersionRef.current = concurrencyConflict.actualVersion + 1;
+      clearDirty();
+      showToast('Draft saved — your version overwrote the other change');
+    } catch (e) { console.error(e); }
+    setConcurrencyConflict(null);
+  };
 
   // Phase 2 of the Inactivity Timeout & Draft Recovery spec (see
   // PRIORITY_FIXES.md). Caches the FULL case (not just synoptic answers --
@@ -266,13 +321,21 @@ const SynopticReportPage: React.FC = () => {
     priorityService.getAll().then(res => { if (res.ok) setPriorityLevels(res.data.filter(p => p.isActive)); });
   }, []);
   const canEditPriority = caseData && caseData.status !== 'finalized' && caseData.status !== 'closed';
-  const handleChangePriority = useCallback((newPriority: string) => {
+  const handleChangePriority = useCallback(async (newPriority: string) => {
     if (!caseData?.id) return;
     const patch = { order: { ...caseData.order, priority: newPriority as any } };
-    caseRouter.updateCase(caseData.id, patch as any).then(() => {
+    try {
+      await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
       markDirty('Priority');
-    }).catch(err => console.error('[Priority] Failed to persist:', err));
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: e.actualVersion });
+        return;
+      }
+      console.error('[Priority] Failed to persist:', e);
+    }
   }, [caseData]);
 
   // ── Deficiency history ──────────────────────────────────────────────────────
@@ -320,7 +383,7 @@ const SynopticReportPage: React.FC = () => {
   }, [allBlocks.length, focusedBlockIndex]);
   const focusedBlockEntry = allBlocks[focusedBlockIndex];
 
-  const handleAdvanceFocusedBlockStatus = useCallback(() => {
+  const handleAdvanceFocusedBlockStatus = useCallback(async () => {
     if (!caseData?.id || !focusedBlockEntry) return;
     const nextStatus: Record<string, string> = { Pending: 'Grossed', Grossed: 'Embedded' };
     const newStatus = nextStatus[focusedBlockEntry.block.status];
@@ -331,23 +394,39 @@ const SynopticReportPage: React.FC = () => {
         blocks: (sp.blocks ?? []).map((b: any) => b.id === focusedBlockEntry.block.id ? { ...b, status: newStatus } : b),
       }
     );
-    caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any).then(() => {
+    try {
+      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
       markDirty('Block status');
-    }).catch(err => console.error('[Grossing] Failed to advance block status:', err));
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: e.actualVersion });
+        return;
+      }
+      console.error('[Grossing] Failed to advance block status:', e);
+    }
   }, [caseData, focusedBlockEntry]);
 
-  const handleConfirmTriage = useCallback(() => {
+  const handleConfirmTriage = useCallback(async () => {
     if (!caseData?.id || !focusedBlockEntry) return;
     const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
       sp.id !== focusedBlockEntry.specimenId ? sp : {
         ...sp, triageConfirmedAt: new Date().toISOString(), triageConfirmedBy: signingUser?.id ?? 'unknown',
       }
     );
-    caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any).then(() => {
+    try {
+      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
       markDirty('Triage confirmation');
-    }).catch(err => console.error('[Grossing] Failed to confirm triage:', err));
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: e.actualVersion });
+        return;
+      }
+      console.error('[Grossing] Failed to confirm triage:', e);
+    }
   }, [caseData, focusedBlockEntry, signingUser]);
 
   // ── Generic block update — the manual Block/Stain editor ────────────────────
@@ -357,7 +436,7 @@ const SynopticReportPage: React.FC = () => {
   // specific block by id, for the actual visual editor at the bench —
   // there was no way to hand-edit a block at all before this, only
   // auto-generation at accession time and one-step voice advancement.
-  const handleUpdateBlock = useCallback((specimenId: string, blockId: string, changes: Partial<any>) => {
+  const handleUpdateBlock = useCallback(async (specimenId: string, blockId: string, changes: Partial<any>) => {
     if (!caseData?.id) return;
     const patchedSpecimens = (caseData.specimens ?? []).map((sp: any) =>
       sp.id !== specimenId ? sp : {
@@ -365,10 +444,18 @@ const SynopticReportPage: React.FC = () => {
         blocks: (sp.blocks ?? []).map((b: any) => b.id === blockId ? { ...b, ...changes } : b),
       }
     );
-    return caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any).then(() => {
+    try {
+      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
       markDirty('Block edit');
-    });
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: e.actualVersion });
+        return;
+      }
+      console.error('[Grossing] Failed to update block:', e);
+    }
   }, [caseData]);
 
   // ── Voice action execution — moved further down in this file, see the ──────
@@ -763,8 +850,35 @@ const SynopticReportPage: React.FC = () => {
     caseRouter.getCase(caseId).then(c => {
       if (!c) { setCaseNotFound(true); setIsLoaded(true); return; }
       setCaseData(c);
+      knownVersionRef.current = (c as any).version ?? 0;
       if (c.specimens?.length) setActiveSpecimenId(c.specimens[0].id);
       if (c.synopticReports?.length) setActiveReportInstanceId(c.synopticReports[0].instanceId);
+      // Automatic merge-on-claim check — same "when the formal order
+      // finally arrives, look for a match" moment AccessionPage's
+      // post-submit check covers, but for the two cases that flow
+      // doesn't reach: a case claimed from Pool, or a case opened
+      // directly that was never freshly accessioned in this session
+      // (e.g. re-opened later, or arrived via FHIR feed rather than
+      // manual accessioning). Safe on every load — findMatchesForNewCase
+      // only ever returns still-pending entries, so an already-merged
+      // match never re-surfaces this prompt.
+      {
+        const patientFamilyNames = (c as any)?.patient?.familyNames as string | undefined;
+        const patientGivenNames  = (c as any)?.patient?.givenNames as string | undefined;
+        const patientMrn         = (c as any)?.patient?.mrn as string | undefined;
+        const requestingProvider = (c as any)?.order?.requestingProvider as string | undefined;
+        const accessionedAt      = (c as any)?.accession?.accessionedAt as string | undefined;
+        if (patientFamilyNames && patientGivenNames && patientMrn && accessionedAt) {
+          intraoperativeService.findMatchesForNewCase({
+            patientName: `${patientFamilyNames}, ${patientGivenNames}`,
+            mrn: patientMrn,
+            surgeon: requestingProvider ?? '',
+            accessionedAt,
+          }).then(res => {
+            if (res.ok && res.data.length > 0) setIntraopMatch(res.data[0]);
+          }).catch(() => {});
+        }
+      }
       import('@/services/templates/templateService').then(m =>
         m.listTemplates('published').then(templates =>
           setAvailableProtocols(templates.map((t: any) => ({ id: t.id, name: t.name })))
@@ -817,12 +931,64 @@ const SynopticReportPage: React.FC = () => {
     amendmentMode,      setAmendmentMode,
   } = useSynopticFinalize();
 
+  // Real countersign feedback capture — local state, deliberately not
+  // added to the shared useSynopticFinalize hook since it's specific to
+  // this one flow and doesn't need to be shared with other components.
+  const [countersignFeedback, setCountersignFeedback] = useState('');
+
   const {
     showLogoutModal,  setShowLogoutModal,
     isProfileOpen,    setIsProfileOpen,
   } = useSynopticModals();
 
   const { toastMsg, toastVisible, showToast } = useSynopticToast();
+
+  // The real consolidation — ONE implementation of "save the draft,"
+  // mode-aware (Orchestration's orchSections vs. CoPilot's synopticReports)
+  // and version-checked, used by every save trigger in this file instead
+  // of each one reimplementing the same logic slightly differently. Found
+  // while wiring concurrency checks: there were at least four separate,
+  // independently-written copies of this (the PATHSCRIBE_ORCH_SAVE_DRAFT
+  // event handler, "Save & Switch," "Save & Leave," and the
+  // onSaveDraft/onSaveAndNext pair) — fixing "Save Draft" didn't fix "Save
+  // Draft" everywhere, because there wasn't one save path, there were four.
+  //
+  // Returns true if the save actually completed (caller may proceed with
+  // whatever it wanted to do next — switch tabs, navigate, etc.); false if
+  // held by a real conflict (caller must NOT proceed — the conflict modal
+  // is now showing and owns the next step).
+  //
+  // Matches pre-existing behavior for non-conflict failures deliberately
+  // unchanged: every one of the four original implementations logged the
+  // error to console but still cleared dirty state and showed "Draft
+  // saved" — not something this consolidation silently fixes, since
+  // nobody asked for that behavior to change and it's a separate,
+  // pre-existing issue if it's wrong.
+  const saveDraftInternal = useCallback(async (): Promise<boolean> => {
+    if (!caseData?.id) {
+      clearDirty();
+      showToast('Draft saved');
+      return true;
+    }
+    try {
+      if (caseId?.startsWith('O26-')) {
+        await caseRouter.updateCase(caseData.id, { orchSections } as any, knownVersionRef.current);
+        localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
+      } else {
+        await caseRouter.updateCase(caseData.id, { synopticReports: caseData.synopticReports } as any, knownVersionRef.current);
+      }
+      knownVersionRef.current = knownVersionRef.current + 1;
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: e.actualVersion });
+        return false;
+      }
+      console.error('Failed to persist draft:', e);
+    }
+    clearDirty();
+    showToast('Draft saved');
+    return true;
+  }, [caseData, caseId, orchSections, clearDirty, showToast]);
 
   // ── Print the formatted centre pane report ───────────────────────────────
   // Calls the render_report Cloud Function (Python/ReportLab) for a real
@@ -833,6 +999,12 @@ const SynopticReportPage: React.FC = () => {
   // resolvedContext, resolvedTemplateName, resolvedBy, and showToast, none
   // of which exist yet earlier in this render pass.
   const [isPrinting, setIsPrinting] = useState(false);
+  // Automatic merge-on-claim trigger — unifies "claimed from Pool" and
+  // "opened directly" into one check, since PoolClaimModal already
+  // navigates here after a successful claim. Set once per case-load
+  // (see caseRouter.getCase(...).then(...) below) if a pending intraop
+  // entry matches this case's own patient/mrn/surgeon/accession info.
+  const [intraopMatch, setIntraopMatch] = useState<EntryMatch | null>(null);
 
   const handleOrchPrint = useCallback(async () => {
     if (!caseData) { window.print(); return; }
@@ -1085,14 +1257,7 @@ const SynopticReportPage: React.FC = () => {
   useEffect(() => {
     if (!isOrchestrationMode) return;
     const saveDraft = async () => {
-      if (caseData?.id) {
-        try {
-          await caseRouter.updateCase(caseData.id, { orchSections, updatedAt: new Date().toISOString() } as any);
-          localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
-        } catch (e) { console.error(e); }
-      }
-      clearDirty();
-      showToast('Draft saved');
+      await saveDraftInternal();
     };
     const generateReport = () => {
       // Fire the same event that Generate Report button uses
@@ -1105,7 +1270,7 @@ const SynopticReportPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_ORCH_GENERATE_REPORT', generateReport as EventListener);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOrchestrationMode, caseData?.id, orchSections]);
+  }, [isOrchestrationMode, caseData?.id, orchSections, saveDraftInternal]);
 
   // useSidecar's selectedFlag/isOpen effect removed — it switched
   // leftTab to 'results', a tab that no longer exists (removed along
@@ -1714,7 +1879,21 @@ const SynopticReportPage: React.FC = () => {
           successfulInstanceIds.has(r.instanceId) ? { ...r, status: 'finalized', pendingAmendmentId: undefined } : r
         );
         setCaseData({ ...caseData, synopticReports: clearedReports } as any);
-        caseRouter.updateCase(caseData.id, { synopticReports: clearedReports } as any).catch(console.error);
+        try {
+          await caseRouter.updateCase(caseData.id, { synopticReports: clearedReports } as any, knownVersionRef.current);
+          knownVersionRef.current = knownVersionRef.current + 1;
+        } catch (e) {
+          if (e instanceof ConcurrencyConflictError) {
+            // Deliberately no override option here — this write finalizes
+            // report content. Letting it proceed against a stale view
+            // risks finalizing over data the pathologist never actually
+            // saw, which is a materially worse outcome than blocking and
+            // asking them to reload first.
+            setConcurrencyConflict({ actualVersion: e.actualVersion, blockOverride: true });
+            return;
+          }
+          console.error(e);
+        }
       }
 
       // Real, saved version of the report as it looks at THIS sign-out
@@ -1746,6 +1925,144 @@ const SynopticReportPage: React.FC = () => {
   }, [caseData, sendSynopticReportToLis, generateReportPdfSnapshot, isOrchestrationMode, signingUser, setCaseSigned, setShowSignOutModal, showToast, setCaseData]);
 
   const handleSignOutConfirm = useCallback(async () => {
+    // Real resident-countersign gate — must run before anything else in
+    // this function, including the reconciliation check below. If the
+    // current user is acting as a resident (not attending) on this case,
+    // their "sign out" doesn't actually finalize anything; it releases
+    // the case for the attending to review and countersign. Everyone
+    // else (the attending, or any case with no resident participant)
+    // falls through to the existing logic completely unchanged.
+    //
+    // Also covers FPPE provisional hires — same release/countersign
+    // mechanism, but the reviewer is resolved from the active
+    // FppeAssignment's own proctorUserId, not from searching case
+    // participants for an 'attending' type. A provisional hire's case
+    // may not even have a case-level attending participant at all (they're
+    // fully credentialed; there's no clinical requirement for one) — the
+    // FPPE assignment itself is what says who's proctoring them, for
+    // however long the review period lasts.
+    if (caseData?.id) {
+      const residentParticipant = (caseData as any)?.participants?.find(
+        (p: any) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('resident')
+      );
+      const isAttendingToo = (caseData as any)?.participants?.some(
+        (p: any) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('attending')
+      );
+      const provisionalParticipant = (caseData as any)?.participants?.find(
+        (p: any) => p.status === 'active' && p.staffId === signingUser?.id && p.participationTypeIds?.includes('provisional_hire')
+      );
+      const activeFppeAssignment = provisionalParticipant && !isAttendingToo
+        ? await fppeAssignmentService.getActiveAssignmentForUser(signingUser?.id ?? '', (caseData as any)?.subspecialtyId).then(r => r.ok ? r.data : null).catch(() => null)
+        : null;
+
+      if ((residentParticipant && !isAttendingToo) || activeFppeAssignment) {
+        const releasedAnswersSnapshot: Record<string, Record<string, string | string[]>> = {};
+        (caseData.synopticReports ?? []).forEach((r: any) => { releasedAnswersSnapshot[r.instanceId] = r.answers ?? {}; });
+
+        await countersignService.release({
+          caseId: caseData.id,
+          subspecialtyId: (caseData as any)?.subspecialtyId,
+          residentId: signingUser?.id ?? 'unknown',
+          residentName: signingUser?.name ?? 'Unknown User',
+          releasedAnswersSnapshot,
+        });
+
+        // Sync per-instance status alongside the case-level status —
+        // previously only Case.status was updated here, leaving
+        // SynopticReportInstance.status untouched. That's a real
+        // inconsistency: RightSynopticPanel.tsx already has a pre-
+        // existing tab-dot indicator checking
+        // synopticReports.some(r => r.status === 'pending-countersign'),
+        // which would never have fired for a case released through this
+        // gate since nothing ever set an instance to that status. Only
+        // 'draft' instances move — a report already 'finalized' or
+        // 'deferred' has its own real state that shouldn't be overwritten.
+        const updatedReportsForRelease = (caseData.synopticReports ?? []).map((r: any) =>
+          r.status === 'draft' ? { ...r, status: 'pending-countersign' } : r
+        );
+
+        try {
+          await caseRouter.updateCase(caseData.id, { status: 'pending-countersign', synopticReports: updatedReportsForRelease } as any, knownVersionRef.current);
+          knownVersionRef.current = knownVersionRef.current + 1;
+          setCaseData(prev => prev ? ({ ...prev, status: 'pending-countersign', synopticReports: updatedReportsForRelease } as any) : prev);
+        } catch (e) {
+          if (e instanceof ConcurrencyConflictError) {
+            // Strict treatment — this releases the case for countersign,
+            // a real status transition, same category as finalize.
+            setConcurrencyConflict({ actualVersion: e.actualVersion, blockOverride: true });
+            return;
+          }
+          console.error(e);
+        }
+
+        // Real notification to the reviewer — an attending participant
+        // for the resident path, or the FPPE assignment's own proctor
+        // for the provisional-hire path. Fire-and-forget, same as every
+        // other sendEmail() call in this app; hits a real backend
+        // endpoint that doesn't exist in this dev environment, so it
+        // will log an error to console rather than actually deliver,
+        // but the call itself is architecturally correct for when a
+        // real backend is behind it.
+        const attendingParticipant = (caseData as any)?.participants?.find(
+          (p: any) => p.status === 'active' && p.participationTypeIds?.includes('attending')
+        );
+        const reviewerId = activeFppeAssignment?.proctorUserId ?? attendingParticipant?.staffId;
+        if (reviewerId) {
+          const attendingUserRes = await userService.getById(reviewerId).catch(() => null);
+          const attendingEmail = attendingUserRes?.ok ? (attendingUserRes.data as any)?.email : undefined;
+          if (attendingEmail) {
+            sendEmail({
+              to: [attendingEmail],
+              subject: `Case ${caseData.id} ready for your countersign`,
+              bodyText: `${signingUser?.name ?? 'A resident'} has released case ${caseData.id} for your review and countersign.`,
+              bodyHtml: `<p>${signingUser?.name ?? 'A resident'} has released case <strong>${caseData.id}</strong> for your review and countersign.</p>`,
+              metadata: { caseId: caseData.id, action: 'countersign_requested' },
+            }).catch(() => {});
+          }
+        }
+
+        showToast(`Case ${caseData.id} released for attending countersign`);
+        setShowSignOutModal(false);
+        return; // does not proceed to reconciliation check or any finalize logic below
+      }
+    }
+
+    // Real attending-side countersign completion — fires when a case
+    // that was released by a resident is now actually being finalized
+    // (by definition not by that same resident, since the gate above
+    // already intercepted them). Captured alongside triggering the
+    // existing finalize logic below, not after — the existing finalize
+    // flow has several internal success paths, and hooking into all of
+    // them individually would be far riskier than recording the
+    // countersign completion here, at the one point every path shares.
+    if (caseData?.id && (caseData as any)?.status === 'pending-countersign') {
+      const currentAnswersByInstance: Record<string, Record<string, string | string[]>> = {};
+      (caseData.synopticReports ?? []).forEach((r: any) => { currentAnswersByInstance[r.instanceId] = r.answers ?? {}; });
+      await countersignService.countersign({
+        caseId: caseData.id,
+        attendingId: signingUser?.id ?? 'unknown',
+        attendingName: signingUser?.name ?? 'Unknown User',
+        currentAnswersByInstance,
+        attendingFeedback: countersignFeedback.trim() || undefined,
+      }).catch(() => {});
+
+      // Real FPPE case-count increment — if this case's provisional
+      // hire has an active assignment, this countersign counts toward
+      // their review-period threshold. Checked independently of who's
+      // actually completing the sign-out here (the gate above already
+      // guarantees it isn't the provisional hire themselves) — this
+      // only needs to know whether the CASE involves someone under FPPE.
+      const provisionalOnThisCase = (caseData as any)?.participants?.find(
+        (p: any) => p.status === 'active' && p.participationTypeIds?.includes('provisional_hire')
+      );
+      if (provisionalOnThisCase) {
+        const assignmentRes = await fppeAssignmentService.getActiveAssignmentForUser(provisionalOnThisCase.staffId, (caseData as any)?.subspecialtyId).catch(() => null);
+        if (assignmentRes?.ok && assignmentRes.data) {
+          await fppeAssignmentService.recordCaseReviewed(assignmentRes.data.id).catch(() => {});
+        }
+      }
+    }
+
     // Real Frozen-to-Permanent Reconciliation check — only fires when
     // this case actually has a merged intraop specimen with a real
     // frozen category (not 'deferred' — no real call was made at
@@ -1768,7 +2085,7 @@ const SynopticReportPage: React.FC = () => {
       }
     }
     finalizeSignOut();
-  }, [caseData, finalizeSignOut]);
+  }, [caseData, finalizeSignOut, signingUser, showToast, countersignFeedback]);
 
   // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
   const buildSynopticsForReview = useCallback(async (): Promise<SynopticForReview[]> => {
@@ -1910,7 +2227,8 @@ const SynopticReportPage: React.FC = () => {
         ),
       };
 
-      await caseRouter.updateCase(caseData.id, patch as any);
+      await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
 
       const updated = { ...caseData, ...patch } as typeof caseData;
       setCaseData(updated);
@@ -1925,6 +2243,15 @@ const SynopticReportPage: React.FC = () => {
       showToast('Report finalized');
       return true;
     } catch (err) {
+      if (err instanceof ConcurrencyConflictError) {
+        // The actual finalize action — the highest-stakes write in this
+        // file. Strict, block-only treatment, same reasoning as every
+        // other finalize-adjacent write: proceeding against a stale
+        // version here risks finalizing over content the pathologist
+        // never actually saw.
+        setConcurrencyConflict({ actualVersion: err.actualVersion, blockOverride: true });
+        return false;
+      }
       console.error('[Finalise] Failed to persist finalization:', err);
       showToast('Finalization failed — please try again');
       return false;
@@ -1964,12 +2291,23 @@ const SynopticReportPage: React.FC = () => {
           r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined, lastRevisionType: releasedAddendumType } : r
         ),
       } as any : prev);
-      caseRouter.updateCase(caseData.id, {
-        lastRevisionType: releasedAddendumType as any,
-        synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
-          r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined, lastRevisionType: releasedAddendumType } : r
-        ),
-      } as any).catch(console.error);
+      try {
+        await caseRouter.updateCase(caseData.id, {
+          lastRevisionType: releasedAddendumType as any,
+          synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
+            r.instanceId === activeReportInstanceId ? { ...r, pendingAddendumId: undefined, lastRevisionType: releasedAddendumType } : r
+          ),
+        } as any, knownVersionRef.current);
+        knownVersionRef.current = knownVersionRef.current + 1;
+      } catch (e) {
+        if (e instanceof ConcurrencyConflictError) {
+          // Strict treatment — this releases a pending addendum, a real
+          // status/lifecycle transition, same category as finalize.
+          setConcurrencyConflict({ actualVersion: e.actualVersion, blockOverride: true });
+          return undefined;
+        }
+        console.error(e);
+      }
       sendSynopticReportToLis({
         kind: hasConcurrentAmendment ? 'corrected_with_addition' : 'new_instance',
         caseId: caseData.id, instanceId: activeInstance.instanceId,
@@ -1999,15 +2337,27 @@ const SynopticReportPage: React.FC = () => {
             : r
         ),
       } as any : prev);
-      caseRouter.updateCase(caseData.id, {
-        status: 'finalized' as CaseStatus,
-        lastRevisionType: releasedRevisionType as any,
-        synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
-          r.instanceId === activeReportInstanceId
-            ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined, lastRevisionType: releasedRevisionType }
-            : r
-        ),
-      } as any).catch(console.error);
+      try {
+        await caseRouter.updateCase(caseData.id, {
+          status: 'finalized' as CaseStatus,
+          lastRevisionType: releasedRevisionType as any,
+          synopticReports: (caseData.synopticReports ?? []).map((r: any) =>
+            r.instanceId === activeReportInstanceId
+              ? { ...r, status: 'finalized', pendingAmendmentId: undefined, previouslyFinalizedForAmendment: undefined, lastRevisionType: releasedRevisionType }
+              : r
+          ),
+        } as any, knownVersionRef.current);
+        knownVersionRef.current = knownVersionRef.current + 1;
+      } catch (e) {
+        if (e instanceof ConcurrencyConflictError) {
+          // Strict treatment — this re-finalizes the case after an
+          // amendment/correction. Same stakes as the primary finalize
+          // path.
+          setConcurrencyConflict({ actualVersion: e.actualVersion, blockOverride: true });
+          return undefined;
+        }
+        console.error(e);
+      }
       sendSynopticReportToLis({
         kind: 'corrected', caseId: caseData.id, instanceId: activeInstance.instanceId,
         payloadBody: `Synoptic instance ${activeInstance.instanceId} corrected and re-signed out.`,
@@ -2105,7 +2455,31 @@ const SynopticReportPage: React.FC = () => {
     );
     const updated = { ...caseData, specimens: updatedSpecimens, updatedAt: new Date().toISOString() } as any;
     setCaseData(updated);
-    caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }).catch(console.error);
+    try {
+      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        // Deliberately different handling from every other conflict in
+        // this file — the block/recut order was already sent to and
+        // acknowledged by the LIS above, before this write. There's no
+        // safe "discard and reload" option here: the physical order
+        // already happened, so losing the local record of it would leave
+        // PathScribe's case data out of sync with what the LIS actually
+        // did. Force the write through rather than presenting a choice
+        // that has no good "no" answer, but stay transparent about it
+        // rather than silently overwriting.
+        try {
+          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
+          knownVersionRef.current = e.actualVersion + 1;
+          showToast('Note: this case had unsaved changes elsewhere — your new block request was saved, but double-check the rest of the case reflects what you expect.');
+        } catch (retryErr) {
+          console.error('[Grossing] Failed to save block request after conflict retry:', retryErr);
+        }
+      } else {
+        console.error(e);
+      }
+    }
     markDirty('Blocks');
     showToast(`Block ${sp.label}${nextNumber} requested — sent to LIS`);
   }, [caseData, sendMaterialOrderToLis]);
@@ -2274,7 +2648,8 @@ const SynopticReportPage: React.FC = () => {
         patch.status = 'gross-complete' as CaseStatus;
       }
 
-      await caseRouter.updateCase(caseData.id, patch as any);
+      await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData({ ...caseData, ...patch } as typeof caseData);
 
       log(isUpdate ? 'gross_updated' : 'gross_complete', {
@@ -2324,6 +2699,10 @@ const SynopticReportPage: React.FC = () => {
         }
       }
     } catch (err) {
+      if (err instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: err.actualVersion });
+        return;
+      }
       console.error('[Gross Complete] Failed:', err);
       showToast((isUpdate ? 'Update Gross' : 'Gross Complete') + ' failed — please try again');
     }
@@ -2347,6 +2726,61 @@ const SynopticReportPage: React.FC = () => {
   // (added this conversation) that the real save/autosave wiring for it
   // hasn't been independently confirmed — worth verifying this effect
   // actually fires once there's a running app to test against.
+
+  // Real alert to every Admin-role user IN THE SAME ORGANISATION as the
+  // case, for the two drift-correction outcomes where nobody has any
+  // other path to finding out — see the useEffect below.
+  //
+  // CORRECTED: this previously alerted every Admin-role user system-wide
+  // on the mistaken belief that Case carries no clean org field. It
+  // does — Case.originHospitalId, resolved via the same
+  // getOrganisationByHospitalId() chain services/auth/caseAccessControl.ts
+  // already uses as the real (if client-side-only, per that file's own
+  // caveat) tenant boundary for case access everywhere else in this app.
+  // Using anything else here would have been a second, inconsistent
+  // definition of "which org owns this case."
+  const alertAdminsOfUnresolvedDrift = useCallback(async (caseId: string, count: number, outcome: string) => {
+    try {
+      const org = getOrganisationByHospitalId(caseData?.originHospitalId ?? '');
+      if (!org) {
+        // originHospitalId didn't resolve to a known Organisation — same
+        // "deny/skip by default rather than guess" principle
+        // caseAccessControl.ts uses for access decisions. A drift alert
+        // that can't identify which org's admins should see it shouldn't
+        // fall back to alerting everyone.
+        console.error('[DriftAlert] Could not resolve organisation for case', caseId, '— alert not sent.');
+        return;
+      }
+      const usersRes = await userService.getAll();
+      if (!usersRes.ok) return;
+      const admins = usersRes.data.filter((u: any) =>
+        (u.roles ?? []).includes('Admin') && u.status === 'Active' && u.organisationId === org.id
+      );
+      const adminEmails = admins.map((u: any) => u.email).filter(Boolean);
+      if (adminEmails.length === 0) return;
+      await sendEmail({
+        to: adminEmails,
+        subject: `Action needed: unresolved post-finalization drift on case ${caseId}`,
+        bodyText: `${count} finalized grossing report(s) on case ${caseId} were detected as edited after finalization. The automatic correction ${outcome} and has not been applied. This case may currently show finalized content that doesn't match what was actually signed out — please review directly.`,
+        bodyHtml: `<p><strong>${count}</strong> finalized grossing report(s) on case <strong>${caseId}</strong> were detected as edited after finalization. The automatic correction <strong>${outcome}</strong> and has not been applied. This case may currently show finalized content that doesn't match what was actually signed out — please review directly.</p>`,
+        metadata: { caseId, action: 'drift_correction_unresolved', outcome, organisationId: org.id },
+      });
+      mockAuditService.logEvent({
+        type: 'system',
+        event: 'Drift Alert Sent To Admins',
+        detail: `Notified ${adminEmails.length} admin(s) in organisation ${org.id} of unresolved drift correction (${outcome})`,
+        user: 'system',
+        caseId,
+        confidence: null,
+      }).catch(() => {});
+    } catch (err) {
+      // A failed alert must never throw back into the drift-correction
+      // effect that triggered it — the telemetry entry already logged is
+      // the fallback of record if this itself fails.
+      console.error('[DriftAlert] Failed to notify admins:', err);
+    }
+  }, []);
+
   useEffect(() => {
     if (!caseData?.grossingReports?.length) return;
 
@@ -2364,11 +2798,108 @@ const SynopticReportPage: React.FC = () => {
         ? { ...g, status: 'draft' as const, updatedAt: nowIso } // previouslyFinalized stays true
         : g
     );
-    drifted.forEach(g => grossingSnapshotRef.current.delete(g.instanceId));
 
-    caseRouter.updateCase(caseData.id, { grossingReports } as any).catch(console.error);
-    setCaseData(prev => prev ? ({ ...prev, grossingReports } as typeof prev) : prev);
-  }, [caseData?.grossingReports]);
+    // Real telemetry, independent of the write's outcome — this is the
+    // actual "how often does this happen at all" signal. The write below
+    // also produces case.write/case.write.conflict events via
+    // CaseRouter's own audit logging, but those are generic across every
+    // write in this file; this entry is what makes drift specifically
+    // attributable when reviewing the audit log later, not just visible
+    // as an undifferentiated conflict count. No answer content included
+    // — instance IDs and a count only, per this audit trail's PHI-safe
+    // detail requirement.
+    mockAuditService.logEvent({
+      type: 'system',
+      event: 'Post-Finalization Drift Detected',
+      detail: `${drifted.length} finalized grossing report(s) drifted from their finalized snapshot (instance IDs: ${drifted.map(g => g.instanceId).join(', ')}) — reverting to draft`,
+      user: signingUser?.id ?? 'system',
+      caseId: caseData.id,
+      confidence: null,
+    }).catch(() => {}); // never let a telemetry failure block the real correction below
+
+    (async () => {
+      try {
+        await caseRouter.updateCase(caseData.id, { grossingReports } as any, knownVersionRef.current);
+        knownVersionRef.current = knownVersionRef.current + 1;
+        // Both the snapshot clear AND the local optimistic update are
+        // deliberately gated on write success now — not just the
+        // snapshot. If setCaseData ran unconditionally (the first pass
+        // at this fix), the local view would flip to 'draft' regardless
+        // of whether the server write actually landed. That's a second,
+        // related bug: the detection filter above requires
+        // status === 'finalized', so once local state optimistically
+        // moved past that condition, this instance could never be
+        // re-examined again — even with the snapshot preserved — because
+        // the thing that triggers detection had already been masked
+        // locally. Gating both on success means a failed write leaves
+        // local state exactly matching server truth (still finalized,
+        // still drifted), so detection genuinely re-fires and retries
+        // the next time grossingReports changes for any reason, instead
+        // of silently diverging into a state nothing will ever revisit.
+        drifted.forEach(g => grossingSnapshotRef.current.delete(g.instanceId));
+        setCaseData(prev => prev ? ({ ...prev, grossingReports } as typeof prev) : prev);
+        mockAuditService.logEvent({
+          type: 'system',
+          event: 'Post-Finalization Drift Auto-Corrected',
+          detail: `${drifted.length} report(s) reverted to draft and saved successfully`,
+          user: signingUser?.id ?? 'system',
+          caseId: caseData.id,
+          confidence: null,
+        }).catch(() => {});
+      } catch (e) {
+        // Deliberately silent to the USER, unlike every user-initiated
+        // write elsewhere in this file — this effect runs automatically
+        // in the background, not from something the pathologist clicked.
+        // A blocking "someone else changed this case" modal popping up
+        // unprompted would be jarring and confusing. Local state is
+        // deliberately left untouched on failure (see above) so this
+        // effect genuinely retries on a future render, instead of just
+        // claiming to.
+        //
+        // NOT silent to telemetry, though — this is the real production
+        // signal for "drift was detected but the correction hasn't
+        // landed yet," distinct from both a successful correction and a
+        // genuine unexpected error, so someone reviewing the audit log
+        // can tell the difference between "rare, self-healed quickly"
+        // and "detected often, frequently deferred" without having to
+        // correlate against generic case.write.conflict counts from
+        // every other write in this file.
+        //
+        // Real admin alert, not just an audit entry, for these two
+        // outcomes specifically — this is the one place in the whole
+        // drift-correction flow where NOBODY has any visibility at all,
+        // not even the pathologist actively viewing this case. Local
+        // state stays untouched on failure by design (see above), so
+        // there's no visible signal in the UI that anything happened —
+        // an audit log entry is real, but only useful to someone who
+        // goes looking. A finalized report sitting with unresolved,
+        // silently-drifted content until someone happens to check is a
+        // real compliance exposure, not a hypothetical one.
+        if (e instanceof ConcurrencyConflictError) {
+          mockAuditService.logEvent({
+            type: 'system',
+            event: 'Post-Finalization Drift Correction Deferred',
+            detail: `${drifted.length} report(s) detected drifted, but the correction write hit a version conflict — will retry on next change`,
+            user: signingUser?.id ?? 'system',
+            caseId: caseData.id,
+            confidence: null,
+          }).catch(() => {});
+          alertAdminsOfUnresolvedDrift(caseData.id, drifted.length, 'deferred (version conflict)');
+        } else {
+          console.error(e);
+          mockAuditService.logEvent({
+            type: 'system',
+            event: 'Post-Finalization Drift Correction Failed',
+            detail: `${drifted.length} report(s) detected drifted; correction write failed with an unexpected error`,
+            user: signingUser?.id ?? 'system',
+            caseId: caseData.id,
+            confidence: null,
+          }).catch(() => {});
+          alertAdminsOfUnresolvedDrift(caseData.id, drifted.length, 'failed (unexpected error)');
+        }
+      }
+    })();
+  }, [caseData?.grossingReports, alertAdminsOfUnresolvedDrift]);
 
   const handleProtoCommit = useCallback(async (acceptedIds: string[]) => {
     setShowProtoReview(false);
@@ -2470,7 +3001,9 @@ const SynopticReportPage: React.FC = () => {
 
       const patch = { synopticReports: reports };
 
-      caseRouter.updateCase(caseData.id, patch as any).then(() => {
+      try {
+        await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
+        knownVersionRef.current = knownVersionRef.current + 1;
         setCaseData({ ...caseData, ...patch } as typeof caseData);
         log('protocol_change_committed', {
           caseId: caseData.id,
@@ -2478,7 +3011,13 @@ const SynopticReportPage: React.FC = () => {
           totalProposed: protoChanges.length,
           actions: accepted.map(c => c.action ?? 'replace'),
         });
-      }).catch(console.error);
+      } catch (e) {
+        if (e instanceof ConcurrencyConflictError) {
+          setConcurrencyConflict({ actualVersion: e.actualVersion });
+          return;
+        }
+        console.error(e);
+      }
     }
   }, [protoChanges, caseData, log, computationalResults]);
 
@@ -2679,7 +3218,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
     }
   }, [caseData, signingUser, pendingLisNotice, activeReportInstanceId]);
 
-  const handleFieldOverridesConfirmed = useCallback((overrides: Record<string, FieldOverride>) => {
+  const handleFieldOverridesConfirmed = useCallback(async (overrides: Record<string, FieldOverride>) => {
     if (!caseData || !activeReportInstanceId) return;
     setPendingFieldOverrides(overrides);
     // pendingFieldOverrides (the state) is never read anywhere in this
@@ -2714,7 +3253,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
       return { ...r, answers: newAnswers, fieldLineage: newLineage, aiSuggestions: newAiSuggestions };
     });
     setCaseData({ ...caseData, synopticReports: updatedReports } as any);
-    caseRouter.updateCase(caseData.id, { synopticReports: updatedReports } as any).catch(console.error);
+    try {
+      await caseRouter.updateCase(caseData.id, { synopticReports: updatedReports } as any, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) {
+        setConcurrencyConflict({ actualVersion: e.actualVersion });
+        return;
+      }
+      console.error(e);
+    }
   }, [caseData, activeReportInstanceId, signingUser, setCaseData]);
 
   // Real gap fixed here: the "Amend" button always started a brand new
@@ -2807,7 +3355,20 @@ Original report issued pending ancillary studies. This amendment incorporates th
           : r
       );
       setCaseData({ ...caseData, status: 'in-progress' as CaseStatus, synopticReports: unlockedReports } as any);
-      caseRouter.updateCase(caseData.id, { status: 'in-progress' as CaseStatus, synopticReports: unlockedReports } as any).catch(console.error);
+      try {
+        await caseRouter.updateCase(caseData.id, { status: 'in-progress' as CaseStatus, synopticReports: unlockedReports } as any, knownVersionRef.current);
+        knownVersionRef.current = knownVersionRef.current + 1;
+      } catch (e) {
+        if (e instanceof ConcurrencyConflictError) {
+          // Same reasoning as finalizeSignOut — this is a status
+          // transition off 'finalized', not a routine draft edit.
+          // Blocking and forcing a reload is the safe default when the
+          // stakes are this high.
+          setConcurrencyConflict({ actualVersion: e.actualVersion, blockOverride: true });
+          return;
+        }
+        console.error(e);
+      }
       showToast(`Report unlocked for ${amendmentMode === 'correction' ? 'correction' : 'amendment'} — edit the synoptic fields, then re-finalize and sign out to transmit.`);
 
       setAmendmentSubmitError(null);
@@ -3104,10 +3665,18 @@ Original report issued pending ancillary studies. This amendment incorporates th
           onOpenDeficiencyHistory={() => setShowDeficiencyModal(true)}
           focusedBlockId={focusedBlockEntry?.block.id}
           onOpenBlockEditor={() => setShowBlockEditor(true)}
-          onCaseUpdate={updated => {
-            caseRouter.updateCase(updated.id, { specimenFlags: (updated as any).specimenFlags } as any)
-              .then(() => setCaseData(updated))
-              .catch(console.error);
+          onCaseUpdate={async updated => {
+            try {
+              await caseRouter.updateCase(updated.id, { specimenFlags: (updated as any).specimenFlags } as any, knownVersionRef.current);
+              knownVersionRef.current = knownVersionRef.current + 1;
+              setCaseData(updated);
+            } catch (e) {
+              if (e instanceof ConcurrencyConflictError) {
+                setConcurrencyConflict({ actualVersion: e.actualVersion });
+                return;
+              }
+              console.error(e);
+            }
           }}
         />
 
@@ -3516,6 +4085,20 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 )}
                 <AmendmentDraftBanner caseData={caseData} activeReportInstanceId={activeReportInstanceId} onEdit={handleRequestAmendment} />
                 <AmendmentStatusBanner caseId={caseData?.id} synopticReports={caseData?.synopticReports} />
+                {(caseData as any)?.status === 'pending-countersign' && (() => {
+                  const residentP = (caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('resident'));
+                  const attendingP = (caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('attending'));
+                  const viewerIsResident = residentP?.staffId === signingUser?.id;
+                  return (
+                    <div className="ps-defic-review-banner" style={{ marginBottom: 12, borderColor: 'rgba(96,165,250,0.4)' }}>
+                      <span>
+                        🎓 {viewerIsResident
+                          ? `Released for countersign — awaiting ${attendingP?.staffName ?? 'the attending'}'s review.`
+                          : `Released by ${residentP?.staffName ?? 'the resident'} — your countersign is pending.`}
+                      </span>
+                    </div>
+                  );
+                })()}
                 <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} onMatchResolved={found => setHighlightNotFound(!found)} />
               </div>
               <div className={`ps-syn-tab-panel${leftTab === 'material' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
@@ -3562,65 +4145,11 @@ Original report issued pending ancillary studies. This amendment incorporates th
           caseData={caseData}
           isDirty={hasUnsavedData}
           onSaveDraft={async () => {
-            if (isOrchestrationMode && caseData?.id) {
-              try {
-                await caseRouter.updateCase(caseData.id, {
-                  orchSections,
-                  updatedAt: new Date().toISOString(),
-                } as any);
-                // Also persist to localStorage as immediate backup
-                localStorage.setItem(
-                  `ps_orch_sections_${caseData.id}`,
-                  JSON.stringify(orchSections)
-                );
-              } catch (e) {
-                console.error('Failed to persist orchSections:', e);
-              }
-            } else if (caseData?.id) {
-              // ROOT FIX — CoPilot's Save Draft never actually persisted
-              // synopticReports anywhere. It only cleared the dirty flag
-              // and showed "Draft saved," which was true for Orchestration
-              // but silently false here — any field edit was lost on
-              // refresh since it only ever lived in local React state.
-              try {
-                await caseRouter.updateCase(caseData.id, {
-                  synopticReports: caseData.synopticReports,
-                  updatedAt: new Date().toISOString(),
-                } as any);
-              } catch (e) {
-                console.error('Failed to persist synopticReports:', e);
-              }
-            }
-            clearDirty();
-            showToast('Draft saved');
+            await saveDraftInternal();
           }}
           onSaveAndNext={async () => {
-            if (isOrchestrationMode && caseData?.id) {
-              try {
-                await caseRouter.updateCase(caseData.id, {
-                  orchSections,
-                  updatedAt: new Date().toISOString(),
-                } as any);
-                localStorage.setItem(
-                  `ps_orch_sections_${caseData.id}`,
-                  JSON.stringify(orchSections)
-                );
-              } catch (e) {
-                console.error('Failed to persist orchSections:', e);
-              }
-            } else if (caseData?.id) {
-              // Same root fix as onSaveDraft above.
-              try {
-                await caseRouter.updateCase(caseData.id, {
-                  synopticReports: caseData.synopticReports,
-                  updatedAt: new Date().toISOString(),
-                } as any);
-              } catch (e) {
-                console.error('Failed to persist synopticReports:', e);
-              }
-            }
-            clearDirty();
-            showToast('Draft saved');
+            const saved = await saveDraftInternal();
+            if (!saved) return; // held by a real conflict — don't proceed to the next case
             navigateToCase('next');
           }}
           onFinalize={() => handleRequestFinalize(false)}
@@ -3656,7 +4185,40 @@ Original report issued pending ancillary studies. This amendment incorporates th
         onUserChange={setSignOutUser}
         onPasswordChange={setSignOutPassword}
         onConfirm={handleSignOutConfirm}
+        isCountersign={(caseData as any)?.status === 'pending-countersign'}
+        residentName={(caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('resident'))?.staffName}
+        countersignFeedback={countersignFeedback}
+        onCountersignFeedbackChange={setCountersignFeedback}
       />
+
+      {concurrencyConflict && (
+        <div data-capture-hide="true" className="ps-overlay">
+          <div className="ps-modal-dark ps-modal-dark--sm ps-modal-dark--centered">
+            <div className="ps-modal-dark-emoji">⚠️</div>
+            <div className="ps-modal-dark-header ps-modal-dark-header--center">
+              <span className="ps-modal-dark-title">Someone else changed this case</span>
+            </div>
+            <p className="ps-modal-dark-body ps-modal-dark-body--center">
+              This case was updated by someone else since you opened it (their version is #{concurrencyConflict.actualVersion}) —
+              after you opened it. {concurrencyConflict.blockOverride
+                ? 'This action affects the finalized report, so it can only proceed against the current version — reload to see their changes before continuing.'
+                : 'Your unsaved changes here haven\'t been lost yet, but saving now would overwrite theirs.'}
+            </p>
+            {!concurrencyConflict.blockOverride && (
+              <p className="ps-modal-dark-hint ps-modal-dark-hint--center">
+                Reload to see their version (your local changes here will be lost), or save yours anyway and overwrite theirs.
+              </p>
+            )}
+            <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch" style={{ flexDirection: 'column', gap: 8 }}>
+              <button className="ps-btn-ghost-dark" onClick={() => setConcurrencyConflict(null)}>Keep Working — Decide Later</button>
+              <button className="ps-btn-ghost-dark" onClick={handleConcurrencyReload}>Reload Their Version</button>
+              {!concurrencyConflict.blockOverride && (
+                <button className="ps-btn-amber" onClick={handleConcurrencyForceSave}>Save Mine Anyway</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingReconciliation && caseData && (
         <DiscordanceReconciliationModal
@@ -3666,7 +4228,38 @@ Original report issued pending ancillary studies. This amendment incorporates th
           frozenCategory={pendingReconciliation.frozenCategory}
           frozenDx={pendingReconciliation.frozenDx}
           performedBy={{ userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' }}
+          draftedBy={(() => {
+            // A resident/fellow participant whose draft is being
+            // reconciled by whoever is currently signing out — undefined
+            // for the common non-teaching path (no resident on the team,
+            // or the signing pathologist IS the resident themselves,
+            // which isn't a teaching relationship).
+            const resident = (caseData as any)?.participants?.find(
+              (p: any) => p.status === 'active' && p.participationTypeIds?.includes('resident') && p.staffId !== signingUser?.id
+            );
+            return resident ? { userId: resident.staffId, userName: resident.staffName } : undefined;
+          })()}
+          subspecialtyId={(caseData as any)?.subspecialtyId}
           onDone={finalizeSignOut}
+        />
+      )}
+
+      {intraopMatch && caseData && (
+        <IntraopMergePromptModal
+          caseId={caseData.id}
+          match={intraopMatch}
+          onMergeNow={async () => {
+            await intraoperativeService.merge(intraopMatch.entry.id, caseData.id, {
+              matchType: intraopMatch.matchType,
+              confidence: intraopMatch.confidence,
+              wasManualOverride: false, // this modal only offers Merge Now / Go to Queue Later / Dismiss — no manual case-ID entry
+              performedBy: signingUser?.name ?? 'Unknown User',
+            });
+            showToast(`Intraoperative entry merged into ${caseData.id}`);
+            setIntraopMatch(null);
+          }}
+          onGoToQueueLater={() => { setIntraopMatch(null); navigate('/intraop-queue'); }}
+          onDismiss={() => setIntraopMatch(null)}
         />
       )}
 
@@ -3674,7 +4267,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         show={showCopilotReportView}
         onClose={() => setShowCopilotReportView(false)}
         accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
-        patient={caseData?.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : ''}
+        patient={caseData?.patient ? `${caseData.patient.familyNames ?? caseData.patient.lastName}, ${caseData.patient.givenNames ?? caseData.patient.firstName}` : ''}
         mrn={caseData?.patient?.mrn ?? ''}
         instances={copilotReportInstances}
       />
@@ -3833,7 +4426,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           openFlagManager(caseData);
           log('flag_manager_opened', { caseId: caseId ?? '', source: 'add_orders_modal' });
         }}
-        onAddBlock={(specimenId, cassetteLabel, note) => {
+        onAddBlock={async (specimenId, cassetteLabel, note) => {
           if (!caseData) return;
           const nowIso = new Date().toISOString();
 
@@ -3872,7 +4465,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
             updatedAt: nowIso,
           } as any;
           setCaseData(updated);
-          caseRouter.updateCase(caseData.id, { diagnostic: updated.diagnostic, grossingReports }).catch(console.error);
+          try {
+            await caseRouter.updateCase(caseData.id, { diagnostic: updated.diagnostic, grossingReports } as any, knownVersionRef.current);
+            knownVersionRef.current = knownVersionRef.current + 1;
+          } catch (e) {
+            if (e instanceof ConcurrencyConflictError) {
+              setConcurrencyConflict({ actualVersion: e.actualVersion });
+              return;
+            }
+            console.error(e);
+          }
           markDirty('Gross description');
           showToast('Block/recut added');
           setShowAddOrdersModal(false);
@@ -3886,7 +4488,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           existingSpecimens={caseData.specimens ?? []}
           isOrchestrationMode={isOrchestrationMode}
           onClose={() => { setShowSpecimenEdit(false); setEditingSpecimen(null); }}
-          onSave={(saved) => {
+          onSave={async (saved) => {
             // Post-Hoc Correction audit trail — deliberately generated
             // here, in the existing save path, rather than via a
             // separate correction-only modal. SpecimenEditModal already
@@ -3919,17 +4521,21 @@ Original report issued pending ancillary studies. This amendment incorporates th
               });
             }
             const isNewSpecimen = (prev => (prev.specimens ?? []).findIndex(s => s.id === saved.id) < 0)(caseData!);
-            setCaseData(prev => {
-              if (!prev) return prev;
-              const existing = (prev.specimens ?? []).findIndex(s => s.id === saved.id);
-              const next = existing >= 0
-                ? (prev.specimens ?? []).map(s => s.id === saved.id ? saved : s)
-                : [...(prev.specimens ?? []), saved];
-              const updated = { ...prev, specimens: next };
-              // Persist to mock/Firestore via existing updateCase — no new service needed
-              caseRouter.updateCase(prev.id, { specimens: next }).catch(console.error);
-              return updated;
-            });
+            const existingIdx = (caseData!.specimens ?? []).findIndex(s => s.id === saved.id);
+            const nextSpecimens = existingIdx >= 0
+              ? (caseData!.specimens ?? []).map(s => s.id === saved.id ? saved : s)
+              : [...(caseData!.specimens ?? []), saved];
+            setCaseData(prev => prev ? ({ ...prev, specimens: nextSpecimens }) : prev);
+            try {
+              await caseRouter.updateCase(caseData!.id, { specimens: nextSpecimens } as any, knownVersionRef.current);
+              knownVersionRef.current = knownVersionRef.current + 1;
+            } catch (e) {
+              if (e instanceof ConcurrencyConflictError) {
+                setConcurrencyConflict({ actualVersion: e.actualVersion });
+              } else {
+                console.error('[PostHocCorrection] Failed to persist specimen:', e);
+              }
+            }
 
             // A specimen added mid-workflow (not at accession) never
             // goes through evaluateGrossingTemplateAssignment, so it
@@ -3984,13 +4590,18 @@ Original report issued pending ancillary studies. This amendment incorporates th
                     updatedAt: new Date().toISOString(),
                   };
 
-                  setCaseData(prev => {
-                    if (!prev) return prev;
-                    const grossingReports = [...((prev as any).grossingReports ?? []), newGrossingReport];
-                    const updated = { ...prev, grossingReports } as any;
-                    caseRouter.updateCase(prev.id, { grossingReports }).catch(console.error);
-                    return updated;
-                  });
+                  const nextGrossingReports = [...((caseData as any)!.grossingReports ?? []), newGrossingReport];
+                  setCaseData(prev => prev ? ({ ...prev, grossingReports: nextGrossingReports } as any) : prev);
+                  try {
+                    await caseRouter.updateCase(caseData!.id, { grossingReports: nextGrossingReports } as any, knownVersionRef.current);
+                    knownVersionRef.current = knownVersionRef.current + 1;
+                  } catch (e) {
+                    if (e instanceof ConcurrencyConflictError) {
+                      setConcurrencyConflict({ actualVersion: e.actualVersion });
+                      return;
+                    }
+                    console.error(e);
+                  }
                   markDirty('Specimens');
                 } catch (err) {
                   console.error('[AddSpecimen] Grossing template auto-assignment failed:', err);
@@ -4056,7 +4667,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           comments={caseComments}
           currentUserId={signingUser?.id ?? 'unknown'}
           currentUserName={signingUser?.name ?? 'Unknown User'}
-          onAddComment={(text) => {
+          onAddComment={async (text) => {
             // Append-only — a new CaseComment record, never overwriting
             // anything already posted. Fixed June 2026: this used to be
             // a single string, silently overwritten by whoever saved
@@ -4073,10 +4684,24 @@ Original report issued pending ancillary studies. This amendment incorporates th
             };
             const updatedComments = [...caseComments, newComment];
             const patch = { order: { ...caseData.order, caseComments: updatedComments } };
-            caseRouter.updateCase(caseData.id, patch as any).then(() => {
+            try {
+              await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
+              knownVersionRef.current = knownVersionRef.current + 1;
               setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
-            }).catch(err => console.error('[CaseComment] Failed to persist:', err));
-            markDirty('Case comment');
+              markDirty('Case comment');
+            } catch (e) {
+              if (e instanceof ConcurrencyConflictError) {
+                // Comments are naturally append-only, so an actual field-
+                // level merge (union both comment lists rather than
+                // whole-array reload-or-override) would avoid needing
+                // user intervention at all here — worth building later,
+                // not attempted in this pass. Standard treatment for now,
+                // consistent with everything else.
+                setConcurrencyConflict({ actualVersion: e.actualVersion });
+                return;
+              }
+              console.error('[CaseComment] Failed to persist:', e);
+            }
           }}
           onClose={() => setShowCaseCommentModal(false)}
         />
@@ -4094,7 +4719,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
           isFinalized={false}
           currentUserId={signingUser?.id ?? 'unknown'}
           currentUserName={signingUser?.name ?? 'Unknown User'}
-          onAddComment={(text) => {
+          onAddComment={async (text) => {
             // Append-only — fixed June 2026, same reasoning as the case
             // comment thread: this used to be a single string, silently
             // overwritten by whoever saved last, with no author or
@@ -4113,10 +4738,18 @@ Original report issued pending ancillary studies. This amendment incorporates th
               sp.id === activeSpecimenCommentId ? { ...sp, comments: [...(sp.comments ?? []), newComment] } : sp
             );
             const patch = { specimens: patchedSpecimens };
-            caseRouter.updateCase(caseData.id, patch as any).then(() => {
+            try {
+              await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
+              knownVersionRef.current = knownVersionRef.current + 1;
               setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
-            }).catch(err => console.error('[SpecimenComment] Failed to persist:', err));
-            markDirty('Specimen comment');
+              markDirty('Specimen comment');
+            } catch (e) {
+              if (e instanceof ConcurrencyConflictError) {
+                setConcurrencyConflict({ actualVersion: e.actualVersion });
+                return;
+              }
+              console.error('[SpecimenComment] Failed to persist:', e);
+            }
           }}
           onClose={() => setShowSpecimenCommentModal(false)}
         />
@@ -4159,7 +4792,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
             });
 
             try {
-              await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any);
+              await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any, knownVersionRef.current);
+              knownVersionRef.current = knownVersionRef.current + 1;
               setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
 
               // Audit trail — one SpecimenDeficiency per resolved specimen,
@@ -4188,6 +4822,14 @@ Original report issued pending ancillary studies. This amendment incorporates th
 
               showToast('Fixation time recorded');
             } catch (err) {
+              if (err instanceof ConcurrencyConflictError) {
+                // Same reasoning as finalizeSignOut/handleAmendmentSubmit —
+                // this gates entry into the finalize flow, so a stale
+                // version here shouldn't silently proceed toward signing
+                // out a report built against outdated specimen data.
+                setConcurrencyConflict({ actualVersion: err.actualVersion, blockOverride: true });
+                return;
+              }
               console.error('[FixativeGate] Failed to persist resolutions:', err);
               showToast('Could not save fixation time — please try again');
               return;
@@ -4269,7 +4911,16 @@ Original report issued pending ancillary studies. This amendment incorporates th
               icd10:  [...(((caseData as any).coding?.icd10  ?? []) as any[]), ...newIcd],
               snomed: [...(((caseData as any).coding?.snomed ?? []) as any[]), ...newSnomed],
             };
-            await caseRouter.updateCase(caseData.id, { coding: newCoding } as any);
+            try {
+              await caseRouter.updateCase(caseData.id, { coding: newCoding } as any, knownVersionRef.current);
+              knownVersionRef.current = knownVersionRef.current + 1;
+            } catch (e) {
+              if (e instanceof ConcurrencyConflictError) {
+                setConcurrencyConflict({ actualVersion: e.actualVersion });
+                throw e; // keep the modal open/showing an error, matching the existing "stays open on rejection" contract noted above
+              }
+              throw e;
+            }
             setCaseData(prev => prev ? ({ ...prev, coding: newCoding } as typeof prev) : prev);
             markDirty('Codes');
           }}
@@ -4379,14 +5030,8 @@ Original report issued pending ancillary studies. This amendment incorporates th
                   // Save then switch
                   const dest = pendingTabSwitch;
                   setPendingTabSwitch(null);
-                  if (caseData?.id) {
-                    try {
-                      await caseRouter.updateCase(caseData.id, { orchSections, updatedAt: new Date().toISOString() } as any);
-                      localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
-                    } catch (e) { console.error(e); }
-                  }
-                  clearDirty();
-                  showToast('Draft saved');
+                  const saved = await saveDraftInternal();
+                  if (!saved) return; // held by a real conflict — don't proceed with the tab switch
                   const tab = dest === 'report_and_scroll' ? 'report' : dest as any;
                   safeSetLeftTab(tab);
                   if (dest === 'report_and_scroll') {
@@ -4421,21 +5066,10 @@ Original report issued pending ancillary studies. This amendment incorporates th
           // caseRouter.updateCase or writing the localStorage backup —
           // the toast was lying, and navigating away right after threw
           // away orchSections for real, since nothing had persisted it
-          // anywhere. This is the actual confirmed bug behind "sections
-          // lost on navigation" — not a missing persistence mechanism
-          // (one already exists, mirrored below, used by Ctrl+S/the
-          // PATHSCRIBE_ORCH_SAVE_DRAFT event), but this specific button
-          // never calling it. Awaited directly (not dispatched as an
-          // event) so navigation can't proceed before the save actually
-          // completes.
-          if (caseData?.id) {
-            try {
-              await caseRouter.updateCase(caseData.id, { orchSections, updatedAt: new Date().toISOString() } as any);
-              localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
-            } catch (e) { console.error('[SaveAndLeave] Failed to save draft:', e); }
-          }
-          clearDirty();
-          showToast('Draft saved');
+          // anywhere. Now routed through the same shared saveDraftInternal
+          // every other save trigger uses.
+          const saved = await saveDraftInternal();
+          if (!saved) return; // held by a real conflict — don't proceed with navigation
           if (pendingPath) confirmContextNavigate();
           const dest = pendingNavigation;
           setPendingNavigation(null);
