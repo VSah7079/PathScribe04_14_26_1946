@@ -32,8 +32,13 @@ import type {
   SpecimenDeficiency, DeficiencyType, ResolutionType, ManagementReview,
 } from '@/services/deficiencies/IDeficiencyService';
 import { ManagementReviewModal } from './modals/ManagementReviewModal';
+import { IntraopLinkageTab } from '@/components/QualityAssurance/IntraopLinkageTab';
+import { ReconciliationTab } from '@/components/QualityAssurance/ReconciliationTab';
+import { CountersignTurnaroundTab } from '@/components/QualityAssurance/CountersignTurnaroundTab';
+import { FppeTrackingTab } from '@/components/QualityAssurance/FppeTrackingTab';
+import { DriftCorrectionTab } from '@/components/QualityAssurance/DriftCorrectionTab';
 
-type Tab = 'open' | 'pending-verification' | 'closed' | 'reviews';
+type Tab = 'open' | 'pending-verification' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction';
 
 const formatTimestamp = (iso?: string) => {
   if (!iso) return '—';
@@ -153,7 +158,7 @@ const VerifyModal: React.FC<{
 const DeficienciesPage: React.FC = () => {
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
-  useEffect(() => { pushCrumb('Deficiencies', '/deficiencies'); }, [pushCrumb]);
+  useEffect(() => { pushCrumb('Quality Assurance', '/deficiencies'); }, [pushCrumb]);
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('open');
   const [deficiencies, setDeficiencies] = useState<SpecimenDeficiency[]>([]);
@@ -248,36 +253,47 @@ const DeficienciesPage: React.FC = () => {
   return (
     <div className="ps-defic-page">
       <div className="ps-defic-page-header">
-        <h1 className="ps-defic-page-title">⚠ Deficiencies</h1>
+        <h1 className="ps-defic-page-title">✓ Quality Assurance</h1>
         <p className="ps-defic-page-subtitle">
-          Nonconformance tracking, independent of case status. A corrective action doesn't close this out by
-          itself — it moves to Pending Verification until someone actually confirms it worked.
+          Nonconformance tracking (Deficiencies), independent of case status — a corrective action doesn't close
+          this out by itself, it moves to Pending Verification until someone actually confirms it worked — plus
+          department-wide Intraoperative Linkage and Discordance & Reconciliation reporting.
         </p>
       </div>
 
       {/* Trend — closed per month, last 6 months. The actual point of a
-          batch Management Review is spotting a pattern like this. */}
-      <div className="ps-defic-trend-card">
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={trendData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
-            <Tooltip content={({ active, payload, label }: any) => {
-              if (!active || !payload?.length) return null;
-              return (
-                <div className="ps-tat-trend__tooltip">
-                  <div className="ps-tat-trend__tooltip-header">{label}</div>
-                  <div style={{ color: '#0891B2' }}>Closed: {payload[0]?.payload?.closed ?? 0}</div>
-                  <div style={{ color: '#f87171' }}>Reopened at least once: {payload[0]?.payload?.reopened ?? 0}</div>
-                </div>
-              );
-            }} />
-            <Line type="monotone" dataKey="closed" stroke="#0891B2" strokeWidth={2.5} dot={{ r: 3, fill: '#0891B2', strokeWidth: 0 }} />
-            <Line type="monotone" dataKey="reopened" stroke="#f87171" strokeWidth={2} strokeDasharray="4 3" dot={{ r: 2, fill: '#f87171', strokeWidth: 0 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+          batch Management Review is spotting a pattern like this.
+          Explicitly gated to the tabs this chart is actually about —
+          previously rendered unconditionally regardless of which tab was
+          active, so viewing Intraoperative Linkage or Discordance &
+          Reconciliation still showed the deficiency-closure trend, which
+          has nothing to do with either. Same explicit-enumeration
+          pattern used below for the table/reviews block, rather than a
+          negative check, so a future new tab can't silently fall through
+          into this again. */}
+      {(tab === 'open' || tab === 'pending-verification' || tab === 'closed' || tab === 'reviews') && (
+        <div className="ps-defic-trend-card">
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={trendData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip content={({ active, payload, label }: any) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div className="ps-tat-trend__tooltip">
+                    <div className="ps-tat-trend__tooltip-header">{label}</div>
+                    <div style={{ color: '#0891B2' }}>Closed: {payload[0]?.payload?.closed ?? 0}</div>
+                    <div style={{ color: '#f87171' }}>Reopened at least once: {payload[0]?.payload?.reopened ?? 0}</div>
+                  </div>
+                );
+              }} />
+              <Line type="monotone" dataKey="closed" stroke="#0891B2" strokeWidth={2.5} dot={{ r: 3, fill: '#0891B2', strokeWidth: 0 }} />
+              <Line type="monotone" dataKey="reopened" stroke="#f87171" strokeWidth={2} strokeDasharray="4 3" dot={{ r: 2, fill: '#f87171', strokeWidth: 0 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="ps-tab-bar">
         <button className={`ps-tab-btn ${tab === 'open' ? 'active' : ''}`} onClick={() => setTab('open')}>Open ({openCount})</button>
@@ -286,7 +302,18 @@ const DeficienciesPage: React.FC = () => {
         </button>
         <button className={`ps-tab-btn ${tab === 'closed' ? 'active' : ''}`} onClick={() => setTab('closed')}>Closed ({closedCount})</button>
         <button className={`ps-tab-btn ${tab === 'reviews' ? 'active' : ''}`} onClick={() => setTab('reviews')}>Management Reviews ({managementReviews.length})</button>
+        <button className={`ps-tab-btn ${tab === 'intraop-linkage' ? 'active' : ''}`} onClick={() => setTab('intraop-linkage')}>Intraoperative Linkage</button>
+        <button className={`ps-tab-btn ${tab === 'discordance' ? 'active' : ''}`} onClick={() => setTab('discordance')}>Discordance &amp; Reconciliation</button>
+        <button className={`ps-tab-btn ${tab === 'countersign' ? 'active' : ''}`} onClick={() => setTab('countersign')}>Countersign Turnaround</button>
+        <button className={`ps-tab-btn ${tab === 'fppe' ? 'active' : ''}`} onClick={() => setTab('fppe')}>Credentialing Review</button>
+        <button className={`ps-tab-btn ${tab === 'drift-correction' ? 'active' : ''}`} onClick={() => setTab('drift-correction')}>Post-Finalization Drift</button>
       </div>
+
+      {tab === 'intraop-linkage' && <IntraopLinkageTab />}
+      {tab === 'discordance' && <ReconciliationTab />}
+      {tab === 'countersign' && <CountersignTurnaroundTab />}
+      {tab === 'fppe' && <FppeTrackingTab />}
+      {tab === 'drift-correction' && <DriftCorrectionTab />}
 
       {tab === 'closed' && (
         <div className="ps-defic-review-banner">
@@ -297,7 +324,7 @@ const DeficienciesPage: React.FC = () => {
         </div>
       )}
 
-      {tab !== 'reviews' ? (
+      {(tab === 'open' || tab === 'pending-verification' || tab === 'closed') ? (
         <div className="ps-conf-table-wrap">
           <div className="ps-conf-table-scroll">
             <table className="ps-conf-table">
@@ -354,7 +381,7 @@ const DeficienciesPage: React.FC = () => {
             </table>
           </div>
         </div>
-      ) : (
+      ) : tab === 'reviews' ? (
         <div className="ps-conf-table-wrap">
           <div className="ps-conf-table-scroll">
             <table className="ps-conf-table">
@@ -377,7 +404,7 @@ const DeficienciesPage: React.FC = () => {
             </table>
           </div>
         </div>
-      )}
+      ) : null}
 
       {resolvingItem && (
         <ResolveModal deficiency={resolvingItem} resolutionTypes={resolutionTypes} onResolve={handleResolve} onClose={() => setResolvingId(null)} />

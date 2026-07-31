@@ -73,6 +73,7 @@ export interface SessionUser {
   id: string;
   role?: 'pathologist' | 'admin' | 'pathologist-admin' | 'superadmin';
   organisationId?: string;
+  canAccessCrossTenantQa?: boolean;
 }
 
 /**
@@ -89,7 +90,7 @@ export function getSessionUser(): SessionUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.id) return null;
-    return { id: parsed.id, role: parsed.role, organisationId: parsed.organisationId };
+    return { id: parsed.id, role: parsed.role, organisationId: parsed.organisationId, canAccessCrossTenantQa: parsed.canAccessCrossTenantQa };
   } catch {
     // Fail safe, not fail open — a corrupted/unreadable session resolves
     // to "no session," which denies access, not "assume trusted."
@@ -126,6 +127,21 @@ export function canAccessCase(
   }
 
   return caseOrg.id === session.organisationId;
+}
+
+/**
+ * Whether this session is permitted to see cross-tenant data specifically
+ * in QA/compliance reporting views (see qaReportUtils.ts's QaScope
+ * 'enterprise' level). Distinct from canAccessCase's superadmin bypass —
+ * superadmin still qualifies (a platform admin can see everything), but
+ * so does anyone explicitly granted canAccessCrossTenantQa without
+ * needing full superadmin case-access privileges. Deny by default, same
+ * principle as canAccessCase — no session, no role, no explicit grant
+ * means no cross-tenant visibility, full stop.
+ */
+export function canViewCrossTenantQaData(session: SessionUser | null): boolean {
+  if (!session) return false;
+  return session.role === 'superadmin' || session.canAccessCrossTenantQa === true;
 }
 
 /** Convenience wrapper — filters a list of cases down to only the ones

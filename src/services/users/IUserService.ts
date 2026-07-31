@@ -33,6 +33,19 @@ export interface StaffUser {
    */
   canViewOrchestration?: boolean;
   /**
+   * Real, granular permission distinct from role: 'superadmin' — grants
+   * cross-tenant visibility specifically for QA/compliance reporting
+   * views (see qaReportUtils.ts's QaScope 'enterprise' level and the QA
+   * tabs in components/QualityAssurance/), without granting the broader
+   * platform-admin case-access bypass superadmin implies. Least-
+   * privilege: an enterprise compliance officer who legitimately needs
+   * cross-tenant QA reports shouldn't also need full superadmin case
+   * access as a side effect of that. Matches the design spec's
+   * SYSTEM_QA_CROSS_TENANT permission. Defaults to false/undefined —
+   * must be explicitly granted, same as canViewOrchestration.
+   */
+  canAccessCrossTenantQa?: boolean;
+  /**
    * The Organisation (services/organisation/organisationService.ts) this
    * staff member belongs to — the actual tenant/enterprise boundary.
    * Added June 2026 to close a real access-control gap: before this,
