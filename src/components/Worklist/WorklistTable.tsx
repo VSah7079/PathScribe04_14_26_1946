@@ -281,7 +281,23 @@ const SpecimenChip: React.FC<{
  * won't reflect PA grossing-bench completion for Orchestration cases. See
  * GrossingReportInstance in Case.ts.
  */
-const StatusDot: React.FC<{ status: string; isGrossed?: boolean; lastRevisionType?: RevisionType }> = React.memo(({ status, isGrossed, lastRevisionType }) => {
+/** A case can have multiple synoptic reports (one per specimen), each
+ *  with its own independent status — a single case-level status can't
+ *  fully represent "2 of 3 reports finalized, 1 still pending
+ *  countersign." Returns null when there's nothing worth surfacing
+ *  (0 or 1 report, or every report already shares the same status) —
+ *  only genuinely mixed cases get the secondary indicator, so this
+ *  doesn't add visual noise to the common case. */
+function getReportBreakdown(c: any): { finalized: number; total: number } | null {
+  const reports: any[] = c?.synopticReports ?? [];
+  if (reports.length < 2) return null;
+  const statuses = new Set(reports.map(r => r.status));
+  if (statuses.size <= 1) return null; // every report already shares one status — nothing mixed to surface
+  const finalized = reports.filter(r => r.status === 'finalized').length;
+  return { finalized, total: reports.length };
+}
+
+const StatusDot: React.FC<{ status: string; isGrossed?: boolean; lastRevisionType?: RevisionType; reportBreakdown?: { finalized: number; total: number } | null }> = React.memo(({ status, isGrossed, lastRevisionType, reportBreakdown }) => {
   const isRevisedFinal = hasDisplayableRevision(status, lastRevisionType);
   const s = isRevisedFinal ? REVISION_ACCENT : getStatusStyle(status);
   const label = getCaseStatusLabel(status, lastRevisionType);
@@ -300,6 +316,14 @@ const StatusDot: React.FC<{ status: string; isGrossed?: boolean; lastRevisionTyp
           className={`wl-pool-substate${isGrossed ? ' wl-pool-substate--grossed' : ' wl-pool-substate--new'}`}
         >
           {isGrossed ? 'Grossed' : 'New'}
+        </span>
+      )}
+      {reportBreakdown && (
+        <span
+          title={`${reportBreakdown.finalized} of ${reportBreakdown.total} reports finalized — this case's reports aren't all in the same state`}
+          className="wl-pool-substate wl-pool-substate--mixed"
+        >
+          {reportBreakdown.finalized}/{reportBreakdown.total} Final
         </span>
       )}
     </span>
@@ -459,19 +483,43 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     return !authorizedIds.includes((user as any)?.id ?? '');
   }, [user, clientThresholds]);
 
+  // Pool cases: view-only/PHI-redacted for EVERYONE until actually
+  // claimed — unlike isPedRestricted/isOrchRestricted, this doesn't check
+  // any user permission. A pool case is a shared, unassigned queue by
+  // definition; nobody has a specific right to see its PHI yet, the same
+  // way an unclaimed intraop/frozen entry shouldn't expose PHI to anyone
+  // just browsing the queue (see IntraopQueuePage.tsx).
+  const isPoolRestricted = React.useCallback((c: any): boolean => {
+    return c?.status === 'pool';
+  }, []);
+
   // Combined check used at every PHI-redaction point in the table/card
   // rendering below, plus a discriminator for which copy/modal to show.
   // Pediatric takes precedence when a case somehow matches both (shouldn't
   // happen in practice — Orchestration cases are PathScribe-native, not
   // submitted by an LIS client with a pediatric policy — but precedence
-  // must be defined, not left to fall through unpredictably).
-  const restrictionKind = React.useCallback((c: any): 'pediatric' | 'orchestration' | null => {
+  // must be defined, not left to fall through unpredictably). Pool is
+  // checked last — it's the least specific and most temporary of the
+  // three (lifts the moment the case is claimed, unlike the other two).
+  const restrictionKind = React.useCallback((c: any): 'pediatric' | 'orchestration' | 'pool' | null => {
     if (isPedRestricted(c)) return 'pediatric';
     if (isOrchRestricted(c)) return 'orchestration';
+    if (isPoolRestricted(c)) return 'pool';
     return null;
-  }, [isPedRestricted, isOrchRestricted]);
+  }, [isPedRestricted, isOrchRestricted, isPoolRestricted]);
 
   const isRestricted = React.useCallback((c: any): boolean => restrictionKind(c) !== null, [restrictionKind]);
+
+  // Label text for the 🔒 redaction badge — pool gets its own wording
+  // ("Pooled Case") rather than the generic "Restricted Case" pediatric/
+  // orchestration share, since claiming it is what actually resolves the
+  // redaction, unlike the other two which need a permission change.
+  const restrictedLabel = React.useCallback((c: any): string => {
+    const kind = restrictionKind(c);
+    if (kind === 'pediatric') return 'Patient';
+    if (kind === 'pool') return 'Pooled Case';
+    return 'Case';
+  }, [restrictionKind]);
   
   // Ref for the scrollable container to implement infinite scroll
   const scrollRef  = useRef<HTMLDivElement>(null);
@@ -1071,6 +1119,18 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       >
                         {statusLabel}
                       </span>
+                      {(() => {
+                        const breakdown = getReportBreakdown(c);
+                        return breakdown && (
+                          <span
+                            title={`${breakdown.finalized} of ${breakdown.total} reports finalized — this case's reports aren't all in the same state`}
+                            className="wl-pool-substate wl-pool-substate--mixed"
+                            style={{ marginLeft: 6 }}
+                          >
+                            {breakdown.finalized}/{breakdown.total} Final
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* ── Card body ── */}
@@ -1081,7 +1141,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         <div className="wl-card__field-label">Patient</div>
                         <div className="wl-card__field-value" data-phi="name">
                           {isRestricted(c)
-                            ? <span className="wl-ped-name">🔒 Restricted {restrictionKind(c) === 'pediatric' ? 'Patient' : 'Case'}</span>
+                            ? <span className="wl-ped-name">🔒 Restricted {restrictedLabel(c)}</span>
                             : <>{c.patient.lastName}, {c.patient.firstName}</>}
                         </div>
                         {isRestricted(c) ? (
@@ -1090,10 +1150,12 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                               pedRequestedIds.has(c.id) ? (
                                 <span className="wl-ped-badge">⏳ Access requested</span>
                               ) : 'Click to request pediatric access'
-                            ) : (
+                            ) : restrictionKind(c) === 'orchestration' ? (
                               orchRequestedIds.has(c.id) ? (
                                 <span className="wl-ped-badge">⏳ Access requested</span>
                               ) : 'Click to request Orchestration access'
+                            ) : (
+                              'Claim this case to view patient details'
                             )}
                           </div>
                         ) : (
@@ -1309,19 +1371,21 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     <td className="wl-td" data-phi="name">
                       {isRestricted(c) ? (
                         <div>
-                          <div className="wl-ped-name">🔒 Restricted {restrictionKind(c) === 'pediatric' ? 'Patient' : 'Case'}</div>
+                          <div className="wl-ped-name">🔒 Restricted {restrictedLabel(c)}</div>
                           {restrictionKind(c) === 'pediatric' ? (
                             pedRequestedIds.has(c.id) ? (
                               <div className="wl-ped-badge">⏳ Access requested</div>
                             ) : (
                               <div className="wl-ped-hint">Click to request pediatric access</div>
                             )
-                          ) : (
+                          ) : restrictionKind(c) === 'orchestration' ? (
                             orchRequestedIds.has(c.id) ? (
                               <div className="wl-ped-badge">⏳ Access requested</div>
                             ) : (
                               <div className="wl-ped-hint">Click to request Orchestration access</div>
                             )
+                          ) : (
+                            <div className="wl-ped-hint">Claim this case to view patient details</div>
                           )}
                         </div>
                       ) : (
@@ -1385,6 +1449,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         status={c.status}
                         isGrossed={!!(c as any)?.grossingReports?.some((r: any) => r.status === 'finalized')}
                         lastRevisionType={c.lastRevisionType}
+                        reportBreakdown={getReportBreakdown(c)}
                       />
                     </td>
                   </tr>

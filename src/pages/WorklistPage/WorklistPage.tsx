@@ -1,5 +1,5 @@
 // src/pages/WorklistPage/WorklistPage.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDelegations } from '@/services/cases/mockCaseService';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { Case } from '@/types/case/Case';
@@ -58,7 +58,7 @@ const WorklistPage: React.FC = () => {
   }, [contextFilter]);
 
   // activeFilter:  which sub-filter within that context
-  const [activeFilter, setActiveFilter]       = useState<'all' | 'review' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete'>('all');
+  const [activeFilter, setActiveFilter]       = useState<'all' | 'review' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
 
   // Note: orchestrator mode flag read via localStorage when needed at case open
@@ -288,6 +288,16 @@ const WorklistPage: React.FC = () => {
   // Source cases — driven by contextFilter (which worklist is "home")
   const sourceCases = contextFilter === 'outreach' ? orchCases : lisCases;
 
+  // Real count for the countersign filter tab — derived from already-
+  // loaded case data, same as the filter branch itself; no separate
+  // fetch needed.
+  const countersignPendingCount = useMemo(
+    () => sourceCases.filter((c: any) => c.status === 'pending-countersign'
+      && c?.participants?.some((p: any) => p.status === 'active' && p.staffId === user?.id && p.participationTypeIds?.includes('attending'))
+    ).length,
+    [sourceCases, user?.id]
+  );
+
   // filteredCases — applies sub-filter within the current context
   // thresholdsLoaded + clientThresholds must be deps since canViewCase gates on them.
   const filteredCases = React.useMemo(() => {
@@ -311,10 +321,21 @@ const WorklistPage: React.FC = () => {
       if (activeFilter === 'accessioned')   return c.status === 'accessioned';
       if (activeFilter === 'grosscomplete') return c.status === 'gross-complete';
       if (activeFilter === 'physician')  return (c.order?.requestingProvider ?? '').toLowerCase().includes(physicianFilter.toLowerCase());
+      // Real fix found while adding the countersign filter below: this
+      // branch was missing entirely — the "Delegated to Me" tab showed a
+      // real count badge (delegatedToMeCount, delegatedCaseIds both
+      // genuinely fetched above) but selecting it fell through to
+      // `return true` and showed every case, not just delegated ones.
+      if (activeFilter === 'delegated')  return delegatedCaseIds.includes(c.id);
+      // Cases genuinely awaiting THIS user's countersign — real case
+      // data already has everything needed (status + participants[]),
+      // no separate countersignService fetch required for this filter.
+      if (activeFilter === 'countersign') return c.status === 'pending-countersign'
+        && (c as any)?.participants?.some((p: any) => p.status === 'active' && p.staffId === user?.id && p.participationTypeIds?.includes('attending'));
       return true;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceCases, activeFilter, physicianFilter, thresholdsLoaded, clientThresholds, amendmentAddendaCaseIds]);
+  }, [sourceCases, activeFilter, physicianFilter, thresholdsLoaded, clientThresholds, amendmentAddendaCaseIds, delegatedCaseIds, user?.id]);
 
   // Stats — always from sourceCases so tile counts match the current context
   const statsCases   = sourceCases;
@@ -633,6 +654,7 @@ const WorklistPage: React.FC = () => {
                 {([
                   { key: 'pool',       label: activeFilter === 'pool'       ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Pool Cases',      count: stats.pool,           color: '#F97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(249,115,22,0.18)',  activeBg: 'rgba(249,115,22,0.18)',  activeBorder: '#F97316',  glow: '0 0 12px rgba(249,115,22,0.4)',  sublabel: undefined },
                   { key: 'delegated',  label: activeFilter === 'delegated'  ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Delegated to Me', count: delegatedToMeCount,   color: '#38bdf8', bg: 'rgba(56,189,248,0.05)',  border: 'rgba(56,189,248,0.18)',  activeBg: 'rgba(56,189,248,0.18)',  activeBorder: '#38bdf8',  glow: '0 0 12px rgba(56,189,248,0.4)',  sublabel: undefined },
+                  { key: 'countersign', label: activeFilter === 'countersign' ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Awaiting My Countersign', count: countersignPendingCount, color: '#a78bfa', bg: 'rgba(167,139,250,0.05)', border: 'rgba(167,139,250,0.18)', activeBg: 'rgba(167,139,250,0.18)', activeBorder: '#a78bfa', glow: '0 0 12px rgba(167,139,250,0.4)', sublabel: undefined },
                   { key: 'urgent',     label: activeFilter === 'urgent'     ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Urgent',          count: stats.urgent,         color: '#EF4444', bg: 'rgba(239,68,68,0.05)',   border: 'rgba(239,68,68,0.18)',   activeBg: 'rgba(239,68,68,0.18)',   activeBorder: '#EF4444',  glow: '0 0 12px rgba(239,68,68,0.4)',   sublabel: undefined },
                   { key: 'inprogress', label: activeFilter === 'inprogress' ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'In Progress',     count: stats.inProgress,     color: '#0891B2', bg: 'rgba(8,145,178,0.05)',   border: 'rgba(8,145,178,0.18)',   activeBg: 'rgba(8,145,178,0.18)',   activeBorder: '#0891B2',  glow: '0 0 12px rgba(8,145,178,0.4)',   sublabel: undefined },
                   { key: 'accessioned',   label: activeFilter === 'accessioned'   ? `← Back to ${contextFilter === 'outreach' ? 'Outreach' : 'LIS Cases'}` : 'Awaiting Grossing', count: stats.accessioned,   color: '#38BDF8', bg: 'rgba(56,189,248,0.05)',  border: 'rgba(56,189,248,0.18)',  activeBg: 'rgba(56,189,248,0.18)',  activeBorder: '#38BDF8',  glow: '0 0 12px rgba(56,189,248,0.4)',  sublabel: undefined },
