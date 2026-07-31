@@ -151,8 +151,17 @@ export interface ICaseService {
   /**
    * Persist partial updates to an existing case.
    * Used by the report editor, delegation flows, and flag management.
+   *
+   * expectedVersion (optional, added for the Case Hydration & Optimistic
+   * Concurrency Control spec): when provided, the implementation must
+   * perform a real compare-and-swap against the case's current
+   * Case.version and throw ConcurrencyConflictError if it doesn't match —
+   * see FirestoreCaseService.ts for the transactional implementation.
+   * Omitted entirely, existing callers keep today's unconditional-write
+   * behavior; this is an additive, backward-compatible parameter, not a
+   * breaking change to every existing call site.
    */
-  updateCase(caseId: string, updates: Partial<Case>): Promise<void>;
+  updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void>;
 
   /**
    * Persist a brand-new case. Caller is responsible for generating the

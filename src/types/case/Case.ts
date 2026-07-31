@@ -461,6 +461,16 @@ export interface Case {
   lastRevisionType?: RevisionType;
   createdAt: string;
   updatedAt: string;
+  /** Real, incrementing optimistic-concurrency version for the whole case
+   *  record — per the Case Hydration & Optimistic Concurrency Control
+   *  spec's §3.1. Distinct from OrchestratorSection.updatedAt (per-section
+   *  version, used for sectional locking within Orchestration narrative
+   *  content specifically) — this is the case-level rollup used for
+   *  lightweight client staleness checks on load and the general
+   *  compare-and-swap in FirestoreCaseService.updateCase. Starts at 1 on
+   *  creation; the service increments it atomically inside a transaction
+   *  on every successful write, never client-side. */
+  version?: number;
   sharedWith?: string[];
   acceptedBy?: string;
   returnedBy?: string;

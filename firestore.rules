@@ -1,0 +1,169 @@
+// firestore.rules
+// ─────────────────────────────────────────────────────────────────────────────
+// Real server-side enforcement for the Case Hydration & Optimistic
+// Concurrency Control spec. Per ACCESS_CONTROL_PLAN.md's own framing:
+// client-side checks (FirestoreCaseService.ts's guards, the UI's own state
+// machine checks) are a UX convenience only — this file is the actual
+// security boundary. A client bug, a compromised session, or a malicious
+// request bypassing the app entirely must still be stopped here.
+//
+// Requires two custom claims set by a Cloud Function on sign-in (see
+// backend-requirements-concurrency-security.md, §2):
+//   - organisationId: string  — the customer tenant boundary for regular
+//     staff users.
+//   - vendorStaff: bool       — true only for ForMedrix's own staff,
+//     federated via Azure AD, per ACCESS_CONTROL_PLAN.md. Gates the two
+//     platform-level admin screens no single customer's admin should reach.
+//   - serviceAccount: string  — set only on the dedicated automated-
+//     integration identities (ref lab feeds, molecular/FISH results,
+//     background AI inference). Identifies WHICH integration, not just
+//     that it's automated — see backend-requirements doc §2 on why each
+//     integration needs its own distinct, independently-revocable identity.
+//
+// NOTE: this file is written as real, deployable source — it has not been
+// deployed to a live project (none exists yet; see backend requirements
+// doc §1). Test against the Firestore emulator before any real deploy.
+// ─────────────────────────────────────────────────────────────────────────────
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isVendorStaff() {
+      return isSignedIn() && request.auth.token.vendorStaff == true;
+    }
+    function isServiceAccount() {
+      return isSignedIn() && request.auth.token.serviceAccount is string;
+    }
+    function callerOrgId() {
+      return request.auth.token.organisationId;
+    }
+    // A case's own tenant boundary. Falls back to null (denies) rather than
+    // matching everything if the field is somehow missing — fail closed,
+    // not open.
+    function caseOrgId(caseData) {
+      return caseData.organisationId;
+    }
+    function sameOrg(caseData) {
+      return isSignedIn() && caseOrgId(caseData) == callerOrgId();
+    }
+    // Vendor staff can read across every tenant for support purposes, but
+    // per ACCESS_CONTROL_PLAN.md this is scoped to the two platform-config
+    // screens elsewhere in this file, NOT blanket case access — a
+    // ForMedrix support engineer reading a customer's clinical case data
+    // is a different, much bigger conversation than "can configure
+    // Governing Bodies," and this file deliberately does not grant it.
+
+    // Fields PathScribe's own client must never write directly — owned by
+    // the LIS Cloud Function sync (CoPilot mode) or, for cases PathScribe
+    // itself originated (Orchestration/O26- cases), set once at creation
+    // and not client-mutable thereafter. Mirrors
+    // FirestoreCaseService.ts's LIS_OWNED_FIELDS client-side guard — this
+    // is that same guard's real enforcement, since the client-side version
+    // is only ever a courtesy that a compromised or buggy client can't be
+    // trusted to honor on its own.
+    function touchesLisOwnedFields(incomingData) {
+      let lisOwnedKeys = ['patient', 'specimens', 'accession', 'grossDescription', 'microscopicDescription', 'hospitalId'];
+      return incomingData.diff(resource.data).affectedKeys().hasAny(lisOwnedKeys);
+    }
+
+    function isFinalized(caseData) {
+      return caseData.status == 'finalized';
+    }
+
+    // The real version compare-and-swap, enforced server-side. A client
+    // must supply the version it read; if it doesn't match what's actually
+    // stored, the write is rejected here regardless of what
+    // FirestoreCaseService.ts's own transaction logic assumed client-side.
+    function versionMatches(incomingData) {
+      return !('version' in incomingData) ||
+             !('version' in resource.data) ||
+             incomingData.version == resource.data.version + 1;
+    }
+
+    // ── /cases/{caseId} ──────────────────────────────────────────────────
+    match /cases/{caseId} {
+      allow read: if sameOrg(resource.data) || isServiceAccount();
+
+      allow create: if isSignedIn() &&
+        request.resource.data.organisationId == callerOrgId();
+
+      // Regular interactive users: full sectional access while
+      // Draft/In Progress or Pending Sign-Out (soft-locked — warn-on-open
+      // is a client-side UX concern, not something this file enforces),
+      // hard-locked once Finalized. Per the design spec's §6: post-
+      // finalization, the narrative is read-only for everyone except the
+      // Amendment flow (a status transition away from 'finalized', not a
+      // direct field edit while still finalized).
+      allow update: if sameOrg(resource.data) &&
+        !touchesLisOwnedFields(request.resource.data) &&
+        versionMatches(request.resource.data) &&
+        (!isFinalized(resource.data) || request.resource.data.status != 'finalized');
+
+      // Service accounts (automated integrations): never write directly to
+      // this document at all, at any case status. Per the design spec's
+      // §5.2/§3.2 — inbound automated data goes to
+      // /ancillaryResultsStaging, never a direct case write, regardless of
+      // whether the case is in-progress or finalized. This is what makes
+      // "automated integrations never compete for interactive UI locks"
+      // an enforced property rather than a hopeful convention: the rule
+      // below simply grants service accounts zero write path to /cases at
+      // all.
+      allow delete: if false; // cases are never hard-deleted, only status-transitioned
+    }
+
+    // ── /ancillaryResultsStaging/{entryId} ───────────────────────────────
+    // Append-only. Automated integrations write here; nothing ever updates
+    // or deletes an entry — incorporating a result into the case narrative
+    // is a separate, explicit action (human review, or the Cloud Function
+    // Addendum trigger for already-finalized cases) that creates new case
+    // data, it never mutates the staging entry itself.
+    match /ancillaryResultsStaging/{entryId} {
+      allow read: if isSignedIn() &&
+        sameOrg(get(/databases/$(database)/documents/cases/$(resource.data.caseId)).data);
+      allow create: if isServiceAccount() &&
+        request.resource.data.serviceAccountId == request.auth.token.serviceAccount;
+      allow update, delete: if false;
+    }
+
+    // ── /auditLog/{entryId} ──────────────────────────────────────────────
+    // Real tamper-evidence per the design spec's §7 and
+    // backend-requirements doc §6: create-only. No caller, including an
+    // admin, can edit or remove an existing entry through this path — the
+    // whole point of an audit trail is that it can't be quietly rewritten
+    // after the fact.
+    match /auditLog/{entryId} {
+      allow read: if isVendorStaff(); // compliance/support review
+      allow create: if isSignedIn() || isServiceAccount();
+      allow update, delete: if false;
+    }
+
+    // ── Platform-level admin config — ForMedrix staff only ──────────────
+    // Per ACCESS_CONTROL_PLAN.md: no single customer's admin, however
+    // senior within their own tenant, should reach these two collections —
+    // they configure platform-wide, cross-customer concerns (which
+    // CAP/RCPath/ICCR/RCPA content syncs into the whole platform, real
+    // terminology-service licensing plumbing). This is the actual
+    // enforcement of that boundary; the React isSuperAdmin prop is UI
+    // convenience only, never trusted as the real gate.
+    match /governingBodies/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isVendorStaff();
+    }
+    match /terminologyServiceConfig/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isVendorStaff();
+    }
+
+    // Default deny — anything not explicitly matched above is denied,
+    // not implicitly allowed. Fail closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

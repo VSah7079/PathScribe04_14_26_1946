@@ -47,7 +47,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
-  updateDoc,
+  runTransaction,
   query,
   where,
   orderBy,
@@ -58,6 +58,7 @@ import type { Case }                                          from '../../types/
 import type { ICaseService, CaseFilterParams } from './ICaseService';
 import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
+import { ConcurrencyConflictError }                            from './ConcurrencyConflictError';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 // TODO: confirm these match your Firestore schema
@@ -197,7 +198,7 @@ export const firestoreCaseService: ICaseService = {
 
   // ── updateCase ─────────────────────────────────────────────────────────────
   // Only updates PathScribe-owned fields. Never overwrites LIS-sourced clinical data.
-  async updateCase(caseId: string, updates: Partial<Case>): Promise<void> {
+  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
     const db = getFirestore();
 
     // Guard: block writes to LIS-owned fields from the client.
@@ -253,14 +254,34 @@ export const firestoreCaseService: ICaseService = {
       blocked.forEach(f => delete (updates as any)[f]);
     }
 
+    const payload = { ...updates, ...dotPathUpdates, updatedAt: new Date().toISOString() };
+
     try {
-      await updateDoc(doc(db, COLLECTION_NAME, caseId), {
-        ...updates,
-        ...dotPathUpdates,
-        updatedAt: new Date().toISOString(),
+      // A real transaction — reads the current version and writes the
+      // update atomically, so nothing can slip in between the compare and
+      // the write the way a separate getDoc()-then-updateDoc() would risk.
+      // This is the actual implementation of the design spec's §5.1
+      // compare-and-swap, not a simulation of it.
+      await runTransaction(db, async (tx) => {
+        const ref = doc(db, COLLECTION_NAME, caseId);
+        const snap = await tx.get(ref);
+        const currentVersion: number = snap.exists() ? (snap.data().version ?? 0) : 0;
+
+        if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+          throw new ConcurrencyConflictError(caseId, expectedVersion, currentVersion);
+        }
+
+        tx.update(ref, { ...payload, version: currentVersion + 1 });
       });
       audit.log({ eventType: 'case.write', caseId, userId: 'system', outcome: 'success' });
     } catch (err) {
+      if (err instanceof ConcurrencyConflictError) {
+        // Real, expected conflict — not a system failure. Logged as its
+        // own distinct event type so a real audit review can tell "someone
+        // else won a race" apart from "the write actually broke."
+        audit.log({ eventType: 'case.write.conflict', caseId, userId: 'system', outcome: 'failure' });
+        throw err;
+      }
       audit.log({ eventType: 'case.write', caseId, userId: 'system', outcome: 'failure' });
       console.error('firestoreCaseService.updateCase', err);
       throw new Error(`firestoreCaseService.updateCase failed for ${caseId}`);

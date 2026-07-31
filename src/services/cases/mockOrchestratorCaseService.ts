@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { ICaseService } from './ICaseService';
+import { ConcurrencyConflictError } from './ConcurrencyConflictError';
 import type { Case } from '../../types/case/Case';
 import { storageGet, storageSet, storageClear } from '../mockStorage';
 import { applyCaseFilters } from './caseFilterUtils';
@@ -1357,7 +1358,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
   {
     id: 'O26-0024', reportingMode: 'orchestrator',
     accession: { accessionNumber: 'O0024', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0024' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     status: 'finalized' as any,
     patient: { id: 'OPAT-024', mrn: '200024', firstName: 'Walter', lastName: 'Higgins', dateOfBirth: isoYearsAgo(69, 2, 14), sex: 'M' },
     specimens: [
@@ -1445,7 +1446,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
   {
     id: 'O26-0025', reportingMode: 'orchestrator',
     accession: { accessionNumber: 'O0025', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0025' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     status: 'finalized' as any,
     patient: { id: 'OPAT-025', mrn: '200025', firstName: 'Diane', lastName: 'Castellano', dateOfBirth: isoYearsAgo(55, 6, 2), sex: 'F' },
     specimens: [
@@ -1536,7 +1537,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
   {
     id: 'O26-0026', reportingMode: 'orchestrator',
     accession: { accessionNumber: 'O0026', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0026' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     status: 'finalized' as any,
     patient: { id: 'OPAT-026', mrn: '200026', firstName: 'Monica', lastName: 'Ferreira', dateOfBirth: isoYearsAgo(48, 10, 27), sex: 'F' },
     specimens: [
@@ -1641,7 +1642,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
   {
     id: 'O26-0027', reportingMode: 'orchestrator',
     accession: { accessionNumber: 'O0027', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0027' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     status: 'intraoperative-complete' as any,
     patient: { id: 'OPAT-027', mrn: '90144', firstName: 'Kenji', lastName: 'Higashi', dateOfBirth: '1965-05-14', sex: 'M' },
     specimens: [
@@ -1665,7 +1666,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
   {
     id: 'O26-0028', reportingMode: 'orchestrator',
     accession: { accessionNumber: 'O0028', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0028' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     status: 'pathologist-review' as any,
     patient: { id: 'OPAT-028', mrn: '200028', firstName: 'Renata', lastName: 'Alves', dateOfBirth: isoYearsAgo(58, 3, 12), sex: 'F' },
     specimens: [
@@ -1786,11 +1787,15 @@ export const mockOrchestratorCaseService: ICaseService = {
     );
   },
 
-  async updateCase(caseId: string, updates: Partial<Case>): Promise<void> {
+  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
     await delay();
     const idx = CASES.findIndex(c => c.id === caseId);
     if (idx !== -1) {
-      CASES[idx] = { ...CASES[idx], ...updates, updatedAt: new Date().toISOString() };
+      const currentVersion = (CASES[idx] as any).version ?? 0;
+      if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+        throw new ConcurrencyConflictError(caseId, expectedVersion, currentVersion);
+      }
+      CASES[idx] = { ...CASES[idx], ...updates, updatedAt: new Date().toISOString(), version: currentVersion + 1 } as any;
       storageSet(STORAGE_KEY, CASES);
     }
   },

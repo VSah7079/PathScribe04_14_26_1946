@@ -7,6 +7,7 @@
 // templates in templateService.ts's editorStore -- not CAP/RCPath-derived.
 
 import { ICaseService } from "./ICaseService";
+import { ConcurrencyConflictError } from "./ConcurrencyConflictError";
 import { callAi } from '../aiIntegration/aiProviderService';
 import { Case, CaseParticipant, ProtocolChange } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
@@ -41,7 +42,7 @@ const MOCK_CASES: Case[] = [
     id: 'S26-4401-BX-001',
     identifiers: ['SLD-BC2026001A', 'SLD-BC2026001B'],
     accession: { accessionNumber: '4401', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4401-BX-001' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-001', mrn: '100001',
       firstName: 'Grace', lastName: 'Thompson',
@@ -173,7 +174,7 @@ const MOCK_CASES: Case[] = [
     id: 'S26-4402-COLON-RES',
     identifiers: ['SLD-CR2026002A'],
     accession: { accessionNumber: '4402', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4402-COLON-RES' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-002', mrn: '100002',
       firstName: 'Robert', lastName: 'Jackson',
@@ -287,7 +288,7 @@ const MOCK_CASES: Case[] = [
     id: 'S26-4403',
     identifiers: ['SLD-PR2026003A', 'SLD-PR2026003B', 'SLD-PR2026003C'],
     accession: { accessionNumber: '4403', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4403' },
-    originHospitalId: 'HOSP-002', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-002', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-003', mrn: '100003',
       firstName: 'Helen', lastName: 'Williams',
@@ -376,7 +377,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4404',
     accession: { accessionNumber: '4404', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4404' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-004', mrn: '100004',
       firstName: 'David', lastName: 'Martinez',
@@ -454,7 +455,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4405',
     accession: { accessionNumber: '4405', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4405' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-005', mrn: '100005',
       firstName: 'Susan', lastName: 'Taylor',
@@ -567,7 +568,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4407',
     accession: { accessionNumber: '4407', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4407' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-007', mrn: '100007',
       firstName: 'Michael', lastName: 'Chen',
@@ -652,7 +653,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4408',
     accession: { accessionNumber: '4408', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4408' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-008', mrn: '100008',
       firstName: 'Carol', lastName: 'Davis',
@@ -758,7 +759,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4409',
     accession: { accessionNumber: '4409', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4409' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-009', mrn: '100009',
       firstName: 'Beatrice', lastName: 'Holloway',
@@ -821,7 +822,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4410',
     accession: { accessionNumber: '4410', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4410' },
-    originHospitalId: 'HOSP-002', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-002', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-010', mrn: '100010',
       firstName: 'Baby', lastName: 'Nguyen',
@@ -863,7 +864,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4411',
     accession: { accessionNumber: '4411', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4411' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-011', mrn: '100011',
       firstName: 'Margaret', lastName: 'Foster',
@@ -917,7 +918,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4412',
     accession: { accessionNumber: '4412', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4412' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-012', mrn: '100012',
       firstName: 'Harold', lastName: 'Bennett',
@@ -976,7 +977,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4415-BX-001',
     accession: { accessionNumber: '4415', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4415-BX-001' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: { id: 'PAT-015', mrn: '100015', firstName: 'Robert', lastName: 'Hawkins', dateOfBirth: '1958-11-22T07:00:00.000Z', sex: 'M', phone: '555-301-7711', email: 'rhawkins@example.org', address: '88 Cedar Rd, Phoenix, AZ 85004' },
     specimens: [{ id: 'S26-4415-SP-1', label: 'A', description: 'Sigmoid colon biopsy — three fragments', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] }],
     order: { priority: 'Routine', requestingProvider: 'Dr. Amanda Chen', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: 'Change in bowel habits. Colonoscopy: 15mm polyp sigmoid colon.', receivedDate: isoDaysAgo(0), assignedTo: null },
@@ -993,7 +994,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4416-BX-001',
     accession: { accessionNumber: '4416', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4416-BX-001' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: { id: 'PAT-016', mrn: '100016', firstName: 'Linda', lastName: 'Okafor', dateOfBirth: '1971-04-09T07:00:00.000Z', sex: 'F', phone: '555-302-8822', email: 'lokafor@example.org', address: '22 Maple St, Phoenix, AZ 85006' },
     specimens: [{ id: 'S26-4416-SP-1', label: 'A', description: 'Skin punch biopsy — right forearm', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] }],
     order: { priority: 'Routine', requestingProvider: 'Dr. Susan Park', clientId: 'c2', clientName: 'Riverside Medical Center', clinicalIndication: 'Pigmented lesion right forearm, irregular border. Rule out melanoma.', receivedDate: isoDaysAgo(1), assignedTo: null },
@@ -1010,7 +1011,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4417-BX-001',
     accession: { accessionNumber: '4417', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4417-BX-001' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: { id: 'PAT-017', mrn: '100017', firstName: 'Marcus', lastName: 'Delgado', dateOfBirth: '1965-07-30T07:00:00.000Z', sex: 'M', phone: '555-303-9933', email: 'mdelgado@example.org', address: '54 Oak Ave, Phoenix, AZ 85008' },
     specimens: [{ id: 'S26-4417-SP-1', label: 'A', description: 'Colon resection — right hemicolectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] }],
     order: { priority: 'STAT', requestingProvider: 'Dr. Kevin Ng', clientId: 'c1', clientName: 'Metro General Hospital', clinicalIndication: 'Ascending colon adenocarcinoma diagnosed on biopsy. CT: T3N0. STAT — OR case.', receivedDate: isoDaysAgo(0), assignedTo: null },
@@ -1216,11 +1217,17 @@ const MOCK_CASES: Case[] = [
         createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
       },
     ],
-    status: 'pending-countersign' as CaseStatus,
+    status: 'pending-countersign',
     requiresCountersign: true,
-    caseTeam: [
-      { userId: 'PATH-UK-001', role: 'Attending', name: 'Paul Carter' },
-      { userId: 'PATH-UK-002', role: 'Resident',  name: 'Oliver Pemberton' },
+    // Replaces the old caseTeam field, which didn't exist on the real
+    // Case type at all and had zero consuming logic anywhere — pure
+    // decorative seed data (confirmed while building the teaching-case
+    // reconciliation feature). This is the real mechanism: participants[]
+    // + participationTypeIds, which CaseTeamModal.tsx and
+    // RightSynopticPanel.tsx's requiresCountersign check actually read.
+    participants: [
+      { staffId: 'PATH-UK-001', staffName: 'Paul Carter', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(1), status: 'active' },
+      { staffId: 'PATH-UK-002', staffName: 'Oliver Pemberton', source: 'system', participationTypeIds: ['resident'], addedBy: 'PATH-UK-001', addedAt: isoDaysAgo(1), status: 'active' },
     ],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [
@@ -1377,8 +1384,8 @@ const MOCK_CASES: Case[] = [
       { tagClass: 'ADMINISTRATIVE', id: 'urology_mdt', name: 'Urology MDT — Fri 09:00', color: '#3b82f6', level: 'Case', status: 'Active', severity: 2 },
     ],
     requiresCountersign: true,
-    caseTeam: [
-      { userId: 'PATH-UK-001', role: 'Attending', name: 'Paul Carter' },
+    participants: [
+      { staffId: 'PATH-UK-001', staffName: 'Paul Carter', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(1), status: 'active' },
     ],
     specimenFlags: [],
     reportingMode: 'assist',
@@ -1662,7 +1669,7 @@ const MOCK_CASES: Case[] = [
       },
     ],
     status: 'in-progress' as CaseStatus,
-    caseTeam: [{ userId: 'PATH-001', role: 'Attending', name: 'Dr. Sarah Johnson' }],
+    participants: [{ staffId: 'PATH-001', staffName: 'Pete Nimmo', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(1), status: 'active' }],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [
       { tagClass: 'ADMINISTRATIVE', id: 'braf_positive',  name: 'BRAF V600E Positive — Targeted Therapy Eligible', color: '#0891b2',  level: 'Case', status: 'Active', severity: 3 },
@@ -1712,7 +1719,7 @@ const MOCK_CASES: Case[] = [
       status: 'draft', createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     }],
     status: 'in-progress' as CaseStatus,
-    caseTeam: [{ userId: 'PATH-US-001', role: 'Attending', name: 'Amber Fehrs-Battey' }],
+    participants: [{ staffId: 'PATH-US-001', staffName: 'Amber Fehrs-Battey', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(1), status: 'active' }],
     createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
     caseFlags: [], specimenFlags: [], reportingMode: 'assist', coding: {},
   } as any,
@@ -1973,7 +1980,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4480-THYROID',
     accession: { accessionNumber: '4480', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4480-THYROID' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-RB-01', mrn: '200101',
       firstName: 'Isabelle', lastName: 'Nakamura',
@@ -2053,7 +2060,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4481-ENDO',
     accession: { accessionNumber: '4481', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4481-ENDO' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-RB-02', mrn: '200102',
       firstName: 'Constance', lastName: 'Adeyemi',
@@ -2120,7 +2127,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4482-RENAL',
     accession: { accessionNumber: '4482', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4482-RENAL' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-RB-03', mrn: '200103',
       firstName: 'Victor', lastName: 'Halloran',
@@ -2197,7 +2204,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4483-MELANOMA',
     accession: { accessionNumber: '4483', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4483-MELANOMA' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-RB-04', mrn: '200104',
       firstName: 'Andrea', lastName: 'Morelli',
@@ -2287,7 +2294,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'DEMO-RB-01',
     accession: { accessionNumber: 'DEMO-01', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-DEMO-01' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-DEMO-RB-01', mrn: 'DEMO100001',
       firstName: 'Eleanor', lastName: 'Bishop',
@@ -2341,7 +2348,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'DEMO-RB-02',
     accession: { accessionNumber: 'DEMO-02', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-DEMO-02' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-DEMO-RB-02', mrn: 'DEMO100002',
       firstName: 'Celia', lastName: 'Moreau',
@@ -2401,7 +2408,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'DEMO-RB-03',
     accession: { accessionNumber: 'DEMO-03', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-DEMO-03' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-DEMO-RB-03', mrn: 'DEMO100003',
       firstName: 'Martin', lastName: 'Hale',
@@ -2505,7 +2512,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4490',
     accession: { accessionNumber: '4490', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4490' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-090', mrn: '100090',
       firstName: 'Deborah', lastName: 'Whitfield',
@@ -2563,7 +2570,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4491',
     accession: { accessionNumber: '4491', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4491' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-091', mrn: '100091',
       firstName: 'Thomas', lastName: 'Reilly',
@@ -2619,7 +2626,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4492',
     accession: { accessionNumber: '4492', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4492' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-092', mrn: '100092',
       firstName: 'Carol', lastName: 'Simmons',
@@ -2682,7 +2689,7 @@ const MOCK_CASES: Case[] = [
   {
     id: 'S26-4493',
     accession: { accessionNumber: '4493', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4493' },
-    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-ACME',
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
     patient: {
       id: 'PAT-093', mrn: '100093',
       firstName: 'Angela', lastName: 'Weiss',
@@ -3370,6 +3377,18 @@ export interface AiFeedbackEntry {
   userValue: string | string[];
   action: 'confirmed' | 'overridden' | 'missed';
   source: string;
+  /** Who made this call — the one real gap in this otherwise-working
+   *  event log. Everything else here (immediate capture at the moment
+   *  of interaction, lightweight metadata-only payload, no full text
+   *  diff) was already exactly right for a personal "AI Contribution"
+   *  telemetry signal; it just had nowhere to attribute the event to a
+   *  specific pathologist. Deliberately NOT the same record as
+   *  NarrativeEditSignal (services/narrativeSignals) — that one is
+   *  intentionally de-identified for aggregate model-evaluation/partner
+   *  sharing, and stays that way; this is the separate, user-attributed
+   *  signal for a personal dashboard, per that design split. */
+  userId?: string;
+  userName?: string;
 }
 
 const FEEDBACK_KEY = 'pathscribe_ai_feedback';
@@ -3392,6 +3411,9 @@ export function recordAiFeedback(entry: AiFeedbackEntry): void {
   }
 }
 
+/** Read side for the log recordAiFeedback writes — this already existed
+ *  (confirmed before assuming otherwise); it was the userId attribution
+ *  and the call sites that were missing, not this function. */
 export function getAiFeedbackLog(): AiFeedbackEntry[] {
   try {
     const raw = localStorage.getItem(FEEDBACK_KEY);
@@ -4457,11 +4479,15 @@ export const mockCaseService: ICaseService = {
     });
   },
 
-  async updateCase(caseId: string, updates: Partial<Case>): Promise<void> {
+  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
     await delay();
     const index = CASES.findIndex(c => c.id === caseId);
     if (index !== -1) {
-      CASES[index] = { ...CASES[index], ...updates, updatedAt: new Date().toISOString() };
+      const currentVersion = (CASES[index] as any).version ?? 0;
+      if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+        throw new ConcurrencyConflictError(caseId, expectedVersion, currentVersion);
+      }
+      CASES[index] = { ...CASES[index], ...updates, updatedAt: new Date().toISOString(), version: currentVersion + 1 } as any;
       storageSet(STORAGE_KEY, CASES);
     }
   },

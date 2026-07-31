@@ -35,6 +35,7 @@ import type { Case }                                          from '@/types/case
 import type { ICaseService, CaseFilterParams } from './ICaseService';
 import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
+import { ConcurrencyConflictError }                            from './ConcurrencyConflictError';
 import { mockCaseService }             from './mockCaseService';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { getSessionUser, canAccessCase, filterAccessibleCases } from '../auth/caseAccessControl';
@@ -215,16 +216,26 @@ class CaseRouter implements ICaseService {
   // trail (DSPT/UK GDPR/HIPAA-style requirements exist specifically to
   // attribute actions to a real, identifiable individual). Now resolves
   // the actual session user the same way getCase/getAll already do.
-  async updateCase(caseId: string, updates: Partial<Case>): Promise<void> {
+  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
     const [service, audit] = isOrchCase(caseId)
       ? [this.orchService, this.orchAudit]
       : [this.lisService,  this.lisAudit];
     const userId = getSessionUser()?.id ?? 'unknown';
 
     try {
-      await service.updateCase(caseId, updates);
+      await service.updateCase(caseId, updates, expectedVersion);
       audit.log({ eventType: 'case.write', caseId, userId, outcome: 'success' });
-    } catch {
+    } catch (err) {
+      if (err instanceof ConcurrencyConflictError) {
+        // Real, expected conflict — preserved and rethrown as-is so the
+        // caller can catch the specific type and show the reconciliation
+        // prompt, not the generic failure message below. Losing this
+        // distinction here would have made every service-level conflict
+        // fix upstream pointless — the caller would never be able to tell
+        // a conflict apart from any other failure.
+        audit.log({ eventType: 'case.write.conflict', caseId, userId, outcome: 'failure' });
+        throw err;
+      }
       audit.log({ eventType: 'case.write', caseId, userId, outcome: 'failure' });
       throw new Error(`CaseRouter.updateCase failed for ${caseId}`);
     }

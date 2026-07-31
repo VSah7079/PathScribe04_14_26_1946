@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude firestore.rules.test.ts",
+    "test:rules": "vitest run firestore.rules.test.ts",
     "test:watch": "vitest watch"
   },
   "dependencies": {
@@ -50,7 +51,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@types/node": "^25.3.2",
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "@types/node": "^25.9.5",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@types/suncalc": "^1.9.2",
@@ -63,6 +65,7 @@
     "firebase-admin": "^10.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
-    "vite": "^8.0.11"
+    "vite": "^8.0.11",
+    "vitest": "^4.1.10"
   }
 }
