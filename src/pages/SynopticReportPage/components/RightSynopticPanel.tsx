@@ -11,7 +11,7 @@ import type {
   FieldOption,
 } from '@/components/Config/Protocols/SynopticEditor';
 import type { TemplateDetail } from '@/services/templates/templateService';
-import { listTemplates, getTemplate } from '@/services/templates/templateService';
+import { getTemplateCached, listTemplatesCached } from '@/services/templates/templateService';
 import { generateAiSuggestionsForReport, saveReportSuggestions, recordAiFeedback } from '@/services/cases/mockCaseService';
 import { aiBehaviorService } from '@/services';
 import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
@@ -407,9 +407,6 @@ interface RightSynopticPanelProps {
   onAiSuggestionsUpdate?: (suggestions: Record<string, AiSuggestion>) => void;
 }
 
-// Module-level template cache — survives re-renders, cleared only on page reload
-const TEMPLATE_CACHE = new Map<string, any>();
-
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
   ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate }, ref) => {
@@ -736,7 +733,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     (async () => {
       if (!caseData) return;
       try {
-        const approved = await listTemplates('approved');
+        const approved = await listTemplatesCached('approved');
         if (cancelled) return;
         setAvailableTemplates(approved.map((p: any) => ({ id: p.id, name: p.name, source: p.source, version: p.version, category: p.category })));
       } catch { /* ignore */ }
@@ -767,11 +764,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
         }
 
         if (templateId) {
-          let detail = TEMPLATE_CACHE.get(templateId);
-          if (!detail) {
-            detail = await getTemplate(templateId);
-            TEMPLATE_CACHE.set(templateId, detail);
-          }
+          const detail = await getTemplateCached(templateId);
           if (cancelled) return;
 
           const suggestions: Record<string, AiSuggestion> = (activeInst as any)?.aiSuggestions ?? {};
@@ -968,7 +961,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   if (!caseData) return <div style={{ padding: 24, color: '#64748b' }}>No case loaded.</div>;
   if (!templateDetail) return (
     <TemplatePicker templates={availableTemplates} onSelect={async id => {
-      const detail = await getTemplate(id);
+      const detail = await getTemplateCached(id);
       onCaseUpdate?.({ ...caseData, synopticTemplateId: id, synopticAnswers: {} });
       setTemplateDetail(detail);
       setAnswers({});

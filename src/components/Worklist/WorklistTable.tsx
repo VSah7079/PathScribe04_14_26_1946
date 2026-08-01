@@ -11,6 +11,7 @@ import type { Jurisdiction } from '@/types/systemConfig';
 import '../../pathscribe.css';
 import { Case } from "../../types/case/Case";
 import { Flag } from '../../services/flags/IFlagService';
+import { prefetchTemplateData } from '@/services/templates/templateService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -866,6 +867,20 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       if (idx !== -1) {
         onRowSelect?.(idx, id);
       }
+      // Real load-time fix: kick off the template fetch NOW, using the
+      // template id already sitting in the in-memory case object, rather
+      // than waiting for the report page to mount and discover it needs
+      // one. By the time SynopticReportPage/RightSynopticPanel actually
+      // ask for it, this request is already in flight (or resolved) —
+      // see templateService.ts's prefetchTemplateData for the real
+      // promise-memoized cache that makes this share one request instead
+      // of firing two. Best-effort only: doesn't try to resolve which
+      // specific report instance will end up active (that's only known
+      // once the report page itself decides), just the case's first
+      // report/synoptic template, matching RightSynopticPanel's own
+      // fallback order for that same ambiguity.
+      const templateId = (c as any)?.synopticReports?.[0]?.templateId ?? (c as any)?.synopticTemplateId;
+      prefetchTemplateData(templateId);
       openCase(id);
     },
     [cases, openCase, onRowSelect, onPoolCaseClick]

@@ -9,8 +9,9 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
+import { mockGoverningBodyService } from '@/services/governingBodies/mockGoverningBodyService';
 
 export interface GoverningBody {
   id:          string;
@@ -240,12 +241,39 @@ const GoverningBodiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperA
   const [showAdd,    setShowAdd]    = useState(false);
   const [editTarget, setEditTarget] = useState<GoverningBody | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saveError,  setSaveError]  = useState<string | null>(null);
+
+  // Real load — DEFAULT_BODIES above is only the pre-load fallback so
+  // the list isn't empty for one render, matching the pattern used
+  // elsewhere in this file's own folder for async-loaded config
+  // sections. Was previously the ONLY source of truth (a hardcoded
+  // constant, never actually loaded from anywhere).
+  useEffect(() => {
+    mockGoverningBodyService.getAll().then(setBodies).catch(() => {});
+  }, []);
 
   const updateBody = (id: string, patch: Partial<GoverningBody>) => { setBodies(p => p.map(b => b.id === id ? { ...b, ...patch } : b)); setHasChanges(true); };
   const removeBody = (id: string)                                  => { setBodies(p => p.filter(b => b.id !== id));                       setHasChanges(true); };
   const handleAdd  = (body: GoverningBody)                         => { setBodies(p => [...p, body]);                                      setHasChanges(true); };
   const handleEdit = (body: GoverningBody)                         => { setBodies(p => p.map(b => b.id === body.id ? body : b));           setHasChanges(true); };
-  const handleSave = ()                                            => { /* TODO: persist */ setHasChanges(false); };
+  // Real fix, found via a direct audit: this used to be
+  // `/* TODO: persist */ setHasChanges(false);` — every toggle, edit,
+  // add, and remove only ever touched in-memory React state, and this
+  // handler cleared the "unsaved changes" indicator as if a save had
+  // genuinely happened. A page refresh silently discarded everything.
+  // Now actually calls the real service, and — importantly — only
+  // clears hasChanges and the error state on a CONFIRMED successful
+  // save, surfacing a real failure instead of hiding it the same way
+  // the old version hid the fact that nothing was ever saved at all.
+  const handleSave = async () => {
+    setSaveError(null);
+    try {
+      await mockGoverningBodyService.saveAll(bodies);
+      setHasChanges(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Save failed.');
+    }
+  };
 
   const standardBodies = bodies.filter(b => !b.isCustom);
   const customBodies   = bodies.filter(b =>  b.isCustom);
@@ -264,6 +292,7 @@ const GoverningBodiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperA
         </div>
         <div className="ps-gov-header-actions">
           {hasChanges && <span className="ps-gov-unsaved">● Unsaved changes</span>}
+          {saveError && <span style={{ color: '#f87171', fontSize: 12 }}>{saveError}</span>}
           {isSuperAdmin && hasChanges && <button className="ps-btn-primary" onClick={handleSave}>Save Changes</button>}
           {isSuperAdmin && <button className="ps-section-add-btn" onClick={() => setShowAdd(true)}>+ Add Custom Body</button>}
         </div>

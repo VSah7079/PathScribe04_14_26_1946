@@ -592,27 +592,6 @@ const TATConfigSection: React.FC = () => {
 
   const persist = (next: TATEntry[]) => { setEntries(next); saveEntries(next); };
 
-  // handleEntryDelete/handleEntryToggle are complete, working handlers
-  // (real persist + audit log calls) — just not wired to any Delete/Toggle
-  // button in the JSX below yet. Matches this file's own "stub only, full
-  // build pending" status. Flagged, not deleted.
-  const _handleEntryDelete = (id: string) => {
-    const target = entries.find(e => e.id === id);
-    persist(entries.filter(e => e.id !== id));
-    if (target) log('tat_entry_deleted', { id, type: target.type });
-  };
-  void _handleEntryDelete;
-
-  const _handleEntryToggle = (id: string) => {
-    const target = entries.find(e => e.id === id);
-    const next   = entries.map(e => e.id === id ? { ...e, active: !e.active } : e);
-    persist(next);
-    if (target) log('tat_entry_toggled', { id, type: target.type, active: !target.active });
-  };
-  void _handleEntryToggle;
-  // underscore prefix alone doesn't suppress noUnusedLocals for local
-  // const function declarations — void statements needed too.
-
   const handleSave = (saved: TATEntry) => {
     const idx   = entries.findIndex(e => e.id === saved.id);
     if (idx >= 0) {
@@ -627,13 +606,24 @@ const TATConfigSection: React.FC = () => {
     setModal(null);
   };
 
+  // Real fix, found via a direct audit: these are the actual, wired
+  // functions the Delete/Toggle buttons below call — but a separate,
+  // never-wired duplicate pair (_handleEntryDelete/_handleEntryToggle,
+  // now removed) had audit log() calls these never did. Neither version
+  // was strictly complete on its own: this pair had the real
+  // system-default protection below, the duplicates had the logging.
+  // Merged here rather than picking one side and losing the other.
   const toggleActive = (id: string) => {
+    const target = entries.find(e => e.id === id);
     persist(entries.map(e => e.id === id ? { ...e, active: !e.active } : e));
+    if (target) log('tat_entry_toggled', { id, type: target.type, active: !target.active });
   };
 
   const deleteEntry = (id: string) => {
     if (id.startsWith('sys-')) return; // system defaults cannot be deleted
+    const target = entries.find(e => e.id === id);
     persist(entries.filter(e => e.id !== id));
+    if (target) log('tat_entry_deleted', { id, type: target.type });
   };
 
   const displayed = entries

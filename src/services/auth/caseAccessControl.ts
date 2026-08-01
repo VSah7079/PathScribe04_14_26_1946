@@ -74,6 +74,8 @@ export interface SessionUser {
   role?: 'pathologist' | 'admin' | 'pathologist-admin' | 'superadmin';
   organisationId?: string;
   canAccessCrossTenantQa?: boolean;
+  firstName?: string;
+  lastName?: string;
 }
 
 /**
@@ -90,7 +92,7 @@ export function getSessionUser(): SessionUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.id) return null;
-    return { id: parsed.id, role: parsed.role, organisationId: parsed.organisationId, canAccessCrossTenantQa: parsed.canAccessCrossTenantQa };
+    return { id: parsed.id, role: parsed.role, organisationId: parsed.organisationId, canAccessCrossTenantQa: parsed.canAccessCrossTenantQa, firstName: parsed.firstName, lastName: parsed.lastName };
   } catch {
     // Fail safe, not fail open — a corrupted/unreadable session resolves
     // to "no session," which denies access, not "assume trusted."
@@ -104,29 +106,183 @@ export function getSessionUser(): SessionUser | null {
  * `caseRecord` only needs enough shape to resolve organisation + who it's
  * assigned to — kept minimal deliberately so this doesn't need to import
  * the full Case type and create a circular dependency with case services.
+ *
+ * DELETED (this pass): canAccessCase() used to live here as a standalone
+ * function. Found genuinely orphaned during a direct audit — CaseRouter.ts
+ * was refactored to call canAccessCaseWithPools()/resolveCaseAccess()
+ * instead (dimension-3 pool enforcement), and nothing else in the app
+ * still called the original. Rather than leave superseded dead code
+ * behind (the exact class of risk a direct review flagged), it's removed.
+ * Equivalent call for anything that only needs dimension 1: 
+ * resolveCaseAccess(session, caseRecord, null).granted
  */
-export function canAccessCase(
+
+// ─────────────────────────────────────────────────────────────────────────
+// resolveCaseAccess() — the real, unified access decision.
+//
+// Adapted from a real ABAC/ReBAC dimensional model (four dimensions:
+// tenant boundary, facility/lab scope, pool/subspecialty, case
+// relationship), scaled to what's real and buildable in this codebase
+// tonight rather than a full policy-engine rebuild:
+//
+//   Dimension 1 (Tenant Boundary)     — real, enforced: canAccessCase()
+//     above, unchanged, still the tenant wall.
+//   Dimension 2 (Facility/Lab Scope)  — deliberately pass-through today.
+//     This file's own existing design principle #3 already covers this:
+//     Case has no real Site-level identifier, so "enterprise-wide within
+//     your own organisation" IS the correct current behavior, not a gap.
+//     Kept explicit here rather than silently skipped, so a future
+//     Case.siteId addition has an obvious place to plug in.
+//   Dimension 3 (Pool/Subspecialty)   — NEW, real enforcement, added
+//     here. Found via direct investigation: Subspecialty.userIds
+//     ("Members / assigned physicians") was a real, populated field
+//     never once consulted by anything gating visibility. Fixed here,
+//     but deliberately safe to turn on: gated behind
+//     Subspecialty.isWorkgroupEnabled, which is false on every currently
+//     seeded subspecialty — so this has zero effect on any existing
+//     case's visibility today, and only restricts a pool once an admin
+//     explicitly opts it in via Config -> System -> Subspecialties. Same
+//     deny-by-default-but-backward-compatible shape as everything else
+//     in this file.
+//   Dimension 4 (Case Relationship)   — NOT read-access; this dimension
+//     governs WRITE guards (finalize/sign-out), not visibility — a
+//     pathologist who isn't yet a case participant must still be able to
+//     see and claim a pool case, that's the entire point of a pool. See
+//     canFinalizeCase() below instead.
+//
+// IMPORTANT CAVEAT — same as canAccessCase() above: this is a client-side
+// mock. Real enforcement of dimension 3 needs the equivalent check added
+// to firestore.rules, not just here.
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface CaseAccessSubspecialty {
+  id: string;
+  userIds: string[];
+  isWorkgroup: boolean;
+  isWorkgroupEnabled: boolean;
+}
+
+export type CaseAccessDecision =
+  | { granted: true; dimension: 'superadmin' | 'tenant' | 'pool-open' | 'pool-member' | 'assigned-participant' | 'admin-override'; reason: string }
+  | { granted: false; dimension: 'no-session' | 'no-case' | 'no-org' | 'tenant-mismatch' | 'pool-restricted' | 'not-a-participant'; reason: string };
+
+/**
+ * The real, unified read-access decision — evaluates dimensions 1 and 3
+ * together and returns WHY, not just whether. `subspecialty` should be
+ * the resolved Subspecialty record for `caseRecord.subspecialtyId` if the
+ * case has one (the caller resolves this — kept out of this function to
+ * avoid a new cross-service dependency, matching this file's existing
+ * pattern).
+ */
+export function resolveCaseAccess(
   session: SessionUser | null,
-  caseRecord: { originHospitalId?: string | null } | null | undefined
-): boolean {
-  if (!caseRecord) return false;       // nothing to check — treat as inaccessible, not "allowed by omission"
-  if (!session) return false;          // no session — deny by default
+  caseRecord: { originHospitalId?: string | null; subspecialtyId?: string | null; status?: string } | null | undefined,
+  subspecialty?: CaseAccessSubspecialty | null
+): CaseAccessDecision {
+  if (!caseRecord) return { granted: false, dimension: 'no-case', reason: 'No case record to evaluate.' };
+  if (!session) return { granted: false, dimension: 'no-session', reason: 'No active session.' };
 
-  if (session.role === 'superadmin') return true; // platform-admin bypass — see module doc comment
-
-  if (!session.organisationId) return false; // no organisation resolved on this session — deny by default, never fall back to "show everything"
-
-  const caseOrg = getOrganisationByHospitalId(caseRecord.originHospitalId ?? '');
-  if (!caseOrg) {
-    // originHospitalId didn't resolve to any known Organisation — either
-    // missing data or a hospital ID outside the legacy map (see that
-    // function's own comment for the four IDs it currently knows).
-    // Deny by default rather than guess; this is a data-integrity signal
-    // worth surfacing, not silently working around.
-    return false;
+  if (session.role === 'superadmin') {
+    return { granted: true, dimension: 'superadmin', reason: 'Platform-admin bypass.' };
   }
 
-  return caseOrg.id === session.organisationId;
+  if (!session.organisationId) {
+    return { granted: false, dimension: 'no-org', reason: 'No organisation resolved on this session.' };
+  }
+
+  const caseOrg = getOrganisationByHospitalId(caseRecord.originHospitalId ?? '');
+  if (!caseOrg || caseOrg.id !== session.organisationId) {
+    return { granted: false, dimension: 'tenant-mismatch', reason: 'Case does not belong to this session\'s organisation.' };
+  }
+
+  // Dimension 3 — only actually restricts anything when the specific
+  // subspecialty has been explicitly opted into workgroup enforcement.
+  if (subspecialty?.isWorkgroup && subspecialty.isWorkgroupEnabled) {
+    const isMember = subspecialty.userIds.includes(session.id);
+    if (!isMember) {
+      return { granted: false, dimension: 'pool-restricted', reason: `Not a member of the ${subspecialty.id} pool, which has membership enforcement enabled.` };
+    }
+    return { granted: true, dimension: 'pool-member', reason: `Member of the ${subspecialty.id} pool.` };
+  }
+
+  return { granted: true, dimension: 'pool-open', reason: 'Tenant boundary satisfied; no pool-membership restriction in effect.' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// canFinalizeCase() — Dimension 4 (Case Relationship), as a real WRITE
+// guard, not a visibility filter. Found via direct investigation:
+// CaseParticipant.participationTypeIds (real, populated — 'primary',
+// 'attending', 'consultant', 'resident', 'second_opinion') was never once
+// consulted by anything gating who can actually sign a case out. Today,
+// any user who can VIEW a case (passes resolveCaseAccess above) can also
+// finalize/sign it out, with no check that they have any real
+// relationship to that specific case at all — a genuine gap for exactly
+// the write-guard pattern real EHR/LIS access models require.
+//
+// Deliberately narrow: only gates the FINALIZE/SIGN-OUT transition, not
+// every case write (draft edits, comments, etc. legitimately involve
+// people who aren't yet a formal participant — a resident drafting
+// before an attending is even assigned, for instance).
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface CaseFinalizeParticipant {
+  staffId: string;
+  status: 'active' | 'removed';
+  participationTypeIds: string[];
+}
+
+const FINALIZE_ELIGIBLE_PARTICIPATION_TYPES = ['primary', 'attending'];
+
+export function canFinalizeCase(
+  session: SessionUser | null,
+  participants: CaseFinalizeParticipant[] | null | undefined
+): CaseAccessDecision {
+  if (!session) return { granted: false, dimension: 'no-session', reason: 'No active session.' };
+  if (session.role === 'superadmin' || session.role === 'admin' || session.role === 'pathologist-admin') {
+    return { granted: true, dimension: 'admin-override', reason: 'Administrative role — supervisor override.' };
+  }
+
+  const activeParticipants = participants ?? [];
+  const isEligibleParticipant = activeParticipants.some(p =>
+    p.status === 'active' &&
+    p.staffId === session.id &&
+    p.participationTypeIds.some(t => FINALIZE_ELIGIBLE_PARTICIPATION_TYPES.includes(t))
+  );
+
+  if (!isEligibleParticipant) {
+    return {
+      granted: false,
+      dimension: 'not-a-participant',
+      reason: 'Only the assigned Primary/Attending, or an administrative supervisor, may finalize this case.',
+    };
+  }
+  return { granted: true, dimension: 'assigned-participant', reason: 'Assigned Primary/Attending on this case.' };
+}
+
+/**
+ * The real denormalization this dimension's server-side enforcement
+ * depends on. Firestore security rules have no way to ask "does any
+ * element of this array of objects satisfy this predicate" —
+ * CaseParticipant.staffId/participationTypeIds live inside an array of
+ * objects, and rules' array operators (in, hasAny, hasAll) only work
+ * against flat value lists. This derives that flat list — the exact
+ * same eligibility logic canFinalizeCase() above already uses for the
+ * client-side check, reused rather than re-implemented, so the two can
+ * never independently drift apart.
+ *
+ * Called automatically by CaseRouter.ts whenever a write includes
+ * participants, not something every caller has to remember to invoke
+ * — a "disciplined updates" requirement is exactly the kind of manual
+ * invariant that's caused real bugs elsewhere in this app tonight
+ * (the O26- prefix duplicated six times independently is the same
+ * class of risk this sidesteps by making it structural instead).
+ */
+export function deriveEligibleFinalizerIds(
+  participants: CaseFinalizeParticipant[] | null | undefined
+): string[] {
+  return (participants ?? [])
+    .filter(p => p.status === 'active' && p.participationTypeIds.some(t => FINALIZE_ELIGIBLE_PARTICIPATION_TYPES.includes(t)))
+    .map(p => p.staffId);
 }
 
 /**
@@ -144,12 +300,34 @@ export function canViewCrossTenantQaData(session: SessionUser | null): boolean {
   return session.role === 'superadmin' || session.canAccessCrossTenantQa === true;
 }
 
-/** Convenience wrapper — filters a list of cases down to only the ones
- *  the current session is allowed to see. Used by getAll()/
- *  listCasesForUser() in CaseRouter.ts. */
-export function filterAccessibleCases<T extends { originHospitalId?: string | null }>(
+// DELETED (this pass): filterAccessibleCases() used to live here — same
+// situation as canAccessCase() above, superseded by
+// filterAccessibleCasesWithPools() below when CaseRouter.ts was
+// refactored for dimension-3 enforcement, found genuinely orphaned by
+// the same direct audit.
+
+/**
+ * Real dimension-3-aware equivalents of canAccessCase/filterAccessibleCases
+ * above, for CaseRouter.ts — the single enforcement point every case-read
+ * path already funnels through. Takes a pre-resolved subspecialty lookup
+ * (subspecialtyId -> CaseAccessSubspecialty) rather than fetching it
+ * itself, keeping this file free of a new services/subspecialties
+ * dependency — the caller (CaseRouter.ts) already has async access to
+ * fetch it once and reuse it across a whole batch of cases.
+ */
+export function canAccessCaseWithPools(
   session: SessionUser | null,
-  cases: T[]
+  caseRecord: { originHospitalId?: string | null; subspecialtyId?: string | null } | null | undefined,
+  subspecialtiesById: Map<string, CaseAccessSubspecialty> | null | undefined
+): boolean {
+  const sub = caseRecord?.subspecialtyId ? subspecialtiesById?.get(caseRecord.subspecialtyId) : undefined;
+  return resolveCaseAccess(session, caseRecord, sub ?? null).granted;
+}
+
+export function filterAccessibleCasesWithPools<T extends { originHospitalId?: string | null; subspecialtyId?: string | null }>(
+  session: SessionUser | null,
+  cases: T[],
+  subspecialtiesById: Map<string, CaseAccessSubspecialty> | null | undefined
 ): T[] {
-  return cases.filter(c => canAccessCase(session, c));
+  return cases.filter(c => canAccessCaseWithPools(session, c, subspecialtiesById));
 }

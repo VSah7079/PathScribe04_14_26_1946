@@ -486,6 +486,19 @@ export interface Case {
    *  them via syncPrimaryAssignee() (caseAssignmentSync.ts), not a
    *  replacement for them. */
   participants?: CaseParticipant[];
+  /** Real, flat denormalization of participants — the specific staffIds
+   *  currently eligible to finalize this case (active Primary/
+   *  Attending), maintained automatically by CaseRouter.ts whenever a
+   *  write touches participants (see
+   *  services/auth/caseAccessControl.ts's deriveEligibleFinalizerIds()).
+   *  Exists specifically because firestore.rules has no way to check a
+   *  predicate against an array of objects like participants — only
+   *  flat value arrays. This is what makes dimension-4 (case
+   *  relationship) write-guard enforcement possible server-side, not
+   *  just client-side. Never write this directly — it's derived, the
+   *  same way a search index is derived from its source data, and
+   *  hand-editing it would desync it from participants immediately. */
+  eligibleFinalizerIds?: string[];
   /** Local workflow overlay for 'assist'-mode cases, where CaseStatus is
    *  LIS-owned and off-limits to PathScribe. NOTE: not yet wired to
    *  anything — no code in this pass reads or writes it. Added because

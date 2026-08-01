@@ -19,6 +19,7 @@ import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { mockDelegationTypeService } from '../delegationTypes/mockDelegationTypeService';
 import { syncPrimaryAssignee } from './caseAssignmentSync';
 import { mapDelegationTypeToParticipationRole } from '../delegationTypeMapper';
+import { isOrchCaseId } from './reportingModeRouting';
 
 const STORAGE_KEY = 'cases';
 
@@ -3498,9 +3499,13 @@ export async function claimPoolCase(caseId: string, userId: string): Promise<Cla
 // edits do — DelegationRecord (below) is this flow's own audit trail, and
 // that split isn't new here, it's how delegateCase already worked before
 // this change; just noting the boundary explicitly.
-function isOrchCaseId(caseId: string): boolean {
-  return caseId.startsWith('O26-');
-}
+//
+// isOrchCaseId() itself used to be a second, independently-hardcoded copy
+// of the same 'O26-' check right here (kept local specifically to dodge
+// the circular-import risk above) — now imported from
+// reportingModeRouting.ts instead, which has no imports of its own at
+// all, so it can't create that cycle either way. Same real drift risk
+// this whole change closes, just found in one more place.
 
 async function getCaseAnyMode(caseId: string): Promise<Case | undefined> {
   if (isOrchCaseId(caseId)) return mockOrchestratorCaseService.getCase(caseId);

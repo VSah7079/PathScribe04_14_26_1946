@@ -23,6 +23,7 @@ import CasePoolAssignmentSection from './CasePoolAssignmentSection';
 import RoutingRulesSection       from './RoutingRulesSection';
 import TerminologyServicesSection from '../Terminology/TerminologyServicesSection';
 import SessionSecuritySection    from './SessionSecuritySection';
+import ExternalResourcesSection  from './ExternalResourcesSection';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ type SystemSection =
   | 'lis'
   | 'retention'
   | 'session_security'
+  | 'external_resources'
   | 'clients'
   | 'physicians'
   | 'protocols'
@@ -75,6 +77,7 @@ const SECTIONS: { id: SystemSection; emoji: string; label: string; group: string
   { id: 'deficiencies',        emoji: '⚠️', label: 'Specimen Deficiencies' , group: 'Independent' },
   { id: 'stains',              emoji: '🧪', label: 'Stain Dictionary'      , group: 'Independent' },
   { id: 'session_security',    emoji: '🔒', label: 'Session Security'      , group: 'Independent' },
+  { id: 'external_resources',  emoji: '🌐', label: 'External Resources'    , group: 'Independent' },
 
   // ── Reference data — real dependents exist below, set these up first ──
   { id: 'clients',             emoji: '🏥', label: 'Client Dictionary'     , group: 'Reference Data (set up first)' },
@@ -129,6 +132,7 @@ const SystemTab: React.FC = () => {
       case 'routing_rules':       return <RoutingRulesSection />;
       case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
       case 'session_security':    return <SessionSecuritySection />;
+      case 'external_resources':  return <ExternalResourcesSection />;
       default:                    return null;
     }
   };

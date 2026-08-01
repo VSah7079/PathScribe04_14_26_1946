@@ -45,7 +45,7 @@
     "types": ["node"]
   },
 
-  "include": ["src", ".vs/firestore.rules.test.ts"],
+  "include": ["src", "firestore.rules.test.ts"],
 
   "exclude": [
     "node_modules",

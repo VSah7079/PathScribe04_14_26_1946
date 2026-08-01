@@ -2,6 +2,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDelegations } from '@/services/cases/mockCaseService';
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { mockExternalResourceService } from '@/services/externalResources/mockExternalResourceService';
+import { mockClientService } from '@/services/clients/mockClientService';
+import { resolvePerformingLabClientId } from '@/services/clients/IClientService';
+import { getSessionUser } from '@/services/auth/caseAccessControl';
 import type { Case } from '@/types/case/Case';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLogout } from '@hooks/useLogout';
@@ -199,21 +203,53 @@ const WorklistPage: React.FC = () => {
     } catch { /* ignore */ }
   }, [thresholdsLoaded, realCases]);
 
-  // Quick Links Data
-  const quickLinks = {
-    protocols: [
-      { title: 'CAP Cancer Protocols', url: 'https://www.cap.org/protocols-and-guidelines' },
-      { title: 'WHO Classification', url: 'https://www.who.int/publications' }
-    ],
-    references: [
-      { title: 'PathologyOutlines', url: 'https://www.pathologyoutlines.com' },
-      { title: 'UpToDate', url: 'https://www.uptodate.com' }
-    ],
-    systems: [
-      { title: 'Hospital LIS', url: '#' },
-      { title: 'Lab Management', url: '#' }
-    ]
-  };
+  // Quick Links Data — real admin-managed resources, resolved for this
+  // viewer's own organisation (Config -> System -> External Resources).
+  // Was a hardcoded object here directly (including a CAP URL that had
+  // gone stale and 404'd, with no way for anyone to fix it without a
+  // code change) — now genuinely admin-editable and org-scoped so a
+  // different organisation's resources never leak into this list.
+  //
+  // Real lab-context resolution, not just org-level: the Worklist has
+  // no single case in view, but it does have a real, concrete set of
+  // cases this specific viewer can actually see — including pool cases,
+  // which per a direct question can span multiple hospitals/labs, not
+  // just one. Resolved via the same case -> ordering Client ->
+  // resolvePerformingLabClientId() chain already established for
+  // idle-timeout (services/session/mockSessionTimeoutService.ts), just
+  // applied across every visible case instead of one. A viewer whose
+  // worklist spans several performing labs' pools sees each of those
+  // labs' own resources, not just the first one or none at all.
+  const [quickLinks, setQuickLinks] = useState<{ protocols: { title: string; url: string }[]; references: { title: string; url: string }[]; systems: { title: string; url: string }[] }>({ protocols: [], references: [], systems: [] });
+
+  useEffect(() => {
+    const session = getSessionUser();
+    if (!session?.organisationId) return;
+    if (realCases.length === 0) return;
+
+    mockClientService.getAll().then(clientsRes => {
+      if (!clientsRes.ok) return;
+      const clientsById = new Map(clientsRes.data.map(c => [c.id, c]));
+      const labIds = new Set<string>();
+      realCases.forEach(c => {
+        const orderingClientId = c?.order?.clientId;
+        const orderingClient = orderingClientId ? clientsById.get(orderingClientId) : undefined;
+        const labId = orderingClient ? resolvePerformingLabClientId(orderingClient) : undefined;
+        if (labId) labIds.add(labId);
+      });
+
+      mockExternalResourceService.resolveForViewer({
+        organisationId: session.organisationId!,
+        performingLabClientIds: Array.from(labIds),
+      }).then(resolved => {
+        setQuickLinks({
+          protocols: resolved.protocols.map(r => ({ title: r.title, url: r.url })),
+          references: resolved.references.map(r => ({ title: r.title, url: r.url })),
+          systems: resolved.systems.map(r => ({ title: r.title, url: r.url })),
+        });
+      });
+    }).catch(() => {});
+  }, [realCases]);
 
   // ── 50 Mock Cases ──────────────────────────────────────────────────────────
   // ── Voice: selected row index for keyboard/voice navigation ───────────────

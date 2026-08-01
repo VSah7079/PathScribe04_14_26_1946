@@ -17,7 +17,7 @@
  * Case IDs prefixed 'O26-' belong to the PathScribe Orchestrator (Firestore).
  * All other IDs are routed to the LIS (FHIR) service.
  *
- * In production, replace isOrchCase() with a Case Registry microservice lookup
+ * In production, replace isOrchCaseId() with a Case Registry microservice lookup
  * (no patient data — just { caseId → serviceType }) to satisfy UK GDPR Art. 25
  * data minimisation. See PRODUCTION_MIGRATION.md for details.
  *
@@ -38,14 +38,41 @@ import { AuditLogger }                                        from './AuditLogge
 import { ConcurrencyConflictError }                            from './ConcurrencyConflictError';
 import { mockCaseService }             from './mockCaseService';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
-import { getSessionUser, canAccessCase, filterAccessibleCases } from '../auth/caseAccessControl';
+import { getSessionUser, canAccessCaseWithPools, filterAccessibleCasesWithPools, deriveEligibleFinalizerIds, type CaseAccessSubspecialty } from '../auth/caseAccessControl';
+import { mockSubspecialtyService as subspecialtyService } from '../subspecialties/mockSubspecialtyService';
+import { isOrchCaseId } from './reportingModeRouting';
 
-// ── Routing rule ──────────────────────────────────────────────────────────────
-const ORCH_ID_PREFIX = 'O26-';
-
-function isOrchCase(caseId: string): boolean {
-  return caseId.startsWith(ORCH_ID_PREFIX);
+// Real dimension-3 (pool/subspecialty) enforcement needs a lookup of every
+// subspecialty by id to check isWorkgroupEnabled/userIds against a case's
+// subspecialtyId. Cached the same way templateService.ts's
+// getTemplateCached/listTemplatesCached are — the underlying data changes
+// rarely (admin-managed, not per-request) and re-fetching it on every
+// single case read/list call would be real, avoidable latency for no
+// benefit. Memoizes the in-flight PROMISE, not just the resolved value, so
+// concurrent calls share one fetch rather than firing several.
+let subspecialtyLookupPromise: Promise<Map<string, CaseAccessSubspecialty>> | null = null;
+async function getSubspecialtyLookup(): Promise<Map<string, CaseAccessSubspecialty>> {
+  if (!subspecialtyLookupPromise) {
+    subspecialtyLookupPromise = subspecialtyService.getAll()
+      .then(res => {
+        const map = new Map<string, CaseAccessSubspecialty>();
+        if (res.ok) {
+          res.data.forEach(s => map.set(s.id, {
+            id: s.id,
+            userIds: s.userIds ?? [],
+            isWorkgroup: s.isWorkgroup ?? false,
+            isWorkgroupEnabled: s.isWorkgroupEnabled ?? false,
+          }));
+        }
+        return map;
+      })
+      .catch(() => new Map<string, CaseAccessSubspecialty>());
+    // A failed fetch shouldn't poison the cache forever.
+    subspecialtyLookupPromise.catch(() => { subspecialtyLookupPromise = null; });
+  }
+  return subspecialtyLookupPromise;
 }
+
 
 // ── Router ────────────────────────────────────────────────────────────────────
 class CaseRouter implements ICaseService {
@@ -72,7 +99,7 @@ class CaseRouter implements ICaseService {
   // authorized to see it. See caseAccessControl.ts's own doc comment for
   // the full reasoning and its "not real server-side security" caveat.
   async getCase(caseId: string, userId = 'current'): Promise<Case | undefined> {
-    const [service, audit] = isOrchCase(caseId)
+    const [service, audit] = isOrchCaseId(caseId)
       ? [this.orchService, this.orchAudit]
       : [this.lisService,  this.lisAudit];
 
@@ -83,9 +110,10 @@ class CaseRouter implements ICaseService {
         return undefined;
       }
       const session = getSessionUser();
-      if (!canAccessCase(session, c as any)) {
+      const subspecialties = await getSubspecialtyLookup();
+      if (!canAccessCaseWithPools(session, c as any, subspecialties)) {
         audit.log({ eventType: 'case.read', caseId, userId, outcome: 'failure' });
-        console.debug('[CaseRouter] Access denied (organisation mismatch or no session):', { caseId, sessionUserId: session?.id });
+        console.debug('[CaseRouter] Access denied (organisation mismatch, no session, or pool restriction):', { caseId, sessionUserId: session?.id });
         return undefined;
       }
       audit.log({ eventType: 'case.read', caseId, userId, outcome: 'success' });
@@ -116,7 +144,7 @@ class CaseRouter implements ICaseService {
   //   result doesn't blur which controller's data was actually accessed.
   //
   // June 2026: results from both sources are now filtered through
-  // canAccessCase() before returning — this was the single biggest hole of
+  // filterAccessibleCasesWithPools() before returning — this was the single biggest hole of
   // the three (SearchPage.tsx calls this directly, unrestricted, so any
   // logged-in user could search up and open any case from any hospital).
   // Same "deny by default, real session, not caller-supplied userId" posture
@@ -136,7 +164,8 @@ class CaseRouter implements ICaseService {
     // would only see its own numbering sequence). Never the default, never
     // implied — a caller has to explicitly opt in, and it's still fully
     // audited below like every other path.
-    const applyFilter = (cases: Case[]) => opts?.bypassAccessControl ? cases : filterAccessibleCases(session, cases as any);
+    const subspecialties = opts?.bypassAccessControl ? null : await getSubspecialtyLookup();
+    const applyFilter = (cases: Case[]) => opts?.bypassAccessControl ? cases : filterAccessibleCasesWithPools(session, cases as any, subspecialties);
 
     const lisResult = await this.lisService.getAll(params)
       .then(r => {
@@ -174,7 +203,7 @@ class CaseRouter implements ICaseService {
 
   // ── listCasesForUser ─────────────────────────────────────────────────────────
   // Queries both services independently so each access is separately audited.
-  // June 2026: results filtered through canAccessCase() too, same as getAll()
+  // June 2026: results filtered through filterAccessibleCasesWithPools() too, same as getAll()
   // above — defense in depth. The underlying services' own listCasesForUser()
   // still do their assigned-to-me/pool-membership logic (that's a workflow
   // concern, not a tenant-boundary one); this filter is the organisation wall
@@ -204,7 +233,8 @@ class CaseRouter implements ICaseService {
         }),
     ]);
 
-    return filterAccessibleCases(session, [...lisCases, ...orchCases] as any) as Case[];
+    const subspecialties = await getSubspecialtyLookup();
+    return filterAccessibleCasesWithPools(session, [...lisCases, ...orchCases] as any, subspecialties) as Case[];
   }
 
   // ── updateCase ────────────────────────────────────────────────────────────────
@@ -217,13 +247,27 @@ class CaseRouter implements ICaseService {
   // attribute actions to a real, identifiable individual). Now resolves
   // the actual session user the same way getCase/getAll already do.
   async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
-    const [service, audit] = isOrchCase(caseId)
+    // Real, automatic denormalization for dimension-4 server-side
+    // enforcement (see Case.eligibleFinalizerIds's own doc comment and
+    // deriveEligibleFinalizerIds() in caseAccessControl.ts for the full
+    // reasoning). Done here, at the one chokepoint every case write
+    // already passes through, specifically so this can never be an
+    // "every caller has to remember" requirement — participants is
+    // always written as a full replacement array (matching how every
+    // real call site already constructs it via setState-style
+    // mapping), so deriving from it here is always correct, not a
+    // partial/stale computation.
+    const patchedUpdates: Partial<Case> = 'participants' in updates
+      ? { ...updates, eligibleFinalizerIds: deriveEligibleFinalizerIds(updates.participants as any) }
+      : updates;
+
+    const [service, audit] = isOrchCaseId(caseId)
       ? [this.orchService, this.orchAudit]
       : [this.lisService,  this.lisAudit];
     const userId = getSessionUser()?.id ?? 'unknown';
 
     try {
-      await service.updateCase(caseId, updates, expectedVersion);
+      await service.updateCase(caseId, patchedUpdates, expectedVersion);
       audit.log({ eventType: 'case.write', caseId, userId, outcome: 'success' });
     } catch (err) {
       if (err instanceof ConcurrencyConflictError) {
@@ -244,7 +288,7 @@ class CaseRouter implements ICaseService {
   // ── createCase ───────────────────────────────────────────────────────────────
   // Added for the Accession page (S0-CF-08 note: this is exactly the spot
   // CaseRouter.ts's own comment flags for a future Case Registry lookup —
-  // "In production, replace isOrchCase() with a Case Registry microservice
+  // "In production, replace isOrchCaseId() with a Case Registry microservice
   // lookup". Until that exists, the caller (AccessionPage.tsx) generates an
   // O26--prefixed id before calling, same routing key as every other method
   // here. Routes by the id the caller already chose, not by any
@@ -254,13 +298,20 @@ class CaseRouter implements ICaseService {
   // userId attribution fixed June 2026 — same hardcoded-'current' bug as
   // updateCase above, same fix.
   async createCase(caseData: Case): Promise<void> {
-    const [service, audit] = isOrchCase(caseData.id)
+    // Same real, automatic denormalization as updateCase above — a new
+    // case can be created with participants already populated (e.g. a
+    // primary pathologist assigned at accession time).
+    const patchedCaseData: Case = caseData.participants
+      ? { ...caseData, eligibleFinalizerIds: deriveEligibleFinalizerIds(caseData.participants) }
+      : caseData;
+
+    const [service, audit] = isOrchCaseId(caseData.id)
       ? [this.orchService, this.orchAudit]
       : [this.lisService,  this.lisAudit];
     const userId = getSessionUser()?.id ?? 'unknown';
 
     try {
-      await service.createCase(caseData);
+      await service.createCase(patchedCaseData);
       audit.log({ eventType: 'case.create', caseId: caseData.id, userId, outcome: 'success' });
     } catch {
       audit.log({ eventType: 'case.create', caseId: caseData.id, userId, outcome: 'failure' });

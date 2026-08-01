@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { caseRouter } from '@/services/cases/CaseRouter';
+import { fromLegacyName, formatIdentificationName } from '@/utils/personName';
 
 interface MockEMRPageProps {
   /** Optional — when provided (embedded modal use), takes priority over
@@ -8,16 +10,73 @@ interface MockEMRPageProps {
   patientId?: string;
 }
 
+// Real fix, found via a direct bug report: this used to hardcode exactly
+// one recognized patientId ('100004' -> "MARTINEZ, DAVID") and silently
+// show a completely unrelated patient ("THOMPSON, GRACE") for literally
+// every other value — meaning any real case's actual patient MRN would
+// show the wrong name. The launch itself was never broken
+// (BottomActionBar.tsx already correctly passes the real
+// caseData.patient.mrn) — this page just never looked it up. Per Pete's
+// own principle: showing a wrong patient is worse than showing nothing,
+// so a genuine "No Patient Found" state now replaces the second
+// hardcoded guess rather than trading one wrong default for another.
 const MockEMRPage: React.FC<MockEMRPageProps> = ({ patientId: patientIdProp }) => {
   const [searchParams] = useSearchParams();
-  const patientId = patientIdProp ?? searchParams.get('patientId') ?? '100004';
+  const patientId = patientIdProp ?? searchParams.get('patientId') ?? '';
 
-  const isMartinez = patientId === '100004';
-  const patientName = isMartinez ? 'MARTINEZ, DAVID' : 'THOMPSON, GRACE';
-  const dob = isMartinez ? '05/30/1955' : '11/12/1982';
-  const gender = isMartinez ? 'Male' : 'Female';
+  const [loading, setLoading] = useState(true);
+  const [patientName, setPatientName] = useState<string | null>(null);
+  const [dob, setDob] = useState<string | null>(null);
+  const [gender, setGender] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!patientId) { setLoading(false); return; }
+    setLoading(true);
+    caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true } as any)
+      .then(res => {
+        if (cancelled || !res.ok) { setLoading(false); return; }
+        const match = (res.data as any[]).find(c => c?.patient?.mrn === patientId);
+        if (match?.patient) {
+          const p = match.patient;
+          const name = p.givenNames && p.familyNames
+            ? formatIdentificationName({ givenNames: p.givenNames, familyNames: p.familyNames })
+            : formatIdentificationName(fromLegacyName(p.firstName ?? '', p.lastName ?? ''));
+          setPatientName(name || null);
+          setDob(p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString('en-GB') : null);
+          setGender(p.sex === 'M' ? 'Male' : p.sex === 'F' ? 'Female' : p.sex === 'U' ? 'Unknown' : null);
+        }
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [patientId]);
 
   const systemFont = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  if (loading) {
+    return (
+      <div style={{ background: '#f3f4f6', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: systemFont, color: '#6b7280' }}>
+        Looking up patient…
+      </div>
+    );
+  }
+
+  if (!patientName) {
+    return (
+      <div style={{ background: '#f3f4f6', height: '100%', display: 'flex', flexDirection: 'column', fontFamily: systemFont, color: '#111827' }}>
+        <div style={{ background: '#005eb8', color: 'white', padding: '12px 24px', flexShrink: 0 }}>
+          <div style={{ background: '#fff', color: '#005eb8', padding: '2px 8px', borderRadius: '2px', fontWeight: 900, display: 'inline-block' }}>NHS</div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#374151' }}>No Patient Found</div>
+          <div style={{ fontSize: 13, color: '#6b7280' }}>
+            {patientId ? `No record matches MRN ${patientId}` : 'No patient identifier was provided'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: '#f3f4f6', height: '100%', display: 'flex', flexDirection: 'column', fontFamily: systemFont, color: '#111827' }}>
@@ -28,7 +87,9 @@ const MockEMRPage: React.FC<MockEMRPageProps> = ({ patientId: patientIdProp }) =
           <div style={{ background: '#fff', color: '#005eb8', padding: '2px 8px', borderRadius: '2px', fontWeight: '900' }}>NHS</div>
           <div>
             <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>{patientName}</h1>
-            <span style={{ fontSize: '14px' }}>DOB: {dob} ({gender}) • MRN: {patientId}</span>
+            <span style={{ fontSize: '14px' }}>
+              {dob ? `DOB: ${dob}` : 'DOB: not recorded'}{gender ? ` (${gender})` : ''} • MRN: {patientId}
+            </span>
           </div>
         </div>
         <div style={{ background: '#ffcc00', color: '#000', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>

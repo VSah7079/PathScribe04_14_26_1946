@@ -1,7 +1,7 @@
 # components/QualityAssurance/
 
 QA/compliance aggregate reporting tabs, hosted inside `pages/DeficienciesPage.tsx`
-alongside its own deficiency-tracking tabs. Five real, distinct reports —
+alongside its own deficiency-tracking tabs. Six real, distinct reports —
 each measures a genuinely different thing, deliberately not merged into
 one generic "QA dashboard" (see each file's own header for why it's
 separate from its siblings). **This folder never had a README before
@@ -46,9 +46,25 @@ tables client-side.
   effect. Surfaces genuinely unresolved cases (a deferred/failed
   correction never followed by a later successful one for the same case)
   as an explicit, actionable list — not just a historical event log.
-- **`QaScopeSwitcher.tsx`** — Shared scope-filter dropdown used by all
-  five tabs above (well, four — FppeTrackingTab has no case data to
-  scope). **Real fix this session, in two parts:**
+- **`PatientMatchReviewSection.tsx`** — **NEW.** The real review queue
+  for `services/patients/`'s MPI — every patient match the deterministic
+  matcher couldn't confidently resolve either way (MRN matched but DOB
+  didn't, or name+DOB matched under a different MRN), each shown
+  alongside the actual candidate record(s) it might be the same person
+  as. Two real actions, not placeholders: confirm as a genuinely new
+  patient, or merge into an existing record — which actually repoints
+  every case built under the provisional identity, not just relabels the
+  review record. **First built in `Config/System/`, then moved here
+  after a direct question about whether it belonged in Configuration at
+  all** — it isn't a "configure once" settings screen; it's a recurring
+  compliance work queue, the same shape as every other tab in this
+  folder, not the shape of TAT Configuration or Session Security.
+- **`QaScopeSwitcher.tsx`** — Shared scope-filter dropdown used by most
+  tabs above (FppeTrackingTab has no case data to scope;
+  PatientMatchReviewSection uses its own organisation picker instead,
+  since MPI review is scoped by which org's patient index to look at,
+  not by case-level client/org like the others). **Real fix this
+  session, in two parts:**
   1. Extended `QaScope` with a genuine third `'organisation'` level,
      alongside the existing `'enterprise'` (no filter) and `'client'`
      (referring-provider) levels — these are real, different dimensions:

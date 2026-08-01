@@ -37,8 +37,9 @@ import { ReconciliationTab } from '@/components/QualityAssurance/ReconciliationT
 import { CountersignTurnaroundTab } from '@/components/QualityAssurance/CountersignTurnaroundTab';
 import { FppeTrackingTab } from '@/components/QualityAssurance/FppeTrackingTab';
 import { DriftCorrectionTab } from '@/components/QualityAssurance/DriftCorrectionTab';
+import { PatientMatchReviewSection } from '@/components/QualityAssurance/PatientMatchReviewSection';
 
-type Tab = 'open' | 'pending-verification' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction';
+type Tab = 'open' | 'pending-verification' | 'closed' | 'reviews' | 'intraop-linkage' | 'discordance' | 'countersign' | 'fppe' | 'drift-correction' | 'patient-match-review';
 
 const formatTimestamp = (iso?: string) => {
   if (!iso) return '—';
@@ -307,6 +308,7 @@ const DeficienciesPage: React.FC = () => {
         <button className={`ps-tab-btn ${tab === 'countersign' ? 'active' : ''}`} onClick={() => setTab('countersign')}>Countersign Turnaround</button>
         <button className={`ps-tab-btn ${tab === 'fppe' ? 'active' : ''}`} onClick={() => setTab('fppe')}>Credentialing Review</button>
         <button className={`ps-tab-btn ${tab === 'drift-correction' ? 'active' : ''}`} onClick={() => setTab('drift-correction')}>Post-Finalization Drift</button>
+        <button className={`ps-tab-btn ${tab === 'patient-match-review' ? 'active' : ''}`} onClick={() => setTab('patient-match-review')}>Patient Match Review</button>
       </div>
 
       {tab === 'intraop-linkage' && <IntraopLinkageTab />}
@@ -314,6 +316,7 @@ const DeficienciesPage: React.FC = () => {
       {tab === 'countersign' && <CountersignTurnaroundTab />}
       {tab === 'fppe' && <FppeTrackingTab />}
       {tab === 'drift-correction' && <DriftCorrectionTab />}
+      {tab === 'patient-match-review' && <PatientMatchReviewSection />}
 
       {tab === 'closed' && (
         <div className="ps-defic-review-banner">

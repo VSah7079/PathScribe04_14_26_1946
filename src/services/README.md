@@ -88,6 +88,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [delegationTypes/](./delegationTypes/README.md) | Case delegation type dictionary |
 | [diagnosisCodes/](./diagnosisCodes/README.md) | Referring physician's order-time diagnosis code |
 | [drafts/](./drafts/README.md) | **NEW (July 2026)** — local caching of in-progress unsaved work (Inactivity Timeout & Draft Recovery Phase 2) |
+| [externalResources/](./externalResources/README.md) | **NEW (July 2026)** — admin-managed reference links (CAP protocols, WHO classification, lab systems), org-scoped with real per-viewer relevance filtering |
 | [flags/](./flags/README.md) | Case/specimen flag dictionary |
 | [fonts/](./fonts/README.md) | Editor font dictionary |
 | [grossing/](./grossing/README.md) | Grossing template routing (types only, real logic in cases/) |
@@ -102,6 +103,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [narrativeSignals/](./narrativeSignals/README.md) | AI-vs-pathologist edit-diff capture + PHI de-identification |
 | [orderIntake/](./orderIntake/README.md) | Pending-orders queue + Client/SpecimenCategory resolution |
 | [organisation/](./organisation/README.md) | Organization/Site/Lab hierarchy (Enterprise + participating hospitals) |
+| [patients/](./patients/README.md) | **NEW (July 2026)** — real Master Patient Index (MPI), org-scoped identity resolution with a genuine ambiguous-match review workflow |
 | [participationTypes/](./participationTypes/README.md) | Case Team role dictionary |
 | [performanceTargets/](./performanceTargets/README.md) | Admin productivity targets |
 | [physicians/](./physicians/README.md) | Physician directory |

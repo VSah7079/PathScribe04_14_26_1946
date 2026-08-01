@@ -52,6 +52,8 @@ import { SaveToast }           from '../Synoptic/UI/SaveToast';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { mockAuditService } from '@/services/auditlog/mockAuditService';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
+import { getSessionUser, canFinalizeCase } from '@/services/auth/caseAccessControl';
+import { isOrchCaseId } from '@/services/cases/reportingModeRouting';
 import { priorityService } from '@/services';
 import { countersignService, userService, fppeAssignmentService } from '@/services';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
@@ -183,7 +185,7 @@ const SynopticReportPage: React.FC = () => {
       // actualVersion (not a blind +1 on whatever this session last
       // knew), since other writes may have landed between the conflict
       // being detected and this force-save actually running.
-      if (caseId?.startsWith('O26-')) {
+      if (isOrchCaseId(caseId)) {
         await caseRouter.updateCase(caseData.id, { orchSections } as any);
         localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
       } else {
@@ -514,7 +516,7 @@ const SynopticReportPage: React.FC = () => {
   // Orchestration mode = PathScribe owns the report (Outreach/O26- cases).
   // Determined by case ID prefix — matches CaseRouter's routing key.
   // LIS cases (S26-*, no reportingMode) must NOT default to orchestration mode.
-  const isOrchestrationMode = !!(caseId?.startsWith('O26-'));
+  const isOrchestrationMode = isOrchCaseId(caseId);
 
   // ── Three-column Orchestration layout state ─────────────────────────────────
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
@@ -732,13 +734,15 @@ const SynopticReportPage: React.FC = () => {
 
   // AI suggestions lifted from RightSynopticPanel
   const [aiSuggestions,        setAiSuggestions]        = useState<Record<string, AiSuggestion>>({});
-  const [computationalResults, _setComputationalResults] = useState<Record<string, Record<string, string | number | boolean | null>>>({});
-  // _setComputationalResults never called anywhere — computationalResults
-  // (the value) IS read in 3 real places (generateAiSuggestionsForReport,
-  // a useCallback dependency, and passed as a prop further down), so this
-  // stays permanently {} forever rather than ever holding real ancillary
-  // lab/computational data. A genuine functional gap, not cosmetic dead
-  // code — flagged rather than silently deleted.
+  // Computational Results was deliberately replaced by Biomarkers — this
+  // state, and its downstream usages (the generateAiSuggestionsForReport
+  // call, a useCallback dependency, and a prop passed to
+  // RightSynopticPanel), were all leftover from the superseded feature,
+  // permanently stuck at {} since nothing ever populated it. Removed
+  // rather than left as dead weight — generateAiSuggestionsForReport's
+  // own computationalResults parameter is optional, so omitting it here
+  // entirely is safe and doesn't change what the AI suggestion flow
+  // actually does today.
 
   // ── AI Synthesis Status — fed to HeaderBar's badge ───────────────────────
   // SHORT-TERM SAFE FALLBACK, per Dr. Carter's review: a true tiered
@@ -762,11 +766,25 @@ const SynopticReportPage: React.FC = () => {
   // schema, replace this with real floor logic restricted to Tier 1
   // fields, matching the design discussed but not shipped here.
   //
-  // TODO: threshold below mirrors AI Behavior > Confidence Threshold but is
-  // a separate hardcoded constant — RightSynopticPanel fetches that config
-  // value locally to itself. These should share one source (e.g.
-  // SystemConfigContext) so the two can't drift apart.
-  const REVIEW_THRESHOLD = 80;
+  // Real fix, found via a direct audit: this used to hardcode
+  // REVIEW_THRESHOLD = 80 as its own, second, independently-maintained
+  // copy of the confidence threshold, separate from the one
+  // RightSynopticPanel.tsx actually uses to decide which AI suggestions
+  // are "above threshold" (which defaults to 75, not 80, and is loaded
+  // from the real, admin-configurable aiBehaviorService — Config > AI
+  // Provider Settings). The two were already disagreeing by default,
+  // not just at risk of drifting apart later — the exact class of
+  // duplicated-constant bug the O26- prefix had. Now loaded from the
+  // same real source, same default fallback, so the two can't
+  // independently disagree anymore.
+  const [reviewThreshold, setReviewThreshold] = React.useState(75);
+  React.useEffect(() => {
+    aiBehaviorService.get().then(res => {
+      if (res.ok) setReviewThreshold(res.data.confidenceThreshold ?? 75);
+    }).catch(() => {});
+  }, []);
+
+  const REVIEW_THRESHOLD = reviewThreshold;
 
   const aiSynthesisStatus = React.useMemo<AiSynthesisStatus>(() => {
     const entries = Object.entries(aiSuggestions)
@@ -801,7 +819,7 @@ const SynopticReportPage: React.FC = () => {
       flaggedFieldId: flagged?.[0],
       flaggedFieldConfidence: flagged?.[1].confidence,
     };
-  }, [aiSuggestions]);
+  }, [aiSuggestions, reviewThreshold]);
 
   // "Unpacking" — clicking the badge in a 'review-required' state jumps
   // straight to the Tier 1 field that dragged the status down, reusing the
@@ -908,11 +926,36 @@ const SynopticReportPage: React.FC = () => {
   }, [hasUnsavedData]);
 
   // Returns true only when dirty state originated from a real user edit
-  // (not from component initialisation within the first 1200 ms of case load)
+  // (not from component initialisation shortly after case load).
+  //
+  // Real bug found via a direct report: clicking "Previous"/"Next" case
+  // incorrectly warned about unsaved changes on a case nobody had
+  // touched yet. Traced to this window being too short, not to the
+  // case-load reset itself — caseLoadedAt.current IS correctly reset on
+  // every caseId change (see the useEffect above), so that part already
+  // worked. The actual problem: RightSynopticPanel.tsx's initial-load
+  // chain (fetch template detail -> fetch AI suggestions ->
+  // apply prefill -> call onCaseUpdate) is a real sequential async
+  // chain, and can legitimately take longer than 1200ms to settle —
+  // especially case-to-case, where it's competing with the outer case
+  // fetch that just fired from the same navigation. When it does, the
+  // resulting markDirty() call lands just outside the old window and
+  // gets misread as a genuine user edit. Widened to a value that
+  // comfortably covers that real chain rather than the bare minimum —
+  // still a heuristic, not a deterministic fix (see below), but a
+  // meaningfully safer one.
+  //
+  // The fully robust fix would replace this elapsed-time guess with an
+  // explicit "initial load still in flight" flag, set true at
+  // navigation start and cleared only once every initialization effect
+  // (case load, template load, AI suggestions load) has genuinely
+  // settled — not attempted here, flagged as a real follow-up if a
+  // slower network ever pushes real initialization past this new
+  // window too.
   const shouldWarnDirty = React.useCallback((): boolean => {
     if (!hasUnsavedData) return false;
     const likelyInit = dirtySetAt.current !== null &&
-      (dirtySetAt.current - caseLoadedAt.current) < 1200;
+      (dirtySetAt.current - caseLoadedAt.current) < 4000;
     return !likelyInit;
   }, [hasUnsavedData]);
 
@@ -971,7 +1014,7 @@ const SynopticReportPage: React.FC = () => {
       return true;
     }
     try {
-      if (caseId?.startsWith('O26-')) {
+      if (isOrchCaseId(caseId)) {
         await caseRouter.updateCase(caseData.id, { orchSections } as any, knownVersionRef.current);
         localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
       } else {
@@ -985,10 +1028,19 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error('Failed to persist draft:', e);
     }
+    // Real fix, found via a direct bug report: this never cleared the
+    // LOCAL draft cache (useDraftCache.ts) after a genuinely successful
+    // server save — the server-side save and the local backup are two
+    // separate mechanisms, and this function only ever handled the
+    // former. That meant a stale local draft entry survived every
+    // successful Save Draft, and the next time the draft-recovery check
+    // ran (e.g. landing back on this case), it incorrectly reported an
+    // "unsaved draft found" for work that had already been persisted.
+    discardDraft();
     clearDirty();
     showToast('Draft saved');
     return true;
-  }, [caseData, caseId, orchSections, clearDirty, showToast]);
+  }, [caseData, caseId, orchSections, clearDirty, showToast, discardDraft]);
 
   // ── Print the formatted centre pane report ───────────────────────────────
   // Calls the render_report Cloud Function (Python/ReportLab) for a real
@@ -2027,6 +2079,24 @@ const SynopticReportPage: React.FC = () => {
       }
     }
 
+    // Real write guard (dimension 4 — case relationship), placed exactly
+    // where the gap was found: anyone falling through past the resident/
+    // FPPE gate above with NO real relationship to this case at all
+    // (no participant record, not primary/attending, not an admin role)
+    // could previously proceed straight into the countersign-completion
+    // and finalize logic below with zero verification. Deliberately
+    // placed after the resident/FPPE gate, not before it — a resident
+    // legitimately reaches this function and gets correctly routed to
+    // release-for-countersign above; this guard only needs to catch
+    // whoever isn't covered by either that routing or a genuine
+    // primary/attending/admin relationship.
+    const signOutFinalizeDecision = canFinalizeCase(getSessionUser(), (caseData as any)?.participants);
+    if (!signOutFinalizeDecision.granted) {
+      showToast(signOutFinalizeDecision.reason);
+      setShowSignOutModal(false);
+      return;
+    }
+
     // Real attending-side countersign completion — fires when a case
     // that was released by a resident is now actually being finalized
     // (by definition not by that same resident, since the gate above
@@ -2178,6 +2248,22 @@ const SynopticReportPage: React.FC = () => {
     excludedInstanceIds: string[] = []
   ): Promise<boolean> => {
     if (!caseData) return false;
+
+    // ── Real write guard (dimension 4 — case relationship). Found via
+    // direct investigation: any user who could VIEW this case (passes
+    // the tenant/pool checks in caseAccessControl.ts) could also
+    // finalize/sign it out, with zero check that they have any actual
+    // relationship to this specific case — no participant record
+    // required at all. Only the assigned Primary/Attending, or an
+    // administrative role, may finalize. Checked first, before the
+    // fixative-time gate below — there's no reason to walk someone
+    // through resolving a data-completeness gate for a case they were
+    // never going to be allowed to sign out anyway.
+    const finalizeDecision = canFinalizeCase(getSessionUser(), (caseData as any)?.participants);
+    if (!finalizeDecision.granted) {
+      showToast(finalizeDecision.reason);
+      return false;
+    }
 
     // ── Fixation-time gate — hard block, per the design decision this was
     // built from. A specimen whose matched Specimen Dictionary entry has
@@ -2940,7 +3026,7 @@ const SynopticReportPage: React.FC = () => {
           const { generateAiSuggestionsForReport } = await import('@/services/cases/mockCaseService');
           const detail = await templateModule.getTemplate(templateId);
           const allFields = detail.template.sections.flatMap((s: any) => s.fields);
-          const suggestions = await generateAiSuggestionsForReport(caseData, templateId, allFields, computationalResults);
+          const suggestions = await generateAiSuggestionsForReport(caseData, templateId, allFields);
           return suggestions as any;
         } catch (e) {
           console.error('[PathScribe] AI suggestion generation for newly-assigned template failed:', e);
@@ -3019,7 +3105,7 @@ const SynopticReportPage: React.FC = () => {
         console.error(e);
       }
     }
-  }, [protoChanges, caseData, log, computationalResults]);
+  }, [protoChanges, caseData, log]);
 
   const handleRequestFinalize = useCallback(async (andNext: boolean) => {
     setFinalizeAndNextPending(andNext);
@@ -4132,7 +4218,6 @@ Original report issued pending ancillary studies. This amendment incorporates th
                 onScrollComplete={() => setAlertFieldId(null)}
                 onHighlight={setHighlightText}
                 highlightNotFound={highlightNotFound}
-                computationalResults={computationalResults}
                 onAiSuggestionsUpdate={setAiSuggestions}
               />
             </div>
@@ -4851,6 +4936,7 @@ Original report issued pending ancillary studies. This amendment incorporates th
         <PatientHistoryModal
           patientName={`${caseData.patient.lastName}, ${caseData.patient.firstName}`}
           mrn={caseData.patient.mrn ?? ''}
+          dateOfBirth={caseData.patient.dateOfBirth ?? ''}
           onClose={() => setIsSimilarCasesOpen(false)}
         />
       )}

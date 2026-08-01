@@ -3,9 +3,10 @@
 The biggest, most central components folder after Config/ itself — every
 system-wide dictionary/admin screen (29 files — was 28 → 27 after an
 earlier rename → 26 after `specimenTypes.ts`'s relocation → 27 again with
-`SessionSecuritySection.tsx`'s addition this pass — see Notes).
+`SessionSecuritySection.tsx`'s addition this pass, 28 with
+`ExternalResourcesSection.tsx` — see Notes).
 Wired entirely through `index.tsx`'s `SECTIONS` registry + `renderSection()`
-switch; every section listed there is confirmed live (all 22 sidebar items
+switch; every section listed there is confirmed live (all 23 sidebar items
 render a real, non-stub component — see Notes on `TATConfigSection.tsx`).
 
 **Pattern:** Each dictionary/admin concern is one file — table + modal,
@@ -53,6 +54,24 @@ usually backed by a real `services/` interface/mock pair.
   pattern once caught (see `services/session/README.md`), which is why
   this screen now loads its initial value via a real `useEffect` rather
   than a synchronous `useState` initializer.
+
+- **`ExternalResourcesSection.tsx`** — **NEW.** Real admin management for
+  the reference links shown in the Worklist's Resources panel — CAP
+  protocols, WHO classification, internal lab systems. Replaces a
+  hardcoded object that used to live directly in
+  `pages/WorklistPage/WorklistPage.tsx`, found broken when its CAP URL
+  404'd (CAP restructured their site) and there was no way for anyone to
+  fix it without a code change. Named "External Resources" to match the
+  existing label already used in `components/NavBar/NavBar.tsx`'s own
+  eyebrow text for this feature, not a new name invented for this
+  screen. Same org-default + per-client-override shape as Session
+  Security above: enterprise-wide resources visible to everyone,
+  lab-scoped ones layered on top for a specific performing lab. Full
+  CRUD (add/edit/delete), URL validation on save. See
+  `services/externalResources/README.md` for the real viewer-facing
+  relevance filtering this admin screen's data feeds into — a direct
+  requirement, not an afterthought: a viewer only ever sees their own
+  organisation's resources, never a flat global list.
 
 - **`CasePoolAssignmentSection.tsx`** — **RENAMED this pass** (was
   `CaseRoutingSection.tsx`). Closes PRIORITY_FIXES.md #3: the component

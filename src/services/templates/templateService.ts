@@ -23,6 +23,8 @@
 
 import { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
 import { PROTOCOL_REGISTRY, Protocol, LifecycleState, notifyRegistryChanged, saveRegistryOverride } from '../../components/Config/Protocols/protocolShared';
+import { getSessionUser } from '../auth/caseAccessControl';
+import { fromLegacyName, formatFullDisplayName } from '../../utils/personName';
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -147,6 +149,57 @@ function upsertRegistry(patch: Partial<Protocol> & { id: string }): void {
   notifyRegistryChanged();
 }
 
+// ─── Real prefetch/cache layer ─────────────────────────────────────────────
+// Added to close a real load-time gap: RightSynopticPanel.tsx couldn't
+// start fetching a case's template until AFTER the case itself had
+// loaded and the panel had mounted — a genuinely sequential dependency
+// chain (case fetch -> mount -> template fetch) that stacks their
+// artificial mock delays (30ms + 350ms) instead of overlapping them.
+// These cache the actual in-flight PROMISE, not just the resolved value
+// — that's what lets a prefetch triggered from the worklist (before
+// navigation even completes) and the real load inside
+// RightSynopticPanel.tsx share the SAME request instead of firing two,
+// even if the real load's own call happens before the prefetch settles.
+const templateDetailCache = new Map<string, Promise<TemplateDetail>>();
+const templateListCache   = new Map<string, Promise<Protocol[]>>();
+
+export function getTemplateCached(id: string): Promise<TemplateDetail> {
+  let entry = templateDetailCache.get(id);
+  if (!entry) {
+    entry = getTemplate(id);
+    templateDetailCache.set(id, entry);
+    // A failed fetch shouldn't poison the cache forever — let a later
+    // caller retry instead of being stuck replaying the same rejection.
+    entry.catch(() => templateDetailCache.delete(id));
+  }
+  return entry;
+}
+
+export function listTemplatesCached(status?: TemplateStatus | TemplateStatus[]): Promise<Protocol[]> {
+  const key = status ? (Array.isArray(status) ? status.join(',') : status) : '__all__';
+  let entry = templateListCache.get(key);
+  if (!entry) {
+    entry = listTemplates(status);
+    templateListCache.set(key, entry);
+    entry.catch(() => templateListCache.delete(key));
+  }
+  return entry;
+}
+
+/** Real prefetch trigger — call the moment a case is clicked in the
+ *  worklist, well before navigation to the report page completes, so
+ *  both requests are already in flight (or resolved) by the time
+ *  RightSynopticPanel.tsx actually needs them. Deliberately takes the
+ *  template id directly rather than re-fetching the case to find it —
+ *  the worklist already has the full case object in memory at click
+ *  time, so there's no reason to pay a second round trip just to learn
+ *  something already known. */
+export function prefetchTemplateData(templateId: string | undefined): void {
+  if (!templateId) return;
+  getTemplateCached(templateId).catch(() => {});
+  listTemplatesCached('approved').catch(() => {});
+}
+
 // â”€â”€â”€ GET /api/templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function listTemplates(
   status?: TemplateStatus | TemplateStatus[]
@@ -221,6 +274,19 @@ export async function getTemplate(id: string): Promise<TemplateDetail> {
 }
 
 // â”€â”€â”€ POST /api/templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Real fix, found via a direct audit: this used to hardcode
+// owner: 'Current User' with a `// TODO: replace with auth context`
+// comment — every template ever saved through this function got
+// credited to a literal, fake name regardless of who actually saved
+// it. getSessionUser() already exists and is used throughout this app;
+// this just wires it in here too, with an honest fallback ('Unknown
+// User', not a guess) for the genuinely-unauthenticated edge case.
+function resolveOwnerDisplayName(): string {
+  const session = getSessionUser();
+  if (!session?.firstName && !session?.lastName) return 'Unknown User';
+  return formatFullDisplayName(fromLegacyName(session.firstName ?? '', session.lastName ?? ''));
+}
+
 export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResult> {
   await delay(400);
 
@@ -237,7 +303,7 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
     status:       'draft',
     fields:       template.sections.reduce((n, s) => n + s.fields.length, 0),
     lastModified: ts.slice(0, 10),
-    owner:        'Current User',  // TODO: replace with auth context
+    owner:        resolveOwnerDisplayName(),
   });
 
   console.info(`[templateService] Draft saved: ${template.name} (${template.id})`);

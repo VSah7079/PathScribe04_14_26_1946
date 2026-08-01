@@ -19,6 +19,14 @@ import {
 interface PatientHistoryModalProps {
   patientName: string;
   mrn: string;
+  /** The real second patient identifier, per the Joint Commission's
+   *  National Patient Safety Goal requiring a minimum of two identifiers
+   *  for patient-identification-critical actions — explicitly including
+   *  laboratory specimens and requisitions. Surfacing another patient's
+   *  history/AI-matched cases off a single, possibly-mistyped or
+   *  cross-facility-ambiguous MRN is exactly the kind of error that
+   *  requirement exists to prevent. See the real gate below. */
+  dateOfBirth: string;
   onClose: () => void;
 }
 
@@ -306,7 +314,7 @@ function FullReport({ item }: { item: ReportItem }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function PatientHistoryModal({ patientName, mrn, onClose }: PatientHistoryModalProps) {
+export default function PatientHistoryModal({ patientName, mrn, dateOfBirth, onClose }: PatientHistoryModalProps) {
   const [view, setView]                     = useState<'list' | 'report'>('list');
   const [selectedItem, setSelectedItem]     = useState<ReportItem | null>(null);
   const [selectedSource, setSelectedSource] = useState<ReportSource | null>(null);
@@ -316,7 +324,23 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
   const navigate = useNavigate();
   const { setCrumbs } = useBreadcrumb();
   const { requestNavigate } = useDirtyState();
-  const history = MOCK_PRIOR_PATHOLOGY[mrn] ?? [];
+
+  // Real safety gate, not a formality: MRN alone doesn't meet the
+  // Joint Commission's two-identifier minimum for patient-identification
+  // -critical actions (explicitly including lab specimens/requisitions),
+  // and ONC's own definition of patient matching requires linking
+  // multiple demographic fields at minimum. Refusing to proceed on a
+  // single identifier here is the real fix, not a cosmetic warning —
+  // showing a wrong patient's oncology history is a materially worse
+  // outcome than showing nothing. The underlying mock history data
+  // (MOCK_PRIOR_PATHOLOGY) is itself only MRN-keyed, which is a real,
+  // separate limitation of the demo data layer — this gate is what a
+  // real patient-master-index lookup would also need to enforce before
+  // ever considering an MRN a safe match; see
+  // backend-requirements-concurrency-security.md for the production
+  // version of this requirement.
+  const hasSufficientIdentifiers = !!mrn && !!dateOfBirth;
+  const history = hasSufficientIdentifiers ? (MOCK_PRIOR_PATHOLOGY[mrn] ?? []) : [];
   const [showCompose, setShowCompose] = useState(false);
   const [composeNote, setComposeNote]  = useState('');
   const [sending, setSending]          = useState(false);
@@ -376,11 +400,12 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
 
   // On mount: run AI similarity search using this patient's history as context
   useEffect(() => {
+    if (!hasSufficientIdentifiers) { setAiLoading(false); return; }
     setAiLoading(true);
     findSimilarCases(mrn)
       .then(setAiMatches)
       .finally(() => setAiLoading(false));
-  }, [mrn]);
+  }, [mrn, hasSufficientIdentifiers]);
 
   function openReport(item: ReportItem, source: ReportSource) {
     setSelectedItem(item);
@@ -437,7 +462,12 @@ export default function PatientHistoryModal({ patientName, mrn, onClose }: Patie
             {/* Left: Prior Pathology */}
             <div style={{ ...S.panel, borderRight: border }}>
               <div style={S.panelTitle}>Prior Pathology</div>
-              {history.length === 0 ? (
+              {!hasSufficientIdentifiers ? (
+                <div style={S.emptyState}>
+                  Cannot safely retrieve patient history — this patient record is missing {!mrn && !dateOfBirth ? 'an MRN and date of birth' : !mrn ? 'an MRN' : 'a date of birth'}.
+                  A minimum of two patient identifiers is required before surfacing prior case history.
+                </div>
+              ) : history.length === 0 ? (
                 <div style={S.emptyState}>No prior pathology cases on record.</div>
               ) : (
                 history.map(item => (

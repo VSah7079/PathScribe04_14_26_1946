@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { ORCH_ID_PREFIX, isOrchCaseId, formatOrchCaseId } from '@/services/cases/reportingModeRouting';
 import { evaluateGrossingTemplateAssignment } from '@/services/cases/mockCaseService';
 import { mockClientService, Client } from '@/services/clients/mockClientService';
 import { mockSpecimenCategoryService } from '@/services/specimenCategories/mockSpecimenCategoryService';
@@ -76,6 +77,7 @@ import { SuffixSelect } from '@/components/Common/SuffixSelect';
 import { formatFullDisplayName } from '@/utils/personName';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { getHospitalIdForOrganisation, getOrganisationDisplayName, getOrganisationByHospitalId } from '@/services/organisation/organisationService';
+import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
 import { mockCaseRegistryService } from '@/services/caseRegistry/mockCaseRegistryService';
 import { PATIENT_ID_BY_JURISDICTION } from '@/types/systemConfig';
 import { SpecimenDictionaryPicker } from '@/components/SpecimenPicker/SpecimenDictionaryPicker';
@@ -803,11 +805,11 @@ const AccessionPage: React.FC = () => {
     const res = await caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true });
     const existingNums = (res.ok ? res.data : [])
       .map(c => c.id)
-      .filter(id => id.startsWith('O26-'))
-      .map(id => parseInt(id.slice(4), 10))
+      .filter(isOrchCaseId)
+      .map(id => parseInt(id.slice(ORCH_ID_PREFIX.length), 10))
       .filter(n => !isNaN(n));
     const next = (existingNums.length ? Math.max(...existingNums) : 0) + 1;
-    return `O26-${String(next).padStart(4, '0')}`;
+    return formatOrchCaseId(next);
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────
@@ -947,6 +949,29 @@ const AccessionPage: React.FC = () => {
         };
       });
 
+      // Real MPI resolution — replaces the previous `OPAT-${caseId}` id,
+      // which was derived from the CASE, not the person: the same
+      // real-world patient with two different cases got two completely
+      // unrelated patient ids, and there was no actual person-level
+      // identity anywhere in the data model. Scoped to this case's own
+      // organisation (MPI, not EMPI — see IPatientIndexService.ts's own
+      // doc comment on why cross-tenant matching would be a privacy
+      // problem, not a feature). 'ambiguous' still returns a real,
+      // usable patientId (accessioning can't halt on it) but flags the
+      // record for a real admin review rather than silently guessing.
+      const mpiOrgId = originOrganisation?.id ?? originHospitalId;
+      const mpiResult = await mockPatientIndexService.resolveOrCreatePatient({
+        organisationId: mpiOrgId,
+        mrn: mrn.trim() || `AUTO-${caseId.slice(4)}`,
+        firstName: givenNames.trim(),
+        lastName: familyNames.trim(),
+        dateOfBirth: new Date(dob).toISOString(),
+        sourceAccession: fullAccession,
+      });
+      if (mpiResult.outcome === 'ambiguous') {
+        toast.warning(`Patient match needs review: ${mpiResult.reason}`);
+      }
+
       const newCase: Case = {
         id: caseId,
         reportingMode: 'orchestrator',
@@ -975,7 +1000,7 @@ const AccessionPage: React.FC = () => {
         originEnterpriseId: originOrganisation?.enterpriseId ?? 'ENT-DEFAULT',
         status: 'accessioned' as any,
         patient: {
-          id: `OPAT-${caseId.slice(4)}`,
+          id: mpiResult.patientId,
           mrn: mrn.trim() || `AUTO-${caseId.slice(4)}`,
           namePrefix: namePrefix.trim() || undefined,
           givenNames: givenNames.trim(),
