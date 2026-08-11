@@ -104,29 +104,29 @@ const FppeAssignmentsSection: React.FC = () => {
       {showForm && (
         <div className="ps-conf-table-wrap" style={{ padding: 20, marginBottom: 20 }}>
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Provisional Hire</label>
-            <select className="ps-conf-select" value={provisionalUserId} onChange={e => setProvisionalUserId(e.target.value)}>
+            <label className="ps-conf-label" htmlFor="fppe-provisional">Provisional Hire</label>
+            <select id="fppe-provisional" className="ps-conf-select" value={provisionalUserId} onChange={e => setProvisionalUserId(e.target.value)}>
               <option value="">Select…</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
             </select>
           </div>
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Proctor</label>
-            <select className="ps-conf-select" value={proctorUserId} onChange={e => setProctorUserId(e.target.value)}>
+            <label className="ps-conf-label" htmlFor="fppe-proctor">Proctor</label>
+            <select id="fppe-proctor" className="ps-conf-select" value={proctorUserId} onChange={e => setProctorUserId(e.target.value)}>
               <option value="">Select…</option>
               {users.filter(u => u.id !== provisionalUserId).map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
             </select>
           </div>
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Subspecialty scope — optional</label>
-            <select className="ps-conf-select" value={subspecialtyId} onChange={e => setSubspecialtyId(e.target.value)}>
+            <label className="ps-conf-label" htmlFor="fppe-subspecialty">Subspecialty scope — optional</label>
+            <select id="fppe-subspecialty" className="ps-conf-select" value={subspecialtyId} onChange={e => setSubspecialtyId(e.target.value)}>
               <option value="">All subspecialties</option>
               {subspecialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Review period ends when</label>
-            <select className="ps-conf-select" value={endConditionType} onChange={e => setEndConditionType(e.target.value as EndConditionType)}>
+            <label className="ps-conf-label" htmlFor="fppe-end-condition">Review period ends when</label>
+            <select id="fppe-end-condition" className="ps-conf-select" value={endConditionType} onChange={e => setEndConditionType(e.target.value as EndConditionType)}>
               <option value="either">Case count OR duration, whichever is sooner</option>
               <option value="case_count">Case count reached</option>
               <option value="duration_days">Duration elapsed</option>

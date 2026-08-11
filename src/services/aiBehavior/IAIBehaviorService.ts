@@ -14,7 +14,7 @@ export interface AIBehaviorConfig {
   macroSuggestions:       boolean;
 }
 
-export const DEFAULT_AI_BEHAVIOR_CONFIG: AIBehaviorConfig = {
+const DEFAULT_AI_BEHAVIOR_CONFIG: AIBehaviorConfig = {
   confidenceThreshold:   75,
   autoInsertSuggestions: false,
   showConfidenceScores:  true,

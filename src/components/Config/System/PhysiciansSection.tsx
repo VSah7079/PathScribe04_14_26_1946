@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
-import { physicianService, clientService } from '../../../services';
+import { physicianService, facilityService } from '../../../services';
 import type { Physician } from '../../../services';
 import { SuffixSelect } from '../../Common/SuffixSelect';
 import { formatFullDisplayName } from '../../../utils/personName';
@@ -97,8 +97,8 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, client
           {/* Name */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Prefix</label>
-              <select className="ps-conf-select" value={draft.namePrefix ?? ''} onChange={e => set('namePrefix', e.target.value)}>
+              <label className="ps-conf-label" htmlFor="physician-prefix">Prefix</label>
+              <select id="physician-prefix" className="ps-conf-select" value={draft.namePrefix ?? ''} onChange={e => set('namePrefix', e.target.value)}>
                 <option value="">None</option>
                 <option value="Mr.">Mr.</option>
                 <option value="Mrs.">Mrs.</option>
@@ -162,8 +162,8 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, client
               <input className="ps-conf-input" value={draft.email} onChange={e => set('email', e.target.value)} placeholder="dr@clinic.org" />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Preferred Contact</label>
-              <select className="ps-conf-select" value={draft.preferredContact} onChange={e => set('preferredContact', e.target.value)}>
+              <label className="ps-conf-label" htmlFor="physician-preferred-contact">Preferred Contact</label>
+              <select id="physician-preferred-contact" className="ps-conf-select" value={draft.preferredContact} onChange={e => set('preferredContact', e.target.value)}>
                 <option value="Email">Email</option>
                 <option value="Fax">Fax</option>
                 <option value="Phone">Phone</option>
@@ -179,15 +179,15 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, client
 
           {/* Client Affiliations */}
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Client Affiliations</label>
+            <label className="ps-conf-label">Facility Affiliations</label>
             <div className="ps-conf-picker">
               <div className="ps-conf-picker-search-wrap">
-                <input type="text" placeholder="Search clients..." value={clientSearch}
+                <input type="text" placeholder="Search facilities..." value={clientSearch}
                   onChange={e => setClientSearch(e.target.value)} className="ps-conf-picker-search" />
               </div>
               <div className="ps-conf-picker-list">
                 {filteredClients.length === 0
-                  ? <div className="ps-conf-picker-empty">No clients match.</div>
+                  ? <div className="ps-conf-picker-empty">No facilities match.</div>
                   : filteredClients.map(c => {
                       const checked = draft.clientIds.includes(c.id);
                       return (
@@ -238,7 +238,7 @@ const PhysiciansSection: React.FC = () => {
   useEffect(() => {
     Promise.all([
       physicianService.getAll(),
-      clientService.getAll(),
+      facilityService.getAll(),
     ]).then(([physRes, clientRes]) => {
       if (physRes.ok)   setPhysicians(physRes.data);
       if (clientRes.ok) setClients(clientRes.data.map(c => ({ id: c.id, name: c.name })));
@@ -276,7 +276,7 @@ const PhysiciansSection: React.FC = () => {
       <div className="ps-conf-section-header">
         <div>
           <h3 className="ps-conf-section-title">Physicians</h3>
-          <p className="ps-conf-section-subtitle">Manage ordering and submitting physicians and their client affiliations.</p>
+          <p className="ps-conf-section-subtitle">Manage ordering and submitting physicians and their facility affiliations.</p>
         </div>
         <button className="ps-conf-btn-primary" onClick={() => setModal({ mode: 'add' })}>+ Add Physician</button>
       </div>

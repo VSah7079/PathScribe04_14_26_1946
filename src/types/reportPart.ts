@@ -20,7 +20,7 @@
 //             Body parts are the primary authoring target.
 // ─────────────────────────────────────────────────────────────
 
-import type { TemplateNode, AiGenerationConfig } from './template';
+import type { TemplateNode, AiGenerationConfig, LabelConfig } from './template';
 
 // ── Part type ──────────────────────────────────────────────────
 
@@ -183,6 +183,32 @@ export interface ReportTemplate {
 
   /** Whether AI narrative generation is enabled */
   orchestrationEnabled: boolean;
+
+  /**
+   * Real feature, per direct request: "most everything gets rendered
+   * in Arial 10pt... perhaps we define those [header/body/footer] per
+   * template which then get passed down to the individual
+   * components. Individual components can override them."
+   *
+   * Step 2 complete: header/footer now render through the real
+   * pipeline (see ReportPreviewRenderer.tsx's case 'header'/'footer'
+   * and resolveTemplateSections in contextBuilder.ts), so all three
+   * categories are meaningful here now.
+   *
+   * Applied at each section's own container (see
+   * ReportPreviewRenderer.tsx's rp-inst-header/rp-footer) and left to
+   * cascade via ordinary CSS inheritance — every node's label and
+   * value text picks it up automatically unless that specific node
+   * sets its own labelConfig, which wins at that node the same way
+   * any inline style overrides an inherited one. No merge logic
+   * needed; this is the same mechanism the browser already uses for
+   * font-family everywhere else.
+   */
+  documentStyle?: {
+    header?: LabelConfig;
+    body?: LabelConfig;
+    footer?: LabelConfig;
+  };
 
   institutionId: string;
   createdBy: string;

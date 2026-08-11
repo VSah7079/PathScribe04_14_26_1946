@@ -39,11 +39,11 @@ interface Props {
 
 // ── Primitive field components ─────────────────────────────────
 
-const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+export const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="ps-tinsp-label">{children}</div>
 );
 
-const TextInput: React.FC<{
+export const TextInput: React.FC<{
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -73,7 +73,7 @@ const Textarea: React.FC<{
   />
 );
 
-const Toggle: React.FC<{
+export const Toggle: React.FC<{
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
@@ -89,7 +89,7 @@ const Toggle: React.FC<{
   </label>
 );
 
-const Sel: React.FC<{
+export const Sel: React.FC<{
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
@@ -104,7 +104,7 @@ const Sel: React.FC<{
   </select>
 );
 
-const Div: React.FC<{ label: string }> = ({ label }) => (
+export const Div: React.FC<{ label: string }> = ({ label }) => (
   <div className="ps-tinsp-divider">{label}</div>
 );
 
@@ -747,8 +747,18 @@ export const TemplateInspector: React.FC<Props> = ({ node, onUpdate }) => {
         {node.type === 'footer'           && <FooterEditor         node={node} u={u} />}
         {node.type === 'image-embed'      && <ImageEmbedEditor     node={node} u={u} />}
 
-        {/* ── Label formatting (all types except containers) ── */}
-        {!['section', 'column-layout', 'repeat-group', 'if-block', 'switch-block', 'header', 'footer', 'page-break', 'static-label', 'rich-text-block'].includes(node.type) && (
+        {/* ── Label formatting (all types except containers) ──
+             Real fix, per direct confirmation: 'section' removed from
+             this exclusion — a section's printHeading is real, visible
+             text in the rendered report (see ReportPreviewRenderer.tsx's
+             rp-node-section-heading), exactly the kind of label this
+             panel exists to style. It was excluded here alongside
+             genuine non-applicable containers (column-layout,
+             repeat-group, if-block, switch-block — structural wrappers
+             with no label of their own) for no distinguishing reason;
+             checked directly, node.labelConfig was always a valid field
+             on SectionNode via BaseNode, just never exposed. */}
+        {!['column-layout', 'repeat-group', 'if-block', 'switch-block', 'header', 'footer', 'page-break', 'static-label', 'rich-text-block'].includes(node.type) && (
           <>
             <Div label="Label Formatting" />
             <LabelConfigEditor

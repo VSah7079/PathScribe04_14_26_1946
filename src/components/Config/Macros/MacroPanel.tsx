@@ -115,9 +115,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ps-conf-text)', margin: 0 }}>My Macros</h3>
           <button
             onClick={handleCreateNew}
-            style={{ padding: '5px 12px', background: 'var(--ps-conf-teal)', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#0e7490'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--ps-conf-teal)'}
+            className="ps-conf-btn-primary"
           >
             + New
           </button>
@@ -236,18 +234,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
               {selectedMacroId && (
                 <button
                   onClick={handleDelete}
-                  style={{
-                    padding: '9px 20px',
-                    background: 'transparent',
-                    border: '1px solid rgba(239,68,68,0.5)',
-                    borderRadius: '8px',
-                    color: 'var(--ps-conf-red)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = '#EF4444'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; }}
+                  className="ps-btn-ghost-danger"
                 >
                   Delete
                 </button>
@@ -255,19 +242,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
               <button
                 onClick={handleSave}
                 disabled={!isDirty}
-                style={{
-                  padding: '9px 24px',
-                  background: isDirty ? '#0891B2' : 'var(--ps-conf-border)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: isDirty ? '#fff' : '#64748b',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: isDirty ? 'pointer' : 'not-allowed',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={e => { if (isDirty) e.currentTarget.style.background = '#0e7490'; }}
-                onMouseLeave={e => { if (isDirty) e.currentTarget.style.background = 'var(--ps-conf-teal)'; }}
+                className="ps-conf-btn-primary"
               >
                 {selectedMacroId ? 'Save Changes' : 'Create Macro'}
               </button>
@@ -292,7 +267,8 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
             </div>
             <button
               onClick={handleCreateNew}
-              style={{ padding: '10px 24px', background: 'var(--ps-conf-teal)', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
+              className="ps-conf-btn-primary"
+              style={{ marginTop: '8px' }}
             >
               + Create New Macro
             </button>

@@ -22,6 +22,9 @@ import { mockReportTemplateService } from '../../services/reportTemplates/mockRe
 import { TemplatePreviewPanel } from './TemplatePreviewPanel';
 import type { ReportTemplate as OldTemplate } from '../../types/template';
 import { mockReportPartService, onReportPartsChanged } from '../../services/reportParts/mockReportPartService';
+import type { LabelConfig } from '../../types/template';
+import { Label, TextInput, Toggle, Sel } from './TemplateInspector';
+import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyleDefault } from '../Config/System/documentStyleConfig';
 
 const svc  = mockReportTemplateService;
 const pSvc = mockReportPartService;
@@ -335,6 +338,77 @@ const AddSlotRow: React.FC<{ role: AssemblyRole; onAdd: () => void; activeRole?:
   </button>
 );
 
+// ── Document style editor ──────────────────────────────────────
+// Real feature, per direct request: template-wide default body style
+// ("most everything gets rendered in Arial 10pt"), cascading to every
+// component via ordinary CSS inheritance (see
+// ReportPreviewRenderer.tsx). No "position" control here — unlike
+// LabelConfigEditor (TemplateInspector.tsx, per-field styling),
+// there's no single "label" to position at the whole-document level;
+// this editor only exposes the properties that are actually
+// meaningful at this scope.
+
+const FONT_FAMILY_OPTIONS = [
+  { value: 'Arial',           label: 'Arial' },
+  { value: 'Helvetica',       label: 'Helvetica' },
+  { value: 'Times New Roman', label: 'Times New Roman' },
+  { value: 'Georgia',         label: 'Georgia' },
+  { value: 'Calibri',         label: 'Calibri' },
+  { value: 'Verdana',         label: 'Verdana' },
+  { value: 'Courier New',     label: 'Courier New' },
+];
+
+const DocumentStyleEditor: React.FC<{ style: LabelConfig; onChange: (s: LabelConfig) => void }> = ({ style, onChange }) => (
+  <div className="ps-tinsp-stack">
+    <Label>Font family</Label>
+    <Sel value={style.fontFamily ?? 'Arial'} onChange={v => onChange({ ...style, fontFamily: v })}
+      options={FONT_FAMILY_OPTIONS} fullWidth />
+
+    <Label>Font size (px)</Label>
+    <TextInput
+      value={String(style.fontSize ?? 10)}
+      onChange={v => onChange({ ...style, fontSize: parseInt(v) || 10 })}
+      placeholder="10"
+    />
+
+    <div className="ps-tinsp-row" style={{ marginTop: 4 }}>
+      <Toggle
+        checked={style.weight === 'bold'}
+        onChange={v => onChange({ ...style, weight: v ? 'bold' : 'normal' })}
+        label="Bold"
+      />
+      <Toggle
+        checked={style.decoration === 'underline'}
+        onChange={v => onChange({ ...style, decoration: v ? 'underline' : 'none' })}
+        label="Underline"
+      />
+    </div>
+
+    <Label>Text transform</Label>
+    <Sel value={style.transform ?? 'none'} onChange={v => onChange({ ...style, transform: v as LabelConfig['transform'] })}
+      options={[
+        { value: 'none',       label: 'As typed' },
+        { value: 'uppercase',  label: 'UPPERCASE' },
+        { value: 'capitalize', label: 'Capitalize' },
+      ]} fullWidth />
+
+    <div
+      style={{
+        marginTop: 8, padding: '10px 12px', borderRadius: 6,
+        border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)',
+        fontFamily: style.fontFamily || 'Arial',
+        fontSize: `${style.fontSize ?? 10}px`,
+        fontWeight: style.weight === 'bold' ? 700 : 400,
+        textDecoration: style.decoration === 'underline' ? 'underline' : 'none',
+        textTransform: style.transform === 'uppercase' ? 'uppercase' : style.transform === 'capitalize' ? 'capitalize' : 'none',
+        color: '#f1f5f9',
+      }}
+    >
+      Preview — most report text renders this way unless a component overrides it.
+    </div>
+  </div>
+);
+
 // ── Main page ──────────────────────────────────────────────────
 
 export const TemplateAssemblyPage: React.FC = () => {
@@ -351,6 +425,11 @@ export const TemplateAssemblyPage: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resolvedParts, setResolvedParts] = useState<ReportPart[]>([]);
   const [nameActive, setNameActive] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [styleCategory, setStyleCategory] = useState<'header' | 'body' | 'footer'>('body');
+  const orgDocumentStyleDefault = getOrgDocumentStyleDefault();
+  const orgHeaderStyleDefault = getOrgHeaderStyleDefault();
+  const orgFooterStyleDefault = getOrgFooterStyleDefault();
   // Live id -> Part lookup, kept in sync with the Part Library. Used to resolve
   // each slot's CURRENT part name on render, rather than the frozen partName
   // snapshot stored on the slot at the moment it was added — see Known
@@ -425,7 +504,6 @@ export const TemplateAssemblyPage: React.FC = () => {
       }
     } else {
       // First save — template doesn't exist in store yet, create it
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id: _id, createdAt: _ca, updatedAt: _ua, ...createPayload } = updated;
       const c = await svc.create(createPayload);
       if (c.ok) {
@@ -476,7 +554,6 @@ export const TemplateAssemblyPage: React.FC = () => {
   // IDs already in assembly — shown as ✓ in panel
   const usedPartIds = React.useMemo(
     () => new Set((template?.assembly ?? []).map((s: AssemblySlot) => s.partId)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [template?.assembly]
   );
 
@@ -552,6 +629,9 @@ export const TemplateAssemblyPage: React.FC = () => {
         <div className="ps-tmpla-top-right">
           <span className="ps-tmpla-save-indicator">{saving ? '⟳ Saving…' : '✓ Saved'}</span>
           <StatusBadge status={template.status} />
+          <button onClick={() => setStyleOpen(o => !o)} className="ps-tmpla-btn">
+            🖋 Style
+          </button>
           <button onClick={async () => {
             if (!template) return;
             const slotsInOrder = template.assembly.filter(s => s.enabled);
@@ -568,6 +648,45 @@ export const TemplateAssemblyPage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* ── Document style panel ──
+           Real feature, per direct request. org-default shown as
+           placeholder text when the template hasn't set its own —
+           makes it visible at a glance which layer is actually
+           governing right now, without the template silently
+           inheriting something invisible. */}
+      {styleOpen && (
+        <div className="ps-partb-meta-panel">
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            {(['header', 'body', 'footer'] as const).map(cat => (
+              <button
+                key={cat}
+                onClick={() => setStyleCategory(cat)}
+                className={`ps-partb-btn${styleCategory === cat ? ' ps-partb-btn--grid-on' : ''}`}
+                style={{ textTransform: 'capitalize' }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <div style={{ marginBottom: 10, fontSize: 12, color: '#94a3b8' }}>
+            Default {styleCategory} text style for this template. Falls back to
+            the org-wide {styleCategory} default (
+            {(styleCategory === 'header' ? orgHeaderStyleDefault : styleCategory === 'footer' ? orgFooterStyleDefault : orgDocumentStyleDefault).fontFamily},{' '}
+            {(styleCategory === 'header' ? orgHeaderStyleDefault : styleCategory === 'footer' ? orgFooterStyleDefault : orgDocumentStyleDefault).fontSize}px
+            ) when not set here. Individual components can still override
+            this for specific fields (e.g. Final Diagnosis bold and
+            capitalized).
+          </div>
+          <DocumentStyleEditor
+            style={
+              template.documentStyle?.[styleCategory]
+              ?? (styleCategory === 'header' ? orgHeaderStyleDefault : styleCategory === 'footer' ? orgFooterStyleDefault : orgDocumentStyleDefault)
+            }
+            onChange={next => save({ ...template, documentStyle: { ...template.documentStyle, [styleCategory]: next } })}
+          />
+        </div>
+      )}
 
       {/* ── Body: left panel + canvas ── */}
       <div className="ps-tmpla-body">

@@ -41,6 +41,7 @@ import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { getSessionUser, canAccessCaseWithPools, filterAccessibleCasesWithPools, deriveEligibleFinalizerIds, type CaseAccessSubspecialty } from '../auth/caseAccessControl';
 import { mockSubspecialtyService as subspecialtyService } from '../subspecialties/mockSubspecialtyService';
 import { isOrchCaseId } from './reportingModeRouting';
+import { mergeDualSourcePages } from './caseFilterUtils';
 
 // Real dimension-3 (pool/subspecialty) enforcement needs a lookup of every
 // subspecialty by id to check isWorkgroupEnabled/userIds against a case's
@@ -167,7 +168,43 @@ class CaseRouter implements ICaseService {
     const subspecialties = opts?.bypassAccessControl ? null : await getSubspecialtyLookup();
     const applyFilter = (cases: Case[]) => opts?.bypassAccessControl ? cases : filterAccessibleCasesWithPools(session, cases as any, subspecialties);
 
-    const lisResult = await this.lisService.getAll(params)
+    if (!opts?.includeOrchestration) {
+      // Single-source case — the common path (most users don't have
+      // canViewOrchestration). Pagination passes straight through to the
+      // one real service being queried; no cursor composition needed.
+      const lisResult = await this.lisService.getAll(params)
+        .then(r => {
+          this.lisAudit.log({ eventType: 'case.search', userId, outcome: 'success' });
+          return r;
+        })
+        .catch((): ServiceResult<Case[]> => {
+          this.lisAudit.log({ eventType: 'case.search', userId, outcome: 'failure' });
+          return { ok: false, data: [] } as any;
+        });
+
+      const lisAccessible = lisResult.ok ? applyFilter(lisResult.data as any) : [];
+      const meta = lisResult.ok ? (lisResult as any).meta : undefined;
+      return (meta
+        ? { ok: lisResult.ok, data: lisAccessible, meta }
+        : { ok: lisResult.ok, data: lisAccessible }) as ServiceResult<Case[]>;
+    }
+
+    // Dual-source case (LIS + Orchestration merged) — pagination here is a
+    // real, honest merge-join, not a shortcut. A single cursor value from
+    // one source's own updatedAt ordering may not exist at all in the
+    // other source's dataset, so the cursor this method hands back is a
+    // composite: {lis?: string; orch?: string}, JSON-encoded, decoded back
+    // into each source's own per-source cursor on the next call.
+    type Composite = { lis?: string; orch?: string };
+    let composite: Composite = {};
+    if (params?.cursor) {
+      try { composite = JSON.parse(params.cursor); } catch { /* not a composite cursor — treat as fresh */ }
+    }
+
+    const lisParams = params?.pageSize ? { ...params, cursor: composite.lis } : params;
+    const orchParams = params?.pageSize ? { ...params, cursor: composite.orch } : params;
+
+    const lisResult = await this.lisService.getAll(lisParams)
       .then(r => {
         this.lisAudit.log({ eventType: 'case.search', userId, outcome: 'success' });
         return r;
@@ -177,13 +214,7 @@ class CaseRouter implements ICaseService {
         return { ok: false, data: [] } as any;
       });
 
-    const lisAccessible = lisResult.ok ? applyFilter(lisResult.data as any) : [];
-
-    if (!opts?.includeOrchestration) {
-      return { ok: lisResult.ok, data: lisAccessible } as ServiceResult<Case[]>;
-    }
-
-    const orchResult = await this.orchService.getAll(params)
+    const orchResult = await this.orchService.getAll(orchParams)
       .then(r => {
         this.orchAudit.log({ eventType: 'case.search', userId, outcome: 'success' });
         return r;
@@ -193,12 +224,29 @@ class CaseRouter implements ICaseService {
         return { ok: false, data: [] } as any;
       });
 
+    // Accessibility filtering happens on each source's own fetched batch,
+    // before the merge — so the page returned to the caller is always
+    // genuinely accessible. Honest, known limitation: since pagination
+    // necessarily cuts before this filter runs, a page can come back with
+    // fewer than pageSize items if some of what was fetched isn't
+    // accessible to this user — not a silent bug, a real tradeoff of
+    // paginating ahead of an access check that can't itself be pushed
+    // into the underlying query.
+    const lisAccessible = lisResult.ok ? applyFilter(lisResult.data as any) : [];
     const orchAccessible = orchResult.ok ? applyFilter(orchResult.data as any) : [];
 
-    return {
-      ok: true,
-      data: [...lisAccessible, ...orchAccessible],
-    } as ServiceResult<Case[]>;
+    if (!params?.pageSize) {
+      return {
+        ok: true,
+        data: [...lisAccessible, ...orchAccessible],
+      } as ServiceResult<Case[]>;
+    }
+
+    const merged = mergeDualSourcePages(
+      lisAccessible as any, orchAccessible as any, params.pageSize, composite,
+      { lis: (lisResult as any).meta?.hasMore, orch: (orchResult as any).meta?.hasMore },
+    );
+    return { ok: true, data: merged.data as any, meta: merged.meta } as ServiceResult<Case[]>;
   }
 
   // ── listCasesForUser ─────────────────────────────────────────────────────────

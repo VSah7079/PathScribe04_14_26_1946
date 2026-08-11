@@ -26,8 +26,8 @@ import React, { useEffect, useState } from 'react';
 import '../../../pathscribe.css';
 import { mockExternalResourceService } from '@/services/externalResources/mockExternalResourceService';
 import type { ExternalResource, ExternalResourceCategory, ExternalResourceScope } from '@/services/externalResources/IExternalResourceService';
-import { mockClientService } from '@/services/clients/mockClientService';
-import type { Client } from '@/services/clients/IClientService';
+import { mockFacilityService } from '@/services/facilities/mockFacilityService';
+import type { Facility as Client } from '@/services/facilities/IFacilityService';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import ConfirmModal from '../../Common/ConfirmModal';
 
@@ -70,8 +70,8 @@ const ExternalResourcesSection: React.FC = () => {
 
   useEffect(() => {
     loadResources();
-    mockClientService.getAll().then(res => {
-      if (res.ok) setLabs(res.data.filter(c => c.clientType === 'internal' && c.status === 'Active'));
+    mockFacilityService.getAll().then(res => {
+      if (res.ok) setLabs(res.data.filter(c => c.roles.includes('performing_lab') && c.status === 'Active'));
     });
   }, [loadResources]);
 
@@ -206,8 +206,9 @@ const ExternalResourcesSection: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="ps-conf-label" style={{ display: 'block', marginBottom: 4 }}>Category</label>
+                <label className="ps-conf-label" style={{ display: 'block', marginBottom: 4 }} htmlFor="extres-category">Category</label>
                 <select
+                  id="extres-category"
                   className="ps-conf-select"
                   style={{ width: '100%' }}
                   value={draft.category}
@@ -219,8 +220,9 @@ const ExternalResourcesSection: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="ps-conf-label" style={{ display: 'block', marginBottom: 4 }}>Scope</label>
+                <label className="ps-conf-label" style={{ display: 'block', marginBottom: 4 }} htmlFor="extres-scope">Scope</label>
                 <select
+                  id="extres-scope"
                   className="ps-conf-select"
                   style={{ width: '100%' }}
                   value={draft.scope}
@@ -232,8 +234,9 @@ const ExternalResourcesSection: React.FC = () => {
               </div>
               {draft.scope === 'lab' && (
                 <div>
-                  <label className="ps-conf-label" style={{ display: 'block', marginBottom: 4 }}>Performing Lab</label>
+                  <label className="ps-conf-label" style={{ display: 'block', marginBottom: 4 }} htmlFor="extres-client">Performing Lab</label>
                   <select
+                    id="extres-client"
                     className="ps-conf-select"
                     style={{ width: '100%' }}
                     value={draft.clientId}

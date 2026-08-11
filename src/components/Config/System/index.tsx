@@ -10,20 +10,21 @@ import SpecimenCategoriesSection from './SpecimenCategoriesSection';
 import ContainerTypesSection from './ContainerTypesSection';
 import SubspecialtiesSection     from './SubspecialtiesSection';
 import FontsSection              from './FontsSection';
-import LISSection                from './LISSection';
+import DocumentStyleSection      from './DocumentStyleSection';
 import RetentionSection          from './RetentionSection';
 import { ClientDictionaryPage }  from '../../../pages/system/ClientDictionaryPage';
 import PhysiciansSection         from './PhysiciansSection'; 
 import DeficienciesSection       from './DeficienciesSection';
-import IdentifierFormatsSection  from './IdentifierFormatsSection';
 import GoverningBodiesSection    from './GoverningBodiesSection';
 import DelegationTypeSection     from './DelegationTypeSection';
+import RvuCodeMapSection         from './RvuCodeMapSection';
 import ParticipationTypesSection from './ParticipationTypesSection';
 import CasePoolAssignmentSection from './CasePoolAssignmentSection';
 import RoutingRulesSection       from './RoutingRulesSection';
-import TerminologyServicesSection from '../Terminology/TerminologyServicesSection';
 import SessionSecuritySection    from './SessionSecuritySection';
+import ContributionSettingsSection from './ContributionSettingsSection';
 import ExternalResourcesSection  from './ExternalResourcesSection';
+import ResearchFeedSection      from './ResearchFeedSection';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -35,22 +36,23 @@ type SystemSection =
   | 'specimen_categories'
   | 'container_types'
   | 'fonts'
-  | 'lis'
+  | 'document_style'
   | 'retention'
   | 'session_security'
+  | 'contribution_settings'
   | 'external_resources'
+  | 'research_feed'
   | 'clients'
   | 'physicians'
   | 'protocols'
   | 'grossing_route_overrides'
   | 'deficiencies'
-  | 'identifiers'
   | 'governing_bodies'
   | 'delegation_types'
+  | 'rvu_code_map'
   | 'participation_types'
   | 'case_routing'
-  | 'routing_rules'
-  | 'terminology';
+  | 'routing_rules';
 
 // Alphabetical by label
 // Grouped by verified dependency, not alphabetized. Group boundaries reflect
@@ -65,32 +67,33 @@ type SystemSection =
 const SECTIONS: { id: SystemSection; emoji: string; label: string; group: string }[] = [
   // ── Foundational / independent — no confirmed dependency in either direction ──
   { id: 'fonts',               emoji: '🔤', label: 'Approved Fonts'        , group: 'Independent' },
+  { id: 'document_style',      emoji: '🖋', label: 'Document Style'        , group: 'Independent' },
   { id: 'case_routing',        emoji: '🔀', label: 'Case Routing'          , group: 'Independent' },
   { id: 'container_types',     emoji: '🧪', label: 'Container Types'       , group: 'Independent' },
   { id: 'retention',           emoji: '🗄️', label: 'Data Retention'        , group: 'Independent' },
   { id: 'delegation_types',    emoji: '🔀', label: 'Delegation Types'      , group: 'Independent' },
   { id: 'flags',               emoji: '🚩', label: 'Flags'                 , group: 'Independent' },
-  { id: 'identifiers',         emoji: '🔍', label: 'Identifier Formats'    , group: 'Independent' },
-  { id: 'lis',                 emoji: '🔗', label: 'LIS Integration'       , group: 'Independent' },
   { id: 'participation_types', emoji: '👥', label: 'Participation Types'   , group: 'Independent' },
   { id: 'protocols',           emoji: '🧬', label: 'Protocol Dictionary'   , group: 'Independent' },
   { id: 'deficiencies',        emoji: '⚠️', label: 'Specimen Deficiencies' , group: 'Independent' },
   { id: 'stains',              emoji: '🧪', label: 'Stain Dictionary'      , group: 'Independent' },
   { id: 'session_security',    emoji: '🔒', label: 'Session Security'      , group: 'Independent' },
+  { id: 'contribution_settings', emoji: '📊', label: 'Contribution Dashboard' , group: 'Independent' },
   { id: 'external_resources',  emoji: '🌐', label: 'External Resources'    , group: 'Independent' },
+  { id: 'research_feed',       emoji: '📰', label: 'Research Feed'         , group: 'Independent' },
+  { id: 'rvu_code_map',        emoji: '💲', label: 'RVU Code Map'          , group: 'Independent' },
 
   // ── Reference data — real dependents exist below, set these up first ──
-  { id: 'clients',             emoji: '🏥', label: 'Client Dictionary'     , group: 'Reference Data (set up first)' },
+  { id: 'clients',             emoji: '🏥', label: 'Facility Configuration' , group: 'Reference Data (set up first)' },
   { id: 'governing_bodies',    emoji: '📋', label: 'Governing Bodies'      , group: 'Reference Data (set up first)' },
   { id: 'specimen_categories', emoji: '🗂️', label: 'Specimen Categories'   , group: 'Reference Data (set up first)' },
   { id: 'subspecialties',      emoji: '🩺', label: 'Subspecialties'        , group: 'Reference Data (set up first)' },
 
   // ── Dependent settings — each references a real field from a group above ──
-  { id: 'grossing_route_overrides', emoji: '🔀', label: 'Grossing Route Overrides — uses Client Dictionary' , group: 'Depends on reference data above' },
-  { id: 'physicians',          emoji: '🩻', label: 'Physicians — uses Client Dictionary'                    , group: 'Depends on reference data above' },
+  { id: 'grossing_route_overrides', emoji: '🔀', label: 'Grossing Route Overrides — uses Facility Configuration' , group: 'Depends on reference data above' },
+  { id: 'physicians',          emoji: '🩻', label: 'Physicians — uses Facility Configuration'                    , group: 'Depends on reference data above' },
   { id: 'routing_rules',       emoji: '📋', label: 'Routing Rules — uses Subspecialties'                    , group: 'Depends on reference data above' },
   { id: 'specimens',           emoji: '🔬', label: 'Specimen Dictionary — uses Specimen Categories'         , group: 'Depends on reference data above' },
-  { id: 'terminology',         emoji: '🔌', label: 'Terminology Services — uses Governing Bodies'           , group: 'Depends on reference data above' },
 ];
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -119,20 +122,21 @@ const SystemTab: React.FC = () => {
       case 'specimen_categories': return <SpecimenCategoriesSection />;
       case 'container_types': return <ContainerTypesSection />;
       case 'fonts':               return <FontsSection />;
-      case 'lis':                 return <LISSection />;
+      case 'document_style':      return <DocumentStyleSection />;
       case 'retention':           return <RetentionSection />;
       case 'clients':             return <ClientDictionaryPage />;
-      case 'identifiers':         return <IdentifierFormatsSection />;
       case 'governing_bodies':    return <GoverningBodiesSection isSuperAdmin={true} />;
       case 'delegation_types':    return <DelegationTypeSection />;
+      case 'rvu_code_map':        return <RvuCodeMapSection />;
       case 'participation_types': return <ParticipationTypesSection />;
       case 'physicians':          return <PhysiciansSection />;
       case 'deficiencies':        return <DeficienciesSection />;
       case 'case_routing':        return <CasePoolAssignmentSection />;
       case 'routing_rules':       return <RoutingRulesSection />;
-      case 'terminology':         return <TerminologyServicesSection isSuperAdmin={true} />;
       case 'session_security':    return <SessionSecuritySection />;
+      case 'contribution_settings': return <ContributionSettingsSection />;
       case 'external_resources':  return <ExternalResourcesSection />;
+      case 'research_feed':       return <ResearchFeedSection />;
       default:                    return null;
     }
   };

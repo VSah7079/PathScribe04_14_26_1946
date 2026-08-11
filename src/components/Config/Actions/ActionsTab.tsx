@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { mockActionRegistryService } from '../../../services/actionRegistry/mockActionRegistryService';
 import { SystemAction } from '../../../services/actionRegistry/IActionRegistryService';
+import { toTitleCase } from '../../../utils/formatLabel';
 
 export const ActionsTab: React.FC = () => {
   const [actions, setActions] = useState<SystemAction[]>(mockActionRegistryService.getActions());
@@ -236,7 +237,7 @@ export const ActionsTab: React.FC = () => {
           <p style={{ color: 'var(--ps-conf-text-2)' }}>Admin-only command configuration. Keyboard shortcuts must be unique system-wide.</p>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <button onClick={exportCurrentRegistry} className="ps-conf-action-link">Download Template</button>
+            <button onClick={exportCurrentRegistry} className="ps-conf-btn-secondary">Download Template</button>
             <button onClick={() => fileInputRef.current?.click()} className="ps-conf-btn-secondary">📥 Bulk Import</button>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".csv" />
         </div>
@@ -246,7 +247,7 @@ export const ActionsTab: React.FC = () => {
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
         {filterOptions.map(cat => (
-          <button key={cat} onClick={() => setSelectedCategory(cat)} className={`ps-conf-category-btn${selectedCategory === cat ? ' active' : ''}`}>{cat}</button>
+          <button key={cat} onClick={() => setSelectedCategory(cat)} className={`ps-conf-category-btn${selectedCategory === cat ? ' active' : ''}`}>{cat === 'All' ? cat : toTitleCase(cat)}</button>
         ))}
       </div>
 
@@ -264,7 +265,7 @@ export const ActionsTab: React.FC = () => {
             {displayedCategories.map(cat => (
               <React.Fragment key={cat}>
                 <tr style={{ background: 'rgba(10,15,30,0.98)', borderTop: '1px solid rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.15)', position: 'sticky', top: '41px', zIndex: 1 }}>
-                  <td colSpan={4} style={{ padding: '10px 12px', fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>{cat}</td>
+                  <td colSpan={4} style={{ padding: '10px 12px', fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>{toTitleCase(cat)}</td>
                 </tr>
                 {filteredActions.filter(a => a.category === cat).map((action) => (
                   <tr key={action.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -335,7 +336,7 @@ export const ActionsTab: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingAction(null)} className="fm-btn-cancel">Cancel</button>
-              <button onClick={handleSave} className="ps-btn-primary" disabled={!!shortcutError}>
+              <button onClick={handleSave} className="ps-conf-btn-primary" disabled={!!shortcutError}>
                 SAVE CHANGES
               </button>
             </div>

@@ -289,7 +289,7 @@ export const TemplateRenderer: React.FC = () => {
       const raw = localStorage.getItem(STATE_KEY);
       if (raw) { setState(raw as TemplateLifecycleState); hasStoredState.current = true; }
     } catch {}
-  }, [templateId]);
+  }, [templateId, ANSWERS_KEY, STATE_KEY]);
 
   // ── Load real template content ─────────────────────────────────────────────
   useEffect(() => {
@@ -344,7 +344,7 @@ export const TemplateRenderer: React.FC = () => {
   const handleSingleChange = (fieldId: string, optionId: string) => {
     const prev = answers[fieldId];
     persistAnswers({ ...answers, [fieldId]: optionId });
-    auditOnly({ category: 'user', action: 'set_single_answer' as any, templateId, questionId: fieldId, oldValue: prev, newValue: optionId });
+    auditOnly({ user: currentUser, category: 'user', action: 'set_single_answer', templateId, questionId: fieldId, oldValue: prev, newValue: optionId });
   };
 
   const handleMultiChange = (fieldId: string, optionId: string) => {
@@ -353,13 +353,13 @@ export const TemplateRenderer: React.FC = () => {
     const nextArray = exists ? current.filter(id => id !== optionId) : [...current, optionId];
     const prev      = answers[fieldId];
     persistAnswers({ ...answers, [fieldId]: nextArray });
-    auditOnly({ category: 'user', action: exists ? 'remove_multi_answer' : 'add_multi_answer' as any, templateId, questionId: fieldId, oldValue: prev, newValue: nextArray });
+    auditOnly({ user: currentUser, category: 'user', action: exists ? 'remove_multi_answer' : 'add_multi_answer', templateId, questionId: fieldId, oldValue: prev, newValue: nextArray });
   };
 
   const handleTextChange = (fieldId: string, value: string) => {
     const prev = answers[fieldId];
     persistAnswers({ ...answers, [fieldId]: value });
-    auditOnly({ category: 'user', action: 'set_text_answer' as any, templateId, questionId: fieldId, oldValue: prev, newValue: value });
+    auditOnly({ user: currentUser, category: 'user', action: 'set_text_answer', templateId, questionId: fieldId, oldValue: prev, newValue: value });
   };
 
   // ── Lifecycle transition ───────────────────────────────────────────────────
@@ -379,11 +379,12 @@ export const TemplateRenderer: React.FC = () => {
     setConfirmNote('');
 
     // Sync to PROTOCOL_REGISTRY so queue cards update immediately
-    transitionTemplate(templateId, target as any, note, currentUser).catch(err =>
+    transitionTemplate(templateId, target, note, currentUser).catch(err =>
       console.error('[TemplateRenderer] transition failed:', err)
     );
 
     auditAndNotify({
+      user:         currentUser,
       category:     'user',
       action:       (
         target === 'needs_changes' ? 'template.needs_changes' :
@@ -391,7 +392,7 @@ export const TemplateRenderer: React.FC = () => {
         target === 'published'     ? 'template.published' :
         target === 'in_review'     ? 'template.submitted_for_review' :
         'state_transition' // fallback for any target not in NOTIFY_ON_ACTIONS -- won't trigger a notification, matches prior (silent) behavior for anything unrecognized
-      ) as any,
+      ),
       templateId,
       templateName: template?.name ?? templateId,
       stateFrom:    prev,
@@ -405,8 +406,8 @@ export const TemplateRenderer: React.FC = () => {
     persistAnswers({});
     persistState('draft');
     setConfirmReset(false);
-    transitionTemplate(templateId, 'draft' as any).catch(() => {});
-    auditOnly({ user: 'System', category: 'system', action: 'reset_template' as any, templateId });
+    transitionTemplate(templateId, 'draft').catch(() => {});
+    auditOnly({ user: 'System', category: 'system', action: 'reset_template', templateId });
   };
 
   // ── Derived ────────────────────────────────────────────────────────────────
@@ -561,9 +562,9 @@ export const TemplateRenderer: React.FC = () => {
                         padding: '7px 16px', borderRadius: '7px', fontSize: '13px', fontWeight: 600,
                         border: `1px solid ${isAllowed ? s.border : 'rgba(255,255,255,0.06)'}`,
                         background: isAllowed ? s.bg : 'rgba(255,255,255,0.02)',
-                        color: isAllowed ? s.color : '#334155',
+                        color: isAllowed ? s.color : '#cbd5e1',
                         cursor: isAllowed ? 'pointer' : 'not-allowed',
-                        opacity: isAllowed ? 1 : 0.45,
+                        opacity: isAllowed ? 1 : 0.65,
                         transition: 'all 0.15s',
                       }}
                       onMouseEnter={e => { if (isAllowed) e.currentTarget.style.opacity = '0.85'; }}
@@ -671,7 +672,7 @@ export const TemplateRenderer: React.FC = () => {
                   {field.required && <span style={{ color: '#f87171', marginLeft: '4px' }}>*</span>}
                 </div>
 
-                <InlineCommentThread questionId={field.id} templateId={templateId!} currentUser={user?.name ?? 'Dr. Reviewer'} />
+                <InlineCommentThread questionId={field.id} templateId={templateId!} currentUser={currentUser} />
 
                 {/* Dropdown — real <select>, single-select */}
                 {field.type === 'dropdown' && (
@@ -823,11 +824,7 @@ export const TemplateRenderer: React.FC = () => {
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setConfirmAction(null)}
-                    style={{
-                      padding: '9px 18px', borderRadius: '8px',
-                      border: '1px solid #334155', background: 'transparent',
-                      color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                    }}
+                    className="ps-conf-btn-secondary"
                   >
                     Cancel
                   </button>
@@ -866,23 +863,13 @@ export const TemplateRenderer: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button
               onClick={() => setConfirmReset(false)}
-              style={{
-                padding: '9px 18px', borderRadius: '8px',
-                border: '1px solid #334155', background: 'transparent',
-                color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              }}
+              className="ps-conf-btn-secondary"
             >
               Cancel
             </button>
             <button
               onClick={handleReset}
-              style={{
-                padding: '9px 20px', borderRadius: '8px', border: 'none',
-                background: '#ef4444', color: 'white',
-                fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
-              onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
+              className="ps-btn-danger-solid"
             >
               Reset to Draft
             </button>
@@ -908,11 +895,7 @@ export const TemplateRenderer: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button
               onClick={() => setShowLeaveWarning(false)}
-              style={{
-                padding: '9px 18px', borderRadius: '8px',
-                border: '1px solid #334155', background: 'transparent',
-                color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              }}
+              className="ps-conf-btn-secondary"
             >
               Stay
             </button>

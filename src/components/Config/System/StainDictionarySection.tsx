@@ -31,6 +31,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ entry, onSave, onClose 
   const [antibodyClone, setAntibodyClone] = useState(entry?.antibodyClone ?? '');
   const [vendor, setVendor] = useState(entry?.vendor ?? '');
   const [turnaround, setTurnaround] = useState(entry?.defaultTurnaroundHours?.toString() ?? '');
+  const [defaultCptCode, setDefaultCptCode] = useState(entry?.defaultCptCode ?? '');
   const [active, setActive] = useState(entry?.active ?? true);
 
   const handleSave = () => {
@@ -38,7 +39,8 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ entry, onSave, onClose 
     onSave({
       name: name.trim(), category, description: description.trim() || undefined,
       antibodyClone: antibodyClone.trim() || undefined, vendor: vendor.trim() || undefined,
-      defaultTurnaroundHours: turnaround ? Number(turnaround) : undefined, active,
+      defaultTurnaroundHours: turnaround ? Number(turnaround) : undefined,
+      defaultCptCode: defaultCptCode.trim() || undefined, active,
     });
   };
 
@@ -53,8 +55,8 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ entry, onSave, onClose 
               <input className="ps-conf-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Ki-67" />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Category</label>
-              <select className="ps-conf-select" value={category} onChange={e => setCategory(e.target.value as StainCategory)}>
+              <label className="ps-conf-label" htmlFor="stain-category">Category</label>
+              <select id="stain-category" className="ps-conf-select" value={category} onChange={e => setCategory(e.target.value as StainCategory)}>
                 {STAIN_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -62,6 +64,20 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ entry, onSave, onClose 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">Description</label>
             <textarea className="ps-conf-input ps-conf-textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder="What this stain is used for" />
+          </div>
+          <div className="ps-conf-form-field">
+            <label className="ps-conf-label">Default CPT Code</label>
+            <input
+              className="ps-conf-input"
+              value={defaultCptCode}
+              onChange={e => setDefaultCptCode(e.target.value.trim())}
+              placeholder="e.g. 88342 — leave blank to use the generic IHC/special-stain rule"
+            />
+            <p className="ps-conf-section-subtitle" style={{ marginTop: 4 }}>
+              Real, coder-entered code for this specific stain — requires your own AMA CPT license to determine correctly.
+              Set this for an antibody billed differently than the generic first/additional IHC rule, or a real multiplex
+              panel (e.g. a "PIN-4" combination stain, billed 88344). Leave blank to use the app's generic rule.
+            </p>
           </div>
           {(category === 'IHC' || category === 'Immunofluorescence') && (
             <div className="ps-conf-form-row">
@@ -181,14 +197,14 @@ const MacroModal: React.FC<MacroModalProps> = ({ entry, stainTypes, protocols, o
           </div>
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Stain Type <span className="ps-conf-required">*</span></label>
-              <select className="ps-conf-select" value={stainTypeId} onChange={e => setStainTypeId(e.target.value)}>
+              <label className="ps-conf-label" htmlFor="macro-stain-type">Stain Type <span className="ps-conf-required">*</span></label>
+              <select id="macro-stain-type" className="ps-conf-select" value={stainTypeId} onChange={e => setStainTypeId(e.target.value)}>
                 {stainTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Sectioning Protocol <span className="ps-conf-required">*</span></label>
-              <select className="ps-conf-select" value={sectioningProtocolId} onChange={e => setSectioningProtocolId(e.target.value)}>
+              <label className="ps-conf-label" htmlFor="macro-sectioning-protocol">Sectioning Protocol <span className="ps-conf-required">*</span></label>
+              <select id="macro-sectioning-protocol" className="ps-conf-select" value={sectioningProtocolId} onChange={e => setSectioningProtocolId(e.target.value)}>
                 {protocols.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
@@ -246,7 +262,7 @@ const StainDictionarySection: React.FC = () => {
   // has this exact pattern (handleClone), matched here rather than
   // inventing a different shape for the same idea.
   const handleCloneStainType = (source: StainType) => {
-    const { id, version, updatedBy, updatedAt, ...draft } = source;
+    const { id: _id, version: _version, updatedBy: _updatedBy, updatedAt: _updatedAt, ...draft } = source;
     stainTypeService.add({ ...draft, name: `${draft.name} (Copy)` }).then(() => loadAll());
   };
 
@@ -340,8 +356,8 @@ const StainDictionarySection: React.FC = () => {
           <div className="ps-conf-form-row--3">
             <input type="text" placeholder="Search stain types..." value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
             <div className="ps-specdict-header-actions">
-              <button className="ps-btn-secondary" onClick={handleDownloadStainTypes}>Export</button>
-              <button className="ps-btn-secondary" onClick={() => stainImportFileInputRef.current?.click()}>Import Spreadsheet</button>
+              <button className="ps-conf-btn-secondary" onClick={handleDownloadStainTypes}>Export</button>
+              <button className="ps-conf-btn-secondary" onClick={() => stainImportFileInputRef.current?.click()}>Import Spreadsheet</button>
               <input ref={stainImportFileInputRef} type="file" hidden accept=".csv,.xlsx" onChange={e => { if (e.target.files?.[0]) handleStainFileUpload(e.target.files[0]); e.target.value = ''; }} />
             </div>
             <button className="ps-conf-btn-primary" onClick={() => setTypeModal({})}>+ Add Stain Type</button>
@@ -350,14 +366,14 @@ const StainDictionarySection: React.FC = () => {
             <div className="ps-conf-import-preview">
               <p>{stainImportCounts.newCount} new, {stainImportCounts.updateCount} to update, parsed from the spreadsheet.</p>
               <button className="ps-conf-btn-primary" onClick={handleApplyStainImport}>Apply Import</button>
-              <button className="ps-btn-secondary" onClick={() => setStainImportPreview(null)}>Cancel</button>
+              <button className="ps-conf-btn-row" onClick={() => setStainImportPreview(null)}>Cancel</button>
             </div>
           )}
           <div className="ps-conf-table-wrap">
             <div className="ps-conf-table-scroll">
               <table className="ps-conf-table">
                 <thead className="ps-conf-thead-sticky">
-                  <tr>{['Name', 'Category', 'Clone / Vendor', 'Turnaround', 'Status', 'Actions'].map(h => <th key={h} className="ps-conf-th">{h}</th>)}</tr>
+                  <tr>{['Name', 'Category', 'Clone / Vendor', 'Default CPT', 'Turnaround', 'Status', 'Actions'].map(h => <th key={h} className="ps-conf-th">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {filteredTypes.map(s => (
@@ -365,6 +381,7 @@ const StainDictionarySection: React.FC = () => {
                       <td className="ps-conf-td"><div className="ps-conf-identity-name">{s.name}</div></td>
                       <td className="ps-conf-td">{s.category}</td>
                       <td className="ps-conf-td"><div className="ps-specreq-meta">{[s.antibodyClone, s.vendor].filter(Boolean).join(' · ') || '—'}</div></td>
+                      <td className="ps-conf-td">{s.defaultCptCode || '—'}</td>
                       <td className="ps-conf-td">{s.defaultTurnaroundHours ? `${s.defaultTurnaroundHours}h` : '—'}</td>
                       <td className="ps-conf-td">
                         <span className="ps-conf-status-cell">

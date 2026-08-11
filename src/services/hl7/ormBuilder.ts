@@ -47,23 +47,24 @@ export function buildOrmO01ForBlock(
   ctx: HL7MessageContext,
   caseData: Pick<Case, 'id' | 'patient'>,
   specimen: Pick<Specimen, 'id' | 'label' | 'collection' | 'container'>,
-  block: HistologyBlock
+  block: HistologyBlock,
+  timezone: string
 ): OrmBuildResult {
   const messageControlId = nextMessageControlId();
   const nowIso = new Date().toISOString();
   const placerOrderNumber = `${caseData.id}-${specimen.label}${block.label}`;
 
   const segments: string[] = [];
-  segments.push(buildMSH(ctx, messageControlId, nowIso));
+  segments.push(buildMSH(ctx, messageControlId, timezone, nowIso));
   segments.push(buildPID({
     mrn: (caseData.patient as any)?.mrn,
     firstName: (caseData.patient as any)?.firstName ?? '',
     lastName: (caseData.patient as any)?.lastName ?? '',
     dateOfBirth: (caseData.patient as any)?.dateOfBirth,
     sex: (caseData.patient as any)?.sex,
-  }));
+  }, timezone));
   segments.push(buildPV1('O'));
-  segments.push(buildORC(placerOrderNumber, placerOrderNumber, nowIso));
+  segments.push(buildORC(placerOrderNumber, placerOrderNumber, timezone, nowIso));
 
   // One SPM for the parent specimen, one for the block itself — see
   // buildSPM's own doc comment for the honest caveat on this specific
@@ -98,7 +99,7 @@ export function buildOrmO01ForBlock(
       // crosswalk here, which belongs in a vendor adapter, not this
       // generic core.
       stain.id, stain.stainName,
-      nowIso, i + 1
+      timezone, nowIso, i + 1
     ));
   });
 

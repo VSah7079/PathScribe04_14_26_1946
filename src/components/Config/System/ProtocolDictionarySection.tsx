@@ -569,8 +569,8 @@ const ProtocolDictionarySection: React.FC = () => {
           </p>
         </div>
         <div className="ps-specdict-header-actions">
-          <button className="ps-btn-secondary" onClick={handleDownloadProtocols}>Export</button>
-          <button className="ps-btn-secondary" onClick={() => importFileInputRef.current?.click()}>Import Spreadsheet</button>
+          <button className="ps-conf-btn-secondary" onClick={handleDownloadProtocols}>Export</button>
+          <button className="ps-conf-btn-secondary" onClick={() => importFileInputRef.current?.click()}>Import Spreadsheet</button>
           <input ref={importFileInputRef} type="file" hidden accept=".csv,.xlsx" onChange={e => { if (e.target.files?.[0]) handleProtocolFileUpload(e.target.files[0]); e.target.value = ''; }} />
           <button className="ps-conf-btn-primary" onClick={() => setModal({ mode: 'add' })}>+ Add Protocol</button>
         </div>
@@ -585,7 +585,7 @@ const ProtocolDictionarySection: React.FC = () => {
             )}
           </p>
           <button className="ps-conf-btn-primary" onClick={handleApplyProtocolImport}>Apply Import</button>
-          <button className="ps-btn-secondary" onClick={() => { setImportPreview(null); setImportUnmatchedStains(new Set()); }}>Cancel</button>
+          <button className="ps-conf-btn-row" onClick={() => { setImportPreview(null); setImportUnmatchedStains(new Set()); }}>Cancel</button>
         </div>
       )}
 

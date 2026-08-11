@@ -17,6 +17,7 @@ function load(): TemplateSuggestionSignal[] {
   // same reasoning as narrativeSignals' own seed data: a signal-capture
   // screen with nothing in it yet demonstrates nothing.
   const now = new Date();
+  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates FAKE, illustrative timestamps for seeded demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
   const daysAgo = (d: number) => { const dt = new Date(now); dt.setDate(dt.getDate() - d); return dt.toISOString(); };
 
   const SEED: Omit<TemplateSuggestionSignal, 'id'>[] = [

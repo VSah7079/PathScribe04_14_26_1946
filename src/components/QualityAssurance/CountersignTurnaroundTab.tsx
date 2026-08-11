@@ -11,6 +11,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import type { TooltipContentProps } from 'recharts';
 import { countersignService, auditService } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
@@ -47,7 +48,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
       if (recRes.ok) setRecords(recRes.data);
       if (casesRes.ok) {
         const map: Record<string, string | undefined> = {};
-        casesRes.data.forEach((c: any) => { map[c.id] = c?.order?.clientId; });
+        casesRes.data.forEach((c) => { map[c.id] = c?.order?.clientId; });
         setCaseClientById(map);
       }
       setLoading(false);
@@ -81,7 +82,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' } as any);
+      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
       const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
       const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
       const inMonth = countersigned.filter(r => {
@@ -126,7 +127,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
             <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} unit="h" />
-            <Tooltip content={({ active, payload, label }: any) => {
+            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (

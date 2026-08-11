@@ -37,11 +37,23 @@ export interface ICaseRegistryService {
    *  separate, non-colliding sequences. Falls back to the default
    *  O{YEAR:2}-{SEQ:4} scheme (logging, not throwing) when no config
    *  exists for the organisation yet, so an unconfigured org never
-   *  blocks case creation. */
-  allocateNextCaseNumber(organisationId: string, siteId?: string, categoryOverride?: CaseNumberCategoryOverride): Promise<ServiceResult<string>>;
+   *  blocks case creation.
+   *
+   *  Real fix, high-priority per Pete's direct clinical-informatics
+   *  guidance: timezone is required, not optional/defaulted. An
+   *  accession number is a permanent, legally-binding clinical
+   *  identifier tied to physical tissue and chain of custody - its real
+   *  {YEAR} component (and whether the annual sequence counter resets)
+   *  must be derived from the real facility's own timezone, never the
+   *  browser/device generating it. A case accessioned at 11:30pm Dec 31
+   *  Tucson time must get a real 2025 accession number even if a
+   *  reviewing device elsewhere already reads Jan 1. See
+   *  utils/facilityTime.ts. */
+  allocateNextCaseNumber(organisationId: string, timezone: string, siteId?: string, categoryOverride?: CaseNumberCategoryOverride): Promise<ServiceResult<string>>;
 
   /** Renders what allocateNextCaseNumber would currently produce WITHOUT
    *  consuming a sequence number — for the admin config screen's live
-   *  preview. */
-  previewNextCaseNumber(organisationId: string, siteId?: string, categoryOverride?: CaseNumberCategoryOverride): Promise<ServiceResult<string>>;
+   *  preview. Same real, required timezone parameter as
+   *  allocateNextCaseNumber, for the same real reason. */
+  previewNextCaseNumber(organisationId: string, timezone: string, siteId?: string, categoryOverride?: CaseNumberCategoryOverride): Promise<ServiceResult<string>>;
 }

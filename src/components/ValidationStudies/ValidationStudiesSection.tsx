@@ -10,14 +10,17 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { mockValidationStudyService }  from '@/services/validationStudies/mockValidationStudyService';
 import type { CommitteeSubmission, CommitteeApproval } from '@/services/validationStudies/IValidationStudyService';
 import { mockNarrativeSignalService }  from '@/services/narrativeSignals/mockNarrativeSignalService';
-import { mockClientService }           from '@/services/clients/mockClientService';
+import { mockFacilityService }           from '@/services/facilities/mockFacilityService';
 import { mockPhysicianService }        from '@/services/physicians/mockPhysicianService';
 import { mockReportTemplateService }   from '@/services/reportTemplates/mockReportTemplateService';
+import { modelService }                from '@/services';
 import type { ValidationStudy }        from '@/services/validationStudies/IValidationStudyService';
 import type { NarrativeSignalStats }   from '@/services/narrativeSignals/INarrativeSignalService';
-import type { Client }                 from '@/services/clients/IClientService';
+import type { Facility as Client } from '@/services/facilities/IFacilityService';
 import type { Physician }              from '@/services/physicians/IPhysicianService';
 import type { ReportTemplate }         from '@/types/reportPart';
+import type { AIModel }                from '@/services/models/IModelService';
+import { ModelStoreModal } from './ModelStoreModal';
 
 type SubTab = 'studies' | 'dashboard' | 'reports';
 
@@ -63,9 +66,10 @@ const StudiesTab: React.FC<{
   clients:    Client[];
   physicians: Physician[];
   templates:  ReportTemplate[];
+  models:     AIModel[];
   onRefresh:    () => void;
   isSuperAdmin?: boolean;
-}> = ({ studies, clients, physicians, templates, onRefresh, isSuperAdmin: _isSuperAdmin = false }) => {
+}> = ({ studies, clients, physicians, templates, models, onRefresh, isSuperAdmin: _isSuperAdmin = false }) => {
   const { log } = useAuditLog();
   const [showNew,    setShowNew]    = useState(false);
   const [editId,     setEditId]     = useState<string | null>(null);
@@ -132,6 +136,9 @@ const StudiesTab: React.FC<{
               </span>
               <span>{s.clientIds.length} client{s.clientIds.length !== 1 ? 's' : ''}</span>
               <span>{s.pathologistIds.length} pathologist{s.pathologistIds.length !== 1 ? 's' : ''}</span>
+              {s.templateIds && s.templateIds.length > 0 && (
+                <span>{s.templateIds.length} template{s.templateIds.length !== 1 ? 's' : ''}</span>
+              )}
               <span>Target: {pct(s.targetAcceptanceRate)} acceptance</span>
               {s.startDate && <span>Started {new Date(s.startDate).toLocaleDateString()}</span>}
               {s.committeeApproval?.irbReference && <span>IRB: {s.committeeApproval.irbReference}</span>}
@@ -155,6 +162,7 @@ const StudiesTab: React.FC<{
           clients={clients}
           physicians={physicians}
           templates={templates}
+          models={models}
           onSave={async (data) => {
             await mockValidationStudyService.create(data as any);
             log('validation_study_created', {
@@ -166,6 +174,7 @@ const StudiesTab: React.FC<{
             onRefresh();
           }}
           onClose={() => setShowNew(false)}
+          onModelsChanged={onRefresh}
         />
       )}
 
@@ -211,6 +220,7 @@ const StudiesTab: React.FC<{
           clients={clients}
           physicians={physicians}
           templates={templates}
+          models={models}
           existing={studies.find(s => s.id === editId)}
           onSave={async (data) => {
             await mockValidationStudyService.update(editId, data as any);
@@ -223,6 +233,7 @@ const StudiesTab: React.FC<{
             onRefresh();
           }}
           onClose={() => setEditId(null)}
+          onModelsChanged={onRefresh}
         />
       )}
     </div>
@@ -308,7 +319,7 @@ const SubmitForReviewModal: React.FC<{
         <div className="ps-modal-dark-footer">
           <button className="ps-btn-ghost-dark" onClick={onClose}>Cancel</button>
           <button
-            className="ps-btn-primary"
+            className="ps-conf-btn-primary"
             disabled={!canSave}
             onClick={() => onSave({
               submittedAt:        new Date().toISOString(),
@@ -427,7 +438,7 @@ const RecordApprovalModal: React.FC<{
         <div className="ps-modal-dark-footer">
           <button className="ps-btn-ghost-dark" onClick={onClose}>Cancel</button>
           <button
-            className="ps-btn-primary"
+            className="ps-conf-btn-primary"
             disabled={!canSave}
             onClick={() => onSave({
               approvedAt:           new Date(approvedAt).toISOString(),
@@ -451,15 +462,38 @@ const StudyFormModal: React.FC<{
   clients:    Client[];
   physicians: Physician[];
   templates:  ReportTemplate[];
+  models:     AIModel[];
   existing?:  ValidationStudy;
   onSave:     (data: Partial<ValidationStudy>) => void;
   onClose:    () => void;
-}> = ({ clients, physicians, templates: _templates, existing, onSave, onClose }) => {
+  /** Real fix, per direct workflow description: the point where an
+   *  admin who got the "new model available" email actually goes to
+   *  get it — browsing the ForMedrixAI store and downloading a model
+   *  creates a genuine new local record, which the parent needs to
+   *  know about to refresh its own `models` list. Without this, the
+   *  newly-downloaded model would exist in storage but never appear
+   *  as a selectable option here. */
+  onModelsChanged?: () => void;
+}> = ({ clients, physicians, templates, models, existing, onSave, onClose, onModelsChanged }) => {
   const isEdit = !!existing;
   const [name,           setName]           = useState(existing?.name ?? '');
   const [description,    setDescription]    = useState(existing?.description ?? '');
+  const [modelId,        setModelId]        = useState(existing?.modelId ?? '');
+  const [showStore,      setShowStore]      = useState(false);
   const [clientIds,      setClientIds]      = useState<string[]>(existing?.clientIds ?? []);
   const [pathIds,        setPathIds]        = useState<string[]>(existing?.pathologistIds ?? []);
+  // Real fix, per direct report: templateIds is a real field on
+  // ValidationStudy — explicitly documented as part of the study's
+  // scope, alongside clientIds/pathologistIds — but this form never
+  // had a UI for it. The `templates` prop was fetched by the parent
+  // and passed in for exactly this purpose, then silently renamed
+  // `_templates` here (unused) rather than wired up. The "How this
+  // works" example already described scoping a study by template
+  // ("template: Breast Core Biopsy") — this makes that description
+  // actually true rather than aspirational. Optional, matching the
+  // field's own optional type — a study can validly be unscoped by
+  // template (applies across all templates for the selected clients).
+  const [templateIds,    setTemplateIds]    = useState<string[]>(existing?.templateIds ?? []);
   const [targetAccept,   setTargetAccept]   = useState(existing?.targetAcceptanceRate ?? 0.70);
   const [targetEdit,     setTargetEdit]     = useState(existing?.targetMaxEditRatio ?? 0.30);
   const [startDate,      setStartDate]      = useState(existing?.startDate ? existing.startDate.slice(0,10) : new Date().toISOString().slice(0,10));
@@ -478,6 +512,8 @@ const StudyFormModal: React.FC<{
   };
   const togglePath = (id: string) =>
     setPathIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const toggleTemplate = (id: string) =>
+    setTemplateIds(t => t.includes(id) ? t.filter(x => x !== id) : [...t, id]);
 
   return (
     <div className="ps-overlay" onClick={onClose}>
@@ -493,6 +529,50 @@ const StudyFormModal: React.FC<{
 
           <div><div className="ps-conf-label">Description</div>
             <textarea className="ps-conf-input" rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder="Study objectives and scope…" /></div>
+
+          <div>
+            <div className="ps-conf-label ps-conf-label--required">AI Model Being Validated</div>
+            <select
+              className="ps-conf-select"
+              value={modelId}
+              disabled={isEdit}
+              onChange={e => setModelId(e.target.value)}
+              title={isEdit ? 'Cannot be changed once a study exists — the whole record is evidence for this specific model version' : undefined}
+            >
+              <option value="">Select a model…</option>
+              {models.map(m => (
+                <option key={m.id} value={m.id}>{m.name} {m.version} — {m.status}</option>
+              ))}
+            </select>
+            {isEdit && (
+              <div className="ps-vs-slider-hint" style={{ marginTop: 4 }}>
+                Locked once a study exists — this record is the validation evidence for this exact model version.
+              </div>
+            )}
+            {!isEdit && (
+              <button
+                type="button"
+                onClick={() => setShowStore(true)}
+                style={{
+                  marginTop: 6, background: 'none', border: 'none', padding: 0,
+                  color: '#38bdf8', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                🏪 Don't see the model you need? Browse the ForMedrixAI store
+              </button>
+            )}
+            {showStore && (
+              <ModelStoreModal
+                onClose={() => setShowStore(false)}
+                onDownloaded={newModel => {
+                  setShowStore(false);
+                  setModelId(newModel.id as string);
+                  onModelsChanged?.();
+                }}
+              />
+            )}
+          </div>
 
           <div className="ps-vs-form-2col">
             <div><div className="ps-conf-label">Target Acceptance Rate</div>
@@ -550,15 +630,35 @@ const StudyFormModal: React.FC<{
             </div>
           </div>
 
+          <div>
+            <div className="ps-conf-label">Report Templates</div>
+            <div className="ps-vs-slider-hint" style={{ marginBottom: 6 }}>
+              Optional — leave unselected to cover every template used by the selected clients
+            </div>
+            <div className="ps-vs-checklist">
+              {templates.map(t => (
+                <label key={t.id} className="ps-vs-check-row">
+                  <input type="checkbox" checked={templateIds.includes(t.id)} onChange={() => toggleTemplate(t.id)} />
+                  <span>{t.name} — {t.specialty}</span>
+                </label>
+              ))}
+              {templates.length === 0 && (
+                <div className="ps-vs-slider-hint">No published templates available</div>
+              )}
+            </div>
+          </div>
+
         </div>
         <div className="ps-modal-dark-footer">
           <button className="ps-btn-ghost-dark" onClick={onClose}>Cancel</button>
           <button
-            className="ps-btn-primary"
-            disabled={!name || clientIds.length === 0 || pathIds.length === 0}
+            className="ps-conf-btn-primary"
+            disabled={!name || !modelId || clientIds.length === 0 || pathIds.length === 0}
             onClick={() => onSave({
               name, description, status: 'draft',
+              modelId,
               clientIds, pathologistIds: pathIds,
+              ...(templateIds.length > 0 ? { templateIds } : {}),
               targetAcceptanceRate: targetAccept,
               targetMaxEditRatio:   targetEdit,
               // irbReference intentionally omitted here — it lives on
@@ -613,7 +713,7 @@ const DashboardTab: React.FC<{
   return (
     <div className="ps-vs-dashboard">
       <div className="ps-vs-study-select-wrap">
-        <select className="ps-conf-select" style={{ maxWidth: 380 }} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+        <select className="ps-conf-select" aria-label="Select validation study" style={{ maxWidth: 380 }} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
           {active.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         {study && (
@@ -698,7 +798,7 @@ const DashboardTab: React.FC<{
 
 // ── Reports Tab ───────────────────────────────────────────────────────────────
 
-const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean }> = ({ studies, isSuperAdmin: _isSuperAdmin = false }) => {
+const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; isSuperAdmin?: boolean }> = ({ studies, onRefresh, isSuperAdmin: _isSuperAdmin = false }) => {
   const { log } = useAuditLog();
   const [selectedId, setSelectedId] = useState<string>(studies[0]?.id ?? '');
   const [stats,      setStats]      = useState<NarrativeSignalStats | null>(null);
@@ -730,12 +830,28 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean 
     const win  = window.open('', '_blank');
     if (win) { win.document.write(html); win.document.close(); win.print(); }
 
-    await mockValidationStudyService.update(study.id, { status: 'reported' });
+    // Real fix: the grade shown here was always computed live and never
+    // actually recorded anywhere on the study itself — meaning nothing
+    // else in the app (like a client's own AI model override) could
+    // ever check "did this study pass" without recomputing it fresh.
+    // Persisted exactly once, the first time a report is generated —
+    // if finalGrade is already set from an earlier report run, it's
+    // deliberately left alone rather than overwritten, even if the
+    // live numbers would now compute differently.
+    const alreadyGraded = !!study.finalGrade;
+    await mockValidationStudyService.update(study.id, {
+      status: 'reported',
+      ...(alreadyGraded ? {} : {
+        finalGrade: grade.grade as 'PASS' | 'CONDITIONAL PASS' | 'FURTHER REVIEW',
+        finalGradedAt: new Date().toISOString(),
+      }),
+    });
     log('validation_report_generated', {
       studyName: study.name,
       caseCount,
       acceptanceRate: pct(stats.acceptanceRate),
     });
+    onRefresh();
     setGenerating(false);
   };
 
@@ -760,7 +876,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean 
       ) : (
         <>
           <div style={{ marginBottom: 16 }}>
-            <select className="ps-conf-select" style={{ maxWidth: 380 }} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+            <select className="ps-conf-select" aria-label="Select closed validation study" style={{ maxWidth: 380 }} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
               {closedStudies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
@@ -776,7 +892,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; isSuperAdmin?: boolean 
                 <div><span className="ps-vs-rp-label">Governance</span><span>Advisory mode only</span></div>
                 {study.committeeApproval?.irbReference && <div><span className="ps-vs-rp-label">IRB</span><span>{study.committeeApproval.irbReference}</span></div>}
               </div>
-              <button className="ps-btn-primary" onClick={generateReport} disabled={generating} style={{ marginTop: 16 }}>
+              <button className="ps-conf-btn-primary" onClick={generateReport} disabled={generating} style={{ marginTop: 16 }}>
                 {generating ? 'Generating…' : '📄 Generate & Print Report'}
               </button>
             </div>
@@ -836,7 +952,7 @@ function buildReportHtml(
 <tr><td><strong>Period</strong></td><td>${new Date(study.startDate).toLocaleDateString()} — ${study.endDate ? new Date(study.endDate).toLocaleDateString() : 'Ongoing'}</td></tr>
 <tr><td><strong>Validation Mode</strong></td><td>Advisory — AI output reviewed and signed by pathologist. No AI-direct LIS submission.</td></tr>
 ${study.committeeApproval?.irbReference ? `<tr><td><strong>Ethics Reference</strong></td><td>${study.committeeApproval.irbReference}</td></tr>` : ''}
-<tr><td><strong>PathScribe Version</strong></td><td>v0.9.0</td></tr></table>
+<tr><td><strong>PathScribe Version</strong></td><td>v${__APP_VERSION__}</td></tr></table>
 
 <h2>2. Executive Summary</h2>
 <div class="grade">${grade.grade}</div>
@@ -857,7 +973,7 @@ ${study.committeeApproval?.irbReference ? `<tr><td><strong>Ethics Reference</str
 
 <div class="advisory">🔒 This report contains no patient-identifiable information. Aggregate statistics only. De-identification applied at signal capture — clinical values replaced with typed placeholders before storage.</div>
 
-<div class="footer">PathScribe v0.9.0 · ForMedrix AI · Confidential validation report · ${now}</div>
+<div class="footer">	PathScribe v${__APP_VERSION__} · ForMedrixAI · Confidential validation report · ${now}</div>
 </body></html>`;
 }
 
@@ -869,18 +985,22 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
   const [clients,    setClients]    = useState<Client[]>([]);
   const [physicians, setPhysicians] = useState<Physician[]>([]);
   const [templates,  setTemplates]  = useState<ReportTemplate[]>([]);
+  const [models,     setModels]     = useState<AIModel[]>([]);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const [sr, cr, pr, tr] = await Promise.all([
+    const [sr, cr, pr, tr, mr] = await Promise.all([
       mockValidationStudyService.getAll(),
-      mockClientService.getAll(),
+      mockFacilityService.getAll(),
       mockPhysicianService.getAll(),
       mockReportTemplateService.getAll(),
+      modelService.getAll(),
     ]);
     if ((sr as any).ok) setStudies((sr as any).data);
     if ((cr as any).ok) setClients((cr as any).data.filter((c: Client) => c.status === 'Active'));
     if ((pr as any).ok) setPhysicians((pr as any).data.filter((p: Physician) => p.status === 'Active'));
     if ((tr as any).ok) setTemplates((tr as any).data.filter((t: ReportTemplate) => t.status === 'published'));
+    if (mr.ok) setModels(mr.data);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -896,6 +1016,61 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
         <div className="ps-vs-advisory-banner">
           🔒 Advisory Mode — AI output is never submitted to the LIS without pathologist review and approval
         </div>
+        <button
+          onClick={() => setHowItWorksOpen(o => !o)}
+          className="ps-conf-btn-secondary"
+          style={{ marginTop: 10, fontSize: 12 }}
+        >
+          {howItWorksOpen ? '▾' : '▸'} How this works — with an example
+        </button>
+        {howItWorksOpen && (
+          <div style={{ marginTop: 10, padding: '14px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13, lineHeight: 1.7, color: '#cbd5e1' }}>
+            <p style={{ margin: '0 0 10px' }}>
+              A validation study measures whether a specific AI model's suggestions are trustworthy enough
+              for a specific client, physician, or report template — before relying on it for real reporting
+              decisions. Every study goes through the same six stages, shown as its status:{' '}
+              <strong>Draft → Pending Approval → Approved → Active → Closed → Reported</strong>.
+            </p>
+            <p style={{ margin: '0 0 10px' }}>
+              Every model a study can be scoped to starts as <strong style={{ color: '#fbbf24' }}>Beta</strong> —
+              advisory, never the org default, zero cases processed against real data — until a study like this
+              one confirms it. A required field an AI model suggested a value for still has to be explicitly
+              confirmed or overridden by a pathologist before a case can be finalized, regardless of how
+              confident the model claims to be; nothing here relies on the AI's own accuracy claim as a
+              substitute for that.
+            </p>
+            <p style={{ margin: '0 0 6px', fontWeight: 700, color: '#e2e8f0' }}>Worked example</p>
+            <p style={{ margin: '0 0 6px' }}>
+              Say Metro General Hospital wants to know if a new AI model is ready for their breast core biopsies.
+            </p>
+            <ol style={{ margin: '0 0 10px', paddingLeft: 20 }}>
+              <li><strong>Get the model.</strong> An admin gets notified — today, an email from ForMedrixAI —
+                that a new model has been published following ForMedrixAI's own internal regression testing.
+                From this screen's "New Study" form, <strong>Browse the ForMedrixAI store</strong> and download
+                it; it lands in your system as Beta, never the default, with zero cases processed yet.</li>
+              <li><strong>Create the study (Draft).</strong> Scope it — the model you just downloaded, client:
+                Metro General, template: Breast Core Biopsy — and set your targets, e.g. 90% AI-suggestion
+                acceptance rate and a maximum 15% edit ratio (how much pathologists end up changing).</li>
+              <li><strong>Submit for Review (Pending Approval).</strong> A second pathologist or admin
+                reviews the study's scope and targets before it can start collecting real data.</li>
+              <li><strong>Record Approval (Approved → Active).</strong> Once approved, the study goes live —
+                every matching report during the study period is scored against the targets, still fully
+                advisory the whole time.</li>
+              <li><strong>Close the study.</strong> After enough cases (the Dashboard tab tracks this live),
+                close it — this locks in the final numbers.</li>
+              <li><strong>Report.</strong> The grade is computed automatically: <strong>PASS</strong> if both
+                targets are met, <strong>CONDITIONAL PASS</strong> if close but not quite there, or{' '}
+                <strong>FURTHER REVIEW</strong> if performance fell short — each with the specific numbers
+                behind it, exportable from the Reports tab. A PASS is what makes it reasonable for an admin to
+                later consider setting this model as the client's default, in the Models screen — this study
+                is the evidence for that decision, not the model's own published benchmark.</li>
+            </ol>
+            <p style={{ margin: 0, color: '#94a3b8' }}>
+              The Dashboard tab shows every active study's live progress toward its targets; the Reports tab
+              is where finished studies' graded outcomes live.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="ps-sub-tab-group">
@@ -907,9 +1082,9 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
       </div>
 
       <div className="ps-vs-content">
-        {subTab === 'studies'   && <StudiesTab   studies={studies} clients={clients} physicians={physicians} templates={templates} onRefresh={load} isSuperAdmin={isSuperAdmin} />}
+        {subTab === 'studies'   && <StudiesTab   studies={studies} clients={clients} physicians={physicians} templates={templates} models={models} onRefresh={load} isSuperAdmin={isSuperAdmin} />}
         {subTab === 'dashboard' && <DashboardTab studies={studies} isSuperAdmin={isSuperAdmin} />}
-        {subTab === 'reports'   && <ReportsTab   studies={studies} isSuperAdmin={isSuperAdmin} />}
+        {subTab === 'reports'   && <ReportsTab   studies={studies} onRefresh={load} isSuperAdmin={isSuperAdmin} />}
       </div>
     </div>
   );

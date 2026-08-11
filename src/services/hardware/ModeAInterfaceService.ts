@@ -79,13 +79,14 @@ export const ModeAInterfaceService = {
     caseData: Pick<Case, 'id' | 'patient'>,
     specimen: Pick<Specimen, 'id' | 'label' | 'collection' | 'container'>,
     block: HistologyBlock,
+    timezone: string,
     adapterName: keyof typeof ADAPTERS = 'identity',
   ): Promise<ModeADispatchResult> {
     if (payload.eventType !== 'BLOCK_ORDER') {
       return { ok: false, error: `dispatchBlockOrder called with eventType '${payload.eventType}' — expected 'BLOCK_ORDER'.` };
     }
 
-    const built = buildOrmO01ForBlock(hl7Context, caseData, specimen, block);
+    const built = buildOrmO01ForBlock(hl7Context, caseData, specimen, block, timezone);
     const adapter = ADAPTERS[adapterName];
 
     try {

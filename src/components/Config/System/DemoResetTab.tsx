@@ -14,6 +14,20 @@ import '../../../pathscribe.css';
 
 const MOCK_PREFIX   = 'pathscribe_mock_';
 const SESSION_KEY   = 'pathscribe-user';
+// Real fix, per direct report: "reset the demo data, logged back in,
+// got an 'Already signed in elsewhere' message." That marker
+// (services/session/sessionSupersedeService.ts) is deliberately its
+// own key namespace, not under MOCK_PREFIX and not in SESSION_KEY —
+// so neither existing cleanup path ever touched it. A reset cleared
+// the user's own session but left the stale active-session marker
+// from before the reset sitting in localStorage; the very next login
+// found that stale marker and incorrectly concluded the account was
+// already signed in elsewhere. clearActiveSessionId()'s own doc
+// comment already warned about exactly this failure mode ("without
+// this, a perfectly normal future login would incorrectly detect a
+// conflict against a stale marker nobody ever cleared") — this reset
+// flow was the gap that comment was warning about.
+const ACTIVE_SESSION_KEY_PREFIX = 'pathscribe_active_session_';
 
 const VERSIONED_KEYS = [
   'pathscribe_users_version',
@@ -123,6 +137,12 @@ function executeFullReset(): string[] {
     .filter(k => k.startsWith(MOCK_PREFIX))
     .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
 
+  // Real fix — see ACTIVE_SESSION_KEY_PREFIX's own comment above for
+  // why this needs its own sweep, separate from the MOCK_PREFIX one.
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(ACTIVE_SESSION_KEY_PREFIX))
+    .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
+
   sessionStorage.clear();
   return cleared;
 }
@@ -160,6 +180,15 @@ function executeUserReset(userId: string): string[] {
   // (seed data is additive — it won't duplicate cases already present)
   localStorage.removeItem('pathscribe_mock_cases_version');
   cleared.push('pathscribe_mock_cases_version (version reset)');
+
+  // Real fix — same gap as executeFullReset above, scoped correctly
+  // here: only this user's own marker, since other testers' sessions
+  // must survive a "my data only" reset.
+  const ownActiveSessionKey = `${ACTIVE_SESSION_KEY_PREFIX}${userId}`;
+  if (localStorage.getItem(ownActiveSessionKey) !== null) {
+    localStorage.removeItem(ownActiveSessionKey);
+    cleared.push(ownActiveSessionKey);
+  }
 
   // Clear any user-specific session state
   sessionStorage.clear();

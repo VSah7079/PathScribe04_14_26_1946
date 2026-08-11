@@ -74,11 +74,6 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [reloadInbox]);
 
-  // Persist portal state
-  useEffect(() => {
-    sessionStorage.setItem('ps_drawer_open', String(portalOpen));
-  }, [portalOpen]);
-
   // Urgent audio alert
   useEffect(() => {
     if (hasUrgent) {

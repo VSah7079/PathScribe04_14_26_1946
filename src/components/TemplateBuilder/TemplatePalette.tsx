@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { PALETTE_ITEMS, type PaletteItem } from '../../types/template';
 
-export const PALETTE_DRAG_PREFIX = 'palette::';
+const PALETTE_DRAG_PREFIX = 'palette::';
 
 // ── WCAG AA minimum contrast colours (all tested against #0d1117) ──
 // Normal text needs 4.5:1. Large/bold text needs 3:1.

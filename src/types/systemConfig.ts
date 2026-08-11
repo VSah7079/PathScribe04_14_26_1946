@@ -303,6 +303,27 @@ export interface SystemConfig {
   identifierFormats:               IdentifierFormats;
   terminologyConfig:               InstitutionTerminologyConfig;
   voiceEnabled:                    boolean;
+  /** Whether pathologists (role === 'pathologist' specifically) see peer-
+   *  average/top-performer comparisons on their own Contribution dashboard.
+   *  Defaults to false, matching the design decision this mirrors: peer
+   *  visibility is opt-in per institution, not on by default. Admin/
+   *  pathologist-admin/superadmin roles always see this data regardless of
+   *  this flag - it only gates the plain 'pathologist' role's own view of
+   *  themselves against others. */
+  showPeerAveragesToPathologists:  boolean;
+  /** Real fix, clinical-informatics best practice: monthly/YTD metrics
+   *  (case counts, RVU) group a real, finalized event by the FACILITY's
+   *  own fixed timezone, never the viewing device's timezone and never
+   *  raw UTC. An 11pm Jan 31 Tucson sign-off (stored as
+   *  '2026-02-01T06:00:00Z' UTC) must group under January - matching the
+   *  real shift, billing cycle, and clinician's own experience -
+   *  regardless of whether the pathologist later views their own
+   *  dashboard from Tucson, New York, or London. IANA timezone
+   *  identifier (Intl.DateTimeFormat-compatible, e.g. 'America/Phoenix').
+   *  Storage itself remains UTC ISO 8601 always - this only governs how
+   *  stored UTC timestamps get bucketed into a real calendar month/day
+   *  for display and metrics. See utils/facilityTime.ts. */
+  facilityTimezone: string;
 }
 
 
@@ -342,4 +363,6 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
     icdo:   { active: true,  mode: 'mock' },
   },
   voiceEnabled: true,
+  showPeerAveragesToPathologists: false,
+  facilityTimezone: 'America/Phoenix',
 };

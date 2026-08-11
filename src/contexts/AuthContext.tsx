@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { VoiceProfileId } from "../constants/voiceProfiles";
-import { getBiometricPolicy, getCredentialForUser } from "../services/biometric/mockBiometricService";
+import { shouldShowBiometricWizard } from "../services/biometric/mockBiometricService";
 import { mockDraftCacheService } from "../services/drafts/mockDraftCacheService";
 import {
   getActiveSessionId, setActiveSessionId, clearActiveSessionId,
@@ -82,17 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userData);
   };
 
-  const shouldShowBiometricWizard = (userId: string): boolean => {
-    try {
-      const policy = getBiometricPolicy();
-      if (!policy.enabled) return false;
-      const credential = getCredentialForUser(userId);
-      return credential === null;
-    } catch {
-      return false;
-    }
-  };
-
   // Resolve extra fields from userService (canViewPediatric, credentials,
   // signatureUrl, and name parts — used by report signature blocks)
   // Option C: canViewPediatric lives on the StaffUser record, not the role
@@ -111,18 +100,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { userService } = await import('../services');
       const res = await userService.getAll();
       if (res.ok) {
-        const staffUser = res.data.find((u: any) => u.id === userId);
+        const staffUser = res.data.find(u => u.id === userId);
         if (staffUser) {
           return {
             canViewPediatric:     staffUser.canViewPediatric ?? false,
-            canViewOrchestration: (staffUser as any).canViewOrchestration ?? false,
-            canAccessCrossTenantQa: (staffUser as any).canAccessCrossTenantQa ?? false,
+            canViewOrchestration: staffUser.canViewOrchestration ?? false,
+            canAccessCrossTenantQa: staffUser.canAccessCrossTenantQa ?? false,
             credentials:      staffUser.credentials ?? undefined,
             signatureUrl:     staffUser.signatureUrl ?? undefined,
             firstName:        staffUser.firstName ?? undefined,
-            middleName:       (staffUser as any).middleName ?? undefined,
+            middleName:       staffUser.middleName ?? undefined,
             lastName:         staffUser.lastName ?? undefined,
-            organisationId:   (staffUser as any).organisationId ?? undefined,
+            organisationId:   staffUser.organisationId ?? undefined,
           };
         }
       }
@@ -161,6 +150,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // ── UX Review account — full pathologist + admin access ──────────────────
         { email: (import.meta.env.VITE_BABAKHANI_EMAIL ?? "rossana.babakhani@pathscribe.ai").toLowerCase(),
                                                             password: "Review_PathScribe_2026!", id: "PATH-RB-001", name: "Rossana Babakhani",     role: "superadmin"        as const, initials: "RB", voiceProfile: "EN-US" },
+        // ── Android device test account — pathologist-admin, per real, typed
+        //    role guide above (clinical + admin access, route guards treat
+        //    as both). Not superadmin, deliberately - the narrower, exact
+        //    role actually requested, not just copying the pattern every
+        //    other entry here happens to use.
+        { email: "michelle.nimmo@ai.com",                  password: "Android1-Tester-Coco#",   id: "PATH-MN-001", name: "Michelle Nimmo",       role: "pathologist-admin" as const, initials: "MN", voiceProfile: "EN-US" },
       ];
 
       // Find matching credential
@@ -173,12 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: email,
           role: cred.role || "pathologist",
           initials: cred.initials,
-          voiceProfile: cred.voiceProfile as any,
+          voiceProfile: cred.voiceProfile,
         };
       }
-
-      // Debug
-      console.log('[Auth Login]', { email: normalizedEmail, passwordLen: normalizedPassword.length, found: !!cred });
 
       if (!authenticatedUser) return 'invalid_credentials';
 
@@ -245,6 +237,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       saveUser(updatedUser);
     }
   };
+
+  // Real fix: closing the tab/window (not an explicit logout) never
+  // cleared the shared active-session marker, only logout() did. That
+  // meant relaunching the app shortly after simply closing it (not
+  // logging out first) found the previous session's still-there marker
+  // and incorrectly reported a conflict with "another tab," even though
+  // that tab was genuinely gone. beforeunload can't await anything, so
+  // this mirrors just the synchronous marker-clearing half of logout()
+  // above, not the draft-clearing half — a closed tab's drafts should
+  // still be there to restore, same as an idle-timeout logout already
+  // preserves them.
+  useEffect(() => {
+    if (!user?.id) return;
+    const handler = () => {
+      const ownId = getOwnSessionId();
+      if (ownId && getActiveSessionId(user.id) === ownId) {
+        clearActiveSessionId(user.id);
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [user?.id]);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);

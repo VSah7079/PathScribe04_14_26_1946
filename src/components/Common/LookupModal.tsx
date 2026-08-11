@@ -95,7 +95,7 @@ export const LookupModal: React.FC<LookupModalProps> = ({
               )}
             </div>
             {subtitle && (
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>{subtitle}</p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>{subtitle}</p>
             )}
           </div>
           <button

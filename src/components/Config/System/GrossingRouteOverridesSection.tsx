@@ -20,9 +20,9 @@
 
 import React, { useState, useEffect } from 'react';
 import '../../../pathscribe.css';
-import { grossingRoutingOverrideService, clientService, specimenDictionaryService } from '../../../services';
+import { grossingRoutingOverrideService, facilityService, specimenDictionaryService } from '../../../services';
 import type { GrossingRoutingOverrideEntry } from '../../../services/grossingRoutingOverrides/IGrossingRoutingOverrideService';
-import type { Client } from '../../../services/clients/IClientService';
+import type { Facility as Client } from '../../../services/facilities/IFacilityService';
 import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
 
 // Same three Gold Standard routes as SpecimenCategoriesSection.tsx —
@@ -70,8 +70,8 @@ const OverrideModal: React.FC<OverrideModalProps> = ({ mode, entry, clients, kno
 
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Client <span className="ps-conf-required">*</span></label>
-            <select className="ps-conf-select" value={draft.clientId} onChange={e => set('clientId', e.target.value)}>
+            <label className="ps-conf-label" htmlFor="gro-client">Facility <span className="ps-conf-required">*</span></label>
+            <select id="gro-client" className="ps-conf-select" value={draft.clientId} onChange={e => set('clientId', e.target.value)}>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
@@ -92,8 +92,8 @@ const OverrideModal: React.FC<OverrideModalProps> = ({ mode, entry, clients, kno
           </div>
 
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Override Route <span className="ps-conf-required">*</span></label>
-            <select className="ps-conf-select" value={draft.grossingTemplateId} onChange={e => set('grossingTemplateId', e.target.value)}>
+            <label className="ps-conf-label" htmlFor="gro-template">Override Route <span className="ps-conf-required">*</span></label>
+            <select id="gro-template" className="ps-conf-select" value={draft.grossingTemplateId} onChange={e => set('grossingTemplateId', e.target.value)}>
               {GROSSING_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
@@ -130,7 +130,7 @@ const GrossingRouteOverridesSection: React.FC = () => {
   const loadAll = () => {
     Promise.all([
       grossingRoutingOverrideService.getAll(),
-      clientService.getAll(),
+      facilityService.getAll(),
       specimenDictionaryService.getAll(),
     ]).then(([overridesRes, clientsRes, entriesRes]) => {
       if (overridesRes.ok) setOverrides(overridesRes.data);
@@ -211,7 +211,7 @@ const GrossingRouteOverridesSection: React.FC = () => {
                 </tr>
               ))}
               {overrides.length === 0 && (
-                <tr><td className="ps-conf-empty-row" colSpan={5}>No overrides configured — every client uses the normal, unoverridden routing.</td></tr>
+                <tr><td className="ps-conf-empty-row" colSpan={5}>No overrides configured — every facility uses the normal, unoverridden routing.</td></tr>
               )}
             </tbody>
           </table>

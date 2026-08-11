@@ -105,4 +105,24 @@ export type CaseStatus =
    *  SynopticReportInstance.status; one seed case was force-casting it onto
    *  CaseStatus via `as CaseStatus`, which the type system was silently
    *  allowing without it actually being a real member of this union. */
-  | "pending-countersign";
+  | "pending-countersign"
+
+  /**
+   * Real feature, per direct specification: Post-Sign-Out Release Buffer.
+   * The attending has genuinely completed sign-out (the countersign gate
+   * above, if any, has already passed) — but the report is deliberately
+   * held before it becomes externally final, so the signing pathologist
+   * can recall and correct it without triggering a formal amendment.
+   * Distinct from `pending-countersign` (that gate is about a SECOND
+   * person's review before the attending's own work is even done); this
+   * one is entirely within the same signing pathologist's own recall
+   * window, after their work is complete.
+   *
+   * `finalizedAt` (Case.ts) is deliberately still stamped the moment this
+   * status is entered, not deferred until real release — that field
+   * drives real, existing TAT/SLA calculations (QualityTab.tsx,
+   * IFacilityService's configurable TAT target) that must not silently
+   * shift by the buffer duration. A new, separate `releasedAt` field
+   * captures the real, buffer-aware "genuinely final and dispatch-
+   * eligible" moment instead — see Case.releasedAt's own doc comment. */
+  | "pending-release";

@@ -1,16 +1,28 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
+
+// Version is read here so package.json stays the single source of truth and
+// `npm version` is the only place a release number is ever typed. Resolved
+// against __dirname rather than cwd, so it holds regardless of where the
+// build is invoked from.
+const pkg = JSON.parse(
+  readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'),
+) as { version: string };
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
     plugins: [react()],
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     resolve: {
       alias: {
         '@components': path.resolve(__dirname, 'src/components'),

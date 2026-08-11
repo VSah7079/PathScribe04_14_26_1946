@@ -7,6 +7,7 @@ Discordance tracking — the Frozen-to-Permanent Reconciliation Gate's data laye
 ## Notes
 
 - Recent, actively-developed feature (part of the intraop/reconciliation work).
+- **New real consumer:** `components/Contribution/QualityTab.tsx`'s discordant-case list, via `getAll()` and `qualityCalculations.ts`'s `reconciliationRecordsToDiscordantCases` — replaced what was previously entirely hardcoded mock data there.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

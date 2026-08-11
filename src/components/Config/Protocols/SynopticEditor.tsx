@@ -797,8 +797,8 @@ const requestMeta  = searchParams.get('meta') ? JSON.parse(decodeURIComponent(se
             <div style={{ fontSize: '16px', fontWeight: 700, color: T.text, marginBottom: '8px' }}>Submit for Review?</div>
             <p style={{ fontSize: '13px', color: T.muted, lineHeight: 1.7, margin: '0 0 20px' }}>This will move <strong>{template.name || 'this template'}</strong> to the Review Queue and notify admins and clinical leads. You won't be able to edit it until it's returned for changes.</p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowSubmitConfirm(false)} style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-              <button onClick={handleSubmitForReview} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(8,145,178,0.4)', background: 'rgba(8,145,178,0.15)', color: T.accent, fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Submit for Review →</button>
+              <button onClick={() => setShowSubmitConfirm(false)} className="ps-conf-btn-secondary">Cancel</button>
+              <button onClick={handleSubmitForReview} className="ps-conf-btn-teal-accent" style={{ fontWeight: 700 }}>Submit for Review →</button>
             </div>
           </div>
         </div>

@@ -3,6 +3,8 @@ import React, {
 } from 'react';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { useSystemConfig } from './SystemConfigContext';
+import { callAi } from '../services/aiIntegration/aiProviderService';
+import { resolveVoiceAiConfig } from '../components/Config/AI/resolveVoiceAiModel';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 
@@ -13,7 +15,7 @@ export interface DictationTarget {
   onDone?: () => void;
   /** Called when user edits dictated text — enables AI learning from corrections */
   onCorrection?: (original: string, corrected: string) => void;
-  /** Context hint for Gemini prompt (e.g. 'gross', 'micro', 'diagnosis') */
+  /** Context hint for the AI refinement prompt (e.g. 'gross', 'micro', 'diagnosis') */
   context?: string;
 }
 
@@ -24,7 +26,6 @@ export interface VoiceContextType {
   isFinal: boolean;
   isListening: boolean;
   isAiEnabled: boolean;
-  isProcessing: boolean;
   isRefining: boolean;
   aiAvailable: boolean;
   voiceEnabled: boolean;
@@ -33,7 +34,6 @@ export interface VoiceContextType {
   setAccent: (accent: string) => void;
   startListening: () => void;
   stopListening: () => void;
-  setIsAiEnabled: (enabled: boolean) => void;
   toggleVoice: () => void;
   startDictation: (target: DictationTarget) => void;
   stopDictation: () => void;
@@ -41,38 +41,55 @@ export interface VoiceContextType {
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
+// __psRecordDictationCorrection is a genuine global side-channel (not a
+// standard browser API like SpeechRecognition below, which really has no
+// TS lib type) — declared properly here so the 3 use sites don't each need
+// their own `as any`/`(window as any)` cast.
+declare global {
+  interface Window {
+    __psRecordDictationCorrection?: (corrected: string) => void;
+  }
+}
+
 const STOP_PHRASES = ['stop dictation', 'done', 'finish', 'cancel dictation'];
 const MISS_CONFIRMATION_WINDOW_MS = 8000;
-const GEMINI_TIMEOUT_MS = 2000; // fall back to local if Gemini takes longer
-const GEMINI_MODEL     = 'gemini-2.0-flash-lite';
+const STRUCTURED_CONTENT_TIMEOUT_MS = 2000; // fall back to local if the AI call takes longer
 
-// ── Gemini availability ───────────────────────────────────────────────────────
+// ── AI-refinement availability ────────────────────────────────────────────────
 // Cached in sessionStorage so the probe only fires once per browser session,
 // not on every HMR reload or component mount.
-// 429 (rate limited) means the proxy and key ARE configured — treat as available.
-// Only a network error or 502/503 means the proxy is genuinely absent.
-const GEMINI_SESSION_KEY = 'ps_gemini_available';
+// Real fix: previously hardcoded to the Gemini proxy path specifically —
+// now resolves whichever model is actually configured as the active
+// Voice Dictation model (see resolveVoiceAiModel.ts) and probes THAT,
+// through the same multi-vendor callAi() the real refinement call uses
+// below. Stays accurate if the active voice model is ever changed to a
+// different vendor, rather than silently probing the wrong endpoint.
+const STRUCTURED_CONTENT_SESSION_KEY = 'ps_voice_ai_available';
 
-async function checkGeminiAvailable(): Promise<boolean> {
+async function checkStructuredContentAvailable(): Promise<boolean> {
   // Return cached result if already probed this session
-  const cached = sessionStorage.getItem(GEMINI_SESSION_KEY);
+  const cached = sessionStorage.getItem(STRUCTURED_CONTENT_SESSION_KEY);
   if (cached !== null) return cached === 'true';
 
   let available = false;
   try {
-    const res = await fetch(`/api/ai/gemini/generate?model=${GEMINI_MODEL}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: 'ping' }] }] }),
-    });
-    // 200 = works, 429 = rate limited but key is valid, 400 = key issue
-    // Only 502/503 (proxy missing) or network error = not available
-    available = res.status !== 502 && res.status !== 503;
-  } catch {
-    available = false;
+    const configOverride = await resolveVoiceAiConfig();
+    if (!configOverride) {
+      // No validated voice model configured at all — genuinely
+      // unavailable, not a network/proxy problem.
+      sessionStorage.setItem(STRUCTURED_CONTENT_SESSION_KEY, 'false');
+      return false;
+    }
+    await callAi({ system: 'Reply with: OK', prompt: 'ping', maxTokens: 10, configOverride });
+    available = true;
+  } catch (e: any) {
+    // Distinguish "proxy/key genuinely missing" from "rate limited but
+    // configured" the same way the original Gemini-specific check did —
+    // a 429 means the model IS reachable, just busy right now.
+    available = typeof e?.message === 'string' && e.message.includes('429');
   }
 
-  sessionStorage.setItem(GEMINI_SESSION_KEY, String(available));
+  sessionStorage.setItem(STRUCTURED_CONTENT_SESSION_KEY, String(available));
   return available;
 }
 
@@ -175,7 +192,7 @@ function saveDictationCorrections(map: Record<string, string>) {
   try { localStorage.setItem(DICTATION_LEARN_KEY, JSON.stringify(map)); } catch {}
 }
 
-let dictationCorrections: Record<string, string> = loadDictationCorrections();
+const dictationCorrections: Record<string, string> = loadDictationCorrections();
 
 function applyDictationLearning(rawTranscript: string, localText: string): string {
   const key = norm(rawTranscript);
@@ -187,15 +204,30 @@ function recordDictationCorrection(rawTranscript: string, corrected: string) {
   if (!key || !corrected.trim()) return;
   dictationCorrections[key] = corrected;
   saveDictationCorrections(dictationCorrections);
-  console.log(`[DictationLearning] Learned: "${key}" \u2192 "${corrected}"`);
 }
 
-// ── Gemini refinement via proxy ───────────────────────────────────────────────
-// All Gemini calls go through /api/ai/gemini/generate?model=... (Vite proxy in dev,
-// Vercel serverless in production). The API key is injected server-side
-// and never appears in the browser bundle.
+// ── Voice-dictation AI refinement ─────────────────────────────────────────────
+// Real fix: previously called Gemini directly via a hardcoded model
+// string and its own raw fetch, completely bypassing the same
+// multi-vendor callAi() the rest of the app's AI calls already go
+// through. Now resolves whichever model is actually configured as the
+// active Voice Dictation model (see resolveVoiceAiModel.ts — org-wide
+// default, hard-blocked to only ever be a model with a passing,
+// reported validation study behind it) and calls it through that same
+// shared path, so voice genuinely isn't locked to any one vendor.
 
-async function refineWithGemini(
+const VOICE_REFINEMENT_SYSTEM =
+  'You are an expert Pathology Transcription Assistant. Refine raw voice ' +
+  'transcripts into professional medical text.\n\n' +
+  'RULES:\n' +
+  '1. Correct phonetic errors (e.g. "Rose" \u2192 "Gross", "Serial" \u2192 "Ciliary").\n' +
+  '2. Format measurements using \'x\' (e.g. "3 x 2 x 1 cm").\n' +
+  '3. Use proper pathology staging capitalization (pT2b, pN0, pM0).\n' +
+  '4. Capitalize the first word and after sentence-ending punctuation.\n' +
+  '5. Preserve punctuation symbols already present (commas, periods etc.).\n' +
+  '6. Return ONLY the refined text. No explanation, no quotes.';
+
+async function refineWithStructuredContent(
   text: string,
   context: string,
   learnedCorrections: Record<string, string>
@@ -206,45 +238,21 @@ async function refineWithGemini(
     .join('\n');
 
   const fewShot = examples
-    ? `\nLearned corrections from this user (apply similar patterns):\n${examples}\n`
+    ? `Learned corrections from this user (apply similar patterns):\n${examples}\n\n`
     : '';
 
-  const prompt = `You are an expert Pathology Transcription Assistant.
-Refine this raw voice transcript into professional medical text.
-
-RULES:
-1. Correct phonetic errors (e.g. "Rose" \u2192 "Gross", "Serial" \u2192 "Ciliary").
-2. Format measurements using 'x' (e.g. "3 x 2 x 1 cm").
-3. Use proper pathology staging capitalization (pT2b, pN0, pM0).
-4. Capitalize the first word and after sentence-ending punctuation.
-5. Preserve punctuation symbols already present (commas, periods etc.).
-6. Return ONLY the refined text. No explanation, no quotes.
-${fewShot}
-Context: ${context}
-Raw: "${text}"`;
+  const prompt = `${fewShot}Context: ${context}\nRaw: "${text}"`;
 
   try {
-    const response = await fetch(
-      `/api/ai/gemini/generate?model=${GEMINI_MODEL}`,
-      {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.warn('[VoiceProvider] Gemini proxy returned', response.status);
+    const configOverride = await resolveVoiceAiConfig();
+    if (!configOverride) {
+      console.warn('[VoiceProvider] No validated voice AI model configured');
       return null;
     }
-
-    const data = await response.json();
-    const refined = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    return refined || null;
+    const result = await callAi({ system: VOICE_REFINEMENT_SYSTEM, prompt, configOverride });
+    return result.text?.trim() || null;
   } catch (e) {
-    console.warn('[VoiceProvider] Gemini refinement failed:', e);
+    console.warn('[VoiceProvider] AI refinement failed:', e);
     return null;
   }
 }
@@ -255,10 +263,10 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { config } = useSystemConfig();
   const voiceEnabled = config.voiceEnabled ?? true;
 
-  // Probe Gemini availability once on mount via the proxy
+  // Probe voice AI refinement availability once on mount
   const [aiAvailable, setAiAvailable] = useState(false);
   useEffect(() => {
-    checkGeminiAvailable().then(setAiAvailable);
+    checkStructuredContentAvailable().then(setAiAvailable);
   }, []);
 
   const [phase, setPhase]                       = useState<VoicePhase>('standby');
@@ -377,9 +385,9 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setTranscript('\u2728 Refining\u2026');
 
       const context       = dictationTargetRef.current?.context ?? 'Pathology Report';
-      const geminiPromise = refineWithGemini(text, context, dictationCorrections);
-      const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), GEMINI_TIMEOUT_MS));
-      const refined        = await Promise.race([geminiPromise, timeoutPromise]);
+      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrections);
+      const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), STRUCTURED_CONTENT_TIMEOUT_MS));
+      const refined        = await Promise.race([structuredContentPromise, timeoutPromise]);
 
       setIsRefining(false);
       setTranscript('');
@@ -485,7 +493,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!voiceEnabled) return;
     setPhase(current => {
       if (current === 'standby') {
-        // If Gemini is available via proxy, prefer AI phase
+        // If AI refinement is available, prefer AI phase
         if (aiAvailableRef.current) { setCommandPhase('ai'); return 'ai'; }
         else                        { setCommandPhase('local'); return 'local'; }
       }
@@ -515,20 +523,19 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // ── Correction learning ────────────────────────────────────────────────────
   useEffect(() => {
-    (window as any).__psRecordDictationCorrection = (corrected: string) => {
+    window.__psRecordDictationCorrection = (corrected: string) => {
       if (!lastRawRef.current || !corrected) return;
       if (norm(corrected) === norm(lastLocalTextRef.current)) return;
       recordDictationCorrection(lastRawRef.current, corrected);
       dictationTargetRef.current?.onCorrection?.(lastRawRef.current, corrected);
     };
-    return () => { delete (window as any).__psRecordDictationCorrection; };
+    return () => { delete window.__psRecordDictationCorrection; };
   }, []);
 
   const value: VoiceContextType = {
     phase, commandPhase, transcript, isFinal,
     isListening:  phase !== 'standby',
     isAiEnabled:  phase === 'ai' || (phase === 'dictate' && commandPhase === 'ai'),
-    isProcessing: false,
     isRefining,
     aiAvailable,
     voiceEnabled,
@@ -536,7 +543,6 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAccent,
     startListening:  () => { setCommandPhase('ai'); setPhase('ai'); },
     stopListening:   () => { setDictationTarget(null); setPhase('standby'); },
-    setIsAiEnabled:  () => {},
     toggleVoice, startDictation, stopDictation,
   };
 
@@ -547,5 +553,5 @@ export const useVoice = () => useContext(VoiceContext)!;
 
 // ── Utility: call from any field's onBlur to teach the system ─────────────────
 export function reportDictationCorrection(correctedText: string) {
-  (window as any).__psRecordDictationCorrection?.(correctedText);
+  window.__psRecordDictationCorrection?.(correctedText);
 }

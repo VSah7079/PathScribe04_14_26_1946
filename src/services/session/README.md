@@ -31,11 +31,12 @@ became a second precedent for future folders to copy incorrectly.
 ## Files — idle-timeout resolution
 
 - **`ISessionTimeoutService.ts`** — `getOrgDefault()`/`setOrgDefault(minutes)`
-  (org-wide default) plus `resolveEffectiveMinutes(orderingClientId?)`
-  (full resolution — resolves through `resolvePerformingLabClientId()` to
-  whichever internal client actually performs the work on the
-  currently-open case, same as every other lab-scoped setting in this
-  codebase, e.g. `Client.internalAiOrchestratorEnabled`). All three
+  (org-wide default) plus `resolveEffectiveMinutes(orderingFacilityId?)`
+  (full resolution — resolves through `resolvePerformingLabFacilityId()`
+  (`services/facilities/IFacilityService.ts`) to whichever facility
+  actually performs the work on the currently-open case, same as every
+  other lab-scoped setting in this codebase, e.g.
+  `Facility.internalAiOrchestratorEnabled`). All three
   methods return the standard async `ServiceResult<T>`. Also exports
   `extractCaseIdFromPath()` as a plain function alongside the interface
   (not part of it) — pure string parsing, no data access, so it doesn't
@@ -124,9 +125,9 @@ backend-dependent follow-on work, tracked in
   happened to fire while backgrounded.
 - Real, working admin UI exists for both layers: org default at
   Configuration → System → Session Security
-  (`components/Config/System/SessionSecuritySection.tsx`); per-client
-  override on the Client Dictionary edit modal
-  (`Client.idleTimeoutMinutesOverride`, `components/ClientDictionary/ClientEditorModal.tsx`).
+  (`components/Config/System/SessionSecuritySection.tsx`); per-facility
+  override on Facility Configuration's edit modal, AI & Performance tab
+  (`Facility.idleTimeoutMinutesOverride`, `components/ClientDictionary/ClientEditorModal.tsx`).
   No equivalent admin UI exists yet for session-supersede — there's
   nothing to configure, it's always-on browser-native behavior.
 - Consumed by `hooks/useIdleTimeout.ts` (idle-timeout) and

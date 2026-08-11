@@ -35,6 +35,21 @@ export interface StainType {
    *  IHC entries — it's part of what makes the order specific. */
   antibodyClone?: string;
   vendor?: string;
+  /**
+   * Real fix, per direct guidance: real coders (via the lab's own AMA
+   * license) can set a real, specific CPT code for THIS stain type -
+   * e.g. a particular antibody that's billed differently than the
+   * generic IHC first/additional rule, or a real multiplex antibody
+   * panel (e.g. "PIN-4" combining p63/AMACR/CK on one slide, billed as
+   * 88344, not as three separate 88342/88341 charges). Each specific
+   * antibody or panel is already its own distinct StainType record
+   * (this dictionary's whole point), so this is real, per-record
+   * granularity, not a blunt, one-size-fits-all IHC rule. Optional and
+   * additive - entries without one keep using the generic, honest
+   * suggestBlockAncillaryCptCodes rule (services/billing/codeMapTable.ts)
+   * unchanged. This app never fabricates the mapping itself.
+   */
+  defaultCptCode?: string;
   /** Rough turnaround estimate — informational only, not a hard TAT rule
    *  (that's TATConfigSection's job, a separate, already-built system;
    *  this is just a per-stain default hint shown at order time). */

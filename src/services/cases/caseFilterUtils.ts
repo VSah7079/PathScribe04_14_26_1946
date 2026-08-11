@@ -20,11 +20,6 @@
 import type { Case } from '../../types/case/Case';
 import type { CaseFilterParams } from './ICaseService';
 
-const ALL_CLIENTS_MAP: Record<string, string> = {
-  'c1': 'Metro General', 'c2': 'Riverside', 'c3': 'Westside', 'c4': 'Bayview',
-  'c5': 'Catherine',     'c6': 'Manchester', 'c7': 'Midwest',  'c8': 'Henry Ford',
-};
-
 export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case[] {
   let results = [...cases];
 
@@ -37,7 +32,8 @@ export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case
     const q = params.search.toLowerCase();
     results = results.filter(c =>
       c.accession?.fullAccession?.toLowerCase().includes(q) ||
-      `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q)
+      `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q) ||
+      (c.patient?.mrn ?? '').toLowerCase().includes(q)
     );
   }
   if ((params as any)?.specialty) {
@@ -52,7 +48,7 @@ export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case
   if ((params as any)?.priorityList?.length) {
     const pl = ((params as any).priorityList as string[]).map((s: string) => s.toLowerCase());
     results = results.filter(c => {
-      const priority = ((c as any).priority ?? 'routine').toLowerCase();
+      const priority = ((c as any).order?.priority ?? 'routine').toLowerCase();
       return pl.some((p: string) => priority.includes(p.toLowerCase()));
     });
   }
@@ -73,6 +69,22 @@ export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case
     results = results.filter(c =>
       `${c.patient?.firstName} ${c.patient?.lastName}`.toLowerCase().includes(q)
     );
+  }
+  // Real fix: hospitalId (MRN) and patientId (MPI) were both declared in
+  // CaseFilterParams and sent by SearchPage.tsx, but neither was ever
+  // actually checked anywhere in this pipeline - a real, live gap
+  // (confirmed directly), not a stylistic omission. patient.id already
+  // holds the real, deduplicated MPI identity (AccessionPage.tsx's real
+  // MPI resolution, not a case-derived id), so it's matched exactly
+  // rather than by substring, unlike MRN which stays substring-matched
+  // for consistency with every other identifier field here.
+  if ((params as any)?.hospitalId) {
+    const q = ((params as any).hospitalId as string).toLowerCase();
+    results = results.filter(c => (c.patient?.mrn ?? '').toLowerCase().includes(q));
+  }
+  if ((params as any)?.patientId) {
+    const q = (params as any).patientId as string;
+    results = results.filter(c => c.patient?.id === q);
   }
   if ((params as any)?.accessionNo) {
     const q = ((params as any).accessionNo as string).toLowerCase();
@@ -106,8 +118,14 @@ export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case
       const dob = c.patient?.dateOfBirth;
       if (!dob) return true; // don't exclude cases with no DOB on record
       const birth = new Date(dob);
+      // Real, honest justification for both lines below: age-from-DOB
+      // compares two dates (now, birth) in the same, consistent local
+      // time - inherently viewer-relative, not a real, stored-event
+      // facility-timezone concern.
       const age =
+        // eslint-disable-next-line no-restricted-properties -- see real, honest justification above
         now.getFullYear() - birth.getFullYear() -
+        // eslint-disable-next-line no-restricted-properties -- see real, honest justification above
         (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
       return age >= minAge && age <= maxAge;
     });
@@ -171,12 +189,7 @@ export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case
 
   if (params?.clientIds?.length) {
     const ids = params.clientIds as string[];
-    results = results.filter(c =>
-      ids.includes((c as any).order?.clientId ?? '') ||
-      ids.some((id: string) => (c as any).order?.clientName?.toLowerCase().includes(
-        ALL_CLIENTS_MAP[id]?.toLowerCase() ?? ''
-      ))
-    );
+    results = results.filter(c => ids.includes((c as any).order?.clientId ?? ''));
   }
 
   // SNOMED CT — SearchPage passes s.code (e.g. '413448000'); match c.coding.snomed[]
@@ -212,3 +225,117 @@ export function applyCaseFilters(cases: Case[], params?: CaseFilterParams): Case
 
   return results;
 }
+
+// ── Pagination ─────────────────────────────────────────────────────────────
+// Real, shared pagination for the two mock services (mockCaseService.ts,
+// mockOrchestratorCaseService.ts) - kept separate from applyCaseFilters
+// above to preserve that function's own stated "deliberately pure, just
+// filtering" contract. Same "one shared implementation, not two that
+// drift" reasoning this file's own header already states for filtering.
+//
+// Sorts by updatedAt desc before paginating - matches
+// FirestoreCaseService.ts's own orderBy('updatedAt', 'desc') exactly, so
+// a caller (SearchPage.tsx) sees cases in the same order and the
+// pagination cursor means the same thing regardless of which backend is
+// actually active. Without this, the two backends would paginate through
+// genuinely different orderings of the same filtered set.
+//
+// Honest, known limitation, deliberately consistent with the Firestore
+// implementation rather than "fixed" only here: cursor is a single field
+// (updatedAt), not a compound cursor with a tiebreaker. Two cases sharing
+// the exact same updatedAt timestamp could theoretically resolve
+// ambiguously - the same limitation the real Firestore query has with a
+// single-field orderBy/startAfter, not a mock-only gap.
+export interface CasePaginationResult {
+  data: Case[];
+  meta?: { hasMore: boolean; nextCursor?: string };
+}
+
+export function applyCasePagination(results: Case[], params?: CaseFilterParams): CasePaginationResult {
+  const sorted = [...results].sort((a, b) => {
+    const at = new Date((a as any).updatedAt ?? 0).getTime();
+    const bt = new Date((b as any).updatedAt ?? 0).getTime();
+    return bt - at;
+  });
+
+  if (!params?.pageSize) {
+    return { data: sorted };
+  }
+
+  let startIdx = 0;
+  if (params.cursor) {
+    // Resume immediately after the item the previous page actually ended
+    // on. If that item is no longer in the current filtered/sorted set
+    // (e.g. it changed status between requests and no longer matches),
+    // fall back to the start rather than erroring - a graceful, honest
+    // degradation, not a crash.
+    const idx = sorted.findIndex(c => (c as any).updatedAt === params.cursor);
+    startIdx = idx >= 0 ? idx + 1 : 0;
+  }
+
+  const page = sorted.slice(startIdx, startIdx + params.pageSize + 1);
+  const hasMore = page.length > params.pageSize;
+  const data = page.slice(0, params.pageSize);
+  const nextCursor = hasMore ? (data[data.length - 1] as any)?.updatedAt : undefined;
+
+  return { data, meta: { hasMore, nextCursor } };
+}
+
+// Real, pure merge-pagination for CaseRouter.getAll()'s dual-source case
+// (LIS + Orchestration combined). Extracted specifically so this genuinely
+// tricky algorithm (composite cursor: each source needs its own resume
+// point, since a cursor value from one source's own updatedAt ordering
+// may not exist at all in the other's dataset) can be tested directly,
+// without needing to mock CaseRouter's real session/subspecialty/audit
+// dependencies just to verify the merge itself is correct.
+export interface DualSourceCursor { lis?: string; orch?: string }
+export interface DualSourcePage<T> {
+  data: T[];
+  meta: { hasMore: boolean; nextCursor?: string };
+}
+
+export function mergeDualSourcePages<T extends { updatedAt?: string }>(
+  lisItems: T[],
+  orchItems: T[],
+  pageSize: number,
+  priorCursor: DualSourceCursor,
+  // Each source's own hasMore, from its own prior applyCasePagination call.
+  // Real, necessary input, not optional bookkeeping: without this, a
+  // source whose entire fetched batch gets consumed by this page would
+  // look like "no more data" even when that source genuinely has more
+  // beyond what was fetched — a real, confirmed gap caught directly by
+  // testing (mergeDualSourcePages(lisFetched.data, [], 2, {}) with a
+  // 3-item lis source and pageSize 2 returned hasMore: false when it
+  // should have been true).
+  sourceHasMore: { lis?: boolean; orch?: boolean } = {},
+): DualSourcePage<T> {
+  const tagged = [
+    ...lisItems.map(c => ({ c, source: 'lis' as const })),
+    ...orchItems.map(c => ({ c, source: 'orch' as const })),
+  ].sort((a, b) => {
+    const at = new Date(a.c.updatedAt ?? 0).getTime();
+    const bt = new Date(b.c.updatedAt ?? 0).getTime();
+    return bt - at;
+  });
+
+  const page = tagged.slice(0, pageSize);
+  const hasMore = tagged.length > pageSize || !!sourceHasMore.lis || !!sourceHasMore.orch;
+
+  // Next cursor per source: the updatedAt of the last item FROM THAT
+  // SOURCE that actually made it into this page. If none of a source's
+  // fetched items made the cut, that source's cursor stays exactly where
+  // it was — nothing from it was consumed yet, so the next request should
+  // resume from the same spot rather than skipping ahead incorrectly.
+  const lastLisInPage = [...page].reverse().find(x => x.source === 'lis');
+  const lastOrchInPage = [...page].reverse().find(x => x.source === 'orch');
+  const nextCursor: DualSourceCursor = {
+    lis: lastLisInPage ? lastLisInPage.c.updatedAt : priorCursor.lis,
+    orch: lastOrchInPage ? lastOrchInPage.c.updatedAt : priorCursor.orch,
+  };
+
+  return {
+    data: page.map(x => x.c),
+    meta: { hasMore, nextCursor: hasMore ? JSON.stringify(nextCursor) : undefined },
+  };
+}
+

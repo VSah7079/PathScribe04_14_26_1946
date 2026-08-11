@@ -1,8 +1,15 @@
 // src/components/Contribution/ProductivityTab.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis,
          CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
 import { pathscribeTheme as theme } from "@theme/pathscribeTheme";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSystemConfig } from "@/contexts/SystemConfigContext";
+import { caseRouter } from "@/services/cases/CaseRouter";
+import { userService } from "@/services";
+import { mockRvuCodeMapService } from "@/services/billing/mockRvuCodeMapService";
+import { getFacilityDateParts } from "@/utils/facilityTime";
+import { computeMonthlyCaseCounts, canSeePeerComparison, computeRvuSummary, computeMonthlyRvu, computePeerRvuStats, type RealRvuSummary, type RealPeerRvuStats } from "./productivityCalculations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,34 +24,26 @@ interface MonthlyData {
 type ChartMetric = "cases" | "rvus" | "combined";
 type DateRange   = "ytd" | "6m" | "3m" | "1m";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const mockMonthly: MonthlyData[] = [
-  { month: "Jan", cases: 98,  rvus: 312, cumulativeRvus: 312  },
-  { month: "Feb", cases: 112, rvus: 358, cumulativeRvus: 670  },
-  { month: "Mar", cases: 105, rvus: 336, cumulativeRvus: 1006 },
-  { month: "Apr", cases: 121, rvus: 387, cumulativeRvus: 1393 },
-  { month: "May", cases: 118, rvus: 378, cumulativeRvus: 1771 },
-  { month: "Jun", cases: 128, rvus: 409, cumulativeRvus: 2180 },
-  { month: "Jul", cases: 115, rvus: 368, cumulativeRvus: 2548 },
-  { month: "Aug", cases: 132, rvus: 422, cumulativeRvus: 2970 },
-];
-
-
-const mockPeerData = {
-  you:      2970,
-  peerAvg:  2640,
-  topPerf:  3380,
-  lastYear: 2510,
-};
-
-const mockRvuTile = {
-  total:      2970,
-  delta:      "+12.2%",
-  up:         true,
-  period:     "YTD 2025",
-  avgPerCase: 22.4,
-};
+// Real fix, from a direct product review: this file's case counts, RVU
+// values, AND peer comparison used to be entirely hardcoded. All three are
+// now genuinely real (see productivityCalculations.ts -
+// computeMonthlyCaseCounts, computeRvuSummary, computeMonthlyRvu,
+// computePeerRvuStats), via the real, already-existing
+// services/billing/mockRvuCodeMapService.ts and services/users/. Two
+// separate, earlier versions of this comment claimed "no real RVU data
+// source" and "no real aggregated-peer backend" respectively - both were
+// stale/wrong, caught during a later audit in the same evening: the real
+// RVU Code Map admin UI and the real, already-wired
+// showPeerAveragesToPathologists config toggle (Configuration > System >
+// Contribution Dashboard Settings) had both already existed, just never
+// connected to this page.
+//
+// A real, separate bug caught while wiring peer comparison: the real
+// peer-pathologist filter here (and, it turned out, an identical one in
+// SearchPage.tsx from earlier the same evening) originally checked
+// roles.includes('pathologist') - lowercase. The real seed data uses
+// 'Pathologist', capitalized. Both silently matched zero real users until
+// verified directly against the real data and fixed.
 
 // ─── Shared UI helpers ────────────────────────────────────────────────────────
 
@@ -60,9 +59,12 @@ const Card: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }>
   </div>
 );
 
-const SectionTitle: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => (
+const SectionTitle: React.FC<{ title: string; sub?: string; badge?: React.ReactNode }> = ({ title, sub, badge }) => (
   <div style={{ marginBottom: "16px" }}>
-    <div style={{ fontSize: "15px", fontWeight: 700, color: theme.colors.text.primary }}>{title}</div>
+    <div style={{ fontSize: "15px", fontWeight: 700, color: theme.colors.text.primary, display: "flex", alignItems: "center", gap: "8px" }}>
+      {title}
+      {badge}
+    </div>
     {sub && <div style={{ fontSize: "12px", color: theme.colors.text.muted, marginTop: "2px" }}>{sub}</div>}
   </div>
 );
@@ -136,17 +138,20 @@ const LineChart: React.FC<{
   showPeer: boolean;
   showTop: boolean;
   showLastYear: boolean;
-}> = ({ data, showPeer, showTop, showLastYear }) => {
+  peer: RealPeerRvuStats | null;
+  lastYearTotal: number;
+  timezone: string;
+}> = ({ data, showPeer, showTop, showLastYear, peer, lastYearTotal, timezone }) => {
   // Build chart rows — cumulative actuals + peer / top / last-year projections
   const n = data.length;
   const chartRows = data.map((d, i) => ({
     month:     d.month,
     you:       d.cumulativeRvus,
-    peer:      +(mockPeerData.peerAvg  * (i + 1) / n).toFixed(0),
-    top:       +(mockPeerData.topPerf  * (i + 1) / n).toFixed(0),
-    lastYear:  +(mockPeerData.lastYear * (i + 1) / n).toFixed(0),
+    peer:      +((peer?.peerAvg ?? 0) * (i + 1) / n).toFixed(0),
+    top:       +((peer?.topPerf ?? 0) * (i + 1) / n).toFixed(0),
+    lastYear:  +(lastYearTotal * (i + 1) / n).toFixed(0),
   }));
-  const chartYear = new Date().getFullYear();
+  const chartYear = getFacilityDateParts(new Date(), timezone).year;
 
   const fmt = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v);
 
@@ -195,26 +200,33 @@ const LineChart: React.FC<{
 };
 
 
-const RvuTile: React.FC = () => (
+const RvuTile: React.FC<{ summary: RealRvuSummary | null }> = ({ summary }) => (
   <Card>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
       <div>
         <div style={{ fontSize: "13px", color: theme.colors.text.muted, marginBottom: "6px" }}>
-          Total RVUs — {mockRvuTile.period}
+          Total RVUs — {summary?.period ?? "YTD"}
         </div>
         <div style={{ fontSize: "32px", fontWeight: 800, color: theme.colors.text.primary, lineHeight: 1 }}>
-          {mockRvuTile.total.toLocaleString()}
+          {summary ? summary.total.toLocaleString() : "—"}
         </div>
-        <div style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: mockRvuTile.up ? theme.colors.semantic.success : theme.colors.semantic.warning }}>
-          {mockRvuTile.up ? "▲" : "▼"} {mockRvuTile.delta} vs last year
-        </div>
+        {summary && (
+          <div style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: summary.up ? theme.colors.semantic.success : theme.colors.semantic.warning }}>
+            {summary.up ? "▲" : "▼"} {summary.delta} vs last year
+          </div>
+        )}
         <div style={{ fontSize: "11px", color: theme.colors.text.muted, marginTop: "8px" }}>
           Finalized cases only · Clinical workload metric
         </div>
+        {!!summary?.unrecognizedCodeCount && (
+          <div style={{ fontSize: "10px", color: theme.colors.semantic.warning, marginTop: "4px" }}>
+            {summary.unrecognizedCodeCount} real code{summary.unrecognizedCodeCount === 1 ? '' : 's'} not found in the active RVU table
+          </div>
+        )}
       </div>
       <div style={{ textAlign: "right" }}>
         <div style={{ fontSize: "11px", color: theme.colors.text.muted }}>Avg per case</div>
-        <div style={{ fontSize: "24px", fontWeight: 700, color: theme.colors.chart.rvu }}>{mockRvuTile.avgPerCase}</div>
+        <div style={{ fontSize: "24px", fontWeight: 700, color: theme.colors.chart.rvu }}>{summary?.avgPerCase ?? "—"}</div>
         <div style={{ fontSize: "10px", color: theme.colors.text.muted, marginTop: "2px" }}>RVUs</div>
       </div>
     </div>
@@ -223,18 +235,41 @@ const RvuTile: React.FC = () => (
 
 // ─── Peer Comparison ──────────────────────────────────────────────────────────
 
-const PeerComparison: React.FC = () => {
-  const max = mockPeerData.topPerf;
+const PeerComparison: React.FC<{ you: number; peer: RealPeerRvuStats | null; lastYearTotal: number }> = ({ you, peer, lastYearTotal }) => {
+  if (!peer) {
+    return (
+      <Card>
+        <SectionTitle title="Peer Comparison" sub="YTD RVUs — anonymized · role-gated" />
+        <div style={{ fontSize: "12px", color: theme.colors.text.muted, padding: "12px 0" }}>Loading…</div>
+      </Card>
+    );
+  }
+  if (peer.peerCount === 0) {
+    return (
+      <Card>
+        <SectionTitle title="Peer Comparison" sub="YTD RVUs — anonymized · role-gated" />
+        <div style={{ fontSize: "12px", color: theme.colors.text.muted, padding: "12px 0" }}>
+          No other active pathologists to compare against yet.
+        </div>
+      </Card>
+    );
+  }
+
   const rows = [
-    { label: "You",           value: mockPeerData.you,      color: theme.colors.accentTeal              },
-    { label: "Peer Average",  value: mockPeerData.peerAvg,  color: theme.colors.chart.cases             },
-    { label: "Top Performer", value: mockPeerData.topPerf,  color: theme.colors.chart.rvu               },
-    { label: "Last Year",     value: mockPeerData.lastYear, color: theme.colors.text.muted              },
+    { label: "You",           value: you,                color: theme.colors.accentTeal              },
+    { label: "Peer Average",  value: peer.peerAvg,        color: theme.colors.chart.cases             },
+    { label: "Top Performer", value: peer.topPerf,        color: theme.colors.chart.rvu               },
+    { label: "Last Year",     value: lastYearTotal,       color: theme.colors.text.muted              },
   ];
+  // Real, safe max for bar scaling - "You" can genuinely exceed the
+  // real, peer-only top performer figure (peer.topPerf excludes the
+  // current user by design), so it can't be assumed to always be the
+  // largest real value.
+  const max = Math.max(...rows.map(r => r.value), 1);
 
   return (
     <Card>
-      <SectionTitle title="Peer Comparison" sub="YTD RVUs — anonymized · role-gated" />
+      <SectionTitle title="Peer Comparison" sub={`YTD RVUs — anonymized · role-gated · ${peer.peerCount} peer${peer.peerCount === 1 ? '' : 's'}`} />
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {rows.map(r => (
           <div key={r.label}>
@@ -257,18 +292,78 @@ const PeerComparison: React.FC = () => {
 // ─── Main ProductivityTab ─────────────────────────────────────────────────────
 
 const ProductivityTab: React.FC = () => {
+  const { user } = useAuth();
+  const { config } = useSystemConfig();
+  const canSeePeer = canSeePeerComparison(user?.role, config.showPeerAveragesToPathologists);
   const [dateRange,    setDateRange]    = useState<DateRange>("ytd");
   const [activeChart,  setActiveChart]  = useState<"monthly" | "ytd">("monthly");
   const [showPeer,     setShowPeer]     = useState(true);
   const [showTop,      setShowTop]      = useState(true);
   const [showLastYear, setShowLastYear] = useState(false);
 
-  // Cap at current calendar month — no future data points
-  const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const currentMonthIdx = new Date().getMonth();
-  const availableMonthly = mockMonthly.filter(
-    d => MONTH_ORDER.indexOf(d.month) <= currentMonthIdx
-  );
+  // Real case counts, per month, for the current calendar year - fetched
+  // once per user, computed from actual finalized cases (see
+  // productivityCalculations.ts). Starts empty rather than showing stale
+  // demo numbers while the real fetch is in flight.
+  const [realMonthly, setRealMonthly] = useState<{ month: string; cases: number }[]>([]);
+  // Real fix: RVU is now real too - see productivityCalculations.ts's own
+  // header comment for the full story (the "no real RVU source" comment
+  // this file used to carry was stale). Peer comparison is real now too
+  // (see realPeer below) - the "no aggregated-peer backend" claim in an
+  // earlier version of this comment was ALSO stale, caught the same
+  // evening: the real ingredients (userService, caseRouter.getAll, the
+  // same computeRvuSummary already built for the tile above) already
+  // existed, just never assembled.
+  const [realRvu, setRealRvu] = useState<RealRvuSummary | null>(null);
+  // Real fix: replaces demoRvuByMonth - the monthly chart's own per-month
+  // RVU breakdown, a real, separate hardcoded constant found and fixed in
+  // the same pass as the summary tile above.
+  const [realMonthlyRvu, setRealMonthlyRvu] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    Promise.all([caseRouter.listCasesForUser(user.id), mockRvuCodeMapService.getAllVersions()]).then(([cases, versionsRes]) => {
+      if (cancelled) return;
+      setRealMonthly(computeMonthlyCaseCounts(cases, user.id, config.facilityTimezone));
+      if (versionsRes.ok) {
+        setRealRvu(computeRvuSummary(cases, user.id, versionsRes.data, config.facilityTimezone));
+        const byMonth = computeMonthlyRvu(cases, user.id, versionsRes.data, config.facilityTimezone);
+        setRealMonthlyRvu(Object.fromEntries(byMonth.map(m => [m.month, m.rvus])));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Real fix: replaces the entirely hardcoded demoPeerData. Deliberately
+  // a SEPARATE fetch from the one above - only ever runs when canSeePeer
+  // is true, both to avoid unnecessary cross-pathologist computation for
+  // a user who isn't permitted to see it, and to keep the existing,
+  // already-working "my own" fetch above completely unchanged and
+  // low-risk. Real, active pathologists only (status: 'Active'), the
+  // current user excluded from their own real peer pool.
+  const [realPeer, setRealPeer] = useState<RealPeerRvuStats | null>(null);
+  useEffect(() => {
+    if (!user?.id || !canSeePeer) return;
+    let cancelled = false;
+    Promise.all([userService.getAll(), caseRouter.getAll(), mockRvuCodeMapService.getAllVersions()]).then(([usersRes, allCasesRes, versionsRes]) => {
+      if (cancelled || !usersRes.ok || !allCasesRes.ok || !versionsRes.ok) return;
+      const peerIds = usersRes.data
+        .filter(u => u.status === 'Active' && u.roles.includes('Pathologist') && u.id !== user.id)
+        .map(u => u.id);
+      setRealPeer(computePeerRvuStats(allCasesRes.data, peerIds, versionsRes.data, config.facilityTimezone));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id, canSeePeer]);
+
+  // Merge real case counts with the real, computed monthly RVU data into
+  // the same MonthlyData shape the rest of this component already
+  // expects. cumulativeRvus is now a real running total.
+  let cumulative = 0;
+  const availableMonthly: MonthlyData[] = realMonthly.map(({ month, cases }) => {
+    const rvus = realMonthlyRvu[month] ?? 0;
+    cumulative += rvus;
+    return { month, cases, rvus, cumulativeRvus: Math.round(cumulative * 100) / 100 };
+  });
 
   const filteredMonthly =
     dateRange === "ytd" ? availableMonthly :
@@ -295,8 +390,17 @@ const ProductivityTab: React.FC = () => {
 
       {/* ── RVU Tile + Peer Comparison ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-        <RvuTile />
-        <PeerComparison />
+        <RvuTile summary={realRvu} />
+        {canSeePeer ? (
+          <PeerComparison you={realRvu?.total ?? 0} peer={realPeer} lastYearTotal={realRvu?.lastYearTotal ?? 0} />
+        ) : (
+          <Card>
+            <SectionTitle title="Peer Comparison" sub="YTD RVUs — anonymized · role-gated" />
+            <div style={{ fontSize: "12px", color: theme.colors.text.muted, padding: "12px 0" }}>
+              Peer comparisons are turned off for pathologists by your organization's settings.
+            </div>
+          </Card>
+        )}
       </div>
 
 
@@ -345,7 +449,7 @@ const ProductivityTab: React.FC = () => {
                 ))}
               </div>
             </div>
-            <LineChart data={filteredMonthly} showPeer={showPeer} showTop={showTop} showLastYear={showLastYear} />
+            <LineChart data={filteredMonthly} showPeer={showPeer} showTop={showTop} showLastYear={showLastYear} peer={realPeer} lastYearTotal={realRvu?.lastYearTotal ?? 0} timezone={config.facilityTimezone} />
           </>
         )}
       </Card>

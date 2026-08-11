@@ -21,7 +21,7 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
 | [Search/](./Search/README.md) | Configuration page's own search bar | βœ… Reviewed |
 | [Staff/](./Staff/README.md) | Staff directory + role/permission dictionary | βœ… Reviewed β€” 2 fixes applied |
 | [Terminology/](./Terminology/README.md) | Terminology endpoint config + health monitor | βœ… Reviewed |
-| [System/](./System/README.md) | 29 files β€” client/case/routing/TAT/session/dictionary admin | βœ… Reviewed β€” 1 rename, 6 fixes applied |
+| [System/](./System/README.md) | 30 files β€” client/case/routing/TAT/session/dictionary admin | βœ… Reviewed β€” 1 rename, 6 fixes applied |
 | [Protocols/](./Protocols/README.md) | Protocol registry + review queue + the real template builder | βœ… Reviewed β€” see TemplateRenderer bug below |
 
 ## Known issues (cross-folder)
@@ -47,11 +47,11 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
   localStorage key β€” so the toggle silently never worked, anywhere.
   Rebuilt as `Config/AI/orchestratorModeConfig.ts`: a real, persisted
   org-level default (toggleable from `OrchestratorConfigSection.tsx`) plus
-  a per-internal-client override (`Client.internalAiOrchestratorEnabled`,
-  editable in the Client Dictionary's General tab, for NHS trusts /
+  a per-facility override (`Facility.internalAiOrchestratorEnabled`,
+  editable in Facility Configuration's AI & Performance tab, for NHS trusts /
   multi-site arrangements where not every performing lab wants AI
   narrative auto-draft on). See `Config/AI/README.md` and
-  `services/clients/README.md` for full detail. Deleted the confirmed-dead
+  `services/facilities/README.md` for full detail. Deleted the confirmed-dead
   `NarrativeTemplatesTab`/`SectionList.tsx`/`SectionEditor.tsx`.
 - **PRIORITY_FIXES.md #3 β€” CLOSED.** `CaseRoutingSection.tsx` renamed to
   `CasePoolAssignmentSection.tsx` (file + component + `System/index.tsx`
@@ -117,8 +117,9 @@ subfolder's own `README.md`. Only touch *this* file if a subfolder's
   version was caught not matching this codebase's established convention;
   see `services/session/README.md`), `hooks/useIdleTimeout.ts`,
   `Common/SessionExpiryWarningModal.tsx`.
-  `Client.idleTimeoutMinutesOverride` added to `IClientService.ts` and
-  wired into the Client Dictionary edit modal. Modal copy deliberately
+  `Facility.idleTimeoutMinutesOverride` added to `IFacilityService.ts` and
+  wired into Facility Configuration's edit modal (AI & Performance tab).
+  Modal copy deliberately
   reworded from the original spec to avoid claiming draft auto-save
   exists (at the time, that was Phase 2, not yet built) β€” same
   false-claim risk just removed from the audit log.

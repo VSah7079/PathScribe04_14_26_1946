@@ -23,11 +23,13 @@ import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import NarrativeEditor from '@/components/Editor/NarrativeEditor';
 import { useVoice } from '@/contexts/VoiceProvider';
 import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEditorRef';
+import type { LabelConfig } from '@/types/template';
+import { labelStyle } from '@/pages/ReportPreview/ReportPreviewRenderer';
 import type { Case } from '@/types/case/Case';
 import { mockMacroService } from '@/services/macros/mockMacroService';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { PathScribeAIService, type SpellingFlag } from '@/services/aiIntegration/PathScribeAIService';
-import { clientService } from '@/services';
+import { facilityService } from '@/services';
 import type { Jurisdiction } from '@/types/systemConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -46,6 +48,25 @@ export interface OrchestratorSection {
   hint?:               string;
   committed?:          boolean;
   lockedAt?:           string;
+  /** Real fix: the section's own `id` is auto-generated per template
+   *  resolution (a fresh UUID every time), not a stable identifier —
+   *  code that needs to reliably recognize "this is the Gross
+   *  Description section" regardless of when/how it was resolved
+   *  should match on sourcePartId (the stable ReportPart id, e.g.
+   *  'std_body_gross' from mockReportPartService.ts) instead. See
+   *  useGrossingCompletion.ts for the real, concrete case this
+   *  exists for. */
+  sourcePartId?:       string;
+  /** Real feature, per direct request: "a separate section for each
+   *  specimen location so that it is easier for the User to dictate
+   *  the gross for each specimen." Set when this section is one of
+   *  several per-specimen Gross Description sections (as opposed to
+   *  the single, case-wide sections every other narrative part still
+   *  uses) — links this section back to the specimen it's actually
+   *  for. See handleStartManualEntry in useReportGeneration.ts for
+   *  where these get created, and useGrossingCompletion.ts for the
+   *  per-specimen completeness check this enables. */
+  specimenId?:         string;
 }
 
 type SectionStatus = 'empty' | 'ai-generated' | 'accepted' | 'accepted-manual';
@@ -211,6 +232,23 @@ interface Props {
   overrideTemplateId?:  string | null;
   onOverrideTemplate?:  (templateId: string | null) => void;
   onAcceptAll?:         () => void;
+  /** Shown in the empty-state message as a real, clickable action —
+   *  previously just static bold text with no click handler at all. */
+  onGenerateReport?:    () => void;
+  /** Real fix, per direct workflow description: "the PA prefers to
+   *  dictate the Gross and then AI would update the attached
+   *  synoptic." Opens blank, dictation-ready sections without
+   *  triggering any AI call — see useReportGeneration.ts's
+   *  handleStartManualEntry for the real implementation. */
+  onStartManualEntry?:  () => void;
+  /** Real feature, per direct request — the specimen-name header for
+   *  each per-specimen Gross Description section (see
+   *  handleStartManualEntry) should be "styled per the template for
+   *  Grossing." Same resolved style ReportPreviewRenderer.tsx applies
+   *  to the read-only report — threaded here too so the editing view
+   *  matches what the final report will actually look like, not a
+   *  second, independently-derived style. */
+  documentStyle?:       { header?: LabelConfig; body?: LabelConfig; footer?: LabelConfig };
 
   // ── Shared active-section state — lifted to SynopticReportPage so the
   //    navigator, centre Full Report pane, and this editor all stay in sync.
@@ -230,6 +268,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   onRegenerateSection, lastGeneratedAt, caseData,
   onAcceptAll, activeSectionId, onActiveSectionChange,
   tabWidthChars = 4, onTabWidthChange, onAcceptSection,
+  onGenerateReport, onStartManualEntry, documentStyle,
 }) => {
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const editorRefs    = useRef<Record<string, PathScribeEditorHandle | null>>({});
@@ -382,7 +421,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     const clientId = caseData?.order?.clientId;
     if (!clientId) { setCaseJurisdiction(undefined); setJurisdictionClientName(undefined); return; }
     let cancelled = false;
-    clientService.getById(clientId).then(res => {
+    facilityService.getById(clientId).then(res => {
       if (cancelled) return;
       setCaseJurisdiction(res.ok ? res.data.jurisdiction : undefined);
       setJurisdictionClientName(res.ok ? res.data.name : undefined);
@@ -404,7 +443,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   const handleAcceptWithSpellCheck = useCallback(async (section: OrchestratorSection) => {
     setSpellCheckLoading(section.id);
     try {
-      const result = await aiService.checkSpelling(section.text, effectiveJurisdiction);
+      const result = await aiService.checkSpelling(section.text, effectiveJurisdiction, caseData?.order?.clientId);
       const commit = (finalText: string) => {
         if (onAcceptSection) onAcceptSection(section.id, finalText);
         else onSectionChange(section.id, finalText); // fallback for parents not yet wired
@@ -565,7 +604,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
       >
         {showHeader && (
           <div className="ps-ose-section-card-header">
-            <span className="ps-ose-section-card-title">{section.label}</span>
+            <span className="ps-ose-section-card-title" style={section.specimenId ? labelStyle(documentStyle?.body) : undefined}>{section.label}</span>
             <span className="ps-ose-section-card-status" style={{ color: meta.color }} title={meta.title}>
               {meta.icon} {meta.title}
             </span>
@@ -796,8 +835,21 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
             <div className="ps-ose-empty-icon">✍️</div>
             <div className="ps-ose-empty-title">Report Draft</div>
             <div className="ps-ose-empty-text">
-              Complete the synoptic fields, then press <strong>⚡ Generate Report</strong> to create an AI-drafted narrative.
+              {onGenerateReport ? (
+                <>Complete the synoptic fields, then press{' '}
+                  <button className="ps-ose-empty-link" onClick={onGenerateReport}>⚡ Generate Report</button>
+                  {' '}to create an AI-drafted narrative.</>
+              ) : (
+                <>Complete the synoptic fields, then press <strong>⚡ Generate Report</strong> to create an AI-drafted narrative.</>
+              )}
             </div>
+            {onStartManualEntry && (
+              <div className="ps-ose-empty-text" style={{ marginTop: 4 }}>
+                Prefer to dictate the Gross directly instead?{' '}
+                <button className="ps-ose-empty-link" onClick={onStartManualEntry}>✍️ Start writing manually</button>
+                {' '}— opens blank sections with no AI involved; AI can update the synoptic from what you write once you're done.
+              </div>
+            )}
             <div className="ps-ose-empty-hint">
               Sections appear here as they generate. Every section is fully editable — your changes are preserved if you regenerate.
             </div>

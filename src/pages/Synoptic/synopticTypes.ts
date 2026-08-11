@@ -34,7 +34,7 @@ export interface SynopticField {
 
 export interface MedicalCode {
   id: string;
-  system: 'SNOMED' | 'ICD';
+  system: 'SNOMED' | 'ICD' | 'CPT';
   code: string;
   display: string;
   source: CodeSource;

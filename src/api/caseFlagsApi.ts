@@ -5,6 +5,36 @@
 import { CaseWithFlags, FlagInstance } from '../types/flagsRuntime';
 import { mockCaseService } from '../services/cases/mockCaseService';
 
+// ── Real, confirmed architectural conflict — found during a folder
+// review, documented rather than silently fixed with a guess. Two
+// independent flag-tracking systems both read/write the same
+// Case.caseFlags/Specimen.specimenFlags fields, using genuinely
+// incompatible shapes:
+//   - This file (and its consumer, pages/Synoptic/useSynopticFlags.ts,
+//     confirmed to read the data back the same way) treats those
+//     fields as FlagInstance[] — an audit-style "who applied which
+//     flag definition, when" record (flagDefinitionId, appliedAt,
+//     appliedBy, source, deletedAt/deletedBy).
+//   - The real, declared type on Case/Specimen (types/case/CaseFlag.ts,
+//     types/case/Specimen.ts's SpecimenFlag) is CaseFlag[]/
+//     SpecimenFlag[] instead — a flag-DEFINITION record (id, label,
+//     color, lisCode), no application/audit fields at all. This is
+//     the shape the Contribution Dashboard's Quality Flags tile and
+//     SearchPage.tsx's computational-flags filter both read, expecting
+//     .label/.lisCode.
+// Neither system is aware of the other. Whichever one touches a given
+// case's flags last effectively corrupts the data for the other's
+// perspective — a flag applied through the Synoptic Report page's
+// flag manager (this file) would show up with an undefined .label
+// wherever the Quality Flags/Search systems expect one, and vice
+// versa. Confirmed both code paths are genuinely reachable, not dead.
+// This needs a real architectural decision (which model is
+// authoritative, or whether these belong on two separate fields) —
+// not something to guess at here. The `as any` casts below are
+// necessary given the current, unresolved state, not laziness —
+// removing them without resolving the underlying conflict just moves
+// the same real type error around instead of fixing anything.
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ApplyFlagPayload {
@@ -48,9 +78,7 @@ function toCaseWithFlags(c: any): CaseWithFlags {
 // ─── applyFlags ───────────────────────────────────────────────────────────────
 
 export async function applyFlags(payload: ApplyFlagPayload): Promise<CaseWithFlags> {
-  console.log('[caseFlagsApi] applyFlags called:', payload);
   const c = await mockCaseService.getCase(payload.caseId);
-  console.log('[caseFlagsApi] case found:', !!c, 'caseFlags:', (c as any)?.caseFlags);
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
   const inst = makeInstance(payload.flagDefinitionId);

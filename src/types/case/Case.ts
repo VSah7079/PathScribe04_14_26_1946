@@ -55,10 +55,25 @@ export interface OrderMetadata {
    * requestingProvider wherever it's available — see contextBuilder.ts.
    */
   orderingPhysicianId?: string;
-  /** ID reference to the Client Dictionary — the institution that sent the specimen */
+  /** ID reference to Facility Configuration — the institution that sent the specimen */
   clientId?: string;
   /** Cached display name — avoids async lookup on every render */
   clientName?: string;
+  /**
+   * Real feature, per direct confirmation: "add the Client and
+   * Location as fields to be seen in the accession page." ID
+   * reference to services/locations/ (Location) — which specific
+   * ward/room/bed at clientId this specimen came from. Optional: not
+   * every specimen has a known, specific inpatient location (e.g.
+   * outpatient/clinic specimens genuinely have none) — never
+   * fabricated when not selected. Scoped to clientId; a location
+   * belongs to exactly one facility, so this should only ever be set
+   * alongside a real clientId.
+   */
+  locationId?: string;
+  /** Cached display string ("Ward 3 / 101 / A") — same "avoid an
+   *  async lookup on every render" reasoning as clientName above. */
+  locationDisplay?: string;
   /** Physical facility within originHospitalId's organisation — Site.id
    *  from Organisation.sites[] (e.g. 'SITE-MRI'), NOT a bare shortName
    *  like 'MRI'. Optional: not every accessioning flow captures this yet,
@@ -226,6 +241,15 @@ export interface SynopticReportInstance {
    *  amendment reseed opens this instance for editing — distinguishes
    *  a reseeded amendment-in-progress draft from a genuinely new draft. */
   pendingAmendmentId?: string;
+  /** Real gap fixed alongside pendingAmendmentId above: the parallel
+   *  addendum-in-progress marker, set when a new synoptic report instance
+   *  is added to an already-finalized case (see handleAddSynopticReports
+   *  in SynopticReportPage.tsx) and cleared when
+   *  releasePendingAmendmentOrAddendum releases it. Was previously used
+   *  throughout useAmendmentWorkflow.ts without ever being declared here —
+   *  an oversight, not a deliberate omission, given it mirrors
+   *  pendingAmendmentId's own lifecycle exactly. */
+  pendingAddendumId?: string;
   /** Was in seed data already but never formally typed. True once this
    *  instance has been finalized at least once before. */
   previouslyFinalizedForAmendment?: boolean;
@@ -382,6 +406,30 @@ export interface ProtocolChange {
 export interface Case {
   id: string;
 
+  /** When grossing was first, genuinely completed for this case - real
+   *  fix, added specifically for TAT (turnaround time) calculation
+   *  (components/Contribution/qualityCalculations.ts). Set once, at the
+   *  case's first Gross Complete (see SynopticReportPage.tsx's
+   *  handleGrossComplete) - deliberately NOT updated on a later
+   *  correction/re-finalize of grossing, since this needs to stay a
+   *  stable "when did routine grossing genuinely finish" milestone for
+   *  turnaround-time purposes, not drift forward every time a
+   *  post-handoff correction is made. Real fix, caught in a later pass:
+   *  this was originally, mistakenly placed inside OrderMetadata
+   *  (Case.order.grossCompletedAt) rather than here - every real read/
+   *  write of this field already, consistently treats it as top-level,
+   *  so the type definition was moved to match, not the other way
+   *  around. */
+  grossCompletedAt?: string;
+  /** When this case was first, genuinely opened by anyone - real fix,
+   *  added specifically for TAT (turnaround time) calculation
+   *  (components/Contribution/qualityCalculations.ts, FIRST_TOUCH type).
+   *  Set once, on the case-load effect in SynopticReportPage.tsx -
+   *  idempotent, never overwritten on a later re-open. Same real fix as
+   *  grossCompletedAt above - moved here from a mistaken placement
+   *  inside OrderMetadata. */
+  firstOpenedAt?: string;
+
   /**
    * Subspecialty identifier for this case (e.g. 'breast', 'gi', 'thoracic',
    * 'uro', 'derm'). Optional — feeds TemplateRoutingService's Pass 2
@@ -441,6 +489,12 @@ export interface Case {
   isReferenceLabCase?: boolean;
 
   patient: Patient;
+  /** Real fix, per direct follow-up on the rest of Phase 0: the real,
+   *  standalone Encounter this case's specimens were collected during
+   *  - see services/encounters/IEncounterService.ts. Optional: a case
+   *  accessioned without a real, resolved order (or one predating this
+   *  field) genuinely has no encounter to reference. */
+  encounterId?: string;
   specimens: Specimen[];
   order: OrderMetadata;
   assignmentHistory?: AssignmentEvent[];
@@ -449,6 +503,48 @@ export interface Case {
   caseFlags?: CaseFlag[];
   specimenFlags?: SpecimenFlag[];
   status: CaseStatus;
+  /** Real gap fixed alongside pendingAddendumId: both finalizedAt and a
+   *  top-level finalizedBy were already real, established, widely-used
+   *  fields (finalizedAt in particular drives TAT calculations — see
+   *  QualityTab.tsx's "receivedDate → finalizedAt" total-TAT metric —
+   *  and useSignOutWorkflow.ts writes both directly) but neither was
+   *  ever declared on this top-level Case interface. The only
+   *  finalizedBy previously declared anywhere was nested under
+   *  DiagnosticMetadata — a different field entirely from the one
+   *  finalizeCase actually writes at the case root. */
+  finalizedAt?: string;
+  finalizedBy?: string;
+  /** Real feature, per direct specification: Post-Sign-Out Release Buffer.
+   *  The real, buffer-aware moment this report actually became final and
+   *  dispatch-eligible — set immediately (equal to finalizedAt) when no
+   *  buffer applies (buffer disabled, or a real STAT-priority bypass),
+   *  or at real buffer expiry / a real forced early release otherwise.
+   *  Deliberately separate from finalizedAt — see CaseStatus's own
+   *  'pending-release' doc comment for why finalizedAt must never be
+   *  deferred by the buffer duration. Undefined for any case that has
+   *  never gone through this real flow (i.e. every case finalized
+   *  before this feature existed) — genuinely absent, not backfilled. */
+  releasedAt?: string;
+  /** The real, computed timestamp release-buffer auto-release should
+   *  fire at (sign-out time + the real, resolved buffer duration) —
+   *  present only while status is genuinely 'pending-release'. Cleared
+   *  the moment the case leaves that status, by either path (recall or
+   *  real release). */
+  releaseBufferExpiresAt?: string;
+  /** The real buffer duration actually applied at sign-out time —
+   *  captured as a snapshot, not re-resolved from current config later,
+   *  same "snapshot, don't re-resolve" reasoning as
+   *  PatientEncounterSnapshot (types/reports/): a later admin config
+   *  change must never retroactively change an already-signed case's
+   *  own, real countdown. */
+  releaseBufferDurationMinutes?: number;
+  /** The real CaseStatus this case genuinely held immediately before
+   *  entering 'pending-release' — restored exactly on recall, rather
+   *  than guessing a single hardcoded fallback (e.g. always
+   *  'in-progress'), since finalizeCase() is a real, shared entry point
+   *  reachable from more than one real prior state. Cleared alongside
+   *  releaseBufferExpiresAt the moment the case leaves 'pending-release'. */
+  preReleaseBufferStatus?: CaseStatus;
   /** Denormalized mirror of the active/most-recently-touched synoptic
    *  instance's SynopticReportInstance.lastRevisionType — kept in sync
    *  at the same moment (releasePendingAmendmentOrAddendum in

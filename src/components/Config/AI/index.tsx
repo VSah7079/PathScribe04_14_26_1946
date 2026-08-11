@@ -136,6 +136,7 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <input type="range" min={0} max={100} value={config.confidenceThreshold}
             onChange={e => update({ confidenceThreshold: Number(e.target.value) })}
+            aria-label={`Confidence threshold, ${config.confidenceThreshold} percent`}
             style={{ flex: 1, accentColor: 'var(--ps-conf-teal)' }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ps-conf-teal)', minWidth: 44 }}>
             {config.confidenceThreshold}%
@@ -175,7 +176,7 @@ const AITab: React.FC<{ ModelsPanel?: React.ComponentType }> = ({ ModelsPanel })
             if (res.ok) setConfig(res.data);
             setSaving(false);
           }}
-          className="ps-btn-secondary"
+          className="ps-conf-btn-row"
         >
           Reset to Defaults
         </button>

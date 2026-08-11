@@ -49,6 +49,31 @@ full flag manager modal.
   `pages/SynopticReportPage/`'s wiring — separate README, if one exists
   for `pages/`).
 
+  **A second real bug found in a later session, in the parent's own
+  wiring of this exact prop** (`PRIORITY_FIXES.md` item #42) — this
+  file itself needed no further changes, but worth recording here since
+  it's directly downstream of the `onDirtyChange` prop just above.
+  `SynopticReportPage.tsx` passed a fresh, unmemoized arrow function
+  for `onDirtyChange` on every one of its own renders. This component's
+  own dirty-tracking `useEffect` has `onDirtyChange` in its dependency
+  array, so a new reference every render meant that effect re-firing →
+  calling back into the parent's state → the parent re-rendering → a
+  new `onDirtyChange` reference again, forever — a genuine "Maximum
+  update depth exceeded" infinite loop, confirmed via live reproduction
+  (DOM elements continuously detaching/remounting under the load).
+  Almost certainly the real root cause of a separately reported
+  "Discard Changes silently loses saved work" bug — a component stuck
+  re-rendering in a tight loop can't reliably process a click or keep
+  its own state consistent, regardless of how correct this file's own
+  save/discard logic is. Fixed by memoizing the callback at the parent.
+  Also found and fixed in the same investigation: `handleSave`'s commit
+  loop had no error handling at all — a failure partway through was
+  silently swallowed with zero user feedback, and any flags that did
+  succeed before the failure would leave the discard-warning
+  unconditionally claiming nothing had been saved, which could be false
+  in that scenario. Added real error surfacing and made the warning
+  text accurate to a failed-partial-save state.
+
   **Still true, unchanged:** uses real shared `pathscribe.css` classes
   (`ps-modal-dark`/`ps-modal-dark-header`/etc.) via `ReactDOM.createPortal`
   for its dialogs, rather than reinventing inline overlay styles — see

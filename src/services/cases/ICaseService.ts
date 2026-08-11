@@ -52,6 +52,16 @@ export interface CaseFilterParams {
   patientName?: string;
   /** MRN / hospital identifier */
   hospitalId?: string;
+  /**
+   * Real Master Patient Index id (see services/patients/IPatientIndexService.ts) —
+   * matched against patient.id, which AccessionPage.tsx's real MPI
+   * resolution already populates with the deduplicated, per-organisation
+   * identity (mpiResult.patientId), not a case-derived id. Exact match:
+   * unlike MRN, which can collide across different source systems (see
+   * PatientMatchCandidate.assigningAuthority's own reasoning), a real MPI
+   * id is already the disambiguated, canonical identity.
+   */
+  patientId?: string;
   /** Accession number (full or partial) */
   accessionNo?: string;
 
@@ -123,8 +133,25 @@ export interface CaseFilterParams {
   flagIds?: string[];
 
   // ── Submitting client ──────────────────────────────────────────────────────
-  /** Client IDs (e.g. 'c1') matched against order.clientId */
+  /** Real client ids from clientService.getAll(), matched against order.clientId */
   clientIds?: string[];
+
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  /**
+   * Real, cursor-based pagination - deliberately not offset-based (a plain
+   * "skip N, take pageSize" approach), since offset paging degrades badly at
+   * scale: page 50 means the database still has to walk past the first 49
+   * pages of skipped documents on every single request, getting slower the
+   * deeper a user pages in. A cursor sidesteps that entirely - it's an
+   * opaque pointer to "resume right after this exact document," which
+   * Firestore's own startAfter() resolves in constant time regardless of
+   * how deep into the result set it is. Optional and additive: a caller
+   * that never sets pageSize gets today's existing, complete, unpaginated
+   * result exactly as before - nothing about this changes default behavior.
+   */
+  pageSize?: number;
+  /** Opaque cursor from a previous ServiceResult.meta.nextCursor - fetches the next page. Ignored if pageSize isn't also set. */
+  cursor?: string;
 }
 
 // ─── Service contract ─────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import '../../pathscribe.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
@@ -9,13 +10,24 @@ import { VoiceToggleButton } from '../Voice/VoiceToggleButton';
 import CaseSearchBar from '../Search/CaseSearchBar';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
+import { isConstrainedMobileDevice, hasDesktopViewOverride, clearDesktopViewOverride } from '../../utils/deviceDetection';
+import { useCompanionWindow } from '@hooks/useCompanionWindow';
 
 const VOICE_SHOW_SUCCESS = import.meta.env.DEV;
 
+// Consolidated with Home.tsx's former ResourcesModal quickLinks — that
+// list had drifted into its own separate URLs for CAP/WHO (a real bug:
+// two independently-maintained "same link" lists that diverged over
+// time) and included two placeholder Systems links (Hospital LIS/Lab
+// Management, both dead `#` hrefs) that never went anywhere. This is
+// now the one canonical list. UpToDate folded in from that list;
+// PathologyOutlines/CAP/WHO keep whichever of the two prior URLs was
+// more specific rather than a generic landing page.
 const EXTERNAL_LINKS = [
   { name: 'CAP Cancer Protocols',          url: 'https://www.cap.org/protocols/cancer-protocols-templates' },
   { name: 'WHO Classification of Tumours', url: 'https://tumourclassification.iarc.who.int/' },
   { name: 'PathologyOutlines',             url: 'https://www.pathologyoutlines.com/' },
+  { name: 'UpToDate',                      url: 'https://www.uptodate.com/' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,10 +76,10 @@ interface SystemInfoModalProps { onClose: () => void; }
 export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [copied,     setCopied]     = useState(false);
-  const [anthropicOk, setAnthropicOk] = useState<boolean | null>(null);
-  const [geminiOk,   setGeminiOk]   = useState<boolean | null>(null);
+  const [structuredMessagesOk, setStructuredMessagesOk] = useState<boolean | null>(null);
+  const [structuredContentOk,   setStructuredContentOk]   = useState<boolean | null>(null);
 
-  const aiProvider = import.meta.env.VITE_AI_PROVIDER   ?? 'anthropic';
+  const aiProvider = import.meta.env.VITE_AI_PROVIDER   ?? 'structured_messages';
   const aiModel    = import.meta.env.VITE_AI_MODEL       ?? 'claude-sonnet-4-6';
   const aiDevMode  = import.meta.env.VITE_AI_DEV_MODE   === 'true';
   const geminiKey  = import.meta.env.VITE_GEMINI_API_KEY ?? '';
@@ -77,14 +89,14 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
   useEffect(() => {
     fetch('https://api.anthropic.com/v1/models', {
       headers: { 'x-api-key': import.meta.env.VITE_AI_API_KEY ?? '', 'anthropic-version': '2023-06-01' }
-    }).then(r => setAnthropicOk(r.ok)).catch(() => setAnthropicOk(false));
-    setGeminiOk(!!geminiKey);
-  }, []);
+    }).then(r => setStructuredMessagesOk(r.ok)).catch(() => setStructuredMessagesOk(false));
+    setStructuredContentOk(!!geminiKey);
+  }, [geminiKey]);
 
   const handleCopy = () => {
     const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
     const text = [
-      `PathScribe AI v0.9.0 — Support Report`,
+      `PathScribe AI v${__APP_VERSION__} — Support Report`,
       `Generated: ${now}`,
       `─────────────────────────────────────`,
       `USER`,
@@ -112,8 +124,8 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
       `  Language: ${navigator.language}`,
       ``,
       `API STATUS`,
-      `  Anthropic: ${anthropicOk === null ? 'Checking...' : anthropicOk ? '✅ Connected' : '❌ Failed'}`,
-      `  Gemini:    ${geminiOk ? '✅ Configured' : '⚠️  Not configured'}`,
+      `  Anthropic: ${structuredMessagesOk === null ? 'Checking...' : structuredMessagesOk ? '✅ Connected' : '❌ Failed'}`,
+      `  Gemini:    ${structuredContentOk ? '✅ Configured' : '⚠️  Not configured'}`,
       `─────────────────────────────────────`,
     ].join('\n');
     navigator.clipboard.writeText(text).then(() => {
@@ -135,10 +147,10 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
             <div className="fm-eyebrow">ForMedrix · PathScribe AI</div>
             <div className="fm-title-row">
               <h2 className="fm-title">System Information</h2>
-              <span className="fm-active-badge">v0.9.0</span>
+              <span className="fm-active-badge">v{__APP_VERSION__}</span>
             </div>
           </div>
-          <button className="ps-close-btn" onClick={onClose} aria-label="Close">
+          <button className="ps-close-btn" onClick={onClose} aria-label="Close" title="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
@@ -173,8 +185,8 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
           <Row label="Language"   value={navigator.language} />
 
           <SectionLabel>API Connectivity</SectionLabel>
-          <Row label="Anthropic"       value={<><StatusDot ok={anthropicOk} />{anthropicOk === null ? 'Checking…' : anthropicOk ? 'Connected' : 'Failed'}</>} />
-          <Row label="Gemini"          value={<><StatusDot ok={geminiOk} />{geminiOk ? 'Configured' : 'Not configured'}</>} />
+          <Row label="Anthropic"       value={<><StatusDot ok={structuredMessagesOk} />{structuredMessagesOk === null ? 'Checking…' : structuredMessagesOk ? 'Connected' : 'Failed'}</>} />
+          <Row label="Gemini"          value={<><StatusDot ok={structuredContentOk} />{structuredContentOk ? 'Configured' : 'Not configured'}</>} />
           <Row label="NLM Terminology" value={<><StatusDot ok={true} />Available</>} />
           <Row label="Secure Email"    value={<><StatusDot ok={null} />Not wired (stub)</>} />
         </div>
@@ -208,15 +220,52 @@ interface NavBarProps {
   onLogoClick:    () => void;
   onLogout:       () => void;
   onProfileClick: () => void;
-  logoHeight?:    string;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, logoHeight = '32px' }) => {
+const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }) => {
   const { user }                                   = useAuth();
   const { unreadCount, hasUrgent, setPortalOpen } = useMessaging();
+  const messagesLabel = unreadCount > 0 ? `Messages, ${unreadCount} unread` : 'Messages';
   const [linksOpen, setLinksOpen]                 = useState(false);
+  // Reference material, not patient context: closeOnUnmount is false so
+  // navigating to another page doesn't shut a protocol page the user is
+  // still reading — same reasoning and same hook as PubMedTicker.tsx's
+  // companion window.
+  const { openCompanion } = useCompanionWindow({
+    windowName: 'PathScribeClinicalLinksRef',
+    preferredWidth: 900,
+    preferredHeight: 800,
+    closeOnUnmount: false,
+  });
+  // Once a launch has been blocked, stop intercepting clicks and let the
+  // anchor behave normally — same reasoning as PubMedTicker.tsx.
+  const [linksPopupBlocked, setLinksPopupBlocked] = useState(false);
+
+  const handleClinicalLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+    if (linksPopupBlocked) return; // let the anchor work
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+
+    // preventDefault has to happen synchronously, before openCompanion is
+    // awaited — the click gesture is spent by the time the promise settles.
+    event.preventDefault();
+
+    void openCompanion(url).then((result) => {
+      if (result !== 'blocked') return;
+      setLinksPopupBlocked(true);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  };
   const [sysInfoOpen, setSysInfoOpen]             = useState(false);
   const qaEnabled = loadEnhancementConfig().qaEnabled;
+  const navigate = useNavigate();
+  // Real fix for a genuine, reported gap: setDesktopViewOverride() had no
+  // way back. isConstrainedMobileDevice is checked once (the device's own
+  // characteristic, not something that changes mid-session, matching the
+  // pattern already established elsewhere); hasDesktopViewOverride reads
+  // fresh on every render since it's cheap and needs to reflect the real,
+  // current session state, not a stale snapshot from mount.
+  const [isMobileDevice] = useState(() => isConstrainedMobileDevice());
+  const showSwitchBack = isMobileDevice && hasDesktopViewOverride();
 
   const userInitials = user?.name
     ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })()
@@ -247,7 +296,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
             <div className="fm-eyebrow">External Resources</div>
             <h2 className="fm-title">Clinical Links</h2>
           </div>
-          <button className="ps-close-btn" onClick={() => setLinksOpen(false)} aria-label="Close">
+          <button className="ps-close-btn" onClick={() => setLinksOpen(false)} aria-label="Close" title="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
@@ -256,6 +305,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
         <div>
           {EXTERNAL_LINKS.map(link => (
             <a key={link.url} href={link.url} target="_blank" rel="noreferrer"
+              onClick={e => handleClinicalLinkClick(e, link.url)}
               className="ps-clinical-link">
               {link.name}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0891B2" strokeWidth="2.5">
@@ -280,8 +330,8 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
         <div className="ps-nav-left">
           <img
             src="/pathscribe-logo-clean.svg"
-            alt="PathScribe AI"
-            style={{ height: logoHeight, cursor: 'pointer' }}
+            alt="PathScribe"
+            className="ps-nav-logo"
             onClick={onLogoClick}
           />
           <div className="ps-nav-divider" />
@@ -297,8 +347,32 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
         {/* Right */}
         <div className="ps-nav-right">
 
+          {/* Real fix: the only way back from "Switch to Full Desktop
+              View" - only shown when it would actually mean something
+              (a constrained device that's currently overridden into the
+              desktop UI), not to every user. */}
+          {showSwitchBack && (
+            <button
+              type="button"
+              className="ps-nav-btn"
+              onClick={() => { clearDesktopViewOverride(); navigate('/intraop-queue'); }}
+              title="Switch back to Focused Mode"
+              style={{ fontSize: 12, width: 'auto', padding: '0 10px', whiteSpace: 'nowrap' }}
+            >
+              Focused Mode
+            </button>
+          )}
+
           {/* User avatar — opens system info + fires onProfileClick */}
-          <div className="ps-nav-user-info" onClick={handleAvatarClick}>
+          <div
+            className="ps-nav-user-info"
+            onClick={handleAvatarClick}
+            role="button"
+            tabIndex={0}
+            aria-label="Account and system information"
+            title="Account and system information"
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAvatarClick(); } }}
+          >
             <div className="ps-nav-user-text">
               <div className="ps-nav-user-name">{user?.name || 'Dr. Sarah Johnson'}</div>
               <div className="ps-nav-user-role">MD, FCAP</div>
@@ -316,6 +390,8 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
           {/* Messages */}
           <button type="button" className="ps-nav-btn" onMouseDown={e => e.preventDefault()}
             onClick={() => setPortalOpen(true)}
+            aria-label={messagesLabel}
+            title={messagesLabel}
             style={{ color: hasUrgent ? '#FF453A' : undefined }}>
             <div style={{ position: 'relative' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -328,7 +404,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
 
           {/* Clinical Links */}
           <button type="button" className="ps-nav-btn" onMouseDown={e => e.preventDefault()}
-            onClick={() => setLinksOpen(true)}>
+            onClick={() => setLinksOpen(true)} aria-label="Clinical Links" title="Clinical Links">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -337,7 +413,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick, 
           </button>
 
           {/* Logout */}
-          <button type="button" className="ps-nav-btn" onClick={onLogout}>
+          <button type="button" className="ps-nav-btn" onClick={onLogout} aria-label="Log out" title="Log out">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

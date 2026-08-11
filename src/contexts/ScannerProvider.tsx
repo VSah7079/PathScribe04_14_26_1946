@@ -135,9 +135,6 @@ export const ScannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Guard against synthetic/extension key events (Bitwarden, autofill etc.)
       if (!e || !e.key) return;
 
-      // Don't intercept on the login page
-     if (window.location.pathname === '/' && !user) return;
-
       const now = Date.now();
       const timeSinceLastKey = now - lastKeyTime.current;
       lastKeyTime.current = now;

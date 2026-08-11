@@ -31,6 +31,14 @@ interface CaseHit {
 // Scan types emitted by ScannerProvider that warrant auto-navigation
 const AUTO_NAV_SCAN_TYPES = new Set(['barcode', 'qr']);
 
+// Real, stable, module-level empty array - real fix for a genuine
+// instability ESLint flagged: `config.identifierFormats?.formats ?? []`
+// creates a NEW array reference every render whenever the optional
+// field is absent, which cascades into resolve() (below) getting a new
+// identity every render too. A single, shared, never-recreated empty
+// array reference fixes this at the actual source.
+const EMPTY_IDENTIFIER_FORMATS: IdentifierFormat[] = [];
+
 // ── Case lookup ───────────────────────────────────────────────────────────────
 // Uses Tier 1 enabled IdentifierFormats from SystemConfig to match input.
 // Each format specifies a regex pattern and a kind (accession/mrn/requisition/
@@ -96,7 +104,7 @@ async function lookupCases(
     // clinical lookup tool, not a worklist filter.
     const all: any[] = await caseRouter.listCasesForUser('all');
     const hits: CaseHit[] = [];
-    const qNorm = q.toUpperCase().replace(/[\s\-]/g, '');
+    const qNorm = q.toUpperCase().replace(/[\s-]/g, '');
 
     for (const cas of all) {
       const patientName = `${cas.patient?.lastName ?? ''}, ${cas.patient?.firstName ?? ''}`.trim().replace(/^,\s*/, '');
@@ -123,7 +131,7 @@ async function lookupCases(
 
       const normed = identifierFields
         .filter(Boolean)
-        .map((v: string) => ({ raw: String(v), norm: String(v).toUpperCase().replace(/[\s\-]/g, '') }));
+        .map((v: string) => ({ raw: String(v), norm: String(v).toUpperCase().replace(/[\s-]/g, '') }));
 
       // Tiered match: exact > startsWith > contains > token-aware accession match
       let matchScore = 0;
@@ -243,7 +251,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
 
   const { config } = useSystemConfig();
   const { log } = useAuditLog();
-  const activeFormats: IdentifierFormat[] = config.identifierFormats?.formats ?? [];
+  const activeFormats: IdentifierFormat[] = config.identifierFormats?.formats ?? EMPTY_IDENTIFIER_FORMATS;
 
   const { phase, transcript } = useVoice();
   const isDictating = phase === 'dictate';
@@ -277,7 +285,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
 
     // Multiple matches or non-direct format — show dropdown
     setHits(results);
-  }, [navigate, activeFormats]);
+  }, [navigate, activeFormats, log]);
 
   // ── Scanner events ────────────────────────────────────────────────────────
   useEffect(() => {

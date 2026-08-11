@@ -326,7 +326,7 @@ const IdentifierFormatsSection: React.FC = () => {
       {/* Jurisdiction & locale info — this card is a SYSTEM-WIDE FALLBACK
           default, not a live per-case value. The actual jurisdiction for
           any given case is resolved from that case's Submitting Client
-          (Client.jurisdiction, set on the Client Dictionary) — a Fenwick
+          (Facility.jurisdiction, set in Facility Configuration) — a Fenwick
           case gets NHS Number/British spelling, a Metro General case gets
           MRN/US spelling, regardless of what's shown here. This default
           is only used as a last resort when no client context is

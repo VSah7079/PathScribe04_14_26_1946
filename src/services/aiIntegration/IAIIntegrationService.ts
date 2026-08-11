@@ -58,6 +58,13 @@ export interface SynopticEvaluationInput {
    * before calling — this function doesn't re-derive that list itself.
    */
   availableTemplates: Array<{ id: string; name: string; category: string }>;
+  /** The case's ordering client — needed to resolve which AI model this
+   *  specific client is actually approved to use (see
+   *  resolveAiConfigOverrideForClient in
+   *  components/Config/AI/resolveClientAiModel.ts). Optional so callers
+   *  without a resolvable client (rare, but possible for internal/test
+   *  paths) still fall back safely to the org-wide default. */
+  clientId?: string;
 }
 
 export interface SynopticEvaluationResult {

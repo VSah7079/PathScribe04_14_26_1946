@@ -10,6 +10,7 @@ import type {
 
 function ts(daysBack: number, h: number, m: number, s = 0): string {
   const dt = new Date();
+  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded audit-log demo data ("N days ago from right now, at a given hour/minute"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant regardless of runtime timezone.
   dt.setDate(dt.getDate() - daysBack);
   dt.setHours(h, m, s, 0);
   return dt.toISOString().slice(0, 19).replace('T', ' ');

@@ -16,6 +16,8 @@
 //     initial_signout trigger, since there's no amendment yet.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { PatientEncounterSnapshot } from './PatientEncounterSnapshot';
+
 export type ReportVersionMode = 'assist' | 'orchestration';
 export type ReportVersionTrigger = 'initial_signout' | 'amendment';
 
@@ -39,4 +41,14 @@ export interface ReportVersionRecord {
   instanceId?: string;
   /** NEW — the AmendmentRecord that produced this version, if any. */
   amendmentRecordId?: string;
+
+  /** NEW, Phase 5 — the real, immutable patient/encounter identity
+   *  this version's report was signed against, captured automatically
+   *  by mockReportVersionService.create() at the moment of creation.
+   *  See PatientEncounterSnapshot.ts's own header comment for why this
+   *  is distinct from pdfBase64. Genuinely absent for a version
+   *  created before this field existed, or if the real patient/
+   *  encounter lookup failed at capture time (never blocks the real
+   *  sign-out itself on this - see mockReportVersionService.ts). */
+  patientEncounterSnapshot?: PatientEncounterSnapshot;
 }

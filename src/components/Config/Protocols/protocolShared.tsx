@@ -581,10 +581,10 @@ export const UploadProtocolModal: React.FC<{
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button onClick={onClose} className="ps-conf-btn-secondary">Cancel</button>
             <button
               disabled={!file} onClick={onClose}
-              style={{ padding: '9px 20px', borderRadius: '8px', border: `1px solid ${file ? 'rgba(8,145,178,0.4)' : '#334155'}`, background: file ? 'rgba(8,145,178,0.15)' : 'rgba(255,255,255,0.04)', color: file ? '#0891B2' : '#334155', fontSize: '13px', fontWeight: 600, cursor: file ? 'pointer' : 'not-allowed', fontFamily: 'inherit', transition: 'all 0.15s' }}
+              className="ps-conf-btn-teal-accent"
             >
               Upload to Review Queue →
             </button>
@@ -700,11 +700,11 @@ export const BuildCustomiseModal: React.FC<{
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
-            <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button onClick={onClose} className="ps-conf-btn-secondary">Cancel</button>
             {selectedTpl && (
               <button
                 onClick={() => onBuildFromTemplate(selectedTpl)}
-                style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(8,145,178,0.4)', background: 'rgba(8,145,178,0.15)', color: '#0891B2', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                className="ps-conf-btn-teal-accent"
               >
                 Customise This Template →
               </button>

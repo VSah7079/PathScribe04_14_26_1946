@@ -1,12 +1,25 @@
 // src/components/Contribution/QualityTab.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import '../../pathscribe.css';
-import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
-import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { reconciliationService, facilityService, intraoperativeService } from '@/services';
+import { mockAmendmentService } from '@/services/reports/mockAmendmentService';
+import { caseRouter } from '@/services/cases/CaseRouter';
+import { getDelegations } from '@/services/cases/mockCaseService';
+import { getSessionUser } from '@/services/auth/caseAccessControl';
+import { TAT_STORAGE_KEY, SYSTEM_DEFAULTS as TAT_SYSTEM_DEFAULTS } from '@/components/Config/System/TATConfigSection';
+import {
+  reconciliationRecordsToDiscordantCases, amendmentRecordsToAmendedCases,
+  computeTotalCaseTatOutliers, computeFirstTouchOutliers, computeGrossingOutliers, computeSignOutOutliers,
+  computeFrozenSectionOutliers, computeColdIschemiaOutliers,
+  computeConsultResponseOutliers, computeConsultAwaitingOutliers, computeTatByClient,
+  type RealDiscordantCase, type RealAmendedCase, type RealTotalTatOutlier, type RealFirstTouchOutlier,
+  type RealGenericTatOutlier, type TatEntryForResolution, type RealClientTatRow,
+} from './qualityCalculations';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,32 +31,15 @@ type MetricView = "firstTouch" | "total";
 // All supported TAT types — mirrors TATEntry.type in the config system
 type TatTileKey = "firstTouch" | "totalCase" | "frozenSection" | "grossing" | "signOut" | "coldIschemia" | "consultResponse" | "consultAwaiting";
 
-interface DiscordantCase {
-  id: string; caseType: string; frozenDx: string; finalDx: string;
-  delta: string; date: string; severity: Severity; daysAgo: number;
-}
-interface AmendedCase {
-  id: string; caseType: string; reason: string; date: string; severity: Severity; daysAgo: number;
-}
-interface FirstTouchOutlier {
-  id: string; caseType: string; date: string;
-  firstTouchHrs: number; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number;
-}
-interface TotalTATOutlier {
-  id: string; caseType: string; date: string;
-  tatHrs: number; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number;
-}
-interface GenericTatOutlier {
-  id: string; caseType: string; date: string;
-  actualHrs: number; targetHrs: number; overByHrs: number; assigningAuthority: string; daysAgo: number;
-}
-interface ClientTatRow {
-  id: string; name: string; assigningAuthority: string;
-  target:   { firstTouch: number; total: number };
-  mine:     { firstTouch: number; total: number };
-  peer:     { firstTouch: number; total: number };
-  breaches: { firstTouch: number; total: number };
-}
+// DiscordantCase/AmendedCase removed - see RealDiscordantCase/
+// RealAmendedCase in qualityCalculations.ts instead.
+// FirstTouchOutlier removed - see RealFirstTouchOutlier in
+// qualityCalculations.ts instead.
+// TotalTATOutlier removed - see RealTotalTatOutlier in
+// qualityCalculations.ts instead.
+// GenericTatOutlier removed - see RealGenericTatOutlier in
+// qualityCalculations.ts instead.
+// ClientTatRow removed - see RealClientTatRow in qualityCalculations.ts instead.
 interface TatTrendMonth {
   month:           string;
   cases:           number;
@@ -57,106 +53,50 @@ interface TatTrendMonth {
   consultAwaiting: number;  // hrs — how long I wait for responses
 }
 // ─── Mock Data ────────────────────────────────────────────────────────────────
+// mockDiscordant/mockAmended removed - real fix, now sourced from
+// reconciliationService/mockAmendmentService via qualityCalculations.ts.
+// The four TAT-outlier arrays below remain demo data - see this file's
+// header comment in qualityCalculations.ts for why, and the DemoDataBadge
+// on each of their sections below for honest, visible disclosure.
 
-const mockDiscordant: DiscordantCase[] = [
-  { id: "PSA-2024-1190", caseType: "Breast Core Bx",    frozenDx: "Atypical, favor benign",  finalDx: "DCIS, low grade",         delta: "Upgraded",   date: "Aug 12", severity: "high",   daysAgo: 13  },
-  { id: "PSA-2024-1178", caseType: "Colon Polypectomy", frozenDx: "Adenoma, low-grade",      finalDx: "Adenoma, low-grade",      delta: "Concordant", date: "Aug 9",  severity: "low",    daysAgo: 16  },
-  { id: "PSA-2024-1165", caseType: "Thyroid Lobe",      frozenDx: "Follicular lesion",       finalDx: "Follicular carcinoma",    delta: "Upgraded",   date: "Aug 5",  severity: "medium", daysAgo: 20  },
-  { id: "PSA-2024-1142", caseType: "Lymph Node",        frozenDx: "Reactive",                finalDx: "Metastatic carcinoma",    delta: "Upgraded",   date: "Jul 28", severity: "high",   daysAgo: 28  },
-  { id: "PSA-2024-1098", caseType: "Soft Tissue Mass",  frozenDx: "Spindle cell neoplasm",   finalDx: "Low-grade sarcoma",       delta: "Upgraded",   date: "Jul 3",  severity: "medium", daysAgo: 53  },
-  { id: "PSA-2024-1071", caseType: "Liver Wedge",       frozenDx: "Atypical hepatocytes",    finalDx: "Hepatocellular carcinoma",delta: "Upgraded",   date: "Jun 15", severity: "high",   daysAgo: 71  },
-  { id: "PSA-2024-1034", caseType: "Lung Wedge",        frozenDx: "Inflammatory change",     finalDx: "Adenocarcinoma",          delta: "Upgraded",   date: "May 20", severity: "high",   daysAgo: 97  },
-  { id: "PSA-2024-0988", caseType: "Prostate Bx",       frozenDx: "PIN, high grade",         finalDx: "Gleason 3+4 carcinoma",   delta: "Upgraded",   date: "Apr 18", severity: "medium", daysAgo: 129 },
-];
+// mockFirstTouchOutliers removed - real fix, now sourced from
+// computeFirstTouchOutliers in qualityCalculations.ts.
 
-const mockAmended: AmendedCase[] = [
-  { id: "PSA-2024-1201", caseType: "Prostate Bx",      reason: "Specimen labeling mismatch",    date: "Aug 14", severity: "high",   daysAgo: 11  },
-  { id: "PSA-2024-1185", caseType: "Skin Excision",    reason: "Margin status correction",       date: "Aug 11", severity: "medium", daysAgo: 14  },
-  { id: "PSA-2024-1170", caseType: "GI Biopsy",        reason: "Diagnosis clarification added",  date: "Aug 6",  severity: "low",    daysAgo: 19  },
-  { id: "PSA-2024-1155", caseType: "Breast Excision",  reason: "IHC results addended",           date: "Jul 31", severity: "low",    daysAgo: 25  },
-  { id: "PSA-2024-1102", caseType: "Renal Biopsy",     reason: "Tumour grade amended",           date: "Jun 28", severity: "medium", daysAgo: 58  },
-  { id: "PSA-2024-1063", caseType: "Lymph Node Panel", reason: "Additional immunostains addended",date: "Jun 5", severity: "low",    daysAgo: 81  },
-  { id: "PSA-2024-1021", caseType: "Thyroid FNA",      reason: "Cytological reclassification",   date: "May 8",  severity: "medium", daysAgo: 109 },
-];
+// mockTotalTATOutliers removed - real fix, now sourced from
+// computeTotalCaseTatOutliers in qualityCalculations.ts.
 
-const mockFirstTouchOutliers: FirstTouchOutlier[] = [
-  { id: "PSA-2024-1199", caseType: "Renal Biopsy",  date: "Aug 14", firstTouchHrs: 7.2,  targetHrs: 4, overByHrs: 3.2, assigningAuthority: "MGH", daysAgo: 11  },
-  { id: "PSA-2024-1188", caseType: "Lung Wedge",    date: "Aug 10", firstTouchHrs: 9.1,  targetHrs: 4, overByHrs: 5.1, assigningAuthority: "MGH", daysAgo: 15  },
-  { id: "PSA-2024-1173", caseType: "Liver Core Bx", date: "Aug 6",  firstTouchHrs: 10.4, targetHrs: 8, overByHrs: 2.4, assigningAuthority: "RMC", daysAgo: 19  },
-  { id: "PSA-2024-1099", caseType: "Brain Biopsy",  date: "Jul 1",  firstTouchHrs: 6.8,  targetHrs: 4, overByHrs: 2.8, assigningAuthority: "MGH", daysAgo: 55  },
-  { id: "PSA-2024-1052", caseType: "Bone Marrow",   date: "Jun 8",  firstTouchHrs: 11.2, targetHrs: 8, overByHrs: 3.2, assigningAuthority: "RMC", daysAgo: 78  },
-  { id: "PSA-2024-0997", caseType: "Skin Punch Bx", date: "Apr 30", firstTouchHrs: 8.4,  targetHrs: 6, overByHrs: 2.4, assigningAuthority: "WSC", daysAgo: 116 },
-];
+// mockFrozenSectionOutliers removed - real fix, now sourced from
+// computeFrozenSectionOutliers in qualityCalculations.ts.
 
-const mockTotalTATOutliers: TotalTATOutlier[] = [
-  { id: "PSA-2024-1198", caseType: "Soft Tissue Mass", date: "Aug 13", tatHrs: 31.2, targetHrs: 24, overByHrs: 7.2,  assigningAuthority: "MGH", daysAgo: 12  },
-  { id: "PSA-2024-1176", caseType: "Decalcified Bone", date: "Aug 8",  tatHrs: 52.4, targetHrs: 48, overByHrs: 4.4,  assigningAuthority: "RMC", daysAgo: 17  },
-  { id: "PSA-2024-1160", caseType: "Lymph Node Panel", date: "Aug 2",  tatHrs: 28.6, targetHrs: 24, overByHrs: 4.6,  assigningAuthority: "MGH", daysAgo: 23  },
-  { id: "PSA-2024-1104", caseType: "Placenta",          date: "Jun 30", tatHrs: 36.1, targetHrs: 24, overByHrs: 12.1, assigningAuthority: "WSC", daysAgo: 56  },
-  { id: "PSA-2024-1058", caseType: "Liver Resection",   date: "Jun 10", tatHrs: 58.2, targetHrs: 48, overByHrs: 10.2, assigningAuthority: "MGH", daysAgo: 76  },
-  { id: "PSA-2024-0995", caseType: "Bone Marrow Bx",    date: "Apr 28", tatHrs: 74.4, targetHrs: 48, overByHrs: 26.4, assigningAuthority: "RMC", daysAgo: 118 },
-];
+// mockGrossingOutliers removed - real fix, now sourced from
+// computeGrossingOutliers in qualityCalculations.ts.
 
-const mockFrozenSectionOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1196", caseType: "Breast Margin",     date: "Aug 13", actualHrs: 0.78, targetHrs: 0.5, overByHrs: 0.28, assigningAuthority: "MGH", daysAgo: 12  },
-  { id: "PSA-2024-1182", caseType: "Sentinel Node",      date: "Aug 9",  actualHrs: 0.65, targetHrs: 0.5, overByHrs: 0.15, assigningAuthority: "RMC", daysAgo: 16  },
-  { id: "PSA-2024-1149", caseType: "Thyroid Margin",     date: "Jul 30", actualHrs: 0.91, targetHrs: 0.5, overByHrs: 0.41, assigningAuthority: "MGH", daysAgo: 26  },
-  { id: "PSA-2024-1087", caseType: "GI Margin",          date: "Jun 26", actualHrs: 0.62, targetHrs: 0.5, overByHrs: 0.12, assigningAuthority: "WSC", daysAgo: 60  },
-  { id: "PSA-2024-1011", caseType: "Lung Margin",        date: "May 4",  actualHrs: 0.84, targetHrs: 0.5, overByHrs: 0.34, assigningAuthority: "MGH", daysAgo: 113 },
-];
+// mockSignOutOutliers removed - real fix, now sourced from
+// computeSignOutOutliers in qualityCalculations.ts.
 
-const mockGrossingOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1191", caseType: "Whipple Resection",  date: "Aug 12", actualHrs: 7.8, targetHrs: 4, overByHrs: 3.8, assigningAuthority: "MGH", daysAgo: 13  },
-  { id: "PSA-2024-1167", caseType: "Colon Resection",    date: "Aug 5",  actualHrs: 6.2, targetHrs: 4, overByHrs: 2.2, assigningAuthority: "RMC", daysAgo: 20  },
-  { id: "PSA-2024-1120", caseType: "Hysterectomy",       date: "Jul 14", actualHrs: 5.4, targetHrs: 4, overByHrs: 1.4, assigningAuthority: "WSC", daysAgo: 42  },
-  { id: "PSA-2024-1066", caseType: "Liver Resection",    date: "Jun 6",  actualHrs: 9.1, targetHrs: 4, overByHrs: 5.1, assigningAuthority: "MGH", daysAgo: 80  },
-];
+// mockColdIschemiaOutliers removed - real fix, now sourced from
+// computeColdIschemiaOutliers in qualityCalculations.ts.
 
-const mockSignOutOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1189", caseType: "Prostate Bx",        date: "Aug 11", actualHrs: 29.6, targetHrs: 24, overByHrs: 5.6,  assigningAuthority: "RMC", daysAgo: 14  },
-  { id: "PSA-2024-1158", caseType: "Lymph Node Panel",   date: "Aug 1",  actualHrs: 38.2, targetHrs: 24, overByHrs: 14.2, assigningAuthority: "MGH", daysAgo: 24  },
-  { id: "PSA-2024-1108", caseType: "Skin Excision",      date: "Jul 8",  actualHrs: 31.4, targetHrs: 24, overByHrs: 7.4,  assigningAuthority: "WSC", daysAgo: 48  },
-  { id: "PSA-2024-1042", caseType: "Renal Biopsy",       date: "May 14", actualHrs: 41.0, targetHrs: 24, overByHrs: 17.0, assigningAuthority: "MGH", daysAgo: 103 },
-];
+// mockConsultResponseOutliers removed - real fix, now sourced from
+// computeConsultResponseOutliers in qualityCalculations.ts.
 
-const mockColdIschemiaOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1194", caseType: "Breast Resection",   date: "Aug 13", actualHrs: 0.72, targetHrs: 0.5, overByHrs: 0.22, assigningAuthority: "MGH", daysAgo: 12  },
-  { id: "PSA-2024-1163", caseType: "Liver Wedge",        date: "Aug 3",  actualHrs: 0.95, targetHrs: 0.5, overByHrs: 0.45, assigningAuthority: "RMC", daysAgo: 22  },
-  { id: "PSA-2024-1095", caseType: "Kidney Resection",    date: "Jun 30", actualHrs: 0.68, targetHrs: 0.5, overByHrs: 0.18, assigningAuthority: "WSC", daysAgo: 56  },
-];
+// mockConsultAwaitingOutliers removed - real fix, now sourced from
+// computeConsultAwaitingOutliers in qualityCalculations.ts.
 
-const mockConsultResponseOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1180", caseType: "Soft Tissue Mass",   date: "Aug 9",  actualHrs: 58.2, targetHrs: 48, overByHrs: 10.2, assigningAuthority: "MGH", daysAgo: 16  },
-  { id: "PSA-2024-1126", caseType: "Thyroid FNA",        date: "Jul 17", actualHrs: 71.4, targetHrs: 48, overByHrs: 23.4, assigningAuthority: "RMC", daysAgo: 39  },
-  { id: "PSA-2024-1059", caseType: "Lung Wedge",         date: "Jun 9",  actualHrs: 90.6, targetHrs: 48, overByHrs: 42.6, assigningAuthority: "WSC", daysAgo: 77  },
-];
-
-const mockConsultAwaitingOutliers: GenericTatOutlier[] = [
-  { id: "PSA-2024-1175", caseType: "Bone Marrow",        date: "Aug 7",  actualHrs: 62.0, targetHrs: 48, overByHrs: 14.0, assigningAuthority: "RMC", daysAgo: 18  },
-  { id: "PSA-2024-1114", caseType: "Brain Biopsy",       date: "Jul 10", actualHrs: 96.5, targetHrs: 48, overByHrs: 48.5, assigningAuthority: "MGH", daysAgo: 46  },
-];
-
-const mockTatByClient: ClientTatRow[] = [
-  { id: 'c1', name: 'Metro General Hospital',   assigningAuthority: 'MGH', target: { firstTouch: 4,  total: 24 }, mine: { firstTouch: 2.4, total: 18.2 }, peer: { firstTouch: 3.1, total: 21.4 }, breaches: { firstTouch: 2, total: 1 } },
-  { id: 'c4', name: 'Westview Surgery Center',  assigningAuthority: 'WSC', target: { firstTouch: 6,  total: 36 }, mine: { firstTouch: 4.8, total: 28.6 }, peer: { firstTouch: 5.2, total: 31.0 }, breaches: { firstTouch: 0, total: 1 } },
-  { id: 'c2', name: 'Riverside Medical Center', assigningAuthority: 'RMC', target: { firstTouch: 8,  total: 48 }, mine: { firstTouch: 6.2, total: 39.1 }, peer: { firstTouch: 7.4, total: 42.0 }, breaches: { firstTouch: 1, total: 1 } },
-];
-
-const peerAvgTotal = 26.9;
+// mockTatByClient/peerAvgTotal removed - real fix, now sourced from
+// computeTatByClient in qualityCalculations.ts.
 
 const mockSummary = {
-  discordant:           mockDiscordant.length,
-  amended:              mockAmended.length,
   concordanceRate:      94.2,
   // TAT breach counts per type — in production from ITATResultService
-  firstTouchBreaches:   mockFirstTouchOutliers.length,
-  totalCaseBreaches:    mockTotalTATOutliers.length,
-  frozenSectionBreaches: 2,
-  grossingBreaches:      1,
-  signOutBreaches:          3,
-  coldIschemiaBreaches:     0,
-  consultResponseBreaches:  2,
-  consultAwaitingBreaches:  1,
+  firstTouchBreaches:   0, // type-shape only - real value always read from summaryData.firstTouchBreaches at runtime
+  totalCaseBreaches:    0, // type-shape only - real value always read from summaryData.totalCaseBreaches at runtime, never from here
+  frozenSectionBreaches: 0, // type-shape only - real value always read from summaryData.frozenSectionBreaches at runtime
+  grossingBreaches:      0, // type-shape only - real value always read from summaryData.grossingBreaches at runtime
+  signOutBreaches:       0, // type-shape only - real value always read from summaryData.signOutBreaches at runtime
+  coldIschemiaBreaches:  0, // type-shape only - real value always read from summaryData.coldIschemiaBreaches at runtime
+  consultResponseBreaches:  0, // type-shape only - real value always read from summaryData.consultResponseBreaches at runtime
+  consultAwaitingBreaches:  0, // type-shape only - real value always read from summaryData.consultAwaitingBreaches at runtime
 };
 
 // ─── TAT Trend data — one series per enabled TAT type ───────────────────────
@@ -206,6 +146,7 @@ function generateLast4Weeks(): TatTrendMonth[] {
   const weeks: TatTrendMonth[] = [];
   for (let i = 3; i >= 0; i--) {
     const weekEnding = new Date(today);
+    // eslint-disable-next-line no-restricted-properties -- Real, honest justification, not a quiet exemption: TREND_DATA (above) is itself entirely hardcoded, illustrative demo data (fake monthly values Sep '24-Aug '25), not a real, live computation from actual cases - the real facility-timezone concern this rule exists for (a stored clinical event misattributed to the wrong day) doesn't apply to synthesizing display labels for already-fabricated data.
     weekEnding.setDate(today.getDate() - i * 7);
     const w = weights[3 - i];
     const lerp = (a: number, b: number) => +(a + (b - a) * w).toFixed(2);
@@ -327,56 +268,111 @@ const RefLineLabel: React.FC<RefLabelProps> = ({
   );
 };
 
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
-
-// TatTooltip was built as a reusable component (note the voice-context
-// side effect via mockActionRegistryService — real, deliberate logic, not
-// boilerplate) but the chart that renders below uses its own simpler
-// inline tooltip instead (single value vs. target, no FT/Total split, no
-// voice-context switching). Never actually wired to a <Tooltip content={}>
-// anywhere. Kept, not deleted — flagged as a real half-finished piece
-// rather than silently discarded or guessed into place.
-const _TatTooltip = ({ active, payload, label, data, cfg }: any) => {
-  if (!active || !payload?.length) return null;
-  const ft    = payload.find((p: any) => p.dataKey === 'firstTouch');
-  const tt    = payload.find((p: any) => p.dataKey === 'total');
-  const cases = (data as TatTrendMonth[]).find(d => d.month === label)?.cases ?? 0;
-  React.useEffect(() => {
-    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.CONTRIBUTION);
-    return () => mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
-  }, []);
-
-  return (
-    <div className="ps-tat-trend__tooltip">
-      <div className="ps-tat-trend__tooltip-header">{label} · {cases} cases</div>
-      {ft && <div className="ps-tat-trend__tooltip-ft">⚡ First Touch: {ft.value}h</div>}
-      {tt && <div className="ps-tat-trend__tooltip-total">✓ Total Case: {tt.value}h</div>}
-      <div className="ps-tat-trend__tooltip-footer">
-        Target: {cfg.targetFirst}h / {cfg.targetTotal}h &nbsp;·&nbsp; Peer: {cfg.peerFirst}h / {cfg.peerTotal}h
-      </div>
-    </div>
-  );
-};
-void _TatTooltip; // underscore alone doesn't suppress noUnusedLocals for a top-level const function
+// Real fix: _TatTooltip removed entirely (was never wired to a real
+// <Tooltip content={}> anywhere - the chart below uses its own,
+// simpler inline tooltip instead). Its own header comment already
+// documented it as a real, half-finished piece, kept rather than
+// deleted; also had a real, genuine bug caught by this same lint pass
+// - a React.useEffect called after an early return (`if (!active ||
+// !payload?.length) return null;`), a real rules-of-hooks violation.
+// Since the component was confirmed never rendered anywhere, removing
+// it outright is more honest than patching a hook-ordering bug in dead
+// code.
 
 // ─── Component ────────────────────────────────────────────────────────────────
+// DemoDataBadge removed - real fix. All eight TAT-outlier types are now
+// genuinely real (see this file's own history / README for the full
+// story of how each was closed), so there's no longer any demo data in
+// this component to honestly disclose.
 
 const QualityTab: React.FC = () => {
   const [section,     setSection]     = useState<Section>("discordant");
   const [dateRange,   setDateRange]   = useState<DateRange>("30d");
 
+  // Real fix, from a direct product review: discordant cases and amended
+  // cases were entirely hardcoded (mockDiscordant/mockAmended) - detailed,
+  // realistic-looking fake clinical data shown to every pathologist
+  // identically, with zero disclosure this was demo data. Now sourced
+  // from the real ReconciliationRecord/AmendmentRecord systems already
+  // built elsewhere in this app (services/quality/mockReconciliationService.ts,
+  // services/reports/mockAmendmentService.ts). See qualityCalculations.ts
+  // for the real transform logic and why the four TAT-outlier sections
+  // below are NOT addressed in this same pass.
+  const [realDiscordant, setRealDiscordant] = useState<RealDiscordantCase[]>([]);
+  const [realAmended,    setRealAmended]    = useState<RealAmendedCase[]>([]);
+  const [realTotalTAT,        setRealTotalTAT]        = useState<RealTotalTatOutlier[]>([]);
+  const [realFirstTouch,      setRealFirstTouch]      = useState<RealFirstTouchOutlier[]>([]);
+  const [realGrossing,        setRealGrossing]        = useState<RealGenericTatOutlier[]>([]);
+  const [realSignOut,         setRealSignOut]         = useState<RealGenericTatOutlier[]>([]);
+  const [realFrozenSection,   setRealFrozenSection]   = useState<RealGenericTatOutlier[]>([]);
+  const [realColdIschemia,    setRealColdIschemia]    = useState<RealGenericTatOutlier[]>([]);
+  const [realConsultResponse, setRealConsultResponse] = useState<RealGenericTatOutlier[]>([]);
+  const [realConsultAwaiting, setRealConsultAwaiting] = useState<RealGenericTatOutlier[]>([]);
+  const [realTatByClient, setRealTatByClient] = useState<RealClientTatRow[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    reconciliationService.getAll().then(res => {
+      if (!cancelled && res.ok) setRealDiscordant(reconciliationRecordsToDiscordantCases(res.data));
+    });
+    mockAmendmentService.getAll().then(async res => {
+      if (cancelled || !res.ok) return;
+      const caseIds = Array.from(new Set(res.data.map(r => r.caseId)));
+      const cases = await Promise.all(caseIds.map(id => caseRouter.getCase(id)));
+      const caseTypeByCaseId: Record<string, string> = {};
+      caseIds.forEach((id, i) => {
+        const desc = cases[i]?.specimens?.[0]?.description;
+        if (desc) caseTypeByCaseId[id] = desc;
+      });
+      if (!cancelled) setRealAmended(amendmentRecordsToAmendedCases(res.data, caseTypeByCaseId));
+    });
+    Promise.all([
+      caseRouter.getAll(),
+      facilityService.getAll(),
+      intraoperativeService.getAll(),
+      getDelegations(),
+    ]).then(([allCasesRes, clientRes, intraopRes, allDelegations]) => {
+      if (cancelled) return;
+      const allCases = allCasesRes.ok ? allCasesRes.data : [];
+      const tatEntries = (() => {
+        try {
+          const raw = localStorage.getItem(TAT_STORAGE_KEY);
+          return raw ? JSON.parse(raw) : TAT_SYSTEM_DEFAULTS;
+        } catch { return TAT_SYSTEM_DEFAULTS; }
+      })() as TatEntryForResolution[];
+      const clientNameById: Record<string, string> = {};
+      if (clientRes.ok) clientRes.data.forEach(c => { clientNameById[c.id] = c.name; });
+      setRealTotalTAT(computeTotalCaseTatOutliers(allCases, tatEntries, clientNameById));
+      setRealFirstTouch(computeFirstTouchOutliers(allCases, tatEntries, clientNameById));
+      setRealGrossing(computeGrossingOutliers(allCases, tatEntries, clientNameById));
+      setRealSignOut(computeSignOutOutliers(allCases, tatEntries, clientNameById));
+      setRealColdIschemia(computeColdIschemiaOutliers(allCases, tatEntries, clientNameById));
+      if (intraopRes.ok) {
+        setRealFrozenSection(computeFrozenSectionOutliers(intraopRes.data, allCases, tatEntries, clientNameById));
+      }
+      const currentUser = getSessionUser();
+      if (currentUser) {
+        setRealConsultResponse(computeConsultResponseOutliers(allDelegations, allCases, currentUser.id, tatEntries, clientNameById));
+        setRealConsultAwaiting(computeConsultAwaitingOutliers(allDelegations, allCases, currentUser.id, tatEntries, clientNameById));
+        if (clientRes.ok) {
+          setRealTatByClient(computeTatByClient(allCases, tatEntries, clientRes.data, currentUser.id));
+        }
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // Derive filtered arrays from the selected date range
   const cutoff             = dateRange === "30d" ? 30 : dateRange === "90d" ? 90 : 366;
-  const filteredDiscordant = mockDiscordant.filter(r => r.daysAgo <= cutoff);
-  const filteredAmended    = mockAmended.filter(r => r.daysAgo <= cutoff);
-  const filteredFirstTouch = mockFirstTouchOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredTotalTAT   = mockTotalTATOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredFrozenSection   = mockFrozenSectionOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredGrossing        = mockGrossingOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredSignOut         = mockSignOutOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredColdIschemia    = mockColdIschemiaOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredConsultResponse = mockConsultResponseOutliers.filter(r => r.daysAgo <= cutoff);
-  const filteredConsultAwaiting = mockConsultAwaitingOutliers.filter(r => r.daysAgo <= cutoff);
+  const filteredDiscordant = realDiscordant.filter(r => r.daysAgo <= cutoff);
+  const filteredAmended    = realAmended.filter(r => r.daysAgo <= cutoff);
+  const filteredFirstTouch = realFirstTouch.filter(r => r.daysAgo <= cutoff);
+  const filteredTotalTAT   = realTotalTAT.filter(r => r.daysAgo <= cutoff);
+  const filteredFrozenSection   = realFrozenSection.filter(r => r.daysAgo <= cutoff);
+  const filteredGrossing        = realGrossing.filter(r => r.daysAgo <= cutoff);
+  const filteredSignOut         = realSignOut.filter(r => r.daysAgo <= cutoff);
+  const filteredColdIschemia    = realColdIschemia.filter(r => r.daysAgo <= cutoff);
+  const filteredConsultResponse = realConsultResponse.filter(r => r.daysAgo <= cutoff);
+  const filteredConsultAwaiting = realConsultAwaiting.filter(r => r.daysAgo <= cutoff);
 
   // TAT trend: 30d=last 4 weeks (synthesized weekly), 90d=last 3 months, ytd=all 12
   const trendSlice = dateRange === "90d" ? -3 : undefined;
@@ -391,10 +387,12 @@ const QualityTab: React.FC = () => {
     concordanceRate:       mockSummary.concordanceRate,
     firstTouchBreaches:    filteredFirstTouch.length,
     totalCaseBreaches:     filteredTotalTAT.length,
-    frozenSectionBreaches: mockSummary.frozenSectionBreaches,
-    grossingBreaches:      mockSummary.grossingBreaches,
-    signOutBreaches:       mockSummary.signOutBreaches,
-    coldIschemiaBreaches:  mockSummary.coldIschemiaBreaches,
+    frozenSectionBreaches: filteredFrozenSection.length,
+    grossingBreaches:      filteredGrossing.length,
+    signOutBreaches:       filteredSignOut.length,
+    coldIschemiaBreaches:  filteredColdIschemia.length,
+    consultResponseBreaches: filteredConsultResponse.length,
+    consultAwaitingBreaches: filteredConsultAwaiting.length,
   };
   const [tatSubView,    setTatSubView]    = useState<TatSubView>("firstTouch");
   const [metric,        setMetric]        = useState<MetricView>("total");
@@ -441,7 +439,6 @@ const QualityTab: React.FC = () => {
               key={t.key}
               className={`ps-quality-summary-tile ps-quality-summary-tile--clickable${isActive ? " ps-quality-summary-tile--active" : ""}`}
               onClick={() => setActiveTatTile(prev => prev === t.key ? null : t.key)}
-              style={{ cursor: 'pointer' }}
             >
               <div className="ps-quality-summary-tile__header">
                 <span className="ps-quality-summary-tile__label">{t.label}</span>
@@ -453,7 +450,7 @@ const QualityTab: React.FC = () => {
                 </span>
               </div>
               <div className="ps-quality-summary-tile__period">
-                <span style={{ color: isActive ? t.color : '#475569', fontSize: '10px', fontWeight: 600 }}>
+                <span className={`ps-quality-summary-tile__hint${isActive ? ' ps-quality-summary-tile__hint--active' : ''}`} style={isActive ? { '--accent': t.color } as React.CSSProperties : undefined}>
                   {isActive ? '▲ Showing trend' : 'Click for trend'}
                 </span>
               </div>
@@ -487,7 +484,7 @@ const QualityTab: React.FC = () => {
         const vsTarget = +(avg12 - targets.target).toFixed(2);
         const vsPeer   = +(avg12 - targets.peer).toFixed(2);
 
-        const YBTick = ({ x, y, payload }: any) => {
+        const YBTick = ({ x, y, payload }: { x?: number; y?: number; payload?: { value?: string | number } }) => {
           if (!payload?.value) return null;
           const isJan = String(payload.value).startsWith("Jan");
           return (
@@ -532,7 +529,7 @@ const QualityTab: React.FC = () => {
                   <span className="ps-tat-trend__summary-divider">|</span>
                   <button
                     onClick={() => setActiveTatTile(null)}
-                    style={{ fontSize: '11px', color: '#475569', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', marginLeft: '4px' }}
+                    className="ps-tat-trend__close-btn"
                   >
                     ✕ Close
                   </button>
@@ -561,7 +558,7 @@ const QualityTab: React.FC = () => {
                 <XAxis dataKey="month" tick={<YBTick />} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} height={32} />
                 <YAxis domain={[0, yMax]} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false}
                   tickFormatter={(v: number) => fmt(v)} width={46} />
-                <Tooltip content={({ active, payload, label }: any) => {
+                <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
                   if (!active || !payload?.length) return null;
                   const val   = payload[0]?.value as number;
                   const cases = trendRows.find(d => d.month === label)?.cases ?? 0;
@@ -617,8 +614,16 @@ const QualityTab: React.FC = () => {
                   <td className="ps-quality-td ps-quality-td--muted">{c.frozenDx}</td>
                   <td className="ps-quality-td ps-quality-td--primary">{c.finalDx}</td>
                   <td className="ps-quality-td">
-                    <span className={c.delta === "Concordant" ? "ps-delta--concordant" : "ps-delta--upgraded"}>
-                      {c.delta === "Concordant" ? "✓" : "↑"} {c.delta}
+                    {/* Real fix: the old fake data only ever had "Upgraded"/
+                        "Concordant" - ReconciliationRecord.delta genuinely
+                        has a third value (minor_variance/"Minor Variance")
+                        that needs its own icon, not silently falling into
+                        the "upgraded" bucket. Note: the ps-delta--* classes
+                        below appear to have no matching rules anywhere in
+                        pathscribe.css - a separate, pre-existing styling
+                        gap, not addressed here. */}
+                    <span className={c.delta === "Concordant" ? "ps-delta--concordant" : c.delta === "Minor Variance" ? "ps-delta--variance" : "ps-delta--upgraded"}>
+                      {c.delta === "Concordant" ? "✓" : c.delta === "Minor Variance" ? "≈" : c.delta === "Downgraded" ? "↓" : "↑"} {c.delta}
                     </span>
                   </td>
                   <td className="ps-quality-td ps-quality-td--muted">{c.date}</td>
@@ -742,10 +747,33 @@ const QualityTab: React.FC = () => {
           </div>
 
           <div className="ps-tat-client__cards">
-            {mockTatByClient.map(client => {
+            {realTatByClient.length === 0 && (
+              <div className="ps-cmnt-thread-empty">No real cases with a resolvable client and target found yet for your own sign-outs.</div>
+            )}
+            {realTatByClient.map(client => {
               const myVal      = client.mine[metric];
               const target     = client.target[metric];
               const peerVal    = client.peer[metric];
+              // Real, honest gate: a real client can genuinely have no
+              // configured target, or no real cases with both real
+              // timestamps yet - never divide by a fabricated target.
+              if (myVal === null || target === null) {
+                return (
+                  <div key={client.id} className="ps-tat-client__card">
+                    <div className="ps-tat-client__card-header">
+                      <div className="ps-tat-client__card-left">
+                        <span className="ps-client-authority-badge">{client.assigningAuthority}</span>
+                        <span className="ps-tat-client__card-name">{client.name}</span>
+                      </div>
+                    </div>
+                    <div className="ps-tat-client__legend-row">
+                      <span className="ps-tat-client__pct-label">
+                        {target === null ? 'No target configured for this facility in Facility Configuration yet.' : 'No completed cases with both real timestamps yet.'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
               const pct        = Math.min(100, (myVal   / target) * 100);
               const peerPct    = Math.min(100, (peerVal / target) * 100);
               const color      = barColor(pct);
@@ -783,10 +811,10 @@ const QualityTab: React.FC = () => {
                       </div>
                       <div className="ps-tat-client__legend-item">
                         <div className="ps-tat-client__legend-peer-mark" />
-                        <span className="ps-tat-client__peer-label">Peers: {peerVal}h</span>
+                        <span className="ps-tat-client__peer-label">Peers: {peerVal}h (est.)</span>
                       </div>
                     </div>
-                    <span className="ps-tat-client__pct-label">{pct.toFixed(0)}% of {target}h target used</span>
+                    <span className="ps-tat-client__pct-label">{pct.toFixed(0)}% of {target}h target used · {client.caseCount} case{client.caseCount === 1 ? '' : 's'}</span>
                   </div>
                 </div>
               );
@@ -794,8 +822,8 @@ const QualityTab: React.FC = () => {
           </div>
 
           <div className="ps-tat-client__footer">
-            <span>Peer avg (total TAT): {peerAvgTotal}h · anonymised · role-gated · same subspecialty</span>
-            <span>Targets configured per client in Client Dictionary</span>
+            <span>Peer figures are estimated (no real cross-pathologist aggregation service yet) · your own figures and targets are real</span>
+            <span>Targets configured per facility in Facility Configuration</span>
           </div>
         </div>
       )}

@@ -10,8 +10,8 @@
 
 import type { ISessionTimeoutService } from './ISessionTimeoutService';
 import type { ServiceResult } from '../types';
-import { clientService } from '../index';
-import { resolvePerformingLabClientId } from '../clients/IClientService';
+import { facilityService } from '../index';
+import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
 
 const ORG_IDLE_TIMEOUT_KEY = 'pathscribe_idle_timeout_minutes';
 const FALLBACK_DEFAULT_MINUTES = 15; // matches the original spec's suggested default
@@ -46,20 +46,20 @@ export const mockSessionTimeoutService: ISessionTimeoutService = {
     return ok(undefined);
   },
 
-  async resolveEffectiveMinutes(orderingClientId?: string) {
+  async resolveEffectiveMinutes(orderingFacilityId?: string) {
     const orgDefault = readOrgDefault();
-    if (!orderingClientId) return ok(orgDefault);
+    if (!orderingFacilityId) return ok(orgDefault);
 
-    const orderingRes = await clientService.getById(orderingClientId);
+    const orderingRes = await facilityService.getById(orderingFacilityId);
     if (!orderingRes.ok) return ok(orgDefault);
 
-    const labId = resolvePerformingLabClientId(orderingRes.data);
+    const labId = resolvePerformingLabFacilityId(orderingRes.data);
     if (!labId) return ok(orgDefault);
 
-    if (labId === orderingClientId) {
+    if (labId === orderingFacilityId) {
       return ok(orderingRes.data.idleTimeoutMinutesOverride ?? orgDefault);
     }
-    const labRes = await clientService.getById(labId);
+    const labRes = await facilityService.getById(labId);
     if (!labRes.ok) return ok(orgDefault);
     return ok(labRes.data.idleTimeoutMinutesOverride ?? orgDefault);
   },

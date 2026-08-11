@@ -62,6 +62,7 @@ const Row: React.FC<{
     <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
       <input
         type="number" min={min} max={max} value={value}
+        aria-label={`${label}, ${unit}`}
         style={inputStyle}
         onChange={e => {
           const n = parseInt(e.target.value, 10);
@@ -159,26 +160,13 @@ const RetentionSection: React.FC = () => {
         <button
           onClick={handleSave}
           disabled={!dirty}
-          style={{
-            padding: '9px 24px', borderRadius: 8, border: 'none',
-            background: dirty ? '#22c55e' : 'rgba(255,255,255,0.05)',
-            color: dirty ? '#022c22' : '#475569',
-            fontWeight: 700, fontSize: 13, cursor: dirty ? 'pointer' : 'default',
-            transition: 'all 0.15s', fontFamily: 'inherit',
-          }}
+          className="ps-conf-btn-primary"
         >
           {saved ? '✓ Saved' : 'Save Changes'}
         </button>
         <button
           onClick={handleReset}
-          style={{
-            padding: '9px 20px', borderRadius: 8,
-            border: '1px solid rgba(255,255,255,0.1)', background: 'transparent',
-            color: '#64748b', fontSize: 13, cursor: 'pointer',
-            transition: 'all 0.15s', fontFamily: 'inherit',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          className="ps-conf-btn-secondary"
         >
           Reset to Defaults
         </button>

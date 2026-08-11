@@ -1,6 +1,7 @@
 // src/services/templateSuggestions/synopticTemplateSuggestionService.ts
 
 import { callAi } from '../aiIntegration/aiProviderService';
+import { resolveAiConfigOverrideForClient } from '../../components/Config/AI/resolveClientAiModel';
 import type {
   SynopticSuggestionInput,
   SynopticSuggestionResult,
@@ -65,6 +66,7 @@ Return ONLY a JSON array (no markdown, no preamble). Include an entry ONLY for s
     const { text: raw } = await callAi({
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
+      configOverride: await resolveAiConfigOverrideForClient(input.clientId),
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{

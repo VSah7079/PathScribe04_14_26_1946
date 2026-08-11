@@ -22,6 +22,8 @@ import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandida
 import type { IIntraoperativeService } from './IIntraoperativeService';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { mockFacilityService } from '../facilities/mockFacilityService';
+import { mockLocationService } from '../locations/mockLocationService';
 
 const STORAGE_KEY = 'intraop_entries';
 const INTRAOP_VERSION = '5'; // bumped: added MERGED_TAT_SEED batch for the linkage TAT trend chart
@@ -162,11 +164,19 @@ const SEED_ENTRIES: IntraoperativeEntry[] = [
         quickGrossDictation: 'Received fresh, labeled "left thyroid lobe." Encapsulated tan-brown nodule, 1.9 cm greatest dimension, well-circumscribed.',
         frozenSectionDiagnosis: 'Follicular lesion, deferred to permanent sections for definitive classification.',
         frozenCategory: 'deferred',
+        frozenDiagnosisRenderedAt: '2026-07-19T10:19:00.000Z',
       },
     ],
     verbalReportLog: { timestamp: '2026-07-19T10:09:00.000Z', note: 'Spoke with Dr. Owusu. Frozen deferred to permanent — capsular/vascular invasion cannot be reliably assessed on frozen section.' },
     status: 'merged',
-    mergedIntoCaseId: 'O26-0027',
+    // Real fix: previously 'O26-0027', a case ID that doesn't exist
+    // anywhere in mockCaseService.ts - meant this entry could never
+    // actually cross-reference to a real Case, so
+    // computeFrozenSectionOutliers (components/Contribution/
+    // qualityCalculations.ts) would always find zero matches regardless
+    // of any timestamp data here. Retargeted to a real, existing,
+    // already-enriched seed case.
+    mergedIntoCaseId: 'S26-4403',
     mergedAt: '2026-07-19T11:30:00.000Z',
     createdAt: '2026-07-19T10:03:00.000Z',
   },
@@ -269,19 +279,33 @@ async function findMatchCandidates(entry: IntraoperativeEntry): Promise<MatchCan
   }
 
   const arrival = sessionArrival(entry);
+  const fuzzyCandidates: (MatchCandidate & { minutesApart: number })[] = [];
   for (const c of realCases) {
     const sameLastName = lastName(c.patientName) === lastName(entry.patientMatch.patientName);
     const sameSurgeon = !!c.surgeon && c.surgeon.toLowerCase() === entry.surgeon.toLowerCase();
     const minutesApart = Math.abs(new Date(c.accessionedAt).getTime() - new Date(arrival).getTime()) / 60000;
     if (sameLastName && sameSurgeon && minutesApart <= 90) {
-      candidates.push({
+      fuzzyCandidates.push({
         caseId: c.caseId,
         matchType: 'fuzzy',
         matchReason: `Last name + surgeon match, accessioned ${Math.round(minutesApart)} min after arrival`,
         confidence: minutesApart <= 30 ? 'high' : 'medium',
+        minutesApart,
       });
     }
   }
+  // Same real bug, same fix as findEntryMatchesForCase above: this used
+  // to return candidates in arbitrary insertion order. Lower severity
+  // here specifically — IntraopQueuePage.tsx's openMerge() presents this
+  // as a human-reviewed list (MergeModal), not an auto-picked [0] the
+  // way AccessionPage.tsx's post-submit check works — but a reviewer
+  // should still see genuinely better matches first, not whatever order
+  // caseRouter.getAll() happened to return cases in.
+  fuzzyCandidates.sort((a, b) => {
+    if (a.confidence !== b.confidence) return a.confidence === 'high' ? -1 : 1;
+    return a.minutesApart - b.minutesApart;
+  });
+  candidates.push(...fuzzyCandidates.map(({ minutesApart: _minutesApart, ...c }) => c));
   return candidates;
 }
 
@@ -300,7 +324,7 @@ function findEntryMatchesForCase(caseInfo: { patientName: string; mrn: string; s
     return [{ entry: exact, matchType: 'mrn_exact', matchReason: 'MRN exact match', confidence: 'high' }];
   }
 
-  const matches: EntryMatch[] = [];
+  const matches: (EntryMatch & { minutesApart: number })[] = [];
   for (const e of pending) {
     const sameLastName = lastName(e.patientMatch.patientName) === lastName(caseInfo.patientName);
     const sameSurgeon = e.surgeon.toLowerCase() === caseInfo.surgeon.toLowerCase();
@@ -311,10 +335,23 @@ function findEntryMatchesForCase(caseInfo: { patientName: string; mrn: string; s
         matchType: 'fuzzy',
         matchReason: `Last name + surgeon match, arrived ${Math.round(minutesApart)} min before accession`,
         confidence: minutesApart <= 30 ? 'high' : 'medium',
+        minutesApart,
       });
     }
   }
-  return matches;
+  // Real bug fix: this used to return matches in whatever order pending
+  // entries happened to iterate in, not by actual match quality. In a
+  // busy OR, it's realistic for the same surgeon to have more than one
+  // pending frozen section with the same surname within the same
+  // 90-minute window - the caller (AccessionPage.tsx) takes matches[0]
+  // as the auto-suggested merge target, so an unsorted array meant it
+  // could silently suggest merging the wrong specimen record. Sorted by
+  // confidence first, then by closeness in time within the same tier.
+  matches.sort((a, b) => {
+    if (a.confidence !== b.confidence) return a.confidence === 'high' ? -1 : 1;
+    return a.minutesApart - b.minutesApart;
+  });
+  return matches.map(({ minutesApart: _minutesApart, ...m }) => m);
 }
 
 export const mockIntraoperativeService: IIntraoperativeService = {
@@ -335,17 +372,40 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     performedBy: { userId: string; userName: string };
     orNumber: string;
     surgeon: string;
+    clientId?: string;
+    locationId?: string;
   }): Promise<ServiceResult<IntraoperativeEntry>> {
     if (!input.patientMatch.patientName.trim() || !input.patientMatch.mrn.trim()) {
       return err('Patient name and MRN are required to start an intraoperative session.');
     }
     const now = new Date().toISOString();
+    // Real feature, per direct confirmation: "Let's wire in Facility
+    // and Location (Room) for Intraop." Resolves the real display
+    // strings once, at session creation, same "cached, avoid an async
+    // lookup on every render" reasoning as Case.order.clientName/
+    // locationDisplay.
+    let clientName: string | undefined;
+    let locationDisplay: string | undefined;
+    if (input.clientId) {
+      const clientRes = await mockFacilityService.getById(input.clientId);
+      clientName = clientRes.ok ? clientRes.data.name : undefined;
+    }
+    if (input.locationId) {
+      const locationRes = await mockLocationService.getById(input.locationId);
+      locationDisplay = locationRes.ok
+        ? [locationRes.data.pointOfCare, locationRes.data.room, locationRes.data.bed].filter(Boolean).join(' / ')
+        : undefined;
+    }
     const newEntry: IntraoperativeEntry = {
       id: `intraop-${Date.now().toString(36)}`,
       patientMatch: { ...input.patientMatch, confirmedAt: now },
       performedBy: input.performedBy,
       orNumber: input.orNumber.trim(),
       surgeon: input.surgeon.trim(),
+      clientId: input.clientId,
+      clientName,
+      locationId: input.locationId,
+      locationDisplay,
       specimens: [],
       status: 'pending',
       createdAt: now,
@@ -431,7 +491,12 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     const specIdx = entries[idx].specimens.findIndex(s => s.id === specimenId);
     if (specIdx === -1) return err(`Specimen ${specimenId} not found in session ${sessionId}`);
     const updatedSpecimens = [...entries[idx].specimens];
-    updatedSpecimens[specIdx] = { ...updatedSpecimens[specIdx], frozenSectionDiagnosis: diagnosis.trim(), ...(category ? { frozenCategory: category } : {}) };
+    updatedSpecimens[specIdx] = {
+      ...updatedSpecimens[specIdx],
+      frozenSectionDiagnosis: diagnosis.trim(),
+      frozenDiagnosisRenderedAt: new Date().toISOString(),
+      ...(category ? { frozenCategory: category } : {}),
+    };
     entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
     persist(entries);
     return ok({ ...entries[idx] });

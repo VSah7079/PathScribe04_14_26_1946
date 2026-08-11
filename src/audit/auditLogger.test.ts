@@ -26,7 +26,7 @@ describe('audit/auditLogger.ts — real bug fix: events now reach the actual Sys
     // other fire-and-forget audit call in this app is tested.
     await new Promise(res => setTimeout(res, 100));
 
-    const logsRes = await mockAuditService.getAuditLogs({ search: 'add_comment' } as any);
+    const logsRes = await mockAuditService.getAuditLogs({ search: 'add_comment' });
     expect(logsRes.ok).toBe(true);
     if (!logsRes.ok) return;
     const entry = logsRes.data.find(l => l.event === 'add_comment' && l.detail === 'Comment added on field X');
@@ -38,7 +38,7 @@ describe('audit/auditLogger.ts — real bug fix: events now reach the actual Sys
   it('each AuditEvent category maps to the correct real AuditLog type', async () => {
     logEvent({ user: 'System (AI)', category: 'ai', action: 'ai_generated_synoptic', detail: 'AI drafted synoptic answer' });
     await new Promise(res => setTimeout(res, 100));
-    const logsRes = await mockAuditService.getAuditLogs({ search: 'ai_generated_synoptic' } as any);
+    const logsRes = await mockAuditService.getAuditLogs({ search: 'ai_generated_synoptic' });
     if (!logsRes.ok) return;
     const entry = logsRes.data.find(l => l.event === 'ai_generated_synoptic');
     expect(entry?.type).toBe('ai');

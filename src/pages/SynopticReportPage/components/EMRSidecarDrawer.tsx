@@ -35,7 +35,7 @@
 //    matter how complex the real embedded content becomes later.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import MockEMRPage from '@/pages/MockEMRPage';
 
 interface EMRSidecarDrawerProps {
@@ -45,6 +45,18 @@ interface EMRSidecarDrawerProps {
 }
 
 const EMRSidecarDrawer: React.FC<EMRSidecarDrawerProps> = ({ isOpen, patientId, onClose }) => {
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // React's JSX prop reconciliation doesn't yet recognize `inert` as a
+  // valid DOM attribute on this React/TS version and silently drops it
+  // if passed as a prop - setting it directly via the DOM API guarantees
+  // it actually lands, so aria-hidden content can't still be tabbed into.
+  useEffect(() => {
+    if (drawerRef.current) {
+      drawerRef.current.inert = !isOpen;
+    }
+  }, [isOpen]);
+
   return (
     <>
       {/* Backdrop -- unlike the drawer itself, safe to conditionally
@@ -74,6 +86,7 @@ const EMRSidecarDrawer: React.FC<EMRSidecarDrawerProps> = ({ isOpen, patientId, 
           boxShadow: isOpen ? '-8px 0 32px rgba(0,0,0,0.4)' : 'none',
         }}
         aria-hidden={!isOpen}
+        ref={drawerRef}
       >
         <div style={{
           padding: '16px 24px',

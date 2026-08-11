@@ -23,7 +23,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { PHI_SELECTORS, REDACTION_LABEL } from '../services/phiSelectors';
+import { PHI_SELECTORS, REDACTION_LABEL, REDACTION_STYLE, REDACTION_LABEL_STYLE } from '../services/phiSelectors';
 
 export interface ScreenCaptureResult {
   dataUrl:            string;
@@ -60,30 +60,21 @@ function applyRedactionOverlays(): RedactionOverlay[] {
 
         const overlay = document.createElement('div');
         overlay.setAttribute('data-phi-overlay', 'true');
-        overlay.style.cssText = `
-          position:        fixed;
-          left:            ${rect.left + window.scrollX}px;
-          top:             ${rect.top  + window.scrollY}px;
-          width:           ${Math.max(rect.width,  80)}px;
-          height:          ${Math.max(rect.height, 18)}px;
-          background:      #1e293b;
-          border-radius:   4px;
-          z-index:         999999;
-          display:         flex;
-          align-items:     center;
-          justify-content: center;
-          pointer-events:  none;
-        `;
+        Object.assign(overlay.style, REDACTION_STYLE, {
+          position:       'fixed',
+          left:           `${rect.left + window.scrollX}px`,
+          top:            `${rect.top  + window.scrollY}px`,
+          width:          `${Math.max(rect.width,  80)}px`,
+          height:         `${Math.max(rect.height, 18)}px`,
+          zIndex:         '999999',
+          display:        'flex', // deliberate override of REDACTION_STYLE's inline-block, needed to center the label
+          alignItems:     'center',
+          justifyContent: 'center',
+          pointerEvents:  'none',
+        });
         const label = document.createElement('span');
         label.textContent = REDACTION_LABEL;
-        label.style.cssText = `
-          font-size:      9px;
-          color:          #475569;
-          font-family:    monospace;
-          font-weight:    600;
-          letter-spacing: 0.05em;
-          user-select:    none;
-        `;
+        Object.assign(label.style, REDACTION_LABEL_STYLE, { userSelect: 'none' });
         overlay.appendChild(label);
         document.body.appendChild(overlay);
         overlays.push({ element: el, overlay });
@@ -300,9 +291,7 @@ export function useScreenCapture(): UseScreenCaptureReturn {
         scale:           window.devicePixelRatio ?? 1,
         logging:         false,
         ignoreElements:  (el: Element) =>
-          el.hasAttribute('data-enhancement-modal')      ||
-          el.hasAttribute('data-phi-overlay')            ||
-          el.hasAttribute('data-pdf-placeholder'),
+          el.hasAttribute('data-enhancement-modal'),
       });
 
       return {
@@ -315,8 +304,8 @@ export function useScreenCapture(): UseScreenCaptureReturn {
         height:            canvas.height,
       };
 
-    } catch (err: any) {
-      const msg = err?.message ?? 'Screen capture failed';
+    } catch (err) {
+      const msg = (err as Error)?.message ?? 'Screen capture failed';
       setError(msg);
       console.error('[useScreenCapture]', err);
       return null;

@@ -22,6 +22,23 @@ export interface SpecimenEntry {
    */
   specimenCategoryId?: string;
   /**
+   * Real fix, per direct guidance: the lab's own AMA license covers real
+   * coders populating this - this app never fabricates the mapping
+   * itself. The base surgical pathology CPT code (88302-88309) this
+   * specific specimen type should default to at sign-out, e.g. "Breast
+   * core needle biopsy" -> 88305. Optional and additive, same reasoning
+   * as specimenCategoryId: existing entries without it simply fall back
+   * to the generic, honest rule-based default
+   * (ruleBasedDefaultCptCodes in services/billing/codeMapTable.ts)
+   * rather than breaking. Deliberately NOT validated against
+   * CODE_MAP_TABLE at the type level - a real coder may set a real,
+   * correct code (e.g. 88309) this app's own small, curated table
+   * doesn't carry a verified work RVU value for yet; that's a separate,
+   * honest gap (see codeMapTable.ts's own header), not a reason to
+   * block a real coder from recording the real code here.
+   */
+  defaultBaseCptCode?: string;
+  /**
    * When true, this specimen type requires processing.processedAt (the
    * fixative-added timestamp — cold ischemia time = collection to
    * fixation gap, tracked per CAP/ASCO biomarker guidance, e.g. breast

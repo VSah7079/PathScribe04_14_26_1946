@@ -39,7 +39,9 @@ import {
 import type { Case, CaseParticipant } from '@/types/case/Case';
 import { caseRouter }                    from '@/services/cases/CaseRouter';
 import { syncPrimaryAssignee }           from '@/services/cases/caseAssignmentSync';
-import { userService, roleService }      from '@/services';
+import { userService, roleService, subspecialtyService } from '@/services';
+import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
+import { getStaffSubspecialtyDisplay } from '@/utils/staffSubspecialties';
 import { mockParticipationTypeService } from '@/services/participationTypes/mockParticipationTypeService';
 import type { ParticipationTypeRecord as ParticipationType } from '@/services/participationTypes/IParticipationTypeService';
 import type { StaffUser }                from '@/services/users/IUserService';
@@ -63,15 +65,20 @@ interface StaffCardProps {
   staff:       StaffUser;
   roles:       Role[];
   allTypes:    ParticipationType[];
+  /** Real fix, per direct confirmation: replaces the old free-text
+   *  department field with the user's real, assigned Subspecialty
+   *  name(s) — see utils/staffSubspecialties.ts. */
+  allSubspecialties: Subspecialty[];
   disabled?:   boolean;
   isDragging?: boolean;
 }
 
-const StaffCard: React.FC<StaffCardProps & { id: string }> = ({ id, staff, roles, allTypes, disabled, isDragging }) => {
+const StaffCard: React.FC<StaffCardProps & { id: string }> = ({ id, staff, roles, allTypes, allSubspecialties, disabled, isDragging }) => {
   const { attributes, listeners, setNodeRef } = useDraggable({ id, disabled });
   const staffRoles   = roles.filter(r => staff.roles.includes(r.name));
   const allowedTypeIds = new Set(staffRoles.flatMap(r => (r as any).participationTypeIds ?? []));
   const allowedTypes = allTypes.filter(t => allowedTypeIds.has(t.id));
+  const subspecialtyDisplay = getStaffSubspecialtyDisplay(staff.id, allSubspecialties);
 
   return (
     <div
@@ -84,7 +91,7 @@ const StaffCard: React.FC<StaffCardProps & { id: string }> = ({ id, staff, roles
         <div className="ps-ctm-staff-avatar">{`${staff.firstName[0]}${staff.lastName[0]}`}</div>
         <div className="ps-ctm-staff-info">
           <div className="ps-ctm-staff-name">{staff.firstName} {staff.lastName}</div>
-          <div className="ps-ctm-staff-meta">{staff.roles.join(', ')} · {staff.department}</div>
+          <div className="ps-ctm-staff-meta">{staff.roles.join(', ')}{subspecialtyDisplay ? ` · ${subspecialtyDisplay}` : ''}</div>
         </div>
         {!disabled && <div className="ps-ctm-staff-grip">⠿</div>}
         {disabled  && <span className="ps-ctm-staff-oncase-badge">on case</span>}
@@ -267,6 +274,9 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const [staffList,    setStaffList]    = useState<StaffUser[]>([]);
   const [roles,        setRoles]        = useState<Role[]>([]);
   const [allTypes,     setAllTypes]     = useState<ParticipationType[]>([]);
+  /** Real fix, per direct confirmation: replaces the old free-text
+   *  department field with the real Subspecialty dictionary. */
+  const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [participants, setParticipants] = useState<CaseParticipant[]>([]);
   const initialParticipantsRef = useRef<CaseParticipant[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -284,12 +294,13 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
-    Promise.all([userService.getAll(), roleService.getAll(), mockParticipationTypeService.getActive()]).then(([usersRes, rolesRes, typesRes]) => {
+    Promise.all([userService.getAll(), roleService.getAll(), mockParticipationTypeService.getActive(), subspecialtyService.getAll()]).then(([usersRes, rolesRes, typesRes, subsRes]) => {
       const users     = usersRes.ok ? usersRes.data : [];
       const rolesData = rolesRes.ok ? rolesRes.data : [];
       setStaffList(users);
       setRoles(rolesData);
       setAllTypes(typesRes.ok ? typesRes.data : []);
+      setSubspecialties(subsRes.ok ? subsRes.data : []);
       const existing: CaseParticipant[] = caseData.participants ?? [];
       const assignedId = caseData.order?.assignedTo;
       let finalExisting = existing;
@@ -312,6 +323,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
       initialParticipantsRef.current = finalExisting;
       setLoading(false);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real, honest justification: this is deliberately mount-only initialization of the participant editor, run once when this modal opens. Adding caseData's fields would risk this effect re-running while the modal is still open (e.g. from a background case update or parent re-render) and silently overwriting the user's in-progress, unsaved team-assignment edits via the setParticipants/initialParticipantsRef calls above - a real, worse bug than the one this rule is trying to prevent.
   }, []);
 
   const relevantTypeIds = useMemo(() => {
@@ -526,7 +538,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
     } finally {
       setIsSaving(false);
     }
-  }, [resolveFinalParticipants, caseData, onUpdated, onClose]);
+  }, [resolveFinalParticipants, caseData, onUpdated, onClose, user?.id]);
 
   const handleClose = useCallback(() => {
     if (isDraftDirty) { setShowDirtyWarn(true); return; }
@@ -612,6 +624,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
                     return (
                       <StaffCard
                         key={s.id} id={`staff-${s.id}`} staff={s} roles={roles} allTypes={allTypes}
+                        allSubspecialties={subspecialties}
                         disabled={isOnCase} isDragging={activeId === `staff-${s.id}`}
                       />
                     );

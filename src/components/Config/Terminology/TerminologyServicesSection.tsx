@@ -282,7 +282,11 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
             Terminology Services
           </h3>
           <p style={{ fontSize: '12px', color: '#64748b', margin: 0, lineHeight: 1.6 }}>
-            Endpoint health for clinical coding systems used in code search and AI suggestions.
+            Connectivity check only — confirms PathScribe can reach these coding
+            systems for code search and AI suggestions. Nothing to add or upload
+            here: every system below is maintained by its own standards body
+            (SNOMED International, NLM, WHO, AMA, etc.), not versioned within
+            PathScribe.
             {lastChecked && (
               <span style={{ color: '#475569' }}>
                 {' '}· Last checked {lastChecked.toLocaleTimeString()}
@@ -320,15 +324,8 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
           <button
             onClick={runChecks}
             disabled={checking}
-            style={{
-              padding: '7px 16px', borderRadius: '7px',
-              border: '1px solid rgba(8,145,178,0.4)',
-              background: checking ? 'rgba(8,145,178,0.05)' : 'rgba(8,145,178,0.15)',
-              color: checking ? '#475569' : '#0891B2',
-              fontSize: '12px', fontWeight: 600,
-              cursor: checking ? 'wait' : 'pointer',
-              fontFamily: 'inherit', transition: 'all 0.15s',
-            }}
+            className="ps-conf-btn-teal-accent"
+            style={{ cursor: checking ? 'wait' : 'pointer' }}
           >
             {checking ? 'Testing…' : '↻ Test All'}
           </button>

@@ -57,14 +57,14 @@ export const ManagementReviewModal: React.FC<Props> = ({ unreviewedClosed, defic
           </div>
 
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Findings <span className="ps-conf-required">*</span></label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={findings} onChange={e => setFindings(e.target.value)}
+            <label className="ps-conf-label" htmlFor="mgmt-review-findings">Findings <span className="ps-conf-required">*</span></label>
+            <textarea id="mgmt-review-findings" className="ps-conf-input ps-conf-textarea" value={findings} onChange={e => setFindings(e.target.value)}
               placeholder="Patterns across this batch — recurring types, systemic causes, anything worth escalating. Not a per-item summary." />
           </div>
         </div>
         <div className="ps-ms-footer">
-          <button className="ps-ms-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="ps-ms-btn-apply" onClick={() => onSubmit([...selected], findings.trim())}
+          <button className="ps-conf-btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="ps-conf-btn-primary" onClick={() => onSubmit([...selected], findings.trim())}
             disabled={selected.size === 0 || !findings.trim()}>
             Complete Review ({selected.size})
           </button>

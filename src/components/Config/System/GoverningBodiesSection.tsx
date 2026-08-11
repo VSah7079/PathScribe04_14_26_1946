@@ -293,7 +293,7 @@ const GoverningBodiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperA
         <div className="ps-gov-header-actions">
           {hasChanges && <span className="ps-gov-unsaved">● Unsaved changes</span>}
           {saveError && <span style={{ color: '#f87171', fontSize: 12 }}>{saveError}</span>}
-          {isSuperAdmin && hasChanges && <button className="ps-btn-primary" onClick={handleSave}>Save Changes</button>}
+          {isSuperAdmin && hasChanges && <button className="ps-conf-btn-primary" onClick={handleSave}>Save Changes</button>}
           {isSuperAdmin && <button className="ps-section-add-btn" onClick={() => setShowAdd(true)}>+ Add Custom Body</button>}
         </div>
       </div>
@@ -310,7 +310,7 @@ const GoverningBodiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperA
       </div>
 
       <div className="ps-gov-col-headers">
-        {['Governing Body', 'Region', 'Enabled', 'Auto-sync', ''].map(h => (
+        {['Governing Body', 'Region', 'Active', 'Auto-sync', ''].map(h => (
           <div key={h} className="ps-gov-col-header">{h}</div>
         ))}
       </div>

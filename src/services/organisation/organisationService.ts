@@ -394,3 +394,19 @@ export function getOrganisationShortName(hospitalId?: string | null): string | n
   const org = getOrganisationByHospitalId(hospitalId);
   return org?.shortName ?? null;
 }
+
+/** Real, critical fix, extracted for testability: the real, stable
+ *  scope for MPI (patient-matching) purposes is this LAB's own
+ *  enterprise, not whichever hospital/clinic happens to have referred
+ *  a given case. A real bug had this scoped to the referring
+ *  organisation's own id instead — the same real patient referred by
+ *  two different hospitals to the same lab would incorrectly get two
+ *  separate MPI identities, directly undermining the reason
+ *  IPatientIndexService.ts exists (reliably surfacing a patient's full
+ *  case history). Falls back to the same 'ENT-DEFAULT' literal
+ *  EnterpriseConfig itself uses when nothing resolves, matching
+ *  Case.originEnterpriseId's own established fallback rather than a
+ *  second, different one. */
+export function resolveMpiScopeEnterpriseId(originOrganisation: { enterpriseId: string } | null | undefined): string {
+  return originOrganisation?.enterpriseId ?? 'ENT-DEFAULT';
+}

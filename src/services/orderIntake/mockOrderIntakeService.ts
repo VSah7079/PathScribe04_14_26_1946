@@ -5,7 +5,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type {
   IOrderIntakeService, IncomingOrder, SpecimenCodeCrosswalkEntry, OrderResolutionResult,
 } from './IOrderIntakeService';
-import { mockClientService } from '../clients/mockClientService';
+import { mockFacilityService } from '../facilities/mockFacilityService';
 import { mockSpecimenCategoryService } from '../specimenCategories/mockSpecimenCategoryService';
 import { mockSpecimenDictionaryService } from '../specimenDictionary/mockSpecimenDictionaryService';
 
@@ -17,6 +17,7 @@ const delay = () => new Promise(r => setTimeout(r, 100));
 // literal timestamps instead, kept as-is rather than converted.
 const isoDaysAgo = (days: number) => {
   const d = new Date();
+  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
   d.setDate(d.getDate() - days);
   return d.toISOString();
 };
@@ -273,7 +274,7 @@ export const mockOrderIntakeService: IOrderIntakeService = {
 
     // ── Client resolution — Client.assigningAuthority IS the crosswalk key, no
     // separate client crosswalk table needed. ──────────────────────────
-    const clientsRes = await mockClientService.getAll();
+    const clientsRes = await mockFacilityService.getAll();
     const clients = clientsRes.ok ? clientsRes.data : [];
     const clientMatch = clients.find(c => c.assigningAuthority.toLowerCase() === order.externalAssigningAuthority.toLowerCase());
 
@@ -281,7 +282,7 @@ export const mockOrderIntakeService: IOrderIntakeService = {
       order.clientId = clientMatch.id;
       order.clientWasAutoCreated = false;
     } else {
-      const created = await mockClientService.findOrCreateByAssigningAuthority(
+      const created = await mockFacilityService.findOrCreateByAssigningAuthority(
         order.externalAssigningAuthority,
         `Unrecognized client (order ${order.externalOrderNumber})`,
         `No Client.assigningAuthority match for "${order.externalAssigningAuthority}" on incoming order ${order.externalOrderNumber} — created pending admin review.`

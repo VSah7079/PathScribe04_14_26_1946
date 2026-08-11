@@ -40,6 +40,11 @@ export interface SynopticSuggestionInput {
    *  for that specimen at all, rather than a low-confidence guess.
    *  Defaults to 60 if omitted. */
   confidenceThreshold?: number;
+  /** The case's ordering client — needed to resolve which AI model this
+   *  specific client is actually approved to use. Optional so callers
+   *  without a resolvable client still fall back safely to the
+   *  org-wide default. */
+  clientId?: string;
 }
 
 export interface SynopticTemplateSuggestion {

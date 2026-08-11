@@ -9,15 +9,17 @@
 import { ICaseService } from "./ICaseService";
 import { ConcurrencyConflictError } from "./ConcurrencyConflictError";
 import { callAi } from '../aiIntegration/aiProviderService';
+import { resolveAiConfigOverrideForClient } from '../../components/Config/AI/resolveClientAiModel';
 import { Case, CaseParticipant, ProtocolChange } from "../../types/case/Case";
 import { CaseStatus } from "../../types/case/CaseStatus";
 import { storageSet } from "../mockStorage";
 import type { SynopticEvaluationInput, SynopticEvaluationResult } from '../aiIntegration/IAIIntegrationService';
 import type { GrossingEvaluationInput, GrossingEvaluationResult, GrossingTemplateAssignment } from '../grossing/IGrossingEvaluationService';
-import { applyCaseFilters } from './caseFilterUtils';
+import { applyCaseFilters, applyCasePagination } from './caseFilterUtils';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { mockDelegationTypeService } from '../delegationTypes/mockDelegationTypeService';
 import { syncPrimaryAssignee } from './caseAssignmentSync';
+import { mockSubspecialtyService } from '../subspecialties/mockSubspecialtyService';
 import { mapDelegationTypeToParticipationRole } from '../delegationTypeMapper';
 import { isOrchCaseId } from './reportingModeRouting';
 
@@ -28,11 +30,20 @@ const STORAGE_KEY = 'cases';
 
 const delay = (ms = 30) => new Promise(res => setTimeout(res, ms));
 
+// Real, honest justification for both functions below: these generate
+// FAKE, illustrative timestamps for seeded demo data ("N years/days ago
+// from right now"), not bucketing a real, stored clinical event by
+// facility timezone. The result is a real, absolute UTC instant (via
+// toISOString()) regardless of which timezone runs this code.
 function isoYearsAgo(years: number, month = 6, day = 15): string {
+  // eslint-disable-next-line no-restricted-properties -- see real, honest justification above this function
   return new Date(new Date().getFullYear() - years, month - 1, day).toISOString();
 }
 function isoDaysAgo(days: number): string {
-  const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString();
+  const d = new Date();
+  // eslint-disable-next-line no-restricted-properties -- see real, honest justification above isoYearsAgo
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
 }
 // ─── Mock Cases ────────────────────────────────────────────────────────────────
 
@@ -2748,6 +2759,89 @@ const MOCK_CASES: Case[] = [
 
 ];
 
+// ─── Real lifecycle timestamps for dashboard demo purposes ──────────────────
+// Real fix, found via a direct review: zero seed cases had
+// diagnostic.finalizedBy/issuedDate set anywhere, and grossCompletedAt/
+// firstOpenedAt (both new fields, added for real TAT calculation - see
+// components/Contribution/qualityCalculations.ts) obviously didn't exist
+// on any seed case either. This meant ProductivityTab.tsx's real case-
+// count dashboard AND QualityTab.tsx's four newly-real TAT sections
+// would all show genuinely empty results for a fresh demo/dev
+// environment, despite the real calculation logic behind them being
+// correct - there was simply nothing to calculate from.
+//
+// Enriches a real subset of existing seed cases (already assigned to the
+// primary demo pathologist, PATH-001, with a real receivedDate) with
+// realistic, chronologically consistent lifecycle timestamps -
+// receivedDate < firstOpenedAt < grossCompletedAt < issuedDate.
+// Deliberately a genuine MIX of in-target and real outliers (not all
+// clean, not all breaches), so the dashboards demonstrate real variety
+// rather than either "suspiciously empty" or "suspiciously perfect".
+// Idempotent by construction - only ever runs once, at module load,
+// against cases that don't already have these fields.
+{
+  const DEMO_PATHOLOGIST_ID = 'PATH-001';
+  // Each entry: [hours receivedDate→firstOpenedAt, hours
+  // firstOpenedAt→grossCompletedAt, hours grossCompletedAt→issuedDate].
+  // Roughly half land inside typical 4h/24h targets, half deliberately
+  // don't - real variety, not a uniform demo.
+  const LIFECYCLE_OFFSETS: [number, number, number][] = [
+    [1, 2, 8],    // clean across the board
+    [6, 5, 30],   // first-touch breach + total-case breach
+    [2, 1, 10],   // clean
+    [1, 8, 40],   // grossing + sign-out + total breach
+    [3, 2, 20],   // clean-ish
+    [8, 3, 15],   // first-touch breach only
+    [2, 6, 28],   // grossing breach + total breach
+    [1, 1, 6],    // clean, fast
+    [5, 4, 26],   // first-touch + total breach
+    [2, 2, 12],   // clean
+  ];
+  // Cold ischemia minutes (collection → fixation) per case, applied to
+  // specimens[0] only - real target is 1h system default, so most of
+  // these deliberately straddle that line.
+  const COLD_ISCHEMIA_MINUTES = [40, 95, 30, 20, 70, 45, 110, 25, 80, 35];
+
+  const realEligible = MOCK_CASES.filter(c =>
+    (c as any).order?.assignedTo === DEMO_PATHOLOGIST_ID && (c as any).order?.receivedDate
+  );
+
+  realEligible.slice(0, LIFECYCLE_OFFSETS.length).forEach((c, i) => {
+    const anyCase = c as any;
+    if (anyCase.diagnostic?.finalizedBy) return; // never overwrite real, intentional data
+
+    const [toFirstTouch, toGrossing, toSignOut] = LIFECYCLE_OFFSETS[i];
+    const receivedMs = new Date(anyCase.order.receivedDate).getTime();
+    if (isNaN(receivedMs)) return;
+
+    const firstOpenedAt    = new Date(receivedMs + toFirstTouch * 3600_000).toISOString();
+    const grossCompletedAt = new Date(receivedMs + (toFirstTouch + toGrossing) * 3600_000).toISOString();
+    const issuedDate       = new Date(receivedMs + (toFirstTouch + toGrossing + toSignOut) * 3600_000).toISOString();
+
+    anyCase.firstOpenedAt    = firstOpenedAt;
+    anyCase.grossCompletedAt = grossCompletedAt;
+    anyCase.diagnostic = {
+      ...(anyCase.diagnostic ?? {}),
+      finalizedBy: DEMO_PATHOLOGIST_ID,
+      issuedDate,
+    };
+
+    // Real fix: cold ischemia data (Specimen.collectedAt →
+    // Specimen.processing.processedAt) - added specifically since real
+    // seed data had zero specimens with processing.processedAt set
+    // anywhere, meaning computeColdIschemiaOutliers would find nothing
+    // to calculate from even with correct logic. Only touches
+    // specimens[0] and only when it doesn't already have real,
+    // intentional processing data.
+    const firstSpecimen = anyCase.specimens?.[0];
+    if (firstSpecimen && !firstSpecimen.processing?.processedAt) {
+      const collectedMs = firstSpecimen.collectedAt ? new Date(firstSpecimen.collectedAt).getTime() : receivedMs - 3600_000;
+      const processedAt = new Date(collectedMs + COLD_ISCHEMIA_MINUTES[i] * 60_000).toISOString();
+      firstSpecimen.processing = { ...(firstSpecimen.processing ?? {}), processedAt };
+    }
+  });
+}
+
 // ─── Per-case patient history & similar cases ────────────────────────────────
 
 export interface SimilarCase {
@@ -2762,8 +2856,8 @@ export const mockPatientHistoryMap: Record<string, string> = {
 
   'MPA26-1001-BR':
     "MPA23-0441 (Mar 2023) — Screening mammogram bilateral. BI-RADS 3 left breast — short-interval follow-up advised. | " +
-    "MPA24-1882 (Jun 2024) — Diagnostic mammogram + ultrasound left breast. BI-RADS 4B, 1.4 cm mass 12 o\'clock. Core biopsy recommended. | " +
-    "MPA24-3301 (Aug 2024) — Ultrasound-guided core needle biopsy left breast 12 o\'clock. Dx: Atypical ductal hyperplasia (ADH). Excision recommended.",
+    "MPA24-1882 (Jun 2024) — Diagnostic mammogram + ultrasound left breast. BI-RADS 4B, 1.4 cm mass 12 o'clock. Core biopsy recommended. | " +
+    "MPA24-3301 (Aug 2024) — Ultrasound-guided core needle biopsy left breast 12 o'clock. Dx: Atypical ductal hyperplasia (ADH). Excision recommended.",
   'MPA26-1002-CR':
     "MPA19-0088 (Jan 2019) — Colonoscopy polypectomy, sigmoid colon. Dx: Tubular adenoma, low grade, completely excised. Surveillance in 5 years. | " +
     "MPA22-4401 (Apr 2022) — Colonoscopy biopsy, rectosigmoid junction. Dx: Tubulovillous adenoma with low grade dysplasia. Repeat colonoscopy in 3 years. | " +
@@ -3012,6 +3106,7 @@ Rules:
     const { text: raw } = await callAi({
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
+      configOverride: await resolveAiConfigOverrideForClient(caseData.order?.clientId),
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
@@ -3115,6 +3210,7 @@ Rules:
     const { text: raw } = await callAi({
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
+      configOverride: await resolveAiConfigOverrideForClient(input.clientId),
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{
@@ -3169,6 +3265,134 @@ Rules:
     console.error('[PathScribe] Synoptic assignment evaluation failed:', e);
     warnings.push(`Synoptic assignment evaluation failed (${(e as Error)?.message ?? 'unknown error'}) — no changes proposed`);
     return { changes: [], warnings };
+  }
+}
+
+// ─── generateGrossingFieldSuggestionsFromDictation ───────────────────────────
+// Real feature, per direct request: "Once I select Gross complete that
+// should also trigger the AI to fill in the Gross synoptic form for each
+// specimen... This could be challenging because the AI would need to
+// determine what specimen the PA is describing."
+//
+// A PA who dictates the Gross directly (the free-text Report Draft path,
+// not the structured Grossing template) writes ONE case-wide narrative
+// that may describe several specimens together in a single continuous
+// block of prose — there's no per-specimen boundary marker in the text
+// itself. Solves the same specimen-attribution problem
+// evaluateSynopticAssignment already solves for template-fit evaluation,
+// the same way: give the AI each specimen's own label/description as an
+// anchor block, in the same prompt as the shared dictated text, and let
+// it attribute the right portion of the narrative to the right specimen
+// using that anchor — rather than trying to mechanically split the text
+// first (fragile — real dictation rarely has a clean per-specimen
+// delimiter) or calling the AI once per specimen (loses the surrounding
+// context of the other specimens, which often disambiguates "the second
+// lesion" / "the other, larger fragment" type phrasing).
+//
+// Output shape matches generateAiSuggestionsForReport exactly (value/
+// confidence/source/verification), just keyed one level deeper by
+// specimenId first — so the caller can drop each specimen's suggestions
+// straight into that grossingReport's aiSuggestions, and the existing
+// AI-suggestion UI (confidence badges, Confirm/Override, the hard-block
+// verification gate) needs no changes at all to display and gate these
+// exactly like any other AI suggestion in this app. Suggestions are
+// never auto-committed as answers — same "propose, don't decide"
+// posture as every other AI path here; a PA still explicitly confirms
+// or overrides each one, and any field the AI couldn't confidently
+// answer is left for the PA to fill in directly, same as it already
+// would be for a blank field with no AI involvement at all.
+
+export interface GrossingDictationSuggestionSpecimen {
+  specimenId: string;
+  specimenLabel: string;
+  specimenDesc: string;
+  /** This specimen's Grossing template fields — id/label/options, same
+   *  shape generateAiSuggestionsForReport already takes for a single
+   *  template, since each specimen's Grossing template can genuinely
+   *  differ (Route A/B/C in this app's own seed data). */
+  fields: Array<{ id: string; label: string; options?: Array<{ id: string; label: string }> }>;
+}
+
+export async function generateGrossingFieldSuggestionsFromDictation(
+  dictatedGrossText: string,
+  specimens: GrossingDictationSuggestionSpecimen[],
+  clientId?: string,
+): Promise<Record<string, Record<string, { value: string | string[]; confidence: number; source: string; verification: 'unverified' }>>> {
+  if (!dictatedGrossText.trim() || specimens.length === 0) return {};
+
+  const specimenBlocks = specimens.map(spec => {
+    const fieldList = spec.fields.map(f => {
+      const opts = f.options?.map(o => `${o.id} (${o.label})`).join(', ');
+      return opts ? `  - ${f.id} | ${f.label} | options: [${opts}]` : `  - ${f.id} | ${f.label} | free text`;
+    }).join('\n');
+    return `SPECIMEN ${spec.specimenId} (${spec.specimenLabel}): ${spec.specimenDesc}
+Grossing fields to fill for this specimen:
+${fieldList}`;
+  }).join('\n\n');
+
+  const prompt = `You are a pathology AI assistant. A pathologist's assistant dictated the following Gross Description covering one or more specimens together in a single narrative. Read it carefully and, for each specimen listed below, extract answers for that specimen's own Grossing fields — using the specimen's label and description to identify which part of the narrative belongs to it.
+
+DICTATED GROSS DESCRIPTION (case-wide, may cover multiple specimens):
+${dictatedGrossText}
+
+${specimenBlocks}
+
+Return ONLY a JSON object (no markdown, no preamble) with this exact structure:
+{
+  "specimen_id": {
+    "field_id": {
+      "value": "option_id_or_free_text_string",
+      "confidence": 85,
+      "source": "Exact verbatim substring from the dictated text above"
+    }
+  }
+}
+
+Rules:
+- Only include a specimen if the dictated text actually describes it — omit specimens the text doesn't mention.
+- value must be an option id (not the label) when options are listed, or a plain string for free text.
+- For checkboxes/multi-select fields, value may be an array of option ids.
+- confidence is 0-100 based on how clearly the text supports the answer for THIS specimen specifically — a detail that could belong to more than one specimen should get a lower confidence, not be guessed at full confidence.
+- source MUST be an exact, verbatim substring copied directly from the dictated text above — not a paraphrase. The pathologist-facing UI highlights this exact string inside the original dictation; a paraphrase will not be found and will silently fail to highlight anything. Keep it short (≤12 words) but character-for-character exact.
+- Only include fields you can answer with reasonable confidence (≥30).
+- Do NOT invent findings not present in the text.
+- If the dictated text doesn't clearly distinguish which specimen a detail belongs to, do not guess — omit that field rather than risk misattributing it to the wrong specimen.`;
+
+  try {
+    const { text: raw } = await callAi({
+      system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
+      prompt,
+      // Real fix, found via a live JSON-parse failure at the default
+      // limit: this response can cover multiple specimens' full field
+      // sets in one JSON object (this app's own Grossing templates run
+      // to ~20 fields each), easily exceeding callAi()'s 1000-token
+      // default and getting truncated mid-object. 4096 comfortably
+      // covers several specimens' worth of fields; still bounded, not
+      // unlimited.
+      maxTokens: 4096,
+      configOverride: await resolveAiConfigOverrideForClient(clientId),
+    });
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    const validSpecimenIds = new Set(specimens.map(s => s.specimenId));
+    const result: Record<string, Record<string, any>> = {};
+    for (const [specimenId, fields] of Object.entries(parsed) as any) {
+      // Defensive filter — same "don't trust, verify" posture as
+      // evaluateSynopticAssignment: drop anything referencing a
+      // specimen we didn't actually offer, rather than trusting the
+      // model followed the instruction.
+      if (!validSpecimenIds.has(specimenId)) continue;
+      const stamped: Record<string, any> = {};
+      for (const [fieldId, sug] of Object.entries(fields as any)) {
+        stamped[fieldId] = { ...(sug as any), verification: 'unverified' };
+      }
+      result[specimenId] = stamped;
+    }
+    return result;
+  } catch (e) {
+    console.error('[PathScribe] Grossing dictation suggestion generation failed:', e);
+    return {};
   }
 }
 
@@ -3294,6 +3518,7 @@ Rules:
     const { text: raw } = await callAi({
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
+      configOverride: await resolveAiConfigOverrideForClient(input.caseContext?.clientId),
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{
@@ -3444,6 +3669,42 @@ export async function saveReportSuggestions(
 
 const CLAIM_TTL_MS        = 30_000;
 const DELEGATION_STORE_KEY = 'ps_delegations_v1';
+
+// Real fix: zero seed delegation data existed anywhere (loadDelegations
+// fell back to an empty array) - meant CONSULTATION_RESPONSE/
+// CONSULTATION_AWAITING (components/Contribution/qualityCalculations.ts)
+// would show genuinely empty results for a fresh demo, same as every
+// other TAT type before its own seed-data fix tonight. References real,
+// existing case IDs (the same ten enriched earlier for lifecycle
+// timestamps) and real seeded pathologist user IDs - not fabricated
+// ones. Genuine mix: some completed late (real CONSULTATION_RESPONSE
+// breaches), one completed on time (not a breach), some still pending
+// past target (real CONSULTATION_AWAITING breaches).
+const DELEGATION_SEED: DelegationRecord[] = [
+  // Informal reviews asked OF PATH-001 (Pete) - CONSULTATION_RESPONSE
+  { id: 'deleg-seed-1', caseId: 'S26-4401-BX-001', fromUserId: '1', toUserId: 'PATH-001',
+    delegationType: 'CASUAL_REVIEW', note: 'Can you eyeball the margin call on this one?',
+    timestamp: '2026-07-20T09:00:00.000Z', status: 'completed', completedAt: '2026-07-22T15:00:00.000Z' }, // 54h, real breach
+  { id: 'deleg-seed-2', caseId: 'S26-4404', fromUserId: '6', toUserId: 'PATH-001',
+    delegationType: 'CASUAL_REVIEW', note: 'Second set of eyes on the mitotic count?',
+    timestamp: '2026-07-25T10:00:00.000Z', status: 'completed', completedAt: '2026-07-25T20:00:00.000Z' }, // 10h, on time
+  { id: 'deleg-seed-3', caseId: 'S26-4407', fromUserId: '7', toUserId: 'PATH-001',
+    delegationType: 'CASUAL_REVIEW', timestamp: '2026-07-18T08:00:00.000Z',
+    status: 'completed', completedAt: '2026-07-21T08:00:00.000Z' }, // 72h, real breach
+  // Informal reviews asked BY PATH-001 (Pete), still awaiting - CONSULTATION_AWAITING
+  { id: 'deleg-seed-4', caseId: 'S26-4405', fromUserId: 'PATH-001', toUserId: '9',
+    delegationType: 'CASUAL_REVIEW', note: 'Curious if you agree on the grade here.',
+    timestamp: '2026-07-15T09:00:00.000Z', status: 'pending' }, // real, still-ongoing wait
+  { id: 'deleg-seed-5', caseId: 'S26-4408', fromUserId: 'PATH-001', toUserId: '1',
+    delegationType: 'CASUAL_REVIEW', timestamp: '2026-07-28T09:00:00.000Z', status: 'pending' },
+];
+
+function loadDelegations(): DelegationRecord[] {
+  try {
+    const raw = localStorage.getItem(DELEGATION_STORE_KEY);
+    return raw ? JSON.parse(raw) : DELEGATION_SEED;
+  } catch { return DELEGATION_SEED; }
+}
 const CLAIM_STORE_KEY      = 'ps_claims_v1';
 
 export interface ClaimResult {
@@ -3463,11 +3724,18 @@ export interface DelegationRecord {
   note?: string;
   timestamp: string;
   status: 'pending' | 'accepted' | 'passed' | 'completed';
+  /** Real fix: status alone was never actually transitioned anywhere in
+   *  this codebase - every delegation ever created stayed 'pending'
+   *  forever, which silently broke WorklistPage.tsx's existing
+   *  "delegated to me" count (it could only ever grow, never shrink,
+   *  even after someone genuinely responded). Also needed, separately,
+   *  for real CONSULTATION_RESPONSE/CONSULTATION_AWAITING TAT
+   *  calculation (components/Contribution/qualityCalculations.ts) -
+   *  timestamp above is the request moment; this is the real completion
+   *  moment, set once at completeDelegation. */
+  completedAt?: string;
 }
 
-function loadDelegations(): DelegationRecord[] {
-  try { return JSON.parse(localStorage.getItem(DELEGATION_STORE_KEY) ?? '[]'); } catch { return []; }
-}
 function saveDelegations(records: DelegationRecord[]): void {
   try { localStorage.setItem(DELEGATION_STORE_KEY, JSON.stringify(records)); } catch {}
 }
@@ -3479,6 +3747,23 @@ function saveClaims(claims: Record<string, { userId: string; expiresAt: number }
 }
 
 /** Attempt to claim a pool case before showing accept/pass prompt */
+// canUserClaimPoolCase — real membership check for pool claiming.
+// Mirrors caseAccessControl.ts's dimension 3 (pool/subspecialty) reasoning:
+// gated behind isWorkgroupEnabled so this is backward-compatible by
+// default. A poolId that isn't a real Subspecialty record (e.g. the
+// 'general' fallback pool string) is treated as unrestricted, same as
+// a subspecialty with the restriction gate off.
+export async function canUserClaimPoolCase(poolId: string | undefined, userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  if (!poolId) return { allowed: true };
+  const subResult = await mockSubspecialtyService.getById(poolId);
+  if (!subResult.ok) return { allowed: true };
+  const sub = subResult.data;
+  if (!sub.isWorkgroupEnabled) return { allowed: true };
+  const isMember = (sub.userIds ?? []).includes(userId);
+  if (!isMember) return { allowed: false, reason: `Not a member of the ${sub.name} pool` };
+  return { allowed: true };
+}
+
 export async function claimPoolCase(caseId: string, userId: string): Promise<ClaimResult> {
   await delay(200);
   const claims = loadClaims();
@@ -3486,6 +3771,13 @@ export async function claimPoolCase(caseId: string, userId: string): Promise<Cla
   if (existing && existing.expiresAt > Date.now() && existing.userId !== userId) {
     return { success: false, claimedBy: existing.userId, error: 'Case is being claimed by another pathologist' };
   }
+
+  const caseData = await getCaseAnyMode(caseId);
+  const membership = await canUserClaimPoolCase((caseData as any)?.poolId, userId);
+  if (!membership.allowed) {
+    return { success: false, error: membership.reason };
+  }
+
   claims[caseId] = { userId, expiresAt: Date.now() + CLAIM_TTL_MS };
   saveClaims(claims);
   return { success: true };
@@ -3535,11 +3827,17 @@ async function updateCaseAnyMode(caseId: string, updates: Partial<Case>): Promis
  *  CoPilot's diagnostic lifecycle status is LIS-owned. */
 export async function acceptPoolCase(caseId: string, userId: string, userName?: string): Promise<void> {
   await delay(300);
+
+  const caseData = await getCaseAnyMode(caseId);
+  const membership = await canUserClaimPoolCase((caseData as any)?.poolId, userId);
+  if (!membership.allowed) {
+    throw new Error(membership.reason ?? 'Not a member of this pool');
+  }
+
   const claims = loadClaims();
   delete claims[caseId];
   saveClaims(claims);
 
-  const caseData = await getCaseAnyMode(caseId);
   if (caseData) {
     const syncUpdates = syncPrimaryAssignee(caseData, userId, userId, userName);
     const updates: Partial<Case> = { ...syncUpdates };
@@ -3668,6 +3966,25 @@ export async function getDelegations(caseId?: string): Promise<DelegationRecord[
   await delay(100);
   const all = loadDelegations();
   return caseId ? all.filter(d => d.caseId === caseId) : all;
+}
+
+/** Real fix: this function didn't exist anywhere before - status was
+ *  defined as a real lifecycle ('pending' | 'accepted' | 'passed' |
+ *  'completed') but nothing in this codebase ever actually transitioned
+ *  it, meaning WorklistPage.tsx's existing "delegated to me" count could
+ *  only ever grow. Marks a delegation genuinely completed, once, with a
+ *  real timestamp - idempotent (a second call on an already-completed
+ *  record is a no-op success, not an error, since a pathologist
+ *  double-clicking shouldn't see a failure). */
+export async function completeDelegation(delegationId: string): Promise<{ ok: boolean; error?: string }> {
+  await delay(150);
+  const delegations = loadDelegations();
+  const idx = delegations.findIndex(d => d.id === delegationId);
+  if (idx === -1) return { ok: false, error: `Delegation ${delegationId} not found` };
+  if (delegations[idx].status === 'completed') return { ok: true }; // already done, idempotent
+  delegations[idx] = { ...delegations[idx], status: 'completed', completedAt: new Date().toISOString() };
+  saveDelegations(delegations);
+  return { ok: true };
 }
 
 // ─── Synoptic-level Assignment ────────────────────────────────────────────────
@@ -4460,8 +4777,9 @@ export const mockCaseService: ICaseService = {
       console.warn('[mockCaseService] CASES empty — re-seeding from MOCK_CASES');
       CASES.push(...MOCK_CASES.map(c => ({ ...c })));
     }
-    const results = applyCaseFilters(CASES, params);
-    return { ok: true, data: results as any[] };
+    const filtered = applyCaseFilters(CASES, params);
+    const { data, meta } = applyCasePagination(filtered, params);
+    return meta ? { ok: true, data: data as any[], meta } : { ok: true, data: data as any[] };
   },
 
   async listCasesForUser(userId: string): Promise<Case[]> {

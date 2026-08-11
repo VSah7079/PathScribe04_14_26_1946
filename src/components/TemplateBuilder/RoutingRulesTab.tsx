@@ -17,12 +17,12 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { mockRoutingRuleService }       from '@/services/routingRules/mockRoutingRuleService';
 import { traceReportTemplateResolution } from '@/services/reportTemplates/TemplateRoutingService';
 import { mockReportTemplateService }    from '@/services/reportTemplates/mockReportTemplateService';
-import { mockClientService }            from '@/services/clients/mockClientService';
+import { mockFacilityService }            from '@/services/facilities/mockFacilityService';
 import { mockPhysicianService }         from '@/services/physicians/mockPhysicianService';
 import { listTemplates as listSynopticProtocols } from '@/services/templates/templateService';
 import type { RoutingRule, RoutingRuleType } from '@/services/routingRules/IRoutingRuleService';
 import type { ReportTemplate }          from '@/types/reportPart';
-import type { Client }                  from '@/services/clients/IClientService';
+import type { Facility as Client } from '@/services/facilities/IFacilityService';
 import type { Physician }               from '@/services/physicians/IPhysicianService';
 
 // ── Add/Edit Rule Modal ───────────────────────────────────────────────────────
@@ -68,6 +68,7 @@ const RuleModal: React.FC<{
             <div className="ps-conf-label">{entityLabel}</div>
             <select
               className="ps-conf-select"
+              aria-label={entityLabel}
               value={entityId}
               onChange={e => setEntityId(e.target.value)}
             >
@@ -82,6 +83,7 @@ const RuleModal: React.FC<{
             <div className="ps-conf-label">Report Template</div>
             <select
               className="ps-conf-select"
+              aria-label="Report Template"
               value={templateId}
               onChange={e => setTemplateId(e.target.value)}
             >
@@ -115,7 +117,7 @@ const RuleModal: React.FC<{
         <div className="ps-modal-dark-footer">
           <button className="ps-btn-ghost-dark" onClick={onClose}>Cancel</button>
           <button
-            className="ps-btn-primary"
+            className="ps-conf-btn-primary"
             disabled={!canSave}
             onClick={() => onSave({
               type, entityId, templateId, note,
@@ -240,7 +242,7 @@ const TestPanel: React.FC<{
       <div className="ps-rr-test-fields">
         <div>
           <div className="ps-conf-label">Synoptic Template ID</div>
-          <select className="ps-conf-select" value={synopticId} onChange={e => setSynopticId(e.target.value)}>
+          <select className="ps-conf-select" aria-label="Synoptic Template ID" value={synopticId} onChange={e => setSynopticId(e.target.value)}>
             <option value="">— None —</option>
             {protocols.map(p => (
               <option key={p.id} value={p.id}>{p.name}{p.status !== 'published' ? ` (${p.status})` : ''}</option>
@@ -249,7 +251,7 @@ const TestPanel: React.FC<{
         </div>
         <div>
           <div className="ps-conf-label">Subspecialty</div>
-          <select className="ps-conf-select" value={subspecialty} onChange={e => setSubspecialty(e.target.value)}>
+          <select className="ps-conf-select" aria-label="Subspecialty" value={subspecialty} onChange={e => setSubspecialty(e.target.value)}>
             <option value="">— Any —</option>
             {['breast','gi','thoracic','uro','derm','neuro','heme','gyn'].map(s => (
               <option key={s} value={s}>{s}</option>
@@ -258,21 +260,21 @@ const TestPanel: React.FC<{
         </div>
         <div>
           <div className="ps-conf-label">Performing Client</div>
-          <select className="ps-conf-select" value={clientId} onChange={e => setClientId(e.target.value)}>
+          <select className="ps-conf-select" aria-label="Performing Client" value={clientId} onChange={e => setClientId(e.target.value)}>
             <option value="">— None —</option>
             {clients.map(c => <option key={c.id as string} value={c.id as string}>{c.name}</option>)}
           </select>
         </div>
         <div>
           <div className="ps-conf-label">Ordering Physician</div>
-          <select className="ps-conf-select" value={physicianId} onChange={e => setPhysicianId(e.target.value)}>
+          <select className="ps-conf-select" aria-label="Ordering Physician" value={physicianId} onChange={e => setPhysicianId(e.target.value)}>
             <option value="">— None —</option>
             {physicians.map(p => <option key={p.id as string} value={p.id as string}>{p.lastName}, {p.firstName}</option>)}
           </select>
         </div>
       </div>
 
-      <button className="ps-btn-primary ps-rr-test-btn" onClick={test}>
+      <button className="ps-conf-btn-primary ps-rr-test-btn" onClick={test}>
         Test Routing →
       </button>
 
@@ -313,7 +315,7 @@ const RoutingRulesTab: React.FC = () => {
     const [rulesRes, templatesRes, clientsRes, physiciansRes, protocolsRes] = await Promise.all([
       mockRoutingRuleService.getAll(),
       mockReportTemplateService.getAll(),
-      mockClientService.getAll(),
+      mockFacilityService.getAll(),
       mockPhysicianService.getAll(),
       listSynopticProtocols().catch(() => []),
     ]);

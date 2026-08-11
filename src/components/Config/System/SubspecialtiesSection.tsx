@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import '../../../pathscribe.css';
-import { useSubspecialties, Subspecialty } from "../../../contexts/useSubspecialties";
+import { subspecialtyService, Subspecialty } from "../../../services";
 import { useSpecimenDictionary } from "./useSpecimenDictionary";
 import { userService } from "../../../services";
 import { checkSubspecialtyReferences } from "../../../services/referenceCheck/referenceCheckService";
 import { StaffUser } from "../Staff/StaffTab";
-import { mockClientService, Client } from "../../../services/clients/mockClientService";
+import { mockFacilityService, type Facility as Client } from "../../../services/facilities/mockFacilityService";
 
 // ── Badge colours ─────────────────────────────────────────────────────────────
 
@@ -121,15 +121,20 @@ type ReactivateConfirm = {
 // ── Main component ────────────────────────────────────────────────────────────
 
 const SubspecialtiesSection: React.FC = () => {
-  const { subspecialties, addSubspecialty, updateSubspecialty } = useSubspecialties();
+  const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const { dictionary: specimens, updateEntries } = useSpecimenDictionary();
   const [users,   setUsers]   = useState<StaffUser[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
 
-  React.useEffect(() => {
-    userService.getAll().then(res => { if (res.ok) setUsers(res.data); });
-    mockClientService.getAll().then(res => { if (res.ok) setClients(res.data); });
+  const loadSubspecialties = useCallback(() => {
+    subspecialtyService.getAll().then(res => { if (res.ok) setSubspecialties(res.data); });
   }, []);
+
+  useEffect(() => {
+    loadSubspecialties();
+    userService.getAll().then(res => { if (res.ok) setUsers(res.data); });
+    mockFacilityService.getAll().then(res => { if (res.ok) setClients(res.data); });
+  }, [loadSubspecialties]);
 
   const [search,              setSearch]              = useState("");
   const [statusFilter,        setStatusFilter]        = useState<"All"|"Active"|"Inactive">("All");
@@ -164,9 +169,9 @@ const SubspecialtiesSection: React.FC = () => {
     setDraft({
       name: sub.name, active: sub.active !== false,
       userIds: [...sub.userIds],
-      description: (sub as any).description || "",
-      isWorkgroup: (sub as any).isWorkgroup  || false,
-      clientIds:   (sub as any).clientIds    || [],
+      description: sub.description || "",
+      isWorkgroup: sub.isWorkgroup  || false,
+      clientIds:   sub.clientIds    || [],
     });
     setSpecimenAssignments(
       specimens.filter(sp => sp.subspecialty === sub.name).map(sp => sp.id)
@@ -206,19 +211,24 @@ const SubspecialtiesSection: React.FC = () => {
     commitSave(draft, specimenAssignments, editTarget, false);
   };
 
-  const commitSave = (
+  const commitSave = async (
     d: Draft, spAssignments: string[],
     target: Subspecialty | null, unlinkAll: boolean,
   ) => {
-    const subId = modalMode === "add"
-      ? d.name.toLowerCase().replace(/\s+/g, "-")
-      : target!.id;
-
     if (modalMode === "add") {
-      addSubspecialty({ id: subId, name: d.name, active: d.active, userIds: d.userIds, specimenIds: [], clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' } as any);
+      await subspecialtyService.add({
+        name: d.name, active: d.active, userIds: d.userIds, specimenIds: [],
+        clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, isWorkgroupEnabled: false,
+        description: d.description, status: d.active ? 'Active' : 'Inactive',
+      });
     } else {
-      updateSubspecialty({ ...target!, name: d.name, active: d.active, userIds: unlinkAll ? [] : d.userIds, clientIds: d.clientIds, isWorkgroup: d.isWorkgroup, description: d.description, status: d.active ? 'Active' : 'Inactive' } as any);
+      await subspecialtyService.update(target!.id, {
+        name: d.name, active: d.active, userIds: unlinkAll ? [] : d.userIds,
+        clientIds: d.clientIds, isWorkgroup: d.isWorkgroup,
+        description: d.description, status: d.active ? 'Active' : 'Inactive',
+      });
     }
+    loadSubspecialties();
 
     const specimenUpdates = specimens
       .map(sp => {
@@ -264,7 +274,7 @@ const SubspecialtiesSection: React.FC = () => {
           type="text" placeholder="Search subspecialties..." value={search}
           onChange={e => setSearch(e.target.value)} className="ps-sub-search"
         />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-sub-filter">
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label="Filter by status" className="ps-sub-filter">
           <option value="All">All</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
@@ -445,8 +455,8 @@ const SubspecialtiesSection: React.FC = () => {
               <div className="fm-right fm-right--config">
 
                 {/* Tab bar */}
-                <div className="ps-sub-tab-bar fm-tab-bar--config">
-                  {([ ["specimens", "Specimens"], ["physicians", "Physicians"], ["clients", "Clients"] ] as const).map(([tab, label]) => {
+                <div className="ps-sub-tab-bar-underline fm-tab-bar--config">
+                  {([ ["specimens", "Specimens"], ["physicians", "Physicians"], ["clients", "Facilities"] ] as const).map(([tab, label]) => {
                     const count = tab === "specimens" ? specimenAssignments.length
                       : tab === "physicians" ? draft.userIds.length
                       : draft.clientIds.length;
@@ -454,10 +464,10 @@ const SubspecialtiesSection: React.FC = () => {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`ps-sub-tab-btn${activeTab === tab ? ' active' : ''}`}
+                        className={`ps-sub-tab-btn-underline${activeTab === tab ? ' active' : ''}`}
                       >
                         {label}
-                        <span className={`ps-sub-tab-count${count > 0 ? ' ps-sub-tab-count--has' : ' ps-sub-tab-count--empty'}`}>
+                        <span className={`ps-sub-tab-count-underline${count > 0 ? ' ps-sub-tab-count-underline--has' : ' ps-sub-tab-count-underline--empty'}`}>
                           {count}
                         </span>
                       </button>
@@ -471,7 +481,7 @@ const SubspecialtiesSection: React.FC = () => {
                     <SearchInput
                       value={activeTab === "specimens" ? specimenSearch : activeTab === "physicians" ? physicianSearch : clientSearch}
                       onChange={activeTab === "specimens" ? setSpecimenSearch : activeTab === "physicians" ? setPhysicianSearch : setClientSearch}
-                      placeholder={activeTab === "specimens" ? "Search specimens..." : activeTab === "physicians" ? "Search physicians..." : "Search clients..."}
+                      placeholder={activeTab === "specimens" ? "Search specimens..." : activeTab === "physicians" ? "Search physicians..." : "Search facilities..."}
                     />
                   </div>
                   <div className="fm-tab-list--config">
@@ -515,7 +525,7 @@ const SubspecialtiesSection: React.FC = () => {
 
                     {activeTab === "clients" && (
                       filteredClients.length === 0
-                        ? <div className="ps-sub-tab-empty">{clientSearch ? "No clients match." : "No clients available."}</div>
+                        ? <div className="ps-sub-tab-empty">{clientSearch ? "No facilities match." : "No facilities available."}</div>
                         : filteredClients.map(c => (
                             <CheckRow
                               key={c.id} label={c.name} sub={c.assigningAuthority}

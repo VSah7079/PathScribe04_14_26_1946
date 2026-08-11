@@ -9,17 +9,19 @@ function load(): ValidationStudy[] {
   if (stored && stored.length > 0) return stored;
   // Seed demo study if nothing stored yet
   const now   = new Date();
+  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
   const start = new Date(now); start.setDate(start.getDate() - 21);
   const SEED: ValidationStudy[] = [
     {
       id:          'vs-demo-001',
-      name:        'Metro General — AI Narrative Validation Q2 2026',
+      name:        'Fenwick General Hospital — AI Narrative Validation Q2 2026',
       description: 'Parallel run validation of AI-assisted surgical pathology reporting across breast and GI subspecialties. Advisory mode throughout — all AI output reviewed and signed by pathologist.',
       status:      'active',
-      clientIds:        ['c1'],
+      clientIds:        ['c-fenwick-general'],
       pathologistIds:   ['PATH-001', 'PATH-SJ-001'],
       subspecialtyIds:  ['breast', 'gi'],
       templateIds:      ['tmpl-breast', 'tmpl-gi'],
+      modelId:          'psv33', // validating the Beta model against the c1's current production default
       startDate:        start.toISOString(),
       targetCaseCount:  50,
       targetAcceptanceRate: 0.70,
@@ -45,13 +47,15 @@ function load(): ValidationStudy[] {
     },
     {
       id:          'vs-demo-002',
-      name:        'MPA Surgical Pathology — AI Narrative Pilot',
+      name:        'Fenwick NHS Foundation Trust — AI Narrative Pilot',
       description: 'Amber Fehrs-Battey leading a focused pilot of AI-assisted narrative generation across breast and urological subspecialties. Demonstrates full study lifecycle for prospective customers.',
       status:      'active',
-      clientIds:        ['c2'],
+      clientIds:        ['c-trust-fenwick'],
       pathologistIds:   ['PATH-US-001'],
       subspecialtyIds:  ['breast', 'uro'],
       templateIds:      ['tmpl-breast', 'tmpl-uro'],
+      modelId:          'psv33',
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       startDate:        (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
       targetCaseCount:  30,
       targetAcceptanceRate: 0.65,
@@ -59,24 +63,30 @@ function load(): ValidationStudy[] {
       principalInvestigatorId: 'PATH-US-001',
       committeeApproval: {
         approvedBy:      'u3',
+        // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
         approvedAt:      (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
         irbReference:    'MPA-IRB-2026-0017',
       },
       validationMode:  'advisory',
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       createdAt:       (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
       createdBy:       'admin',
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       updatedAt:       (() => { const d = new Date(now); d.setDate(d.getDate() - 14); return d.toISOString(); })(),
     },
     {
       id:          'vs-demo-003',
-      name:        'Metro General — GI Pathology AI Validation (Closed)',
+      name:        'Fenwick General Hospital — GI Pathology AI Validation (Closed)',
       description: 'Completed validation study for GI subspecialty. Demonstrates the closed study and report generation workflow.',
       status:      'closed',
-      clientIds:        ['c1'],
+      clientIds:        ['c-fenwick-general'],
       pathologistIds:   ['PATH-001', 'PATH-SJ-001'],
       subspecialtyIds:  ['gi'],
       templateIds:      ['tmpl-gi'],
+      modelId:          'psv33',
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       startDate:        (() => { const d = new Date(now); d.setDate(d.getDate() - 60); return d.toISOString(); })(),
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       endDate:           (() => { const d = new Date(now); d.setDate(d.getDate() - 5);  return d.toISOString(); })(),
       targetCaseCount:  25,
       targetAcceptanceRate: 0.70,
@@ -84,12 +94,15 @@ function load(): ValidationStudy[] {
       principalInvestigatorId: 'PATH-001',
       committeeApproval: {
         approvedBy:      'u3',
+        // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
         approvedAt:      (() => { const d = new Date(now); d.setDate(d.getDate() - 60); return d.toISOString(); })(),
         irbReference:    'MGH-IRB-2026-0031',
       },
       validationMode:  'advisory',
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       createdAt:       (() => { const d = new Date(now); d.setDate(d.getDate() - 65); return d.toISOString(); })(),
       createdBy:       'admin',
+      // eslint-disable-next-line no-restricted-properties -- Real, honest justification: generates a FAKE, illustrative timestamp for seeded validation-study demo data ("N days ago from right now"), not bucketing a real, stored clinical event by facility timezone. Result is a real, absolute UTC instant (toISOString()) regardless of runtime timezone.
       updatedAt:       (() => { const d = new Date(now); d.setDate(d.getDate() - 5);  return d.toISOString(); })(),
     },
   ];

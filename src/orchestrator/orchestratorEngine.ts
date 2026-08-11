@@ -76,7 +76,7 @@ export interface OrchestratorResult {
 
 export interface OrchestratorCallbacks {
   /** Called when a section begins generating */
-  onSectionStart?: (sectionId: string, title: string) => void;
+  onSectionStart?: (sectionId: string, title: string, sourcePartId?: string) => void;
   /** Called per streaming token — use for headless/React-state streaming */
   onToken?: (sectionId: string, token: string) => void;
   /** Called when a section finishes */
@@ -233,7 +233,7 @@ export class OrchestratorEngine {
         continue;
       }
 
-      this.callbacks.onSectionStart?.(section.id, section.title);
+      this.callbacks.onSectionStart?.(section.id, section.title, section.sourcePartId);
 
       const started = writer ? writer.beginSection(section.id, section.title) : true;
 
@@ -265,6 +265,7 @@ export class OrchestratorEngine {
             prompt,
             maxTokens:   1024,
             abortSignal: this.abortController.signal,
+            sectionId:   section.id,
           },
           token => {
             sectionText += token;
@@ -374,7 +375,7 @@ export class OrchestratorEngine {
       ? new StreamingWriter(this.editor, { clearExisting: true, respectUserEdits: false })
       : null;
 
-    this.callbacks.onSectionStart?.(section.id, section.title);
+    this.callbacks.onSectionStart?.(section.id, section.title, section.sourcePartId);
     writer?.beginSection(section.id, section.title);
 
     let sectionText = '';
@@ -393,6 +394,7 @@ export class OrchestratorEngine {
           prompt,
           maxTokens:   1024,
           abortSignal: this.abortController.signal,
+          sectionId:   section.id,
         },
         token => {
           sectionText += token;

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Trash2, Plus, Search, Upload, Loader2 } from 'lucide-react';
 import { VoiceMacro } from '../../types/voiceMacros';
 import { MockVoiceMacroService } from '../../services/voicemacro/mockVoiceMacroService';
-import { usepathscribeSpeech }   from '../../hooks/usepathscribeSpeech';
+import { usePathScribeSpeech }   from '../../hooks/usepathscribeSpeech';
 
 // Initialize the service instance
 const macroService = new MockVoiceMacroService();
@@ -16,10 +16,9 @@ const SpeechConfigTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // 1. Hook into the Voice Engine here
-  const { isListening, transcript, startListening } = usepathscribeSpeech();
+  const { isListening, transcript, startListening } = usePathScribeSpeech();
   
   // Hover states for UI feedback
-  const [hoveredEditId, setHoveredEditId] = useState<string | null>(null);
   const [hoveredTrashId, setHoveredTrashId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -156,13 +155,7 @@ const SpeechConfigTab: React.FC = () => {
           {/* Test Voice Button */}
           <button 
             onClick={startListening}
-            style={{ 
-              background: isListening ? 'rgba(239, 68, 68, 0.1)' : 'rgba(8, 145, 178, 0.1)', 
-              color: isListening ? '#ef4444' : '#0891B2', 
-              border: `1px solid ${isListening ? '#ef4444' : '#0891B2'}`, 
-              padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', 
-              display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600
-            }}
+            className={`ps-voice-test-btn${isListening ? ' ps-voice-test-btn--listening' : ''}`}
           >
             <div style={{ 
               width: '8px', height: '8px', borderRadius: '50%', 
@@ -175,17 +168,15 @@ const SpeechConfigTab: React.FC = () => {
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" style={{ display: 'none' }} />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            style={{ 
-              background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', 
-              padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', display: 'flex', 
-              alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500 
-            }}
+            className="ps-conf-btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <Upload size={16} /> Bulk Import
           </button>
           <button 
             onClick={handleAddMacro}
-            style={{ background: '#0891B2', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500 }}
+            className="ps-conf-btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <Plus size={16} /> Add Macro
           </button>
@@ -283,7 +274,7 @@ const SpeechConfigTab: React.FC = () => {
                     {isEditing ? (
                       <button 
                         onClick={() => handleSave(macro.id)}
-                        style={{ background: '#0891B2', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                        className="ps-conf-btn-primary"
                       >
                         Save
                       </button>
@@ -291,13 +282,7 @@ const SpeechConfigTab: React.FC = () => {
                       <>
                         <button 
                           onClick={() => setEditingId(macro.id)}
-                          onMouseEnter={() => setHoveredEditId(macro.id)}
-                          onMouseLeave={() => setHoveredEditId(null)}
-                          style={{ 
-                            background: hoveredEditId === macro.id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                            color: '#fff', border: '1px solid rgba(255,255,255,0.3)', 
-                            padding: '4px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
-                          }}
+                          className="ps-conf-btn-row"
                         >
                           Edit
                         </button>
@@ -305,6 +290,7 @@ const SpeechConfigTab: React.FC = () => {
                           onClick={() => handleDelete(macro.id)}
                           onMouseEnter={() => setHoveredTrashId(macro.id)}
                           onMouseLeave={() => setHoveredTrashId(null)}
+                          aria-label={`Delete macro: ${macro.spoken}`}
                           style={{ 
                             background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
                             color: hoveredTrashId === macro.id ? '#ef4444' : '#94a3b8', opacity: hoveredTrashId === macro.id ? 1 : 0.65

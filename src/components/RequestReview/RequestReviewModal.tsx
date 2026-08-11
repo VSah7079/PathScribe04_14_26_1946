@@ -24,20 +24,22 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { mockMessageService } from '@/services/messages/mockMessageService';
-import { userService } from '@/services';
+import { userService, subspecialtyService } from '@/services';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { ServiceResult } from '@/services/types';
+import { getStaffSubspecialtyDisplay } from '@/utils/staffSubspecialties';
 
 interface ReviewerOption { id: string; name: string; role: string; }
 
 // Real display name/role derived from StaffUser — "Dr." prefix kept for
-// consistency with existing UI copy (avatarInitials already strips it),
-// department used as the subtitle since StaffUser has no separate
-// "Consultant X" title field.
-const toReviewerOption = (u: StaffUser): ReviewerOption => ({
+// consistency with existing UI copy (avatarInitials already strips it).
+// Real fix, per direct confirmation: department (a free-text field) was
+// used as the subtitle here — replaced with the user's real, assigned
+// Subspecialty name(s), the actual data this stood in for.
+const toReviewerOption = (u: StaffUser, allSubspecialties: import('@/services/subspecialties/ISubspecialtyService').Subspecialty[]): ReviewerOption => ({
   id:   u.id,
   name: `Dr. ${u.firstName} ${u.lastName}`.trim(),
-  role: u.department || 'Pathologist',
+  role: getStaffSubspecialtyDisplay(u.id, allSubspecialties) || 'Pathologist',
 });
 
 const NOTE_TYPES = [
@@ -79,11 +81,12 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
       setSelectedId(''); setNoteType('informal_review');
       setMessage(''); setStatus('compose'); setQuery('');
       setLoadingReviewers(true);
-      userService.getAll().then((res: ServiceResult<StaffUser[]>) => {
+      Promise.all([userService.getAll(), subspecialtyService.getAll()]).then(([res, subsRes]: [ServiceResult<StaffUser[]>, ServiceResult<import('@/services/subspecialties/ISubspecialtyService').Subspecialty[]>]) => {
         if (res.ok) {
+          const allSubspecialties = subsRes.ok ? subsRes.data : [];
           const active = res.data
             .filter(u => u.status === 'Active' && u.roles.includes('Pathologist') && u.id !== fromUserId)
-            .map(toReviewerOption);
+            .map(u => toReviewerOption(u, allSubspecialties));
           setReviewers(active);
         } else {
           setReviewers([]);

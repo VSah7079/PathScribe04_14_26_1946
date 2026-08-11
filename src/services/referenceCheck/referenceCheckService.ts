@@ -50,8 +50,8 @@ export async function checkClientReferences(clientId: string): Promise<Reference
     physicianService.getAll(),
     grossingRoutingOverrideService.getAll(),
   ]);
-  const physicianCount = physiciansRes.ok ? physiciansRes.data.filter((p: any) => p.clientIds?.includes(clientId)).length : 0;
-  const overrideCount = overridesRes.ok ? overridesRes.data.filter((o: any) => o.clientId === clientId && o.active !== false).length : 0;
+  const physicianCount = physiciansRes.ok ? physiciansRes.data.filter((p) => p.clientIds?.includes(clientId)).length : 0;
+  const overrideCount = overridesRes.ok ? overridesRes.data.filter((o) => o.clientId === clientId && o.active !== false).length : 0;
   const tatCount = loadTatEntries().filter(e => e.active && e.clientId === clientId).length;
   return toResult([
     { label: 'Physicians', count: physicianCount },
@@ -71,6 +71,6 @@ export async function checkSubspecialtyReferences(subspecialtyId: string): Promi
 
 export async function checkSpecimenCategoryReferences(specimenCategoryId: string): Promise<ReferenceCheckResult> {
   const res = await specimenDictionaryService.getAll();
-  const count = res.ok ? res.data.filter((e: any) => e.specimenCategoryId === specimenCategoryId).length : 0;
+  const count = res.ok ? res.data.filter((e) => e.specimenCategoryId === specimenCategoryId).length : 0;
   return toResult([{ label: 'Specimen Dictionary entries', count }]);
 }

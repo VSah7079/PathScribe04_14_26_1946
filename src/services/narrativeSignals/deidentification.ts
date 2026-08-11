@@ -74,8 +74,8 @@ const REPLACEMENTS: Array<{ pattern: RegExp; placeholder: string }> = [
 
   // Dates
   { pattern: /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/gi, placeholder: '[DATE]' },
-  { pattern: /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/g,                        placeholder: '[DATE]' },
-  { pattern: /\b\d{4}[\/\-]\d{2}[\/\-]\d{2}\b/g,                              placeholder: '[DATE]' },
+  { pattern: /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/g,                        placeholder: '[DATE]' },
+  { pattern: /\b\d{4}[/-]\d{2}[/-]\d{2}\b/g,                              placeholder: '[DATE]' },
 
   // Accession numbers
   { pattern: /\b[SO]\d{2}-\d{4}(?:-[A-Z]{2}-\d{3})?\b/gi,                     placeholder: '[ACCESSION]' },
@@ -96,8 +96,12 @@ const REPLACEMENTS: Array<{ pattern: RegExp; placeholder: string }> = [
 ];
 
 // ── Strip HTML tags ───────────────────────────────────────────────────────────
+// Exported: also reused by useGrossingCompletion.ts to convert dictated
+// Report Draft HTML into plain text before sending it to the AI prompt in
+// generateGrossingFieldSuggestionsFromDictation — same conversion need,
+// no reason to duplicate it.
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, ' ')
     .replace(/<\/p>/gi, ' ')
@@ -194,7 +198,7 @@ export function auditDeidentification(text: string): string[] {
     warnings.push('Possible proper name detected');
   if (/\b\d{9,}\b/.test(clean))
     warnings.push('Possible long numeric identifier detected');
-  if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}\b/.test(clean))
+  if (/\b\d{1,2}[/-]\d{1,2}[/-]\d{4}\b/.test(clean))
     warnings.push('Possible date of birth detected');
 
   return warnings;

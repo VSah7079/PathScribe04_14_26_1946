@@ -1,6 +1,6 @@
 // src/components/QualityAssurance/QaScopeSwitcher.tsx
 import React, { useEffect, useState } from 'react';
-import { mockClientService, Client } from '@/services/clients/mockClientService';
+import { mockFacilityService, type Facility as Client } from '@/services/facilities/mockFacilityService';
 import { listOrganisations } from '@/services/organisation/organisationService';
 import type { Organisation } from '@/services/organisation/organisationService';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
@@ -44,7 +44,7 @@ export const QaScopeSwitcher: React.FC<Props> = ({ scope, onChange, visibleClien
   const [clients, setClients] = useState<Client[]>([]);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   useEffect(() => {
-    mockClientService.getAll().then(res => { if (res.ok) setClients(res.data.filter(c => c.status === 'Active')); });
+    mockFacilityService.getAll().then(res => { if (res.ok) setClients(res.data.filter(c => c.status === 'Active')); });
     listOrganisations().then(orgs => setOrganisations(orgs.filter(o => o.active)));
   }, []);
 
@@ -66,8 +66,9 @@ export const QaScopeSwitcher: React.FC<Props> = ({ scope, onChange, visibleClien
 
   return (
     <div className="ps-qa-scope-switcher">
-      <label className="ps-conf-label">Scope</label>
+      <label className="ps-conf-label" htmlFor="qa-scope">Scope</label>
       <select
+        id="qa-scope"
         className="ps-conf-select"
         value={currentValue}
         onChange={e => {

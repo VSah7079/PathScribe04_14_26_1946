@@ -15,7 +15,7 @@ changes, or a folder is added/removed/split/merged.
 | [TemplateBuilder/](./TemplateBuilder/README.md) | Report *layout/assembly* builder β€” distinct from Config/Protocols/'s synoptic *data-capture* templates |
 | [Editor/](./Editor/README.md) | Tiptap rich text editor + `tiptapBridge/` (AI-integration bridge) |
 | [Voice/](./Voice/README.md) | Voice dictation settings/controls |
-| [ClientDictionary/](./ClientDictionary/README.md) | Client Dictionary table + editor modal |
+| [ClientDictionary/](./ClientDictionary/README.md) | Facility Configuration table + editor modal (folder/file names kept as `Client*` — see that folder's own README) |
 | [Contribution/](./Contribution/README.md) | My Contribution dashboard β€” 5 tabs/tiles, all serving `ContributionDashboardPage.tsx` |
 | [Common/](./Common/README.md) + Button/ | Shared UI primitives: `ConfirmModal`, `LookupModal`, `InlineCommentThread`, `SuffixSelect`, `Dropdown`, `LogoutWarningModal`, `SessionExpiryWarningModal`, `DraftRecoveryModal`, `SessionSupersededNotice` |
 | [QualityAssurance/](./QualityAssurance/README.md) | 6 QA/compliance reporting tabs (Countersign Turnaround, Intraop Linkage, Reconciliation, FPPE/Credentialing, Post-Finalization Drift, Patient Match Review) β€” newly indexed this session, the folder existed but had no README and was missing from this list entirely until now |
@@ -103,7 +103,7 @@ subfolder work β€” summarized here for a single cross-folder view:
   header path comments fixed.
 - **Orchestrator Mode** β€” real, previously-nonfunctional toggle rebuilt
   with org default + per-internal-client override
-  (`Client.internalAiOrchestratorEnabled`). Dead `NarrativeTemplatesTab`
+  (`Facility.internalAiOrchestratorEnabled`). Dead `NarrativeTemplatesTab`
   cluster deleted.
 - **`CaseRoutingSection.tsx` β†’ `CasePoolAssignmentSection.tsx`** rename,
   matching the services/ side.
@@ -184,8 +184,8 @@ subfolder work β€” summarized here for a single cross-folder view:
   `services/session/` (restructured mid-session into a proper
   interface/mock/firestore-stub trio, see `services/session/README.md`),
   `hooks/useIdleTimeout.ts`, `Common/SessionExpiryWarningModal.tsx`.
-  `Client.idleTimeoutMinutesOverride` added and wired into the Client
-  Dictionary edit modal.
+  `Facility.idleTimeoutMinutesOverride` added and wired into Facility
+  Configuration's edit modal.
 
   **Phase 2 (draft caching + recovery) also now complete** β€” new
   `services/drafts/`, `hooks/useDraftCache.ts`, `Common/DraftRecoveryModal.tsx`,

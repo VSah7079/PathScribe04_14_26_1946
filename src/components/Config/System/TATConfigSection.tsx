@@ -26,9 +26,9 @@
 //   8. system default (no dimensions)
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSubspecialties } from '../../../contexts/useSubspecialties';
+import { subspecialtyService } from '../../../services';
 import { useSpecimenDictionary } from './useSpecimenDictionary';
-import { mockClientService } from '../../../services/clients/mockClientService';
+import { mockFacilityService } from '../../../services/facilities/mockFacilityService';
 import '../../../pathscribe.css';
 import { useAuditLog } from '../../Audit/useAuditLog';
 
@@ -91,7 +91,7 @@ const TAT_TYPE_DESC: Record<TATType, string> = {
 
 // ── System defaults ───────────────────────────────────────────────────────────
 
-const SYSTEM_DEFAULTS: TATEntry[] = [
+export const SYSTEM_DEFAULTS: TATEntry[] = [
   { id: 'sys-ft-r',  type: 'FIRST_TOUCH',    targetHours: 4,    urgency: 'ROUTINE', clientId: null, specimenId: null, subspecialtyId: null, roleId: null, active: true, notes: 'System default', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'sys-ft-s',  type: 'FIRST_TOUCH',    targetHours: 1,    urgency: 'STAT',    clientId: null, specimenId: null, subspecialtyId: null, roleId: null, active: true, notes: 'System default', createdAt: '2024-01-01T00:00:00Z' },
   { id: 'sys-tc-r',  type: 'TOTAL_CASE',     targetHours: 24,   urgency: 'ROUTINE', clientId: null, specimenId: null, subspecialtyId: null, roleId: null, active: true, notes: 'System default', createdAt: '2024-01-01T00:00:00Z' },
@@ -277,8 +277,9 @@ const TATModal: React.FC<ModalProps> = ({
 
           {/* TAT Type */}
           <div className="ps-sub-field">
-            <label className="ps-sub-label">TAT Type <span className="ps-sub-label-req">*</span></label>
+            <label className="ps-sub-label" htmlFor="tat-rule-type">TAT Type <span className="ps-sub-label-req">*</span></label>
             <select
+              id="tat-rule-type"
               className="ps-conf-select"
               value={draft.type ?? ''}
               onChange={e => set('type', e.target.value as TATType)}
@@ -288,17 +289,18 @@ const TATModal: React.FC<ModalProps> = ({
               ))}
             </select>
             {draft.type && (
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+              <div className="ps-tat-hint-text ps-tat-hint-text--mt4">
                 {TAT_TYPE_DESC[draft.type]}
               </div>
             )}
           </div>
 
           {/* Target Hours + Urgency row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="ps-tat-two-col-row">
             <div className="ps-sub-field">
-              <label className="ps-sub-label">Target Hours <span className="ps-sub-label-req">*</span></label>
+              <label className="ps-sub-label" htmlFor="tat-rule-target-hours">Target Hours <span className="ps-sub-label-req">*</span></label>
               <input
+                id="tat-rule-target-hours"
                 type="number"
                 className="ps-sub-input"
                 min={0.1}
@@ -307,15 +309,16 @@ const TATModal: React.FC<ModalProps> = ({
                 onChange={e => set('targetHours', parseFloat(e.target.value) || 0)}
               />
               {draft.targetHours && draft.targetHours > 0 && (
-                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                <div className="ps-tat-hint-text ps-tat-hint-text--mt4">
                   = {formatHours(draft.targetHours)}
                 </div>
               )}
             </div>
 
             <div className="ps-sub-field">
-              <label className="ps-sub-label">Urgency</label>
+              <label className="ps-sub-label" htmlFor="tat-rule-urgency">Urgency</label>
               <select
+                id="tat-rule-urgency"
                 className="ps-conf-select"
                 value={draft.urgency ?? ''}
                 onChange={e => set('urgency', (e.target.value || null) as TATUrgency | null)}
@@ -334,20 +337,22 @@ const TATModal: React.FC<ModalProps> = ({
               These filters determine <strong>which cases this rule matches</strong>.
               Leave a filter blank to match all values for that dimension.
               The more filters set, the higher the resolution priority — a rule
-              with Client + Specimen overrides one with Client alone.
+              with Facility + Specimen overrides one with Facility alone.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <select
                 className="ps-conf-select"
+                aria-label="Facility"
                 value={draft.clientId ?? ''}
                 onChange={e => set('clientId', e.target.value || null)}
               >
-                <option value="">All clients</option>
+                <option value="">All facilities</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
 
               <select
                 className="ps-conf-select"
+                aria-label="Specimen type"
                 value={draft.specimenId ?? ''}
                 onChange={e => set('specimenId', e.target.value || null)}
               >
@@ -357,6 +362,7 @@ const TATModal: React.FC<ModalProps> = ({
 
               <select
                 className="ps-conf-select"
+                aria-label="Subspecialty"
                 value={draft.subspecialtyId ?? ''}
                 onChange={e => set('subspecialtyId', e.target.value || null)}
               >
@@ -366,8 +372,9 @@ const TATModal: React.FC<ModalProps> = ({
 
               <select
                 className="ps-conf-select"
-                value={(draft as any).roleId ?? ''}
-                onChange={e => set('roleId' as any, e.target.value || null)}
+                aria-label="Role"
+                value={draft.roleId ?? ''}
+                onChange={e => set('roleId', e.target.value || null)}
               >
                 <option value="">All roles</option>
                 <option value="Resident">Resident</option>
@@ -504,25 +511,25 @@ const ResolutionSimulator: React.FC<SimulatorProps> = ({
         <span style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
           Resolution Simulator
         </span>
-        <span style={{ fontSize: 12, color: '#6b7280' }}>
+        <span className="ps-tat-hint-text">
           See which rule wins for a given case
         </span>
       </div>
 
       <div className="ps-tat-sim-controls">
-        <select className="ps-conf-select" value={simClient} onChange={e => setSimClient(e.target.value)}>
-          <option value="">No specific client</option>
+        <select className="ps-conf-select" aria-label="Facility" value={simClient} onChange={e => setSimClient(e.target.value)}>
+          <option value="">No specific facility</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select className="ps-conf-select" value={simSpecimen} onChange={e => setSimSpecimen(e.target.value)}>
+        <select className="ps-conf-select" aria-label="Specimen type" value={simSpecimen} onChange={e => setSimSpecimen(e.target.value)}>
           <option value="">No specific specimen</option>
           {specimens.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <select className="ps-conf-select" value={simSubspecialty} onChange={e => setSimSubspecialty(e.target.value)}>
+        <select className="ps-conf-select" aria-label="Subspecialty" value={simSubspecialty} onChange={e => setSimSubspecialty(e.target.value)}>
           <option value="">No specific subspecialty</option>
           {subspecialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <select className="ps-conf-select" value={simUrgency} onChange={e => setSimUrgency(e.target.value as TATUrgency)}>
+        <select className="ps-conf-select" aria-label="Urgency" value={simUrgency} onChange={e => setSimUrgency(e.target.value as TATUrgency)}>
           <option value="ROUTINE">Routine</option>
           <option value="STAT">STAT</option>
         </select>
@@ -561,13 +568,23 @@ const TATConfigSection: React.FC = () => {
   const [showSim,   setShowSim]   = useState(false);
 
 
-  // Live data from context providers
-  const { subspecialties } = useSubspecialties();
+  // Live data from real services — subspecialties was previously read from
+  // a separate, disconnected in-memory React Context (contexts/
+  // useSubspecialties.tsx) that only ever had 2 hardcoded entries and
+  // never persisted edits. Migrated to the same subspecialtyService every
+  // other subspecialty-aware admin screen (Routing Rules, FPPE
+  // Assignments, Case Pool Assignment, etc.) already uses.
+  const [subspecialties, setSubspecialties] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    subspecialtyService.getAll().then(res => {
+      if (res.ok) setSubspecialties(res.data);
+    });
+  }, []);
   const { dictionary: specimens } = useSpecimenDictionary();
 
   const [allClients, setAllClients] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
-    mockClientService.getAll().then(res => {
+    mockFacilityService.getAll().then(res => {
       if (res.ok) {
         setAllClients(
           res.data
@@ -716,7 +733,7 @@ const TATConfigSection: React.FC = () => {
           >
             <div className={showInactive ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
           </div>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>Show inactive</span>
+          <span className="ps-tat-hint-text">Show inactive</span>
         </label>
       </div>
 
@@ -775,7 +792,7 @@ const TATConfigSection: React.FC = () => {
                   </td>
                   <td className="ps-sub-td">
                     {scopeParts.length === 0 ? (
-                      <span style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>System default</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>System default</span>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {scopeParts.map((s, i) => (
@@ -785,7 +802,7 @@ const TATConfigSection: React.FC = () => {
                     )}
                   </td>
                   <td className="ps-sub-td">
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>{e.notes || '—'}</span>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{e.notes || '—'}</span>
                   </td>
                   <td className="ps-sub-td">
                     <div className="ps-sub-toggle-wrap">

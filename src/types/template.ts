@@ -20,6 +20,19 @@ export interface LabelConfig {
   decoration?: 'underline' | 'none';
   /** Font size in px — defaults to 11 (adjacent) or 12 (above) */
   fontSize?: number;
+  /** Real feature, per direct request: a template's overall document
+   *  style ("Arial 10pt") needs a typeface, not just size/weight —
+   *  nothing in this type previously carried one at all. Same type
+   *  serves double duty: as a template-wide cascading default
+   *  (ReportTemplate.documentStyle) applied at the report root, and
+   *  as a per-node override (BaseNode.labelConfig) that naturally
+   *  wins via normal CSS inheritance since it's applied as an inline
+   *  style further down the tree. `position` is meaningless in the
+   *  template-default context (there's no single "label" to
+   *  position) — callers building a documentStyle default should
+   *  leave it at any value; it's simply never read there.
+   */
+  fontFamily?: string;
 }
 
 // ── Shared base ───────────────────────────────────────────────

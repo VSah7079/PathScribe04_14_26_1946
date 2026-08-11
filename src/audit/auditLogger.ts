@@ -41,7 +41,12 @@ export function logEvent(event: Omit<AuditEvent, "id" | "timestamp">) {
     event: event.action,
     detail: event.detail,
     user: event.user,
-    caseId: null,
+    // Real feature, per direct specification, Phase 5 (audit-logging
+    // polish): this used to hardcode null regardless of what the real
+    // caller's own event carried — see AuditEvent.caseId's own doc
+    // comment for the full, app-wide gap this closes.
+    caseId: event.caseId ?? null,
+    facilityId: event.facilityId ?? null,
     confidence: null,
   }).catch(() => {});
 }

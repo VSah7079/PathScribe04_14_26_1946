@@ -347,8 +347,12 @@ const FlagManagerModal: React.FC<Props> = ({
   }, [isDraftDirty, onDirtyChange]);
 
   // ── save / cancel ─────────────────────────────────────────────────────────────
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const handleSave = useCallback(async () => {
     setIsSaving(true);
+    setSaveError(null);
+    let succeededAny = false;
     try {
       const commit = async (origFlags: FlagInstance[], nowFlags: FlagInstance[], specimenId?: string) => {
         const origIds = new Set(activeInst(origFlags).map(f => f.id));
@@ -357,8 +361,10 @@ const FlagManagerModal: React.FC<Props> = ({
           const isActive  = !f.deletedAt;
           if (!wasActive && isActive) {
             await onApplyFlags({ caseId: localCase.id, flagDefinitionId: f.flagDefinitionId, specimenId });
+            succeededAny = true;
           } else if (wasActive && !isActive) {
             await onRemoveFlag({ caseId: localCase.id, flagInstanceId: f.id, specimenId });
+            succeededAny = true;
           }
         }
       };
@@ -368,6 +374,18 @@ const FlagManagerModal: React.FC<Props> = ({
         await commit(origSp?.flags ?? [], sp.flags, sp.id);
       }
       onClose();
+    } catch (e) {
+      // Real, surfaced failure instead of silently doing nothing — the
+      // user needs to know a save didn't fully complete, and needs an
+      // accurate picture if some items DID succeed before this one
+      // failed (some flag changes may already be persisted even though
+      // the modal is still showing "unsaved changes").
+      const detail = (e as Error)?.message ?? 'unknown error';
+      setSaveError(
+        succeededAny
+          ? `Some flag changes saved before this failed (${detail}). The remaining changes shown are still unsaved — try again, or close and reopen to see what actually persisted.`
+          : `Save failed (${detail}) — nothing was saved. Try again.`
+      );
     } finally {
       setIsSaving(false);
     }
@@ -626,7 +644,7 @@ const FlagManagerModal: React.FC<Props> = ({
               </div>
 
               {/* Flag list */}
-              <div className="fm-flag-list">
+              <div className="fm-flag-list" tabIndex={0}>
 
                 {!hasTarget && !invalid && (
                   <div className="fm-empty">
@@ -701,9 +719,13 @@ const FlagManagerModal: React.FC<Props> = ({
 
           {/* ── FOOTER — Cancel (reverts) | Save (commits + closes) ── */}
           <div className="fm-footer">
-            <span style={{ fontSize: 11, color: isDraftDirty ? '#f59e0b' : '#475569', flex: 1 }}>
-              {isDraftDirty ? 'You have unsaved flag changes' : 'No changes'}
-            </span>
+            {saveError ? (
+              <span style={{ fontSize: 11, color: '#f87171', flex: 1 }}>{saveError}</span>
+            ) : (
+              <span style={{ fontSize: 11, color: isDraftDirty ? '#f59e0b' : '#475569', flex: 1 }}>
+                {isDraftDirty ? 'You have unsaved flag changes' : 'No changes'}
+              </span>
+            )}
             <button className="fm-btn-cancel" onClick={handleClose} style={{ flexShrink: 0 }}>
               Cancel
             </button>
@@ -746,7 +768,11 @@ const FlagManagerModal: React.FC<Props> = ({
               <span className="ps-modal-dark-emoji">⚠️</span>
               <span className="ps-modal-dark-title">Discard changes?</span>
             </div>
-            <p className="ps-modal-dark-body">You have unsaved flag changes. Closing will discard them — nothing has been saved yet.</p>
+            <p className="ps-modal-dark-body">
+              {saveError
+                ? 'You have unsaved flag changes, and the last save attempt failed partway through — some of these may already be saved. Closing now will discard whatever is still local and unsaved.'
+                : 'You have unsaved flag changes. Closing will discard them — nothing has been saved yet.'}
+            </p>
             <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
               <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={() => setShowDirtyWarn(false)}>Keep editing</button>
               <button className="ps-btn-red ps-modal-dark-footer__flex-btn" onClick={handleDiscardConfirm}>Discard changes</button>

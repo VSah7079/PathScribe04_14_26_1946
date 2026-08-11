@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { VOICE_PROFILES, type VoiceProfileId } from '../../../constants/voiceProfiles';
 import '../../../pathscribe.css';
-import { useSubspecialties } from '../../../contexts/useSubspecialties';
 import RoleDictionary, { Role, DEFAULT_ROLES } from './RoleDictionary';
 import FppeAssignmentsSection from '../System/FppeAssignmentsSection';
-import { userService } from '../../../services';
+import { userService, subspecialtyService, Subspecialty } from '../../../services';
 import { ServiceResult } from '../../../services/types';
 import { Dropdown } from '@/components/Common/Dropdown';
 
@@ -21,7 +20,6 @@ export interface StaffUser {
   gmcNumber?: string;
   license: string;
   phone: string;
-  department: string;
   signatureUrl?: string;
   status: 'Active' | 'Inactive';
   voiceProfile?: string | null;
@@ -86,36 +84,49 @@ const SignatureUpload = ({ url, onChange }: { url?: string; onChange: (url: stri
 type Draft = {
   firstName: string; middleName: string; lastName: string; credentials: string;
   email: string; roles: string[]; npi: string; gmcNumber: string; license: string;
-  phone: string; department: string; signatureUrl: string; active: boolean;
+  phone: string; signatureUrl: string; active: boolean;
   voiceProfile: string; canViewPediatric: boolean; canViewOrchestration: boolean;
+  /** Real fix, per direct confirmation: replaces the old free-text
+   *  "Department" field — redundant with the real Subspecialties
+   *  dictionary, which already existed (StaffTab.tsx already loaded
+   *  subspecialtyService and showed a read-only "Subspecialties"
+   *  column), just had no way to assign it from this editor. Local,
+   *  modal-only state — the real relationship lives on
+   *  Subspecialty.userIds, not on StaffUser itself; diffed against the
+   *  original membership and applied via subspecialtyService.assignUser/
+   *  removeUser in the parent's handleSave, after the real user id is
+   *  known (needed for 'add' mode, where no id exists until save). */
+  subspecialtyIds: string[];
 };
 
 const emptyDraft: Draft = {
   firstName: '', middleName: '', lastName: '', credentials: '', email: '',
-  roles: [], npi: '', gmcNumber: '', license: '', phone: '', department: '',
+  roles: [], npi: '', gmcNumber: '', license: '', phone: '',
   signatureUrl: '', active: true, voiceProfile: '', canViewPediatric: false,
-  canViewOrchestration: false,
+  canViewOrchestration: false, subspecialtyIds: [],
 };
 
 interface StaffModalProps {
   mode: 'add' | 'edit';
   user?: StaffUser;
   roles: Role[];
+  subspecialties: Subspecialty[];
   onSave: (draft: Draft) => void;
   onClose: () => void;
 }
 
-const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onClose }) => {
+const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialties, onSave, onClose }) => {
   const [draft, setDraft] = useState<Draft>(
     user ? {
       firstName: user.firstName, middleName: (user as any).middleName || '',
       lastName: user.lastName, credentials: user.credentials || '',
       email: user.email, roles: [...user.roles], npi: user.npi,
       gmcNumber: user.gmcNumber || '', license: user.license, phone: user.phone,
-      department: user.department, signatureUrl: user.signatureUrl || '',
+      signatureUrl: user.signatureUrl || '',
       active: user.status === 'Active', voiceProfile: user.voiceProfile || '',
       canViewPediatric: user.canViewPediatric ?? false,
       canViewOrchestration: (user as any).canViewOrchestration ?? false,
+      subspecialtyIds: subspecialties.filter(s => s.userIds.includes(user.id)).map(s => s.id),
     } : emptyDraft
   );
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
@@ -207,16 +218,39 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
             </div>
           </div>
 
-          {/* Row 3: Phone | Department */}
-          <div className="ps-conf-form-row">
-            <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Phone</label>
-              <input className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder="555-0100" />
-            </div>
-            <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Department</label>
-              <input className="ps-conf-input" value={draft.department} onChange={e => set('department', e.target.value)} placeholder="e.g. Surgical Pathology" />
-            </div>
+          {/* Row 3: Phone */}
+          <div className="ps-conf-form-field">
+            <label className="ps-conf-label">Phone</label>
+            <input className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder="555-0100" />
+          </div>
+
+          {/* Real fix, per direct confirmation: replaces the old
+              free-text Department field — redundant with the real
+              Subspecialties dictionary, which is a better fit here. */}
+          <div className="ps-conf-form-field">
+            <label className="ps-conf-label">Subspecialties</label>
+            {draft.subspecialtyIds.length > 0 && (
+              <div className="ps-st-role-chips">
+                {draft.subspecialtyIds.map(id => {
+                  const sub = subspecialties.find(s => s.id === id);
+                  if (!sub) return null;
+                  return (
+                    <span key={id} className="ps-st-role-chip"
+                      style={{ background: '#8AB4F822', color: '#8AB4F8', border: '1px solid #8AB4F844' }}>
+                      {sub.name}
+                      <span className="ps-st-role-chip-x" style={{ color: '#8AB4F8' }}
+                        onClick={() => set('subspecialtyIds', draft.subspecialtyIds.filter(x => x !== id))}>×</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <Dropdown
+              placeholder="Select a subspecialty..."
+              options={subspecialties.filter(s => s.active !== false && !draft.subspecialtyIds.includes(s.id)).map(s => ({ value: s.id, label: s.name }))}
+              emptyText="No more subspecialties to add"
+              onSelect={val => { if (val && !draft.subspecialtyIds.includes(val)) set('subspecialtyIds', [...draft.subspecialtyIds, val]); }}
+            />
           </div>
 
           {/* Row 4: Credentials */}
@@ -321,7 +355,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, onSave, onCl
 // ─── Staff Members List ───────────────────────────────────────────────────────
 
 const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
-  const { subspecialties } = useSubspecialties();
+  const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [users,      setUsers]     = useState<StaffUser[]>([]);
   const [loading,    setLoading]   = useState(true);
   const [search,     setSearch]    = useState('');
@@ -334,6 +368,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       else if ('error' in res) console.error(res.error);
       setLoading(false);
     });
+    subspecialtyService.getAll().then(res => { if (res.ok) setSubspecialties(res.data); });
   }, []);
 
   const userSubsMap: Record<string, string[]> = {};
@@ -358,17 +393,40 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       email: draft.email, roles: draft.roles, npi: draft.npi, gmcNumber: draft.gmcNumber,
       license: draft.license, phone: draft.phone, canViewPediatric: draft.canViewPediatric,
       canViewOrchestration: draft.canViewOrchestration,
-      department: draft.department, signatureUrl: draft.signatureUrl,
+      signatureUrl: draft.signatureUrl,
       status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
       voiceProfile: draft.voiceProfile === '' ? undefined : (draft.voiceProfile as VoiceProfileId),
     };
+    let savedUserId: string | undefined;
     if (modal?.mode === 'add') {
       const res = await userService.add(payload);
-      if (res.ok) setUsers(prev => [...prev, res.data]);
+      if (res.ok) { setUsers(prev => [...prev, res.data]); savedUserId = res.data.id; }
     } else if (modal?.user) {
       const res = await userService.update(modal.user.id, payload);
-      if (res.ok) setUsers(prev => prev.map(u => u.id === res.data.id ? res.data : u));
+      if (res.ok) { setUsers(prev => prev.map(u => u.id === res.data.id ? res.data : u)); savedUserId = res.data.id; }
     }
+
+    // Real fix, per direct confirmation: replaces the old free-text
+    // Department field. The real relationship lives on
+    // Subspecialty.userIds, not on StaffUser — diff the modal's
+    // selection against the user's actual, current membership and
+    // apply only the real changes. Runs after the user record is
+    // saved above, since 'add' mode has no real id to assign against
+    // until that point.
+    if (savedUserId) {
+      const currentIds = subspecialties.filter(s => s.userIds.includes(savedUserId!)).map(s => s.id);
+      const toAdd = draft.subspecialtyIds.filter(id => !currentIds.includes(id));
+      const toRemove = currentIds.filter(id => !draft.subspecialtyIds.includes(id));
+      await Promise.all([
+        ...toAdd.map(id => subspecialtyService.assignUser(id, savedUserId!)),
+        ...toRemove.map(id => subspecialtyService.removeUser(id, savedUserId!)),
+      ]);
+      if (toAdd.length || toRemove.length) {
+        const res = await subspecialtyService.getAll();
+        if (res.ok) setSubspecialties(res.data);
+      }
+    }
+
     setModal(null);
   };
 
@@ -379,7 +437,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
           <h2 className="ps-st-title">Staff</h2>
           <p className="ps-st-subtitle">Manage pathologists, residents, and administrators.</p>
         </div>
-        <button className="ps-st-add-btn" onClick={() => setModal({ mode: 'add' })}>+ Add Staff</button>
+        <button className="ps-conf-btn-primary" onClick={() => setModal({ mode: 'add' })}>+ Add Staff</button>
       </div>
 
       <div data-capture-hide="true" className="ps-st-filter-bar">
@@ -467,7 +525,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
         </div>
       </div>
 
-      {modal && <StaffModal mode={modal.mode} user={modal.user} roles={roles} onSave={handleSave} onClose={() => setModal(null)} />}
+      {modal && <StaffModal mode={modal.mode} user={modal.user} roles={roles} subspecialties={subspecialties} onSave={handleSave} onClose={() => setModal(null)} />}
     </div>
   );
 };

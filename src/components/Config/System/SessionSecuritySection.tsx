@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Org-wide default for idle session timeout (Phase 1 of the Inactivity
 // Timeout & Draft Recovery spec — see PRIORITY_FIXES.md #13). Per-performing-lab
-// overrides are set on the Client Dictionary edit modal instead — this
+// overrides are set on the Facility Configuration edit modal instead — this
 // screen only controls the org-wide fallback used when a lab has no
 // override, or when no case is currently open (Worklist, Home, etc.).
 //

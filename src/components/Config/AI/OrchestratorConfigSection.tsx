@@ -174,8 +174,9 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
           <span
             role="switch"
             aria-checked={orchestratorOn}
+            aria-label={`Orchestrator Config ${orchestratorOn ? 'On' : 'Off'}`}
             onClick={(e) => { e.stopPropagation(); handleToggle(); }}
-            title="Org-level default — internal clients (labs) can override this individually in the Client Dictionary"
+            title="Org-level default — internal facilities (labs) can override this individually in Facility Configuration"
             style={{
               fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
               cursor: 'pointer',

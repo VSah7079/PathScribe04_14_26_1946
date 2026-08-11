@@ -10,18 +10,18 @@ import type { DeficiencyType, IDeficiencyTypeService } from './IDeficiencyServic
 // on first use. All admin-editable; none of these are load-bearing code,
 // just seed data.
 const SEED_DEFICIENCY_TYPES: DeficiencyType[] = [
-  { id: 'def-no-dict-match', name: 'Could Not Match Specimen to Dictionary', description: 'Order specimen text did not exactly match any active Specimen Dictionary entry.', status: 'Active' },
-  { id: 'def-label-mismatch', name: 'Label Mismatch', description: 'Container/slide label does not match the requisition.', status: 'Active' },
-  { id: 'def-container-damaged', name: 'Container Damaged', description: 'Specimen container arrived broken, leaking, or otherwise compromised.', status: 'Active' },
-  { id: 'def-insufficient-volume', name: 'Insufficient Volume', description: 'Fluid/tissue quantity received is inadequate for the ordered testing.', status: 'Active' },
-  { id: 'def-missing-requisition', name: 'Missing Requisition', description: 'Specimen received without accompanying paperwork or order.', status: 'Active' },
-  { id: 'def-order-discrepancy', name: 'Specimen/Order Discrepancy', description: 'Specimen received does not match what the order describes.', status: 'Active' },
+  { id: 'def-no-dict-match', name: 'Could Not Match Specimen to Dictionary', description: 'Order specimen text did not exactly match any active Specimen Dictionary entry.', status: 'Active', level: 'specimen' },
+  { id: 'def-label-mismatch', name: 'Label Mismatch', description: 'Container/slide label does not match the requisition.', status: 'Active', level: 'specimen' },
+  { id: 'def-container-damaged', name: 'Container Damaged', description: 'Specimen container arrived broken, leaking, or otherwise compromised.', status: 'Active', level: 'specimen' },
+  { id: 'def-insufficient-volume', name: 'Insufficient Volume', description: 'Fluid/tissue quantity received is inadequate for the ordered testing.', status: 'Active', level: 'specimen' },
+  { id: 'def-missing-requisition', name: 'Missing Requisition', description: 'Specimen received without accompanying paperwork or order.', status: 'Active', level: 'case' },
+  { id: 'def-order-discrepancy', name: 'Specimen/Order Discrepancy', description: 'Specimen received does not match what the order describes.', status: 'Active', level: 'both' },
   {
-    id: 'def-post-hoc-correction', name: 'Post-Hoc Correction', status: 'Active',
+    id: 'def-post-hoc-correction', name: 'Post-Hoc Correction', status: 'Active', level: 'both',
     description: 'A value entered at accessioning was corrected later — nobody necessarily did anything wrong at the time; the original entry simply turned out to be incorrect. Always raised and resolved together, since the whole point is to document what changed, not to leave a lingering open item.',
   },
   {
-    id: 'def-missing-fixation-time', name: 'Missing Fixation Time', status: 'Active',
+    id: 'def-missing-fixation-time', name: 'Missing Fixation Time', status: 'Active', level: 'specimen',
     description: 'Specimen type requires cold-ischemia/fixation timing (CAP/ASCO biomarker guidance, e.g. breast ER/PR/HER2) but no fixative-added time has been documented. Blocks case sign-out until resolved — see Resolution Types for the three legitimate ways to resolve it (documented, estimated, or confirmed unrecoverable).',
   },
 ];

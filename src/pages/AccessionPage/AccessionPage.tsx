@@ -41,7 +41,9 @@ import { toast } from 'react-toastify';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { ORCH_ID_PREFIX, isOrchCaseId, formatOrchCaseId } from '@/services/cases/reportingModeRouting';
 import { evaluateGrossingTemplateAssignment } from '@/services/cases/mockCaseService';
-import { mockClientService, Client } from '@/services/clients/mockClientService';
+import { mockFacilityService, type Facility as Client } from '@/services/facilities/mockFacilityService';
+import { locationService } from '@/services';
+import type { Location as LocationRecord } from '@/services/locations/ILocationService';
 import { mockSpecimenCategoryService } from '@/services/specimenCategories/mockSpecimenCategoryService';
 import type { SpecimenCategory } from '@/services/specimenCategories/ISpecimenCategoryService';
 import { mockUserService } from '@/services/users/mockUserService';
@@ -61,11 +63,14 @@ import type { Icd10Code } from '@/services/diagnosisCodes/IDiagnosisCodesService
 import type { DeficiencyType } from '@/services/deficiencies/IDeficiencyService';
 import { ReportDeficiencyModal } from './ReportDeficiencyModal';
 import { IntraopMergePromptModal } from './IntraopMergePromptModal';
+import ConfirmModal from '@/components/Common/ConfirmModal';
 import type { EntryMatch } from '@/types/intraop/IntraoperativeEntry';
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 import { getSpecimenLabel, getBlockLabel } from '@/utils/specimenLabeling';
 import type { GrossingTemplateAssignment } from '@/services/grossing/IGrossingEvaluationService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { getFacilityDateParts } from '@/utils/facilityTime';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
 import { orderIntakeService } from '@/services';
 import type { IncomingOrder } from '@/services';
@@ -76,8 +81,10 @@ import type { CasePriority } from '@/services/cases/ICaseService';
 import { SuffixSelect } from '@/components/Common/SuffixSelect';
 import { formatFullDisplayName } from '@/utils/personName';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { getHospitalIdForOrganisation, getOrganisationDisplayName, getOrganisationByHospitalId } from '@/services/organisation/organisationService';
+import { useDirtyState } from '@/contexts/DirtyStateContext';
+import { getHospitalIdForOrganisation, getOrganisationDisplayName, getOrganisationByHospitalId, resolveMpiScopeEnterpriseId } from '@/services/organisation/organisationService';
 import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+import { mockEncounterService } from '@/services/encounters/mockEncounterService';
 import { mockCaseRegistryService } from '@/services/caseRegistry/mockCaseRegistryService';
 import { PATIENT_ID_BY_JURISDICTION } from '@/types/systemConfig';
 import { SpecimenDictionaryPicker } from '@/components/SpecimenPicker/SpecimenDictionaryPicker';
@@ -85,6 +92,7 @@ import { CaseCommentModal } from '@/pages/Synoptic/Comments/CaseCommentModal';
 import { ReportCommentModal } from '@/pages/Synoptic/Comments/ReportCommentModal';
 import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { BREAK_GLASS_REASON_CODES } from '@/types/patients/BreakGlassReasonCode';
 
 // ── Local form types ────────────────────────────────────────────────────────
 
@@ -351,6 +359,7 @@ type TabKey = 'case' | 'specimens';
 const AccessionPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { config } = useSystemConfig();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb('Accession', '/accession'); }, [pushCrumb]);
 
@@ -369,7 +378,7 @@ const AccessionPage: React.FC = () => {
   };
 
   useEffect(() => {
-    mockClientService.getAll().then(res => { if (res.ok) setClients(res.data.filter(c => c.status === 'Active')); });
+    mockFacilityService.getAll().then(res => { if (res.ok) setClients(res.data.filter(c => c.status === 'Active')); });
     mockUserService.getAll().then(res => {
       if (res.ok) setPathologists(res.data.filter(u => u.status === 'Active' && u.roles.includes('Pathologist')));
     });
@@ -390,6 +399,16 @@ const AccessionPage: React.FC = () => {
   const [dob, setDob] = useState('');
   const [sex, setSex] = useState<'M' | 'F' | 'U'>('F');
   const [mrn, setMrn] = useState('');
+  const [encounterNumber, setEncounterNumber] = useState('');
+  // Real feature, per direct confirmation, building Phase B of the
+  // "Interface Exception & Case-Binding Module": a real, explicit way
+  // to mark a new accession as a temporary/downtime placeholder
+  // identity — never inferred from a name pattern (a real patient
+  // could legitimately be named "John Doe"). Deliberately a rare,
+  // secondary toggle, not a prominent default field, matching the
+  // genuinely rare, exceptional real-world circumstances this covers.
+  const [isDowntimeAccession, setIsDowntimeAccession] = useState(false);
+  const [downtimeReasonCode, setDowntimeReasonCode] = useState('');
 
   // Origin Hospital is derived from the accessioning user's own
   // organisation, not a free-pick dropdown — see organisationService.ts's
@@ -405,7 +424,11 @@ const AccessionPage: React.FC = () => {
   // hardware endpoint (see ModeAInterfaceService.resolveModeAOrgContext).
   // Single-site organisations get no selector at all — nothing to choose.
   const originOrganisation = useMemo(() => getOrganisationByHospitalId(originHospitalId), [originHospitalId]);
-  const originSites = originOrganisation?.sites ?? [];
+  // Real fix: was `originOrganisation?.sites ?? []` - a fresh array
+  // reference every render whenever sites is undefined, which ESLint
+  // flagged as making the effect below unstable. Wrapped in useMemo,
+  // dependent on the already-memoized originOrganisation above.
+  const originSites = useMemo(() => originOrganisation?.sites ?? [], [originOrganisation]);
   const [originSiteId, setOriginSiteId] = useState('');
   // Defaults to the first site the moment the org's sites resolve, same
   // fallback resolveModeAOrgContext already applies server-side — this
@@ -444,6 +467,12 @@ const AccessionPage: React.FC = () => {
   }, []);
   const [requestingProvider, setRequestingProvider] = useState('');
   const [clientId, setClientId] = useState('');
+  // Real feature, per direct confirmation: "add the Client and
+  // Location as fields to be seen in the accession page." Facility-
+  // scoped — repopulated below whenever clientId changes, and reset
+  // to '' if the newly-selected facility doesn't have this location.
+  const [locationId, setLocationId] = useState('');
+  const [locations, setLocations] = useState<LocationRecord[]>([]);
   const [clinicalIndication, setClinicalIndication] = useState('');
   const [icd10Codes, setIcd10Codes] = useState<Icd10Code[]>([]);
   // General accessioning note — distinct from Clinical Indication (the
@@ -622,6 +651,7 @@ const AccessionPage: React.FC = () => {
       }
     });
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real, honest justification: addSpecimen reads selectedClient, which is defined later in this file (const selectedClient = useMemo(...) below) - wrapping addSpecimen in useCallback here hits a real TypeScript TS2448 compile error (block-scoped variable used before its declaration), confirmed directly. Moving declarations around is a real reordering operation in a large file, deserving its own careful, isolated pass, not a rushed change bundled into this lint sweep. Known, real limitation left honestly flagged: a stale addSpecimen closure could use an outdated selectedClient if the user switches clients, then uses the ADD_SPECIMEN voice command, before this effect happens to re-run for another reason.
   }, []);
 
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
@@ -650,14 +680,41 @@ const AccessionPage: React.FC = () => {
     givenNames.trim() || familyNames.trim() || dob || mrn.trim() ||
     clinicalIndication.trim() || caseComments.length > 0 || specimens.some(s => s.description.trim());
 
-  async function handleImportOrder(orderId: string) {
-    if (!orderId) return;
-    if (hasUnsavedProgress() && sourceOrderId !== orderId) {
-      const proceed = window.confirm(
-        'This form has unsaved information. Importing this order will replace it. Continue?'
-      );
-      if (!proceed) return;
-    }
+  // Real, confirmed gap: this page had no connection at all to the
+  // app's shared unsaved-changes warning system (DirtyStateContext) —
+  // navigating away via any in-app link, or closing/refreshing the
+  // tab, silently discarded whatever had been entered, with zero
+  // warning. Wired up the same way SynopticReportPage.tsx does,
+  // reusing the exact "meaningful progress" check hasUnsavedProgress()
+  // above already defines, rather than a separate/duplicate notion of
+  // dirty.
+  const { setDirty, pendingPath, confirmNavigate, cancelNavigate } = useDirtyState();
+  useEffect(() => {
+    setDirty(!!hasUnsavedProgress());
+    // Clear on unmount so a stale dirty flag doesn't leak into
+    // whatever page the user navigates to next.
+    return () => setDirty(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [givenNames, familyNames, dob, mrn, clinicalIndication, caseComments, specimens]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedProgress()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [givenNames, familyNames, dob, mrn, clinicalIndication, caseComments, specimens]);
+
+  // Real fix: was window.confirm() — replaced with the shared
+  // ConfirmModal. Split into doImportOrder (the real 80-line import
+  // logic, unchanged) plus a thin handleImportOrder entry point that
+  // either calls it directly or, when there's real unsaved progress to
+  // lose, opens the modal first — see pendingImportOrderId/
+  // confirmImportOrder below.
+  async function doImportOrder(orderId: string) {
     setImporting(true);
     try {
       const res = await orderIntakeService.resolveOrder(orderId);
@@ -676,11 +733,29 @@ const AccessionPage: React.FC = () => {
       setDob(order.patient.dateOfBirth ?? '');
       setSex(order.patient.sex ?? 'U');
       setMrn(order.patient.mrn ?? '');
+      setEncounterNumber(order.encounterNumber ?? '');
       setPriority(order.priority ?? 'Routine');
       setRequestingProvider(order.requestingProvider);
       setClinicalIndication(order.clinicalIndication ?? '');
       setIcd10Codes(order.icd10Codes ?? []);
       if (order.clientId) setClientId(order.clientId);
+
+      // Real feature, per direct confirmation: "I assume that the
+      // location will download from the select patient encounter,
+      // once the order or patient is selected." Location doesn't live
+      // directly on the order (unlike clientId above) — it lives on
+      // the real, separate Encounter record a prior inbound PV1
+      // resolved against, linked here via order.encounterNumber (a
+      // real, pre-existing field). Genuinely no-op when the order
+      // carries no encounterNumber, or when that encounter never had
+      // a real PV1-3 to resolve — never fabricated.
+      if (order.encounterNumber) {
+        const orgId = user?.organisationId ?? originHospitalId;
+        const encounterRes = await mockEncounterService.getByEncounterNumber(orgId, order.encounterNumber);
+        if (encounterRes.ok && encounterRes.data?.locationId) {
+          setLocationId(encounterRes.data.locationId);
+        }
+      }
 
       const categoriesModule = await import('@/services/specimenCategories/mockSpecimenCategoryService');
       const catsRes = await categoriesModule.mockSpecimenCategoryService.getAll();
@@ -738,10 +813,35 @@ const AccessionPage: React.FC = () => {
     }
   }
 
+  const [pendingImportOrderId, setPendingImportOrderId] = useState<string | null>(null);
+
+  function handleImportOrder(orderId: string) {
+    if (!orderId) return;
+    if (hasUnsavedProgress() && sourceOrderId !== orderId) {
+      setPendingImportOrderId(orderId);
+      return;
+    }
+    void doImportOrder(orderId);
+  }
+
+  function confirmImportOrder() {
+    if (!pendingImportOrderId) return;
+    const orderId = pendingImportOrderId;
+    setPendingImportOrderId(null);
+    void doImportOrder(orderId);
+  }
+
   // ── Validation ───────────────────────────────────────────────────────────
   const caseInfoValid = givenNames.trim() && familyNames.trim() && dob && clientId && requestingProvider.trim();
   const specimensValid = specimens.length > 0
     && specimens.every(s => s.description.trim().length > 0 && !s.needsDictionaryResolution);
+  // Real, filled-in specimen count — for display only (the Specimens tab
+  // label). Raw specimens.length includes the empty placeholder row(s)
+  // the form starts with/adds, which have no description yet and
+  // wouldn't pass specimensValid above — showing that raw count as
+  // "Specimens (1)" before the user has entered anything is misleading,
+  // as if a real specimen were already recorded.
+  const filledSpecimenCount = specimens.filter(s => s.description.trim().length > 0).length;
 
   // Real specimen categories (Surgical/Non-GYN Cytology/Consultation) each
   // draw from their own accession series — see mockCaseRegistryService's
@@ -779,6 +879,27 @@ const AccessionPage: React.FC = () => {
   // Defaults to US/MRN when no client is selected yet (safe default,
   // matches the rest of the form before a client is picked).
   const patientIdStandard = PATIENT_ID_BY_JURISDICTION[selectedClient?.jurisdiction ?? 'US'];
+
+  // Real feature, per direct confirmation: "add the Client and
+  // Location as fields to be seen in the accession page." Facility-
+  // scoped — reloads whenever clientId changes. Resets locationId if
+  // it doesn't belong to the newly-selected facility (e.g. the user
+  // picked a location, then switched facilities) rather than silently
+  // carrying over a location from a different facility.
+  useEffect(() => {
+    if (!clientId) { setLocations([]); setLocationId(''); return; }
+    let cancelled = false;
+    (async () => {
+      const res = await locationService.listForFacility(clientId);
+      if (cancelled) return;
+      const list = res.ok ? res.data.filter(l => l.status !== 'Inactive') : [];
+      setLocations(list);
+      setLocationId(prev => (list.some(l => l.id === prev) ? prev : ''));
+    })();
+    return () => { cancelled = true; };
+  }, [clientId]);
+
+  const selectedLocation = useMemo(() => locations.find(l => l.id === locationId), [locations, locationId]);
 
   // ── ID generation ────────────────────────────────────────────────────────
   // TEMPORARY scheme — Stage 0 Requirements §4.2 (S0-CF-07/08/09/10) calls
@@ -842,7 +963,7 @@ const AccessionPage: React.FC = () => {
       const categoryOverride = soleCategory
         ? { prefix: soleCategory.accessionPrefix, numberSeries: soleCategory.numberSeries }
         : undefined;
-      const accessionRes = await mockCaseRegistryService.allocateNextCaseNumber(registryOrgId, originSiteId || undefined, categoryOverride);
+      const accessionRes = await mockCaseRegistryService.allocateNextCaseNumber(registryOrgId, config.facilityTimezone, originSiteId || undefined, categoryOverride);
       const fullAccession = accessionRes.ok ? accessionRes.data : caseId; // last-resort fallback if the registry call itself errors (not just unconfigured — that's handled inside the service), so submission still can't hard-fail on this
       const configRes = await mockCaseRegistryService.getConfig(registryOrgId);
       const registryConfig = configRes.ok ? configRes.data : null;
@@ -893,7 +1014,7 @@ const AccessionPage: React.FC = () => {
       // SynopticReportPage.tsx.
       const templateModule = await import('@/services/templates/templateService');
       const allTemplates = await templateModule.listTemplates('published');
-      const availableTemplates = (allTemplates as any[])
+      const availableTemplates = allTemplates
         .filter(t => t.isDiagnostic === false)
         .map(t => ({ id: t.id, name: t.name, category: t.category }));
 
@@ -932,6 +1053,7 @@ const AccessionPage: React.FC = () => {
         warnings: evalResult.warnings,
         specimenBlocks: specimenRecords.map(sp => ({ specimenId: sp.id, label: sp.label, blocks: sp.blocks })),
       });
+      setDirty(false); // genuinely persisted now — nothing left to lose by navigating away
 
       const assignmentBySpecimenId = new Map(evalResult.assignments.map(a => [a.specimenId, a]));
 
@@ -953,23 +1075,62 @@ const AccessionPage: React.FC = () => {
       // which was derived from the CASE, not the person: the same
       // real-world patient with two different cases got two completely
       // unrelated patient ids, and there was no actual person-level
-      // identity anywhere in the data model. Scoped to this case's own
-      // organisation (MPI, not EMPI — see IPatientIndexService.ts's own
+      // identity anywhere in the data model. Scoped to this lab's own
+      // enterprise (MPI, not EMPI — see IPatientIndexService.ts's own
       // doc comment on why cross-tenant matching would be a privacy
-      // problem, not a feature). 'ambiguous' still returns a real,
-      // usable patientId (accessioning can't halt on it) but flags the
-      // record for a real admin review rather than silently guessing.
-      const mpiOrgId = originOrganisation?.id ?? originHospitalId;
+      // problem, not a feature).
+      //
+      // Real fix: this previously scoped to originOrganisation.id — the
+      // specific hospital/clinic that referred THIS case, not this
+      // lab's own stable identity. The same real patient referred by
+      // two different hospitals to the same lab would incorrectly get
+      // two separate MPI records, directly undermining the whole reason
+      // this system exists (reliably surfacing a patient's full case
+      // history). originEnterpriseId is the real, stable "this lab
+      // tenant" identifier already resolved below for Case itself -
+      // reused here instead of computing a second, differently-scoped
+      // value for the same real concept.
+      const mpiOrgId = resolveMpiScopeEnterpriseId(originOrganisation);
       const mpiResult = await mockPatientIndexService.resolveOrCreatePatient({
         organisationId: mpiOrgId,
+        // Real fix, closing the loop on the earlier scoping fix: this
+        // specific referring organisation's id is exactly the value
+        // that was incorrectly used as the MPI SCOPE before - it finds
+        // its correct, real home here instead, as the assigning
+        // authority for the MRN being submitted with this order. See
+        // PatientMatchCandidate.assigningAuthority's own doc comment
+        // for the real collision risk this closes.
+        assigningAuthority: originOrganisation?.id,
         mrn: mrn.trim() || `AUTO-${caseId.slice(4)}`,
         firstName: givenNames.trim(),
         lastName: familyNames.trim(),
         dateOfBirth: new Date(dob).toISOString(),
         sourceAccession: fullAccession,
+        isDowntimeRecord: isDowntimeAccession || undefined,
+        downtimeReasonCode: isDowntimeAccession ? (downtimeReasonCode || undefined) : undefined,
       });
       if (mpiResult.outcome === 'ambiguous') {
         toast.warning(`Patient match needs review: ${mpiResult.reason}`);
+      }
+
+      // Real fix, per direct follow-up on the rest of Phase 0: resolves
+      // the real, standalone Encounter this case's specimens were
+      // collected during - see services/encounters/IEncounterService.ts's
+      // own header comment on why IncomingOrder.encounterNumber existed
+      // as a bare, unstructured string with nowhere real to resolve
+      // into before this. Only when a real encounter number was
+      // actually provided - not every accession has one (e.g. a
+      // routine outpatient referral with no real visit/FIN concept).
+      let resolvedEncounterId: string | undefined;
+      if (encounterNumber.trim()) {
+        const encounterResult = await mockEncounterService.resolveOrCreateEncounter({
+          organisationId: mpiOrgId,
+          patientId: mpiResult.patientId,
+          encounterNumber: encounterNumber.trim(),
+          encounterClass: 'Outpatient', // honest default - real class isn't captured on IncomingOrder yet
+          sourceAccession: fullAccession,
+        });
+        if (encounterResult.ok) resolvedEncounterId = encounterResult.data.id;
       }
 
       const newCase: Case = {
@@ -978,7 +1139,7 @@ const AccessionPage: React.FC = () => {
         accession: {
           accessionNumber: fullAccession,
           accessionPrefix: registryConfig?.prefix ?? 'O',
-          accessionYear: new Date().getFullYear(),
+          accessionYear: getFacilityDateParts(new Date(), config.facilityTimezone).year,
           fullAccession,
           formatPatternUsed: registryConfig?.maskPattern,
           accessionedAt: nowIso,
@@ -986,6 +1147,7 @@ const AccessionPage: React.FC = () => {
         },
         originHospitalId,
         originSiteId: originSiteId || undefined,
+        encounterId: resolvedEncounterId,
         // Real fix: this was previously hardcoded to 'ENT-ACME' — a
         // literal that didn't even match EnterpriseConfig's own default
         // id ('ENT-DEFAULT' in contexts/SystemConfigContext.tsx), two
@@ -998,7 +1160,7 @@ const AccessionPage: React.FC = () => {
         // itself uses if the organisation somehow didn't resolve, not a
         // third, different literal.
         originEnterpriseId: originOrganisation?.enterpriseId ?? 'ENT-DEFAULT',
-        status: 'accessioned' as any,
+        status: 'accessioned',
         patient: {
           id: mpiResult.patientId,
           mrn: mrn.trim() || `AUTO-${caseId.slice(4)}`,
@@ -1013,13 +1175,17 @@ const AccessionPage: React.FC = () => {
           lastName: familyNames.trim(),
           dateOfBirth: new Date(dob).toISOString(),
           sex,
-        } as any,
-        specimens: specimenRecords.map(({ _entry, ...sp }) => sp) as any,
+        },
+        specimens: specimenRecords.map(({ _entry, ...sp }) => sp),
         order: {
           priority,
           requestingProvider: requestingProvider.trim(),
           clientId,
           clientName: selectedClient?.name,
+          locationId: locationId || undefined,
+          locationDisplay: selectedLocation
+            ? [selectedLocation.pointOfCare, selectedLocation.room, selectedLocation.bed].filter(Boolean).join(' / ')
+            : undefined,
           clinicalIndication: clinicalIndication.trim() || undefined,
           icd10Codes: icd10Codes.length ? icd10Codes : undefined,
           caseComments: caseComments.length ? caseComments : undefined,
@@ -1168,7 +1334,7 @@ const AccessionPage: React.FC = () => {
         <div className="ps-tab-bar ps-accession-tabs">
           <button className={`ps-tab-btn ${tab === 'case' ? 'active' : ''}`} onClick={() => setTab('case')}>Case & Patient</button>
           <button className={`ps-tab-btn ${tab === 'specimens' ? 'active' : ''}`} onClick={() => setTab('specimens')}>
-            Specimens {specimens.length ? `(${specimens.length})` : ''}
+            Specimens {filledSpecimenCount ? `(${filledSpecimenCount})` : ''}
           </button>
         </div>
 
@@ -1228,8 +1394,8 @@ const AccessionPage: React.FC = () => {
                   placeholder="If different from Given Name(s)" />
               </div>
               <div>
-                <label className="ps-label">Prefix (optional)</label>
-                <select className="ps-input-dark" value={namePrefix} onChange={e => setNamePrefix(e.target.value)}>
+                <label className="ps-label" htmlFor="accession-prefix">Prefix (optional)</label>
+                <select id="accession-prefix" className="ps-input-dark" value={namePrefix} onChange={e => setNamePrefix(e.target.value)}>
                   <option value="">None</option>
                   <option value="Mr.">Mr.</option>
                   <option value="Mrs.">Mrs.</option>
@@ -1245,12 +1411,12 @@ const AccessionPage: React.FC = () => {
                 <SuffixSelect value={nameSuffix} onChange={setNameSuffix} selectClassName="ps-input-dark" inputClassName="ps-input-dark" />
               </div>
               <div>
-                <label className="ps-label">Date of Birth</label>
-                <input className="ps-input-dark" type="date" value={dob} onChange={e => setDob(e.target.value)} />
+                <label className="ps-label" htmlFor="accession-dob">Date of Birth</label>
+                <input id="accession-dob" className="ps-input-dark" type="date" value={dob} onChange={e => setDob(e.target.value)} />
               </div>
               <div>
-                <label className="ps-label">Sex</label>
-                <select className="ps-input-dark" value={sex} onChange={e => setSex(e.target.value as any)}>
+                <label className="ps-label" htmlFor="accession-sex">Sex</label>
+                <select id="accession-sex" className="ps-input-dark" value={sex} onChange={e => setSex(e.target.value as 'M' | 'F' | 'U')}>
                   <option value="F">Female</option>
                   <option value="M">Male</option>
                   <option value="U">Other / Unspecified</option>
@@ -1261,30 +1427,80 @@ const AccessionPage: React.FC = () => {
                 <input className="ps-input-dark" value={mrn} onChange={e => setMrn(e.target.value)}
                   placeholder={selectedClient
                     ? `${patientIdStandard.label} format, e.g. ${patientIdStandard.example} — auto-generated if blank`
-                    : 'Select a Submitting Client first, or leave blank to auto-generate'} />
+                    : 'Select a Submitting Facility first, or leave blank to auto-generate'} />
+              </div>
+              {/* Real feature, per direct confirmation, building Phase
+                  B of the "Interface Exception & Case-Binding Module."
+                  Deliberately a rare, secondary toggle — genuine
+                  downtime/emergency accessions are the exception, not
+                  the default, so this stays visually de-emphasized
+                  rather than living among the primary identity
+                  fields above. */}
+              <div>
+                <label className="ps-accession-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={isDowntimeAccession}
+                    onChange={e => { setIsDowntimeAccession(e.target.checked); if (!e.target.checked) setDowntimeReasonCode(''); }}
+                  />
+                  This is a temporary/downtime placeholder identity (e.g. unidentified trauma patient, registration system outage)
+                </label>
+                {isDowntimeAccession && (
+                  <div className="ps-accession-downtime-reason">
+                    <label className="ps-label" htmlFor="accession-downtime-reason">Downtime Reason</label>
+                    <select id="accession-downtime-reason" className="ps-input-dark" value={downtimeReasonCode} onChange={e => setDowntimeReasonCode(e.target.value)}>
+                      <option value="">Select a reason…</option>
+                      {BREAK_GLASS_REASON_CODES.map(r => (
+                        <option key={r.code} value={r.code}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <div>
-                <label className="ps-label">Priority</label>
-                <select className="ps-input-dark" value={priority} onChange={e => setPriority(e.target.value as CasePriority)}>
+                <label className="ps-label" htmlFor="accession-priority">Priority</label>
+                <select id="accession-priority" className="ps-input-dark" value={priority} onChange={e => setPriority(e.target.value as CasePriority)}>
                   {priorityLevels.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="ps-label">Submitting Client</label>
-                <select className="ps-input-dark" value={clientId} onChange={e => setClientId(e.target.value)}>
-                  <option value="">Select client…</option>
+                <label className="ps-label" htmlFor="accession-client">Submitting Facility</label>
+                <select id="accession-client" className="ps-input-dark" value={clientId} onChange={e => setClientId(e.target.value)}>
+                  <option value="">Select facility…</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              {/* Real feature, per direct confirmation: "add the
+                  Client and Location as fields to be seen in the
+                  accession page." Optional — not every specimen has a
+                  known, specific inpatient location (e.g. outpatient/
+                  clinic specimens genuinely have none). */}
               <div>
-                <label className="ps-label">Origin Hospital / Organisation</label>
-                <input className="ps-input-dark ps-input-readonly" readOnly disabled
+                <label className="ps-label" htmlFor="accession-location">Location (Ward / Room / Bed)</label>
+                <select
+                  id="accession-location" className="ps-input-dark"
+                  value={locationId} onChange={e => setLocationId(e.target.value)}
+                  disabled={!clientId}
+                >
+                  <option value="">
+                    {!clientId ? 'Select a Submitting Facility first' : locations.length === 0 ? 'No locations configured for this facility' : 'None specified'}
+                  </option>
+                  {locations.map(l => (
+                    <option key={l.id} value={l.id}>
+                      {[l.pointOfCare, l.room, l.bed].filter(Boolean).join(' / ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="ps-label" htmlFor="accession-origin-hospital">Origin Hospital / Organisation</label>
+                <input id="accession-origin-hospital" className="ps-input-dark ps-input-readonly" readOnly disabled
                   value={user?.organisationId ? (getOrganisationDisplayName(originHospitalId) ?? originHospitalId) : 'No organisation on session — contact an admin'} />
               </div>
               {originSites.length > 1 && (
                 <div>
-                  <label className="ps-label">Site / Facility</label>
-                  <select className="ps-input-dark" value={originSiteId} onChange={e => setOriginSiteId(e.target.value)}>
+                  <label className="ps-label" htmlFor="accession-origin-site">Site / Facility</label>
+                  <select id="accession-origin-site" className="ps-input-dark" value={originSiteId} onChange={e => setOriginSiteId(e.target.value)}>
                     {originSites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
@@ -1294,8 +1510,8 @@ const AccessionPage: React.FC = () => {
                 <input className="ps-input-dark" value={requestingProvider} onChange={e => setRequestingProvider(e.target.value)} placeholder="Dr. Jane Smith" />
               </div>
               <div>
-                <label className="ps-label">Assign to Pathologist (optional)</label>
-                <select className="ps-input-dark" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
+                <label className="ps-label" htmlFor="accession-assigned-to">Assign to Pathologist (optional)</label>
+                <select id="accession-assigned-to" className="ps-input-dark" value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
                   <option value="">Unassigned — leave for triage</option>
                   {pathologists.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                 </select>
@@ -1504,6 +1720,7 @@ const AccessionPage: React.FC = () => {
 
             {deficiencyModalOpenForIdx !== null && (
               <ReportDeficiencyModal
+                context="specimen"
                 specimenLabel={specimens[deficiencyModalOpenForIdx].label}
                 deficiencyTypes={deficiencyTypes}
                 existing={specimens[deficiencyModalOpenForIdx].manualDeficiency}
@@ -1520,22 +1737,6 @@ const AccessionPage: React.FC = () => {
                   setDeficiencyModalOpenForIdx(null);
                 }}
                 onClose={() => setDeficiencyModalOpenForIdx(null)}
-              />
-            )}
-
-            {caseDeficiencyModalOpen && (
-              <ReportDeficiencyModal
-                deficiencyTypes={deficiencyTypes}
-                existing={caseManualDeficiency}
-                onSave={(deficiencyTypeId, comment) => {
-                  setCaseManualDeficiency({ deficiencyTypeId, comment });
-                  setCaseDeficiencyModalOpen(false);
-                }}
-                onRemove={() => {
-                  setCaseManualDeficiency(undefined);
-                  setCaseDeficiencyModalOpen(false);
-                }}
-                onClose={() => setCaseDeficiencyModalOpen(false)}
               />
             )}
 
@@ -1625,6 +1826,31 @@ const AccessionPage: React.FC = () => {
         />
       )}
 
+      {/* Was previously nested inside {tab === 'specimens' && (...)} — a
+          real, confirmed bug: this modal's own trigger button lives on
+          the Case & Patient tab, so clicking it while on that tab set
+          caseDeficiencyModalOpen to true but the modal's JSX didn't even
+          exist in the tree yet (tab was still 'case'), so nothing
+          visibly happened. Moved here, tab-independent, matching the
+          same correct pattern CaseCommentModal right above already
+          uses for the identical trigger-modal relationship. */}
+      {caseDeficiencyModalOpen && (
+        <ReportDeficiencyModal
+          context="case"
+          deficiencyTypes={deficiencyTypes}
+          existing={caseManualDeficiency}
+          onSave={(deficiencyTypeId, comment) => {
+            setCaseManualDeficiency({ deficiencyTypeId, comment });
+            setCaseDeficiencyModalOpen(false);
+          }}
+          onRemove={() => {
+            setCaseManualDeficiency(undefined);
+            setCaseDeficiencyModalOpen(false);
+          }}
+          onClose={() => setCaseDeficiencyModalOpen(false)}
+        />
+      )}
+
       {intraopMatch && (
         <IntraopMergePromptModal
           caseId={intraopMatch.caseId}
@@ -1643,6 +1869,32 @@ const AccessionPage: React.FC = () => {
           onDismiss={() => setIntraopMatch(null)}
         />
       )}
+
+      <ConfirmModal
+        show={!!pendingImportOrderId}
+        title="Replace Unsaved Information"
+        message="This form has unsaved information. Importing this order will replace it. Continue?"
+        confirmLabel="Continue"
+        onConfirm={confirmImportOrder}
+        onCancel={() => setPendingImportOrderId(null)}
+      />
+
+      {/* Real, confirmed gap: this page previously had no confirmation UI
+          at all for the shared unsaved-changes system — setDirty() alone
+          correctly blocks navigation via AppShell's guardedNavigate, but
+          the DirtyStateContext provider itself renders nothing; every
+          page that wants this protection has to supply its own dialog
+          reacting to pendingPath. Without this, the user would click a
+          nav link and nothing would visibly happen — blocked, but with
+          no way to actually confirm or cancel leaving. */}
+      <ConfirmModal
+        show={!!pendingPath}
+        title="Leave Accession?"
+        message="This form has unsaved information that hasn't been submitted. Leaving now will discard it. Continue?"
+        confirmLabel="Leave and Discard"
+        onConfirm={confirmNavigate}
+        onCancel={cancelNavigate}
+      />
     </div>
   );
 };

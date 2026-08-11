@@ -71,7 +71,7 @@ const LS_VERSION = 'v2';
 // rather than hardcoding their own copy of it. That's exactly how
 // firestoreCodeService.ts silently broke when LS_VERSION bumped to v2 —
 // it had its own hardcoded 'pathscribe_system_config_v1' string.
-export const LS_KEY = `pathscribe_system_config_${LS_VERSION}`;
+const LS_KEY = `pathscribe_system_config_${LS_VERSION}`;
 const LS_ENT_KEY = `pathscribe_enterprise_config_${LS_VERSION}`;
 const LS_HSP_KEY = `pathscribe_hospital_config_${LS_VERSION}`;
 
@@ -81,7 +81,7 @@ function loadSystemConfig(): SystemConfig {
     const merged: SystemConfig = raw
       ? { ...DEFAULT_SYSTEM_CONFIG, ...JSON.parse(raw) as Partial<SystemConfig> }
       : { ...DEFAULT_SYSTEM_CONFIG };
-    const envVoice = (import.meta as any).env?.VITE_VOICE_ENABLED;
+    const envVoice = import.meta.env?.VITE_VOICE_ENABLED;
     if (envVoice === 'false') merged.voiceEnabled = false;
     return merged;
   } catch { return { ...DEFAULT_SYSTEM_CONFIG }; }

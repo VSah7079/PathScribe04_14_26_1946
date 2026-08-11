@@ -12,7 +12,7 @@ import type { ICaseService } from './ICaseService';
 import { ConcurrencyConflictError } from './ConcurrencyConflictError';
 import type { Case } from '../../types/case/Case';
 import { storageGet, storageSet, storageClear } from '../mockStorage';
-import { applyCaseFilters } from './caseFilterUtils';
+import { applyCaseFilters, applyCasePagination } from './caseFilterUtils';
 
 // v3 key forces reset to pick up Stage 0 seed cases (O26-0018/0019/0020) —
 // see Stage 0 Requirements §5 (S0-MD-01). v2 was the reportingMode fix
@@ -20,11 +20,20 @@ import { applyCaseFilters } from './caseFilterUtils';
 const STORAGE_KEY = 'orch_cases_v3';
 const delay = (ms = 30) => new Promise(res => setTimeout(res, ms));
 
+// Real, honest justification for both functions below: these generate
+// FAKE, illustrative timestamps for seeded demo data ("N years/days ago
+// from right now"), not bucketing a real, stored clinical event by
+// facility timezone. The result is a real, absolute UTC instant (via
+// toISOString()) regardless of which timezone runs this code.
 function isoYearsAgo(years: number, month = 6, day = 15): string {
+  // eslint-disable-next-line no-restricted-properties -- see real, honest justification above this function
   return new Date(new Date().getFullYear() - years, month - 1, day).toISOString();
 }
 function isoDaysAgo(days: number): string {
-  const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString();
+  const d = new Date();
+  // eslint-disable-next-line no-restricted-properties -- see real, honest justification above isoYearsAgo
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
 }
 function iid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -1218,12 +1227,19 @@ const POOL_CASES: Case[] = [
 //     real assignedTo (matches CaseStatus.ts's own JSDoc for this status)
 //     instead.
 //
-// Each grossingReports[].aiSuggestions is intentionally minimal — only
-// fields the AI could plausibly know from accession-time data (specimen
-// description / clinical indication text) are pre-filled, at modest
-// confidence. Fields a PA actually measures at the bench (weight,
-// dimensions, fluid volume, block counts...) are left empty, same as a
-// real Stage 0 run would leave them.
+// Real fix, per direct spec: "This Case is just accessioned it does
+// not, should not have any textual data period." Previously each
+// grossingReports[].aiSuggestions was pre-seeded with 1-2 suggestions
+// derived from accession-time text (specimen description / clinical
+// indication) — defensible in isolation, but wrong for this app's
+// actual intended model: AI assistance is something the user
+// explicitly requests (the Orchestrator button, per-specimen),
+// never something pre-populated before they've even opened the
+// case. All three cases below now genuinely start blank —
+// answers: {} and no aiSuggestions key at all — exactly matching
+// what a real, freshly-accessioned case looks like. The Orchestrator
+// button remains the real, working, on-demand path to AI assistance
+// once the user asks for it.
 
 const STAGE0_CASES: Case[] = [
 
@@ -1256,10 +1272,17 @@ const STAGE0_CASES: Case[] = [
       templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
       status: 'draft',
       answers: {},
-      aiSuggestions: {
-        specimen_type: { value: 'Skin excision, right shoulder', confidence: 78, source: 'Accession: "Right shoulder skin excision, pigmented lesion"', verification: 'unverified' },
-        comments: { value: 'STAT — clinical suspicion for melanoma; expedite gross and submission.', confidence: 65, source: 'Accession: clinical indication', verification: 'unverified' },
-      },
+      // Real fix, per direct spec: "This Case is just accessioned it
+      // does not, should not have any textual data period... The
+      // User can indicate to have AI fill out the synoptic template."
+      // Previously seeded 2 aiSuggestions here (specimen_type,
+      // comments) derived from accession-time text — defensible in
+      // isolation (real accession data, honestly labeled unverified),
+      // but wrong per this app's actual intended state model: AI
+      // assistance is something the user explicitly requests (the
+      // Orchestrator button, already fully working), not something
+      // pre-populated before they ever open the case. A genuinely
+      // fresh accession has nothing here until the user asks for it.
       createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     }],
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
@@ -1294,9 +1317,8 @@ const STAGE0_CASES: Case[] = [
       templateName: 'Fluid / Cell Block Grossing (Gold Standard) — Route B',
       status: 'draft',
       answers: {},
-      aiSuggestions: {
-        comments: { value: 'New left pleural effusion, unknown primary — r/o malignant effusion.', confidence: 60, source: 'Accession: clinical indication', verification: 'unverified' },
-      },
+      // Real fix, matching O26-0018's own comment above — see there
+      // for the full reasoning.
       createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     }],
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
@@ -1331,9 +1353,8 @@ const STAGE0_CASES: Case[] = [
       templateName: 'Histology-Only / Direct Triage (Gold Standard) — Route C',
       status: 'draft',
       answers: {},
-      aiSuggestions: {
-        comments: { value: 'Outside consultation — second-opinion review of prior melanocytic lesion diagnosis.', confidence: 62, source: 'Accession: clinical indication', verification: 'unverified' },
-      },
+      // Real fix, matching O26-0018's own comment above — see there
+      // for the full reasoning.
       createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
     }],
     createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
@@ -1737,6 +1758,109 @@ const COMPLETED_DEMO_CASES: Case[] = [
     }],
     createdAt: isoDaysAgo(3), updatedAt: isoDaysAgo(0),
   } as any,
+
+  // O26-0029: Prostate Core Biopsy — accessioned, NOT grossed. Real
+  // feature, per direct request: a seed case specifically for testing
+  // the Biopsy Array feature (MaterialTreePanel.tsx's "+ Create Biopsy
+  // Array" action). 12 separate specimens, standard systematic
+  // mapping-biopsy site convention (sextant-plus: base/mid/apex,
+  // parasagittal/lateral, bilateral) — each core is genuinely its own
+  // specimen with its own eventual synoptic report, confirmed as the
+  // right model earlier in this conversation (each Specimen already
+  // carries its own bodySite/laterality). None grossed yet — no
+  // blocks anywhere — so a PA can open this case and immediately
+  // exercise the real "+ Create Biopsy Array" flow on real,
+  // freshly-accessioned specimens rather than a synthetic test
+  // fixture.
+  {
+    id: 'O26-0029', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0029', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0029' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    status: 'accessioned' as any,
+    patient: { id: 'OPAT-029', mrn: '200029', firstName: 'Marcus', lastName: 'Delacroix', dateOfBirth: isoYearsAgo(64, 11, 3), sex: 'M' },
+    specimens: [
+      { id: 'O26-0029-SP-A', label: 'A', description: 'Prostate, right base, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-B', label: 'B', description: 'Prostate, right mid, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-C', label: 'C', description: 'Prostate, right apex, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-D', label: 'D', description: 'Prostate, right lateral base, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-E', label: 'E', description: 'Prostate, right lateral mid, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-F', label: 'F', description: 'Prostate, right lateral apex, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-G', label: 'G', description: 'Prostate, left base, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-H', label: 'H', description: 'Prostate, left mid, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-I', label: 'I', description: 'Prostate, left apex, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-J', label: 'J', description: 'Prostate, left lateral base, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-K', label: 'K', description: 'Prostate, left lateral mid, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'O26-0029-SP-L', label: 'L', description: 'Prostate, left lateral apex, needle core biopsy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Anthony Reyes',
+      clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital",
+      clinicalIndication: 'PSA 7.8, rising over 18 months. DRE with palpable nodule, right lobe. mpMRI PI-RADS 4 lesion, right base. Proceeding to 12-core systematic transrectal biopsy with MRI/US fusion targeting.',
+      receivedDate: isoDaysAgo(0),
+      assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary',
+    },
+    caseFlags: [],
+    diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
+    // 12 separate grossing report instances, one per specimen — same
+    // draft/empty-answers shape as every other accessioned-not-grossed
+    // seed case (O26-0018's own pattern), just twelve of them instead
+    // of one.
+    grossingReports: [
+      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    ].map(letter => ({
+      instanceId: `O26-0029-SP-${letter}_grossing_${iid()}`,
+      specimenId: `O26-0029-SP-${letter}`,
+      templateId: 'grossing_standard_tissue',
+      templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+      status: 'draft',
+      answers: {},
+      createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+    })),
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+  } as any,
+
+  // O26-0030: Radical Prostatectomy — accessioned, NOT grossed. Real
+  // feature, per direct request. Single specimen (the whole gland) —
+  // deliberately NOT modeled as multiple specimens, since a radical
+  // prostatectomy genuinely is one physical specimen, unlike the
+  // 12-separate-cores biopsy above. Worth being direct about: this
+  // case does NOT exercise the Biopsy Array feature the way O26-0029
+  // does, since Biopsy Array is inherently a multi-specimen concept —
+  // this is a good test case for the ordinary single-specimen
+  // grossing workflow instead (large-specimen orientation, weight,
+  // inking, sequential whole-mount sectioning), not a substitute for
+  // O26-0029's array-specific coverage.
+  {
+    id: 'O26-0030', reportingMode: 'orchestrator',
+    accession: { accessionNumber: 'O0030', accessionPrefix: 'O', accessionYear: 2026, fullAccession: 'O26-0030' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    status: 'accessioned' as any,
+    patient: { id: 'OPAT-030', mrn: '200030', firstName: 'Harold', lastName: 'Whitfield', dateOfBirth: isoYearsAgo(61, 5, 22), sex: 'M' },
+    specimens: [
+      { id: 'O26-0030-SP-A', label: 'A', description: 'Radical prostatectomy with bilateral pelvic lymph node dissection', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: {
+      priority: 'Routine',
+      requestingProvider: 'Dr. Anthony Reyes',
+      clientId: 'c-stcatherines', clientName: "St. Catherine's University Hospital",
+      clinicalIndication: 'Prostate adenocarcinoma, systematic biopsy Gleason 4+3=7 (Grade Group 3), PSA 9.4. mpMRI PI-RADS 4 right base, no extraprostatic extension. Robotic radical prostatectomy with bilateral pelvic lymph node dissection.',
+      receivedDate: isoDaysAgo(0),
+      assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary',
+    },
+    caseFlags: [],
+    diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
+    grossingReports: [{
+      instanceId: `O26-0030-SP-A_grossing_${iid()}`,
+      specimenId: 'O26-0030-SP-A',
+      templateId: 'grossing_standard_tissue',
+      templateName: 'Standard Tissue Grossing (Gold Standard) — Route A',
+      status: 'draft',
+      answers: {},
+      createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+    }],
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+  } as any,
 ];
 
 // ─── Seed ─────────────────────────────────────────────────────
@@ -1758,7 +1882,7 @@ if (storedOrchVersion !== ORCH_MOCK_VERSION) {
   localStorage.setItem(ORCH_VERSION_KEY, ORCH_MOCK_VERSION);
 }
 
-let CASES: Case[] = (() => {
+const CASES: Case[] = (() => {
   const stored = storageGet<Case[]>(STORAGE_KEY, []);
   return stored?.length ? stored : ORCH_CASES;
 })();
@@ -1774,13 +1898,15 @@ export const mockOrchestratorCaseService: ICaseService = {
 
   async getAll(params?) {
     await delay();
-    const results = applyCaseFilters(CASES, params);
-    return { ok: true, data: results as any[] };
+    const filtered = applyCaseFilters(CASES, params);
+    const { data, meta } = applyCasePagination(filtered, params);
+    return meta ? { ok: true, data: data as any[], meta } : { ok: true, data: data as any[] };
   },
 
   // Filter by assigned user — pool cases visible to all
   async listCasesForUser(userId: string): Promise<Case[]> {
     await delay();
+    if (!userId || userId === 'all' || userId === 'current') return CASES;
     return CASES.filter(c =>
       c.order?.assignedTo === userId ||
       (c.status as string) === 'pool'

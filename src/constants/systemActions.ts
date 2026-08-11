@@ -524,7 +524,7 @@ export const ACTION_MAP: Record<ActionId, SystemAction> =
   {} as Record<ActionId, SystemAction>;
 
 /** internalKey → action — used by keyboard handler to dispatch */
-export const INTERNAL_KEY_MAP: Record<string, SystemAction> = {};
+const INTERNAL_KEY_MAP: Record<string, SystemAction> = {};
 
 ACTION_GROUPS.forEach(g =>
   g.actions.forEach(a => {
@@ -549,6 +549,7 @@ export const VOICE_CONTEXT = {
   CONFIGURATION: 'CONFIGURATION',
   ACCESSION:     'ACCESSION',
   CONTRIBUTION:  'CONTRIBUTION',
+  INTRAOP:       'INTRAOP',
 } as const;
 
 export type VoiceContextName = typeof VOICE_CONTEXT[keyof typeof VOICE_CONTEXT];

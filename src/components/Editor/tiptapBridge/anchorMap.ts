@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { Editor } from '@tiptap/react';
+import { SECTION_ID_ATTR, AI_SECTION_ATTR } from './aiContentMarkers';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -43,12 +44,7 @@ export type AnchorMap = Map<string, SectionAnchor>;
 // ─────────────────────────────────────────────────────────────
 
 export function buildSectionHeadingHtml(sectionId: string, title: string): string {
-  return `<h2 data-section-id="${sectionId}" data-ai-section="true">${title}</h2>`;
-}
-
-/** Paragraph inserted immediately after section heading to anchor content */
-export function buildSectionAnchorHtml(sectionId: string): string {
-  return `<p data-section-anchor="${sectionId}"></p>`;
+  return `<h2 ${SECTION_ID_ATTR}="${sectionId}" ${AI_SECTION_ATTR}="true">${title}</h2>`;
 }
 
 // ─────────────────────────────────────────────────────────────

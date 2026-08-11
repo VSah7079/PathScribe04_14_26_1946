@@ -94,7 +94,7 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
 
     caseRouter.getCase(caseId).then(async (caseData) => {
       if (cancelled) return;
-      const orderingClientId = (caseData as any)?.order?.clientId as string | undefined;
+      const orderingClientId = caseData?.order?.clientId;
       const res = await mockSessionTimeoutService.resolveEffectiveMinutes(orderingClientId);
       if (!cancelled && res.ok) setEffectiveMinutes(res.data);
     }).catch(async () => {

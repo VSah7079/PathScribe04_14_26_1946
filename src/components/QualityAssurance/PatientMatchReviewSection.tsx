@@ -33,6 +33,9 @@ import type { Organisation } from '@/services/organisation/organisationService';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import ConfirmModal from '../Common/ConfirmModal';
+import { exportQaReportRows } from './qaReportUtils';
+
+const ALL_ORGS_VALUE = '__all__';
 
 export const PatientMatchReviewSection: React.FC = () => {
   const session = getSessionUser();
@@ -50,6 +53,7 @@ export const PatientMatchReviewSection: React.FC = () => {
   const [caseContext, setCaseContext] = useState<Record<string, { accession?: string; specimen?: string; provider?: string; accessionedAt?: string; accessionedBy?: string }[]>>({});
   const [loading, setLoading] = useState(true);
   const [mergeTarget, setMergeTarget] = useState<{ provisional: MasterPatientRecord; candidate: MasterPatientRecord } | null>(null);
+  const [linkTarget, setLinkTarget] = useState<{ provisional: MasterPatientRecord; candidate: MasterPatientRecord } | null>(null);
   const [confirmNewTarget, setConfirmNewTarget] = useState<MasterPatientRecord | null>(null);
   const [actionInFlight, setActionInFlight] = useState<string | null>(null);
   const [lastMergeCount, setLastMergeCount] = useState<number | null>(null);
@@ -63,7 +67,13 @@ export const PatientMatchReviewSection: React.FC = () => {
   const loadQueue = React.useCallback(async () => {
     if (!selectedOrgId) { setPending([]); setLoading(false); return; }
     setLoading(true);
-    const records = await mockPatientIndexService.listPendingReview(selectedOrgId);
+    // Real fix, item #92: cross-tenant admins previously had to switch
+    // between organisations one at a time to see pending reviews across
+    // the whole system - a real "See All" sentinel, aggregating across
+    // every active org, closes that gap.
+    const records = selectedOrgId === ALL_ORGS_VALUE
+      ? (await Promise.all(organisations.map(o => mockPatientIndexService.listPendingReview(o.id)))).flat()
+      : await mockPatientIndexService.listPendingReview(selectedOrgId);
     setPending(records);
     // Real candidate detail lookup — the queue needs to show WHO each
     // flagged record might actually be (name, MRN, DOB), not just an
@@ -97,7 +107,7 @@ export const PatientMatchReviewSection: React.FC = () => {
     }
     setCaseContext(contextByRecord);
     setLoading(false);
-  }, [selectedOrgId]);
+  }, [selectedOrgId, organisations]);
 
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
@@ -124,6 +134,48 @@ export const PatientMatchReviewSection: React.FC = () => {
     loadQueue();
   };
 
+  const handleLinkConfirmed = async () => {
+    if (!linkTarget) return;
+    setActionInFlight(linkTarget.provisional.id);
+    await mockPatientIndexService.linkPatients(
+      linkTarget.provisional.id,
+      linkTarget.candidate.id,
+      session?.id ?? 'unknown',
+      linkTarget.provisional.reviewReason,
+    );
+    setActionInFlight(null);
+    setLinkTarget(null);
+    loadQueue();
+  };
+
+  // "Just the working rows" — the queue currently on screen, not a
+  // complete historical record (there isn't one for this queue the way
+  // there is for deficiencies; a resolved match doesn't stay queryable
+  // here once it's merged/linked/confirmed).
+  const handleExport = () => {
+    const rows = pending.map(record => {
+      const candidates = (record.reviewCandidateIds ?? [])
+        .map(id => candidateDetails[id])
+        .filter((c): c is MasterPatientRecord => !!c)
+        .map(c => `${c.lastName}, ${c.firstName} (MRN ${c.mrn})`)
+        .join('; ');
+      const context = (caseContext[record.id] ?? [])
+        .map(ctx => ctx.accession ?? '')
+        .filter(Boolean)
+        .join('; ');
+      return {
+        'Record': `${record.lastName}, ${record.firstName}`,
+        'MRN': record.mrn,
+        'DOB': new Date(record.dateOfBirth).toLocaleDateString(),
+        'Flagged': record.createdAt,
+        'Reason': record.reviewReason,
+        'From Accession(s)': context,
+        'Possible Matches': candidates || 'none',
+      };
+    });
+    exportQaReportRows(rows, `patient-match-review-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div style={{ width: '100%', maxWidth: 960 }}>
       <div style={{ marginBottom: 24 }}>
@@ -139,20 +191,26 @@ export const PatientMatchReviewSection: React.FC = () => {
 
       {crossTenant && (
         <div style={{ marginBottom: 16 }}>
-          <label className="ps-conf-label" style={{ display: 'block', marginBottom: 6 }}>Organisation</label>
+          <label className="ps-conf-label" htmlFor="pmr-organisation-select" style={{ display: 'block', marginBottom: 6 }}>Organisation</label>
           <select
+            id="pmr-organisation-select"
             value={selectedOrgId}
             onChange={e => setSelectedOrgId(e.target.value)}
             className="ps-conf-select"
             style={{ width: 320 }}
           >
             <option value="">Select an organisation…</option>
+            <option value={ALL_ORGS_VALUE}>— See All Organisations —</option>
             {organisations.map(o => (
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
         </div>
       )}
+
+      <div className="ps-qa-tab-toolbar">
+        <button className="ps-conf-btn-secondary" onClick={handleExport}>Export</button>
+      </div>
 
       {lastMergeCount !== null && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, fontSize: 13, color: '#4ade80' }}>
@@ -181,9 +239,10 @@ export const PatientMatchReviewSection: React.FC = () => {
                     MRN {record.mrn} · DOB {new Date(record.dateOfBirth).toLocaleDateString()} · Flagged {new Date(record.createdAt).toLocaleString()}
                   </div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#fbbf24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 999, padding: '3px 10px' }}>
-                  Needs Review
-                </span>
+                <div className="ps-conf-status-cell">
+                  <span className="ps-conf-status-dot ps-conf-status-dot--pending" />
+                  <span className="ps-conf-status-text ps-conf-status-text--pending">Needs Review</span>
+                </div>
               </div>
 
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
@@ -222,14 +281,25 @@ export const PatientMatchReviewSection: React.FC = () => {
                             <div style={{ fontSize: 13, color: '#e5e7eb' }}>{cand.lastName}, {cand.firstName}</div>
                             <div style={{ fontSize: 11, color: '#6b7280' }}>MRN {cand.mrn} · DOB {new Date(cand.dateOfBirth).toLocaleDateString()}</div>
                           </div>
-                          <button
-                            type="button"
-                            className="ps-conf-btn-secondary"
-                            disabled={actionInFlight === record.id}
-                            onClick={() => setMergeTarget({ provisional: record, candidate: cand })}
-                          >
-                            Merge into this patient
-                          </button>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              type="button"
+                              className="ps-conf-btn-secondary"
+                              disabled={actionInFlight === record.id}
+                              onClick={() => setLinkTarget({ provisional: record, candidate: cand })}
+                              title="Confirm this is the same real person WITHOUT merging - both records stay active, e.g. the same patient referred by two different EMR systems"
+                            >
+                              Link — same patient, different source
+                            </button>
+                            <button
+                              type="button"
+                              className="ps-conf-btn-secondary"
+                              disabled={actionInFlight === record.id}
+                              onClick={() => setMergeTarget({ provisional: record, candidate: cand })}
+                            >
+                              Merge into this patient
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -274,6 +344,18 @@ export const PatientMatchReviewSection: React.FC = () => {
         cancelLabel="Cancel"
         onConfirm={handleMergeConfirmed}
         onCancel={() => setMergeTarget(null)}
+      />
+
+      <ConfirmModal
+        show={!!linkTarget}
+        title="Link patient records"
+        message={linkTarget
+          ? `This confirms ${linkTarget.provisional.lastName}, ${linkTarget.provisional.firstName} (MRN ${linkTarget.provisional.mrn}) and ${linkTarget.candidate.lastName}, ${linkTarget.candidate.firstName} (MRN ${linkTarget.candidate.mrn}) are the same real person — for example, referred to this lab by two different, unrelated EMR systems. Unlike a merge, BOTH records stay fully active and will keep matching their own future orders under their own MRN. Patient History will show cases from both going forward.`
+          : ''}
+        confirmLabel="Link"
+        cancelLabel="Cancel"
+        onConfirm={handleLinkConfirmed}
+        onCancel={() => setLinkTarget(null)}
       />
     </div>
   );

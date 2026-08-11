@@ -1,6 +1,5 @@
 import { LoaderFunctionArgs, redirect } from "react-router-dom";
-import { mockCaseService } from "../services/cases/mockCaseService";
-import { mockOrchestratorCaseService } from "../services/cases/mockOrchestratorCaseService";
+import { caseRouter } from "../services/cases/CaseRouter";
 
 export async function synopticLoader({ params }: LoaderFunctionArgs) {
   const caseId = params.caseId;
@@ -10,12 +9,11 @@ export async function synopticLoader({ params }: LoaderFunctionArgs) {
     return redirect("/worklist");
   }
 
-  // Try LIS service first (S26- cases), then Orchestrator service (O26- cases)
-  let caseData = await mockCaseService.getCase(caseId).catch(() => null);
-
-  if (!caseData) {
-    caseData = await mockOrchestratorCaseService.getCase(caseId).catch(() => null) ?? undefined;
-  }
+  // caseRouter already handles both LIS (S26-) and Orchestrator (O26-)
+  // lookups internally — was previously two separate, manual calls to
+  // mockCaseService then mockOrchestratorCaseService, duplicating logic
+  // caseRouter has since consolidated.
+  const caseData = await caseRouter.getCase(caseId).catch(() => undefined);
 
   if (!caseData) {
     console.error(`Case not found in any service: ${caseId}`);

@@ -20,6 +20,22 @@ export interface AIGenerationRequest {
   maxTokens?:   number;
   /** Abort signal for cancellation support */
   abortSignal?: AbortSignal;
+  /** Real fix, per direct report: which report section this
+   *  generation call is actually for (e.g. 'gross_description',
+   *  'ancillary_and_diagnosis'). Known and available at the call
+   *  site (orchestratorEngine.ts already has section.id in hand) but
+   *  previously discarded before reaching the provider — forcing
+   *  MockProvider.ts to guess the target section by searching for
+   *  its name as literal text within the prompt, which incorrectly
+   *  matched every section's shared case-context header block
+   *  (e.g. the "─── GROSS DESCRIPTION ───" line is present in every
+   *  prompt regardless of which section is the actual target),
+   *  causing every section to resolve to the same canned text.
+   *  Optional — real providers ignore it; only the mock provider
+   *  needs it, since it has no real model to actually understand
+   *  the prompt's own explicit "you are generating the X section"
+   *  framing. */
+  sectionId?:   string;
 }
 
 export interface AIGenerationResult {
@@ -47,7 +63,7 @@ export interface AIConnectionTest {
 /**
  * IAIProvider — the single interface every AI backend must implement.
  *
- * Concrete implementations: ClaudeProvider, MockProvider.
+ * Concrete implementations: StructuredMessagesProvider, MockProvider.
  * Resolved at runtime by AIProviderRegistry based on org config.
  */
 export interface IAIProvider {

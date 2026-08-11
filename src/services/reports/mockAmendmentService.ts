@@ -268,6 +268,10 @@ export const mockAmendmentService: IAmendmentService = {
     return ok(load().filter(r => r.caseId === caseId));
   },
 
+  async getAll() {
+    return ok(load());
+  },
+
   async getOpenDraftsForPathologist(pathologistId) {
     return ok(load().filter(r => r.status === 'draft' && r.authoringPathologist.userId === pathologistId));
   },

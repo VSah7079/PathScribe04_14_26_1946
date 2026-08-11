@@ -8,11 +8,24 @@ import starterData from '../../../scripts/terminology-sources/specimens-starter.
 
 // ─── Starter data seed ────────────────────────────────────────────────────────
 // Moved here from useSpecimenDictionary.tsx (June 2026) — same seed data,
-// same requireFixativeTimeBeforeSignout patch (Breast-type entries
+// same requireFixativeTimeBeforeSignout patch (Breast Pathology entries
 // flagged per CAP/ASCO biomarker guidance — specimens-starter.json lives
 // outside src/ and isn't directly editable from here).
+//
+// Real, severe bug found and fixed here: this used to check
+// `e.type === 'Breast'`, but real SpecimenEntry.type values are procedure
+// categories (Biopsy, Resection, Excision, etc.) — never organ/subspecialty
+// names. Confirmed directly against the real 60-entry starter data: zero
+// specimens ever had requireFixativeTimeBeforeSignout actually set, which
+// meant the CAP/ASCO fixation-time compliance gate (FixativeTimeGateModal.tsx,
+// gating sign-out in SynopticReportPage.tsx) never fired for any real breast
+// specimen — a real, clinically meaningful safety gap, not a cosmetic issue.
+// Fixed to check subspecialty === 'Breast Pathology', confirmed directly to
+// correctly capture all 7 real breast-pathology-relevant specimens, including
+// Mastectomy and axillary/sentinel-node entries that don't even contain the
+// word "breast" in their name (a name-substring check would have missed them).
 const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as SpecimenEntry[]).map(e =>
-  e.type === 'Breast' ? { ...e, requireFixativeTimeBeforeSignout: true } : e
+  e.subspecialty === 'Breast Pathology' ? { ...e, requireFixativeTimeBeforeSignout: true } : e
 ).concat([
   // Medical Renal — the clearest real example of a specimen that
   // genuinely splits into parallel processing streams rather than
@@ -37,6 +50,10 @@ const STARTER_SPECIMENS: SpecimenEntry[] = (starterData.specimens as unknown as 
     // mapped from a transplant kidney biopsy entry, updated once,
     // cascading to both.
     protocolId: 'proto-medical-renal',
+    // Real, researched demo data (see specimens-starter.json's own
+    // notes field for the fuller disclosure) - matches the same real
+    // assignment given to the other native kidney needle biopsy entry.
+    defaultBaseCptCode: '88305',
   },
 ]);
 

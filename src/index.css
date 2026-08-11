@@ -85,6 +85,7 @@ html, body, #root {
 }
 
 body {
+  margin: 0; /* was only set imperatively via document.body.style.margin in Home.tsx's mount effect — meaning it never applied on pages that load before Home ever mounts, e.g. LoginPage. A global reset belongs in global CSS, not a page-specific side effect. */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

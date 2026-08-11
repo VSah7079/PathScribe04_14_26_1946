@@ -102,8 +102,7 @@ const RuleModal: React.FC<{
                 placeholder="Type keyword and press Enter or Add"
                 style={{ ...INPUT, flex: 1 }}
               />
-              <button onClick={addKeyword}
-                style={{ padding: '8px 16px', borderRadius: 7, border: '1px solid rgba(138,180,248,0.3)', background: 'rgba(138,180,248,0.1)', color: '#8AB4F8', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <button onClick={addKeyword} className="ps-conf-btn-teal-accent" style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>
                 Add
               </button>
             </div>

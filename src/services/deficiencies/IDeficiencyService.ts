@@ -29,6 +29,19 @@ export interface DeficiencyType {
   name: string;
   description?: string;
   status: 'Active' | 'Inactive';
+  /** Which context this deficiency type is meaningful in — a case-wide
+   *  issue (e.g. "Missing Requisition," which covers the whole order's
+   *  paperwork, not any one specimen) isn't the same thing as a
+   *  specimen-specific one (e.g. "Container Damaged"). Filters which
+   *  types show up in ReportDeficiencyModal depending on whether it
+   *  was opened from the case-level or specimen-level trigger — a real,
+   *  confirmed gap found during the Accession page bug-list review,
+   *  where every type showed up in both contexts regardless of whether
+   *  it actually applied. Optional and defaults to 'both' when absent
+   *  (existing/external data that predates this field, or a type an
+   *  admin hasn't classified yet) — the safe, permissive default rather
+   *  than silently hiding a type nobody's explicitly scoped. */
+  level?: 'case' | 'specimen' | 'both';
 }
 
 export interface IDeficiencyTypeService {

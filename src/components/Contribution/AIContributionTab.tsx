@@ -1,5 +1,6 @@
 // src/components/Contribution/AIContributionTab.tsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -18,7 +19,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 type DateRange  = "30d" | "90d" | "ytd";
 type Section    = "acceptance" | "overrides" | "comparison";
-type AiWorkflow = "synoptic" | "narrative";
 
 interface BreakdownRow {
   label: string; code?: string; rate: number; cases: number;
@@ -108,52 +108,19 @@ const synopticDataset: WorkflowDataset = {
   monthlyShape: [82, 84, 83, 86, 85, 88, 87, 87, 86, 89, 90, 91],
 };
 
-// ─── Mock Data — Narrative AI (Orchestration mode, outreach Gold Standard) ────
-// Breakdown dimension is by CLIENT rather than case type, since Orchestration's
-// Gold Standard template fallback is client-driven, not specialty-driven.
-// Client codes (MGH/RMC/WSC) match the same clients used in QualityTab's TAT-by-client data.
-
-const narrativeDataset: WorkflowDataset = {
-  label: "Narrative AI (Outreach)",
-  tileAssistedLabel:   "AI-Drafted Reports",
-  tileAssistedIcon:    "📝",
-  tileOverridesLabel:  "Narrative Edits",
-  tileConfidenceLabel: "Avg Draft Confidence",
-  breakdownTitle:    "Acceptance by Client",
-  breakdownSubtitle: "% of AI-drafted narratives accepted with no edits",
-  breakdownUnit:     "reports",
-  overridesTitle:    "Narrative Edits",
-  overridesSubtitle: "Outreach reports where the AI-drafted narrative was edited before sign-out",
-  overridesAiCol:     "AI Draft Excerpt",
-  overridesFinalCol:  "Final Excerpt",
-  overridesReasonCol: "Edit Reason",
-  comparisonTitle:    "AI-Drafted vs Manually Typed",
-  comparisonSubtitle: "Report volume and average turnaround time by drafting method",
-  comparisonAiLabel:     "AI-Drafted",
-  comparisonManualLabel: "Manually Typed",
-  trendTitle:    "Narrative Acceptance Trend",
-  trendSubtitle: "AI-drafted narrative acceptance rate over the selected period",
-  summary: { totalAssisted: 34, totalCases: 40, avgConfidence: 78.6 },
-  breakdown: [
-    { label: "Metro General Hospital",   code: "MGH", rate: 71, cases: 14 },
-    { label: "Riverside Medical Center", code: "RMC", rate: 64, cases: 11 },
-    { label: "Westview Surgery Center",  code: "WSC", rate: 58, cases: 9  },
-  ],
-  overridden: [
-    { id: "OUT-2024-0512", caseType: "Skin Excision", assigningAuthority: "WSC", aiSuggestion: "Margins widely clear of significant pathology with no residual atypia identified.",            finalDiagnosis: "Margins clear; rare residual junctional atypia noted near the inferior margin.",        reason: "Added margin nuance",             date: "Aug 12", daysAgo: 13 },
-    { id: "OUT-2024-0498", caseType: "GI Biopsy",     assigningAuthority: "MGH", aiSuggestion: "Findings are consistent with chronic inactive gastritis without Helicobacter organisms.",       finalDiagnosis: "Findings consistent with chronic gastritis; rare H. pylori organisms on special stain.", reason: "Incorporated special stain result", date: "Aug 6",  daysAgo: 19 },
-    { id: "OUT-2024-0471", caseType: "Breast Core Bx",assigningAuthority: "RMC", aiSuggestion: "No definitive evidence of invasive carcinoma identified in the submitted tissue.",              finalDiagnosis: "No invasive carcinoma; atypical ductal hyperplasia present, correlation recommended.",   reason: "Added clinical correlation",      date: "Jul 22", daysAgo: 34 },
-    { id: "OUT-2024-0440", caseType: "Prostate Bx",   assigningAuthority: "MGH", aiSuggestion: "Benign prostatic tissue with no evidence of malignancy in the cores examined.",                 finalDiagnosis: "Benign prostatic tissue; focal atypical small acinar proliferation, repeat advised.",    reason: "Flagged ASAP finding",            date: "Jun 30", daysAgo: 56 },
-    { id: "OUT-2024-0398", caseType: "Thyroid FNA",   assigningAuthority: "WSC", aiSuggestion: "Specimen is adequate and consistent with a benign colloid nodule.",                              finalDiagnosis: "Specimen adequate; findings most consistent with benign nodule, Bethesda II.",            reason: "Added Bethesda classification",   date: "May 28", daysAgo: 89 },
-  ],
-  comparison: [
-    { caseType: "Breast", aiAssisted: 9, manual: 2, aiTat: 2.6, manualTat: 3.8 },
-    { caseType: "GI",     aiAssisted: 8, manual: 1, aiTat: 2.2, manualTat: 3.1 },
-    { caseType: "GU",     aiAssisted: 6, manual: 1, aiTat: 2.9, manualTat: 4.0 },
-    { caseType: "Skin",   aiAssisted: 6, manual: 1, aiTat: 1.9, manualTat: 2.7 },
-  ],
-  monthlyShape: [58, 60, 59, 63, 65, 67, 69, 71, 70, 73, 75, 76],
-};
+// Real fix: narrativeDataset (and the whole "workflow" toggle concept)
+// removed entirely. This page is explicitly, visibly personal - the
+// real page title is "Contribution Dashboard" with the current user's
+// own name/role directly under it (ContributionDashboardPage.tsx).
+// NarrativeEditSignal (services/narrativeSignals/) carries no real
+// pathologist attribution at all, by deliberate design - it's built
+// for aggregate model-evaluation and partner sharing. That data
+// belongs in services/narrativeSignals/'s own real, already-existing
+// home: components/ValidationStudies/ValidationStudiesSection.tsx,
+// which already calls the same real getStats() and already generates
+// a formal "AI Narrative Quality" report - not duplicated here under a
+// personal framing it was never built for. See the real, direct link
+// to that section further down this file.
 
 // Display labels for known subspecialty values from the specimen dictionary.
 // Falls back to a humanized version of the raw name for anything not listed here,
@@ -199,52 +166,20 @@ function deriveBreakdownFromSpecimens(specimens: SpecimenEntry[]): BreakdownRow[
     .sort((a, b) => b.cases - a.cases);
 }
 
-const WORKFLOW_DATA: Record<AiWorkflow, WorkflowDataset> = {
-  synoptic:  synopticDataset,
-  narrative: narrativeDataset,
-};
-
-// 30-day view: synthesize 4 weekly points trending from last month's rate
-// toward this month's, anchored to real calendar dates (mirrors the same
-// technique used in QualityTab.tsx for its TAT trend 30-day view).
-function formatWeekLabel(d: Date): string {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-// "Year to date" should mean January through whichever month it actually is
-// right now — not a frozen hardcoded list that drifts out of sync the moment
-// a real month passes. monthlyShape is an illustrative 12-value pattern;
-// this slices it down to Jan..currentMonth using the real calendar date,
-// with real month names, so YTD is always correct regardless of when it's viewed.
-function buildYtdMonthly(monthlyShape: number[]): MonthlyPoint[] {
-  const today = new Date();
-  const currentMonthIdx = today.getMonth(); // 0 = Jan
-  const monthCount = Math.min(currentMonthIdx + 1, monthlyShape.length);
-  const points: MonthlyPoint[] = [];
-  for (let i = 0; i < monthCount; i++) {
-    const label = new Date(today.getFullYear(), i, 1).toLocaleDateString('en-US', { month: 'short' });
-    points.push({ month: label, rate: monthlyShape[i] });
-  }
-  return points;
-}
-
-function generateLast4WeeksAcceptance(monthly: MonthlyPoint[]): MonthlyPoint[] {
-  const latest = monthly[monthly.length - 1];
-  const prev   = monthly[monthly.length - 2] ?? latest;
-  const weights = [0.15, 0.45, 0.75, 1];
-  const today = new Date();
-  const weeks: MonthlyPoint[] = [];
-  for (let i = 3; i >= 0; i--) {
-    const weekEnding = new Date(today);
-    weekEnding.setDate(today.getDate() - i * 7);
-    const w = weights[3 - i];
-    weeks.push({ month: formatWeekLabel(weekEnding), rate: +(prev.rate + (latest.rate - prev.rate) * w).toFixed(1) });
-  }
-  return weeks;
-}
+/** Real, honest disclosure: the CSS-class-based counterpart to
+ *  ProductivityTab.tsx's own theme-object DemoDataBadge - same real
+ *  intent (a visible, honest "this is illustrative" signal for an
+ *  actual user, not just a code comment), different implementation
+ *  since this file uses pathscribe.css classes throughout. */
+const DemoDataBadge: React.FC = () => (
+  <span className="ps-demo-data-badge" title="Illustrative only — not calculated from your real case data yet">
+    Demo data
+  </span>
+);
 
 const AIContributionTab: React.FC = () => {
   const { user } = useAuth();
-  const [workflow,  setWorkflow]  = useState<AiWorkflow>("synoptic");
+  const navigate = useNavigate();
   const [section,   setSection]   = useState<Section>("acceptance");
   const [dateRange, setDateRange] = useState<DateRange>("30d");
 
@@ -287,6 +222,7 @@ const AIContributionTab: React.FC = () => {
 
   const myConfirmed  = myFeedback.filter(e => e.action === 'confirmed').length;
   const myOverridden = myFeedback.filter(e => e.action === 'overridden').length;
+
   const myTotal      = myConfirmed + myOverridden; // 'missed' entries aren't AI suggestions at all — no acceptance decision to measure
   const myAvgConfidence = myTotal > 0
     ? +(myFeedback.filter(e => e.action !== 'missed').reduce((s, e) => s + e.aiConfidence, 0) / myTotal).toFixed(1)
@@ -294,9 +230,9 @@ const AIContributionTab: React.FC = () => {
 
   const liveSynopticBreakdown = specimens ? deriveBreakdownFromSpecimens(specimens) : null;
 
-  const ds = workflow === "synoptic" && liveSynopticBreakdown
+  const ds = liveSynopticBreakdown
     ? {
-        ...WORKFLOW_DATA[workflow],
+        ...synopticDataset,
         breakdown: liveSynopticBreakdown,
         // No fallback to the old mock summary when myTotal is 0 — showing
         // fake-but-plausible numbers when there's genuinely no real usage
@@ -311,15 +247,9 @@ const AIContributionTab: React.FC = () => {
           reason: e.fieldLabel,
           date: new Date(e.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           daysAgo: Math.floor((Date.now() - new Date(e.timestamp).getTime()) / 86400000),
-          // assigningAuthority intentionally omitted — this is Synoptic AI
-          // Assist data (internal cases), not Narrative AI Outreach data
-          // (external client cases). Optional field, so leaving it unset
-          // is correct; only the type annotation above was needed to keep
-          // it part of the union so the narrative-workflow render branch
-          // (line ~523) still type-checks against both shapes.
         })),
       }
-    : WORKFLOW_DATA[workflow];
+    : synopticDataset;
 
   // Real trend, built from actual event timestamps — replaces the
   // synthetic interpolation buildYtdMonthly/generateLast4WeeksAcceptance
@@ -347,13 +277,9 @@ const AIContributionTab: React.FC = () => {
 
   const cutoff = dateRange === "30d" ? 30 : dateRange === "90d" ? 90 : 366;
 
-  const monthly = workflow === "synoptic"
-    ? buildRealTrend(366, 12)
-    : buildYtdMonthly(ds.monthlyShape);
+  const monthly = buildRealTrend(366, 12);
 
-  const trendRows = workflow === "synoptic"
-    ? (dateRange === "30d" ? buildRealTrend(28, 4) : dateRange === "90d" ? buildRealTrend(90, 3) : monthly)
-    : (dateRange === "30d" ? generateLast4WeeksAcceptance(monthly) : dateRange === "90d" ? monthly.slice(-3) : monthly);
+  const trendRows = dateRange === "30d" ? buildRealTrend(28, 4) : dateRange === "90d" ? buildRealTrend(90, 3) : monthly;
 
   const ytdAvgRate = +(monthly.reduce((s, d) => s + d.rate, 0) / monthly.length).toFixed(1);
   const periodAvgRate = +(trendRows.reduce((s, d) => s + d.rate, 0) / trendRows.length).toFixed(1);
@@ -388,7 +314,7 @@ const AIContributionTab: React.FC = () => {
     { label: ds.tileAssistedLabel,     value: scaledTotalAssisted,       unit: "",  color: "#38bdf8", icon: ds.tileAssistedIcon,
       delta: `of ${scaledTotalCases} total`, deltaUp: null as boolean | null },
     { label: ds.tileOverridesLabel,    value: filteredOverridden.length, unit: "",  color: "#fbbf24", icon: "✏️",
-      delta: workflow === "synoptic" ? "pathologist-changed" : "edited before sign-out", deltaUp: null as boolean | null },
+      delta: "pathologist-changed", deltaUp: null as boolean | null },
     { label: ds.tileConfidenceLabel,   value: ds.summary.avgConfidence,  unit: "%", color: "#0891b2", icon: "📊",
       delta: "not period-filtered", deltaUp: null as boolean | null },
   ];
@@ -396,15 +322,14 @@ const AIContributionTab: React.FC = () => {
   return (
     <div className="ps-quality-container">
 
-      {/* ── AI workflow switcher ── */}
-      <div className="ps-quality-nav" style={{ borderBottom: "none", paddingBottom: 0 }}>
-        <div className="ps-quality-nav__left">
-          {(Object.keys(WORKFLOW_DATA) as AiWorkflow[]).map(w => (
-            <button key={w} className={`ps-quality-btn${workflow === w ? " active" : ""}`} onClick={() => setWorkflow(w)}>
-              {WORKFLOW_DATA[w].label}
-            </button>
-          ))}
-        </div>
+      {/* Real, honest pointer to the actual, real home for aggregate,
+          practice-wide AI narrative-quality data — this page stays
+          entirely personal. */}
+      <div className="ps-contrib-validation-pointer">
+        Looking for practice-wide AI narrative performance?{' '}
+        <button type="button" className="ps-contrib-validation-link" onClick={() => navigate('/configuration?tab=validation')}>
+          View Validation Studies →
+        </button>
       </div>
 
       {/* ── Summary tiles ── */}
@@ -452,11 +377,14 @@ const AIContributionTab: React.FC = () => {
           {/* Acceptance by case type / client */}
           <div className="ps-quality-card">
             <div className="ps-quality-card__header">
-              <div className="ps-quality-card__title">{ds.breakdownTitle}</div>
+              <div className="ps-quality-card__title">
+                {ds.breakdownTitle}
+                <DemoDataBadge />
+              </div>
               <div className="ps-quality-card__subtitle">{ds.breakdownSubtitle}</div>
             </div>
             <div className="ps-quality-bar-list">
-              {workflow === "synoptic" && specimens === null
+              {specimens === null
                 ? <div className="ps-quality-empty">Loading case types…</div>
                 : scaledBreakdown.map(r => (
                 <div key={r.label} className="ps-quality-bar-row">
@@ -519,16 +447,13 @@ const AIContributionTab: React.FC = () => {
             : (
               <table className="ps-quality-table">
                 <thead>
-                  <tr>{["Case", "Type", ...(workflow === "narrative" ? ["Client"] : []), ds.overridesAiCol, ds.overridesFinalCol, ds.overridesReasonCol, "Date"].map(h => <th key={h} className="ps-quality-th">{h}</th>)}</tr>
+                  <tr>{["Case", "Type", ds.overridesAiCol, ds.overridesFinalCol, ds.overridesReasonCol, "Date"].map(h => <th key={h} className="ps-quality-th">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {filteredOverridden.map(c => (
                     <tr key={c.id}>
                       <td className="ps-quality-td ps-quality-td--accent">{c.id}</td>
                       <td className="ps-quality-td">{c.caseType}</td>
-                      {workflow === "narrative" && (
-                        <td className="ps-quality-td">{c.assigningAuthority && <span className="ps-client-authority-badge">{c.assigningAuthority}</span>}</td>
-                      )}
                       <td className="ps-quality-td ps-quality-td--muted">{c.aiSuggestion}</td>
                       <td className="ps-quality-td ps-quality-td--primary">{c.finalDiagnosis}</td>
                       <td className="ps-quality-td">
@@ -548,8 +473,11 @@ const AIContributionTab: React.FC = () => {
       {section === "comparison" && (
         <div className="ps-quality-card">
           <div className="ps-quality-card__header">
-            <div className="ps-quality-card__title">{ds.comparisonTitle}</div>
-            <div className="ps-quality-card__subtitle">{ds.comparisonSubtitle}</div>
+            <div className="ps-quality-card__title">
+              {ds.comparisonTitle}
+              <DemoDataBadge />
+            </div>
+            <div className="ps-quality-card__subtitle">{ds.comparisonSubtitle} — no real "manual, non-AI-assisted" case tracking exists yet, so this comparison remains illustrative</div>
             <div className="ps-quality-legend">
               <div className="ps-quality-legend__item">
                 <div className="ps-quality-legend__swatch" style={{ background: "var(--ps-teal-light)" }} />

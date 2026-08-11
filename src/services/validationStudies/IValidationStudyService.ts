@@ -53,6 +53,13 @@ export interface ValidationStudy {
   pathologistIds:   string[];
   subspecialtyIds?: string[];
   templateIds?:     string[];
+  /** Which AI model version this study validates — required, since a
+   *  study with no model reference can't answer "is model X actually
+   *  safe for this client," the entire reason this field exists. See
+   *  Client.internalAiModelId's own doc comment for how a PASS-graded,
+   *  reported study for this exact (client, model) pair is what
+   *  actually unlocks that client moving to this model in production. */
+  modelId: string;
 
   // ── Period ────────────────────────────────────────────────────────────────
   startDate:         string;
@@ -82,6 +89,16 @@ export interface ValidationStudy {
    *  implementation, but nothing ever recorded it anywhere. */
   activatedBy?: string;
   activatedAt?: string;
+  /** The study's real, final outcome — set exactly once, the first time
+   *  a report is generated for a closed study, and never recomputed
+   *  after that even if the underlying signal data could theoretically
+   *  still change. Deliberately a persisted fact, not a live-computed
+   *  display value: this is what Client.internalAiModelId's hard-block
+   *  enforcement checks against, and something used as real evidence
+   *  for a model-adoption decision needs to be a fixed, timestamped
+   *  record, not something that could drift on recalculation. */
+  finalGrade?:   'PASS' | 'CONDITIONAL PASS' | 'FURTHER REVIEW';
+  finalGradedAt?: string;
 }
 
 export interface IValidationStudyService {

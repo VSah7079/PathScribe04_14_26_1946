@@ -1,6 +1,8 @@
 /**
  * LoginPage.tsx — src/pages/LoginPage.tsx
  * Public route — shown when the user is not authenticated.
+ *
+ * Copyright (c) 2026 ForMedrixAI LLC. All rights reserved.
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +12,37 @@ import SessionSupersededNotice from '../components/Common/SessionSupersededNotic
 import ConfirmModal from '../components/Common/ConfirmModal';
 
 const SUPERSEDED_NOTICE_KEY = 'pathscribe_show_superseded_notice';
+
+/**
+ * Version is injected at build time from package.json (see vite.config.ts),
+ * so package.json stays the single source of truth and `npm version` is the
+ * only place a release number is ever typed. The fallback keeps the page
+ * rendering if the define is missing — it degrades to no version rather than
+ * throwing, and never displays a number that might be wrong.
+ */
+const APP_VERSION: string | null =
+  typeof __APP_VERSION__ === 'string' && __APP_VERSION__.length > 0
+    ? __APP_VERSION__
+    : null;
+
+/**
+ * Environment badge. Labs routinely run Production alongside Validation and
+ * Training instances; showing which one you are signing into prevents the
+ * "signed into the wrong system" class of error. Driven by VITE_APP_ENV —
+ * if it is unset or unrecognised no badge renders, so the page never makes
+ * a claim about the environment it cannot substantiate.
+ */
+const ENVIRONMENTS: Record<string, { label: string; tone: string }> = {
+  production:  { label: 'Production',  tone: 'prod' },
+  validation:  { label: 'Validation',  tone: 'validation' },
+  training:    { label: 'Training',    tone: 'training' },
+  development: { label: 'Development', tone: 'dev' },
+};
+
+const resolveEnvironment = () => {
+  const raw = String(import.meta.env.VITE_APP_ENV ?? '').toLowerCase().trim();
+  return ENVIRONMENTS[raw] ?? null;
+};
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) => open ? (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -25,7 +58,7 @@ const EyeIcon: React.FC<{ open: boolean }> = ({ open }) => open ? (
 );
 
 const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24">
+  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -34,7 +67,7 @@ const GoogleIcon = () => (
 );
 
 const MicrosoftIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24">
+  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#F25022" d="M1 1h10v10H1z"/>
     <path fill="#00A4EF" d="M13 1h10v10H13z"/>
     <path fill="#7FBA00" d="M1 13h10v10H1z"/>
@@ -53,6 +86,8 @@ const LoginPage: React.FC = () => {
   const [loading,  setLoading]  = useState(false);
   const [showSessionConflict, setShowSessionConflict] = useState(false);
   const [showSupersededNotice, setShowSupersededNotice] = useState(false);
+
+  const environment = resolveEnvironment();
 
   useEffect(() => {
     try {
@@ -90,33 +125,29 @@ const LoginPage: React.FC = () => {
       <div className="ps-login-wrap">
         <div className="ps-login-card">
 
-          {/* Brand */}
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            {/* ForMedrix — dominant */}
-            <img src="/formedrixlogotemp.jpg" alt="ForMedrix AI"
-              style={{ height: 120
-              , display: 'block', margin: '0 auto' }} />
+          {/* Brand — PathScribe leads, since PathScribe is what you sign in to.
+              ForMedrixAI sits in the colophon at the foot of the card. */}
+          <div className="ps-login-brand">
+            <img
+              src="/pathscribe-logo-clean.svg"
+              alt="PathScribe"
+              className="ps-login-hero"
+            />
+            <div className="ps-login-descriptor">Clinical Pathology Reporting</div>
 
-            {/* PathScribe product logo */}
-            <div style={{ marginTop: 18, marginBottom: 6 }}>
-              <img src="/pathscribe-logo-clean.svg" alt="PathScribe"
-                style={{ height: 44, display: 'block', margin: '0 auto' }} />
-            </div>
-
-            {/* Descriptor */}
-            <div style={{ fontSize: 13, color: '#64748b', letterSpacing: '0.03em', marginTop: 8 }}>
-              Clinical Pathology Reporting
-            </div>
-
-            {/* Version */}
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>v0.9.0</div>
+            {environment && (
+              <div className={`ps-login-env ps-login-env--${environment.tone}`}>
+                {environment.label}
+              </div>
+            )}
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
-            <div className="ps-login-field" style={{ marginTop: 8 }}>
-              <label className="ps-login-field-label">Email</label>
+            <div className="ps-login-field">
+              <label className="ps-login-field-label" htmlFor="login-email">Email</label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -127,15 +158,23 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="ps-login-field">
-              <label className="ps-login-field-label">Password</label>
+              {/* Label row: pairing the recovery link with the Password label
+                  keeps the form on a single left axis and stops the link
+                  competing with the primary action below. */}
+              <div className="ps-login-label-row">
+                <label className="ps-login-field-label" htmlFor="login-password">Password</label>
+                <a href="#" className="ps-login-forgot" onClick={e => { e.preventDefault(); setError('Password reset isn\u2019t available in this demo \u2014 contact your administrator.'); }}>
+                  Forgot password?
+                </a>
+              </div>
               <div className="ps-login-pw-wrap">
                 <input
+                  id="login-password"
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
                   className="ps-login-input"
-                  style={{ paddingRight: 40 }}
                 />
                 <button
                   type="button"
@@ -149,9 +188,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             {error && (
-              <div style={{ marginBottom: 12, padding: '9px 12px', borderRadius: 7,
-                background: '#fef2f2', border: '1px solid #fecaca',
-                fontSize: 13, color: '#dc2626' }}>
+              <div className="ps-login-error" role="alert">
                 {error}
               </div>
             )}
@@ -159,29 +196,64 @@ const LoginPage: React.FC = () => {
             <button type="submit" disabled={loading} className="ps-login-submit">
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
-
-            <a href="#" className="ps-login-forgot" onClick={e => e.preventDefault()}>
-              Forgot password?
-            </a>
           </form>
 
-          {/* Social */}
+          {/* Single sign-on — announced, not yet live. Rendered as disabled
+              controls so they stay out of the tab order, with aria-disabled
+              so assistive tech reports the state rather than the buttons
+              simply being unreachable and unexplained. */}
           <div className="ps-login-divider">
             <div className="ps-login-divider-line" />
             <span className="ps-login-divider-text">or continue with</span>
             <div className="ps-login-divider-line" />
           </div>
 
-          <button type="button" className="ps-login-social" disabled title="Coming soon">
-            <GoogleIcon /> Google <span className="ps-login-social-badge">Coming Soon</span>
-          </button>
-          <button type="button" className="ps-login-social" disabled title="Coming soon">
-            <MicrosoftIcon /> Microsoft <span className="ps-login-social-badge">Coming Soon</span>
-          </button>
+          <div className="ps-login-social-row">
+            <button
+              type="button"
+              className="ps-login-social"
+              disabled
+              aria-disabled="true"
+              title="Single sign-on is not yet available"
+            >
+              <GoogleIcon /> Google
+              <span className="ps-login-social-badge">Soon</span>
+            </button>
+            <button
+              type="button"
+              className="ps-login-social"
+              disabled
+              aria-disabled="true"
+              title="Single sign-on is not yet available"
+            >
+              <MicrosoftIcon /> Microsoft
+              <span className="ps-login-social-badge">Soon</span>
+            </button>
+          </div>
 
-          <p className="ps-login-footer-text">
-            Your credentials are never stored by ForMedrix AI
+          {/* Authorised-use notice. This describes how the system behaves; it
+              makes no certification claim. */}
+          <p className="ps-login-notice">
+            This system contains protected health information. Access is
+            restricted to authorized users and activity is recorded.
           </p>
+
+          <div className="ps-login-colophon">
+            <img
+              src="/formedrix-logo-capM-dark.png"
+              alt="ForMedrixAI"
+              width={175}
+              height={41}
+              className="ps-login-colophon-logo"
+            />
+            <div className="ps-login-colophon-tagline">
+              Precision <span className="ps-login-tagline-sep">&bull;</span> Care{' '}
+              <span className="ps-login-tagline-sep">&bull;</span> Innovation
+            </div>
+            {APP_VERSION && (
+              <span className="ps-login-colophon-meta">v{APP_VERSION}</span>
+            )}
+          </div>
         </div>
       </div>
 

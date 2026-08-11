@@ -8,11 +8,13 @@ import { mockMessageService } from '@/services/messages/mockMessageService';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockUserService } from '@/services/users/mockUserService';
 import {
-  MOCK_PRIOR_PATHOLOGY,
   PatientHistoryCase,
   AiMatchedCase,
   findSimilarCases,
 } from '@/services/cases/mockCaseService';
+import { caseRouter } from '@/services/cases/CaseRouter';
+import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+import { queryRealPatientHistory } from '@/services/patients/patientHistoryQuery';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +29,16 @@ interface PatientHistoryModalProps {
    *  cross-facility-ambiguous MRN is exactly the kind of error that
    *  requirement exists to prevent. See the real gate below. */
   dateOfBirth: string;
+  /** Real fix: the real, persistent MPI identity this case's patient
+   *  was actually resolved to (Case.patient.id) - what real "Patient
+   *  History" now queries by, instead of the old, hardcoded MRN-keyed
+   *  mock table. Optional only for safety during rollout on any case
+   *  predating the real MPI; without it, no real history can be shown
+   *  (see hasSufficientIdentifiers below). */
+  patientId?: string;
+  /** The case currently being viewed - excluded from its own history,
+   *  since "history" means this patient's OTHER real cases. */
+  currentCaseId?: string;
   onClose: () => void;
 }
 
@@ -314,7 +326,7 @@ function FullReport({ item }: { item: ReportItem }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function PatientHistoryModal({ patientName, mrn, dateOfBirth, onClose }: PatientHistoryModalProps) {
+export default function PatientHistoryModal({ patientName, mrn, dateOfBirth, patientId, currentCaseId, onClose }: PatientHistoryModalProps) {
   const [view, setView]                     = useState<'list' | 'report'>('list');
   const [selectedItem, setSelectedItem]     = useState<ReportItem | null>(null);
   const [selectedSource, setSelectedSource] = useState<ReportSource | null>(null);
@@ -339,8 +351,37 @@ export default function PatientHistoryModal({ patientName, mrn, dateOfBirth, onC
   // ever considering an MRN a safe match; see
   // backend-requirements-concurrency-security.md for the production
   // version of this requirement.
-  const hasSufficientIdentifiers = !!mrn && !!dateOfBirth;
-  const history = hasSufficientIdentifiers ? (MOCK_PRIOR_PATHOLOGY[mrn] ?? []) : [];
+  //
+  // Real fix: also requires a real patientId now - without one, there's
+  // no real MPI identity to query real history by at all. Cases created
+  // before the real MPI existed won't have one; this modal shows no
+  // history for those rather than falling back to a demographic guess.
+  const hasSufficientIdentifiers = !!mrn && !!dateOfBirth && !!patientId;
+  const [history, setHistory] = useState<PatientHistoryCase[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  // Real fix, from a direct question about how case-searching actually
+  // worked: this used to read MOCK_PRIOR_PATHOLOGY[mrn], a hardcoded
+  // object completely disconnected from the real MPI
+  // (services/patients/). Now genuinely queries real cases by this
+  // patient's real, persistent identity - including any identity a
+  // human has confirmed via a real Link is the same real person, so a
+  // confirmed link actually changes what history displays, not just
+  // what the MPI record itself says.
+  useEffect(() => {
+    if (!hasSufficientIdentifiers || !patientId) { setHistory([]); setHistoryLoading(false); return; }
+    setHistoryLoading(true);
+    Promise.all([
+      mockPatientIndexService.getLinkedPatientIds(patientId),
+      caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
+    ])
+      .then(([linkedIds, casesRes]) => {
+        if (!casesRes.ok) { setHistory([]); return; }
+        setHistory(queryRealPatientHistory(casesRes.data as any[], linkedIds, currentCaseId));
+      })
+      .finally(() => setHistoryLoading(false));
+  }, [patientId, hasSufficientIdentifiers, currentCaseId]);
+
   const [showCompose, setShowCompose] = useState(false);
   const [composeNote, setComposeNote]  = useState('');
   const [sending, setSending]          = useState(false);
@@ -464,9 +505,12 @@ export default function PatientHistoryModal({ patientName, mrn, dateOfBirth, onC
               <div style={S.panelTitle}>Prior Pathology</div>
               {!hasSufficientIdentifiers ? (
                 <div style={S.emptyState}>
-                  Cannot safely retrieve patient history — this patient record is missing {!mrn && !dateOfBirth ? 'an MRN and date of birth' : !mrn ? 'an MRN' : 'a date of birth'}.
+                  Cannot safely retrieve patient history — this patient record is missing{' '}
+                  {!patientId ? 'a real patient identity (predates the patient index)' : !mrn && !dateOfBirth ? 'an MRN and date of birth' : !mrn ? 'an MRN' : 'a date of birth'}.
                   A minimum of two patient identifiers is required before surfacing prior case history.
                 </div>
+              ) : historyLoading ? (
+                <div style={S.emptyState}>Loading prior pathology…</div>
               ) : history.length === 0 ? (
                 <div style={S.emptyState}>No prior pathology cases on record.</div>
               ) : (

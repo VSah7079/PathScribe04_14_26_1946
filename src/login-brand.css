@@ -1,0 +1,82 @@
+/* ============================================================
+   Login — brand block
+   Append to pathscribe.css.
+
+   ORDER MATTERS: the two modifier rules below (--first, --pw)
+   share specificity with their base classes, so they must sit
+   AFTER the existing .ps-login-field and .ps-login-input rules
+   or they will be cancelled out.
+   ============================================================ */
+
+.ps-login-brand {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+/* ForMedrix corporate lockup. Source is 898 x 209 (4.30:1); the width/height
+   attributes on the <img> match that ratio to reserve layout space and prevent
+   a reflow on load. Displayed at 56px, so it is ~4x oversampled and stays
+   sharp on 2x and 3x displays. */
+.ps-login-brand-logo {
+  display: block;
+  height: 56px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.ps-login-product {
+  margin-top: 18px;
+  margin-bottom: 6px;
+}
+
+.ps-login-product-logo {
+  display: block;
+  height: 44px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.ps-login-descriptor {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+}
+
+.ps-login-version {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ---- form modifiers (must follow their base classes) ---- */
+
+.ps-login-field--first {
+  margin-top: 8px;
+}
+
+.ps-login-input--pw {
+  padding-right: 40px;
+}
+
+/* ---- error banner ----
+   Ported verbatim from the previous inline styles. Note this is a
+   light-theme banner sitting on a #1E293B card — if you want it to
+   match the dark surface, swap in the three commented values. */
+.ps-login-error {
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  background: #fef2f2;          /* dark-tuned: rgba(220, 38, 38, 0.12) */
+  border: 1px solid #fecaca;    /* dark-tuned: rgba(248, 113, 113, 0.45) */
+  font-size: 13px;
+  color: #dc2626;               /* dark-tuned: #fca5a5 */
+}
+
+/* ---- narrow viewports ---- */
+@media (max-width: 420px) {
+  .ps-login-brand-logo { height: 46px; }
+  .ps-login-product-logo { height: 36px; }
+}

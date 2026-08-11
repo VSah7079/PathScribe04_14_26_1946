@@ -19,7 +19,7 @@ export type { DictationTarget };
  * the toggle button.
  *
  * Example:
- *   const { startDictation } = usepathscribeSpeech();
+ *   const { startDictation } = usePathScribeSpeech();
  *
  *   useEffect(() => {
  *     const handler = () => startDictation({
@@ -32,7 +32,7 @@ export type { DictationTarget };
  *     return () => window.removeEventListener('VOICE_ACTION_ENTER_GROSS', handler);
  *   }, [startDictation]);
  */
-export const usepathscribeSpeech = () => {
+export const usePathScribeSpeech = () => {
   const voice = useVoice();
 
   return {
@@ -42,7 +42,6 @@ export const usepathscribeSpeech = () => {
     isListening:     voice.isListening,
     isAiEnabled:     voice.isAiEnabled,
     isDictating:     voice.phase === 'dictate',
-    isProcessing:    voice.isProcessing,
     transcript:      voice.transcript,
     dictationTarget: voice.dictationTarget,
 

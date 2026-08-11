@@ -26,15 +26,16 @@ import {
   CaseMaskConfig, DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_PREFIX, DEFAULT_FALLBACK_SEQUENCE_DIGITS,
 } from '@/types/config/CaseMaskConfig';
 import type { ICaseRegistryService } from './ICaseRegistryService';
+import { getFacilityDateParts } from '@/utils/facilityTime';
 
 const COLLECTION_NAME = 'caseRegistries';
 
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-function renderMask(pattern: string, prefix: string, seq: number, sequenceDigits: number): string {
-  const now = new Date();
-  const year4 = String(now.getFullYear());
+function renderMask(pattern: string, prefix: string, seq: number, sequenceDigits: number, timezone: string): string {
+  const { year: year4num } = getFacilityDateParts(new Date(), timezone);
+  const year4 = String(year4num);
   const year2 = year4.slice(-2);
 
   return pattern
@@ -50,8 +51,14 @@ function resolveSitePrefix(config: CaseMaskConfig, siteId: string | undefined): 
   return config.prefix;
 }
 
-function needsAnnualReset(config: CaseMaskConfig): boolean {
-  const currentYear = new Date().getFullYear();
+/** Real fix: the real, facility-local year, not the caller's own local
+ *  time - a real, serious concern here specifically, since an incorrect
+ *  reset would either fail to reset a real, new facility year's
+ *  sequence (real collision risk with the prior year's still-climbing
+ *  numbers) or reset it a real day early/late relative to the actual,
+ *  physical facility calendar. */
+function needsAnnualReset(config: CaseMaskConfig, timezone: string): boolean {
+  const { year: currentYear } = getFacilityDateParts(new Date(), timezone);
   return config.resetSequenceAnnually && (!config.lastResetYear || config.lastResetYear < currentYear);
 }
 
@@ -77,7 +84,7 @@ export const caseRegistryService: ICaseRegistryService = {
     }
   },
 
-  async allocateNextCaseNumber(organisationId, siteId) {
+  async allocateNextCaseNumber(organisationId, timezone, siteId) {
     const registryRef = doc(db, COLLECTION_NAME, organisationId);
 
     try {
@@ -96,26 +103,28 @@ export const caseRegistryService: ICaseRegistryService = {
           const fallbackRef = doc(db, COLLECTION_NAME, `__fallback__${organisationId}`);
           const fallbackSnap = await transaction.get(fallbackRef);
           const fallbackSeq = (fallbackSnap.exists() ? (fallbackSnap.data().currentSequence ?? 0) : 0) + 1;
+          const { year: fallbackYear } = getFacilityDateParts(new Date(), timezone);
           transaction.set(fallbackRef, {
             organisationId: `__fallback__${organisationId}`, prefix: DEFAULT_FALLBACK_PREFIX,
             maskPattern: DEFAULT_FALLBACK_MASK, sequenceDigits: DEFAULT_FALLBACK_SEQUENCE_DIGITS,
-            currentSequence: fallbackSeq, resetSequenceAnnually: true, lastResetYear: new Date().getFullYear(),
+            currentSequence: fallbackSeq, resetSequenceAnnually: true, lastResetYear: fallbackYear,
             updatedBy: 'system', updatedAt: new Date().toISOString(),
           });
-          return renderMask(DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_PREFIX, fallbackSeq, DEFAULT_FALLBACK_SEQUENCE_DIGITS);
+          return renderMask(DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_PREFIX, fallbackSeq, DEFAULT_FALLBACK_SEQUENCE_DIGITS, timezone);
         }
 
         const config = snap.data() as CaseMaskConfig;
-        const nextSeq = needsAnnualReset(config) ? 1 : config.currentSequence + 1;
+        const nextSeq = needsAnnualReset(config, timezone) ? 1 : config.currentSequence + 1;
+        const { year: resetYear } = getFacilityDateParts(new Date(), timezone);
 
         transaction.update(registryRef, {
           currentSequence: nextSeq,
-          lastResetYear: new Date().getFullYear(),
+          lastResetYear: resetYear,
           updatedAt: new Date().toISOString(),
         });
 
         const prefix = resolveSitePrefix(config, siteId);
-        return renderMask(config.maskPattern, prefix, nextSeq, config.sequenceDigits);
+        return renderMask(config.maskPattern, prefix, nextSeq, config.sequenceDigits, timezone);
       });
 
       return ok(result);
@@ -124,16 +133,16 @@ export const caseRegistryService: ICaseRegistryService = {
     }
   },
 
-  async previewNextCaseNumber(organisationId, siteId) {
+  async previewNextCaseNumber(organisationId, timezone, siteId) {
     try {
       const snap = await getDoc(doc(db, COLLECTION_NAME, organisationId));
       if (!snap.exists()) {
-        return ok(renderMask(DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_PREFIX, 1, DEFAULT_FALLBACK_SEQUENCE_DIGITS));
+        return ok(renderMask(DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_PREFIX, 1, DEFAULT_FALLBACK_SEQUENCE_DIGITS, timezone));
       }
       const config = snap.data() as CaseMaskConfig;
-      const nextSeq = needsAnnualReset(config) ? 1 : config.currentSequence + 1;
+      const nextSeq = needsAnnualReset(config, timezone) ? 1 : config.currentSequence + 1;
       const prefix = resolveSitePrefix(config, siteId);
-      return ok(renderMask(config.maskPattern, prefix, nextSeq, config.sequenceDigits));
+      return ok(renderMask(config.maskPattern, prefix, nextSeq, config.sequenceDigits, timezone));
     } catch (e) {
       return err(`caseRegistryService.previewNextCaseNumber failed for ${organisationId}: ${(e as Error).message}`);
     }

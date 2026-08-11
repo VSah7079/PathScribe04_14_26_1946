@@ -416,7 +416,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'system', senderName: 'PathScribe System',
     recipientId: 'PATH-US-001', recipientName: 'Dr. Amber Fehrs-Battey',
     subject: 'Pediatric Case Access Restricted — MPA26-1007-PED',
-    body: 'You attempted to open case MPA26-1007-PED which contains a pediatric patient (age 8) from Metro General Hospital.\n\nAccess to this case requires authorization on the client record.\n\nTo request access:\n1. Go to Configuration → System → Client Dictionary\n2. Open Metro General Hospital\n3. Add your name to the Authorized Pediatric Pathologists list\n\nIf you believe this is an error, contact your System Administrator.',
+    body: 'You attempted to open case MPA26-1007-PED which contains a pediatric patient (age 8) from Metro General Hospital.\n\nAccess to this case requires authorization on the facility record.\n\nTo request access:\n1. Go to Configuration → System → Facility Configuration\n2. Open Metro General Hospital\n3. Add your name to the Authorized Pediatric Pathologists list\n\nIf you believe this is an error, contact your System Administrator.',
     caseNumber: 'MPA26-1007-PED',
     timestamp: new Date(Date.now() - 1000 * 60 * 20),
     isUrgent: false, isRead: false, isDeleted: false,

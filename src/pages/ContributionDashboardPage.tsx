@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import '../pathscribe.css';
 import { useAuth } from "@contexts/AuthContext";
+import { useSystemConfig } from "@/contexts/SystemConfigContext";
 import { WarningIcon } from "@components/Icons";
 import FlagRow        from "@components/Contribution/FlagRow";
 import CaseMixTile    from "@components/Contribution/CaseMixTile";
@@ -11,7 +12,6 @@ import AIContributionTab from "../components/Contribution/AIContributionTab";
 import { pathscribeTheme as t } from "@theme/pathscribeTheme";
 import type {
   ContributionFlag,
-  CaseMixData,
   KpiTile,
 } from "../types/ContributionDashboard";
 import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorModeConfig";
@@ -21,6 +21,11 @@ import { useNavigate } from 'react-router-dom';
 import { specimenDeficiencyService, deficiencyTypeService, reconciliationService, intraoperativeService, subspecialtyService, countersignService } from '../services';
 import type { Subspecialty } from '../services';
 import { caseRouter } from '../services/cases/CaseRouter';
+import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
+import { mockRvuCodeMapService } from '@/services/billing/mockRvuCodeMapService';
+import { specimenDictionaryService } from '@/services';
+import { TAT_STORAGE_KEY, SYSTEM_DEFAULTS as TAT_SYSTEM_DEFAULTS } from '@components/Config/System/TATConfigSection';
+import type { TatEntryForResolution } from '@components/Contribution/qualityCalculations';
 import * as XLSX from 'xlsx';
 import type { SpecimenDeficiency, DeficiencyType } from '../services/deficiencies/IDeficiencyService';
 
@@ -34,19 +39,12 @@ const kpiExtras = [
   { peer: 76,  targetPct: 72,  targetLabel: "AI adoption target" },
 ];
 
-const mockKpis: KpiTile[] = [
-  { label: "CASE_LABEL_PLACEHOLDER",  value: 128,  unit: "",      delta: "+12%",     up: true,  icon: "✓"  },
-  { label: "Cases In Progress", value: 14,   unit: "",      delta: "-3",       up: false, icon: "⏳" },
-  { label: "AI‑Assisted Cases", value: 92,   unit: "",      delta: "+8%",      up: true,  icon: "🤖" },
-];
+// mockKpis removed - real fix, now derived from overviewKpis state
+// via realKpiTiles() below, computed in
+// contributionDashboardCalculations.ts's computeOverviewKpis.
 
-const mockCaseMixData: CaseMixData = {
-  breast: 42,
-  gi:     38,
-  gu:     21,
-  derm:   17,
-  other:  12,
-};
+// mockCaseMixData removed - real fix, now sourced from caseMixData
+// state via computeCaseMixData in contributionDashboardCalculations.ts.
 
 
 
@@ -55,49 +53,15 @@ const mockCaseMixData: CaseMixData = {
 // Deficiency/CAPA system — looked live, never actually was. Replaced
 // by a real fetch + derivation inside the component itself, below.
 
-// RVU last-30-days mock
-const mockRvu30 = { total: 387, delta: "+6.2%", up: true, avgPerCase: 21.8 };
+// mockRvu30 removed - real fix, now sourced from rvu30 state via
+// computeRvu30 in contributionDashboardCalculations.ts.
 
-// TAT Performance mock — first-touch and total-case averages
-// Multi-client TAT data — aggregate across all active clients
-// Each client has its own SLA; the overview shows the weighted aggregate.
-const mockClientTatData = [
-  { code: 'MGH', firstTouchHrs: 2.4, totalHrs: 18.2, targetFirst: 4,  targetTotal: 24, cases: 58 },
-  { code: 'RMC', firstTouchHrs: 5.1, totalHrs: 32.4, targetFirst: 8,  targetTotal: 48, cases: 34 },
-  { code: 'WSC', firstTouchHrs: 3.8, totalHrs: 22.1, targetFirst: 6,  targetTotal: 36, cases: 19 },
-  { code: 'BMC', firstTouchHrs: 1.9, totalHrs: 14.6, targetFirst: 6,  targetTotal: 24, cases: 17 },
-];
-// Weighted averages and aggregate on-target %
-const totalCases  = mockClientTatData.reduce((s, c) => s + c.cases, 0);
-const wAvgFirst   = mockClientTatData.reduce((s, c) => s + c.firstTouchHrs * c.cases, 0) / totalCases;
-const wAvgTotal   = mockClientTatData.reduce((s, c) => s + c.totalHrs * c.cases, 0) / totalCases;
-const pctFirst    = Math.round(mockClientTatData.reduce((s, c) => s + (c.firstTouchHrs <= c.targetFirst ? c.cases : 0), 0) / totalCases * 100);
-const pctTotal    = Math.round(mockClientTatData.reduce((s, c) => s + (c.totalHrs    <= c.targetTotal ? c.cases : 0), 0) / totalCases * 100);
-const pctOnTarget = Math.round((pctFirst + pctTotal) / 2);
+// mockClientTatData/mockTatTargets/mockTatPerf removed - real fix, now
+// sourced from tatPerformance state via computeOrgWideTatPerformance in
+// contributionDashboardCalculations.ts.
 
-// Legacy alias for TatPerformanceTile (keeps tile props unchanged)
-const mockTatTargets = {
-  clientCode:    `${mockClientTatData.length} clients`,
-  firstTouchHrs: +wAvgFirst.toFixed(1),
-  totalHrs:      +wAvgTotal.toFixed(1),
-};
-
-// mockTatPerf now derived from the multi-client aggregate above
-const mockTatPerf = {
-  firstTouchAvgHrs: +wAvgFirst.toFixed(1),
-  totalCaseAvgHrs:  +wAvgTotal.toFixed(1),
-  onTargetPct:      pctOnTarget,
-};
-
-// Weekly mock (cases + RVUs per day)
-interface DailyData { day: string; cases: number; rvus: number; }
-const mockDaily: DailyData[] = [
-  { day: "Mon", cases: 22, rvus: 70 },
-  { day: "Tue", cases: 28, rvus: 89 },
-  { day: "Wed", cases: 31, rvus: 99 },
-  { day: "Thu", cases: 26, rvus: 83 },
-  { day: "Fri", cases: 25, rvus: 80 },
-];
+// mockDaily removed - real fix, now sourced from weeklyDaily state via
+// computeWeeklyDaily in contributionDashboardCalculations.ts.
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
@@ -112,62 +76,58 @@ const TAB_LABELS: Record<DashboardTab, string> = {
 
 // ─── Inline Weekly Chart (Overview) ──────────────────────────────────────────
 
-const WeeklyOverviewChart: React.FC = () => {
+const WeeklyOverviewChart: React.FC<{ data: RealDailyRvu[] }> = ({ data }) => {
   const [hovered, setHovered] = useState<number | null>(null);
   // Single shared scale — bars reflect true relative magnitude across both series
-  const maxC    = Math.max(...mockDaily.map(d => d.cases));
-  const maxR    = Math.max(...mockDaily.map(d => d.rvus));
+  const maxC    = Math.max(...data.map(d => d.cases), 1);
+  const maxR    = Math.max(...data.map(d => d.rvus), 1);
   const maxAll  = Math.max(maxC, maxR);
   const BAR_H   = 72; // max bar height px — the highest value across both series fills this
 
   return (
-    <div style={{
-      padding: "20px", borderRadius: "18px",
-      background: t.colors.surfaceSubtle,
-      border: `1px solid ${t.colors.border.subtle}`,
-    }}>
-      <div style={{ marginBottom: "14px" }}>
-        <div style={{ fontSize: "15px", fontWeight: 600 }}>This Week</div>
-        <div style={{ fontSize: "13px", color: t.colors.text.muted }}>Daily cases and RVUs — shared scale</div>
+    <div className="ps-contrib-tile">
+      <div className="ps-contrib-chart-header">
+        <div className="ps-contrib-chart-title">This Week</div>
+        <div className="ps-contrib-chart-subtitle">Daily cases and RVUs — shared scale</div>
       </div>
 
-      <div style={{ display: "flex", gap: "6px" }}>
-        {mockDaily.map((d, i) => {
+      <div className="ps-contrib-chart-bars">
+        {data.map((d, i) => {
           const cH    = (d.cases / maxAll) * BAR_H;
           const rH    = (d.rvus  / maxAll) * BAR_H;
           const isHov = hovered === i;
           return (
             <div key={d.day}
-              style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", cursor: "pointer" }}
+              className="ps-contrib-chart-barcol"
               onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
             >
               {/* Always-visible totals above bars */}
-              <div style={{ display: "flex", gap: "2px", width: "100%", justifyContent: "center", marginBottom: "3px" }}>
-                <div style={{ width: "44%", textAlign: "center", fontSize: "10px", fontWeight: 700, color: t.colors.chart.cases }}>{d.cases}</div>
-                <div style={{ width: "44%", textAlign: "center", fontSize: "10px", fontWeight: 700, color: t.colors.chart.rvu   }}>{d.rvus}</div>
+              <div className="ps-contrib-chart-totals">
+                <div className="ps-contrib-chart-total ps-contrib-chart-total--cases">{d.cases}</div>
+                <div className="ps-contrib-chart-total ps-contrib-chart-total--rvu">{d.rvus}</div>
               </div>
 
               {/* Bars */}
-              <div style={{ width: "100%", height: `${BAR_H}px`, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "2px" }}>
-                <div style={{ width: "44%", height: `${cH}px`, background: t.colors.chart.cases, borderRadius: "3px 3px 0 0", opacity: isHov ? 1 : 0.85, transition: "height 0.25s ease" }} />
-                <div style={{ width: "44%", height: `${rH}px`, background: t.gradients.amberVertical, borderRadius: "3px 3px 0 0", opacity: isHov ? 1 : 0.85, transition: "height 0.25s ease" }} />
+              <div className="ps-contrib-chart-bar-track">
+                <div className={`ps-contrib-chart-bar ps-contrib-chart-bar--cases${isHov ? ' ps-contrib-chart-bar--hovered' : ''}`} style={{ '--bar-height': `${cH}px` } as React.CSSProperties} />
+                <div className={`ps-contrib-chart-bar ps-contrib-chart-bar--rvu${isHov ? ' ps-contrib-chart-bar--hovered' : ''}`} style={{ '--bar-height': `${rH}px` } as React.CSSProperties} />
               </div>
 
               {/* Day label */}
-              <div style={{ fontSize: "10px", color: t.colors.text.muted, marginTop: "4px" }}>{d.day}</div>
+              <div className="ps-contrib-chart-day-label">{d.day}</div>
             </div>
           );
         })}
       </div>
 
-      <div style={{ display: "flex", gap: "14px", marginTop: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: t.colors.chart.cases }} />
-          <span style={{ fontSize: "11px", color: t.colors.text.muted }}>Cases</span>
+      <div className="ps-contrib-chart-legend">
+        <div className="ps-contrib-chart-legend-item">
+          <div className="ps-contrib-chart-legend-swatch ps-contrib-chart-legend-swatch--cases" />
+          <span className="ps-contrib-chart-legend-text">Cases</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: t.colors.chart.rvu }} />
-          <span style={{ fontSize: "11px", color: t.colors.text.muted }}>RVUs</span>
+        <div className="ps-contrib-chart-legend-item">
+          <div className="ps-contrib-chart-legend-swatch ps-contrib-chart-legend-swatch--rvu" />
+          <span className="ps-contrib-chart-legend-text">RVUs</span>
         </div>
       </div>
     </div>
@@ -176,41 +136,40 @@ const WeeklyOverviewChart: React.FC = () => {
 
 // ─── RVU 30-day tile ──────────────────────────────────────────────────────────
 
-const Rvu30Tile: React.FC = () => (
-  <div style={{
-    padding: "20px", borderRadius: "18px",
-    background: t.colors.surfaceSubtle,
-    border: `1px solid ${t.colors.border.subtle}`,
-  }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-      <span style={{ fontSize: "13px", color: t.colors.text.muted }}>RVUs — Last 30 Days</span>
-      <span style={{ fontSize: "16px" }}>📊</span>
+const Rvu30Tile: React.FC<{ data: RealRvu30 }> = ({ data }) => {
+  const deltaLabel = data.deltaPct === null ? 'New' : `${data.deltaPct >= 0 ? '+' : ''}${data.deltaPct}%`;
+  const isUp = data.deltaPct === null || data.deltaPct >= 0;
+  return (
+  <div className="ps-contrib-tile">
+    <div className="ps-contrib-rvu-header">
+      <span className="ps-contrib-rvu-label">RVUs — Last 30 Days</span>
+      <span className="ps-contrib-rvu-icon">📊</span>
     </div>
-    <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "4px" }}>
-      <span style={{ fontSize: "28px", fontWeight: 800, color: t.colors.text.primary }}>{mockRvu30.total}</span>
-      <span style={{ fontSize: "13px", color: t.colors.text.muted }}>RVUs</span>
+    <div className="ps-contrib-rvu-value-row">
+      <span className="ps-contrib-rvu-value">{data.total}</span>
+      <span className="ps-contrib-rvu-unit">RVUs</span>
     </div>
-    <div style={{ fontSize: "12px", fontWeight: 600, color: mockRvu30.up ? t.colors.semantic.success : t.colors.semantic.warning }}>
-      {mockRvu30.up ? "▲" : "▼"} {mockRvu30.delta} vs prev 30d
+    <div className={`ps-contrib-rvu-delta ${isUp ? 'ps-contrib-rvu-delta--up' : 'ps-contrib-rvu-delta--down'}`}>
+      {isUp ? "▲" : "▼"} {deltaLabel} vs prev 30d
     </div>
-    <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${t.colors.border.subtle}`, display: "flex", justifyContent: "space-between" }}>
-      <span style={{ fontSize: "12px", color: t.colors.text.muted }}>Avg / case</span>
-      <span style={{ fontSize: "13px", fontWeight: 700, color: t.colors.chart.rvu }}>{mockRvu30.avgPerCase}</span>
+    <div className="ps-contrib-rvu-divider">
+      <span className="ps-contrib-rvu-avg-label">Avg / case</span>
+      <span className="ps-contrib-rvu-avg-value">{data.avgPerCase}</span>
     </div>
   </div>
-);
+  );
+};
 
 // ─── TAT Performance tile ─────────────────────────────────────────────────────
 
-const TatPerformanceTile: React.FC = () => {
-  const pct      = mockTatPerf.onTargetPct;
-  const ftPct    = Math.min(100, (mockTatPerf.firstTouchAvgHrs / mockTatTargets.firstTouchHrs) * 100);
-  const totalPct = Math.min(100, (mockTatPerf.totalCaseAvgHrs  / mockTatTargets.totalHrs)      * 100);
+const TatPerformanceTile: React.FC<{ data: RealTatPerformance }> = ({ data }) => {
+  const pct      = data.onTargetPct;
+  const ftPct    = data.firstTouchTargetHrs > 0 ? Math.min(100, (data.firstTouchAvgHrs / data.firstTouchTargetHrs) * 100) : 0;
+  const totalPct = data.totalTargetHrs      > 0 ? Math.min(100, (data.totalCaseAvgHrs  / data.totalTargetHrs)      * 100) : 0;
 
-  const barColor = (p: number) => p < 70 ? '#10b981' : p < 90 ? '#f59e0b' : '#ef4444';
-  const ftColor    = barColor(ftPct);
-  const totalColor = barColor(totalPct);
-  const summaryColor = pct >= 85 ? '#10b981' : pct >= 65 ? '#f59e0b' : '#ef4444';
+  const barColorClass = (p: number) => p < 70 ? 'ps-tat-tile__bar-fill--good' : p < 90 ? 'ps-tat-tile__bar-fill--warn' : 'ps-tat-tile__bar-fill--alert';
+  const ftColorClass    = barColorClass(ftPct);
+  const totalColorClass = barColorClass(totalPct);
 
   return (
     <div className="ps-tat-tile">
@@ -227,15 +186,15 @@ const TatPerformanceTile: React.FC = () => {
             <span className="ps-tat-tile__metric-label">First Touch</span>
           </div>
           <span className="ps-tat-tile__metric-value">
-            {mockTatPerf.firstTouchAvgHrs}h{' '}
+            {data.firstTouchAvgHrs}h{' '}
             <span className="ps-tat-tile__metric-unit">avg</span>
           </span>
         </div>
         <div className="ps-tat-tile__bar-track">
-          <div className="ps-tat-tile__bar-fill" style={{ width: `${ftPct}%`, background: ftColor }} />
+          <div className={`ps-tat-tile__bar-fill ps-tat-tile__bar-fill--dynamic-width ${ftColorClass}`} style={{ '--bar-width': `${ftPct}%` } as React.CSSProperties} />
         </div>
         <div className="ps-tat-tile__target-label">
-          {ftPct.toFixed(0)}% of {mockTatTargets.firstTouchHrs}h target
+          {ftPct.toFixed(0)}% of {data.firstTouchTargetHrs}h target
         </div>
       </div>
 
@@ -247,23 +206,123 @@ const TatPerformanceTile: React.FC = () => {
             <span className="ps-tat-tile__metric-label">Total Case</span>
           </div>
           <span className="ps-tat-tile__metric-value">
-            {mockTatPerf.totalCaseAvgHrs}h{' '}
+            {data.totalCaseAvgHrs}h{' '}
             <span className="ps-tat-tile__metric-unit">avg</span>
           </span>
         </div>
         <div className="ps-tat-tile__bar-track">
-          <div className="ps-tat-tile__bar-fill" style={{ width: `${totalPct}%`, background: totalColor }} />
+          <div className={`ps-tat-tile__bar-fill ps-tat-tile__bar-fill--dynamic-width ${totalColorClass}`} style={{ '--bar-width': `${totalPct}%` } as React.CSSProperties} />
         </div>
         <div className="ps-tat-tile__target-label">
-          {totalPct.toFixed(0)}% of {mockTatTargets.totalHrs}h target
+          {totalPct.toFixed(0)}% of {data.totalTargetHrs}h target
         </div>
       </div>
 
       {/* Summary line */}
       <div className="ps-tat-tile__summary-line">
-        <span style={{ color: summaryColor, fontWeight: 700 }}>{pct}% on target</span>
-        <span style={{ fontSize: '10px', color: '#475569' }}>weighted across {mockClientTatData.length} clients</span>
+        <span className={`ps-contrib-tat-summary ps-contrib-tat-summary--${pct >= 85 ? 'good' : pct >= 65 ? 'ok' : 'bad'}`}>{pct}% on target</span>
+        <span className="ps-contrib-tat-clients">weighted across {data.clientCount} clients</span>
       </div>
+    </div>
+  );
+};
+
+// ─── My Teaching Cases tile ───────────────────────────────────────────────────
+// Was an IIFE `{(...) && (() => {...})()}` computed inline inside the JSX
+// return — pulled out to a real named component, same standard applied to
+// business logic found embedded in the UI elsewhere in this review.
+
+const TeachingCasesTile: React.FC<{
+  teachingRecords: import('@/types/quality/ReconciliationRecord').ReconciliationRecord[];
+  countersignRecords: import('@/types/case/CountersignRecord').CountersignRecord[];
+  subspecialties: Subspecialty[];
+  onOpen: () => void;
+  onExport: (e: React.MouseEvent) => void;
+}> = ({ teachingRecords, countersignRecords, subspecialties, onOpen, onExport }) => {
+  const concordantCount = teachingRecords.filter(r => r.outcome === 'concordant').length;
+  const rate = teachingRecords.length > 0 ? (concordantCount / teachingRecords.length) * 100 : null;
+  const withFeedback = [...teachingRecords].filter(r => r.attendingFeedback).sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
+  const csWithFeedback = [...countersignRecords].filter(r => r.attendingFeedback).sort((a, b) => (b.countersignedAt ?? '').localeCompare(a.countersignedAt ?? ''));
+  const avgChangedFields = countersignRecords.length > 0
+    ? countersignRecords.reduce((s, r) => s + (r.changedFieldCount ?? 0), 0) / countersignRecords.length
+    : null;
+
+  // Per-subspecialty breakdown — the actual point of linking to real
+  // Subspecialty rather than just showing one aggregate rate: "98% in
+  // Breast vs 88% in Bone & Soft Tissue" highlights WHERE a trainee
+  // actually needs more work, not just how they're doing overall.
+  // Records with no subspecialtyId (the case never had one set) group
+  // under "Unspecified" rather than being silently dropped.
+  const bySubspecialty = new Map<string, { total: number; concordant: number }>();
+  teachingRecords.forEach(r => {
+    const key = r.subspecialtyId ?? '__unspecified__';
+    const bucket = bySubspecialty.get(key) ?? { total: 0, concordant: 0 };
+    bucket.total += 1;
+    if (r.outcome === 'concordant') bucket.concordant += 1;
+    bySubspecialty.set(key, bucket);
+  });
+  const subspecialtyName = (id: string) => id === '__unspecified__' ? 'Unspecified' : (subspecialties.find(s => s.id === id)?.name ?? id);
+  const breakdown = [...bySubspecialty.entries()]
+    .map(([id, b]) => ({ id, name: subspecialtyName(id), rate: (b.concordant / b.total) * 100, total: b.total }))
+    .sort((a, b) => a.rate - b.rate); // lowest concordance first — that's the actual learning opportunity, surface it first
+
+  return (
+    <div className="ps-contrib-tile ps-contrib-tile-clickable" onClick={onOpen}>
+      <div className="ps-contrib-tile-header">
+        <div>
+          <div className="ps-contrib-tile-title">My Teaching Cases</div>
+          <div className="ps-contrib-tile-subtitle">Cases you drafted that were reviewed by an attending</div>
+        </div>
+        <button
+          className="ps-conf-btn-secondary ps-contrib-export-btn"
+          onClick={onExport}
+          title="Trainee case reference for manual ACGME ADS entry — not an official ACGME file format"
+        >
+          Export Case Log
+        </button>
+      </div>
+      {rate !== null && (
+        <div className="ps-contrib-tile-value-row">
+          <span className="ps-contrib-tile-value">{rate.toFixed(0)}%</span>
+          <span className="ps-contrib-tile-value-sub">overall concordant (frozen section) · {teachingRecords.length} case{teachingRecords.length === 1 ? '' : 's'}</span>
+        </div>
+      )}
+      {breakdown.length > 1 && (
+        <div className="ps-contrib-teaching-breakdown">
+          {breakdown.map(b => (
+            <div key={b.id} className="ps-contrib-teaching-row">
+              <span className="ps-contrib-teaching-row-name">{b.name} ({b.total})</span>
+              <span className={`ps-contrib-teaching-row-rate ${b.rate < 90 ? 'ps-contrib-teaching-row-rate--low' : 'ps-contrib-teaching-row-rate--ok'}`}>{b.rate.toFixed(0)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {withFeedback[0]?.attendingFeedback && (
+        <div className="ps-contrib-teaching-feedback">
+          Latest reconciliation feedback: "{withFeedback[0].attendingFeedback}"
+        </div>
+      )}
+      {/* General countersign summary — the broader signal, covers every
+          drafted case regardless of frozen section involvement. Shown
+          separately from the reconciliation numbers above rather than
+          blended into one figure, since changedFieldCount and concordance
+          rate aren't the same kind of metric. */}
+      {countersignRecords.length > 0 && (
+        <div className="ps-contrib-teaching-countersign">
+          <div className="ps-contrib-teaching-countersign-row">
+            <span className="ps-contrib-teaching-countersign-count">{countersignRecords.length}</span>
+            <span className="ps-contrib-teaching-countersign-text">
+              case{countersignRecords.length === 1 ? '' : 's'} countersigned
+              {avgChangedFields !== null && ` · avg ${avgChangedFields.toFixed(1)} field${avgChangedFields === 1 ? '' : 's'} changed`}
+            </span>
+          </div>
+          {csWithFeedback[0]?.attendingFeedback && (
+            <div className="ps-contrib-teaching-countersign-feedback">
+              Latest countersign feedback: "{csWithFeedback[0].attendingFeedback}"
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -272,6 +331,7 @@ const TatPerformanceTile: React.FC = () => {
 
 const ContributionDashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { config } = useSystemConfig();
   const navigate = useNavigate();
 
   const [activeTab,           setActiveTab]           = useState<DashboardTab>("overview");
@@ -310,8 +370,8 @@ const ContributionDashboardPage: React.FC = () => {
 
       const myCaseIds = new Set(
         (casesRes.ok ? casesRes.data : [])
-          .filter((c: any) => c?.order?.assignedTo === user.id)
-          .map((c: any) => c.id)
+          .filter((c) => c?.order?.assignedTo === user.id)
+          .map((c) => c.id)
       );
 
       const deficiencyFlags: (ContributionFlag & { sortKey: string; score: number })[] = defRes.data
@@ -321,7 +381,7 @@ const ContributionDashboardPage: React.FC = () => {
           label: d.caseId,
           value: `${typeName(d.deficiencyTypeId)}${d.specimenLabel ? ` — Specimen ${d.specimenLabel}` : ' — case-level'}`,
           severity: (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 'high' : d.status === 'open' ? 'medium' : 'low',
-          onClick: () => navigate(`/case/${d.caseId}/synoptic`),
+          onClick: () => navigate(`/deficiencies?open=${d.id}`),
           sortKey: d.raisedAt,
           score: (isOverdue(d) || (d.reopenCount ?? 0) > 0) ? 2 : d.status === 'open' ? 1 : 0,
         }));
@@ -350,9 +410,57 @@ const ContributionDashboardPage: React.FC = () => {
         .sort((a, b) => b.score - a.score || b.sortKey.localeCompare(a.sortKey))
         .slice(0, 3);
 
-      setQualityFlags(relevant.map(({ sortKey, score, ...flag }) => flag));
+      setQualityFlags(relevant.map(({ sortKey: _sortKey, score: _score, ...flag }) => flag));
     });
   }, [user?.id]);
+
+  // Real fix: replaces mockKpis/mockCaseMixData - see
+  // contributionDashboardCalculations.ts for the real transform logic.
+  const [overviewKpis, setOverviewKpis]     = useState<RealOverviewKpis | null>(null);
+  const [caseMixData,  setCaseMixData]      = useState<RealCaseMixData | null>(null);
+  const [tatPerformance, setTatPerformance] = useState<RealTatPerformance | null>(null);
+  const [rvu30, setRvu30]                   = useState<RealRvu30 | null>(null);
+  const [weeklyDaily, setWeeklyDaily]       = useState<RealDailyRvu[] | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    Promise.all([
+      caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
+      mockRvuCodeMapService.getAllVersions(),
+      specimenDictionaryService.getAll(),
+    ]).then(([res, versionsRes, dictionaryRes]) => {
+      if (!res.ok) return;
+      const versions = versionsRes.ok ? versionsRes.data : [];
+      const dictionaryEntries = dictionaryRes.ok ? dictionaryRes.data : [];
+      setOverviewKpis(computeOverviewKpis(res.data, user.id));
+      setCaseMixData(computeCaseMixData(res.data, user.id));
+      setRvu30(computeRvu30(res.data, user.id, versions, new Date(), dictionaryEntries));
+      setWeeklyDaily(computeWeeklyDaily(res.data, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
+      const tatEntries = (() => {
+        try {
+          const raw = localStorage.getItem(TAT_STORAGE_KEY);
+          return raw ? JSON.parse(raw) : TAT_SYSTEM_DEFAULTS;
+        } catch { return TAT_SYSTEM_DEFAULTS; }
+      })() as TatEntryForResolution[];
+      // Real fix: org-wide aggregate, deliberately not filtered to this
+      // user's own cases the way overviewKpis/caseMixData are - matches
+      // TatPerformanceTile's own "weighted across N clients" framing.
+      setTatPerformance(computeOrgWideTatPerformance(res.data, tatEntries));
+    });
+  }, [user?.id]);
+
+  // Real fix: derives the three real KPI tiles from overviewKpis -
+  // formats a null delta (no real prior-30-day baseline to compare
+  // against, e.g. a pathologist too new to have one yet) as "New" rather
+  // than fabricating a percentage.
+  const formatDelta = (pct: number | null): { delta: string; up: boolean } =>
+    pct === null ? { delta: 'New', up: true } : { delta: `${pct >= 0 ? '+' : ''}${pct}%`, up: pct >= 0 };
+  const kpiTiles: KpiTile[] = overviewKpis ? [
+    { label: 'CASE_LABEL_PLACEHOLDER', value: overviewKpis.casesFinalized30d, unit: '', icon: '✓',
+      ...formatDelta(overviewKpis.casesFinalizedDeltaPct) },
+    { label: 'Cases In Progress', value: overviewKpis.casesInProgress, unit: '', delta: '', up: true, icon: '⏳' },
+    { label: 'AI‑Assisted Cases', value: overviewKpis.aiAssistedCases30d, unit: '', icon: '🤖',
+      ...formatDelta(overviewKpis.aiAssistedDeltaPct) },
+  ] : [];
 
   // ── My Teaching Cases — real reconciliation records where the current
   // user is the draftedBy (their own draft was reconciled by an
@@ -399,14 +507,14 @@ const ContributionDashboardPage: React.FC = () => {
       caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
       reconciliationService.getAll(),
     ]);
-    const myCases = (casesRes.ok ? casesRes.data : []).filter((c: any) =>
-      c?.participants?.some((p: any) => p.staffId === user.id && p.participationTypeIds?.includes('resident') && p.status === 'active')
+    const myCases = (casesRes.ok ? casesRes.data : []).filter((c) =>
+      c?.participants?.some((p) => p.staffId === user.id && p.participationTypeIds?.includes('resident') && p.status === 'active')
     );
     const reconByCase = new Map((reconRes.ok ? reconRes.data : []).map(r => [r.caseId, r]));
     const subspecialtyName = (id?: string) => id ? (subspecialties.find(s => s.id === id)?.name ?? id) : '';
 
-    const rows = myCases.map((c: any) => {
-      const attending = c.participants?.find((p: any) => p.participationTypeIds?.includes('attending') || p.participationTypeIds?.includes('primary'));
+    const rows = myCases.map((c) => {
+      const attending = c.participants?.find((p) => p.participationTypeIds?.includes('attending') || p.participationTypeIds?.includes('primary'));
       const recon = reconByCase.get(c.id);
       return {
         'Case ID': c.accession?.fullAccession ?? c.accession?.accessionNumber ?? c.id,
@@ -445,19 +553,17 @@ const ContributionDashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="ps-contrib-page" style={{ padding: "clamp(16px,3vw,32px)", color: t.colors.text.primary, overflowY: "auto", height: "100%" }}>
+    <div className="ps-contrib-page" tabIndex={0} role="region" aria-label="Contribution dashboard, scrollable">
 
       {/* ─── Page Title ──────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: 800, color: t.colors.text.primary, margin: 0, letterSpacing: "-0.5px" }}>
+      <div className="ps-contrib-title-block">
+        <h1 className="ps-contrib-title">
           Contribution Dashboard
         </h1>
-        <p style={{ fontSize: "13px", color: t.colors.text.muted, marginTop: "4px" }}>
+        <p className="ps-contrib-subtitle">
           {user?.name} · Pathologist
         </p>
       </div>
-
-      {/* ─── Search ──────────────────────────────────────────────────────── */}
 
       {/* ─── Tabs ────────────────────────────────────────────────────────── */}
       <div className="ps-contrib-tab-bar">
@@ -474,43 +580,42 @@ const ContributionDashboardPage: React.FC = () => {
 
       {/* ─── Overview Tab ────────────────────────────────────────────────── */}
       {activeTab === "overview" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div className="ps-contrib-overview-tab">
 
           {/* KPI row — 3 standard KPIs + TAT Performance tile + RVU tile = 5 columns */}
           <div className="ps-kpi-grid">
-            {mockKpis.map((kpi, ki) => {
+            {kpiTiles.map((kpi, ki) => {
               const ext = kpiExtras[ki];
               return (
-              <div key={kpi.label} style={{ padding: "18px", borderRadius: "16px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div key={kpi.label} className="ps-contrib-kpi-tile">
                 {/* Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "14px", color: t.colors.text.muted, fontWeight: 500 }}>
+                <div className="ps-contrib-tile-header">
+                  <span className="ps-contrib-kpi-label">
                     {kpi.label === "CASE_LABEL_PLACEHOLDER" ? finalCaseLabel : kpi.label}
                   </span>
-                  <span style={{ fontSize: "18px" }}>{kpi.icon}</span>
+                  <span className="ps-contrib-rvu-icon">{kpi.icon}</span>
                 </div>
                 {/* Value */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
-                  <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.5px" }}>{kpi.value}</span>
-                  {kpi.unit && <span style={{ fontSize: "14px", color: t.colors.text.muted }}>{kpi.unit}</span>}
+                <div className="ps-contrib-kpi-value-row">
+                  <span className="ps-contrib-kpi-value">{kpi.value}</span>
+                  {kpi.unit && <span className="ps-contrib-kpi-unit">{kpi.unit}</span>}
                 </div>
                 {/* Delta vs prior period */}
-                <div style={{ fontSize: "13px", fontWeight: 600, color: kpi.up ? t.colors.semantic.success : t.colors.semantic.warning }}>
+                <div className={`ps-contrib-kpi-delta ${kpi.up ? 'ps-contrib-kpi-delta--up' : 'ps-contrib-kpi-delta--down'}`}>
                   {kpi.up ? "▲" : "▼"} {kpi.delta} vs prior period
                 </div>
                 {/* Divider */}
-                <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+                <div className="ps-contrib-kpi-divider" />
                 {/* Peer average */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "12px", color: t.colors.text.muted }}>Peer avg</span>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: t.colors.text.secondary }}>{ext?.peer ?? "—"}</span>
+                <div className="ps-contrib-kpi-row">
+                  <span className="ps-contrib-kpi-row-label">Peer avg</span>
+                  <span className="ps-contrib-kpi-row-value">{ext?.peer ?? "—"}</span>
                 </div>
                 {/* % of target */}
                 {ext?.targetPct != null && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: t.colors.text.muted }}>% of target</span>
-                    <span style={{ fontSize: "13px", fontWeight: 700,
-                      color: ext.targetPct >= 100 ? t.colors.semantic.success : ext.targetPct >= 75 ? t.colors.semantic.warning : "#f87171" }}>
+                  <div className="ps-contrib-kpi-row">
+                    <span className="ps-contrib-kpi-row-label">% of target</span>
+                    <span className={`ps-contrib-kpi-target ${ext.targetPct >= 100 ? 'ps-contrib-kpi-target--good' : ext.targetPct >= 75 ? 'ps-contrib-kpi-target--ok' : 'ps-contrib-kpi-target--bad'}`}>
                       {ext.targetPct}%
                     </span>
                   </div>
@@ -519,44 +624,50 @@ const ContributionDashboardPage: React.FC = () => {
               );
             })}
             {/* TAT Performance — split tile replacing plain Avg TAT KPI */}
-            <TatPerformanceTile />
+            <TatPerformanceTile data={tatPerformance ?? { firstTouchAvgHrs: 0, totalCaseAvgHrs: 0, firstTouchTargetHrs: 0, totalTargetHrs: 0, onTargetPct: 0, clientCount: 0 }} />
             {/* RVU tile as 5th KPI */}
-            <Rvu30Tile />
+            <Rvu30Tile data={rvu30 ?? { total: 0, deltaPct: null, avgPerCase: 0 }} />
           </div>
 
           {/* Main content: 2-col */}
           <div className="ps-contrib-overview-grid">
 
             {/* Left column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="ps-contrib-col">
 
               {/* Case Mix with counts */}
               <CaseMixTile
                 title="Case Mix"
-                data={mockCaseMixData}
+                data={caseMixData ?? { breast: 0, gi: 0, gu: 0, derm: 0, other: 0 }}
                 colors={t.colors.caseMix}
                 showCounts={true}
               />
 
               {/* Weekly chart */}
-              <WeeklyOverviewChart />
+              <WeeklyOverviewChart data={weeklyDaily ?? []} />
             </div>
 
             {/* Right column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="ps-contrib-col">
 
               {/* Quality Flags */}
-              <div style={{ padding: "20px", borderRadius: "18px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <div className="ps-contrib-tile">
+                <div className="ps-contrib-tile-header ps-contrib-tile-header--spaced">
                   <div>
-                    <div style={{ fontSize: "15px", fontWeight: 600 }}>Quality Flags</div>
-                    <div style={{ fontSize: "13px", color: t.colors.text.muted }}>Recent cases with documentation or concordance issues</div>
+                    <div className="ps-contrib-tile-title">Quality Flags</div>
+                    <div className="ps-contrib-tile-subtitle">Recent cases with documentation or concordance issues</div>
                   </div>
-                  <WarningIcon size={18} style={{ color: t.colors.semantic.warning }} />
+                  {/* Real fix, found during this review: WarningIcon's stroke is
+                      bound to its `color` prop, not CSS `color` — the previous
+                      style={{color:...}} silently had no effect (this SVG's
+                      stroke isn't currentColor), so the icon was rendering the
+                      component's own default (#F59E0B) instead of the intended
+                      warning color (#F97316). */}
+                  <WarningIcon size={18} color={t.colors.semantic.warning} />
                 </div>
-                <div data-capture-hide="true" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div data-capture-hide="true" className="ps-contrib-col ps-contrib-col--tight">
                   {qualityFlags.length === 0 && (
-                    <div style={{ fontSize: "13px", color: t.colors.text.muted }}>No open quality items right now.</div>
+                    <div className="ps-contrib-tile-subtitle">No open quality items right now.</div>
                   )}
                   {qualityFlags.map((flag) => (
                     <FlagRow key={flag.id} {...flag} />
@@ -570,118 +681,30 @@ const ContributionDashboardPage: React.FC = () => {
                   meant a resident whose countersigned cases never
                   happened to involve a frozen section would see nothing
                   here at all, despite having real teaching data. */}
-              {(teachingRecords.length > 0 || countersignRecords.length > 0) && (() => {
-                const concordantCount = teachingRecords.filter(r => r.outcome === 'concordant').length;
-                const rate = teachingRecords.length > 0 ? (concordantCount / teachingRecords.length) * 100 : null;
-                const withFeedback = [...teachingRecords].filter(r => r.attendingFeedback).sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
-                const csWithFeedback = [...countersignRecords].filter(r => r.attendingFeedback).sort((a, b) => (b.countersignedAt ?? '').localeCompare(a.countersignedAt ?? ''));
-                const avgChangedFields = countersignRecords.length > 0
-                  ? countersignRecords.reduce((s, r) => s + (r.changedFieldCount ?? 0), 0) / countersignRecords.length
-                  : null;
-
-                // Per-subspecialty breakdown — the actual point of linking
-                // to real Subspecialty rather than just showing one
-                // aggregate rate: "98% in Breast vs 88% in Bone & Soft
-                // Tissue" highlights WHERE a trainee actually needs more
-                // work, not just how they're doing overall. Records with
-                // no subspecialtyId (the case never had one set) group
-                // under "Unspecified" rather than being silently dropped.
-                const bySubspecialty = new Map<string, { total: number; concordant: number }>();
-                teachingRecords.forEach(r => {
-                  const key = r.subspecialtyId ?? '__unspecified__';
-                  const bucket = bySubspecialty.get(key) ?? { total: 0, concordant: 0 };
-                  bucket.total += 1;
-                  if (r.outcome === 'concordant') bucket.concordant += 1;
-                  bySubspecialty.set(key, bucket);
-                });
-                const subspecialtyName = (id: string) => id === '__unspecified__' ? 'Unspecified' : (subspecialties.find(s => s.id === id)?.name ?? id);
-                const breakdown = [...bySubspecialty.entries()]
-                  .map(([id, b]) => ({ id, name: subspecialtyName(id), rate: (b.concordant / b.total) * 100, total: b.total }))
-                  .sort((a, b) => a.rate - b.rate); // lowest concordance first — that's the actual learning opportunity, surface it first
-
-                return (
-                  <div
-                    style={{ padding: "20px", borderRadius: "18px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, cursor: "pointer" }}
-                    onClick={() => navigate('/deficiencies')}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <div style={{ fontSize: "15px", fontWeight: 600 }}>My Teaching Cases</div>
-                        <div style={{ fontSize: "13px", color: t.colors.text.muted }}>Cases you drafted that were reviewed by an attending</div>
-                      </div>
-                      <button
-                        className="ps-conf-btn-secondary"
-                        style={{ fontSize: "11px", padding: "4px 10px" }}
-                        onClick={(e) => { e.stopPropagation(); exportCaseLog(); }}
-                        title="Trainee case reference for manual ACGME ADS entry — not an official ACGME file format"
-                      >
-                        Export Case Log
-                      </button>
-                    </div>
-                    {rate !== null && (
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "10px" }}>
-                        <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.5px" }}>{rate.toFixed(0)}%</span>
-                        <span style={{ fontSize: "13px", color: t.colors.text.muted }}>overall concordant (frozen section) · {teachingRecords.length} case{teachingRecords.length === 1 ? '' : 's'}</span>
-                      </div>
-                    )}
-                    {breakdown.length > 1 && (
-                      <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                        {breakdown.map(b => (
-                          <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                            <span style={{ color: t.colors.text.muted }}>{b.name} ({b.total})</span>
-                            <span style={{ fontWeight: 600, color: b.rate < 90 ? '#f59e0b' : t.colors.text.primary }}>{b.rate.toFixed(0)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {withFeedback[0]?.attendingFeedback && (
-                      <div style={{ marginTop: "10px", fontSize: "12px", color: t.colors.text.muted, fontStyle: "italic" }}>
-                        Latest reconciliation feedback: "{withFeedback[0].attendingFeedback}"
-                      </div>
-                    )}
-                    {/* General countersign summary — the broader signal,
-                        covers every drafted case regardless of frozen
-                        section involvement. Shown separately from the
-                        reconciliation numbers above rather than blended
-                        into one figure, since changedFieldCount and
-                        concordance rate aren't the same kind of metric. */}
-                    {countersignRecords.length > 0 && (
-                      <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: `1px solid ${t.colors.border.subtle}` }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                          <span style={{ fontSize: "20px", fontWeight: 800 }}>{countersignRecords.length}</span>
-                          <span style={{ fontSize: "13px", color: t.colors.text.muted }}>
-                            case{countersignRecords.length === 1 ? '' : 's'} countersigned
-                            {avgChangedFields !== null && ` · avg ${avgChangedFields.toFixed(1)} field${avgChangedFields === 1 ? '' : 's'} changed`}
-                          </span>
-                        </div>
-                        {csWithFeedback[0]?.attendingFeedback && (
-                          <div style={{ marginTop: "6px", fontSize: "12px", color: t.colors.text.muted, fontStyle: "italic" }}>
-                            Latest countersign feedback: "{csWithFeedback[0].attendingFeedback}"
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {(teachingRecords.length > 0 || countersignRecords.length > 0) && (
+                <TeachingCasesTile
+                  teachingRecords={teachingRecords}
+                  countersignRecords={countersignRecords}
+                  subspecialties={subspecialties}
+                  onOpen={() => navigate('/deficiencies')}
+                  onExport={(e) => { e.stopPropagation(); exportCaseLog(); }}
+                />
+              )}
 
               {/* Active Intraop Sessions */}
-              <div
-                style={{ padding: "20px", borderRadius: "18px", background: t.colors.surfaceSubtle, border: `1px solid ${t.colors.border.subtle}`, cursor: "pointer" }}
-                onClick={() => navigate('/intraop-queue')}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="ps-contrib-tile ps-contrib-tile-clickable" onClick={() => navigate('/intraop-queue')}>
+                <div className="ps-contrib-tile-header">
                   <div>
-                    <div style={{ fontSize: "15px", fontWeight: 600 }}>Active Intraop Sessions</div>
-                    <div style={{ fontSize: "13px", color: t.colors.text.muted }}>Unlinked entries awaiting a formal accession to merge into</div>
+                    <div className="ps-contrib-tile-title">Active Intraop Sessions</div>
+                    <div className="ps-contrib-tile-subtitle">Unlinked entries awaiting a formal accession to merge into</div>
                   </div>
-                  <span style={{ fontSize: "18px" }}>🧊</span>
+                  <span className="ps-contrib-rvu-icon">🧊</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: "10px" }}>
-                  <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.5px" }}>
+                <div className="ps-contrib-tile-value-row">
+                  <span className="ps-contrib-tile-value">
                     {activeIntraopCount === null ? "—" : activeIntraopCount}
                   </span>
-                  <span style={{ fontSize: "13px", color: t.colors.text.muted }}>
+                  <span className="ps-contrib-tile-value-sub">
                     {activeIntraopCount === 0 ? "all merged" : "pending"}
                   </span>
                 </div>
@@ -699,10 +722,8 @@ const ContributionDashboardPage: React.FC = () => {
 
       {/* ─── AI Contribution Tab ─────────────────────────────────────────── */}
       {activeTab === "ai" && <AIContributionTab />}
-
-      {/* ─── Modals ──────────────────────────────────────────────────────── */}    </div>
+    </div>
   );
 };
 
-// ─── Shared Styles ────────────────────────────────────────────────────────────
 export default ContributionDashboardPage;

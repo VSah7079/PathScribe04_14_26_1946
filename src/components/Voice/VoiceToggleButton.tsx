@@ -21,7 +21,7 @@ export const VoiceToggleButton: React.FC = () => {
     ? aiAvailable
       ? 'Voice AI — click to enable'
       : IS_DEV
-        ? 'Voice Local only (VITE_GEMINI_API_KEY not set)'
+        ? 'Voice Local only (active voice model unavailable — check its provider API key)'
         : 'Click to enable voice'
     : isAi
       ? 'Voice AI active — click for Local'
@@ -140,7 +140,7 @@ export const VoiceToggleButton: React.FC = () => {
         }}>
           ⚠️ AI refinement unavailable
           <div style={{ color: '#94a3b8', marginTop: '2px', fontSize: '10px' }}>
-            VITE_GEMINI_API_KEY not set in .env
+            No validated voice model configured, or its provider API key isn't set
           </div>
         </div>
       )}

@@ -11,7 +11,6 @@ export interface StaffUser {
   npi: string;
   license: string;
   phone: string;
-  department: string;
   signatureUrl?: string;
   status: 'Active' | 'Inactive';
   /** The personal linguistic override.

@@ -1,10 +1,22 @@
 # components/Config/System/
 
 The biggest, most central components folder after Config/ itself — every
-system-wide dictionary/admin screen (29 files — was 28 → 27 after an
+system-wide dictionary/admin screen (30 files — was 28 → 27 after an
 earlier rename → 26 after `specimenTypes.ts`'s relocation → 27 again with
 `SessionSecuritySection.tsx`'s addition this pass, 28 with
-`ExternalResourcesSection.tsx` — see Notes).
+`ExternalResourcesSection.tsx`, 30 with `ContributionSettingsSection.tsx`
+— see Notes — then 28 again with `LISSection.tsx`/`IdentifierFormatsSection.tsx`
+relocating below).
+
+**Real, per direct request: `LISSection.tsx` and `IdentifierFormatsSection.tsx`
+moved to `components/Config/Integrations/`**, alongside `TerminologyServicesSection.tsx`
+(which already lived in its own folder) and the new `CrosswalkSection.tsx` —
+consolidating the real interoperability-related config that was scattered in
+this folder's own flat "Independent" sidebar group into its own major
+configuration tab. `RvuCodeMapSection.tsx` deliberately stayed here — billing/
+coding rules, not external-system connectivity, a real, different concern.
+See `components/Config/Integrations/` for the new tab.
+
 Wired entirely through `index.tsx`'s `SECTIONS` registry + `renderSection()`
 switch; every section listed there is confirmed live (all 23 sidebar items
 render a real, non-stub component — see Notes on `TATConfigSection.tsx`).
@@ -43,10 +55,23 @@ usually backed by a real `services/` interface/mock pair.
   rather than folded into `RetentionSection.tsx` (a related-sounding but
   conceptually different concept — how long *data* is retained, not how
   long an *active session* stays live) — also a natural home for Phase
+
+- **`ContributionSettingsSection.tsx`** — **NEW.** Single admin toggle
+  (`showPeerAveragesToPathologists`, on `SystemConfig` itself, not a
+  bespoke new service — same shape as `voiceEnabled`) controlling whether
+  the plain `pathologist` role sees peer-average/top-performer comparisons
+  on their own My Contribution dashboard. Admin/pathologist-admin/
+  superadmin roles always see it regardless — real, tested gating logic
+  lives in `components/Contribution/productivityCalculations.ts`
+  (`canSeePeerComparison`), not duplicated here. Phase 1 of the
+  Orchestration Intelligent Charge Capture & Workload Analytics spec's
+  `System_Configuration` toggle infrastructure — deliberately scoped to
+  just this one flag; the spec's actual AI charge-capture/billing logic
+  (Phase 2/3) is not built, pending legal/compliance review.
   2/3's related settings (draft retention days, encryption toggle) once
   those are built, rather than needing a second new section added later.
-  Per-performing-lab overrides are set separately, on the Client
-  Dictionary edit modal (`Client.idleTimeoutMinutesOverride`) — this
+  Per-performing-lab overrides are set separately, on Facility
+  Configuration's edit modal (`Facility.idleTimeoutMinutesOverride`) — this
   screen only controls the org-wide fallback.
   **Corrected mid-session:** this originally called a single
   non-conforming file (`sessionTimeoutConfig.ts`) with bare sync
@@ -92,7 +117,20 @@ usually backed by a real `services/` interface/mock pair.
   build. It is NOT a stub — full `TATEntry` data model, the 5-dimension
   uniqueness guard, and the complete 7-level most-specific-wins resolution
   hierarchy (client+specimen+urgency down to system default) are all
-  implemented, matching the original design doc exactly.
+  implemented, matching the original design doc exactly. **New real
+  consumer:** `components/Contribution/QualityTab.tsx`'s `TOTAL_CASE` TAT-
+  outlier calculation, via a genuinely new resolver
+  (`qualityCalculations.ts`'s `resolveTatTargetHours`) — this file's own
+  `specificityScore()` was only ever a display-sort helper for the admin
+  UI, not a callable "resolve the real target for a case" function, which
+  didn't exist anywhere until now. `SYSTEM_DEFAULTS` (previously private)
+  is now exported so the same real 24h-routine/4h-STAT fallback applies
+  in both places. Real bug caught while wiring this: the consumer's first
+  draft read entries via `storageGet()` (this app's usual localStorage
+  helper), but this file actually writes/reads via raw
+  `localStorage.getItem`/`setItem` directly, not `storageGet`/`storageSet`
+  — using the wrong helper would have silently never found real admin-
+  configured entries at all.
 - **`ProtocolDictionarySection.tsx`** — Real, substantial (654 lines).
   Second-pass rebuild of its own editor (own header documents why: a flat
   pill grid for stain selection didn't scale to a real customer's Stain
@@ -107,16 +145,23 @@ usually backed by a real `services/` interface/mock pair.
   history: explicitly documents replacing TWO earlier, real-but-wrongly-wired
   screens (one edited a disconnected model nothing downstream read; one was
   its own narrower toggle-only first pass). This is the one real screen now.
-- **`IdentifierFormatsSection.tsx`** — Read-only system-defined identifier
-  formats per jurisdiction, admin can enable/disable + test against a real
-  value. Formats themselves aren't editable by design (enhancement request
-  required to add/modify) — not a missing feature, a stated boundary.
 - **`FlagConfigPage.tsx`** — Real flag dictionary editor, wired to
   `flagService`. No issues.
 - **`DelegationTypeSection.tsx`** — System types toggle-only, custom types
   full CRUD — consistent with the same pattern used across this folder
   (Participation Types, Delegation Types, Governing Bodies all share this
   shape). No issues.
+- **`RvuCodeMapSection.tsx`** — **NEW.** Real admin UI for the versioned
+  CPT-to-work-RVU table (`services/billing/`), built directly from a
+  direct product question ("is there a UI to update the table?" / "these
+  need to be versioned, correct?"). Active version shown prominently;
+  older versions collapsed behind a single toggle by default per direct
+  "make it easy to use" request — never deleted, but kept out of the way
+  of the common case. Real spreadsheet upload (downloadable template,
+  preview before commit) matching this folder's own established
+  `SpecimenDictionarySection.tsx` pattern. See `services/billing/README.md`
+  for the full versioning design and a real, deep TypeScript
+  (`strictNullChecks`) issue found and worked around while building this.
 - **`PhysiciansSection.tsx`** — Completed CSS migration (off the deprecated
   `modalStyles.ts` inline-constant pattern, per that file's own header
   marking it deprecated). No issues.
@@ -135,15 +180,34 @@ usually backed by a real `services/` interface/mock pair.
   earlier, narrower audit pass). All now correctly categorized into
   `CASE_KEYS`/`SETTINGS_KEYS`/`STATE_KEYS`.
 
+  **Another real bug found and fixed, a later pass** — per direct
+  report: "reset the demo data, logged back in, got an 'Already signed
+  in elsewhere' message." Root cause: `services/session/sessionSupersedeService.ts`'s
+  active-session marker (`pathscribe_active_session_${userId}`)
+  lives in its own key namespace — not under `MOCK_PREFIX`, not in
+  `SESSION_KEY` — so neither existing cleanup path in either reset
+  function ever touched it. A reset cleared the user's own login
+  session but left the *stale* active-session marker from before the
+  reset sitting in `localStorage`; the very next login found that
+  stale marker and incorrectly concluded the account was already
+  signed in elsewhere. `clearActiveSessionId()`'s own doc comment had
+  already warned about exactly this failure mode — this reset flow
+  was the gap it was warning about. Fixed both reset paths: full
+  reset now sweeps every `pathscribe_active_session_*` key (any
+  user's), matching the existing `MOCK_PREFIX` sweep pattern; the
+  user-scoped reset clears only that specific user's own marker,
+  since other testers' active sessions must survive a "my data only"
+  reset. Verified live, end-to-end, reproducing the exact reported
+  sequence: logged in (confirmed the marker gets created), performed
+  a full reset (confirmed the marker was gone from `localStorage`
+  immediately after), logged back in again (confirmed no false
+  supersede dialog appeared).
+
 - **`GoverningBodiesSection.tsx`** — Standard bodies (CAP/RCPath/ICCR/RCPA)
   toggle-only, custom bodies full CRUD with an ID-conflict guard. **See
   Notes — hardcoded `isSuperAdmin`.**
-- **`LISSection.tsx`** — LIS integration config (enabled, endpoint,
-  whether LIS owns case statuses, whether pathologists can initiate
-  Addendum/Amendment directly). Own header is a genuinely good example of
-  documenting architecture role + state model concisely. No issues.
 - **`ParticipationTypesSection.tsx`** — System-level master list; roles
-  then select from it. Same pattern as Client Dictionary/Subspecialties.
+  then select from it. Same pattern as Facility Configuration/Subspecialties.
 
   **CORRECTION — this file's "no issues" assessment was wrong.** It
   maintained its own separate local list (`BUILT_IN_PARTICIPATION_TYPES`
@@ -223,15 +287,27 @@ usually backed by a real `services/` interface/mock pair.
 - **`DeficienciesSection.tsx`** — Deficiency Types + Resolution Types as
   one tabbed section rather than two sidebar entries — own header
   correctly reasons why (Resolution Type has no independent use elsewhere,
-  unlike e.g. Specimen Category). No issues.
+  unlike e.g. Specimen Category). No issues. **Grew a Level field in a
+  later session** (case/specimen/both — see `services/deficiencies/
+  README.md`'s `IDeficiencyType.level` entry for the real gap this
+  closes), scoped to the Deficiency Types tab only via a `showLevel`
+  prop on the shared `TypeDictionaryTab` component underneath both
+  tabs — Resolution Types has no equivalent concept, so it stays
+  entirely absent from that tab's own table and form rather than
+  showing an irrelevant field there.
 - **`VoiceSection.tsx`** — **NOT part of the System tab's own registry** —
   not in `index.tsx`'s `SECTIONS`/switch at all. Its real consumer is
   `components/Voice/VoiceSettings.tsx`. Live and correct, just worth
   knowing this one file's audience is outside this folder's own tab.
-  References a real, deliberate second AI integration (Gemini-backed voice
-  dictation refinement via `contexts/VoiceProvider.tsx`) — distinct from
-  the main narrative-generation provider abstraction in `Config/AI/`, not
-  a stale reference.
+  **Correction to this file's own prior note:** previously described
+  as referencing "a real, deliberate second AI integration
+  (Gemini-backed voice dictation refinement) ... distinct from the
+  main narrative-generation provider abstraction ... not a stale
+  reference." That's no longer accurate — as of a later pass, voice
+  dictation refinement resolves through the same `AIModel` catalog and
+  `callAi()` path as the rest of the app's AI calls, governed by the
+  same validation-study hard-block. See `components/Voice/README.md`
+  and `services/models/README.md`.
 - **`useSpecimenDictionary.tsx`** — Real hook, rewritten June 2026 off
   direct localStorage calls onto the standard
   interface/mock/firestore-shaped `specimenDictionaryService`. Own header

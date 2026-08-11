@@ -23,8 +23,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import '../../../pathscribe.css';
 import { useSpecimenDictionary } from './useSpecimenDictionary';
-import { useSubspecialties } from '../../../contexts/useSubspecialties';
-import { specimenCategoryService } from '../../../services';
+import { specimenCategoryService, subspecialtyService, Subspecialty } from '../../../services';
 import { protocolService } from '../../../services';
 import type { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
 import type { SpecimenCategory } from '../../../services/specimenCategories/ISpecimenCategoryService';
@@ -120,8 +119,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialtyName
               <input className="ps-conf-input" value={draft.site ?? ''} onChange={e => set('site', e.target.value)} placeholder="e.g. Breast" />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Laterality</label>
-              <select className="ps-conf-select" value={draft.laterality ?? ''} onChange={e => set('laterality', e.target.value)}>
+              <label className="ps-conf-label" htmlFor="specdict-laterality">Laterality</label>
+              <select id="specdict-laterality" className="ps-conf-select" value={draft.laterality ?? ''} onChange={e => set('laterality', e.target.value)}>
                 <option value="">— not specified —</option>
                 <option value="Left">Left</option>
                 <option value="Right">Right</option>
@@ -141,8 +140,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialtyName
               </datalist>
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Specimen Category</label>
-              <select className="ps-conf-select" value={draft.specimenCategoryId ?? ''} onChange={e => set('specimenCategoryId', e.target.value || undefined)}>
+              <label className="ps-conf-label" htmlFor="specdict-category">Specimen Category</label>
+              <select id="specdict-category" className="ps-conf-select" value={draft.specimenCategoryId ?? ''} onChange={e => set('specimenCategoryId', e.target.value || undefined)}>
                 <option value="">— not linked —</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -152,6 +151,20 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialtyName
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">Synonyms (comma-separated)</label>
             <input className="ps-conf-input" value={draft.synonymsText} onChange={e => set('synonymsText', e.target.value)} placeholder="e.g. core bx, needle core, CNB" />
+          </div>
+
+          <div className="ps-conf-form-field">
+            <label className="ps-conf-label">Default Base CPT Code</label>
+            <input
+              className="ps-conf-input"
+              value={draft.defaultBaseCptCode ?? ''}
+              onChange={e => set('defaultBaseCptCode', e.target.value.trim() || undefined)}
+              placeholder="e.g. 88305 — leave blank to use the generic default"
+            />
+            <p className="ps-conf-section-subtitle" style={{ marginTop: 4 }}>
+              Real, coder-entered surgical pathology base code for this specimen type — requires your own AMA CPT license to determine correctly.
+              Leave blank to fall back to the app's generic, honest default (one code per specimen).
+            </p>
           </div>
 
           <div className="ps-conf-form-field">
@@ -187,8 +200,8 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialtyName
               </div>
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">Processing Protocol</label>
-              <select className="ps-conf-select" value={draft.protocolId ?? ''} onChange={e => set('protocolId', e.target.value || undefined)}>
+              <label className="ps-conf-label" htmlFor="specdict-protocol">Processing Protocol</label>
+              <select id="specdict-protocol" className="ps-conf-select" value={draft.protocolId ?? ''} onChange={e => set('protocolId', e.target.value || undefined)}>
                 <option value="">None — single block, defaultStains/H&amp;E</option>
                 {protocols.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -231,13 +244,14 @@ const TEMPLATE_EXAMPLE_ROWS = [
 
 const SpecimenDictionarySection: React.FC = () => {
   const { dictionary, addEntries, updateEntries } = useSpecimenDictionary();
-  const { subspecialties } = useSubspecialties();
+  const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [categories, setCategories] = useState<SpecimenCategory[]>([]);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
 
   useEffect(() => {
     specimenCategoryService.getAll().then(res => { if (res.ok) setCategories(res.data); });
     protocolService.getAll().then(res => { if (res.ok) setProtocols(res.data.filter(p => p.active)); });
+    subspecialtyService.getAll().then(res => { if (res.ok) setSubspecialties(res.data); });
   }, []);
 
   const [search, setSearch] = useState('');
@@ -281,6 +295,7 @@ const SpecimenDictionarySection: React.FC = () => {
     specimenCode: draft.specimenCode?.trim() || undefined,
     defaultStains: draft.defaultStains?.length ? draft.defaultStains : undefined,
     processingNotes: draft.processingNotes?.trim() || undefined,
+    defaultBaseCptCode: draft.defaultBaseCptCode?.trim() || undefined,
   });
 
   const handleSaveEntry = (draft: Draft) => {
@@ -387,8 +402,8 @@ const SpecimenDictionarySection: React.FC = () => {
           </p>
         </div>
         <div className="ps-specdict-header-actions">
-          <button className="ps-btn-secondary" onClick={handleDownloadTemplate}>Download Template</button>
-          <button className="ps-btn-secondary" onClick={() => fileInputRef.current?.click()}>Upload Spreadsheet</button>
+          <button className="ps-conf-btn-secondary" onClick={handleDownloadTemplate}>Download Template</button>
+          <button className="ps-conf-btn-secondary" onClick={() => fileInputRef.current?.click()}>Upload Spreadsheet</button>
           <input ref={fileInputRef} type="file" hidden accept=".csv,.xlsx" onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0]); e.target.value = ''; }} />
           <button className="ps-conf-btn-primary" onClick={() => setModal({ mode: 'add' })}>+ Add Specimen</button>
         </div>
@@ -396,11 +411,11 @@ const SpecimenDictionarySection: React.FC = () => {
 
       <div className="ps-conf-form-row--3">
         <input type="text" placeholder="Search by name, type, or procedure..." value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="ps-conf-select">
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label="Filter by type" className="ps-conf-select">
           <option value="All">All Types</option>
           {types.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label="Filter by status" className="ps-conf-select">
           <option value="All">All Statuses</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
@@ -411,7 +426,7 @@ const SpecimenDictionarySection: React.FC = () => {
         <div className="ps-conf-table-scroll">
           <table className="ps-conf-table">
             <thead className="ps-conf-thead-sticky">
-              <tr>{['Specimen', 'Type · Procedure · Site', 'Category', 'Protocol', 'Fixative Req.', 'Status', 'Actions'].map(h => <th key={h} className="ps-conf-th">{h}</th>)}</tr>
+              <tr>{['Specimen', 'Type · Procedure · Site', 'Category', 'Base CPT', 'Protocol', 'Fixative Req.', 'Status', 'Actions'].map(h => <th key={h} className="ps-conf-th">{h}</th>)}</tr>
             </thead>
             <tbody>
               {filtered.map(e => (
@@ -422,6 +437,7 @@ const SpecimenDictionarySection: React.FC = () => {
                   </td>
                   <td className="ps-conf-td"><div className="ps-specreq-meta">{[e.type, e.procedure, e.site].filter(Boolean).join(' · ') || '—'}</div></td>
                   <td className="ps-conf-td">{categories.find(c => c.id === e.specimenCategoryId)?.name ?? '—'}</td>
+                  <td className="ps-conf-td">{e.defaultBaseCptCode || '—'}</td>
                   <td className="ps-conf-td">{e.protocolId ? (protocols.find(p => p.id === e.protocolId)?.name ?? e.protocolId) : '—'}</td>
                   <td className="ps-conf-td">{e.requireFixativeTimeBeforeSignout ? <span className="ps-specreq-required-badge">Required</span> : '—'}</td>
                   <td className="ps-conf-td">

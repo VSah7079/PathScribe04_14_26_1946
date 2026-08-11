@@ -127,8 +127,8 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
             <textarea className="ps-conf-input ps-conf-textarea" value={finalDx} onChange={e => setFinalDx(e.target.value)} placeholder="Enter the final diagnosis for this specimen" />
           </div>
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Final category</label>
-            <select className="ps-conf-select" value={finalCategory} onChange={e => { setFinalCategory(e.target.value as FrozenCategory | ''); setShowDiscordantForm(false); }}>
+            <label className="ps-conf-label" htmlFor="discordance-final-category">Final category</label>
+            <select id="discordance-final-category" className="ps-conf-select" value={finalCategory} onChange={e => { setFinalCategory(e.target.value as FrozenCategory | ''); setShowDiscordantForm(false); }}>
               <option value="">Select…</option>
               <option value="benign">Benign</option>
               <option value="malignant">Malignant</option>
@@ -143,8 +143,8 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
           {finalCategory && finalCategory !== frozenCategory && (
             <div className="ps-intraop-action-block">
               <div className="ps-conf-form-field">
-                <label className="ps-conf-label">Delta</label>
-                <select className="ps-conf-select" value={delta} onChange={e => setDelta(e.target.value as DiscordanceDelta | '')}>
+                <label className="ps-conf-label" htmlFor="discordance-delta">Delta</label>
+                <select id="discordance-delta" className="ps-conf-select" value={delta} onChange={e => setDelta(e.target.value as DiscordanceDelta | '')}>
                   <option value="">Select…</option>
                   <option value="upgrade">Upgrade — frozen understated severity</option>
                   <option value="downgrade">Downgrade — frozen overstated severity</option>
@@ -152,8 +152,8 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
                 </select>
               </div>
               <div className="ps-conf-form-field">
-                <label className="ps-conf-label">Clinical impact</label>
-                <select className="ps-conf-select" value={severity} onChange={e => setSeverity(e.target.value as DiscordanceSeverity | '')}>
+                <label className="ps-conf-label" htmlFor="discordance-severity">Clinical impact</label>
+                <select id="discordance-severity" className="ps-conf-select" value={severity} onChange={e => setSeverity(e.target.value as DiscordanceSeverity | '')}>
                   <option value="">Select…</option>
                   <option value="low">Tier 1 — No harm / administrative</option>
                   <option value="medium">Tier 2 — Near miss / minor effect</option>
@@ -178,8 +178,8 @@ export const DiscordanceReconciliationModal: React.FC<Props> = ({ caseId, specim
                 )}
               </div>
               <div className="ps-conf-form-field">
-                <label className="ps-conf-label">Root cause</label>
-                <select className="ps-conf-select" value={rootCause} onChange={e => setRootCause(e.target.value as DiscordanceRootCause | '')}>
+                <label className="ps-conf-label" htmlFor="discordance-root-cause">Root cause</label>
+                <select id="discordance-root-cause" className="ps-conf-select" value={rootCause} onChange={e => setRootCause(e.target.value as DiscordanceRootCause | '')}>
                   <option value="">Select…</option>
                   <option value="sampling_error">Sampling error — diagnostic tissue not in the frozen piece</option>
                   <option value="interpretation_error">Interpretation error</option>

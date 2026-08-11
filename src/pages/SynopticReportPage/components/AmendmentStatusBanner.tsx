@@ -81,7 +81,18 @@ const InstanceMatrix: React.FC<{ group: InstanceGroup; liveAnswers: Record<strin
 
   const total = columns.length;
   const columnsDescending = [...columns].reverse();
-  const allFieldKeys = Array.from(new Set(columns.flatMap(c => Object.keys(c))));
+  const rawFieldKeys = Array.from(new Set(columns.flatMap(c => Object.keys(c))));
+  // Real fix, item #24: previously showed every field present in any
+  // version, including the large majority that never actually changed
+  // across the whole amendment history — cluttering what's meant to be
+  // a "what changed" comparison with dozens of identical-value rows.
+  // Only fields where at least one version's value genuinely differs
+  // from another belong here; JSON.stringify handles array-valued
+  // fields (e.g. tumor_site) correctly too, not just scalars.
+  const allFieldKeys = rawFieldKeys.filter(k => {
+    const values = columns.map(c => JSON.stringify((c as any)[k] ?? null));
+    return new Set(values).size > 1;
+  });
 
   // Group by real section structure when available; unsectioned fields
   // (present in the data but not in the template, e.g. legacy/removed

@@ -75,8 +75,8 @@ const ContainerTypeModal: React.FC<ContainerTypeModalProps> = ({ mode, container
           </div>
 
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Category</label>
-            <select className="ps-conf-select" value={draft.category} onChange={e => set('category', e.target.value)}>
+            <label className="ps-conf-label" htmlFor="container-category">Category</label>
+            <select id="container-category" className="ps-conf-select" value={draft.category} onChange={e => set('category', e.target.value)}>
               {CATEGORY_OPTIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>

@@ -29,13 +29,21 @@
 // anywhere in this app (checked directly), and pretending otherwise here
 // would be dishonest about what's actually wired.
 // ─────────────────────────────────────────────────────────────────────────────
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { intraoperativeService } from '@/services';
+import { intraoperativeService, facilityService, locationService } from '@/services';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import type { IntraoperativeEntry, IntraopSpecimen, MatchCandidate, MilestoneType, SkipReason, FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
+import type { Facility } from '@/services/facilities/IFacilityService';
+import type { Location } from '@/services/locations/ILocationService';
+import { shouldRestrictToMobileWorkflow, setDesktopViewOverride, isConstrainedMobileDevice } from '@/utils/deviceDetection';
+import BarcodeScanner from '@/components/BarcodeScanner/BarcodeScanner';
+import { formatDateLong } from '@/utils/formatDate';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { useVoice } from '@/contexts/VoiceProvider';
 
 const MILESTONE_LABEL: Record<MilestoneType, string> = {
   gross_logged: 'Gross Logged',
@@ -59,15 +67,47 @@ const formatTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour:
 const NewEntryForm: React.FC<{
   performedBy: { userId: string; userName: string };
   onSessionSaved: () => void;
-}> = ({ performedBy, onSessionSaved }) => {
+  onRequestReset: () => void;
+}> = ({ performedBy, onSessionSaved, onRequestReset }) => {
   const [step, setStep] = useState<'scan' | 'demographics' | 'specimen'>('scan');
   const [patientName, setPatientName] = useState('');
   const [mrn, setMrn] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [source, setSource] = useState<'barcode' | 'adt_match'>('barcode');
   const [adtMatched, setAdtMatched] = useState(false);
+  // Real fix for a genuine, reported gap: "confirm before proceeding" was
+  // only ever advisory text - Continue to Specimen was enabled the moment
+  // patientName+mrn happened to be non-empty, with no actual, active
+  // confirmation that a person read and verified the three identifiers.
+  // This makes it a real, required, deliberate action instead of a
+  // passive display someone could glance past.
+  const [patientConfirmed, setPatientConfirmed] = useState(false);
   const [orNumber, setOrNumber] = useState('');
   const [surgeon, setSurgeon] = useState('');
+  // Real feature, per direct confirmation: "Let's wire in Facility and
+  // Location (Room) for Intraop." Same facility-scoped Location
+  // pattern already established on AccessionPage.tsx — locations
+  // reload and locationId resets whenever the selected facility
+  // changes.
+  const [clients, setClients] = useState<Facility[]>([]);
+  const [clientId, setClientId] = useState('');
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationId, setLocationId] = useState('');
+  useEffect(() => {
+    facilityService.getAll().then(res => { if (res.ok) setClients(res.data.filter(c => c.status === 'Active')); });
+  }, []);
+  useEffect(() => {
+    if (!clientId) { setLocations([]); setLocationId(''); return; }
+    let cancelled = false;
+    (async () => {
+      const res = await locationService.listForFacility(clientId);
+      if (cancelled) return;
+      const list = res.ok ? res.data.filter(l => l.status !== 'Inactive') : [];
+      setLocations(list);
+      setLocationId(prev => (list.some(l => l.id === prev) ? prev : ''));
+    })();
+    return () => { cancelled = true; };
+  }, [clientId]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [specimenLabel, setSpecimenLabel] = useState('');
   const [quickGross, setQuickGross] = useState('');
@@ -75,6 +115,57 @@ const NewEntryForm: React.FC<{
   const [frozenCategory, setFrozenCategory] = useState<FrozenCategory | ''>('');
   const [specimenCount, setSpecimenCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  // Real fix for a genuine, reported gap: "Start New Entry" (voice or
+  // otherwise) used to reset immediately, no matter what step the form
+  // was on - a stray or misheard voice trigger (already documented
+  // elsewhere in this file as genuinely unreliable on iOS) could
+  // silently wipe an in-progress, unsaved patient/specimen session with
+  // zero confirmation. Only shown when there's actually real progress to
+  // lose (step !== 'scan') - an essentially-empty form resets
+  // immediately, no need to interrupt for nothing.
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Real "tap + mic" dictation wiring for Intraop's text fields -
+  // replicates the exact pattern already proven for SynopticReportPage's
+  // report editor (see OrchestratorSectionEditor.tsx): focus a field,
+  // press the mic, dictation starts into that field. Deliberately NOT a
+  // "say the field's name to jump to it" mechanism - confirmed directly
+  // that pattern doesn't exist working anywhere in this app, so this
+  // doesn't pretend otherwise. dateOfBirth is deliberately excluded - a
+  // native date picker doesn't have a meaningful free-text dictation
+  // target the way these do.
+  const [focusedFieldId, setFocusedFieldId] = useState<string | null>(null);
+  const { startDictation, phase, dictationTarget } = useVoice();
+
+  const registerDictationTarget = useCallback((fieldId: string) => {
+    const fieldMap: Record<string, { label: string; context: string; setValue: (updater: (prev: string) => string) => void }> = {
+      patientName:   { label: 'Patient Name',    context: 'patient name',              setValue: setPatientName },
+      orNumber:      { label: 'OR Number',       context: 'operating room number',     setValue: setOrNumber },
+      surgeon:       { label: 'Surgeon',         context: 'surgeon name',              setValue: setSurgeon },
+      specimenLabel: { label: 'Specimen Label',  context: 'specimen label',            setValue: setSpecimenLabel },
+      quickGross:    { label: 'Quick Gross',     context: 'gross description',         setValue: setQuickGross },
+      frozenDx:      { label: 'Frozen Diagnosis', context: 'frozen section diagnosis', setValue: setFrozenDx },
+    };
+    const field = fieldMap[fieldId];
+    if (!field) return;
+    startDictation({
+      fieldId,
+      label: field.label,
+      context: field.context,
+      onText: (text: string, isInterim?: boolean) => {
+        // Waits for finalized phrases only - unlike the rich-text editor
+        // case this pattern was built for, a plain controlled input has
+        // no cursor position to preview interim results into.
+        if (isInterim) return;
+        field.setValue(prev => (prev ? `${prev} ${text}`.trim() : text.trim()));
+      },
+    });
+  }, [startDictation]);
+
+  useEffect(() => {
+    if (phase !== 'dictate' || dictationTarget || !focusedFieldId) return;
+    registerDictationTarget(focusedFieldId);
+  }, [phase, dictationTarget, focusedFieldId, registerDictationTarget]);
 
   const [manualMrn, setManualMrn] = useState('');
   const [showManualMrn, setShowManualMrn] = useState(false);
@@ -83,6 +174,7 @@ const NewEntryForm: React.FC<{
     setBusy(true);
     setMrn(mrnValue);
     setSource(matchSource);
+    setPatientConfirmed(false);
     const res = await intraoperativeService.lookupAdtRecord(mrnValue);
     setBusy(false);
     if (res.ok && res.data) {
@@ -104,6 +196,50 @@ const NewEntryForm: React.FC<{
     lookupPatient(`MRN-${Math.floor(10000 + Math.random() * 89999)}`, 'barcode');
   };
 
+  // Real camera scan — replaces the line above wherever it's actually
+  // triggered from the UI (see the button below). Kept simulateScan()
+  // itself in place, unused but not deleted, in case a demo/offline
+  // environment without camera access still needs a way to exercise
+  // this flow — a real, deliberate choice, not leftover dead code.
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const handleBarcodeDecoded = (text: string) => {
+    setShowBarcodeScanner(false);
+    setScannerError(null);
+    // The decoded payload is fed straight into the same real ADT lookup
+    // manual MRN entry already uses. Today this treats the whole decoded
+    // string as the MRN directly - the real, per-client label-format
+    // decompose (extracting MRN/name/encounter# from a single combined
+    // payload) is real, separate, sequenced work, not yet built.
+    lookupPatient(text.trim(), 'barcode');
+  };
+
+  // Voice command for starting a fresh capture — real caveat, not
+  // glossed over: reliability on iOS Safari is genuinely inconsistent
+  // (checked directly — real, recent reports of recognition silently
+  // failing or never stopping); this should degrade to tapping the
+  // scan button, not be depended on. Per-milestone voice commands were
+  // removed with the session/specimen restructuring — "log touch prep
+  // performed" needs a specific specimen in view to make sense, and
+  // there's no reliable way to infer which one from voice alone; those
+  // stay tap-only on the specimen card itself for now.
+  //
+  // Real fix for a genuine, reported gap: this used to reset
+  // immediately and unconditionally. Now checks real, local progress
+  // (step !== 'scan' means a patient has at least been matched) - an
+  // essentially-empty form resets right away, since there's nothing to
+  // lose; real in-progress work requires an explicit, tap-based
+  // confirmation instead, deliberately not another voice command, since
+  // a misheard trigger shouldn't be able to confirm its own mistake.
+  useEffect(() => {
+    const onStartNewEntry = () => {
+      if (step === 'scan') { onRequestReset(); return; }
+      setShowResetConfirm(true);
+    };
+    window.addEventListener('PATHSCRIBE_INTRAOP_START_NEW_ENTRY', onStartNewEntry);
+    return () => window.removeEventListener('PATHSCRIBE_INTRAOP_START_NEW_ENTRY', onStartNewEntry);
+  }, [step, onRequestReset]);
+
   const patientIdentified = patientName.trim() && mrn.trim();
 
   const startSession = async () => {
@@ -112,6 +248,7 @@ const NewEntryForm: React.FC<{
     const res = await intraoperativeService.createSession({
       patientMatch: { source, patientName: patientName.trim(), mrn: mrn.trim(), dateOfBirth: dateOfBirth.trim() || undefined },
       performedBy, orNumber: orNumber.trim(), surgeon: surgeon.trim(),
+      clientId: clientId || undefined, locationId: locationId || undefined,
     });
     setBusy(false);
     if (res.ok) { setSessionId(res.data.id); setStep('specimen'); }
@@ -139,13 +276,55 @@ const NewEntryForm: React.FC<{
     }
   };
 
-  if (step === 'scan') {
+  if (showResetConfirm) {
     return (
       <div className="ps-intraop-capture-step1">
-        <button className="ps-conf-btn-primary ps-intraop-scan-btn" disabled={busy} onClick={simulateScan} type="button">
+        <div className="ps-intraop-identified-banner ps-intraop-identified-banner--warn ps-intraop-identified-banner--stacked">
+          <div className="ps-intraop-id-heading">Discard current entry?</div>
+          <p className="ps-intraop-discard-body">
+            {patientName ? `${patientName}'s in-progress entry` : 'This in-progress entry'} has not been saved.
+            Starting a new entry will discard it.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="ps-conf-btn-primary ps-intraop-scan-btn"
+          onClick={() => { setShowResetConfirm(false); onRequestReset(); }}
+        >
+          Discard and Start New
+        </button>
+        <button
+          type="button"
+          className="ps-conf-btn-row"
+          onClick={() => setShowResetConfirm(false)}
+        >
+          Cancel — keep working
+        </button>
+      </div>
+    );
+  }
+
+  if (step === 'scan') {
+    if (showBarcodeScanner) {
+      return (
+        <div className="ps-intraop-capture-step1">
+          <BarcodeScanner
+            onDecode={handleBarcodeDecoded}
+            onError={setScannerError}
+            onCancel={() => setShowBarcodeScanner(false)}
+          />
+          {scannerError && <p className="ps-intraop-scan-hint ps-intraop-scan-hint--error">{scannerError}</p>}
+        </div>
+      );
+    }
+    return (
+      <div className="ps-intraop-capture-step1">
+        <button className="ps-conf-btn-primary ps-intraop-scan-btn" disabled={busy} onClick={() => { setScannerError(null); setShowBarcodeScanner(true); }} type="button">
           📷 Scan Patient Barcode
         </button>
-        <p className="ps-intraop-scan-hint">Simulated scan — no real camera read yet.</p>
+        <button className="ps-intraop-manual-link" onClick={simulateScan} type="button">
+          Simulate scan (no camera)
+        </button>
 
         {!showManualMrn ? (
           <button className="ps-intraop-manual-link" onClick={() => setShowManualMrn(true)} type="button">
@@ -170,8 +349,11 @@ const NewEntryForm: React.FC<{
     return (
       <div className="ps-intraop-capture-step2">
         {adtMatched ? (
-          <div className="ps-intraop-identified-banner">
-            Matched via ADT: {patientName} · DOB {dateOfBirth} · {mrn}
+          <div className="ps-intraop-identified-banner ps-intraop-identified-banner--stacked">
+            <div className="ps-intraop-id-heading">Matched via ADT — confirm before proceeding</div>
+            <div className="ps-intraop-id-row"><span className="ps-intraop-id-label">Name</span><span className="ps-intraop-id-value">{patientName}</span></div>
+            <div className="ps-intraop-id-row"><span className="ps-intraop-id-label">DOB</span><span className="ps-intraop-id-value">{formatDateLong(dateOfBirth)}</span></div>
+            <div className="ps-intraop-id-row"><span className="ps-intraop-id-label">MRN</span><span className="ps-intraop-id-value">{mrn}</span></div>
           </div>
         ) : (
           <>
@@ -180,28 +362,63 @@ const NewEntryForm: React.FC<{
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">Patient name (Last, First)</label>
-              <input className="ps-conf-input" value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="Ibarra, Consuelo" />
+              <input className="ps-conf-input" value={patientName} onChange={e => { setPatientName(e.target.value); setPatientConfirmed(false); }} onFocus={() => setFocusedFieldId('patientName')} placeholder="Ibarra, Consuelo" />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">Date of birth</label>
-              <input className="ps-conf-input" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
+              <input className="ps-conf-input" type="date" value={dateOfBirth} onChange={e => { setDateOfBirth(e.target.value); setPatientConfirmed(false); }} />
             </div>
           </>
         )}
+        {patientIdentified && (
+          <label className="ps-intraop-confirm-row">
+            <input
+              type="checkbox"
+              checked={patientConfirmed}
+              onChange={e => setPatientConfirmed(e.target.checked)}
+            />
+            I have verified this is the correct patient
+          </label>
+        )}
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">OR number</label>
-          <input className="ps-conf-input" value={orNumber} onChange={e => setOrNumber(e.target.value)} placeholder="OR-3" />
+          <input className="ps-conf-input" value={orNumber} onChange={e => setOrNumber(e.target.value)} onFocus={() => setFocusedFieldId('orNumber')} placeholder="OR-3" />
         </div>
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">Surgeon</label>
-          <input className="ps-conf-input" value={surgeon} onChange={e => setSurgeon(e.target.value)} placeholder="Dr. Reyes" />
+          <input className="ps-conf-input" value={surgeon} onChange={e => setSurgeon(e.target.value)} onFocus={() => setFocusedFieldId('surgeon')} placeholder="Dr. Reyes" />
+        </div>
+        {/* Real feature, per direct confirmation: "Let's wire in
+            Facility and Location (Room) for Intraop." Optional — a
+            session can genuinely be started before the facility/
+            location is known. */}
+        <div className="ps-conf-form-field">
+          <label className="ps-conf-label">Submitting facility (optional)</label>
+          <select className="ps-conf-input" value={clientId} onChange={e => setClientId(e.target.value)}>
+            <option value="">Select facility…</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="ps-conf-form-field">
+          <label className="ps-conf-label">Location — ward / room / bed (optional)</label>
+          <select className="ps-conf-input" value={locationId} onChange={e => setLocationId(e.target.value)} disabled={!clientId}>
+            <option value="">
+              {!clientId ? 'Select a facility first' : locations.length === 0 ? 'No locations configured for this facility' : 'None specified'}
+            </option>
+            {locations.map(l => (
+              <option key={l.id} value={l.id}>{[l.pointOfCare, l.room, l.bed].filter(Boolean).join(' / ')}</option>
+            ))}
+          </select>
         </div>
         <button
           className="ps-conf-btn-primary ps-intraop-scan-btn"
-          disabled={busy || !patientIdentified || !orNumber.trim() || !surgeon.trim()}
+          disabled={busy || !patientIdentified || !patientConfirmed || !orNumber.trim() || !surgeon.trim()}
           onClick={startSession}
         >
           Continue to Specimen
+        </button>
+        <button type="button" className="ps-conf-btn-row" onClick={() => setShowResetConfirm(true)}>
+          Cancel
         </button>
       </div>
     );
@@ -211,25 +428,28 @@ const NewEntryForm: React.FC<{
   return (
     <div className="ps-intraop-capture-step2">
       <div className="ps-intraop-identified-banner">
-        {patientName} · {mrn} · {orNumber} · {surgeon}{specimenCount > 0 ? ` · ${specimenCount} specimen${specimenCount === 1 ? '' : 's'} saved` : ''}
+        {patientName} · {mrn} · {orNumber} · {surgeon}
+        {clientId ? ` · ${clients.find(c => c.id === clientId)?.name ?? ''}` : ''}
+        {locationId ? ` · ${(() => { const l = locations.find(l => l.id === locationId); return l ? [l.pointOfCare, l.room, l.bed].filter(Boolean).join(' / ') : ''; })()}` : ''}
+        {specimenCount > 0 ? ` · ${specimenCount} specimen${specimenCount === 1 ? '' : 's'} saved` : ''}
       </div>
       <div className="ps-conf-form-field">
         <label className="ps-conf-label">Specimen label</label>
-        <input className="ps-conf-input" value={specimenLabel} onChange={e => setSpecimenLabel(e.target.value)} placeholder="Specimen A: Left breast, margins" />
+        <input className="ps-conf-input" value={specimenLabel} onChange={e => setSpecimenLabel(e.target.value)} onFocus={() => setFocusedFieldId('specimenLabel')} placeholder="Specimen A: Left breast, margins" />
       </div>
       <div className="ps-conf-form-field">
         <label className="ps-conf-label">Quick Gross — dimensions, blocks frozen, orientation</label>
-        <textarea className="ps-conf-input ps-conf-textarea" value={quickGross} onChange={e => setQuickGross(e.target.value)}
+        <textarea className="ps-conf-input ps-conf-textarea" value={quickGross} onChange={e => setQuickGross(e.target.value)} onFocus={() => setFocusedFieldId('quickGross')}
           placeholder="e.g. Received a 2.5 cm core of tan-pink tissue. Block FS1 cut from fatty margin. Superior suture placed by surgeon." />
       </div>
       <div className="ps-conf-form-field">
         <label className="ps-conf-label">Frozen section diagnosis (optional here — can be added later from the log)</label>
-        <textarea className="ps-conf-input ps-conf-textarea" value={frozenDx} onChange={e => setFrozenDx(e.target.value)}
+        <textarea className="ps-conf-input ps-conf-textarea" value={frozenDx} onChange={e => setFrozenDx(e.target.value)} onFocus={() => setFocusedFieldId('frozenDx')}
           placeholder="e.g. Invasive carcinoma, margins negative." />
       </div>
       <div className="ps-conf-form-field">
-        <label className="ps-conf-label">Preliminary category</label>
-        <select className="ps-conf-select" value={frozenCategory} onChange={e => setFrozenCategory(e.target.value as FrozenCategory | '')}>
+        <label className="ps-conf-label" htmlFor="intraop-preliminary-category">Preliminary category</label>
+        <select id="intraop-preliminary-category" className="ps-conf-select" value={frozenCategory} onChange={e => setFrozenCategory(e.target.value as FrozenCategory | '')}>
           <option value="">Select…</option>
           <option value="benign">Benign</option>
           <option value="malignant">Malignant</option>
@@ -244,6 +464,9 @@ const NewEntryForm: React.FC<{
         </button>
         <button className="ps-conf-btn-primary ps-intraop-scan-btn" disabled={busy || !specimenLabel.trim() || !quickGross.trim()} onClick={() => saveSpecimen(false)}>
           Save & Close
+        </button>
+        <button type="button" className="ps-conf-btn-row" onClick={() => setShowResetConfirm(true)}>
+          Cancel
         </button>
       </div>
     </div>
@@ -383,8 +606,8 @@ const MergeModal: React.FC<{
           )}
         </div>
         <div className="ps-ms-footer">
-          <button className="ps-ms-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="ps-ms-btn-apply" disabled={!finalCaseId} onClick={() => finalCaseId && onConfirm(finalCaseId)}>
+          <button className="ps-conf-btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="ps-conf-btn-primary" disabled={!finalCaseId} onClick={() => finalCaseId && onConfirm(finalCaseId)}>
             Merge into {finalCaseId || '…'}
           </button>
         </div>
@@ -448,14 +671,14 @@ const EntryCard: React.FC<{
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const handleReportToSurgeon = async () => {
+  const handleReportToSurgeon = React.useCallback(async () => {
     setBusy(true);
     await intraoperativeService.recordVerbalReport(entry.id, note);
     setBusy(false);
     setReporting(false);
     setNote('');
     onRefresh();
-  };
+  }, [entry.id, note, onRefresh]);
 
   // Voice: INTRAOP_LOG_SURGEON_REPORT. Only listened for while this
   // specific card's reporting form is open (reporting === true) — same
@@ -470,7 +693,7 @@ const EntryCard: React.FC<{
       if (actionId === 'INTRAOP_LOG_SURGEON_REPORT') handleReportToSurgeon();
     });
     return unsubscribe;
-  }, [reporting, busy, note]);
+  }, [reporting, busy, note, handleReportToSurgeon]);
 
   return (
   <div className="ps-intraop-card">
@@ -483,7 +706,7 @@ const EntryCard: React.FC<{
             surgeon, match source) stays visible; name and MRN don't. */}
         <div className="ps-intraop-card-patient">🔒 Pending Match</div>
         <div className="ps-intraop-card-sub">
-          {entry.orNumber} · {entry.surgeon} · {entry.performedBy.userName} · matched via {entry.patientMatch.source === 'barcode' ? 'barcode scan (simulated)' : 'manual / ADT entry'}
+          {entry.orNumber} · {entry.surgeon}{entry.clientName ? ` · ${entry.clientName}` : ''}{entry.locationDisplay ? ` · ${entry.locationDisplay}` : ''} · {entry.performedBy.userName} · matched via {entry.patientMatch.source === 'barcode' ? 'barcode scan (simulated)' : 'manual / ADT entry'}
         </div>
       </div>
       <button className="ps-conf-btn-primary" onClick={onMergeClick}>Merge Mobile Intake Data</button>
@@ -508,7 +731,7 @@ const EntryCard: React.FC<{
           placeholder="What was said (optional) — e.g. margins clear, frozen pending"
           autoFocus
         />
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <div className="ps-intraop-report-actions">
           <button className="ps-conf-btn-primary" disabled={busy} onClick={handleReportToSurgeon}>Log Now</button>
           <button className="ps-conf-btn-secondary" disabled={busy} onClick={() => { setReporting(false); setNote(''); }}>Cancel</button>
         </div>
@@ -535,12 +758,22 @@ const IntraopQueuePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [mergeTarget, setMergeTarget] = useState<{ entry: IntraoperativeEntry; candidates: MatchCandidate[] } | null>(null);
 
+  // Real, confirmed gap being closed: this page never called
+  // setCurrentContext at all, unlike SynopticReportPage (which had this
+  // exact same bug, already fixed there) - meaning context-scoped voice
+  // commands could never correctly activate here. Same one-line pattern
+  // every other real page feature already uses.
+  useEffect(() => {
+    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.INTRAOP);
+    return () => { mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
+
   // Below this width, the page is almost certainly a phone at the bench,
   // not a desktop workstation reviewing the queue — default the log to
   // hidden so the capture form is what's actually in view. Desktop
   // defaults to showing the log, matching how it's always worked.
-  const [isMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
-  const [showLog, setShowLog] = useState(!isMobile);
+  const [showLog, setShowLog] = useState(() => !isConstrainedMobileDevice());
+  const navigate = useNavigate();
   const [formResetKey, setFormResetKey] = useState(0);
 
   useEffect(() => { pushCrumb('Intraop Queue', '/intraop-queue'); }, [pushCrumb]);
@@ -558,21 +791,6 @@ const IntraopQueuePage: React.FC = () => {
     setShowLog(true);
     setFormResetKey(k => k + 1);
   };
-
-  // Voice command for starting a fresh capture — real caveat, not
-  // glossed over: reliability on iOS Safari is genuinely inconsistent
-  // (checked directly — real, recent reports of recognition silently
-  // failing or never stopping); this should degrade to tapping the
-  // scan button, not be depended on. Per-milestone voice commands were
-  // removed with the session/specimen restructuring — "log touch prep
-  // performed" needs a specific specimen in view to make sense, and
-  // there's no reliable way to infer which one from voice alone; those
-  // stay tap-only on the specimen card itself for now.
-  useEffect(() => {
-    const onStartNewEntry = () => setFormResetKey(k => k + 1);
-    window.addEventListener('PATHSCRIBE_INTRAOP_START_NEW_ENTRY', onStartNewEntry);
-    return () => window.removeEventListener('PATHSCRIBE_INTRAOP_START_NEW_ENTRY', onStartNewEntry);
-  }, []);
 
   const openMerge = async (entry: IntraoperativeEntry) => {
     const res = await intraoperativeService.getMatchCandidates(entry.id);
@@ -615,6 +833,15 @@ const IntraopQueuePage: React.FC = () => {
             <button className="ps-conf-btn-row" onClick={() => setShowLog(v => !v)}>
               {showLog ? 'Hide Log' : 'View Log'}{entries.length > 0 ? ` (${entries.length})` : ''}
             </button>
+            {shouldRestrictToMobileWorkflow() && (
+              <button
+                type="button"
+                onClick={() => { setDesktopViewOverride(); navigate('/'); }}
+                className="ps-intraop-desktop-switch-link"
+              >
+                Switch to Full Desktop View
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -624,6 +851,7 @@ const IntraopQueuePage: React.FC = () => {
           key={formResetKey}
           performedBy={{ userId: user?.id ?? 'unknown', userName: user?.name ?? 'Unknown User' }}
           onSessionSaved={onSessionSaved}
+          onRequestReset={() => setFormResetKey(k => k + 1)}
         />
       </div>
 

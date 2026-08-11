@@ -163,6 +163,40 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const isFinalized = status === 'finalized';
   const isPool = status === 'pool';
 
+  // Real feature, per direct specification: Post-Sign-Out Release
+  // Buffer, Phase 3 (spec §14 — hardcopy printing restricted by default
+  // during the buffer window; an operator can override, but the printed
+  // PDF still carries the watermark when they do — see
+  // LeftReportPanel.tsx's own real, on-screen watermark for the
+  // display-side half of this same requirement).
+  //
+  // Real, honest scope note: this gate covers the one print entry
+  // point in this file (CoPilot/'assist' mode's own Print button,
+  // below). Orchestration mode's separate print entry point (inside
+  // the full report preview panel — a genuinely different component,
+  // not duplicated here) is NOT yet gated — a known, real gap, not a
+  // silent omission.
+  const isPendingRelease = status === 'pending-release';
+  const [printRestricted, setPrintRestricted] = useState(false);
+  useEffect(() => {
+    if (!isPendingRelease) return;
+    import('@/services/reportRelease/mockReportReleaseService').then(({ mockReportReleaseService }) =>
+      mockReportReleaseService.getOrgDefault().then(res => {
+        if (res.ok) setPrintRestricted(res.data.restrictHardcopyPrinting);
+      })
+    );
+  }, [isPendingRelease]);
+  const handlePrintClick = () => {
+    if (isPendingRelease && printRestricted) {
+      const proceed = window.confirm(
+        'Hardcopy printing is restricted while this report is Pending Release. ' +
+        'The printed copy will carry the "PENDING FINAL RELEASE" watermark. Print anyway?'
+      );
+      if (!proceed) return;
+    }
+    onPrint?.();
+  };
+
   // Safety requirement: never let a stale patient's EMR keep showing
   // after the case changes. If a real companion window is currently
   // open, proactively navigate it to the new patient (reusing the same
@@ -175,7 +209,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
       openCompanion(`${window.location.origin}/mock-emr?patientId=${mrn}`);
     }
     setEmrOpen(false);
-  }, [caseData?.id]);
+  }, [caseData?.id, caseData?.patient?.mrn, isEmrWindowOpen, openCompanion]);
 
   const handleLaunchEMR = async () => {
     const mrn = caseData?.patient?.mrn ?? '100004';
@@ -226,9 +260,9 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
       display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, gap: '6px',
       overflow: 'visible', position: 'relative', zIndex: 200,
     }}>
-      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', overflowX: 'auto', flexShrink: 1, minWidth: 0 }}>
-        <ActionButton onClick={onPreviousCase} variant="outline" color="#64748b" title="Previous case">← Previous</ActionButton>
-        <ActionButton onClick={onNextCase} variant="outline" color="#64748b" title="Next case">Next →</ActionButton>
+      <div className="ps-bottombar-scroll" style={{ display: 'flex', gap: '4px', alignItems: 'center', overflowX: 'auto', flexShrink: 1, minWidth: 0, padding: '10px 2px' }}>
+        <ActionButton onClick={onPreviousCase} variant="outline" color="#94a3b8" title="Previous case">← Previous</ActionButton>
+        <ActionButton onClick={onNextCase} variant="outline" color="#94a3b8" title="Next case">Next →</ActionButton>
         <Divider />
         
         {/* LAUNCH EMR BUTTON */}
@@ -238,9 +272,9 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
 
         {/* Hide delegate/review/flags/codes for pool cases — not yet assigned */}
         {!isPool && <>
-          <ActionButton onClick={() => onDelegate?.()} variant="outline" color="#7c3aed" title="Delegate case">👥 Delegate</ActionButton>
+          <ActionButton onClick={() => onDelegate?.()} variant="outline" color="#a78bfa" title="Delegate case">👥 Delegate</ActionButton>
           <ActionButton onClick={() => onTeam?.()} variant="outline" color="#0891B2" title="Manage case team">👤 Team</ActionButton>
-          <ActionButton onClick={() => setReviewOpen(true)} variant="outline" color="#8B5CF6" title="Request informal peer review">🔍 Request Review</ActionButton>
+          <ActionButton onClick={() => setReviewOpen(true)} variant="outline" color="#a78bfa" title="Request informal peer review">🔍 Request Review</ActionButton>
           <ActionButton onClick={() => onHistory?.()} variant="outline" color="#0891B2">📋 History</ActionButton>
           <ActionButton onClick={() => onFlags?.()} variant="outline" color="#f59e0b">🚩 Flags</ActionButton>
           <ActionButton onClick={() => onCodes?.()} variant="outline" color={codesColor}># Codes</ActionButton>
@@ -255,24 +289,36 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           </ActionButton>
         )}
 
-        {/* Stage 1 — grossing still in progress: ONLY this button shows.
-            Mutually exclusive with the Generate Report/Save/Finalize bucket
-            below, not alongside it — see showGrossComplete above. */}
-        {/* Stage 1 — grossing still in progress (first time or correction):
-            ONLY this button shows. Mutually exclusive with the Generate
-            Report/Save/Finalize bucket below, not alongside it. */}
+        {/* Stage 1 — grossing still in progress: Gross Complete plus a real
+            way to persist partial progress. Real fix, per direct report:
+            a PA working through several specimens in one case (fill in
+            Specimen A, want to save and move to B/C without the whole
+            case's grossing being done yet) previously had no option here
+            at all except Gross Complete itself — which isn't a plain
+            save, it's a finalizing transition that triggers AI evaluation
+            of diagnostic synoptic assignment. saveDraftInternal (Save
+            Draft's real handler) is generic — it persists whatever
+            caseData holds at the moment, with no dependency on which
+            phase the case is in — so it's exactly as safe here as it is
+            once grossing is done. */}
         {showGrossComplete && (
-          <ActionButton
-            onClick={() => onGrossComplete?.()}
-            variant="solid"
-            color={isUpdateGross ? '#f59e0b' : '#34d399'}
-            hoverColor={isUpdateGross ? '#d97706' : '#10b981'}
-            title={isUpdateGross
-              ? 'Re-finalize corrected Grossing — re-evaluates AI synoptic assignment, requires a reason for the audit trail'
-              : 'Mark grossing complete — triggers AI evaluation of diagnostic synoptic assignment'}
-          >
-            {isUpdateGross ? '✏️ Update Gross' : '✅ Gross Complete'}
-          </ActionButton>
+          <>
+            <ActionButton onClick={onSaveDraft} variant="outline" color={isDirty ? '#38bdf8' : '#94a3b8'} title="Save partial grossing progress — does not mark grossing complete or trigger AI evaluation">
+              💾 Save Draft
+            </ActionButton>
+            <Divider />
+            <ActionButton
+              onClick={() => onGrossComplete?.()}
+              variant="solid"
+              color={isUpdateGross ? '#f59e0b' : '#34d399'}
+              hoverColor={isUpdateGross ? '#d97706' : '#10b981'}
+              title={isUpdateGross
+                ? 'Re-finalize corrected Grossing — re-evaluates AI synoptic assignment, requires a reason for the audit trail'
+                : 'Mark grossing complete — triggers AI evaluation of diagnostic synoptic assignment'}
+            >
+              {isUpdateGross ? '✏️ Update Gross' : '✅ Gross Complete'}
+            </ActionButton>
+          </>
         )}
 
         {/* Normal reporting actions — hidden for pool cases AND while grossing is still in progress */}
@@ -320,7 +366,23 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             </ActionButton>
           </>
         )}
-        {!isPool && caseData?.reportingMode !== 'assist' && (allFinalized || isFinalized) && status !== 'finalized' && (
+        {!isPool && caseData?.reportingMode !== 'assist' && (allFinalized || isFinalized) && status !== 'finalized' &&
+          // Real, critical fix, per direct specification: Post-Sign-Out
+          // Release Buffer. A real, serious bug found during a
+          // post-delivery gap review: this button calls onSignOut →
+          // handleSignOutConfirm → finalizeSignOut(), a genuinely
+          // separate code path from onFinalize's own finalizeCase() —
+          // the one this whole feature's buffer logic lives in.
+          // finalizeSignOut() has zero awareness of the release buffer
+          // and unconditionally creates a new ReportVersionRecord
+          // (isOrchestrationMode's own 'initial_signout'/'amendment'
+          // trigger) regardless of it. Before this fix, a case already
+          // sitting in the recall window (status === 'pending-release')
+          // still showed this button — clicking it would have created
+          // a real, externally-dispatchable report version while
+          // completely bypassing the very buffer the pathologist might
+          // still be relying on to recall and correct their report.
+          status !== 'pending-release' && (
           <ActionButton
             onClick={onSignOut}
             variant="solid"
@@ -337,8 +399,8 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             ✓ Finalized — structured data complete, LIS handles official sign-out
           </span>
         )}
-        {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized) && onPrint && (
-          <ActionButton onClick={onPrint} variant="outline" color="#0891B2" title="Print this report">
+        {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized || isPendingRelease) && onPrint && (
+          <ActionButton onClick={handlePrintClick} variant="outline" color="#0891B2" title={isPendingRelease ? 'Printing is restricted while Pending Release' : 'Print this report'}>
             🖨 Print
           </ActionButton>
         )}

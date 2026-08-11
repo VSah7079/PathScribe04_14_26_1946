@@ -6,11 +6,10 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { IActionRegistryService } from '../../../services/actionRegistry/IActionRegistryService';
-import { userService } from '../../../services';
-import type { StaffUser } from '../../../services';
-import { useSubspecialties } from '../../../contexts/useSubspecialties';
+import { userService, subspecialtyService } from '../../../services';
+import { getStaffSubspecialtyDisplay } from '../../../utils/staffSubspecialties';
+import type { StaffUser, Subspecialty } from '../../../services';
 import { mockDelegationTypeService } from '../../../services/delegationTypes/mockDelegationTypeService';
-import { loadDelegationTypes } from '../../../constants/delegationTypes';
 import { delegateCase } from '../../../services/cases/mockCaseService';
 
 interface Pool {
@@ -143,7 +142,7 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
 export const DelegateModal: React.FC<DelegateModalProps> = ({
   isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = []
 }) => {
-  const { subspecialties } = useSubspecialties();
+  const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [searchTerm,         setSearchTerm]         = useState('');
   const [selectedId,         setSelectedId]         = useState<string | null>(null);
   const [filter,             setFilter]             = useState<'individuals' | 'pools'>('individuals');
@@ -151,7 +150,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
   const [delegationType,     setDelegationType]     = useState<string | null>(null);
   const [note,               setNote]               = useState('');
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [delegationTypes,    setDelegationTypes]    = useState(() => loadDelegationTypes().filter((d: any) => d.active));
+  const [delegationTypes,    setDelegationTypes]    = useState<any[]>([]);
   const [staff,              setStaff]              = useState<{id:string;name:string;role:string;subspecialty:string}[]>([]);
   const [loading,            setLoading]            = useState(false);
   const [activeId,           setActiveId]           = useState<string | null>(null);
@@ -176,7 +175,9 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
       Promise.all([
         userService.getAll(),
         mockDelegationTypeService.getActive(),
-      ]).then(([usersResult, typesResult]) => {
+        subspecialtyService.getAll(),
+      ]).then(([usersResult, typesResult, subspecialtiesResult]) => {
+        const allSubspecialties = subspecialtiesResult.ok ? subspecialtiesResult.data : [];
         if (usersResult.ok) {
           const delegates = usersResult.data
             .filter((u: StaffUser) =>
@@ -190,16 +191,22 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                 id:          u.id,
                 name:        prefix + parts.join(' '),
                 role:        u.roles.find(r => r === 'Pathologist' || r === 'Resident') ?? u.roles[0] ?? 'Staff',
-                subspecialty: u.department,
+                // Real fix, per direct confirmation: replaces the old
+                // free-text department field with the real, assigned
+                // Subspecialty name(s) — this field was already
+                // called "subspecialty" but was incorrectly reading
+                // department instead of the real relationship.
+                subspecialty: getStaffSubspecialtyDisplay(u.id, allSubspecialties),
               };
             });
           setStaff(delegates);
         }
         if (typesResult.ok) setDelegationTypes(typesResult.data);
+        if (subspecialtiesResult.ok) setSubspecialties(subspecialtiesResult.data);
         setLoading(false);
       }).catch(() => setLoading(false));
     }
-  }, [isOpen]);
+  }, [isOpen, currentUserId]);
 
   useEffect(() => {
     if (!isOpen) return;

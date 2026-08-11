@@ -9,7 +9,7 @@ import {
 } from '../../../constants/systemActions';
 import { mockParticipationTypeService } from '../../../services/participationTypes/mockParticipationTypeService';
 import type { ParticipationTypeRecord } from '../../../services/participationTypes/IParticipationTypeService';
-import { roleService, auditService } from '../../../services';
+import { roleService, auditService, facilityService } from '../../../services';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ export interface Role {
   participationTypeIds: string[];
 }
 
-export const DEFAULT_PARTICIPATION: Record<string, string[]> = {
+const DEFAULT_PARTICIPATION: Record<string, string[]> = {
   pathologist: ['primary', 'consultant', 'second_opinion', 'frozen_section'],
   resident:    ['grossing', 'preliminary_report', 'observer'],
   admin:       [],
@@ -41,13 +41,14 @@ export const DEFAULT_ROLES: Role[] = [
   { id: 'physician',   name: 'Physician',   description: 'External ordering physician. Directory only — no app access.',                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],    canViewPediatric: false, builtIn: true, participationTypeIds: []                                    },
 ];
 
-const MOCK_CLIENTS = [
-  { id: 'client_hosp_001', name: 'Phoenix Memorial Hospital' },
-  { id: 'client_hosp_002', name: 'Desert Valley Medical Center' },
-  { id: 'client_hosp_003', name: 'Scottsdale Regional Health' },
-  { id: 'client_hosp_004', name: 'Mesa General Hospital' },
-  { id: 'client_lab_001',  name: 'Southwest Reference Laboratory' },
-];
+// Real fix: this used to be a hardcoded, fictional list of 5 clients
+// (client_hosp_001..004, client_lab_001) completely disconnected from
+// PathScribe's real, live client roster (services/clients/). A real,
+// meaningful bug: this tab exists to restrict which real hospital
+// clients a role can access - with a fake list, an admin could never
+// actually restrict a role to a genuinely real client, and the
+// clientId stored would match nothing real in the live system. See
+// the real, live fetch below (clients state + effect).
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,14 @@ const RoleModal: React.FC<{
     mockParticipationTypeService.getActive().then(res => { if (res.ok) setParticipationTypes(res.data); });
   }, []);
 
+  // Real fix: same "disconnected local list" bug pattern already fixed
+  // for participationTypes above, found in the same component - the
+  // real, live client roster, not a hardcoded, fictional one.
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    facilityService.getAll().then(res => { if (res.ok) setClients(res.data); });
+  }, []);
+
   const allClients     = !draft.clientIds || draft.clientIds.length === 0;
   const selectedGroup  = ACTION_GROUPS.find(g => g.id === selectedGroupId) ?? ACTION_GROUPS[0];
   const groupIds       = selectedGroup.actions.map(a => a.id);
@@ -163,14 +172,14 @@ const RoleModal: React.FC<{
 
   const TABS = [
     { id: 'permissions',   label: `Permissions (${permCount})` },
-    { id: 'clients',       label: `Client Access (${allClients ? 'All' : (draft.clientIds?.length ?? 0)})` },
+    { id: 'clients',       label: `Facility Access (${allClients ? 'All' : (draft.clientIds?.length ?? 0)})` },
     { id: 'participation', label: `Case Participation (${draft.participationTypeIds?.length ?? 0})` },
     { id: 'cheatsheet',    label: 'Action Reference' },
   ] as const;
 
   return (
     <div data-capture-hide="true" className="ps-conf-backdrop" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="fm-modal fm-modal--config" style={{ width: 'min(1080px, 96vw)', maxHeight: '90vh' }}>
+      <div onClick={e => e.stopPropagation()} className="fm-modal fm-modal--config" style={{ width: 'min(1080px, 96vw)', minHeight: 600, maxHeight: '90vh' }}>
 
         {/* Header */}
         <div className="fm-modal-header">
@@ -313,20 +322,20 @@ const RoleModal: React.FC<{
           {activeTab === 'clients' && (
             <div className="ps-rd-clients-tab">
               <p className="ps-rd-clients-intro">
-                Control which hospital clients this role can access. Set to <strong>All Clients</strong> for enterprise-wide access, or restrict to specific hospitals for multi-site deployments.
+                Control which hospital facilities this role can access. Set to <strong>All Facilities</strong> for enterprise-wide access, or restrict to specific hospitals for multi-site deployments.
               </p>
-              <div onClick={() => setDraft(d => ({ ...d, clientIds: allClients ? [MOCK_CLIENTS[0].id] : [] }))}
+              <div onClick={() => setDraft(d => ({ ...d, clientIds: allClients ? (clients[0] ? [clients[0].id] : []) : [] }))}
                 className={`ps-rd-all-clients-row ${allClients ? 'ps-rd-all-clients-row--on' : 'ps-rd-all-clients-row--off'}`}>
                 <DivCheckbox checked={allClients} size={20} variant="green" />
                 <div>
-                  <div className={`ps-rd-all-clients-label ${allClients ? 'ps-rd-all-clients-label--on' : 'ps-rd-all-clients-label--off'}`}>All Clients</div>
-                  <div className="ps-rd-all-clients-sub">This role has access to cases and data from all hospital clients</div>
+                  <div className={`ps-rd-all-clients-label ${allClients ? 'ps-rd-all-clients-label--on' : 'ps-rd-all-clients-label--off'}`}>All Facilities</div>
+                  <div className="ps-rd-all-clients-sub">This role has access to cases and data from all hospital facilities</div>
                 </div>
               </div>
               {!allClients && (
                 <div>
-                  <div className="ps-rd-clients-section-label">Select Specific Clients</div>
-                  {MOCK_CLIENTS.map(client => {
+                  <div className="ps-rd-clients-section-label">Select Specific Facilities</div>
+                  {clients.map(client => {
                     const selected = (draft.clientIds ?? []).includes(client.id);
                     return (
                       <div key={client.id} onClick={() => toggleClient(client.id)}
@@ -343,7 +352,7 @@ const RoleModal: React.FC<{
               )}
               {!allClients && (draft.clientIds ?? []).length === 0 && (
                 <div className="ps-rd-no-clients-warn">
-                  ⚠ No clients selected — this role will have no data access. Select at least one client or switch to All Clients.
+                  ⚠ No facilities selected — this role will have no data access. Select at least one facility or switch to All Facilities.
                 </div>
               )}
             </div>
@@ -541,7 +550,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
       <div className="ps-rd-header">
         <div>
           <h2 className="ps-rd-title">Role Dictionary</h2>
-          <p className="ps-rd-subtitle">Define roles, permissions, and client access scopes.</p>
+          <p className="ps-rd-subtitle">Define roles, permissions, and facility access scopes.</p>
         </div>
         <button className="ps-section-add-btn" onClick={() => setModal({ mode: 'add' })}>+ Add Role</button>
       </div>

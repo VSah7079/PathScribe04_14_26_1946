@@ -25,6 +25,8 @@ import '../../../pathscribe.css';
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
 import { physicianService } from '@/services';
 import type { Physician } from '@/services/physicians/IPhysicianService';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { getFacilityDateTimeParts } from '@/utils/facilityTime';
 // NOTE: verify this import path resolves in your build — your last tsc
 // output showed src/index.ts failing on a physician service import one
 // directory level different from this. If physicianService isn't found,
@@ -136,6 +138,7 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
   onFieldOverridesConfirmed = () => {}, submitError, triggeredBySynopticTitle, prefillText, resuming,
   orderingPhysicianName,
 }) => {
+  const { config } = useSystemConfig();
   const [addendumTitle, setAddendumTitle] = useState('');
   const [clinicianName, setClinicianName] = useState('');
   const [physicianQuery, setPhysicianQuery] = useState('');
@@ -197,7 +200,8 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
     if (show && amendmentMode === 'amendment' && !notifiedAt) {
       const now = new Date();
       const pad = (n: number) => String(n).padStart(2, '0');
-      setNotifiedAt(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+      const { year, month, day, hour, minute } = getFacilityDateTimeParts(now, config.facilityTimezone);
+      setNotifiedAt(`${year}-${pad(month + 1)}-${pad(day)}T${pad(hour)}:${pad(minute)}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, amendmentMode]);
@@ -214,7 +218,6 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
       setMethod(resuming.method ?? '');
       setNotifiedAt(resuming.notifiedAt ?? '');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, resuming]);
 
   React.useEffect(() => {
@@ -534,8 +537,8 @@ const AmendmentModal: React.FC<AmendmentModalProps> = ({
                   )}
                 </div>
                 <div className="ps-conf-form-field">
-                  <label className="ps-conf-label">Method</label>
-                  <select className="ps-conf-select" value={method} onChange={e => setMethod(e.target.value as NotificationMethod | '')}>
+                  <label className="ps-conf-label" htmlFor="amendment-notify-method">Method</label>
+                  <select id="amendment-notify-method" className="ps-conf-select" value={method} onChange={e => setMethod(e.target.value as NotificationMethod | '')}>
                     <option value="">Select…</option>
                     {(Object.keys(NOTIFICATION_METHOD_LABEL) as NotificationMethod[]).map(m => (
                       <option key={m} value={m}>{NOTIFICATION_METHOD_LABEL[m]}</option>

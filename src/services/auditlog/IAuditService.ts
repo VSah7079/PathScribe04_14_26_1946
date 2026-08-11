@@ -13,6 +13,18 @@ export interface AuditLog {
   user:       string;            // display name of acting user or system actor
   caseId:     string | null;     // accession number — not a direct patient identifier
   confidence: number | null;     // AI confidence % where applicable
+  /**
+   * Real feature, per direct specification: Post-Sign-Out Release
+   * Buffer, Phase 5 (spec §18a — audit entries need "facility IDs").
+   * Optional, additive — genuinely absent (not backfilled) for the
+   * many real, pre-existing audit call sites across this app that
+   * don't populate it. Deliberately NOT paired with a client IP
+   * address field — see services/reportRelease/README.md's own,
+   * honest explanation of why a frontend-only app can't capture that
+   * field truthfully, and why faking or permanently-nulling it would
+   * be worse than not having the field at all.
+   */
+  facilityId?: string | null;
 }
 
 export type NewAuditLog = Omit<AuditLog, 'id' | 'timestamp'>;

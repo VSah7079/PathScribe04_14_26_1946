@@ -157,8 +157,9 @@ const CasePoolAssignmentSection: React.FC = () => {
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e5e7eb', marginBottom: 16 }}>Assignment Timeout</div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
-            <label style={LABEL}>Wait for LIS assignment (seconds)</label>
+            <label style={LABEL} htmlFor="case-routing-timeout">Wait for LIS assignment (seconds)</label>
             <input
+              id="case-routing-timeout"
               type="number" min={0} max={3600}
               value={config.assignmentTimeoutSec}
               onChange={e => setConfig(c => ({ ...c, assignmentTimeoutSec: parseInt(e.target.value) || 0 }))}
@@ -191,8 +192,9 @@ const CasePoolAssignmentSection: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
-              <label style={LABEL}>Fallback Pool</label>
+              <label style={LABEL} htmlFor="case-routing-fallback-pool">Fallback Pool</label>
               <select
+                id="case-routing-fallback-pool"
                 value={config.fallbackPoolId}
                 onChange={e => {
                   const pool = pools.find(p => p.id === e.target.value);
@@ -265,7 +267,8 @@ const CasePoolAssignmentSection: React.FC = () => {
         <button
           onClick={handleRunNow}
           disabled={running}
-          style={{ padding: '9px 20px', fontSize: 13, fontWeight: 700, background: running ? '#1f2937' : 'rgba(138,180,248,0.15)', border: '1px solid rgba(138,180,248,0.3)', borderRadius: 8, color: running ? '#6b7280' : '#8AB4F8', cursor: running ? 'wait' : 'pointer' }}
+          className="ps-conf-btn-teal-accent"
+          style={{ padding: '9px 20px', cursor: running ? 'wait' : 'pointer' }}
         >
           {running ? '⏳ Running…' : '▶ Route Unassigned Cases Now'}
         </button>
@@ -305,7 +308,8 @@ const CasePoolAssignmentSection: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
         <button
           onClick={handleSave}
-          style={{ padding: '10px 28px', fontSize: 13, fontWeight: 700, background: saved ? 'rgba(34,197,94,0.15)' : '#8AB4F8', border: saved ? '1px solid rgba(34,197,94,0.4)' : 'none', borderRadius: 8, color: saved ? '#22c55e' : '#0d1117', cursor: 'pointer', transition: 'all 0.2s' }}
+          className={saved ? undefined : 'ps-conf-btn-primary'}
+          style={saved ? { padding: '10px 28px', fontSize: 13, fontWeight: 700, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)', borderRadius: 8, color: '#22c55e', cursor: 'pointer', transition: 'all 0.2s' } : { padding: '10px 28px' }}
         >
           {saved ? '✓ Saved' : 'Save Routing Config'}
         </button>

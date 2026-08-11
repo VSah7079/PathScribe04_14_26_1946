@@ -23,6 +23,7 @@ import { resolveReportTemplateAsync, deriveSubspecialtyFromProtocols, type Templ
 import type { ReportTemplate } from '../types/reportPart';
 import type { SectionNode, TemplateNode } from '../types/template';
 import { mockReportTemplateService } from '../services/reportTemplates/mockReportTemplateService';
+import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyleDefault } from '../components/Config/System/documentStyleConfig';
 import { mockReportPartService } from '../services/reportParts/mockReportPartService';
 import { getTemplate } from '../services/templates/templateService';
 
@@ -174,6 +175,23 @@ export interface TemplateContext {
    *  Feeds the report renderer once it's updated to walk real node trees
    *  instead of a flat AI-section list (see brief follow-up). */
   bodyAssembly: BodyPartAssembly[];
+  /** Real feature (Step 2), per direct confirmation. At most one
+   *  enabled header-p1/footer-p1 slot per template — confirmed
+   *  directly, every real seed template already has these configured,
+   *  pointing at Parts whose content (institution name/department/
+   *  address/phone; patient line + confidentiality notice) exactly
+   *  matches what ReportPreviewRenderer.tsx's hardcoded institution
+   *  header/footer has always shown. This was previously resolved
+   *  and immediately discarded — see resolveTemplateSections' own
+   *  comment for the full history. */
+  headerAssembly: BodyPartAssembly[];
+  footerAssembly: BodyPartAssembly[];
+  /** Real feature, per direct request — see ReportTemplate.documentStyle's
+   *  own doc comment in types/reportPart.ts for the full rationale.
+   *  Resolved straight from the real template below; undefined when a
+   *  template hasn't configured one, same "inherit the pre-existing
+   *  look" fallback as everywhere else in this resolution chain. */
+  documentStyle?: ReportTemplate['documentStyle'];
 }
 
 export interface SignOffContext {
@@ -326,6 +344,8 @@ interface ResolvedTemplateSections {
   template: ReportTemplate | null;
   sections: NarrativeSectionContext[];
   bodyAssembly: BodyPartAssembly[];
+  headerAssembly: BodyPartAssembly[];
+  footerAssembly: BodyPartAssembly[];
 }
 
 async function resolveTemplateSections(templateId: string): Promise<ResolvedTemplateSections> {
@@ -341,11 +361,29 @@ async function resolveTemplateSections(templateId: string): Promise<ResolvedTemp
     .slice()
     .sort((a, b) => a.order - b.order);
 
-  if (bodySlots.length === 0) {
-    return { template, sections: [], bodyAssembly: [] };
+  // Real feature (Step 2): header-p1/footer-p1 slots have always existed
+  // in every real template's assembly — confirmed directly, every
+  // seed template already has them configured, pointing at real Parts
+  // whose content (institution name/department/address/phone;
+  // patient line + confidentiality notice) exactly matches what the
+  // hardcoded institution header/footer in ReportPreviewRenderer.tsx
+  // has always shown. This resolution simply never looked at them
+  // before. Page-1 scope only, deliberately — pages2plus is a
+  // pagination concept the continuous-scroll on-screen preview
+  // doesn't have; that's the separate PDF service's concern.
+  const headerSlot = (template.assembly ?? []).find(s => s.enabled && s.role === 'header-p1');
+  const footerSlot = (template.assembly ?? []).find(s => s.enabled && s.role === 'footer-p1');
+
+  if (bodySlots.length === 0 && !headerSlot && !footerSlot) {
+    return { template, sections: [], bodyAssembly: [], headerAssembly: [], footerAssembly: [] };
   }
 
-  const partsRes = await mockReportPartService.getByIds(bodySlots.map(s => s.partId));
+  const allSlotPartIds = [
+    ...bodySlots.map(s => s.partId),
+    ...(headerSlot ? [headerSlot.partId] : []),
+    ...(footerSlot ? [footerSlot.partId] : []),
+  ];
+  const partsRes = await mockReportPartService.getByIds(allSlotPartIds);
   if (partsRes.ok === false) {
     const errMsg: string = partsRes.error;
     throw new Error(`Failed to load report parts for template '${templateId}': ${errMsg}`);
@@ -380,7 +418,23 @@ async function resolveTemplateSections(templateId: string): Promise<ResolvedTemp
     }
   }
 
-  return { template, sections, bodyAssembly };
+  // Header/footer are structurally different from body — at most one
+  // enabled slot per role (no repeat-group / multi-part concept the
+  // way body has several sections), so a plain array rather than
+  // reusing BodyPartAssembly's order-of-many shape. Missing/archived
+  // part → same graceful skip as body above, not a hard failure.
+  const headerAssembly: BodyPartAssembly[] = [];
+  if (headerSlot) {
+    const part = partsById.get(headerSlot.partId);
+    if (part) headerAssembly.push({ slotId: headerSlot.slotId, partId: part.id, partName: part.name, order: 0, nodes: part.nodes ?? [] });
+  }
+  const footerAssembly: BodyPartAssembly[] = [];
+  if (footerSlot) {
+    const part = partsById.get(footerSlot.partId);
+    if (part) footerAssembly.push({ slotId: footerSlot.slotId, partId: part.id, partName: part.name, order: 0, nodes: part.nodes ?? [] });
+  }
+
+  return { template, sections, bodyAssembly, headerAssembly, footerAssembly };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -630,7 +684,7 @@ export async function buildContext(
       warnings.push(
         `Gold-standard template also failed to resolve (${(e2 as Error)?.message ?? 'unknown error'}) — narrative will be empty`
       );
-      resolved = { template: null, sections: [], bodyAssembly: [] };
+      resolved = { template: null, sections: [], bodyAssembly: [], headerAssembly: [], footerAssembly: [] };
     }
   }
 
@@ -640,6 +694,20 @@ export async function buildContext(
     orchestratorEnabled:  resolved.template?.orchestrationEnabled ?? false,
     sections:             resolved.sections,
     bodyAssembly:         resolved.bodyAssembly,
+    headerAssembly:       resolved.headerAssembly,
+    footerAssembly:       resolved.footerAssembly,
+    // Real feature, per direct request: template override wins when a
+    // template has explicitly configured its own style for a given
+    // category; otherwise fall through to that category's org-wide
+    // default (documentStyleConfig.ts). All three layers end up in
+    // the same resolved field here so ReportPreviewRenderer.tsx never
+    // needs to know which layer a style actually came from — it just
+    // applies whatever's resolved.
+    documentStyle: {
+      header: resolved.template?.documentStyle?.header ?? getOrgHeaderStyleDefault(),
+      body:   resolved.template?.documentStyle?.body   ?? getOrgDocumentStyleDefault(),
+      footer: resolved.template?.documentStyle?.footer ?? getOrgFooterStyleDefault(),
+    },
   };
 
   // ── Sign-off ───────────────────────────────────────────────

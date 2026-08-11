@@ -113,6 +113,28 @@ Shared, reusable UI primitives used across multiple pages.
   `services/session/README.md` for the full mechanism this notice is the
   visible endpoint of.
 
+- **`PubMedTicker.tsx`** — **NEW.** The research headline on the Home
+  dashboard, replacing a static line of marketing copy. Presentation only:
+  every piece of logic lives elsewhere (`services/research/` for fetching,
+  sanitising, caching and rate-limit backoff; `hooks/useLatestResearch.ts`
+  for the abort-on-unmount lifecycle; `utils/openReferenceWindow.ts` for the
+  popup). This component renders what it is handed and returns `null` when
+  there is nothing, which is also its entire failure mode — no feed, no
+  network, no error surface.
+  **Worth its own callout on the popup.** The feature spec claimed a sized
+  `window.open` popup prevents reverse tabnabbing. It is the opposite: the
+  child window gets a live `window.opener` reference back to the
+  authenticated PathScribe session, which *is* the attack. Passing `noopener`
+  in the features string does not fix it either — browsers that honour it
+  return `null` and discard the width, height and position, so there is no
+  sized popup at all. The reference has to be severed after opening
+  (`popup.opener = null`), which is what `openReferenceWindow.ts` does; the
+  anchor's `rel="noopener noreferrer"` remains as the fallback path. Also
+  note the click handler only calls `preventDefault()` **if the popup
+  actually opened** — enterprise browser policy blocks popups more often than
+  consumer Chrome, and an unconditional `preventDefault()` would make the
+  link silently do nothing. Modifier-clicks pass through untouched.
+
 ## Deleted this pass
 
 - **`Button/Button.test.tsx`** — Confirmed empty scaffold (`export {};`,
@@ -150,6 +172,8 @@ Shared, reusable UI primitives used across multiple pages.
   real dependencies (`hooks/useIdleTimeout.ts`, `hooks/useDraftCache.ts`,
   `services/drafts/`, root-level `ProtectedRoute.tsx`) fall outside any
   existing README system and are tracked in `PRIORITY_FIXES.md` instead,
+  as do `PubMedTicker.tsx`'s (`hooks/useLatestResearch.ts`,
+  `utils/openReferenceWindow.ts` — `services/research/` has its own README),
   not duplicated here.
 - **A real bug in `hooks/useIdleTimeout.ts`** (the consumer of
   `SessionExpiryWarningModal.tsx` above) was found and fixed this

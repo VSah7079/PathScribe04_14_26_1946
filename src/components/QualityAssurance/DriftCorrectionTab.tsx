@@ -164,9 +164,12 @@ export const DriftCorrectionTab: React.FC = () => {
                 <tr key={l.id}>
                   <td>{l.caseId}</td>
                   <td>
-                    <span style={{ color: l.event.includes('Deferred') ? '#f59e0b' : '#ef4444' }}>
-                      {l.event.includes('Deferred') ? 'Deferred (conflict)' : 'Failed'}
-                    </span>
+                    <div className="ps-conf-status-cell">
+                      <span className={`ps-conf-status-dot ${l.event.includes('Deferred') ? 'ps-conf-status-dot--pending' : 'ps-conf-status-dot--open'}`} />
+                      <span className={`ps-conf-status-text ${l.event.includes('Deferred') ? 'ps-conf-status-text--pending' : 'ps-conf-status-text--open'}`}>
+                        {l.event.includes('Deferred') ? 'Deferred (conflict)' : 'Failed'}
+                      </span>
+                    </div>
                   </td>
                   <td>{l.detail}</td>
                   <td>{new Date(l.timestamp).toLocaleString()}</td>

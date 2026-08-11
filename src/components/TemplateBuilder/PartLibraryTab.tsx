@@ -153,7 +153,7 @@ const PartLibraryTab: React.FC = () => {
           </p>
         </div>
         <button
-          className="ps-plib__new-btn"
+          className="ps-conf-btn-primary"
           onClick={() => navigate('/admin/parts/new')}
         >
           + New Part

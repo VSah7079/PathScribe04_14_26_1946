@@ -48,10 +48,16 @@ interface SidebarProps {
 
 type DotStatus = 'complete' | 'partial' | 'empty';
 
+const DOT_STATUS_LABEL: Record<DotStatus, string> = {
+  complete: 'All fields answered',
+  partial:  'Partially answered',
+  empty:    'Not started',
+};
+
 const StatusDot: React.FC<{ status: DotStatus }> = ({ status }) => {
   const color = status === 'complete' ? '#10b981' : status === 'partial' ? '#f59e0b' : '#334155';
   return (
-    <span className="ps-status-dot-wrap">
+    <span className="ps-status-dot-wrap" title={DOT_STATUS_LABEL[status]}>
       <span className="ps-status-dot" style={{ background: color }} />
     </span>
   );
@@ -228,6 +234,14 @@ const Sidebar: React.FC<SidebarProps> = ({
               Object.values(r.answers ?? {}).some(v => v !== '' && !(Array.isArray(v) && !v.length))
             );
             const specimenDot: DotStatus = allRows.length === 0 ? 'empty' : specimenHasAnswers ? 'partial' : 'empty';
+            // Same unverified count as each individual report row below,
+            // summed across the whole specimen — visible even while
+            // collapsed, so a pathologist can see at a glance which
+            // specimens have something still needing review without
+            // having to expand every one of them first.
+            const specimenUnverifiedCount = allRows.reduce((sum, r) =>
+              sum + Object.values((r as any).aiSuggestions ?? {}).filter((s: any) => s?.verification === 'unverified').length,
+            0);
 
             return (
               <div key={specimen.id}>
@@ -252,6 +266,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                     <LisStatusBadge status={specimen.lisStatus} />
                   </div>
+
+                  {specimenUnverifiedCount > 0 && (
+                    <span
+                      title={`${specimenUnverifiedCount} AI suggestion${specimenUnverifiedCount === 1 ? '' : 's'} still unverified across this specimen's report${allRows.length === 1 ? '' : 's'}`}
+                      style={{
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 8,
+                        background: 'rgba(245,158,11,0.15)',
+                        border: '1px solid rgba(245,158,11,0.4)',
+                        color: '#fbbf24',
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {specimenUnverifiedCount} unverified
+                    </span>
+                  )}
 
                   <span
                     className="ps-specimen-comment-btn"
@@ -298,6 +328,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                         v !== '' && !(Array.isArray(v) && !v.length)
                       ).length;
                       const instDot: DotStatus = filledCount > 0 ? 'partial' : 'empty';
+                      // Real fix, per direct request: previously the only way to
+                      // discover a different specimen's report still had
+                      // unconfirmed AI suggestions was to open it directly — this
+                      // surfaces it right in the sidebar instead. Deliberately
+                      // counts ANY unverified AI suggestion on this report (not
+                      // narrowed to required fields only), since that needs each
+                      // report's own template fetched to know which fields are
+                      // required — a real, addressable next step, not done here
+                      // to avoid introducing new async fetching into a component
+                      // that doesn't currently have any.
+                      const unverifiedCount = Object.values((inst as any).aiSuggestions ?? {}).filter(
+                        (s: any) => s?.verification === 'unverified'
+                      ).length;
 
                       return (
                         <div
@@ -316,8 +359,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                               </span>
                               {inst.templateName}
                             </div>
-                            <div className="ps-syn-instance-meta">
+                            <div
+                              className="ps-syn-instance-meta"
+                              style={unverifiedCount > 0 ? { color: '#fbbf24', fontWeight: 600 } : undefined}
+                              title={unverifiedCount > 0 ? `${unverifiedCount} AI suggestion${unverifiedCount === 1 ? '' : 's'} still unverified on this report` : undefined}
+                            >
                               {filledCount} field{filledCount !== 1 ? 's' : ''} answered
+                              {unverifiedCount > 0 && ` · ${unverifiedCount} unverified`}
                             </div>
                           </div>
                           <StatusDot status={instDot} />

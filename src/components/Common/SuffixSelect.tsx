@@ -20,9 +20,10 @@ interface SuffixSelectProps {
   onChange: (v: string) => void;
   selectClassName: string;
   inputClassName: string;
+  ariaLabel?: string;
 }
 
-export const SuffixSelect: React.FC<SuffixSelectProps> = ({ value, onChange, selectClassName, inputClassName }) => {
+export const SuffixSelect: React.FC<SuffixSelectProps> = ({ value, onChange, selectClassName, inputClassName, ariaLabel = 'Suffix' }) => {
   const [customMode, setCustomMode] = useState(!isPresetSuffix(value));
 
   if (customMode) {
@@ -33,6 +34,7 @@ export const SuffixSelect: React.FC<SuffixSelectProps> = ({ value, onChange, sel
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder="e.g. Esq., MD"
+          aria-label={ariaLabel}
         />
         <button type="button" className="ps-suffix-back-link" onClick={() => { setCustomMode(false); onChange(''); }}>
           Use list
@@ -45,6 +47,7 @@ export const SuffixSelect: React.FC<SuffixSelectProps> = ({ value, onChange, sel
     <select
       className={selectClassName}
       value={value}
+      aria-label={ariaLabel}
       onChange={e => {
         if (e.target.value === '__other__') { setCustomMode(true); onChange(''); }
         else onChange(e.target.value);

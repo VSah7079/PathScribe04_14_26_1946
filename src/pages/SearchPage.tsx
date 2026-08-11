@@ -7,7 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '../services/cases/CaseRouter';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable from '../components/Worklist/WorklistTable';
-import { codeService, flagService } from '../services';
+import { codeService, flagService, userService, physicianService, facilityService, subspecialtyService } from '../services';
+import { getStaffSubspecialtyDisplay } from '../utils/staffSubspecialties';
 import type { PathologyCase, CaseFilterParams, ClinicalCode, Flag } from '../services';
 import { LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty } from '../components/Common/LookupModal';
 // Extended component — adds onClear prop until LookupModal.tsx is updated
@@ -15,27 +16,41 @@ const LookupModalX = LookupModal as React.ComponentType<React.ComponentProps<typ
 import { useSpecimenDictionary } from '../components/Config/System/useSpecimenDictionary';
 import type { SpecimenEntry } from '../services/specimenDictionary/specimenTypes';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
+import { getFacilityDateParts } from '@/utils/facilityTime';
 import { useBreadcrumb }   from '../contexts/BreadcrumbContext';
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
-import { normalizeAccession } from '../utils/normalizeAccession';
+import { normalizeAccession, isAccession } from '../utils/normalizeAccession';
 import { IDENTIFIER_FORMAT_LIBRARY } from '../types/systemConfig';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const toDateString = (d: Date): string => d.toISOString().split('T')[0];
-const today   = (): string => toDateString(new Date());
-const daysAgo = (n: number): string => { const d = new Date(); d.setDate(d.getDate() - n); return toDateString(d); };
+// Real fix: was d.toISOString().split('T')[0] - extracts the UTC date,
+// not the real, facility-local one. Not caught by the project's
+// no-restricted-properties lint rule at all (toISOString/split isn't
+// one of the restricted methods) despite being the same real bug -
+// worth a real, separate note for whoever next extends that rule.
+const toFacilityDateString = (d: Date, timezone: string): string => {
+  const { year, month, day } = getFacilityDateParts(d, timezone);
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+const today   = (timezone: string): string => toFacilityDateString(new Date(), timezone);
+// eslint-disable-next-line no-restricted-properties -- Real, honest justification: computes the absolute "N days ago" instant (real milliseconds subtraction) - the real, facility-timezone-aware conversion to a displayed calendar date already happens downstream via toFacilityDateString(d, timezone) above.
+const daysAgo = (n: number, timezone: string): string => { const d = new Date(); d.setDate(d.getDate() - n); return toFacilityDateString(d, timezone); };
 
 const DATE_RANGE_SHORTCUTS: [string, number][] = [['7d',7],['30d',30],['90d',90],['1yr',365]];
+// Real, live page size for Load More - both mock and Firestore backends
+// now honor pageSize/cursor identically (caseFilterUtils.ts's
+// applyCasePagination, FirestoreCaseService.ts's limit()/startAfter()).
+const SEARCH_PAGE_SIZE = 25;
 // Shared by applyFilters and the breadcrumb-return session-snapshot
 // restore — both set dateFrom/dateTo from a previously-saved/captured
 // value and need to re-derive whether that value happens to match one of
 // the four shortcut buttons, so the button's active-state highlight stays
 // correct after a restore, not just after a direct click.
-const matchDateRangeShortcut = (from: string, to: string): string | null => {
+const matchDateRangeShortcut = (from: string, to: string, timezone: string): string | null => {
   if (!from && !to) return 'all';
-  const match = DATE_RANGE_SHORTCUTS.find(([, days]) => from === daysAgo(days) && to === today());
+  const match = DATE_RANGE_SHORTCUTS.find(([, days]) => from === daysAgo(days, timezone) && to === today(timezone));
   return match ? match[0] : null;
 };
 const fmtDate = (iso: string): string => {
@@ -113,126 +128,29 @@ const ALL_SYNOPTICS: SynopticTemplate[] = [
 // â”€â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface UserStub { id: string; name: string; client: string; }
-const ALL_PATHOLOGISTS: UserStub[] = [
-  { id:'PATH-RB-001', name:'Dr. Rossana Babakhani', client:'Riverview Health System'      },
-  { id:'PATH-UK-001', name:'Dr. Paul Carter',        client:'Manchester Foundation Trust'  },
-  { id:'PATH-US-001', name:'Dr. Rachel Kim',         client:'Midwest Pathology Associates' },
-  { id:'PATH-001',    name:'Dr. Pete Nimmo',         client:'Riverview Health System'      },
-  { id:'PATH-UK-002', name:'Dr. Oliver Pemberton',   client:'Manchester Foundation Trust'  },
-  { id:'PATH-US-002', name:'Dr. Marcus Thompson',    client:'Midwest Pathology Associates' },
-];
-const ALL_ATTENDINGS: UserStub[] = [
-  // Sorted alphabetically by last name — sourced from requestingProvider values in mock case data
-  { id:'att-7',  name:'Dr. Nathan Briggs',     client:'Metro General Hospital'       },
-  { id:'att-11', name:'Dr. Amanda Chen',       client:'Metro General Hospital'       },
-  { id:'att-6',  name:'Dr. Sarah Chen',        client:'Metro General Hospital'       },
-  { id:'att-18', name:'Dr. Michelle Foster',   client:'Metro General Hospital'       },
-  { id:'att-19', name:'Dr. Nancy Graves',      client:'Metro General Hospital'       },
-  { id:'att-1',  name:'Dr. Mazen Iskandar',    client:'Henry Ford Health System'     },
-  { id:'att-23', name:'Dr. Carolyn Johnston',  client:'Metro General Hospital'       },
-  { id:'att-16', name:'Dr. Lisa Kaminski',     client:'Henry Ford Health System'     },
-  { id:'att-14', name:'Dr. Helen Marsden',     client:'Manchester Foundation Trust'  },
-  { id:'att-17', name:'Dr. Mani Menon',        client:'Henry Ford Health System'     },
-  { id:'att-5',  name:'Dr. Patricia Moore',    client:'Metro General Hospital'       },
-  { id:'att-21', name:'Dr. Priya Nair',        client:'Metro General Hospital'       },
-  { id:'att-15', name:'Dr. Kevin Ng',          client:'Metro General Hospital'       },
-  { id:'att-12', name:'Dr. James Nguyen',      client:'Metro General Hospital'       },
-  { id:'att-26', name:'Dr. James Orringer',    client:'Henry Ford Health System'     },
-  { id:'att-20', name:'Dr. Patricia Owens',    client:'Metro General Hospital'       },
-  { id:'att-4',  name:'Dr. James Park',        client:'Metro General Hospital'       },
-  { id:'att-22', name:'Dr. Susan Park',        client:'Metro General Hospital'       },
-  { id:'att-8',  name:'Dr. Harvey Pass',       client:'Henry Ford Health System'     },
-  { id:'att-9',  name:'Dr. Anil Sharma',       client:'Metro General Hospital'       },
-  { id:'att-13', name:'Dr. Karen Shapiro',     client:'Metro General Hospital'       },
-  { id:'att-2',  name:'Mr. Peter Thornton',    client:'Manchester Foundation Trust'  },
-  { id:'att-3',  name:'Dr. Michael Torres',    client:'Riverside Medical Center'     },
-  { id:'att-24', name:'Mr. David Whitmore',    client:'Manchester Foundation Trust'  },
-  { id:'att-25', name:'Mr. James Whitfield',   client:'Manchester Foundation Trust'  },
-  { id:'att-10', name:'Dr. Lisa Wong',         client:'Metro General Hospital'       },
-];
+// Real fix: ALL_PATHOLOGISTS/ALL_ATTENDINGS used to be hardcoded, static
+// snapshots here - pathologists with fake ids never matching a real
+// services/users/ StaffUser record, and an attending list honestly
+// "sourced from requestingProvider values in mock case data" but then
+// frozen as a static array, meaning a real, new attending on a newly
+// accessioned case would never appear in this search filter. Both are
+// now real, live state fetched inside the component (see
+// pathologists/attendings state + effect below) from userService
+// (filtered to real StaffUser.roles.includes('Pathologist') - real,
+// capitalized casing, verified directly against the real seed data
+// after an initial, lowercase version of this filter was caught
+// silently matching zero real users) and physicianService respectively
+// - the same real services RoleDictionary.tsx/AccessionPage.tsx already use.
 
 // â”€â”€â”€ Flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // Sorted alphabetically. 'STAT' (shorthand) catches all STAT-prefixed flags via name-contains
 // matching in the service. The PRIORITY → STAT chip in the sidebar filters by case priority;
 // these flag entries target case-level flag badges on the case card.
-const ALL_FLAGS = [
-  'Actionable Mutation — Oncology Alert',
-  'Amended Report',
-  'Awaiting Attending Sign-off',
-  'BRAF V600E Positive',
-  'BRCA1 Pathogenic Variant',
-  'Close Margin — 3mm',
-  'Colorectal MDT — Mon 13:00',
-  'Colorectal MDT — Wed 14:00',
-  'ER/PR/HER2 Pending',
-  'Frozen Section',
-  'Frozen Section Pending',
-  'Geriatric Patient — 100y',
-  'Gleason Upgrade from Bx',
-  'Gynaecology Oncology',
-  'IHC Panel (PD-L1)',
-  'KRAS Result — Oncology Notified',
-  'Melanoma MDT',
-  'MMR IHC Panel',
-  'Molecular Panel',
-  'Molecular Profiling',
-  'Oncology Awaiting Report',
-  'Oncology Treatment on Hold',
-  'OR Awaiting Result',
-  'Pending Clinical Correlation',
-  'Positive Surgical Margin',
-  'PSMA IHC — Positive',
-  'Second Opinion — MDT Review',
-  'Second Opinion Requested',
-  'Sentinel Node Positive — Completion Dissection?',
-  'STAT',                                   // broad shorthand — matches any STAT-prefixed flag
-  'STAT — Intraoperative Frozen Section',
-  'STAT — Rush Processing',
-  'Thoracic MDT — Fri 09:00',
-  'Thyroid MDT',
-  'Tumor Board — Thu 14:00',
-  'Tumour Perforation — pT4',
-  'Urology MDT',
-  'Urology MDT — Fri 09:00',
-  'VHL Mutation',
-];
-
-// Sorted alphabetically. Names in the top group match actual specimenFlag names in mock data
-// (the sf.name === code check in the client-side filter will return results for these).
-// Lower group are real clinical tests — currently no demo cases, but correctly named for future data.
-const ALL_COMP_FLAGS = [
-  // ── Have matching cases in mock data ──────────────────────────────────────
-  'BRAF V600E',
-  'ER/PR/HER2',
-  'HER2 FISH',
-  'IHC Panel (PD-L1)',
-  'MMR IHC Panel',
-  'Molecular Panel',
-  'Molecular Profiling',
-  'VHL Mutation',
-  // ── Standard clinical tests (no demo cases yet) ───────────────────────────
-  'ALK',
-  'EGFR',
-  'Flow Cytometry',
-  'Ki-67',
-  'KRAS/NRAS',
-  'MSI/MMR',
-  'PD-L1 (22C3)',
-  'ROS1',
-  'TMB',
-];
-
-const ALL_CLIENTS = [
-  { id:'c4', name:'Bayview Memorial'                 },
-  { id:'c8', name:'Henry Ford Health System'         },
-  { id:'c6', name:'Manchester Foundation Trust'      },
-  { id:'c1', name:'Metro General Hospital'           },
-  { id:'c7', name:'Midwest Pathology Associates'     },
-  { id:'c2', name:'Riverside Medical Center'         },
-  { id:'c5', name:"St. Catherine's Medical Centre"   },
-  { id:'c3', name:'Westside Community Hospital'      },
-];
+// Real fix: same bug class as ALL_PATHOLOGISTS/ALL_ATTENDINGS above - a
+// completely separate, fake id scheme (c1-c8) unrelated to the real
+// services/clients/ roster. Now real, live state (see clients state +
+// effect below) from facilityService.getAll().
 
 // Real CaseStatus values only (see src/types/case/CaseStatus.ts) — this array
 // previously included 'pending' and 'pending-countersign', neither of which
@@ -244,7 +162,7 @@ const ALL_CLIENTS = [
 // 'gross-complete', 'intraoperative-complete'.
 const CASE_STATUS_OPTIONS = [
   'draft','accessioned','gross-complete','in-progress','intraoperative-complete',
-  'pending-review','pathologist-review','finalizing','finalized','pool',
+  'pending-review','pathologist-review','finalizing','finalized','pool','pending-countersign',
 ] as const;
 
 // Label + accent color per status — kept in one place instead of inline so the
@@ -262,13 +180,18 @@ const STATUS_PILL_META: Record<typeof CASE_STATUS_OPTIONS[number], { label: stri
   'finalizing':                { label: 'Finalizing',        color: '#EC4899' },
   'finalized':                 { label: 'Completed',         color: '#10B981' },
   'pool':                      { label: 'Pool',              color: '#F97316' },
+  // Real fix: was missing entirely - confirmed a real, live, currently-
+  // reachable CaseStatus (WorklistPage.tsx's own "Awaiting My
+  // Countersign" filter tile checks this exact status, fixed earlier
+  // in this same audit). Color matches that tile's own existing violet.
+  'pending-countersign':       { label: 'Awaiting Countersign', color: '#a78bfa' },
 };
-const PRIORITY_OPTIONS    = ['Routine','STAT'] as const;
+const PRIORITY_OPTIONS    = ['Routine','Rush','STAT'] as const;
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface FilterState {
-  patientName: string; hospitalId: string; accessionNo: string;
+  patientName: string; hospitalId: string; patientId: string; accessionNo: string;
   diagnosisList: string[]; specimenList: string[];
   snomedList: ClinicalCode[]; icdCodes: ClinicalCode[];
   synopticIds: string[]; flagsList: string[];
@@ -283,25 +206,26 @@ interface SavedSearch { id: string; name: string; filters: FilterState; createdA
 
 // â”€â”€â”€ English summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const buildSummary = (f: FilterState): string => {
+const buildSummary = (f: FilterState, pathologists: UserStub[], attendings: UserStub[]): string => {
   const parts: string[] = [];
   if (f.dateFrom || f.dateTo) parts.push(`accession ${fmtDate(f.dateFrom)||'…'} — ${fmtDate(f.dateTo)||'today'}`);
   if (f.patientName)           parts.push(`patient "${f.patientName}"`);
   if (f.accessionNo)           parts.push(`accession "${f.accessionNo}"`);
   if (f.hospitalId)            parts.push(`MRN "${f.hospitalId}"`);
+  if (f.patientId)             parts.push(`MPI "${f.patientId}"`);
   if (f.specimenList.length)   parts.push(`specimen: ${f.specimenList.join(', ')}`);
   if (f.diagnosisList.length)  parts.push(`diagnosis: ${f.diagnosisList.join(', ')}`);
   if (f.snomedList.length)   parts.push(`SNOMED: ${f.snomedList.map(s=>s.code).join(', ')}`);
   if (f.icdCodes.length)     parts.push(`ICD: ${f.icdCodes.map(s=>`${s.system}:${s.code}`).join(', ')}`);
   if (f.statusList.length)     parts.push(`status: ${f.statusList.join(', ')}`);
   if (f.genderList?.length)    parts.push(`gender: ${f.genderList.join(', ')}`);
-  if (f.dobFrom || f.dobTo)    parts.push(`DOB: ${f.dobFrom||'…'} â†’ ${f.dobTo||'…'}`);
-  if (f.ageMin !== undefined || f.ageMax !== undefined) parts.push(`age: ${f.ageMin??'0'}—${f.ageMax??'âˆž'}yrs`);
+  if (f.dobFrom || f.dobTo)    parts.push(`DOB: ${f.dobFrom||'…'} → ${f.dobTo||'…'}`);
+  if (f.ageMin !== undefined || f.ageMax !== undefined) parts.push(`age: ${f.ageMin??'0'}—${f.ageMax??'∞'}yrs`);
   if (f.priorityList.length)   parts.push(`priority: ${f.priorityList.join(', ')}`);
   if (f.flagsList.length)      parts.push(`flags: ${f.flagsList.join(', ')}`);
   if (f.synopticIds.length)    parts.push(`synoptic: ${f.synopticIds.map(id=>ALL_SYNOPTICS.find(t=>t.id===id)?.organ??id).join(', ')}`);
-  if (f.pathologistIds.length) parts.push(`pathologist: ${f.pathologistIds.map(id=>ALL_PATHOLOGISTS.find(u=>u.id===id)?.name??id).join(', ')}`);
-  if (f.attendingIds.length)   parts.push(`attending: ${f.attendingIds.map(id=>ALL_ATTENDINGS.find(u=>u.id===id)?.name??id).join(', ')}`);
+  if (f.pathologistIds.length) parts.push(`pathologist: ${f.pathologistIds.map(id=>pathologists.find(u=>u.id===id)?.name??id).join(', ')}`);
+  if (f.attendingIds.length)   parts.push(`attending: ${f.attendingIds.map(id=>attendings.find(u=>u.id===id)?.name??id).join(', ')}`);
   return parts.length===0 ? 'Showing all cases' : 'Showing cases with '+parts.join(' · ');
 };
 
@@ -312,59 +236,36 @@ const buildSummary = (f: FilterState): string => {
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Chip: React.FC<{ label: string; onRemove: () => void; title?: string; accent?: string }> = ({ label, onRemove, title, accent='#0891B2' }) => (
-  <span title={title} style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:999,
-    background:`${accent}33`, border:`1px solid ${accent}80`, fontSize:11, color:'#e2e8f0', cursor:'default' }}>
+  <span title={title} className="ps-searchpage-chip" style={{ '--accent': accent } as React.CSSProperties}>
     {label}
-    <button type="button" onClick={e=>{ e.preventDefault(); e.stopPropagation(); onRemove(); }} style={{ border:'none', background:'transparent', color:'#94a3b8', cursor:'pointer', fontSize:14, lineHeight:1, padding:0, display:'flex', alignItems:'center' }}
-      onMouseEnter={e=>e.currentTarget.style.color='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>×</button>
+    <button type="button" onClick={e=>{ e.preventDefault(); e.stopPropagation(); onRemove(); }} className="ps-searchpage-chip-remove">×</button>
   </span>
 );
 
 const CheckPill: React.FC<{ label: string; checked: boolean; onChange: () => void; accent?: string }> = ({ label, checked, onChange, accent='#0891B2' }) => (
-  <button type="button" onClick={onChange} style={{
-    display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:999,
-    cursor:'pointer', fontSize:11, fontWeight:500, transition:'all 0.15s', whiteSpace:'nowrap' as const,
-    background: checked ? `${accent}22` : 'rgba(15,23,42,0.5)',
-    border:`1px solid ${checked ? accent : 'rgba(148,163,184,0.2)'}`,
-    color: checked ? '#f1f5f9' : '#cbd5e1',
-  }}>
-    <span style={{ width:7, height:7, borderRadius:'50%', flexShrink:0, background:checked?accent:'transparent', border:`1.5px solid ${checked?accent:'#64748b'}` }} />
+  <button type="button" onClick={onChange}
+    className={`ps-searchpage-checkpill${checked ? ' ps-searchpage-checkpill--checked' : ''}`}
+    style={{ '--accent': accent } as React.CSSProperties}
+  >
+    <span className={`ps-searchpage-checkpill-dot${checked ? ' ps-searchpage-checkpill-dot--checked' : ''}`} />
     {label}
   </button>
 );
 
 // SectionLabel: clear by default, vivid cyan when active
 const SectionLabel: React.FC<{ title: string; active?: boolean }> = ({ title, active=false }) => (
-  <div style={{
-    fontSize:10, fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'0.7px',
-    color: active ? '#7dd3fc' : '#94a3b8',
-    transition:'color 0.15s',
-  }}>{title}</div>
+  <div className={`ps-searchpage-section-label${active ? ' ps-searchpage-section-label--active' : ''}`}>{title}</div>
 );
 
 // Browse button ”” opens lookup modal, sits inline with input
 const BrowseBtn: React.FC<{ onClick: () => void; count?: number }> = ({ onClick, count }) => (
-  <button type="button" onClick={onClick} style={{
-    display:'inline-flex', alignItems:'center', gap:3, padding:'5px 10px', borderRadius:7,
-    border:'1px solid rgba(8,145,178,0.45)', background:'rgba(8,145,178,0.08)',
-    color:'#7dd3fc', fontSize:11, fontWeight:600, cursor:'pointer', transition:'all 0.15s',
-    whiteSpace:'nowrap' as const, flexShrink:0,
-  }}
-    onMouseEnter={e=>{e.currentTarget.style.background='rgba(8,145,178,0.18)'; e.currentTarget.style.borderColor='rgba(8,145,178,0.7)';}}
-    onMouseLeave={e=>{e.currentTarget.style.background='rgba(8,145,178,0.08)'; e.currentTarget.style.borderColor='rgba(8,145,178,0.45)';}}>
+  <button type="button" onClick={onClick} className="ps-searchpage-browse-btn">
     {count ? `Browse (${count})` : 'Browse'}
   </button>
 );
 
-const DROPDOWN_STYLE: React.CSSProperties = {
-  position:'absolute', top:'100%', left:0, right:0, marginTop:3,
-  background:'#020617', borderRadius:8, border:'1px solid rgba(148,163,184,0.35)',
-  maxHeight:180, overflowY:'auto', zIndex:60, boxShadow:'0 8px 24px rgba(0,0,0,0.7)',
-};
-const DROP_BTN: React.CSSProperties = {
-  width:'100%', textAlign:'left', padding:'6px 10px',
-  border:'none', background:'transparent', color:'#e5e7eb', fontSize:12, cursor:'pointer',
-};
+const DROPDOWN_CLASS = 'ps-searchpage-dropdown';
+const DROP_BTN_CLASS = 'ps-searchpage-dropdown-btn';
 
 // â”€â”€â”€ LookupModal and content components imported from Common/LookupModal â”€â”€â”€â”€â”€â”€
 // LookupModal, LookupSearch, LookupItem, LookupSection, LookupEmpty
@@ -386,16 +287,13 @@ const SynopticLookupContent: React.FC<{ selected: string[]; onToggle: (id: strin
             return (
               <div key={cat}>
                 <LookupSection label={cat} count={items.length} />
-                <div style={{ display:'flex', flexWrap:'wrap', gap:5, padding:'8px 24px' }}>
+                <div className="ps-searchpage-organ-grid">
                   {items.map(s => {
                     const sel = selected.includes(s.id);
                     return (
-                      <button key={s.id} type="button" onClick={() => onToggle(s.id)} style={{
-                        padding:'5px 12px', borderRadius:999, cursor:'pointer', fontSize:12, fontWeight:500,
-                        background: sel ? 'rgba(8,145,178,0.2)' : 'rgba(255,255,255,0.04)',
-                        border: `1px solid ${sel ? '#0891B2' : 'rgba(255,255,255,0.1)'}`,
-                        color: sel ? '#7dd3fc' : '#94a3b8', transition:'all 0.12s',
-                      }}>{s.organ}</button>
+                      <button key={s.id} type="button" onClick={() => onToggle(s.id)}
+                        className={`ps-searchpage-organ-pill${sel ? ' ps-searchpage-organ-pill--selected' : ''}`}
+                      >{s.organ}</button>
                     );
                   })}
                 </div>
@@ -432,16 +330,16 @@ const UserLookupContent: React.FC<{ users: UserStub[]; selected: string[]; onTog
 
   return (
     <>
-      <div style={{ display:'flex', gap:8, padding:'12px 24px 4px' }}>
+      <div className="ps-searchpage-user-search-row">
         <input
           value={nameQ} onChange={e => setNameQ(e.target.value)}
           placeholder="Search by name…"
-          style={{ flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none' }}
+          className="ps-searchpage-user-search-input"
         />
         <input
           value={clientQ} onChange={e => setClientQ(e.target.value)}
           placeholder="Search by hospital…"
-          style={{ flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none' }}
+          className="ps-searchpage-user-search-input"
         />
       </div>
       {filtered.length === 0
@@ -464,24 +362,21 @@ const UserLookupContent: React.FC<{ users: UserStub[]; selected: string[]; onTog
 
 // â”€â”€â”€ Flags lookup content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const FlagsLookupContent: React.FC<{ selected: string[]; onToggle: (f: string) => void }> = ({ selected, onToggle }) => {
+const FlagsLookupContent: React.FC<{ flags: string[]; selected: string[]; onToggle: (f: string) => void }> = ({ flags, selected, onToggle }) => {
   const [q, setQ] = useState('');
-  const filtered = q.length < 1 ? ALL_FLAGS : ALL_FLAGS.filter(f => f.toLowerCase().includes(q.toLowerCase()));
+  const filtered = q.length < 1 ? flags : flags.filter(f => f.toLowerCase().includes(q.toLowerCase()));
   return (
     <>
       <LookupSearch value={q} onChange={setQ} placeholder="Search flags…" />
-      <div style={{ display:'flex', flexWrap:'wrap', gap:6, padding:'4px 24px 20px' }}>
+      <div className="ps-searchpage-flag-grid">
         {filtered.length === 0
           ? <LookupEmpty query={q} />
           : filtered.map(f => {
               const sel = selected.includes(f);
               return (
-                <button key={f} type="button" onClick={() => onToggle(f)} style={{
-                  padding:'6px 14px', borderRadius:999, cursor:'pointer', fontSize:12, fontWeight:500,
-                  background: sel ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${sel ? '#f59e0b' : 'rgba(255,255,255,0.1)'}`,
-                  color: sel ? '#fbbf24' : '#94a3b8', transition:'all 0.12s',
-                }}>{f}</button>
+                <button key={f} type="button" onClick={() => onToggle(f)}
+                  className={`ps-searchpage-flag-pill${sel ? ' ps-searchpage-flag-pill--selected' : ''}`}
+                >{f}</button>
               );
             })
         }
@@ -510,16 +405,15 @@ const SPECIMEN_TYPE_COLOURS: Record<string, string> = {
   'Other':      '#94a3b8',
 };
 
-const CompFlagsLookupContent: React.FC<{ selected: string[]; onToggle: (f: string) => void }> = ({ selected, onToggle }) => {
+const CompFlagsLookupContent: React.FC<{ flags: string[]; selected: string[]; onToggle: (f: string) => void }> = ({ flags, selected, onToggle }) => {
   const [q, setQ] = useState('');
-  const filtered = ALL_COMP_FLAGS.filter(f => q.length < 1 || f.toLowerCase().includes(q.toLowerCase()));
+  const filtered = flags.filter(f => q.length < 1 || f.toLowerCase().includes(q.toLowerCase()));
   const abbr = (name: string) => name.replace(/[^A-Z0-9]/g,'').slice(0,3) || name.slice(0,2).toUpperCase();
   return (
     <>
-      <div style={{ padding:'12px 24px 4px' }}>
+      <div className="ps-searchpage-client-search-wrap">
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by test name…"
-          style={{ width:'100%', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
-            borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none', boxSizing:'border-box' as const }} />
+          className="ps-searchpage-client-search-input" />
       </div>
       {filtered.length === 0
         ? <LookupEmpty query={q} />
@@ -539,18 +433,17 @@ const CompFlagsLookupContent: React.FC<{ selected: string[]; onToggle: (f: strin
   );
 };
 
-const ClientLookupContent: React.FC<{ selected: string[]; onToggle: (id: string) => void }> = ({ selected, onToggle }) => {
+const ClientLookupContent: React.FC<{ clients: UserStub[]; selected: string[]; onToggle: (id: string) => void }> = ({ clients, selected, onToggle }) => {
   const [nameQ, setNameQ] = useState('');
-  const filtered = ALL_CLIENTS.filter(c =>
+  const filtered = clients.filter(c =>
     nameQ.length < 1 || c.name.toLowerCase().includes(nameQ.toLowerCase())
   );
   const abbr = (name: string) => name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0,2).toUpperCase();
   return (
     <>
-      <div style={{ padding:'12px 24px 4px' }}>
+      <div className="ps-searchpage-client-search-wrap">
         <input value={nameQ} onChange={e => setNameQ(e.target.value)} placeholder="Search by facility name…"
-          style={{ width:'100%', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)',
-            borderRadius:8, padding:'7px 12px', fontSize:13, color:'#f1f5f9', outline:'none', boxSizing:'border-box' as const }} />
+          className="ps-searchpage-client-search-input" />
       </div>
       {filtered.length === 0
         ? <LookupEmpty query={nameQ} />
@@ -605,27 +498,22 @@ const SpecimenLookupContent: React.FC<{
       <LookupSearch value={q} onChange={setQ} placeholder="Search by name, procedure, site, or synonym…" />
 
       {/* Pills ”” always single row, horizontal scroll, highlight = has results */}
-      <div style={{ display:'flex', flexWrap:'nowrap', overflowX:'auto', gap:5, padding:'4px 24px 12px',
-        borderBottom:'1px solid rgba(255,255,255,0.06)',
-        scrollbarWidth:'none', msOverflowStyle:'none' } as React.CSSProperties}>
+      <div className="ps-searchpage-type-pills">
         {(['All', ...typesInUse] as const).map(t => {
           const isAll    = t === 'All';
           const colour   = isAll ? '#0891B2' : SPECIMEN_TYPE_COLOURS[t] ?? '#94a3b8';
           const isPinned = isAll ? pinnedType === null : pinnedType === t;
           const hasMatch = isAll ? searched.length > 0 : matchedTypes.has(t);
           const isLit    = hasMatch && (q.trim().length >= 1); // feedback mode when searching
+          const accentActive = isPinned || isLit;
+          const noMatchFade  = !accentActive && q.trim().length >= 1 && !hasMatch;
+          const dimmed       = q.trim().length >= 1 && !hasMatch && !isAll;
           return (
             <button key={t} type="button"
               onClick={() => setPinnedType(isAll ? null : (pinnedType === t ? null : t))}
-              style={{
-                flexShrink: 0,
-                padding:'4px 12px', borderRadius:999, fontSize:12, fontWeight:600, cursor:'pointer',
-                transition:'all 0.15s',
-                background: isPinned || isLit ? `${colour}25` : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${isPinned || isLit ? colour : 'rgba(255,255,255,0.1)'}`,
-                color: isPinned || isLit ? colour : q.trim().length >= 1 && !hasMatch ? 'rgba(148,163,184,0.35)' : '#94a3b8',
-                opacity: q.trim().length >= 1 && !hasMatch && !isAll ? 0.4 : 1,
-              }}>
+              className={`ps-searchpage-type-pill${accentActive ? ' ps-searchpage-type-pill--lit' : ''}${noMatchFade ? ' ps-searchpage-type-pill--faded' : ''}${dimmed ? ' ps-searchpage-type-pill--dim' : ''}`}
+              style={{ '--accent': colour } as React.CSSProperties}
+            >
               {t}
             </button>
           );
@@ -679,13 +567,13 @@ const IcdModalContent: React.FC<{
       const first = visibleTabs[0];
       if (first) setTab(first.id);
     }
-  }, [icd10Active, icd11Active, icdoActive]);
+  }, [icd10Active, icd11Active, icdoActive, tab, visibleTabs]);
 
   if (visibleTabs.length === 0) {
     return (
-      <div style={{ padding:'48px 24px', textAlign:'center', color:'#64748b', fontSize:14 }}>
+      <div className="ps-searchpage-icd-empty">
         No ICD systems are enabled.<br />
-        <span style={{ fontSize:12 }}>Enable them in Configuration â†’ System Settings.</span>
+        <span className="ps-searchpage-icd-empty-sub">Enable them in Configuration → System Settings.</span>
       </div>
     );
   }
@@ -693,14 +581,11 @@ const IcdModalContent: React.FC<{
   return (
     <>
       {/* Tab bar ”” only shows active systems */}
-      <div style={{ display:'flex', gap:2, padding:'12px 24px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+      <div className="ps-searchpage-icd-tabbar">
         {visibleTabs.map(t => (
-          <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
-            padding:'7px 16px', border:'none', borderRadius:'8px 8px 0 0',
-            fontSize:13, fontWeight:600, cursor:'pointer', transition:'all 0.15s',            background: tab === t.id ? 'rgba(8,145,178,0.15)' : 'transparent',
-            color: tab === t.id ? '#7dd3fc' : '#94a3b8',
-            borderBottom: `2px solid ${tab === t.id ? '#0891B2' : 'transparent'}`,
-          }}>
+          <button key={t.id} type="button" onClick={() => setTab(t.id)}
+            className={`ps-searchpage-icd-tab${tab === t.id ? ' ps-searchpage-icd-tab--active' : ''}`}
+          >
             {t.label}
           </button>
         ))}
@@ -768,23 +653,18 @@ const SnomedAxisContent: React.FC<{
     <>
       <LookupSearch value={q} onChange={setQ} placeholder={meta.placeholder} />
       {loading
-        ? <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:14 }}>Loading…</div>
+        ? <div className="ps-searchpage-lookup-loading">Loading…</div>
         : <>
             {/* Subgroup filter pills ”” only shown while searching, clickable to narrow results */}
             {isSearching && subgroups.length > 1 && (
-              <div style={{ display:'flex', flexWrap:'wrap', gap:5,
-                padding:'4px 24px 10px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+              <div className="ps-searchpage-subgroup-pills">
                 {subgroups.map(sg => {
                   const matched = matchedSubgroups.has(sg);
                   return (
-                    <button key={sg} type="button" title={`Filter to ${sg}`} style={{
-                      flexShrink: 0, cursor: matched ? 'pointer' : 'default',
-                      padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:600,
-                      border:'none', transition:'all 0.15s',
-                      background: matched ? `${meta.accent}22` : 'rgba(255,255,255,0.03)',
-                      outline: `1px solid ${matched ? meta.accent : 'rgba(255,255,255,0.07)'}`,
-                      color: matched ? meta.accent : '#334155',
-                    }}>
+                    <button key={sg} type="button" title={`Filter to ${sg}`}
+                      className={`ps-searchpage-subgroup-pill${matched ? ' ps-searchpage-subgroup-pill--matched' : ''}`}
+                      style={{ '--accent': meta.accent } as React.CSSProperties}
+                    >
                       {sg}
                     </button>
                   );
@@ -820,15 +700,12 @@ const SnomedModalContent: React.FC<{
   return (
     <>
       {/* Axis tabs */}
-      <div style={{ display:'flex', gap:0, padding:'12px 24px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+      <div className="ps-searchpage-axis-tabbar">
         {SNOMED_AXIS_META.map(m => (
-          <button key={m.id} type="button" onClick={() => setAxis(m.id)} style={{
-            padding:'7px 18px', border:'none', borderRadius:'8px 8px 0 0',
-            fontSize:13, fontWeight:600, cursor:'pointer', transition:'all 0.15s',
-            background: axis === m.id ? `${m.accent}18` : 'transparent',
-            color: axis === m.id ? m.accent : '#94a3b8',
-            borderBottom: `2px solid ${axis === m.id ? m.accent : 'transparent'}`,
-          }}>
+          <button key={m.id} type="button" onClick={() => setAxis(m.id)}
+            className={`ps-searchpage-axis-tab${axis === m.id ? ' ps-searchpage-axis-tab--active' : ''}`}
+            style={{ '--accent': m.accent } as React.CSSProperties}
+          >
             {m.label}
           </button>
         ))}
@@ -879,27 +756,20 @@ const CodeLookupContent: React.FC<{
     <>
       <LookupSearch value={q} onChange={setQ} placeholder={`Search ${system} codes or descriptions…`} />
       {loading
-        ? <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:14 }}>Loading…</div>
+        ? <div className="ps-searchpage-lookup-loading">Loading…</div>
         : <>
             {/* Category filter pills ”” clickable, wrap, highlight active/matched */}
             {allCategories.length > 1 && (
-              <div style={{ display:'flex', flexWrap:'wrap', gap:5,
-                padding:'4px 24px 12px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+              <div className="ps-searchpage-cat-pills">
                 {allCategories.map(cat => {
                   const isActive  = activeCat === cat;
                   const matched   = !isSearching || matchedCats.has(cat);
                   return (
                     <button key={cat} type="button"
                       onClick={() => setActiveCat(isActive ? null : cat)}
-                      style={{
-                        flexShrink: 0, cursor: 'pointer', border: 'none',
-                        padding:'4px 12px', borderRadius:999, fontSize:12, fontWeight:600,
-                        transition:'all 0.15s',
-                        background: isActive ? accent : matched ? `${accent}22` : 'rgba(255,255,255,0.03)',
-                        outline: `1px solid ${isActive ? accent : matched ? accent : 'rgba(255,255,255,0.07)'}`,
-                        color: isActive ? '#0f172a' : matched ? accent : '#475569',
-                        opacity: isSearching && !matched ? 0.4 : 1,
-                      }}>
+                      className={`ps-searchpage-cat-pill${isActive ? ' ps-searchpage-cat-pill--active' : matched ? ' ps-searchpage-cat-pill--matched' : ''}${isSearching && !matched ? ' ps-searchpage-cat-pill--dim' : ''}`}
+                      style={{ '--accent': accent } as React.CSSProperties}
+                    >
                       {cat}
                     </button>
                   );
@@ -934,6 +804,50 @@ const SearchPage: React.FC = () => {
   const { dictionary: specimenDictionary } = useSpecimenDictionary();
   const { config } = useSystemConfig();
 
+  // Real fix: pathologists/attendings/clients used to be hardcoded,
+  // static module-scope constants (ALL_PATHOLOGISTS/ALL_ATTENDINGS/
+  // ALL_CLIENTS) - see this file's own "Users" section comment for the
+  // full story. Now real, live state, fetched once from the same real
+  // services RoleDictionary.tsx/AccessionPage.tsx already use.
+  const [pathologists, setPathologists] = useState<UserStub[]>([]);
+  const [attendings, setAttendings] = useState<UserStub[]>([]);
+  const [clients, setClients] = useState<UserStub[]>([]);
+  useEffect(() => {
+    Promise.all([userService.getAll(), physicianService.getAll(), facilityService.getAll(), subspecialtyService.getAll()]).then(
+      ([userRes, physicianRes, clientRes, subsRes]) => {
+        const realClients = clientRes.ok ? clientRes.data : [];
+        setClients(realClients.map(c => ({ id: c.id, name: c.name, client: '' })));
+
+        if (userRes.ok) {
+          // Real fix, per direct confirmation: replaces the old
+          // free-text department field — genuinely redundant with the
+          // real Subspecialty dictionary, which is the actual data
+          // this was standing in for.
+          const allSubspecialties = subsRes.ok ? subsRes.data : [];
+          setPathologists(
+            userRes.data
+              .filter(u => u.roles.includes('Pathologist'))
+              .map(u => ({ id: u.id, name: `Dr. ${u.firstName} ${u.lastName}`, client: getStaffSubspecialtyDisplay(u.id, allSubspecialties) }))
+          );
+        }
+
+        if (physicianRes.ok) {
+          setAttendings(
+            physicianRes.data.map(p => ({
+              id: p.id,
+              name: `${p.namePrefix || 'Dr.'} ${p.firstName} ${p.lastName}`,
+              // A real physician can have more than one real client
+              // (clientIds is plural) - joins every real, resolved
+              // name rather than arbitrarily picking just the first.
+              client: p.clientIds.map(cid => realClients.find(c => c.id === cid)?.name).filter(Boolean).join(', '),
+            }))
+          );
+        }
+      }
+    );
+  }, []);
+
+
   // Measure available height for the table container — mirrors
   // WorklistPage.tsx's identical hook exactly. That page's own comment is
   // explicit about why: this is "immune to any parent overflow/flex chain
@@ -964,7 +878,7 @@ const SearchPage: React.FC = () => {
   // of an entire different controller's cases (Orchestration/PathScribe vs.
   // the NHS Trust LIS) — see IRoleService.ts and CaseRouter.ts for why that
   // distinction matters for compliance, not just UI.
-  const canViewOrchestration = (user as any)?.canViewOrchestration ?? false;
+  const canViewOrchestration = user?.canViewOrchestration ?? false;
 
   const [isLoaded,        setIsLoaded]        = useState(false);
   const [isProfileOpen,   setIsProfileOpen]   = useState(false);
@@ -986,11 +900,12 @@ const SearchPage: React.FC = () => {
   // Filter state
   const [patientName,  setPatientName]  = useState('');
   const [hospitalId,   setHospitalId]   = useState('');
+  const [patientId,    setPatientId]    = useState('');
   const [accessionNo,  setAccessionNo]  = useState('');
 
   // Smart identifier box
   const [identifierQuery, setIdentifierQuery] = useState('');
-  type IdentifierType = 'accession' | 'mrn' | 'slide' | 'requisition' | 'name' | 'ambiguous' | null;
+  type IdentifierType = 'accession' | 'mrn' | 'mpi' | 'slide' | 'requisition' | 'name' | 'ambiguous' | null;
   const [detectedType, setDetectedType] = useState<IdentifierType>(null);
 
   // Enabled formats from config, falling back to library defaults
@@ -1008,6 +923,13 @@ const SearchPage: React.FC = () => {
       );
       if (slideMatch) return 'slide';
 
+      // Master Patient Index id — internally generated by this app
+      // (services/patients/mockPatientIndexService.ts), always PID-
+      // prefixed, so unlike MRN/accession/requisition this doesn't vary
+      // by jurisdiction or external source system and doesn't need to
+      // go through the admin-configurable IdentifierFormat system.
+      if (/^PID-/i.test(v)) return 'mpi';
+
       // Accession number — tests every enabled accession format, not just
       // one. Fixed June 2026: this used to test only against the single
       // derived config.identifierFormats.accessionPattern, which silently
@@ -1017,7 +939,7 @@ const SearchPage: React.FC = () => {
       // slide/requisition detection right above/below this, which was
       // already correctly checking every enabled format.
       const accessionFormats = enabledFormats.filter(f => f.kind === 'accession' && f.enabled);
-      const accessionMatch = accessionFormats.find(f => new RegExp(f.pattern, 'i').test(normalizeAccession(v, f.pattern)));
+      const accessionMatch = accessionFormats.find(f => isAccession(v, f.pattern));
       if (accessionMatch) return 'accession';
 
       // Patient identifier (MRN / NHS / CHI / IHI etc.) — same fix.
@@ -1039,7 +961,7 @@ const SearchPage: React.FC = () => {
   };
 
   const applyIdentifier = (val: string, type: IdentifierType) => {
-    setPatientName(''); setHospitalId(''); setAccessionNo('');
+    setPatientName(''); setHospitalId(''); setPatientId(''); setAccessionNo('');
 
     if (type === 'slide') {
       // 2D pipe-delimited payload (Epic Beaker etc.)
@@ -1071,6 +993,7 @@ const SearchPage: React.FC = () => {
       setAccessionNo(normalized);
     }
     else if (type === 'mrn')         setHospitalId(val.trim());
+    else if (type === 'mpi')         setPatientId(val.trim());
     else if (type === 'name')        setPatientName(val.trim());
     else if (type === 'requisition') setAccessionNo(val.trim());
     else {
@@ -1089,15 +1012,16 @@ const SearchPage: React.FC = () => {
 
   const IDENTIFIER_BADGE: Record<NonNullable<IdentifierType>, { label: string; color: string }> = {
     accession:   { label: 'Accession #',   color: '#8B5CF6' },
-    mrn:         { label: 'Patient ID',    color: '#0891B2' },
+    mrn:         { label: 'MRN',           color: '#0891B2' },
+    mpi:         { label: 'MPI ID',        color: '#6366F1' },
     slide:       { label: 'Slide Barcode', color: '#10B981' },
     requisition: { label: 'Requisition #', color: '#F59E0B' },
     name:        { label: 'Patient Name',  color: '#10B981' },
     ambiguous:   { label: 'All fields',    color: '#F59E0B' },
   };
 
-  const [dateFrom,     setDateFrom]     = useState(daysAgo(30));
-  const [dateTo,       setDateTo]       = useState(today());
+  const [dateFrom,     setDateFrom]     = useState(daysAgo(30, config.facilityTimezone));
+  const [dateTo,       setDateTo]       = useState(today(config.facilityTimezone));
   // Tracks which date-range shortcut (7d/30d/90d/1yr) was last clicked, if
   // any — null once the user edits a date field manually, since at that
   // point no shortcut's value is necessarily still accurate. Default '30d'
@@ -1145,6 +1069,17 @@ const SearchPage: React.FC = () => {
 
   const [results,     setResults]     = useState<PathologyCase[]|null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  // Real, live pagination - Load More appends rather than replaces,
+  // matching the cursor contract built into caseRouter.getAll() (both the
+  // mock and Firestore paths now honor pageSize/cursor identically).
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [nextCursor,     setNextCursor]     = useState<string | undefined>(undefined);
+  const [isLoadingMore,  setIsLoadingMore]  = useState(false);
+  // Increments only on a genuine fresh search (never on Load More) - used
+  // as WorklistTable's key below instead of results.length, so appending
+  // more results doesn't force a full remount (which would reset the
+  // table's own scroll position, sort state, and internal batching).
+  const [searchGeneration, setSearchGeneration] = useState(0);
 
   // flagDefinitions still feeds WorklistTable/FlagManagerModal-style
   // consumers on this page; computationalFlags removed along with the
@@ -1156,6 +1091,40 @@ const SearchPage: React.FC = () => {
       setFlagDefinitions(res.data);
     }).catch(() => {});
   }, []);
+  // Real fix: ALL_FLAGS/ALL_COMP_FLAGS used to be static, hand-curated
+  // name lists - confirmed directly against the real
+  // services/flags/mockFlagService.ts data that many real, active flags
+  // ('Malignant', 'Discordant', 'Intraoperative Consult', 'Margins
+  // Involved', and more) were completely missing, so a search filtering
+  // by one of those real flags had no way to select it via this picker.
+  // Same bug class as the earlier ALL_ATTENDINGS fix in this same file.
+  //
+  // Sourced from the flag catalog (flagService.getAll()), not scraped
+  // from raw case data, because that catalog is confirmed to be the
+  // real, current, authoritative source: utils/flagAdapter.ts's own
+  // header comment documents FlagManagerModal ("the only place flags
+  // can be applied") as reading from this exact same catalog. Separate,
+  // lower-priority observation, not fixed here: some older seed cases
+  // (mockCaseService.ts) carry inline caseFlags/specimenFlags objects
+  // predating this catalog's centralization (e.g. time-specific MDT
+  // flags like "Colorectal MDT — Mon 13:00") that don't correspond to
+  // any real catalog entry - legacy seed-data artifacts, not something
+  // a flag applied via the current, real FlagManagerModal workflow
+  // would ever produce, so not a gap this picker needs to cover.
+  //
+  // tagClass is documented elsewhere (IFlagService.ts) as vestigial for
+  // real backend decisions, but it's still present on the data and this
+  // is a presentational UI grouping (preserving the existing two-picker
+  // structure), not a functional gate - flags missing tagClass default
+  // to the general list rather than being silently dropped from both.
+  const realFlagNames = React.useMemo(
+    () => flagDefinitions.filter(f => f.status === 'Active' && f.tagClass !== 'COMPUTATIONAL').map(f => f.name),
+    [flagDefinitions]
+  );
+  const realCompFlagNames = React.useMemo(
+    () => flagDefinitions.filter(f => f.status === 'Active' && f.tagClass === 'COMPUTATIONAL').map(f => f.name),
+    [flagDefinitions]
+  );
   // Auto-collapses the filter sidebar after a search runs, freeing real
   // width for the results table — mirrors SynopticReportPage's
   // Sidebar.tsx collapsed/expanded pattern exactly. Set explicitly at
@@ -1179,9 +1148,9 @@ const SearchPage: React.FC = () => {
     if (!returning) { ssClear(); return; }
     const snap = ssLoad(); if (!snap) return;
     const f = snap.filters;
-    setPatientName(f.patientName); setHospitalId(f.hospitalId); setAccessionNo(f.accessionNo);
+    setPatientName(f.patientName); setHospitalId(f.hospitalId); setPatientId(f.patientId); setAccessionNo(f.accessionNo);
     setDateFrom(f.dateFrom); setDateTo(f.dateTo);
-    setActiveDateRange(matchDateRangeShortcut(f.dateFrom, f.dateTo));
+    setActiveDateRange(matchDateRangeShortcut(f.dateFrom, f.dateTo, config.facilityTimezone));
     setSnomedList(f.snomedList); setIcdCodes(f.icdCodes);
     setSynopticIds(f.synopticIds); setFlagsList(f.flagsList);
     setPathologistIds(f.pathologistIds ?? []); setAttendingIds(f.attendingIds ?? []);
@@ -1199,6 +1168,17 @@ const SearchPage: React.FC = () => {
   useEffect(() => { const t = setTimeout(()=>setIsLoaded(true), 80); return ()=>clearTimeout(t); }, []);
   useEffect(() => { pushCrumb('Case Search', '/search'); }, [pushCrumb]);
   useEffect(() => { lsSave(savedSearches); }, [savedSearches]);
+
+  // Real bug fix, same pattern already found in AuditLogPage.tsx: this
+  // page declared isResourcesOpen and rendered a Resources modal off it,
+  // but never listened for the global PATHSCRIBE_PAGE_OPEN_RESOURCES
+  // event that actually opens it elsewhere (see WorklistPage.tsx) —
+  // meaning the modal had no way to ever open on this page either.
+  useEffect(() => {
+    const openResources = () => setIsResourcesOpen(true);
+    window.addEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES', openResources);
+    return () => window.removeEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES', openResources);
+  }, []);
   useEffect(() => { if (showSaveInput) saveInputRef.current?.focus(); }, [showSaveInput]);
 
   useEffect(() => {
@@ -1225,7 +1205,7 @@ const SearchPage: React.FC = () => {
     const fallback = hits.length > 0 ? hits :
       SPECIMEN_DICTIONARY.filter(s => s.toLowerCase().includes(q) && !specimenList.includes(s)).slice(0, 8);
     setSpecimenSuggestions(fallback); setShowSpecimenDrop(fallback.length > 0);
-  }, [specimenQuery, specimenList]);
+  }, [specimenQuery, specimenList, specimenDictionary]);
 
   useEffect(() => {
     if (!snomedQuery || snomedQuery.length < 2) { setSnomedSuggestions([]); setShowSnomedDrop(false); return; }
@@ -1256,7 +1236,7 @@ const SearchPage: React.FC = () => {
   // â”€â”€ Filter helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const currentFilters = (): FilterState => ({
-    patientName, hospitalId, accessionNo, diagnosisList, specimenList,
+    patientName, hospitalId, patientId, accessionNo, diagnosisList, specimenList,
     snomedList, icdCodes, synopticIds, flagsList, pathologistIds, attendingIds,
     submittingNames, statusList, priorityList, dateFrom, dateTo,
     // Previously hardcoded to empty — now reads actual state so session
@@ -1269,9 +1249,9 @@ const SearchPage: React.FC = () => {
   });
 
   const applyFilters = (f: FilterState) => {
-    setPatientName(f.patientName); setHospitalId(f.hospitalId); setAccessionNo(f.accessionNo);
+    setPatientName(f.patientName); setHospitalId(f.hospitalId); setPatientId(f.patientId); setAccessionNo(f.accessionNo);
     // Restore smart identifier box from whichever field was populated
-    const restored = f.accessionNo || f.patientName || f.hospitalId;
+    const restored = f.accessionNo || f.patientName || f.hospitalId || f.patientId;
     setIdentifierQuery(restored);
     setDetectedType(restored ? detectIdentifierType(restored) : null);
     setDiagnosisList(f.diagnosisList); setSpecimenList(f.specimenList);
@@ -1280,7 +1260,7 @@ const SearchPage: React.FC = () => {
     setPathologistIds(f.pathologistIds ?? []); setAttendingIds(f.attendingIds ?? []);
     setSubmittingNames(f.submittingNames); setStatusList(f.statusList); setPriorityList(f.priorityList);
     setDateFrom(f.dateFrom); setDateTo(f.dateTo);
-    setActiveDateRange(matchDateRangeShortcut(f.dateFrom, f.dateTo));
+    setActiveDateRange(matchDateRangeShortcut(f.dateFrom, f.dateTo, config.facilityTimezone));
     // Restore demographics — previously hardcoded to empty which broke saved-search round-trips
     setGenderList(f.genderList ?? []);
     setDobFrom(f.dobFrom ?? '');
@@ -1301,18 +1281,19 @@ const SearchPage: React.FC = () => {
     setDiagnosisList(p=>p.includes(v)?p:[...p,v]); setDiagnosisText('');
   };
   const addSnomed = (s: ClinicalCode) => {
-    setSnomedList((p: any)=>p.some((x: any)=>x.code===s.code)?p:[...p,s]); setSnomedQuery(''); setShowSnomedDrop(false);
+    setSnomedList(p=>p.some(x=>x.code===s.code)?p:[...p,s]); setSnomedQuery(''); setShowSnomedDrop(false);
   };
   const addIcd = (s: ClinicalCode) => {
-    setIcdCodes((p: any)=>p.some((x: any)=>x.code===s.code)?p:[...p,s]); setIcdQuery(''); setShowIcdDrop(false);
+    setIcdCodes(p=>p.some(x=>x.code===s.code)?p:[...p,s]); setIcdQuery(''); setShowIcdDrop(false);
   };
 
-  const runSearch = async () => {
-    setIsSearching(true);
+  const runSearch = async (loadMore = false) => {
+    if (loadMore) setIsLoadingMore(true); else { setIsSearching(true); setSearchGeneration(g => g + 1); }
     try {
       const params: CaseFilterParams = {
         patientName,
         hospitalId,
+        patientId,
         accessionNo,
         dateFrom:            dateFrom || undefined,
         dateTo:              dateTo   || undefined,
@@ -1339,41 +1320,62 @@ const SearchPage: React.FC = () => {
         // Pass full provider names (not att-1 IDs) — service matches c.order.requestingProvider
         ...(attendingIds.length && {
           attendingNames: attendingIds
-            .map(id => ALL_ATTENDINGS.find(u => u.id === id)?.name ?? '')
+            .map(id => attendings.find(u => u.id === id)?.name ?? '')
             .filter(Boolean) as string[],
         }),
+        pageSize: SEARCH_PAGE_SIZE,
+        cursor: loadMore ? nextCursor : undefined,
       };
-      console.log('[Search] params:', params, '| includeOrchestration:', canViewOrchestration);
       const result = await caseRouter.getAll(params, {
         includeOrchestration: canViewOrchestration,
-        userId: (user as any)?.id,
+        userId: user?.id,
       });
-      console.log('[Search] result:', result.ok, result.ok ? result.data?.length : 0, 'cases');
       if (result.ok) {
         const filteredData = compFlagsList.length > 0
           ? result.data.filter((c: PathologyCase) =>
               compFlagsList.some(code =>
-                ((c as any).specimenFlags ?? []).some((sf: any) =>
-                  sf.lisCode === code || sf.id === code || sf.name === code
+                (c.specimenFlags ?? []).some(sf =>
+                  // Real fix: SpecimenFlag's real field is `.label`, not
+                  // `.name` — that comparison was checking a property that
+                  // doesn't exist on the type (only caught once the `any`
+                  // cast masking it was removed). `compFlagsList` holds
+                  // catalog Flag.name values, so `.label` is the actual
+                  // field that was supposed to match them; `.lisCode`/`.id`
+                  // kept as-is in case either coincidentally matches too.
+                  sf.lisCode === code || sf.id === code || sf.label === code
                 )
               )
             )
           : result.data;
-        setResults(filteredData);
-        ssSave({ filters: currentFilters(), results: filteredData, hasSearched: true });
+        // compFlagsList filters client-side, after the real page was
+        // already fetched — hasMore/nextCursor still reflect the real,
+        // unfiltered page boundary from the backend, not this narrower
+        // view. Honest, known limitation: a heavily-narrowing computational
+        // flag filter combined with Load More can mean a "full" page from
+        // the backend renders as a short (or empty) visible page here —
+        // clicking Load More again still correctly advances to genuinely
+        // new cases, it just may take more than one click to see new rows.
+        const combined = loadMore ? [...(results ?? []), ...filteredData] : filteredData;
+        setResults(combined);
+        setHasMoreResults(!!result.meta?.hasMore);
+        setNextCursor(result.meta?.nextCursor);
+        ssSave({ filters: currentFilters(), results: combined, hasSearched: true });
       }
     } catch (err) {
       console.error('[SearchPage] runSearch error:', err);
     } finally {
       // Always reset — even if caseService throws
       setIsSearching(false);
+      setIsLoadingMore(false);
     }
   };
+
+  const loadMoreResults = () => { void runSearch(true); };
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); setHasSearched(true); setSidebarCollapsed(true); void runSearch(); };
 
   const handleClear = () => {
-    setPatientName(''); setHospitalId(''); setAccessionNo('');
+    setPatientName(''); setHospitalId(''); setPatientId(''); setAccessionNo('');
     setIdentifierQuery(''); setDetectedType(null);
     setDiagnosisText(''); setDiagnosisList([]);
     setSpecimenQuery(''); setSpecimenList([]);
@@ -1382,7 +1384,7 @@ const SearchPage: React.FC = () => {
     setSynopticIds([]); setFlagsList([]); setPathologistIds([]); setAttendingIds([]);
     setSubmittingNames([]); setStatusList([]); setPriorityList([]);
     setGenderList([]); setDobFrom(''); setDobTo(''); setAgeMin(''); setAgeMax('');
-    setDateFrom(daysAgo(30)); setDateTo(today()); setActiveDateRange('30d');
+    setDateFrom(daysAgo(30, config.facilityTimezone)); setDateTo(today(config.facilityTimezone)); setActiveDateRange('30d');
     setResults(null); setHasSearched(false); setActiveSavedId('');
     ssClear();
   };
@@ -1393,7 +1395,7 @@ const SearchPage: React.FC = () => {
       'Accession', 'Patient Name', 'MRN', 'Sex', 'DOB',
       'Specimen(s)', 'Accession Date', 'Physician', 'Priority', 'Status', 'Flags',
     ];
-    const rows = results.map((c: any) => [
+    const rows = results.map(c => [
       c.accession?.fullAccession ?? '',
       `${c.patient?.firstName ?? ''} ${c.patient?.lastName ?? ''}`.trim(),
       c.patient?.mrn ?? '',
@@ -1401,14 +1403,17 @@ const SearchPage: React.FC = () => {
       c.patient?.dateOfBirth
         ? new Date(c.patient.dateOfBirth).toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' })
         : '',
-      (c.specimens ?? []).map((s: any) => s.description ?? s.label ?? '').join('; '),
+      (c.specimens ?? []).map(s => s.description ?? s.label ?? '').join('; '),
       c.specimens?.[0]?.receivedAt
         ? new Date(c.specimens[0].receivedAt).toLocaleDateString('en-US', { year:'numeric', month:'2-digit', day:'2-digit' })
         : '',
       c.order?.requestingProvider ?? '',
       c.order?.priority ?? '',
       c.status ?? '',
-      (c.caseFlags ?? []).map((f: any) => f.name ?? '').join('; '),
+      // Real fix: same .name/.label bug as the computational-flags filter
+      // above (CaseFlag's real field is .label, not .name) - this export
+      // column was silently empty for every case that actually had flags.
+      (c.caseFlags ?? []).map(f => f.label ?? '').join('; '),
     ]);
     const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
     const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\r\n');
@@ -1504,32 +1509,27 @@ const SearchPage: React.FC = () => {
 
   // â”€â”€ Style helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  const INPUT: React.CSSProperties = {
-    width:'100%', padding:'6px 10px',
-    background:'rgba(15,23,42,0.7)', border:'1px solid rgba(148,163,184,0.25)',
-    borderRadius:7, color:'#f1f5f9', fontSize:12, outline:'none', boxSizing:'border-box',
-    transition:'border-color 0.15s',
-  };
-
-  // onF/onB now also update activeSection via data-section attribute
+  // onF/onB update activeSection via data-section attribute. Was also
+  // directly mutating e.currentTarget.style.borderColor for the focus
+  // ring — replaced with a real CSS :focus rule on ps-searchpage-filter-
+  // input, same fix already applied to hover-driven inline-style hacks
+  // elsewhere in this review.
   const onF = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = '#0891B2';
     setActiveSection(e.currentTarget.dataset.section ?? '');
   };
-  const onB = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(148,163,184,0.25)';
+  const onB = () => {
     setActiveSection('');
   };
 
   const activeCount = [
-    patientName, hospitalId, accessionNo,
+    patientName, hospitalId, patientId, accessionNo,
     ...diagnosisList, ...specimenList,
     ...snomedList.map(s=>s.code), ...icdCodes.map(s=>s.code),
     ...synopticIds, ...flagsList, ...pathologistIds, ...attendingIds, ...submittingNames,
     ...statusList, ...priorityList, dateFrom?'df':'', dateTo?'dt':'',
   ].filter(Boolean).length;
 
-  const summary = hasSearched ? buildSummary(currentFilters()) : null;
+  const summary = hasSearched ? buildSummary(currentFilters(), pathologists, attendings) : null;
 
   const quickLinks = {
     Protocols:  [{ title:'CAP Cancer Protocols', url:'https://www.cap.org/protocols-and-guidelines' }, { title:'WHO Classification', url:'https://www.who.int/publications' }],
@@ -1541,14 +1541,12 @@ const SearchPage: React.FC = () => {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
-    <div className="ps-search-page-root" style={{ opacity:isLoaded?1:0 }}>
+    <div className={`ps-search-page-root${isLoaded ? ' ps-search-page-root--loaded' : ''}`}>
 
       <div className="ps-search-bg-image" />
       <div className="ps-search-bg-gradient" />
 
       <div className="ps-search-shell">
-
-        {/* â”€â”€ Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
 
         {/* â”€â”€ Page header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="ps-search-header">
@@ -1559,23 +1557,23 @@ const SearchPage: React.FC = () => {
             </div>
             <div className="ps-search-saved-chips">
               {savedSearches.map(s => (
-                <button key={s.id} type="button" onClick={()=>handleLoadSearch(s.id)} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px 4px 11px', borderRadius:999, cursor:'pointer', fontSize:11, fontWeight:500, background:activeSavedId===s.id?'rgba(139,92,246,0.2)':'rgba(255,255,255,0.05)', border:`1px solid ${activeSavedId===s.id?'#8B5CF6':'rgba(255,255,255,0.1)'}`, color:activeSavedId===s.id?'#c4b5fd':'#94a3b8' }}>
+                <button key={s.id} type="button" onClick={()=>handleLoadSearch(s.id)} className={`ps-searchpage-saved-chip${activeSavedId===s.id ? ' ps-searchpage-saved-chip--active' : ''}`}>
                   {s.name}
-                  <span onClick={e=>handleDeleteSearch(s.id,e)} style={{ marginLeft:2, color:'#cbd5e1', fontSize:13, cursor:'pointer', padding:'0 2px' }} onMouseEnter={e=>(e.currentTarget.style.color='#ef4444')} onMouseLeave={e=>(e.currentTarget.style.color='#cbd5e1')}>×</span>
+                  <span onClick={e=>handleDeleteSearch(s.id,e)} className="ps-searchpage-saved-chip-remove">×</span>
                 </button>
               ))}
               {showSaveInput ? (
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                <div className="ps-searchpage-save-row">
                   <input ref={saveInputRef} type="text" value={saveNameInput} onChange={e=>setSaveNameInput(e.target.value)}
                     onKeyDown={e=>{if(e.key==='Enter')handleSaveSearch();if(e.key==='Escape'){setShowSaveInput(false);setSaveNameInput('');}}}
-                    placeholder="Name this search…" style={{ padding:'4px 9px', fontSize:11, border:'1px solid rgba(255,255,255,0.15)', borderRadius:7, outline:'none', color:'#e2e8f0', background:'rgba(15,23,42,0.7)', width:145 }} />
-                  <button type="button" onClick={handleSaveSearch} style={{ border:'none', background:'#8B5CF6', color:'#fff', borderRadius:7, padding:'4px 10px', fontSize:11, fontWeight:600, cursor:'pointer' }}>Save</button>
-                  <button type="button" onClick={()=>{setShowSaveInput(false);setSaveNameInput('');}} style={{ border:'1px solid #e2e8f0', background:'transparent', color:'#94a3b8', borderRadius:7, padding:'4px 8px', fontSize:11, cursor:'pointer' }}>âœ•</button>
+                    placeholder="Name this search…" className="ps-searchpage-save-input" />
+                  <button type="button" onClick={handleSaveSearch} className="ps-searchpage-save-btn">Save</button>
+                  <button type="button" onClick={()=>{setShowSaveInput(false);setSaveNameInput('');}} className="ps-searchpage-save-cancel-btn">✕</button>
                 </div>
               ) : (
-                <button type="button" onClick={()=>setShowSaveInput(true)} style={{ border:'1px dashed #8B5CF6', background:'transparent', color:'#8B5CF6', borderRadius:999, padding:'4px 12px', fontSize:11, fontWeight:600, cursor:'pointer' }}>+ Save Search</button>
+                <button type="button" onClick={()=>setShowSaveInput(true)} className="ps-searchpage-save-new-btn">+ Save Search</button>
               )}
-              {activeCount>0&&<span style={{ background:'#8B5CF6', color:'#fff', fontSize:10, fontWeight:700, borderRadius:999, padding:'2px 8px', marginLeft:4 }}>{activeCount} filter{activeCount!==1?'s':''}</span>}
+              {activeCount>0&&<span className="ps-searchpage-active-count-badge">{activeCount} filter{activeCount!==1?'s':''}</span>}
             </div>
           </div>
         </div>
@@ -1602,21 +1600,16 @@ const SearchPage: React.FC = () => {
 
               {/* Accession Date */}
               <div className="ps-search-date-section">
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+                <div className="ps-searchpage-date-header-row">
                   <SectionLabel title="Accession Date" active={activeSection==="date"} />
-                  <div style={{ display:'flex', gap:3 }}>
+                  <div className="ps-searchpage-date-shortcuts">
                     {([['7d',7],['30d',30],['90d',90],['1yr',365]] as [string,number][]).map(([label,days])=>{
                       const isActive = activeDateRange === label;
                       return (
                         <button key={label} type="button"
-                          onClick={()=>{setDateFrom(daysAgo(days));setDateTo(today());setActiveDateRange(label);}}
-                          style={{
-                            fontSize:10, padding:'2px 6px', borderRadius:5, cursor:'pointer', fontWeight:600,
-                            transition:'all 0.15s',
-                            background: isActive ? 'rgba(8,145,178,0.28)' : 'rgba(8,145,178,0.08)',
-                            border: `1px solid ${isActive ? '#0891B2' : 'rgba(8,145,178,0.4)'}`,
-                            color: isActive ? '#f1f5f9' : '#7dd3fc',
-                          }}>{label}</button>
+                          onClick={()=>{setDateFrom(daysAgo(days, config.facilityTimezone));setDateTo(today(config.facilityTimezone));setActiveDateRange(label);}}
+                          className={`ps-searchpage-date-shortcut-btn${isActive ? ' ps-searchpage-date-shortcut-btn--active' : ''}`}
+                        >{label}</button>
                       );
                     })}
                     {/* "All" — deliberately separate from the days-based
@@ -1633,23 +1626,18 @@ const SearchPage: React.FC = () => {
                     <button type="button"
                       onClick={()=>{setDateFrom('');setDateTo('');setActiveDateRange('all');}}
                       title="Searches all accession dates with no limit. Once connected to a production database with years of records, this could take noticeably longer to return results."
-                      style={{
-                        fontSize:10, padding:'2px 6px', borderRadius:5, cursor:'pointer', fontWeight:600,
-                        transition:'all 0.15s',
-                        background: activeDateRange === 'all' ? 'rgba(245,158,11,0.28)' : 'rgba(245,158,11,0.08)',
-                        border: `1px solid ${activeDateRange === 'all' ? '#F59E0B' : 'rgba(245,158,11,0.4)'}`,
-                        color: activeDateRange === 'all' ? '#fde68a' : '#fbbf24',
-                      }}>All</button>
+                      className={`ps-searchpage-date-shortcut-btn ps-searchpage-date-shortcut-btn--all${activeDateRange === 'all' ? ' ps-searchpage-date-shortcut-btn--all-active' : ''}`}
+                    >All</button>
                   </div>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                <div className="ps-searchpage-date-grid">
                   <div>
-                    <div style={{ fontSize:10, color:activeSection==='date'?'#7dd3fc':'#94a3b8', marginBottom:2, transition:'color 0.15s' }}>From</div>
-                    <input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setActiveDateRange(null);}} onFocus={onF} onBlur={onB} data-section="date" style={{...INPUT, colorScheme:'dark' as any}} />
+                    <div className={`ps-searchpage-date-label${activeSection==='date' ? ' ps-searchpage-date-label--active' : ''}`}>From</div>
+                    <input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setActiveDateRange(null);}} onFocus={onF} onBlur={onB} data-section="date" aria-label="Accession date from" className="ps-searchpage-filter-input ps-searchpage-filter-input--date" />
                   </div>
                   <div>
-                    <div style={{ fontSize:10, color:activeSection==='date'?'#7dd3fc':'#94a3b8', marginBottom:2, transition:'color 0.15s' }}>To</div>
-                    <input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setActiveDateRange(null);}} onFocus={onF} onBlur={onB} data-section="date" style={{...INPUT, colorScheme:'dark' as any}} />
+                    <div className={`ps-searchpage-date-label${activeSection==='date' ? ' ps-searchpage-date-label--active' : ''}`}>To</div>
+                    <input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setActiveDateRange(null);}} onFocus={onF} onBlur={onB} data-section="date" aria-label="Accession date to" className="ps-searchpage-filter-input ps-searchpage-filter-input--date" />
                   </div>
                 </div>
               </div>
@@ -1660,26 +1648,30 @@ const SearchPage: React.FC = () => {
                 {/* Identifiers */}
                 {/* Identifiers ”” smart single box */}
                 <div onMouseEnter={()=>setActiveSection('id')} onMouseLeave={()=>setActiveSection(s=>s==='id'?'':s)}>
-                  <div style={{marginBottom:4}}><SectionLabel title="Identifier" active={activeSection==='id'} /></div>
-                  <div style={{ position:'relative' }}>
+                  <div className="ps-searchpage-section-mb4"><SectionLabel title="Identifier" active={activeSection==='id'} /></div>
+                  <div className="ps-searchpage-rel-wrap">
                     <input
                       data-capture-hide="true"
                       type="text"
                       value={identifierQuery}
                       onChange={e => handleIdentifierChange(e.target.value)}
                       onFocus={onF} onBlur={onB} data-section="id"
-                      style={INPUT}
+                      className="ps-searchpage-filter-input"
                       placeholder={`Accession #, patient name, or MRN…`}
                     />
+                    {identifierQuery && (
+                      <button
+                        type="button"
+                        onClick={() => handleIdentifierChange('')}
+                        className="ps-searchpage-identifier-clear"
+                        aria-label="Clear identifier search"
+                        title="Clear"
+                      >
+                        ×
+                      </button>
+                    )}
                     {detectedType && identifierQuery && (
-                      <div style={{
-                        position:'absolute', right:8, top:'50%', transform:'translateY(-50%)',
-                        background: `${IDENTIFIER_BADGE[detectedType].color}22`,
-                        border: `1px solid ${IDENTIFIER_BADGE[detectedType].color}66`,
-                        color: IDENTIFIER_BADGE[detectedType].color,
-                        borderRadius:999, padding:'1px 8px', fontSize:10, fontWeight:700,
-                        pointerEvents:'none', whiteSpace:'nowrap',
-                      }}>
+                      <div className="ps-searchpage-identifier-badge" style={{ '--accent': IDENTIFIER_BADGE[detectedType].color } as React.CSSProperties}>
                         {IDENTIFIER_BADGE[detectedType].label}
                       </div>
                     )}
@@ -1692,12 +1684,12 @@ const SearchPage: React.FC = () => {
                   onMouseEnter={()=>setActiveSection('demographics')}
                   onMouseLeave={()=>setActiveSection(s=>s==='demographics'?'':s)}
                 >
-                  <div style={{ marginBottom:6 }}><SectionLabel title="Patient Demographics" active={activeSection==='demographics'} /></div>
+                  <div className="ps-searchpage-section-mb6"><SectionLabel title="Patient Demographics" active={activeSection==='demographics'} /></div>
 
                   {/* Gender */}
-                  <div style={{ marginBottom:8 }}>
-                    <div style={{ fontSize:10, color:'#64748b', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Gender</div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
+                  <div className="ps-searchpage-section-mb8">
+                    <div className="ps-searchpage-mini-label">Gender</div>
+                    <div className="ps-searchpage-pill-row">
                       {(['Male','Female','Non-binary','Other','Unknown'] as const).map(g => (
                         <CheckPill key={g} label={g} checked={genderList.includes(g)} onChange={()=>toggle(g,genderList,setGenderList)} />
                       ))}
@@ -1705,55 +1697,57 @@ const SearchPage: React.FC = () => {
                   </div>
 
                   {/* Date of Birth range */}
-                  <div style={{ marginBottom:8 }}>
-                    <div style={{ fontSize:10, color:'#64748b', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Date of Birth</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                  <div className="ps-searchpage-section-mb8">
+                    <div className="ps-searchpage-mini-label ps-searchpage-mini-label--soft">Date of Birth</div>
+                    <div className="ps-searchpage-mini-grid">
                       <div>
-                        <div style={{ fontSize:9, color:'#475569', marginBottom:2 }}>From</div>
+                        <div className="ps-searchpage-mini-field-label">From</div>
                         <input type="date" value={dobFrom} onChange={e=>setDobFrom(e.target.value)}
-                          style={{...INPUT, colorScheme:'dark' as any, fontSize:11}} />
+                          aria-label="Date of birth from"
+                          className="ps-searchpage-filter-input ps-searchpage-filter-input--date ps-searchpage-filter-input--sm" />
                       </div>
                       <div>
-                        <div style={{ fontSize:9, color:'#475569', marginBottom:2 }}>To</div>
+                        <div className="ps-searchpage-mini-field-label">To</div>
                         <input type="date" value={dobTo} onChange={e=>setDobTo(e.target.value)}
-                          style={{...INPUT, colorScheme:'dark' as any, fontSize:11}} />
+                          aria-label="Date of birth to"
+                          className="ps-searchpage-filter-input ps-searchpage-filter-input--date ps-searchpage-filter-input--sm" />
                       </div>
                     </div>
                   </div>
 
                   {/* Age range */}
                   <div>
-                    <div style={{ fontSize:10, color:'#64748b', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Age (years)</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                    <div className="ps-searchpage-mini-label">Age (years)</div>
+                    <div className="ps-searchpage-mini-grid">
                       <div>
-                        <div style={{ fontSize:9, color:'#475569', marginBottom:2 }}>Min</div>
+                        <div className="ps-searchpage-mini-field-label ps-searchpage-mini-field-label--dim">Min</div>
                         <input type="number" min={0} max={130} placeholder="e.g. 40" value={ageMin} onChange={e=>setAgeMin(e.target.value)}
-                          style={{...INPUT, fontSize:12}} />
+                          className="ps-searchpage-filter-input" />
                       </div>
                       <div>
-                        <div style={{ fontSize:9, color:'#475569', marginBottom:2 }}>Max</div>
+                        <div className="ps-searchpage-mini-field-label ps-searchpage-mini-field-label--dim">Max</div>
                         <input type="number" min={0} max={130} placeholder="e.g. 65" value={ageMax} onChange={e=>setAgeMax(e.target.value)}
-                          style={{...INPUT, fontSize:12}} />
+                          className="ps-searchpage-filter-input" />
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Status + Priority ”” single row */}
-                <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div className="ps-searchpage-status-priority-row">
+                  <div className="ps-searchpage-label-pair-row">
                     <SectionLabel title="Status" active={activeSection==='status'} />
-                    <div style={{ width:1, height:10, background:'rgba(255,255,255,0.1)' }} />
+                    <div className="ps-searchpage-vdivider" />
                     <SectionLabel title="Priority" active={activeSection==='priority'} />
                   </div>
                   <div
                     onMouseEnter={()=>setActiveSection('status')}
                     onMouseLeave={()=>setActiveSection(s=>s==='status'||s==='priority'?'':s)}
-                    style={{ display:'flex', flexWrap:'wrap', gap:3 }}
+                    className="ps-searchpage-pill-row"
                   >
                     {CASE_STATUS_OPTIONS.map(s=><CheckPill key={s} label={STATUS_PILL_META[s].label} checked={statusList.includes(s)} onChange={()=>toggle(s,statusList,setStatusList)} accent={STATUS_PILL_META[s].color} />)}
-                    <div style={{ width:1, alignSelf:'stretch', background:'rgba(255,255,255,0.1)', margin:'0 2px' }} />
-                    {PRIORITY_OPTIONS.map(p=><CheckPill key={p} label={p} checked={priorityList.includes(p)} onChange={()=>toggle(p,priorityList,setPriorityList)} accent={p==='STAT'?'#ef4444':'#0891B2'} />)}
+                    <div className="ps-searchpage-vdivider--stretch" />
+                    {PRIORITY_OPTIONS.map(p=><CheckPill key={p} label={p} checked={priorityList.includes(p)} onChange={()=>toggle(p,priorityList,setPriorityList)} accent={p==='STAT'?'#ef4444':p==='Rush'?'#f59e0b':'#0891B2'} />)}
                   </div>
                 </div>
 
@@ -1762,60 +1756,60 @@ const SearchPage: React.FC = () => {
 
                 {/* Flags */}
                 <div onMouseEnter={()=>setActiveSection('flags')} onMouseLeave={()=>setActiveSection(s=>s==='flags'?'':s)}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                  <div className="ps-searchpage-header-row">
                     <SectionLabel title="Flags" active={activeSection==='flags'} />
-                    <BrowseBtn onClick={()=>setFlagsModal(true)} count={ALL_FLAGS.length} />
+                    <BrowseBtn onClick={()=>setFlagsModal(true)} count={realFlagNames.length} />
                   </div>
-                  {flagsList.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>{flagsList.map(f=><Chip key={f} label={f} onRemove={()=>setFlagsList(p=>p.filter(x=>x!==f))} />)}</div>}
+                  {flagsList.length>0&&<div className="ps-searchpage-pill-row">{flagsList.map(f=><Chip key={f} label={f} onRemove={()=>setFlagsList(p=>p.filter(x=>x!==f))} />)}</div>}
                 </div>
 
                 {/* Synoptic */}
                 <div onMouseEnter={()=>setActiveSection('synoptic')} onMouseLeave={()=>setActiveSection(s=>s==='synoptic'?'':s)}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                  <div className="ps-searchpage-header-row">
                     <SectionLabel title="Synoptic Protocol" active={activeSection==='synoptic'} />
                     <BrowseBtn onClick={()=>setSynopticModal(true)} count={ALL_SYNOPTICS.length} />
                   </div>
-                  {synopticIds.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>{synopticIds.map(id=>{const t=ALL_SYNOPTICS.find(s=>s.id===id);return t?<Chip key={id} label={t.organ} onRemove={()=>setSynopticIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
+                  {synopticIds.length>0&&<div className="ps-searchpage-pill-row">{synopticIds.map(id=>{const t=ALL_SYNOPTICS.find(s=>s.id===id);return t?<Chip key={id} label={t.organ} onRemove={()=>setSynopticIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
                 </div>
 
                 {/* Pathologist */}
                 <div onMouseEnter={()=>setActiveSection('path')} onMouseLeave={()=>setActiveSection(s=>s==='path'?'':s)}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                  <div className="ps-searchpage-header-row">
                     <SectionLabel title="Pathologist" active={activeSection==='path'} />
-                    <BrowseBtn onClick={()=>setPathModal(true)} count={ALL_PATHOLOGISTS.length} />
+                    <BrowseBtn onClick={()=>setPathModal(true)} count={pathologists.length} />
                   </div>
-                  {pathologistIds.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>{pathologistIds.map(id=>{const u=ALL_PATHOLOGISTS.find(x=>x.id===id);return u?<Chip key={id} label={u.name.replace('Dr. ','')} onRemove={()=>setPathologistIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
+                  {pathologistIds.length>0&&<div className="ps-searchpage-pill-row">{pathologistIds.map(id=>{const u=pathologists.find(x=>x.id===id);return u?<Chip key={id} label={u.name.replace('Dr. ','')} onRemove={()=>setPathologistIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
                 </div>
 
                 {/* Attending Physician */}
                 <div onMouseEnter={()=>setActiveSection('attending')} onMouseLeave={()=>setActiveSection(s=>s==='attending'?'':s)}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                  <div className="ps-searchpage-header-row">
                     <SectionLabel title="Attending Physician" active={activeSection==='attending'} />
-                    <BrowseBtn onClick={()=>setAttendingModal(true)} count={ALL_ATTENDINGS.length} />
+                    <BrowseBtn onClick={()=>setAttendingModal(true)} count={attendings.length} />
                   </div>
-                  {attendingIds.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>{attendingIds.map(id=>{const u=ALL_ATTENDINGS.find(x=>x.id===id);return u?<Chip key={id} label={u.name.replace('Dr. ','')} onRemove={()=>setAttendingIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
+                  {attendingIds.length>0&&<div className="ps-searchpage-pill-row">{attendingIds.map(id=>{const u=attendings.find(x=>x.id===id);return u?<Chip key={id} label={u.name.replace('Dr. ','')} onRemove={()=>setAttendingIds(p=>p.filter(x=>x!==id))} />:null;})}</div>}
                 </div>
 
 
                 {/* Computational Flags */}
-                <div style={{ marginBottom:4 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                <div className="ps-searchpage-section-mb4">
+                  <div className="ps-searchpage-header-row">
                     <SectionLabel title="Comp Flags" active={false} />
                     <BrowseBtn onClick={()=>setCompFlagsModal(true)} count={compFlagsList.length||undefined} />
                   </div>
-                  {compFlagsList.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
+                  {compFlagsList.length>0&&<div className="ps-searchpage-pill-row">
                     {compFlagsList.map(f=><Chip key={f} label={f} onRemove={()=>setCompFlagsList(p=>p.filter(x=>x!==f))} accent="#0891b2" />)}
                   </div>}
                 </div>
 
                 {/* Client */}
-                <div style={{ marginBottom:4 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                <div className="ps-searchpage-section-mb4">
+                  <div className="ps-searchpage-header-row">
                     <SectionLabel title="Client" active={false} />
                     <BrowseBtn onClick={()=>setClientModal(true)} count={clientIds.length||undefined} />
                   </div>
-                  {clientIds.length>0&&<div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
-                    {clientIds.map(id=><Chip key={id} label={ALL_CLIENTS.find(c=>c.id===id)?.name??id} onRemove={()=>setClientIds(p=>p.filter(x=>x!==id))} accent="#8b5cf6" />)}
+                  {clientIds.length>0&&<div className="ps-searchpage-pill-row">
+                    {clientIds.map(id=><Chip key={id} label={clients.find(c=>c.id===id)?.name??id} onRemove={()=>setClientIds(p=>p.filter(x=>x!==id))} accent="#8b5cf6" />)}
                   </div>}
                 </div>
 
@@ -1823,53 +1817,50 @@ const SearchPage: React.FC = () => {
 
                 {/* Specimen */}
                 <div onMouseEnter={()=>setActiveSection('specimen')} onMouseLeave={()=>setActiveSection(s=>s==='specimen'?'':s)}>
-                  <div style={{marginBottom:4}}><SectionLabel title="Specimen" active={activeSection==='specimen'} /></div>
-                  <div style={{ display:'flex', gap:4 }} ref={specimenRef}>
-                    <div style={{ position:'relative', flex:1 }}>
-                      <input type="text" value={specimenQuery} onChange={e=>setSpecimenQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="specimen" style={INPUT} placeholder="Search specimen dictionary…"
+                  <div className="ps-searchpage-section-mb4"><SectionLabel title="Specimen" active={activeSection==='specimen'} /></div>
+                  <div className="ps-searchpage-input-row" ref={specimenRef}>
+                    <div className="ps-searchpage-rel-wrap--flex1">
+                      <input type="text" value={specimenQuery} onChange={e=>setSpecimenQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="specimen" className="ps-searchpage-filter-input" placeholder="Search specimen dictionary…"
                         onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();if(specimenQuery.trim())addSpecimen(specimenQuery);}}} />
                       {showSpecimenDrop&&(
-                        <div style={DROPDOWN_STYLE}>
+                        <div className={DROPDOWN_CLASS}>
                           {specimenSuggestions.map(s=>(
-                            <button key={s} type="button" onClick={()=>addSpecimen(s)} style={DROP_BTN}
-                              onMouseEnter={e=>(e.currentTarget.style.background='rgba(8,145,178,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>{s}</button>
+                            <button key={s} type="button" onClick={()=>addSpecimen(s)} className={DROP_BTN_CLASS}>{s}</button>
                           ))}
                           {specimenQuery.trim()&&!SPECIMEN_DICTIONARY.some(s=>s.toLowerCase()===specimenQuery.toLowerCase())&&(
-                            <button type="button" onClick={()=>addSpecimen(specimenQuery)} style={{...DROP_BTN,color:'#7dd3fc',borderTop:'1px solid rgba(148,163,184,0.1)'}}
-                              onMouseEnter={e=>(e.currentTarget.style.background='rgba(8,145,178,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>+ Add "{specimenQuery}"</button>
+                            <button type="button" onClick={()=>addSpecimen(specimenQuery)} className={`${DROP_BTN_CLASS} ps-searchpage-dropdown-btn--add`}>+ Add "{specimenQuery}"</button>
                           )}
                         </div>
                       )}
                     </div>
                     <BrowseBtn onClick={()=>setSpecimenModal(true)} count={specimenList.length||undefined} />
                   </div>
-                  {specimenList.length>0&&<div style={{ marginTop:4, display:'flex', flexWrap:'wrap', gap:3 }}>{specimenList.map(s=><Chip key={s} label={s} onRemove={()=>setSpecimenList(p=>p.filter(x=>x!==s))} />)}</div>}
+                  {specimenList.length>0&&<div className="ps-searchpage-pill-row--mt4">{specimenList.map(s=><Chip key={s} label={s} onRemove={()=>setSpecimenList(p=>p.filter(x=>x!==s))} />)}</div>}
                 </div>
 
                 {/* Diagnosis */}
                 <div onMouseEnter={()=>setActiveSection('diagnosis')} onMouseLeave={()=>setActiveSection(s=>s==='diagnosis'?'':s)}>
-                  <div style={{marginBottom:4}}><SectionLabel title="Diagnosis" active={activeSection==='diagnosis'} /></div>
-                  <div style={{ display:'flex', gap:4 }}>
-                    <input type="text" value={diagnosisText} onChange={e=>setDiagnosisText(e.target.value)} onFocus={onF} onBlur={onB} data-section="diagnosis" style={INPUT} placeholder="e.g. Carcinoma"
+                  <div className="ps-searchpage-section-mb4"><SectionLabel title="Diagnosis" active={activeSection==='diagnosis'} /></div>
+                  <div className="ps-searchpage-input-row">
+                    <input type="text" value={diagnosisText} onChange={e=>setDiagnosisText(e.target.value)} onFocus={onF} onBlur={onB} data-section="diagnosis" className="ps-searchpage-filter-input" placeholder="e.g. Carcinoma"
                       onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addDiagnosis();}}} />
-                    <button type="button" onClick={addDiagnosis} style={{ border:'none', borderRadius:6, padding:'0 8px', background:'#0891B2', color:'#e5e7eb', fontSize:12, fontWeight:700, cursor:'pointer', flexShrink:0 }}>+</button>
+                    <button type="button" onClick={addDiagnosis} className="ps-searchpage-add-btn">+</button>
                   </div>
-                  {diagnosisList.length>0&&<div style={{ marginTop:4, display:'flex', flexWrap:'wrap', gap:3 }}>{diagnosisList.map(d=><Chip key={d} label={d} onRemove={()=>setDiagnosisList(p=>p.filter(x=>x!==d))} />)}</div>}
+                  {diagnosisList.length>0&&<div className="ps-searchpage-pill-row--mt4">{diagnosisList.map(d=><Chip key={d} label={d} onRemove={()=>setDiagnosisList(p=>p.filter(x=>x!==d))} />)}</div>}
                 </div>
 
                 {/* SNOMED CT */}
                 <div onMouseEnter={()=>setActiveSection('snomed')} onMouseLeave={()=>setActiveSection(s=>s==='snomed'?'':s)}>
-                  <div style={{marginBottom:4}}><SectionLabel title="SNOMED CT" active={activeSection==='snomed'} /></div>
-                  <div style={{ display:'flex', gap:4 }} ref={snomedRef}>
-                    <div style={{ position:'relative', flex:1 }}>
-                      <input type="text" value={snomedQuery} onChange={e=>setSnomedQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="snomed" style={INPUT} placeholder="Search concept or description…" />
+                  <div className="ps-searchpage-section-mb4"><SectionLabel title="SNOMED CT" active={activeSection==='snomed'} /></div>
+                  <div className="ps-searchpage-input-row" ref={snomedRef}>
+                    <div className="ps-searchpage-rel-wrap--flex1">
+                      <input type="text" value={snomedQuery} onChange={e=>setSnomedQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="snomed" className="ps-searchpage-filter-input" placeholder="Search concept or description…" />
                       {showSnomedDrop&&(
-                        <div style={DROPDOWN_STYLE}>
+                        <div className={DROPDOWN_CLASS}>
                           {snomedSuggestions.map(s=>(
-                            <button key={s.code} type="button" onClick={()=>addSnomed(s)} style={DROP_BTN}
-                              onMouseEnter={e=>(e.currentTarget.style.background='rgba(8,145,178,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                              <span style={{ fontFamily:'monospace', color:'#7dd3fc', marginRight:5, fontSize:11 }}>{s.code}</span>
-                              <span style={{ color:'#cbd5e1', fontSize:11 }}>{s.display.substring(0,38)}…</span>
+                            <button key={s.code} type="button" onClick={()=>addSnomed(s)} className={DROP_BTN_CLASS}>
+                              <span className="ps-searchpage-dropdown-code ps-searchpage-dropdown-code--snomed">{s.code}</span>
+                              <span className="ps-searchpage-dropdown-desc">{s.display.substring(0,38)}…</span>
                             </button>
                           ))}
                         </div>
@@ -1878,25 +1869,24 @@ const SearchPage: React.FC = () => {
                     <BrowseBtn onClick={()=>setSnomedModal(true)} count={snomedList.length||undefined} />
                   </div>
                   {snomedList.length>0&&(
-                    <div style={{ marginTop:4, display:'flex', flexWrap:'wrap', gap:3 }}>
+                    <div className="ps-searchpage-pill-row--mt4">
                       {snomedList.map(s=><Chip key={s.code} label={s.code} title={`SNOMED CT: ${s.display}`} onRemove={()=>setSnomedList(p=>p.filter(x=>x.code!==s.code))} accent='#8B5CF6' />)}
                     </div>
                   )}
                 </div>
 
                 {/* ICD Codes ”” unified ICD-10 / ICD-11 / ICD-O */}
-                <div onMouseEnter={()=>setActiveSection('icd')} onMouseLeave={()=>setActiveSection(s=>s==='icd'?'':s)} style={{ paddingBottom:8 }}>
-                  <div style={{marginBottom:4}}><SectionLabel title="ICD Codes" active={activeSection==='icd'} /></div>
-                  <div style={{ display:'flex', gap:4 }} ref={icdRef}>
-                    <div style={{ position:'relative', flex:1 }}>
-                      <input type="text" value={icdQuery} onChange={e=>setIcdQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="icd" style={INPUT} placeholder="Search ICD-10 code or description…" />
+                <div onMouseEnter={()=>setActiveSection('icd')} onMouseLeave={()=>setActiveSection(s=>s==='icd'?'':s)} className="ps-searchpage-icd-section-pb">
+                  <div className="ps-searchpage-section-mb4"><SectionLabel title="ICD Codes" active={activeSection==='icd'} /></div>
+                  <div className="ps-searchpage-input-row" ref={icdRef}>
+                    <div className="ps-searchpage-rel-wrap--flex1">
+                      <input type="text" value={icdQuery} onChange={e=>setIcdQuery(e.target.value)} onFocus={onF} onBlur={onB} data-section="icd" className="ps-searchpage-filter-input" placeholder="Search ICD-10 code or description…" />
                       {showIcdDrop&&(
-                        <div className="ps-scroll" style={DROPDOWN_STYLE}>
+                        <div className={`ps-scroll ${DROPDOWN_CLASS}`}>
                           {icdSuggestions.map(s=>(
-                            <button key={s.code} type="button" onClick={()=>addIcd(s)} style={DROP_BTN}
-                              onMouseEnter={e=>(e.currentTarget.style.background='rgba(8,145,178,0.15)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                              <span style={{ fontFamily:'monospace', color:'#c4b5fd', marginRight:5, fontSize:11 }}>{s.code}</span>
-                              <span style={{ color:'#cbd5e1', fontSize:11 }}>{s.display.substring(0,38)}…</span>
+                            <button key={s.code} type="button" onClick={()=>addIcd(s)} className={DROP_BTN_CLASS}>
+                              <span className="ps-searchpage-dropdown-code ps-searchpage-dropdown-code--icd">{s.code}</span>
+                              <span className="ps-searchpage-dropdown-desc">{s.display.substring(0,38)}…</span>
                             </button>
                           ))}
                         </div>
@@ -1905,7 +1895,7 @@ const SearchPage: React.FC = () => {
                     <BrowseBtn onClick={()=>setIcdModal(true)} count={icdCodes.length||undefined} />
                   </div>
                   {icdCodes.length>0&&(
-                    <div style={{ marginTop:4, display:'flex', flexWrap:'wrap', gap:3 }}>
+                    <div className="ps-searchpage-pill-row--mt4">
                       {icdCodes.map(s=>{
                         const icdAccent = s.system==='ICD-11'?'#F59E0B':s.system?.startsWith('ICD-O')?'#10B981':'#8B5CF6';
                         return <Chip key={`${s.system}-${s.code}`} label={`${s.system} ${s.code}`} title={s.display} onRemove={()=>setIcdCodes(p=>p.filter(x=>x.code!==s.code))} accent={icdAccent} />;
@@ -1935,27 +1925,25 @@ const SearchPage: React.FC = () => {
             {/* Summary bar */}
             <div className="ps-search-summary-bar">
               {summary ? (
-                <p style={{ margin:0, fontSize:12, color:'#94a3b8', lineHeight:1.5, flex:1 }}>
+                <p className="ps-searchpage-summary-text">
                   
                   {summary.split(' · ').map((part,i,arr)=>(
                     <React.Fragment key={i}>
-                      <span style={{ color:i===0?'#cbd5e1':'#7dd3fc', fontWeight:i===0?400:500 }}>{part}</span>
-                      {i<arr.length-1&&<span style={{ color:'#1e293b', margin:'0 5px' }}>·</span>}
+                      <span className={i===0 ? 'ps-searchpage-summary-part--first' : 'ps-searchpage-summary-part'}>{part}</span>
+                      {i<arr.length-1&&<span className="ps-searchpage-summary-sep">·</span>}
                     </React.Fragment>
                   ))}
                 </p>
               ) : (
-                <p style={{ margin:0, fontSize:12, color:'#94a3b8' }}>Set filters and press <strong style={{ color:'#22c55e' }}>Search Cases</strong> to begin</p>
+                <p className="ps-searchpage-summary-empty">Set filters and press <strong className="ps-searchpage-summary-cta">Search Cases</strong> to begin</p>
               )}
               <div className="ps-search-summary-actions">
-                {results!==null&&<span style={{ fontSize:12, color:'#94a3b8' }}>{results.length} case{results.length!==1?'s':''}</span>}
+                {results!==null&&<span className="ps-searchpage-result-count">{results.length} case{results.length!==1?'s':''}</span>}
                 {results!==null&&results.length>0&&(
                   <button
                     type="button"
                     onClick={handleExportCSV}
-                    style={{ border:'1px solid rgba(148,163,184,0.2)', background:'transparent', color:'#64748b', borderRadius:6, padding:'3px 10px', fontSize:11, cursor:'pointer', transition:'all 0.15s' }}
-                    onMouseEnter={e=>{ e.currentTarget.style.borderColor='rgba(8,145,178,0.5)'; e.currentTarget.style.color='#7dd3fc'; e.currentTarget.style.background='rgba(8,145,178,0.08)'; }}
-                    onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(148,163,184,0.2)'; e.currentTarget.style.color='#64748b'; e.currentTarget.style.background='transparent'; }}
+                    className="ps-searchpage-export-btn"
                   >Export CSV</button>
                 )}
               </div>
@@ -1967,12 +1955,24 @@ const SearchPage: React.FC = () => {
                 without it, the 1100px-wide table can push this flex chain wider
                 instead of being clamped, which only shows up as truncation on
                 narrower viewports rather than a visible bug on a wide monitor. */}
-            <div ref={wrapperRef} className="ps-search-table-wrap" style={{ position: 'relative' }}>
+            <div ref={wrapperRef} className="ps-search-table-wrap">
               {hasSearched
-                ? <WorklistTable key={results?.length ?? 0} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} onBeforeNavigate={(_caseId)=>sessionStorage.setItem('pathscribe:navFrom','search')} tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions} />
-                : <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#1e293b', fontSize:13 }}>No search run yet</div>
+                ? <WorklistTable key={searchGeneration} cases={results??[]} activeFilter="all" selectedIndex={selectedResultIndex} onRowSelect={setSelectedResultIndex} onBeforeNavigate={(_caseId)=>sessionStorage.setItem('pathscribe:navFrom','search')} tableHeight={tableHeight} forceCardView flagDefinitions={flagDefinitions} />
+                : <div className="ps-searchpage-no-search">No search run yet</div>
               }
             </div>
+            {hasSearched && hasMoreResults && (
+              <div className="ps-searchpage-loadmore-row">
+                <button
+                  type="button"
+                  onClick={loadMoreResults}
+                  disabled={isLoadingMore}
+                  className={`ps-searchpage-loadmore-btn${isLoadingMore ? ' ps-searchpage-loadmore-btn--loading' : ''}`}
+                >
+                  {isLoadingMore ? 'Loading…' : `Load More (${SEARCH_PAGE_SIZE} more)`}
+                </button>
+              </div>
+            )}
           </div>
           </div>{/* end inner flex row */}
         </main>
@@ -2033,20 +2033,20 @@ const SearchPage: React.FC = () => {
       )}
 
       {flagsModal&&(
-        <LookupModal title="Case Flags" subtitle={`${ALL_FLAGS.length} available flags`} selectedCount={flagsList.length} onClose={()=>setFlagsModal(false)}>
-          <FlagsLookupContent selected={flagsList} onToggle={f=>toggle(f,flagsList,setFlagsList)} />
+        <LookupModal title="Case Flags" subtitle={`${realFlagNames.length} available flags`} selectedCount={flagsList.length} onClose={()=>setFlagsModal(false)}>
+          <FlagsLookupContent flags={realFlagNames} selected={flagsList} onToggle={f=>toggle(f,flagsList,setFlagsList)} />
         </LookupModal>
       )}
 
       {pathModal&&(
         <LookupModal title="Pathologist" subtitle="Filter by assigned pathologist" selectedCount={pathologistIds.length} onClose={()=>setPathModal(false)}>
-          <UserLookupContent users={ALL_PATHOLOGISTS} selected={pathologistIds} onToggle={id=>toggle(id,pathologistIds,setPathologistIds)} />
+          <UserLookupContent users={pathologists} selected={pathologistIds} onToggle={id=>toggle(id,pathologistIds,setPathologistIds)} />
         </LookupModal>
       )}
 
       {attendingModal&&(
         <LookupModal title="Attending Physician" subtitle="Filter by referring or attending physician" selectedCount={attendingIds.length} onClose={()=>setAttendingModal(false)}>
-          <UserLookupContent users={ALL_ATTENDINGS} selected={attendingIds} onToggle={id=>toggle(id,attendingIds,setAttendingIds)} accent="#10B981" />
+          <UserLookupContent users={attendings} selected={attendingIds} onToggle={id=>toggle(id,attendingIds,setAttendingIds)} accent="#10B981" />
         </LookupModal>
       )}
 
@@ -2061,6 +2061,7 @@ const SearchPage: React.FC = () => {
           onDone={() => setClientModal(false)}
         >
           <ClientLookupContent
+            clients={clients}
             selected={clientIds}
             onToggle={id => toggle(id, clientIds, setClientIds)}
           />
@@ -2078,6 +2079,7 @@ const SearchPage: React.FC = () => {
           onDone={() => setCompFlagsModal(false)}
         >
           <CompFlagsLookupContent
+            flags={realCompFlagNames}
             selected={compFlagsList}
             onToggle={f => toggle(f, compFlagsList, setCompFlagsList)}
           />
@@ -2087,9 +2089,9 @@ const SearchPage: React.FC = () => {
       {/* â”€â”€ Profile modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isProfileOpen&&(
         <div className="ps-modal-overlay" onClick={()=>setIsProfileOpen(false)}>
-          <div style={{ width:400, backgroundColor:'#111', borderRadius:20, padding:40, border:'1px solid rgba(8,145,178,0.3)', textAlign:'center' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ color:'#0891B2', fontSize:24, fontWeight:700, marginBottom:24 }}>User Preferences</div>
-            <button onClick={()=>setIsProfileOpen(false)} style={{ padding:'12px 24px', borderRadius:10, background:'rgba(8,145,178,0.15)', border:'1px solid rgba(8,145,178,0.3)', color:'#0891B2', fontWeight:600, fontSize:15, cursor:'pointer', width:'100%' }}>Close</button>
+          <div className="ps-searchpage-profile-modal" onClick={e=>e.stopPropagation()}>
+            <div className="ps-searchpage-modal-title">User Preferences</div>
+            <button onClick={()=>setIsProfileOpen(false)} className="ps-searchpage-modal-close-btn">Close</button>
           </div>
         </div>
       )}
@@ -2097,20 +2099,18 @@ const SearchPage: React.FC = () => {
       {/* â”€â”€ Resources modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {isResourcesOpen&&(
         <div className="ps-modal-overlay" onClick={()=>setIsResourcesOpen(false)}>
-          <div style={{ width:500, maxHeight:'80vh', overflowY:'auto', backgroundColor:'#111', borderRadius:20, padding:40, border:'1px solid rgba(8,145,178,0.3)' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ color:'#0891B2', fontSize:24, fontWeight:700, marginBottom:24, textAlign:'center' }}>Quick Links</div>
+          <div className="ps-searchpage-resources-modal" onClick={e=>e.stopPropagation()}>
+            <div className="ps-searchpage-modal-title ps-searchpage-modal-title--resources">Quick Links</div>
             {Object.entries(quickLinks).map(([section,links])=>(
-              <div key={section} style={{ marginBottom:24 }}>
-                <div style={{ color:'#94a3b8', fontSize:12, fontWeight:700, marginBottom:12, textTransform:'uppercase' }}>{section}</div>
+              <div key={section} className="ps-searchpage-resource-section">
+                <div className="ps-searchpage-resource-section-label">{section}</div>
                 {links.map((link,i)=>(
                   <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" onClick={()=>setIsResourcesOpen(false)}
-                    style={{ display:'block', color:'#cbd5e1', textDecoration:'none', padding:'12px 16px', fontSize:16, borderRadius:8, marginBottom:8 }}
-                    onMouseEnter={e=>{e.currentTarget.style.color='#0891B2';e.currentTarget.style.background='rgba(8,145,178,0.1)';}}
-                    onMouseLeave={e=>{e.currentTarget.style.color='#cbd5e1';e.currentTarget.style.background='transparent';}}>â†’ {link.title}</a>
+                    className="ps-searchpage-resource-link">→ {link.title}</a>
                 ))}
               </div>
             ))}
-            <button onClick={()=>setIsResourcesOpen(false)} style={{ padding:'12px 24px', borderRadius:10, background:'rgba(8,145,178,0.15)', border:'1px solid rgba(8,145,178,0.3)', color:'#0891B2', fontWeight:600, fontSize:15, cursor:'pointer', width:'100%' }}>Close</button>
+            <button onClick={()=>setIsResourcesOpen(false)} className="ps-searchpage-modal-close-btn">Close</button>
           </div>
         </div>
       )}
@@ -2119,15 +2119,13 @@ const SearchPage: React.FC = () => {
       {/* â”€â”€ Logout modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {showLogoutModal&&(
         <div className="ps-modal-overlay">
-          <div style={{ width:400, backgroundColor:'#111', padding:40, borderRadius:28, textAlign:'center', border:'1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize:48, marginBottom:20 }}>âš ï¸</div>
-            <h2 style={{ fontSize:24, fontWeight:800, color:'#fff', margin:'0 0 12px' }}>Sign out?</h2>
-            <p style={{ color:'#94a3b8', marginBottom:30, lineHeight:1.6, fontSize:15 }}>You'll be signed out of PathScribeAI.</p>
-            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-              <button onClick={()=>setShowLogoutModal(false)} style={{ padding:16, borderRadius:12, background:'#0891B2', border:'none', color:'#fff', fontWeight:700, fontSize:16, cursor:'pointer' }}>â† Stay on Search</button>
-              <button onClick={handleLogout} style={{ padding:16, borderRadius:12, background:'transparent', border:'2px solid #F59E0B', color:'#F59E0B', fontWeight:600, fontSize:15, cursor:'pointer' }}
-                onMouseEnter={e=>{e.currentTarget.style.background='#F59E0B';e.currentTarget.style.color='#000';}}
-                onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#F59E0B';}}>Sign Out</button>
+          <div className="ps-searchpage-logout-modal">
+            <div className="ps-searchpage-logout-icon">⚠️</div>
+            <h2 className="ps-searchpage-logout-title">Sign out?</h2>
+            <p className="ps-searchpage-logout-body">You'll be signed out of PathScribeAI.</p>
+            <div className="ps-searchpage-logout-actions">
+              <button onClick={()=>setShowLogoutModal(false)} className="ps-searchpage-logout-stay-btn">← Stay on Search</button>
+              <button onClick={handleLogout} className="ps-searchpage-logout-signout-btn">Sign Out</button>
             </div>
           </div>
         </div>

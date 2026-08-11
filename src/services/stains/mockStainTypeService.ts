@@ -5,14 +5,20 @@ import type { IStainTypeService, StainType } from './IStainService';
 
 let STAIN_TYPES: StainType[] = [
   { id: 'st-he',    name: 'H&E',                     category: 'Routine',       version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
-  { id: 'st-pas',   name: 'PAS',                     category: 'Special Stain', description: 'Periodic acid–Schiff — fungal elements, basement membranes, glycogen.', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
-  { id: 'st-gms',   name: 'GMS',                     category: 'Special Stain', description: 'Grocott\u2019s methenamine silver — fungal organisms.', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
-  { id: 'st-trichrome', name: 'Trichrome',           category: 'Special Stain', description: 'Collagen/fibrosis assessment.', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-pas',   name: 'PAS',                     category: 'Special Stain', description: 'Periodic acid–Schiff — fungal elements, basement membranes, glycogen.', defaultCptCode: '88312', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-gms',   name: 'GMS',                     category: 'Special Stain', description: 'Grocott\u2019s methenamine silver — fungal organisms.', defaultCptCode: '88312', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-trichrome', name: 'Trichrome',           category: 'Special Stain', description: 'Collagen/fibrosis assessment.', defaultCptCode: '88312', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-ki67',  name: 'Ki-67',                   category: 'IHC', antibodyClone: '30-9', vendor: 'Ventana', defaultTurnaroundHours: 24, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-er',    name: 'ER',                      category: 'IHC', antibodyClone: 'SP1',  vendor: 'Ventana', defaultTurnaroundHours: 24, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-pr',    name: 'PR',                       category: 'IHC', antibodyClone: '1E2',  vendor: 'Ventana', defaultTurnaroundHours: 24, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-her2',  name: 'HER2',                     category: 'IHC', antibodyClone: '4B5',  vendor: 'Ventana', defaultTurnaroundHours: 24, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
-  { id: 'st-p63-ck56', name: 'p63/CK5/6 Dual Stain', category: 'IHC', description: 'Myoepithelial/basal marker dual stain — invasive vs. in-situ breast lesions.', defaultTurnaroundHours: 24, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Real, demo-labeled 88344 (multiplex antibody stain) - a genuine,
+  // defensible case for a per-stain override, not the generic rule:
+  // "Dual Stain" means p63 and CK5/6 are two separately identifiable
+  // antibodies applied to the SAME slide, which real CPT guidance
+  // (verified via direct search) codes as 88344 rather than as two
+  // separate 88342/88341 charges.
+  { id: 'st-p63-ck56', name: 'p63/CK5/6 Dual Stain', category: 'IHC', description: 'Myoepithelial/basal marker dual stain — invasive vs. in-situ breast lesions.', defaultCptCode: '88344', defaultTurnaroundHours: 24, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-pdl1',  name: 'PD-L1',                    category: 'IHC', antibodyClone: 'SP142', vendor: 'Ventana', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   // Immunofluorescence conjugates — the standard renal biopsy IF panel.
   // Genuinely different technique from IHC (fluorescent-conjugated,

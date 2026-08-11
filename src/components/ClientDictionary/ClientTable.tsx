@@ -2,7 +2,7 @@
  * ClientTable.tsx
  * Located at: src/components/ClientDictionary/ClientTable.tsx
  *
- * Displays the list of clients in the Client Dictionary config page.
+ * Displays the list of facilities in the Facility Configuration config page.
  * Includes inline search + status filter so ClientDictionaryPage stays lean.
  *
  * Props:
@@ -13,7 +13,8 @@
 
 import { useState, useMemo } from "react";
 import '../../pathscribe.css';
-import type { Client } from "../../services/clients/IClientService";
+import type { Facility as Client, FacilityRole } from "../../services/facilities/IFacilityService";
+import { FACILITY_ROLE_LABELS } from "../../services/facilities/IFacilityService";
 import { JURISDICTION_LABELS } from "../../types/systemConfig";
 
 interface ClientTableProps {
@@ -24,7 +25,14 @@ interface ClientTableProps {
 }
 
 type StatusFilter = "all" | "active" | "inactive" | "unverified";
-type TypeFilter = "all" | "internal" | "external";
+// Real feature, per direct confirmation: "One record per facility.
+// Multiple roles attached to that record." Replaces the old, single
+// internal/external toggle — a facility can hold several roles at
+// once, so filtering is "does this role apply," not "which type is
+// this." 'performing_lab' and 'ordering_client' (either ordering
+// role) cover the same practical distinction the old internal/
+// external filter served.
+type RoleFilter = "all" | "performing_lab" | "ordering_client";
 
 export const ClientTable: React.FC<ClientTableProps> = ({
   clients,
@@ -34,7 +42,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   
   // ── Filtering ──────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -43,7 +51,8 @@ export const ClientTable: React.FC<ClientTableProps> = ({
       if (statusFilter === "active" && c.status !== "Active") return false;
       if (statusFilter === "inactive" && c.status !== "Inactive") return false;
       if (statusFilter === "unverified" && c.status !== "Unverified") return false;
-      if (typeFilter !== "all" && c.clientType !== typeFilter) return false;
+      if (roleFilter === "performing_lab" && !c.roles.includes('performing_lab')) return false;
+      if (roleFilter === "ordering_client" && !c.roles.includes('internal_ordering_client') && !c.roles.includes('external_ordering_client')) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -53,7 +62,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
         (c.hl7.receivingFacility ?? "").toLowerCase().includes(q)
       );
     });
-  }, [clients, search, statusFilter, typeFilter]);
+  }, [clients, search, statusFilter, roleFilter]);
 
   // ── Delete confirmation ────────────────────────────────────────────────────
 
@@ -87,8 +96,8 @@ export const ClientTable: React.FC<ClientTableProps> = ({
         fontSize: "14px",
       }}>
         <div style={{ fontSize: "32px", marginBottom: "12px" }}>🏥</div>
-        <div style={{ fontWeight: 600, marginBottom: "6px", color: "#64748b" }}>No clients yet</div>
-        <div>Click <strong>+ Add Client</strong> to define your first client.</div>
+        <div style={{ fontWeight: 600, marginBottom: "6px", color: "#64748b" }}>No facilities yet</div>
+        <div>Click <strong>+ Add Facility</strong> to define your first facility.</div>
       </div>
     );
   }
@@ -154,15 +163,19 @@ export const ClientTable: React.FC<ClientTableProps> = ({
           ))}
         </div>
 
-        {/* Type filter tabs */}
+        {/* Role filter tabs */}
         <div style={{ display: "flex", gap: "6px" }}>
-          {(["all", "internal", "external"] as TypeFilter[]).map((f) => (
+          {([
+            ["all", "All Types"],
+            ["performing_lab", "Performing Lab"],
+            ["ordering_client", "Ordering Client"],
+          ] as [RoleFilter, string][]).map(([f, label]) => (
             <button
               key={f}
-              style={filterTab(typeFilter === f)}
-              onClick={() => setTypeFilter(f)}
+              style={filterTab(roleFilter === f)}
+              onClick={() => setRoleFilter(f)}
             >
-              {f === "all" ? "All Types" : f.charAt(0).toUpperCase() + f.slice(1)}
+              {label}
             </button>
           ))}
         </div>
@@ -184,21 +197,21 @@ export const ClientTable: React.FC<ClientTableProps> = ({
             border: "1px solid rgba(255,255,255,0.08)",
             borderRadius: "8px",
           }}>
-            No clients match your search.
+            No facilities match your search.
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "28%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "26%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "9%" }} />
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "22%" }} />
               <col style={{ width: "13%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "14%" }} />
             </colgroup>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                {["Client", "Type", "Contact", "TAT", "Status", ""].map((h) => (
+                {["Facility", "Roles", "Contact", "TAT", "Status", ""].map((h) => (
                   <th key={h} style={{
                     padding: "10px 14px",
                     textAlign: "left",
@@ -239,14 +252,23 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     {client.parentId && <div style={{ fontSize: 10, color: "#64748b", marginTop: 1 }}>↳ affiliate</div>}
                   </td>
 
-                  {/* TYPE */}
+                  {/* ROLES */}
                   <td style={{ padding: "10px 14px" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
-                      ...(client.clientType === "internal"
-                        ? { background: "rgba(139,92,246,0.15)", color: "#c084fc" }
-                        : { background: "rgba(8,145,178,0.15)", color: "#38bdf8" }) }}>
-                      {client.clientType === "internal" ? "Internal" : "External"}
-                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {client.roles.map((role: FacilityRole) => (
+                        <span
+                          key={role}
+                          style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, whiteSpace: 'nowrap',
+                            ...(role === 'performing_lab'
+                              ? { background: "rgba(139,92,246,0.15)", color: "#c084fc" }
+                              : { background: "rgba(8,145,178,0.15)", color: "#38bdf8" }),
+                          }}
+                        >
+                          {FACILITY_ROLE_LABELS[role]}
+                        </span>
+                      ))}
+                    </div>
                     <div style={{ fontSize: 10, color: "#64748b", marginTop: 3 }}>
                       {JURISDICTION_LABELS[client.jurisdiction] ?? client.jurisdiction}
                     </div>
@@ -318,7 +340,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                         <button
                           className="ps-conf-btn-secondary"
                           onClick={() => onToggleActive(client.id, client.status !== 'Active')}
-                          title={client.status === 'Active' ? "Deactivate client" : "Reactivate client"}
+                          title={client.status === 'Active' ? "Deactivate facility" : "Reactivate facility"}
                           style={{ padding: "4px 10px", fontSize: 11,
                             color: client.status === 'Active' ? "#f87171" : "#34d399",
                             borderColor: client.status === 'Active' ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)",

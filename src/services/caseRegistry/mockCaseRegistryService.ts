@@ -29,6 +29,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import {
   CaseMaskConfig, DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_PREFIX, DEFAULT_FALLBACK_SEQUENCE_DIGITS,
 } from '@/types/config/CaseMaskConfig';
+import { getFacilityDateParts } from '@/utils/facilityTime';
 
 const STORAGE_KEY = 'ps_case_registries_v1';
 const SERIES_STORAGE_KEY = 'ps_case_number_series_v1';
@@ -102,9 +103,9 @@ function persistSeriesCounters(counters: Record<string, SeriesCounter>): void {
  *  specimen-level numbering decision (see CaseMaskConfig.ts's header
  *  comment). {SEQ:N} is the only parameterized token; N is read from
  *  sequenceDigits rather than re-parsed out of the pattern string itself. */
-function renderMask(pattern: string, prefix: string, seq: number, sequenceDigits: number): string {
-  const now = new Date();
-  const year4 = String(now.getFullYear());
+function renderMask(pattern: string, prefix: string, seq: number, sequenceDigits: number, timezone: string): string {
+  const { year: year4num } = getFacilityDateParts(new Date(), timezone);
+  const year4 = String(year4num);
   const year2 = year4.slice(-2);
 
   return pattern
@@ -127,8 +128,8 @@ function resolvePrefix(config: Pick<CaseMaskConfig, 'prefix' | 'sitePrefixMap'>,
   return config.prefix;
 }
 
-function needsAnnualReset(counter: { resetSequenceAnnually: boolean; lastResetYear?: number }): boolean {
-  const currentYear = new Date().getFullYear();
+function needsAnnualReset(counter: { resetSequenceAnnually: boolean; lastResetYear?: number }, timezone: string): boolean {
+  const { year: currentYear } = getFacilityDateParts(new Date(), timezone);
   return counter.resetSequenceAnnually && (!counter.lastResetYear || counter.lastResetYear < currentYear);
 }
 
@@ -154,7 +155,7 @@ export const mockCaseRegistryService: ICaseRegistryService = {
     return ok(registries[config.organisationId]);
   },
 
-  async allocateNextCaseNumber(organisationId, siteId, categoryOverride) {
+  async allocateNextCaseNumber(organisationId, timezone, siteId, categoryOverride) {
     const registries = load();
     const config = registries[organisationId];
 
@@ -175,10 +176,11 @@ export const mockCaseRegistryService: ICaseRegistryService = {
     const seriesKey = seriesKeyFor(organisationId, categoryOverride);
     const counters = loadSeriesCounters();
     const existing = counters[seriesKey] ?? { currentSequence: config?.currentSequence ?? 0, lastResetYear: config?.lastResetYear };
-    const nextSeq = needsAnnualReset({ resetSequenceAnnually: resetAnnually, lastResetYear: existing.lastResetYear })
+    const nextSeq = needsAnnualReset({ resetSequenceAnnually: resetAnnually, lastResetYear: existing.lastResetYear }, timezone)
       ? 1 : existing.currentSequence + 1;
 
-    counters[seriesKey] = { currentSequence: nextSeq, lastResetYear: new Date().getFullYear() };
+    const { year: resetYear } = getFacilityDateParts(new Date(), timezone);
+    counters[seriesKey] = { currentSequence: nextSeq, lastResetYear: resetYear };
     persistSeriesCounters(counters);
 
     // Keep the org's own default config's counter in sync too, ONLY when
@@ -188,7 +190,7 @@ export const mockCaseRegistryService: ICaseRegistryService = {
     // advance the org's shared counter, or the two would drift into
     // reporting inconsistent "next number" previews against each other.
     if (config && !categoryOverride?.numberSeries) {
-      registries[organisationId] = { ...config, currentSequence: nextSeq, lastResetYear: new Date().getFullYear(), updatedAt: nowIso() };
+      registries[organisationId] = { ...config, currentSequence: nextSeq, lastResetYear: resetYear, updatedAt: nowIso() };
       persist(registries);
     }
 
@@ -196,10 +198,10 @@ export const mockCaseRegistryService: ICaseRegistryService = {
       { prefix: config?.prefix ?? DEFAULT_FALLBACK_PREFIX, sitePrefixMap: config?.sitePrefixMap },
       siteId, categoryOverride,
     );
-    return ok(renderMask(maskPattern, prefix, nextSeq, sequenceDigits));
+    return ok(renderMask(maskPattern, prefix, nextSeq, sequenceDigits, timezone));
   },
 
-  async previewNextCaseNumber(organisationId, siteId, categoryOverride) {
+  async previewNextCaseNumber(organisationId, timezone, siteId, categoryOverride) {
     const registries = load();
     const config = registries[organisationId];
 
@@ -210,13 +212,13 @@ export const mockCaseRegistryService: ICaseRegistryService = {
     const seriesKey = seriesKeyFor(organisationId, categoryOverride);
     const counters = loadSeriesCounters();
     const existing = counters[seriesKey] ?? { currentSequence: config?.currentSequence ?? 0, lastResetYear: config?.lastResetYear };
-    const nextSeq = needsAnnualReset({ resetSequenceAnnually: resetAnnually, lastResetYear: existing.lastResetYear })
+    const nextSeq = needsAnnualReset({ resetSequenceAnnually: resetAnnually, lastResetYear: existing.lastResetYear }, timezone)
       ? 1 : existing.currentSequence + 1;
 
     const prefix = resolvePrefix(
       { prefix: config?.prefix ?? DEFAULT_FALLBACK_PREFIX, sitePrefixMap: config?.sitePrefixMap },
       siteId, categoryOverride,
     );
-    return ok(renderMask(maskPattern, prefix, nextSeq, sequenceDigits));
+    return ok(renderMask(maskPattern, prefix, nextSeq, sequenceDigits, timezone));
   },
 };

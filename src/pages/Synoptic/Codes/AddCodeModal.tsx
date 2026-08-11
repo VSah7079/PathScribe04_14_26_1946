@@ -6,6 +6,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { callAi } from '@/services/aiIntegration/aiProviderService';
+import { resolveAiConfigOverrideForClient } from '@/components/Config/AI/resolveClientAiModel';
 import '../../../pathscribe.css';
 import type { MedicalCode } from '../synopticTypes';
 import { searchCodes, type CodeResult, type SnomedFilter } from '../../../services/terminologySearch/codeSearchService';
@@ -28,6 +29,12 @@ export interface AddCodeModalProps {
   existingCodes: MedicalCode[];
   allSpecimens: SpecimenOption[];
   activeSpecimenIndex?: number;  // reserved for future per-specimen default targeting
+  /** Real fix: which coding-system tab to open on - e.g. 'CPT' when
+   *  launched from a specimen's own "+Code" contextual button, so the
+   *  user lands directly where they meant to go rather than needing to
+   *  switch tabs manually. Defaults to 'SNOMED', preserving existing
+   *  behavior for every other caller. */
+  initialSystem?: CodeSystem;
   onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[]) => Promise<void>;
   onClose: () => void;
   originHospitalId?: string;
@@ -39,6 +46,11 @@ export interface AddCodeModalProps {
   synopticDerivedCodes?: AiCodeSuggestion[];
   /** Whether Orchestrator/narrative mode is active */
   narrativeText?: string;
+  /** The case's ordering client — needed to resolve which AI model this
+   *  specific client is actually approved to use for AI code
+   *  suggestions. Optional so callers without a resolvable client
+   *  still fall back safely to the org-wide default. */
+  clientId?: string;
 }
 
 type CodeSystem = 'SNOMED' | 'ICD10' | 'ICD11' | 'LOINC' | 'ICDO' | 'CPT' | 'OPCS4';
@@ -121,7 +133,7 @@ const IcoUndo = () => (
 export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   existingCodes, allSpecimens, onAddToSpecimens, onClose,
   caseText, synopticAnswers, templateName, synopticDerivedCodes, narrativeText,
-  originHospitalId,
+  originHospitalId, activeSpecimenIndex, initialSystem, clientId,
 }) => {
   // ── Site coding config ────────────────────────────────────────────────────
   // Coding systems shown are driven by site config from organisationService.
@@ -137,13 +149,13 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   const SYSTEMS = ALL_SYSTEMS.filter(s => siteCodingSystems.includes(s.id));
   const isUK = siteOrg?.sites?.[0]?.defaultLocale === 'en-GB';
 
-  const [system,       setSystem]       = useState<CodeSystem>('SNOMED');
+  const [system,       setSystem]       = useState<CodeSystem>(initialSystem ?? 'SNOMED');
   const [snomedFilter, setSnomedFilter] = useState<SnomedFilter>('morphology');
   const [query,        setQuery]        = useState('');
   const [results,      setResults]      = useState<CodeResult[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [focused,      setFocused]      = useState(-1);
-  const [target,       setTarget]       = useState<number | null>(null);
+  const [target,       setTarget]       = useState<number | null>(activeSpecimenIndex ?? null);
   const [applied,      setApplied]      = useState<PendingCode[]>(() =>
     existingCodes
       // Guards against malformed entries with an empty/missing code --
@@ -192,7 +204,14 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) { setResults([]); setLoading(false); return; }
+    // Real fix: CPT is a small, curated table (services/billing/), not
+    // a large live search like every other system here - an empty
+    // query still searches, showing the real, active table's full list
+    // as a default view (Pete's "top/frequent codes" default) rather
+    // than requiring a keystroke first. Every other system keeps the
+    // original "require a real query" behavior - correct for a live
+    // NLM search that could otherwise return thousands of results.
+    if (!query.trim() && system !== 'CPT') { setResults([]); setLoading(false); return; }
 
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
@@ -383,9 +402,10 @@ Rules:
 - Only include codes you are highly confident are correct
 - For CPT 88307 vs 88309: mastectomy with lymph nodes = 88307, complex cases = 88309`,
         maxTokens: 1200,
+        configOverride: await resolveAiConfigOverrideForClient(clientId),
       });
 
-      const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+      const clean = raw.replace(/```json|```/g, '').trim();
       const parsed: AiCodeSuggestion[] = JSON.parse(clean);
       const filtered = Array.isArray(parsed)
         ? parsed.filter(s => siteCodingSystems.includes(s.system as CodeSystem))
@@ -397,7 +417,7 @@ Rules:
     } finally {
       setAiLoading(false);
     }
-  }, [caseText, synopticAnswers, templateName]);
+  }, [caseText, synopticAnswers, templateName, isUK, narrativeText, siteCodingSystems]);
 
   // Auto-run on open — after generateAiCodes is defined
   // Tier 1: use pre-derived synoptic codes immediately

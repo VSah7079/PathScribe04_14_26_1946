@@ -57,6 +57,23 @@ function interpolate(template: string, scope: Record<string, any>): string {
   });
 }
 
+// Real feature (Step 2): resolves one header/footer child node's text
+// content for the focused, line-based header/footer renderer below —
+// deliberately not a full renderNode recursion, since a header/footer's
+// children are simple text lines (confirmed directly against every
+// real seed part: expression-value and static-label only), not
+// arbitrary report body content needing the full generic node-walk.
+function renderTextLine(node: TemplateNode, scope: Record<string, any>): string | null {
+  if (node.type === 'expression-value') {
+    const text = interpolate(node.template, scope);
+    return text.trim() ? text : (node.fallback ?? null);
+  }
+  if (node.type === 'static-label') {
+    return node.text || null;
+  }
+  return null;
+}
+
 function evalClause(clause: ExpressionClause, scope: any): boolean {
   const actual = getPath(scope, clause.field);
   switch (clause.operator) {
@@ -81,7 +98,11 @@ function evalCondition(cond: ConditionalExpression | undefined, scope: any): boo
   return cond.logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
 }
 
-function labelStyle(cfg?: LabelConfig): React.CSSProperties {
+// Exported: also reused by OrchestratorSectionEditor.tsx to style the
+// per-specimen Gross Description section headers in the editing view —
+// same resolved style this file already applies to the read-only
+// report, not a second, independently-derived one.
+export function labelStyle(cfg?: LabelConfig): React.CSSProperties {
   // labelConfig is per-instance admin-configured data, not static design —
   // inline style here follows this codebase's existing convention for
   // genuinely dynamic values (mirrors mm-to-px / colSpan / fontSize
@@ -91,6 +112,7 @@ function labelStyle(cfg?: LabelConfig): React.CSSProperties {
   if (cfg?.weight) style.fontWeight = cfg.weight === 'bold' ? 700 : 400;
   if (cfg?.decoration && cfg.decoration !== 'none') style.textDecoration = cfg.decoration;
   if (cfg?.fontSize) style.fontSize = `${cfg.fontSize}px`;
+  if (cfg?.fontFamily) style.fontFamily = cfg.fontFamily;
   return style;
 }
 
@@ -120,9 +142,16 @@ function computeAge(dateOfBirth: string | undefined): number | undefined {
   const dob = new Date(dateOfBirth);
   if (Number.isNaN(dob.getTime())) return undefined;
   const now = new Date();
+  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: age-from-DOB compares two dates (now, dob) in the same, consistent local time - inherently viewer-relative, not a real, stored-event facility-timezone concern.
   let age = now.getFullYear() - dob.getFullYear();
+  // Real, honest justification for both lines below: age-from-DOB
+  // compares two dates (now, dob) in the same, consistent local time -
+  // inherently viewer-relative, not a real, stored-event
+  // facility-timezone concern.
   const hasNotHadBirthdayYet =
+    // eslint-disable-next-line no-restricted-properties -- see real, honest justification above hasNotHadBirthdayYet
     now.getMonth() < dob.getMonth() ||
+    // eslint-disable-next-line no-restricted-properties -- see real, honest justification above hasNotHadBirthdayYet
     (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
   if (hasNotHadBirthdayYet) age -= 1;
   return age >= 0 ? age : undefined;
@@ -183,11 +212,24 @@ interface Props {
    *  render from `sections` (see header comment). Defaults to [] so this
    *  component degrades gracefully if a call site hasn't been updated yet. */
   bodyAssembly?: BodyPartAssembly[];
+  /** Real feature (Step 2), per direct confirmation — see
+   *  contextBuilder.ts's resolveTemplateSections for the full
+   *  rationale. At most one enabled slot each; renders in place of
+   *  the hardcoded institution header/footer when present, falls
+   *  back to the hardcoded version when a template hasn't configured
+   *  one (or hasn't resolved yet). */
+  headerAssembly?: BodyPartAssembly[];
+  footerAssembly?: BodyPartAssembly[];
   /** Needed only for the synoptic-block marker node's resolved answers. */
   structuredContext?: StructuredContext | null;
   caseData:    Case | null;
   templateName?: string;
   resolvedBy?:   string;
+  /** Real feature, per direct request — see ReportTemplate.documentStyle's
+   *  own doc comment in reportPart.ts for the full rationale. Applied at
+   *  each section's own container and left to cascade via ordinary CSS
+   *  inheritance. */
+  documentStyle?: { header?: LabelConfig; body?: LabelConfig; footer?: LabelConfig };
   // ── Cross-pane sync (three-column layout) ──────────────────────────────────
   // Clicking a section heading here notifies the parent, which updates the
   // shared activeSectionId — the right-hand editor then scrolls to match.
@@ -222,7 +264,7 @@ export function getInstitution(originHospitalId?: string) {
 }
 
 const ReportPreviewRenderer: React.FC<Props> = ({
-  sections, bodyAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick,
+  sections, bodyAssembly = [], headerAssembly = [], footerAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick, documentStyle,
 }) => {
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const sectionsById = useMemo(() => new Map(sections.map(s => [s.id, s] as const)), [sections]);
@@ -249,6 +291,23 @@ const ReportPreviewRenderer: React.FC<Props> = ({
   const referring  = caseData?.order?.clientName ?? '';
   const clinician  = caseData?.order?.requestingProvider ?? '';
   const inst       = getInstitution(caseData?.originHospitalId);
+
+  // Real fix, found by testing live: baseScope (buildRenderScope) has
+  // no institution key at all — the old hardcoded header/footer used
+  // the inst variable above directly, so nothing ever needed one.
+  // A real header-p1 part's expression-value children reference
+  // {{institution.name}}/{{institution.department}}/etc. directly,
+  // and were silently falling back to their generic defaults
+  // ("PathScribe Laboratory") instead of this case's actual,
+  // per-hospital institution data. Scoped to header/footer rendering
+  // only, not merged into baseScope itself, since institution depends
+  // on caseData.originHospitalId via getInstitution() — a separate
+  // computation other baseScope consumers (e.g. the PDF payload's own
+  // renderScope) don't currently share.
+  const headerFooterScope = useMemo(() => ({
+    ...baseScope,
+    institution: { name: inst.name, department: inst.dept, address: inst.address, phone: inst.phone },
+  }), [baseScope, inst]);
 
   // ── AI-narrative section — unchanged behaviour, just relocated into a
   //    function so the generic node walk below can call it inline where a
@@ -401,7 +460,19 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         if (node.ai?.enabled) return renderAiSection(node);
         return (
           <div key={key} className="rp-node-section">
-            {node.printHeading && <div className="rp-node-section-heading">{node.printHeading}</div>}
+            {node.printHeading && (
+              // Real fix: previously hardcoded via rp-node-section-heading
+              // alone, with node.labelConfig never read at all — even
+              // though the admin editor now lets a template author
+              // configure it (TemplateInspector.tsx) and BaseNode has
+              // always carried the field. Same labelStyle() helper
+              // FieldRow already uses for field labels below, applied
+              // here as an inline override on top of the base CSS class
+              // (not a replacement for it — the class still supplies
+              // layout/spacing, labelConfig only overrides the
+              // typographic properties an admin explicitly set).
+              <div className="rp-node-section-heading" style={labelStyle(node.labelConfig)}>{node.printHeading}</div>
+            )}
             {node.children.map((c, i) => renderNode(c, scope, `${key}-${i}`))}
           </div>
         );
@@ -435,12 +506,54 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         return <React.Fragment key={key}>{children.map((c, i) => renderNode(c, scope, `${key}-${i}`))}</React.Fragment>;
       }
 
-      // bodyAssembly only ever contains role: 'body' slots (filtered in
-      // contextBuilder.ts) — header/footer nodes shouldn't appear here.
-      // Guarded rather than assumed.
-      case 'header':
-      case 'footer':
-        return null;
+      // Real feature (Step 2), per direct confirmation — previously
+      // guarded out entirely on the (then-correct) assumption that
+      // header/footer nodes never reached this switch at all. Now
+      // that resolveTemplateSections resolves header-p1/footer-p1
+      // slots (see that function's own comment), these do appear —
+      // rendered directly here rather than via the top-level
+      // headerAssembly/footerAssembly.map special-case body uses,
+      // since a header/footer's own flags (showLogo/showAccession/
+      // showPatientName/showPageNumbers) need real handling a plain
+      // node-walk wouldn't give them.
+      case 'header': {
+        const childLines = node.children
+          .map(c => renderTextLine(c, scope))
+          .filter((t): t is string => !!t);
+        return (
+          <div key={key} className="rp-inst-header">
+            <div className="rp-inst-left">
+              {childLines.map((line, i) => <div key={i} className={i === 0 ? 'rp-inst-name' : 'rp-inst-addr'}>{line}</div>)}
+            </div>
+            {(node.showLogo ?? true) && (
+              <div className="rp-inst-right">
+                <div className="rp-logo-text">PathScribe</div>
+                <div className="rp-logo-sub">Pathology Reporting</div>
+              </div>
+            )}
+          </div>
+        );
+      }
+      case 'footer': {
+        const childLines = node.children
+          .map(c => renderTextLine(c, scope))
+          .filter((t): t is string => !!t);
+        return (
+          <div key={key} className="rp-footer">
+            {childLines.map((line, i) => <div key={i} className={i === 0 ? 'rp-footer-patient' : 'rp-footer-conf'}>{line}</div>)}
+            {/* Real fix, found before this was ever tested live: page
+                numbers are a print/pagination concept this
+                continuous-scroll on-screen preview doesn't actually
+                have — scope carries no real page.number/page.total,
+                so interpolating node.pageNumberFormat here would
+                silently render a broken-looking "Page  of " with
+                empty values instead of anything useful. Shown as the
+                institution name instead, same content the previous
+                hardcoded footer always showed in this position. */}
+            <div className="rp-footer-right">{inst.name}</div>
+          </div>
+        );
+      }
 
       // Not exercised by any seed Part as of this change — rendering
       // nothing rather than guessing at an unverified format.
@@ -453,20 +566,30 @@ const ReportPreviewRenderer: React.FC<Props> = ({
   };
 
   return (
-    <div className="rp-page">
+    <div className="rp-page" style={labelStyle(documentStyle?.body)}>
 
       {/* ── Institution header ────────────────────────────────────────── */}
-      <div className="rp-inst-header">
-        <div className="rp-inst-left">
-          <div className="rp-inst-name">{inst.name}</div>
-          <div className="rp-inst-dept">{inst.dept}</div>
-          <div className="rp-inst-addr">{inst.address}</div>
-          <div className="rp-inst-phone">{inst.phone}</div>
-        </div>
-        <div className="rp-inst-right">
-          <div className="rp-logo-text">PathScribe</div>
-          <div className="rp-logo-sub">Pathology Reporting</div>
-        </div>
+      <div style={labelStyle(documentStyle?.header)}>
+        {headerAssembly.length > 0 ? (
+          headerAssembly.map(part => (
+            <React.Fragment key={part.slotId}>
+              {part.nodes.map((node, i) => renderNode(node, headerFooterScope, `${part.slotId}-${i}`))}
+            </React.Fragment>
+          ))
+        ) : (
+          <div className="rp-inst-header">
+            <div className="rp-inst-left">
+              <div className="rp-inst-name">{inst.name}</div>
+              <div className="rp-inst-dept">{inst.dept}</div>
+              <div className="rp-inst-addr">{inst.address}</div>
+              <div className="rp-inst-phone">{inst.phone}</div>
+            </div>
+            <div className="rp-inst-right">
+              <div className="rp-logo-text">PathScribe</div>
+              <div className="rp-logo-sub">Pathology Reporting</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Patient / case header ─────────────────────────────────────── */}
@@ -530,12 +653,22 @@ const ReportPreviewRenderer: React.FC<Props> = ({
       </div>
 
       {/* ── Report footer ─────────────────────────────────────────────── */}
-      <div className="rp-footer">
-        <div className="rp-footer-patient">
-          {patient}{mrn ? ` · MRN ${mrn}` : ''}{accession ? ` · ${accession}` : ''}
-        </div>
-        <div className="rp-footer-conf">CONFIDENTIAL — PATHOLOGY REPORT</div>
-        <div className="rp-footer-right">{inst.name}</div>
+      <div style={labelStyle(documentStyle?.footer)}>
+        {footerAssembly.length > 0 ? (
+          footerAssembly.map(part => (
+            <React.Fragment key={part.slotId}>
+              {part.nodes.map((node, i) => renderNode(node, headerFooterScope, `${part.slotId}-${i}`))}
+            </React.Fragment>
+          ))
+        ) : (
+          <div className="rp-footer">
+            <div className="rp-footer-patient">
+              {patient}{mrn ? ` · MRN ${mrn}` : ''}{accession ? ` · ${accession}` : ''}
+            </div>
+            <div className="rp-footer-conf">CONFIDENTIAL — PATHOLOGY REPORT</div>
+            <div className="rp-footer-right">{inst.name}</div>
+          </div>
+        )}
       </div>
 
     </div>

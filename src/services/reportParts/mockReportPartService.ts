@@ -584,14 +584,3 @@ class MockReportPartService implements IReportPartService {
 }
 
 export const mockReportPartService: IReportPartService = new MockReportPartService();
-
-// ── Exported part IDs (for assembly defaults) ──────────────────
-export const PART_IDS = {
-  HDR_P1: HDR_P1_ID, HDR_P2: HDR_P2_ID,
-  FTR_P1: FTR_P1_ID, FTR_P2: FTR_P2_ID,
-  DEMOGRAPHICS: DEMO_ID, CLINICAL: CLINICAL_ID,
-  SPECIMENS: SPECIMENS_ID, DIAGNOSIS: DIAGNOSIS_ID,
-  SYNOPTIC: SYNOPTIC_ID, GROSS: GROSS_ID,
-  MICROSCOPIC: MICRO_ID, ANCILLARY: ANCILLARY_ID,
-  COMMENT: COMMENT_ID, SIGNOFF: SIGNOFF_ID,
-} as const;

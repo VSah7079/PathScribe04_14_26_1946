@@ -29,6 +29,10 @@ export interface IIntraoperativeService {
     performedBy: { userId: string; userName: string };
     orNumber: string;
     surgeon: string;
+    /** Real feature, per direct confirmation: "Let's wire in Facility
+     *  and Location (Room) for Intraop." */
+    clientId?: string;
+    locationId?: string;
   }): Promise<ServiceResult<IntraoperativeEntry>>;
 
   addSpecimen(sessionId: string, specimenLabel: string): Promise<ServiceResult<IntraoperativeEntry>>;

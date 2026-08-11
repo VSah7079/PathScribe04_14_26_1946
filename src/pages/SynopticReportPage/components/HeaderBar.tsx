@@ -5,11 +5,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMessaging } from '@/contexts/MessagingContext';
 import type { Case } from '@/types/case/Case';
-import { getOrchestratorMode } from '@/components/Config/NarrativeTemplates';
+import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
 import { lisSyncService } from '@/services';
 import type { LisSyncState } from '@/services/lisSync/mockLisSyncService';
 import { getCaseStatusLabel, hasDisplayableRevision } from '@/utils/caseRevisionDisplay';
+import { useReleaseBufferCountdown } from '../hooks/useReleaseBufferCountdown';
 import '@/pathscribe.css';
 
 // ── AI Synthesis Status — Gatekeeper Badge model. Matches the type defined
@@ -56,6 +57,15 @@ interface HeaderBarProps {
   /** Deficiency history indicator — see this section's own render comment. */
   deficiencyCount?: number;
   onOpenDeficiencyHistory?: () => void;
+  /** Version history indicator — real fix, Phase 5 (Patient/Encounter
+   *  Management Subsystem): closes a real gap, same shape as the
+   *  deficiency indicator above - reportVersionService.create() has
+   *  been called from three real places in SynopticReportPage.tsx for
+   *  a while, but nothing anywhere ever read the real history back for
+   *  a human to see. Only shown once there's actually something to see
+   *  (a case with at least one real signed version). */
+  versionCount?: number;
+  onOpenVersionHistory?: () => void;
   /** Highlights the matching block chip and shows its status — the
    *  block a Grossing voice command (next/previous/mark grossed) would
    *  currently act on. Undefined outside grossing-relevant contexts. */
@@ -85,10 +95,15 @@ interface ProgressStep {
 
 // ── Status meta ───────────────────────────────────────────────────────────────
 const CASE_STATE_CLASS: Record<string, string> = {
-  'draft':          'ps-case-status--draft',
-  'in-progress':    'ps-case-status--draft',
-  'finalized':      'ps-case-status--finalized',
-  'pending-review': 'ps-case-status--pending-review',
+  'draft':            'ps-case-status--draft',
+  'in-progress':      'ps-case-status--draft',
+  'finalized':        'ps-case-status--finalized',
+  'pending-review':   'ps-case-status--pending-review',
+  /** Real feature, per direct specification: Post-Sign-Out Release
+   *  Buffer. Own, distinct amber styling — matches
+   *  ReleaseBufferBanner.tsx's own color theme for visual consistency
+   *  across the two real, related UI elements. */
+  'pending-release':  'ps-case-status--pending-release',
 };
 
 // ── Step circle class helper ──────────────────────────────────────────────────
@@ -96,8 +111,20 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
-  const isOrchestration = getOrchestratorMode();
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
+  // Real fix, found via a direct audit: this used to call the old,
+  // superseded getOrchestratorMode() (org-level only, from the now-
+  // dead NarrativeTemplates/index.tsx) instead of the real
+  // resolveOrchestratorMode() this file's own AI config module
+  // provides — meaning the real, documented per-lab override
+  // (Client.internalAiOrchestratorEnabled) was silently never applied
+  // here, even though the admin UI to set it (OrchestratorConfigSection)
+  // is real and reachable. Defaults to the sync org-level value first
+  // (no blank flash), then resolves the full, per-lab-aware value.
+  const [isOrchestration, setIsOrchestration] = useState<boolean>(getOrgOrchestratorDefault);
+  useEffect(() => {
+    resolveOrchestratorMode(caseData?.order?.clientId).then(setIsOrchestration).catch(() => {});
+  }, [caseData?.order?.clientId]);
 
   // CoPilot-only — Orchestration mode is the system of record; there's no
   // separate LIS for anything here to be "as of" relative to.
@@ -173,6 +200,13 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   const isRevisedFinal = hasDisplayableRevision(status, caseData?.lastRevisionType);
   const statusClass  = isRevisedFinal ? 'ps-case-status--amended' : (CASE_STATE_CLASS[status] ?? CASE_STATE_CLASS['draft']);
   const statusDisplayLabel = getCaseStatusLabel(status, caseData?.lastRevisionType);
+  // Real feature, per direct specification: Post-Sign-Out Release
+  // Buffer, Phase 3 (spec §13b — "Status Header... Pending Release
+  // (MM:SS remaining)"). Shares the exact same live countdown as
+  // ReleaseBufferBanner.tsx via the common hook, rather than a second,
+  // separately-maintained timer.
+  const isPendingRelease = status === 'pending-release';
+  const { formatted: pendingReleaseCountdown } = useReleaseBufferCountdown(isPendingRelease ? caseData?.releaseBufferExpiresAt : undefined);
 
   // ── Mode-aware final step label ───────────────────────────────────────────
   const finalStepLabel = isOrchestration ? 'Sign Out' : 'Finalise';
@@ -260,6 +294,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                 value={(caseData?.order as any)?.priority}
                 onChange={e => onChangePriority(e.target.value)}
                 title="Change case priority"
+                aria-label="Change case priority"
               >
                 {priorityLevels.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
               </select>
@@ -409,6 +444,16 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         </div>
       )}
 
+      {/* Version history indicator — real fix, Phase 5: same real gap
+          as the deficiency indicator above, closed the same way. */}
+      {!!versionCount && onOpenVersionHistory && (
+        <div className="ps-hb-blocks-row">
+          <button className="ps-hb-version-chip" onClick={onOpenVersionHistory}>
+            🕐 {versionCount} signed version{versionCount === 1 ? '' : 's'} — click to view history
+          </button>
+        </div>
+      )}
+
       {/* Main row */}
       <div className="ps-hb-row">
 
@@ -426,7 +471,10 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             )}
             <div className={`ps-hb-status-pill ${statusClass}`} title="Overall case status — separate from the AI review confidence indicator on synoptic fields">
               <div className="ps-hb-status-dot" />
-              <span className="ps-hb-status-text">Case: {statusDisplayLabel}</span>
+              <span className="ps-hb-status-text">
+                Case: {statusDisplayLabel}
+                {isPendingRelease && ` (${pendingReleaseCountdown} remaining)`}
+              </span>
             </div>
           </div>
 
@@ -520,7 +568,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                 <span className={`ps-hb-confidence-pct ${statusClass}`}>
                   {statusDisplayLabel.toUpperCase()}
                 </span>
-                <span className="ps-hb-confidence-label">No AI suggestions yet</span>
+                <span className="ps-hb-confidence-label">
+                  {isPendingRelease ? `Releasing in ${pendingReleaseCountdown}` : 'No AI suggestions yet'}
+                </span>
               </div>
             )}
           </div>

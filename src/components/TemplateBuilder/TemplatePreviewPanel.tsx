@@ -10,7 +10,7 @@ const MM = 96 / 25.4;
 const mm = (v: number) => Math.round(v * MM);
 
 export interface PageSize { id: string; label: string; widthMm: number; heightMm: number; region: string; }
-export const PAGE_SIZES: PageSize[] = [
+const PAGE_SIZES: PageSize[] = [
   { id: 'a4',     label: 'A4',        widthMm: 210, heightMm: 297, region: 'UK · EU · International' },
   { id: 'letter', label: 'US Letter', widthMm: 216, heightMm: 279, region: 'United States · Canada' },
   { id: 'legal',  label: 'US Legal',  widthMm: 216, heightMm: 356, region: 'United States · Legal' },
@@ -67,7 +67,6 @@ MOCK_CTX.primarySynoptic = (MOCK_CTX as any).synopticReports[0];
 // ── Helpers ────────────────────────────────────────────────────
 function resolveExpr(tpl: string, ctx: StructuredContext): string {
   return tpl.replace(/\{\{([^}]+)\}\}/g, (_, path) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let v: any = ctx; for (const p of path.trim().split('.')) v = v?.[p];
     return v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
   });
@@ -75,7 +74,6 @@ function resolveExpr(tpl: string, ctx: StructuredContext): string {
 function evalCond(expr: { logic: 'AND'|'OR'; clauses: { field: string; operator: string; value?: unknown }[] }, ctx: StructuredContext): boolean {
   if (!expr.clauses.length) return true;
   const rs = expr.clauses.map(c => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let v: any = ctx; for (const p of c.field.split('.')) v = v?.[p];
     const sv = v == null ? '' : String(v), cv = String(c.value ?? '');
     switch (c.operator) {
@@ -89,7 +87,6 @@ function evalCond(expr: { logic: 'AND'|'OR'; clauses: { field: string; operator:
   });
   return expr.logic === 'AND' ? rs.every(Boolean) : rs.some(Boolean);
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function dig(ctx: StructuredContext, key: string): any { let v: any = ctx; for (const p of key.split('.')) v = v?.[p]; return v; }
 
 /** 'lymphovascularInvasion' → 'Lymphovascular Invasion' */
@@ -211,7 +208,7 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
       ].filter(Boolean).join(' ')}>{node.text}</div>;
     }
     case 'paragraph': {
-      let val = dig(ctx, node.bindingKey);
+      const val = dig(ctx, node.bindingKey);
       const text = typeof val === 'string' ? val : '';
       if (!text && node.hideIfEmpty) return null;
       return (
@@ -241,7 +238,6 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
       );
     }
     case 'repeat-group': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const items: any[] = (ctx as any)[node.iterateOver] ?? [];
       if (!items.length) return <div className="ps-tpp-no-items">No items</div>;
       return <div>{items.map((item, i) => {

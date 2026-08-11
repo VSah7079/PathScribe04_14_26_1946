@@ -49,14 +49,27 @@ export function useDraftCache<T>(
   const [existingDraftPayload, setExistingDraftPayload] = useState<T | null>(null);
   const [existingDraftSavedAt, setExistingDraftSavedAt] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkedKeyRef = useRef<string | null>(null);
 
   // ── Check for a pre-existing draft once per userId+entityId ────────────────
+  // Real bug found and fixed here, per direct report: "timeout worked,
+  // but no restore dialog appeared on re-entry." Traced precisely — the
+  // service call itself always succeeded; the draft was silently lost
+  // between finding it and setting state. Root cause: this effect used
+  // to guard against re-checking via a `checkedKeyRef` ref, redundant
+  // with React's own dependency-array mechanism (which already only
+  // re-runs this effect when enabled/userId/entityId genuinely change).
+  // That redundant guard actively broke React 18 Strict Mode's
+  // mount → cleanup → re-mount cycle (active here — see main.tsx):
+  // the first invocation started the real getDraft() call and set the
+  // ref; Strict Mode's cleanup marked that same closure `cancelled`;
+  // the second, surviving invocation saw the ref already set and
+  // skipped calling getDraft() again entirely; the first call's
+  // promise then resolved successfully but was discarded because its
+  // own closure had been marked cancelled. The draft was being found
+  // every time and thrown away every time. Removing the redundant ref
+  // guard lets the second, surviving invocation make the real call.
   useEffect(() => {
     if (!enabled || !userId || !entityId) return;
-    const key = `${userId}:${entityId}`;
-    if (checkedKeyRef.current === key) return; // already checked this entity
-    checkedKeyRef.current = key;
 
     let cancelled = false;
     mockDraftCacheService.getDraft<T>(userId, entityId).then(res => {

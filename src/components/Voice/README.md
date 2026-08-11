@@ -3,8 +3,18 @@
 Voice dictation and command UI — toggle button, command overlay,
 miss-recognition prompt, accent/settings, and the voice macro (text
 expansion via spoken phrase) config tab. All real, all wired to
-`contexts/VoiceProvider.tsx` and real services. No bugs found in this
-folder — two minor consistency notes only.
+`contexts/VoiceProvider.tsx` and real services.
+
+**Real fix, this pass:** voice AI refinement was previously a
+completely separate, hardcoded-to-Gemini integration, disconnected
+from the rest of the app's AI infrastructure and its model-governance
+story. It's now a genuine `AIModel` (`type: 'Voice Dictation'`),
+resolved dynamically and called through the same multi-vendor
+`callAi()` path as everything else — see `services/ai/README.md` and
+`services/models/README.md`. Setting a new voice model live is
+hard-blocked without a PASS-graded Validation Study, same as
+report-generation models. This folder's own UI needed one real fix as
+a result — see `VoiceToggleButton.tsx` below.
 
 **Pattern:** Small, focused components, each consuming `useVoice()` from
 `VoiceProvider.tsx` for shared voice state (phase, transcript, etc.).
@@ -19,11 +29,20 @@ folder — two minor consistency notes only.
   documented in its own header. Deliberately not shown during dictation
   (word misses aren't command misses). No issues.
 - **`VoiceToggleButton.tsx`** — Main voice on/off control, 4-color phase
-  indicator (standby/local/ai/dictate). References the real, separate
-  Gemini-backed voice integration (`VITE_GEMINI_API_KEY`) — distinct from
-  the main narrative-generation AI provider abstraction in `Config/AI/`,
-  confirmed correct in the `Config/System/` pass, not a stale reference.
-  No issues.
+  indicator (standby/local/ai/dictate). **Correction to this file's own
+  prior note:** previously described as referencing "the real, separate
+  Gemini-backed voice integration ... distinct from the main
+  narrative-generation AI provider abstraction ... confirmed correct,
+  not a stale reference." That's no longer true as of this pass — voice
+  now resolves through the same `AIModel` catalog and `callAi()` path
+  as everything else (see folder header above). **Real fix, caught via
+  direct report:** two tooltip strings were still hardcoded to
+  `VITE_GEMINI_API_KEY` specifically (`'Voice Local only
+  (VITE_GEMINI_API_KEY not set)'` and a dev-only detail line) — stale
+  and actively misleading now that the active voice model resolves
+  dynamically and could be configured to any supported vendor. Both
+  reworded to be vendor-neutral rather than name a specific env var
+  that may no longer be the accurate one to check.
 - **`VoiceCommandOverlay.tsx`** — Success/fail flash on command
   recognition. No issues.
 - **`SpeechConfigTab.tsx`** — Voice macro (spoken phrase → written text

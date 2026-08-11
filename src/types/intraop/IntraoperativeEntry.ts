@@ -109,6 +109,15 @@ export interface IntraopSpecimen {
    *  makes reconciliation against the final diagnosis reliable later.
    *  See FrozenCategory's doc comment for why. */
   frozenCategory?: FrozenCategory;
+  /** Real fix, added for FROZEN_SECTION TAT (turnaround time)
+   *  calculation (components/Contribution/qualityCalculations.ts) - the
+   *  real gap this closes: the milestones[] array already has a real
+   *  'frozen_section_cut' timestamp (tissue cut for frozen), but nothing
+   *  captured when the actual diagnostic conclusion was reached, so no
+   *  true interval could be computed. Set once, at
+   *  setFrozenSectionDiagnosis (mockIntraoperativeService.ts) - the real
+   *  moment the diagnosis is actually rendered. */
+  frozenDiagnosisRenderedAt?: string;
 }
 
 export interface IntraoperativeEntry {
@@ -123,6 +132,23 @@ export interface IntraoperativeEntry {
   performedBy: { userId: string; userName: string };
   orNumber: string;
   surgeon: string;
+  /** Real feature, per direct confirmation: "Let's wire in Facility
+   *  and Location (Room) for Intraop." Same real pattern as
+   *  Case.order.clientId/locationId — captured once per session
+   *  (alongside OR/surgeon), not per specimen, since the specimens
+   *  under one session all come from the same OR/facility. Optional:
+   *  a session can genuinely be started before the facility/location
+   *  is known (e.g. barcode-only identification with no ADT match —
+   *  see PatientMatchInfo), same honest-absence posture as the rest
+   *  of this type. */
+  clientId?: string;
+  /** Cached display name — avoids an async lookup on every render,
+   *  same reasoning as Case.order.clientName. */
+  clientName?: string;
+  locationId?: string;
+  /** Cached display string ("OR-3" / "Ward 3 / 101 / A") — same
+   *  reasoning as Case.order.locationDisplay. */
+  locationDisplay?: string;
   /** One or more specimens under this same patient/OR/surgeon session. */
   specimens: IntraopSpecimen[];
   /** Session-level — a surgeon typically gets one callback summarizing

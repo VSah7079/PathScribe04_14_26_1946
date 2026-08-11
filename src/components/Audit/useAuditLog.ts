@@ -18,6 +18,7 @@
  * ============================================================
  */
 
+import { useCallback } from "react";
 import { useAuth } from "@contexts/AuthContext";
 import { logEvent } from "../../audit/auditLogger";
 import type { AuditEvent, AuditEventCategory } from "../../types/AuditEvent";
@@ -72,6 +73,16 @@ export type AuditAction =
   | "validation_routing_rule_deleted"
   // ── Synoptic Report Page ──
   | "case_finalized"
+  /** Real feature, per direct specification: Post-Sign-Out Release
+   *  Buffer, Phase 5 (audit-logging polish). A real, genuine gap found
+   *  and fixed while auditing this app's own audit system: this event
+   *  has been logged since Phase 1 via useSignOutWorkflow.ts's own
+   *  log('sign_out_buffered', {...}) call, but was never added here —
+   *  meaning it silently fell through buildDetail()'s default case
+   *  (a raw JSON.stringify(payload)) instead of a real, clean,
+   *  human-readable sentence like every other real event in this
+   *  file gets. */
+  | "sign_out_buffered"
   | "protocol_change_committed"
   | "flag_manager_opened"
   | "team_modal_opened"
@@ -128,6 +139,7 @@ const actionTypeMap: Record<AuditAction, AuditEventCategory> = {
   validation_routing_rule_deleted: "user",
   // ── Synoptic Report Page ──
   case_finalized:             "user",
+  sign_out_buffered:          "user",
   protocol_change_committed:  "user",
   flag_manager_opened:        "user",
   team_modal_opened:          "user",
@@ -184,6 +196,10 @@ export type AuditPayload = {
   validation_routing_rule_deleted: { entityName: string; ruleType: string };
   // ── Synoptic Report Page ──
   case_finalized:             { caseId: string; accession?: string; finalizedBy: string; excludedCount: number };
+  /** Matches exactly what useSignOutWorkflow.ts's finalizeCase() has
+   *  passed since Phase 1 — no call-site change needed to close this
+   *  gap. */
+  sign_out_buffered:          { caseId: string; accession?: string; durationMinutes: number; facilityId?: string | null };
   protocol_change_committed: { caseId: string; acceptedCount: number; totalProposed: number; actions?: string[] };
   flag_manager_opened:       { caseId: string; source?: string };
   team_modal_opened:         { caseId: string };
@@ -410,6 +426,10 @@ function buildDetail<A extends keyof AuditPayload>(action: A, payload: AuditPayl
       return `Case finalized: ${p.accession ?? p.caseId} by ${p.finalizedBy}` +
         (p.excludedCount > 0 ? ` — ${p.excludedCount} synoptic instance(s) excluded/deferred` : "");
     }
+    case "sign_out_buffered": {
+      const p = payload as AuditPayload["sign_out_buffered"];
+      return `Case ${p.accession ?? p.caseId} entered the post-sign-out release buffer (${p.durationMinutes} min) — recall available until real expiry.`;
+    }
     case "protocol_change_committed": {
       const p = payload as AuditPayload["protocol_change_committed"];
       return `Protocol changes committed — case ${p.caseId}: ${p.acceptedCount} of ${p.totalProposed} proposed change(s) accepted`;
@@ -437,7 +457,20 @@ function buildDetail<A extends keyof AuditPayload>(action: A, payload: AuditPayl
 export function useAuditLog() {
   const { user } = useAuth();
 
-  function log<A extends keyof AuditPayload>(action: A, payload: AuditPayload[A]) {
+  const log = useCallback(function log<A extends keyof AuditPayload>(action: A, payload: AuditPayload[A]) {
+    // Real feature, per direct specification, Phase 5 (audit-logging
+    // polish): a generic, runtime extraction — not retrofitting each
+    // of this file's ~80 real AuditPayload entries individually to
+    // formally declare a caseId field, which is far beyond this
+    // phase's real scope. Many payloads already carry a real caseId
+    // (case_finalized, sign_out_buffered, flag_applied,
+    // case_search_opened, and others) — this picks it up wherever
+    // it's genuinely present, forwards it through to the real,
+    // structured AuditEvent.caseId field instead of it being stranded
+    // inside the free-text detail string only.
+    const caseId = (payload as { caseId?: string })?.caseId ?? null;
+    const facilityId = (payload as { facilityId?: string | null })?.facilityId ?? null;
+
     // Build an object that exactly matches Omit<AuditEvent, 'id' | 'timestamp'>
     const eventPayload: Omit<AuditEvent, "id" | "timestamp"> = {
       // `user` in AuditEvent is the actor name/email; here we use the authenticated email.
@@ -448,11 +481,13 @@ export function useAuditLog() {
       action,
       // human-readable detail string
       detail: buildDetail(action, payload),
+      caseId,
+      facilityId,
       // optional fields can be added here if relevant (templateId, stateFrom, etc.)
     };
 
     logEvent(eventPayload);
-  }
+  }, [user]);
 
   return { log };
 }

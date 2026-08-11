@@ -21,16 +21,28 @@ Manual review during folder-by-folder README passes (`services/`,
 incidentally, but isn't exhaustive — it depends on a reviewer happening to
 notice an unused declaration while reading for other reasons.
 
-For a definitive, tool-verified pass (not yet run as of this writing):
-temporarily enable `noUnusedLocals` and `noUnusedParameters` in
-`tsconfig.json` (currently both `false` — confirmed, this is why `tsc`
-hasn't been flagging any of this on its own) and run `npx tsc --noEmit -p .`
+For a definitive, tool-verified pass: temporarily enable
+`noUnusedLocals` and `noUnusedParameters` in
+`tsconfig.json` and run `npx tsc --noEmit -p .`
 across the whole project. This will surface unused variables/parameters
 project-wide, not just in one file — expect real noise the first time
 this runs. Review the results folder-by-folder rather than fixing
 everything in one giant pass, logging genuine findings below.
 
-**Status: methodology decided, full tool-assisted sweep not yet run.**
+**Status: RUN, CURRENTLY CLEAN.** Corrected during the `src/pages/`
+review (August 2026) — this doc previously said the flags were still
+`false` and the sweep hadn't run. Checked directly: both flags are
+already `true` in `tsconfig.json`. Confirmed the check is genuinely
+active (positive-control test: a deliberately-injected unused variable
+in `AccessionPage.tsx` was correctly flagged as `TS6133`, then removed).
+With both flags on, `npx tsc --noEmit -p .` currently returns zero
+errors project-wide — no unused locals or parameters anywhere in the
+codebase right now. Whoever flipped the flags on didn't update this
+doc; noting it here so the record matches reality. Worth re-running
+this same check periodically (e.g. before the copyright deposit and
+before any WCAG cert push) since it's a fast, zero-cost way to catch
+drift — a future edit could just as easily reintroduce an unused
+variable without anyone noticing.
 
 ## Found and fixed so far (incidental, during manual review)
 
@@ -59,12 +71,27 @@ everything in one giant pass, logging genuine findings below.
   `activeSpecimenId` state declaration. Clear copy-paste artifact.
   Removed.
 
+- **`AccessionPage/AccessionPage.tsx`** (found during `src/pages/`
+  review, August 2026) — 4 unnecessary `as any` casts, none load-bearing.
+  `(allTemplates as any[])` — `listTemplates()` already returns the
+  properly-typed `Protocol[]`, which already has `id`/`name`/`category`/
+  `isDiagnostic`; the cast did nothing but suppress real type-checking.
+  `status: 'accessioned' as any` — `'accessioned'` is already a real
+  member of the `CaseStatus` union; no cast needed. The Patient object
+  literal's `as any` and the `specimens: ... as any` — both objects
+  already structurally matched `Patient`/`Specimen[]` once checked.
+  Verified by removing all four and running `npx tsc --noEmit -p .`
+  project-wide: zero new errors. One `as any` in the same file
+  (`setSex(e.target.value as any)`) was narrowed to
+  `as 'M' | 'F' | 'U'` rather than removed outright — a native
+  `<select>`'s value is inherently untyped `string`, so some assertion
+  is genuinely needed there, just not `any`.
+
 ## Deferred / not yet actioned
 
-- **Full project-wide `noUnusedLocals`/`noUnusedParameters` sweep** — see
-  Methodology above. Not yet run. Given the likely volume of results,
-  plan to review in batches aligned with whichever folder is currently
-  under README review, rather than as one separate mega-task.
+(none currently — see Methodology above for the
+`noUnusedLocals`/`noUnusedParameters` sweep, now resolved rather than
+deferred)
 
 ---
 *Update this file whenever dead/duplicate code is found and fixed, whether

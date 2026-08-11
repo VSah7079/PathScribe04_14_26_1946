@@ -42,7 +42,15 @@ still follows the interface/mock/firestore split despite that).
   Most of the app imports services from here, not from individual folders.
 - **`types.ts`** — shared types used by every service interface in the
   app: `ServiceResult<T>` (the `{ ok: true, data } | { ok: false, error }`
-  result shape every service method returns) and `ID`.
+  result shape every service method returns) and `ID`. **Extended (Aug
+  2026)** with an optional `meta?: ServiceResultMeta` on the success
+  branch (`hasMore`/`nextCursor`) for real, cursor-based pagination —
+  currently used by `cases/ICaseService.ts`'s `getAll()`. Deliberately
+  optional and additive: every existing caller across the app that
+  destructures just `{ ok, data }` is completely unaffected; only a
+  caller that explicitly opts in (`SearchPage.tsx`'s Load More) reads
+  `result.meta`. Verified non-breaking directly (`tsc --noEmit` clean
+  across the whole app) before building anything on top of it.
 - **`mockStorage.ts`** — thin typed `localStorage` wrapper used by nearly
   every mock service. Becomes unused once Firestore services replace the
   mocks.
@@ -77,7 +85,9 @@ other consumers of the root-level file, deleted it. Full detail in
 | [aiIntegration/](./aiIntegration/README.md) | Higher-level AI features: transcript refine, suggestions, spellcheck |
 | [auditlog/](./auditlog/README.md) | System-wide audit log |
 | [auth/](./auth/README.md) | Case access control + institution/session resolution (not login) |
+| [billing/](./billing/README.md) | **NEW (August 2026)** — real CPT-to-work-RVU mapping table and calculation, workload/productivity tracking only (not a billing system) |
 | [biometric/](./biometric/README.md) | WebAuthn e-signature |
+| [caseRegistry/](./caseRegistry/README.md) | **NEW (August 2026)** — real accession-number generation/masking per organisation, with real facility-timezone-aware `{YEAR}` and annual sequence reset |
 | [cases/](./cases/README.md) | **Central folder** — case data access, LIS/Orchestration routing, production migration plan |
 | [clientSLA/](./clientSLA/README.md) | Per-client SLA/TAT targets |
 | [clients/](./clients/README.md) | Client (institution) dictionary |
@@ -94,6 +104,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [grossing/](./grossing/README.md) | Grossing template routing (types only, real logic in cases/) |
 | [grossingRoutingOverrides/](./grossingRoutingOverrides/README.md) | Per-client grossing route exceptions |
 | [hl7/](./hl7/README.md) | Standard HL7 ORM^O01 builder — deliberate pre-integration scaffolding |
+| [interfaceExceptions/](./interfaceExceptions/README.md) | **NEW (August 2026)** — real holding queue for inbound ADT/patient-management messages that can't be safely auto-processed (unresolved identity, missing MRG-5) |
 | [internalNotes/](./internalNotes/README.md) | Lab-internal case notes + management reviews |
 | [intraop/](./intraop/README.md) | Intraoperative Pre-Check queue |
 | [lisSync/](./lisSync/README.md) | Narrow mock for one UI sync-freshness indicator |
@@ -111,8 +122,10 @@ other consumers of the root-level file, deleted it. Full detail in
 | [protocols/](./protocols/README.md) | Standalone processing-protocol dictionary |
 | [quality/](./quality/README.md) | Discordance tracking (Frozen-to-Permanent gate) |
 | [reportParts/](./reportParts/README.md) | Atomic report-building-block library |
+| [reportRelease/](./reportRelease/README.md) | **NEW (August 2026)** — Post-Sign-Out Release Buffer: a real, configurable hold window between sign-out and genuine external release, with recall |
 | [reportTemplates/](./reportTemplates/README.md) | Report template assembly + routing resolution chain |
 | [reports/](./reports/README.md) | **Active work (2026)** — amendment/versioning system |
+| [research/](./research/README.md) | **NEW (August 2026)** — external PubMed literature feed for the dashboard ticker (live NCBI eUtils, no firestore stub — see its README) |
 | [roles/](./roles/README.md) | Staff role/permission dictionary |
 | [routingRules/](./routingRules/README.md) | Admin template routing rule overrides |
 | [savedSearches/](./savedSearches/README.md) | Saved search/filter presets |
@@ -177,3 +190,29 @@ other consumers of the root-level file, deleted it. Full detail in
 - **`drafts/`** — built for the same feature's Phase 2. Followed the
   standard pattern correctly from the start (learned from `session/`'s
   correction above).
+
+## New folders added August 2026
+
+- **`billing/`** — real, minimal CPT-to-work-RVU mapping and calculation
+  infrastructure, built because `ProductivityTab.tsx`'s and
+  `ContributionDashboardPage.tsx`'s RVU tiles had both been entirely
+  hardcoded with nothing real to compute from. Not the interface/mock/
+  firestore pattern — a pure static reference table plus pure
+  calculation functions, no service, nothing to mock. See its own
+  README for real, important scope limits (not a billing system; a
+  small curated code subset with values verified against current CMS
+  data, not the full CPT file; its rule-based CPT default is honestly
+  not physician-entered coding and must never be presented as
+  billing-ready).
+- **`research/`** — external peer-reviewed literature feed powering the
+  PubMed ticker on the Home dashboard, replacing a static line of marketing
+  copy ("The AI models are updated and synchronized with the latest CAP
+  protocols"). Deviates from interface/mock/firestore: the real backend is
+  NCBI and external, so a Firestore stub would be misleading rather than
+  forward-looking — interface and mock only. See its own README for the two
+  things that matter beyond the code: the feed is **uncurated** (`sort=pub_date`,
+  `retmax=1`, no quality filter or retraction check, behind a badge reading
+  "Latest Research"), and the 24-hour `localStorage` cache **does not survive
+  non-persistent VDI**, where the profile is discarded at logoff — so the
+  rate-limit protection it was built for silently does not apply in exactly
+  the estates it was designed for.

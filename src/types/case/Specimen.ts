@@ -49,24 +49,66 @@ export interface SpecimenContainer {
 // same reasoning as CasePriority: these are settled clinical vocabularies,
 // not something that benefits from being database-driven.
 
-export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted';
+export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted' | 'Cancelled';
 export type StainOrderStatus =
   | 'Pending Cut' | 'Cut & Placed' | 'Staining' | 'Coverslipped'
-  | 'Ready for Review' | 'Recut Requested' | 'QC Failed';
+  | 'Ready for Review' | 'Recut Requested' | 'QC Failed' | 'Cancelled';
+
+/**
+ * Real feature, per direct confirmation: "we need a stain order called
+ * Unstained which is the only stain that can technically be restained
+ * on the same label." A real, named value rather than an
+ * undefined/optional stainName — every existing piece of code that
+ * treats stainName as a plain string keeps working with zero special-
+ * casing, and it matches real lab practice directly: only a slide that
+ * has never actually been through a stain can be converted in place
+ * under its own slide id; anything that already has real dye on it
+ * needs a genuinely new slide for a repeat. status 'Cut & Placed' is
+ * the correct status for a freshly-created spare — the physical
+ * cutting already happened (that's the whole point of a spare); only
+ * the stain hasn't. Deliberately excluded from the Stain Dictionary
+ * (mockStainTypeService.ts) — never a real, orderable stain type, so
+ * it can never appear in StainMultiSelect's normal add-stain search;
+ * the only way a slide gets this value is via handleCreateSpareSlide.
+ */
+export const UNSTAINED_LABEL = 'Unstained';
 
 export interface StainOrder {
   id: string;
-  /** Display name only for this pass — e.g. "H&E", "ER" — not yet a real
-   *  foreign key into the Stain Dictionary (stainTypeId), since resolving
-   *  that requires the specimen's defaultStains (plain name strings) to
-   *  be matched back to real StainType records, which the dictionary
-   *  doesn't yet expose a lookup-by-name helper for. Flagged as real
-   *  follow-up work, not done here for time. */
+  /**
+   * Display name only for this pass — e.g. "H&E", "ER" — not yet a real
+   * foreign key into the Stain Dictionary (stainTypeId), since resolving
+   * that requires the specimen's defaultStains (plain name strings) to
+   * be matched back to real StainType records, which the dictionary
+   * doesn't yet expose a lookup-by-name helper for. Flagged as real
+   * follow-up work, not done here for time.
+   *
+   * UNSTAINED_LABEL ('Unstained') is the one reserved value meaning "a
+   * real, physical spare slide, cut and ready, with no stain decided
+   * yet" — see that constant's own doc comment for the full rationale.
+   */
   stainName: string;
   status: StainOrderStatus;
   /** A whole-slide scan of this specific stain order, if one exists.
    *  See Material.ts's DigitalAsset — left empty everywhere for now. */
   digitalAssets?: import('./Material').DigitalAsset[];
+  /**
+   * Real feature, per direct confirmation: "Order Restain... Captures
+   * reason (e.g., 'Weak stain', 'Artifact', 'Pathologist request').
+   * Logs who ordered it." "Never delete restains — they are part of
+   * the case's analytic history... They should not be merged with or
+   * overwrite the original slide." A restain is always its own,
+   * separate StainOrder — restainOfSlideId links it back to the
+   * original it repeats without touching that original record at
+   * all. All four fields are set together, only when a restain is
+   * actually ordered (handleOrderRestain) — never populated
+   * individually, and never present on an ordinary, non-restain
+   * slide.
+   */
+  restainReason?: string;
+  restainOrderedBy?: string;
+  restainOrderedAt?: string;
+  restainOfSlideId?: string;
 }
 
 export interface HistologyBlock {
@@ -75,6 +117,13 @@ export interface HistologyBlock {
   label: string;
   status: BlockStatus;
   stains: StainOrder[];
+  /** Real fix, Phase 1 of specimen/block-level CPT association:
+   *  ancillary CPT codes (special stains, IHC) are tied to the specific
+   *  block they were performed on, not the specimen as a whole - a
+   *  specimen can have some blocks with IHC ordered and others without.
+   *  Bare code strings, matching Specimen.coding.cpt's own shape and
+   *  what computeWorkRvuForCodes already expects. */
+  coding?: { cpt?: string[] };
   /**
    * Which processing pathway this block came from, if generated from a
    * multi-pathway Protocol (services/protocols/IProtocolService.ts) —
@@ -106,6 +155,55 @@ export interface HistologyBlock {
   /** A block-face photo of this specific block, if one exists. See
    *  Material.ts's DigitalAsset — left empty everywhere for now. */
   digitalAssets?: import('./Material').DigitalAsset[];
+  /**
+   * Real feature, per direct confirmation: Biopsy Array support — "I
+   * wanted to be able to assign each core to a specific section of a
+   * single block... so the Pathologist can always identify what
+   * section of the block the core tissue was embedded into." A
+   * grossing activity, not a Materials-tab action: a PA assigns
+   * several specimens to the same physical cassette while grossing.
+   *
+   * Each specimen still gets its OWN HistologyBlock record (slides/
+   * stains keep working exactly as they already do, per-specimen,
+   * unchanged) — this is purely a shared tag linking multiple,
+   * separately-owned block records together. Deliberately not a
+   * restructure of the underlying 1-block-belongs-to-1-specimen
+   * model; MaterialTreePanel.tsx detects blocks across specimens that
+   * share this same id and renders them as one grouped Biopsy Array
+   * view instead of separate block icons.
+   *
+   * undefined = an ordinary, single-specimen block (the overwhelming
+   * majority) — no behavior change for any existing block.
+   */
+  sharedCassetteId?: string;
+  /**
+   * This specimen's physical position within the shared cassette
+   * named by sharedCassetteId (1, 2, 3...) — what actually lets a
+   * pathologist look at a specific location on a shared slide and
+   * know which specimen's tissue is there. Only meaningful alongside
+   * sharedCassetteId; ignored otherwise.
+   */
+  positionInBlock?: number;
+  /**
+   * Real feature, per direct confirmation, grounded explicitly in
+   * CAP ANP.11600 (documentation of specimen handling), CLIA
+   * 493.1105 (test system integrity), and ISO 15189:2012 5.8
+   * (traceability of records): "what happens is when the wrong piece
+   * gets into the wrong block." Cancellation corrects a genuine
+   * mis-assignment error — it is NOT deletion. The block's own `id`
+   * is permanent and part of the specimen's chain of custody; status
+   * moves to 'Cancelled' (BlockStatus) and these three fields record
+   * who, when, and why, matching the real-world requirement that a
+   * cancelled item "remain visible in audit logs and QC views" while
+   * disappearing from active workflow (see
+   * useSpecimenBlockManagement.ts's handleCancelBlock and
+   * handleAdvanceFocusedBlockStatus for the workflow-exclusion side).
+   * All three are set together, only by handleCancelBlock — never
+   * populated individually.
+   */
+  cancelReason?: string;
+  cancelledBy?: string;
+  cancelledAt?: string;
 }
 
 /**
@@ -128,6 +226,16 @@ export type SpecimenLisStatus =
 export interface Specimen {
   /** Internal UUID */
   id: string;
+  /** Real fix, Phase 1 of specimen/block-level CPT association: base
+   *  surgical pathology CPT codes (88302-88309) are assigned per
+   *  specimen in real practice, not as a flat, undifferentiated
+   *  case-level list - a case with a skin biopsy (88305) and a colon
+   *  resection (88309) needs each specimen to carry its own real code,
+   *  not one shared bucket. Bare code strings (not full MedicalCode
+   *  objects), matching what
+   *  services/billing/codeMapTable.ts's computeWorkRvuForCodes already
+   *  expects. */
+  coding?: { cpt?: string[] };
   /** Specimen letter or number (A, B, C…) */
   label: string;
   /** Human-readable description ("Left breast biopsy") */

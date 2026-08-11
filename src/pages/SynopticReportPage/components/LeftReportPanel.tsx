@@ -6,7 +6,10 @@ import InternalNotesDrawer from '@/components/InternalNotes/InternalNotesDrawer'
 import { internalNoteService } from '@/services';
 import { getMarkersFromAnswers, type MarkerAnswer } from '@/orchestrator/contextBuilder';
 import { getTemplate } from '@/services/templates/templateService';
+import { matchSourceText } from '@/utils/sourceTextMatching';
 import MarkersPanel from './MarkersPanel';
+import { buildWatermarkBackgroundImage } from './PendingReleaseWatermark';
+import { mockReportReleaseService } from '@/services/reportRelease/mockReportReleaseService';
 
 interface LeftReportPanelProps {
   caseData: Case | null;
@@ -56,6 +59,22 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   const [unreadNoteCount, setUnreadNoteCount] = React.useState(0);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  // Real feature, per direct specification: Post-Sign-Out Release
+  // Buffer, Phase 3. The real, org-configured watermark text — fetched
+  // once per mount, not re-resolved on every render. watermarkText is
+  // deliberately enterprise-only (see ReportReleaseOrgConfig's own doc
+  // comment), so a plain getOrgDefault() suffices here — no per-
+  // facility async resolution needed the way resolveBufferForCase()
+  // itself requires.
+  const isPendingRelease = caseData?.status === 'pending-release';
+  const [watermarkText, setWatermarkText] = React.useState('');
+  useEffect(() => {
+    if (!isPendingRelease) return;
+    mockReportReleaseService.getOrgDefault().then(res => {
+      if (res.ok) setWatermarkText(res.data.watermarkText);
+    });
+  }, [isPendingRelease]);
+
   // Count shared notes by other authors — proxy for "unread colleague notes"
   useEffect(() => {
     if (!caseData) return;
@@ -99,31 +118,12 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   ] : [];
 
   // Extract the quoted phrase from source strings like 'Gross: "2.3 × 1.8 × 1.5 cm"'
-  // Falls back to progressively shorter word sequences if the full phrase isn't found
-  const matchResult = React.useMemo(() => {
-    if (!highlightText) return { phrase: undefined as string | undefined, found: false };
-    const quoted = highlightText.match(/"([^"]+)"/);
-    const candidate = quoted ? quoted[1] : highlightText;
-
-    // Build a combined text to search across all sections
-    // Try full phrase first, then drop words from the end until we find a match
-    const words = candidate.split(/\s+/).filter(Boolean);
-    const allText = [
-      caseData?.order?.clinicalIndication ?? '',
-      caseData?.diagnostic?.grossDescription ?? '',
-      caseData?.diagnostic?.microscopicDescription ?? '',
-      caseData?.diagnostic?.ancillaryStudies ?? '',
-    ].join(' ').toLowerCase();
-    for (let len = words.length; len >= 3; len--) {
-      const phrase = words.slice(0, len).join(' ');
-      // Check if this phrase appears in any section text (case-insensitive)
-      if (allText.includes(phrase.toLowerCase())) return { phrase, found: true };
-    }
-    // Fall back to the original candidate even if not found — found:false
-    // is the honest signal here; the AI cited a source but this app
-    // couldn't locate it verbatim anywhere in the report text.
-    return { phrase: candidate, found: false };
-  }, [highlightText, caseData]);
+  // Falls back to progressively shorter word sequences if the full phrase isn't found.
+  // Shared with the finalize-time proactive check — see sourceTextMatching.ts.
+  const matchResult = React.useMemo(
+    () => matchSourceText(highlightText, caseData),
+    [highlightText, caseData]
+  );
 
   const matchPhrase = matchResult.phrase;
 
@@ -152,10 +152,20 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
         width: '100%',
         height: '100%',
         background: '#111827',
+        // Real fix: background-image + backgroundAttachment: 'local'
+        // scrolls WITH this element's own content, tiling the real,
+        // configured watermark text across the full scrollable height
+        // — not just the initially-visible viewport. See
+        // PendingReleaseWatermark.tsx's own header comment for the
+        // real bug this specifically avoids.
+        backgroundImage: isPendingRelease && watermarkText ? buildWatermarkBackgroundImage(watermarkText) : undefined,
+        backgroundRepeat: isPendingRelease && watermarkText ? 'repeat' : undefined,
+        backgroundAttachment: isPendingRelease && watermarkText ? 'local' : undefined,
         borderRight: '1px solid rgba(8,145,178,0.3)',
         overflowY: 'auto',
         padding: '16px 32px 32px',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
       <style>{`

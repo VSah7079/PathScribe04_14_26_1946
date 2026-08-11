@@ -17,7 +17,7 @@ is built.
 - **`IExternalResourceService.ts`** — The contract. Two real scope
   levels, matching the same org-default + per-client-override shape
   already established for idle-session-timeout (`services/session/`) and
-  the AI orchestrator toggle (`Client.internalAiOrchestratorEnabled`):
+  the AI orchestrator toggle (`Facility.internalAiOrchestratorEnabled`):
   `'enterprise'` resources are visible to everyone in the organisation,
   `'lab'` resources layer on top for a specific performing lab. Two real
   entry points, deliberately distinct: `listForOrganisation()` is the
@@ -54,7 +54,7 @@ is built.
 - Consumed by `pages/WorklistPage/WorklistPage.tsx` (the real Resources
   panel, resolved for the viewer's own organisation plus every
   performing lab their actually-visible cases belong to — computed via
-  the same case -> ordering Client -> `resolvePerformingLabClientId()`
+  the same case -> ordering facility -> `resolvePerformingLabFacilityId()`
   chain already established for idle-timeout, just applied across every
   visible case rather than one) and
   `components/Config/System/ExternalResourcesSection.tsx` (the real

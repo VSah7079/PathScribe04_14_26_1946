@@ -210,12 +210,12 @@ const TemplateListTab: React.FC = () => {
         <div className="tmpl-header-actions">
           <button
             onClick={() => handleCreate(STANDARD_TEMPLATE_ID)}
-            className="ps-btn-ghost-teal"
+            className="ps-conf-btn-secondary"
             title="Copy the standard surgical pathology layout as a starting point"
           >
             From Standard
           </button>
-          <button onClick={() => handleCreate()} className="ps-btn-ghost-teal">
+          <button onClick={() => handleCreate()} className="ps-conf-btn-primary">
             + New Template
           </button>
         </div>

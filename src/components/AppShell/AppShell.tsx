@@ -30,6 +30,7 @@ import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
 import { useDirtyState } from '../../contexts/DirtyStateContext';
 import '../../pathscribe.css';
 import { openUserGuide, openAdminGuide } from '../../utils/guideAssets';
+import ConfirmModal from '../Common/ConfirmModal';
 
 // ─── Internal user directory ─────────────────────────────────────────────────
 interface InternalUser { id: string; name: string; role: string; }
@@ -216,7 +217,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
   React.useEffect(() => {
     onToDropdownOpenChange(suggestions.length > 0 && toInput.trim().length > 0);
     onToHighlightIdxChange(0);
-  }, [suggestions.length, toInput]);
+  }, [suggestions.length, toInput, onToDropdownOpenChange, onToHighlightIdxChange]);
 
   const addRecipient = (u: InternalUser) => {
     onRecipientsChange(prev => [...prev, u]);
@@ -353,68 +354,69 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
   onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail,
 }) => (
   <div className="ps-msg-sidebar">
-    <div className="ps-msg-list" style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="ps-msg-list" tabIndex={0} role="region" aria-label="Message list">
       {loading ? (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#6b8099', fontSize: 14 }}>Loading…</div>
+        <div className="ps-msg-list-status">Loading…</div>
       ) : messages.length === 0 ? (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: '#6b8099', fontSize: 14 }}>
+        <div className="ps-msg-list-status">
           {filterType === 'deleted' ? 'No deleted messages.' : 'Your inbox is empty.'}
         </div>
       ) : messages.map(m => {
         const isChecked  = selectedIds.includes(m.id);
+        const isSelected = selectedMsgId === m.id;
+        const rowClass = [
+          'ps-msg-row',
+          isSelected && 'selected',
+          !m.isRead && 'unread',
+          !isSelected && m.isUrgent && 'urgent-row',
+        ].filter(Boolean).join(' ');
         return (
           <div key={m.id}
+            className={rowClass}
             onMouseEnter={() => onHover(m.id)}
             onMouseLeave={() => onHover(null)}
             onClick={() => isEditing ? onToggleCheck(m.id) : onSelect(m.id)}
-            style={{
-              padding: '11px 16px', cursor: 'pointer',
-              background: selectedMsgId === m.id ? 'rgba(8,145,178,0.09)' : hoveredMsgId === m.id ? 'rgba(255,255,255,0.025)' : 'transparent',
-              borderBottom: '1px solid rgba(255,255,255,0.04)',
-              borderLeft: `3px solid ${selectedMsgId === m.id ? '#0891B2' : m.isUrgent ? '#EF4444' : 'transparent'}`,
-              display: 'flex', alignItems: 'center', gap: 11, transition: 'all 0.12s',
-            }}
           >
             {/* Checkbox in edit mode */}
             {isEditing && (
-              <div style={{ width: 18, height: 18, borderRadius: 4, border: isChecked ? 'none' : '1.5px solid #6b8099', background: isChecked ? '#0891B2' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+              <div className={`ps-msg-row-checkbox${isChecked ? ' checked' : ''}`}>
                 {isChecked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5"><polyline points="2,6 5,9 10,3"/></svg>}
               </div>
             )}
             {/* Avatar */}
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#162036', border: `1px solid ${m.isUrgent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.07)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: m.isUrgent ? '#EF4444' : '#0891B2', flexShrink: 0 }}>
+            <div className={`ps-msg-avatar${m.isUrgent ? ' urgent-avatar' : ''}`}>
               {avatarInitials(m.senderName)}
             </div>
             {/* Body */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3, gap: 6 }}>
-                <span style={{ fontWeight: m.isRead ? 500 : 700, color: m.isUrgent ? (m.isRead ? '#7f3530' : '#EF4444') : m.isRead ? '#5a7299' : '#e8f0fc', fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div className="ps-msg-row-body">
+              <div className="ps-msg-row-top">
+                <span className="ps-msg-row-sender">
                   {m.senderName}
                 </span>
                 {!isEditing && (
                   hoveredMsgId === m.id ? (
                     filterType === 'deleted' ? (
-                      <div style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
-                        <button onClick={e => { e.stopPropagation(); onRestore(m.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0891B2', fontSize: 11, fontWeight: 600, padding: 0 }}>Restore</button>
-                        <button onClick={e => { e.stopPropagation(); onPermanentDelete(m.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontSize: 11, fontWeight: 600, padding: 0 }}>Delete</button>
+                      <div className="ps-msg-row-hover-actions" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); onRestore(m.id); }} className="ps-msg-row-restore-btn">Restore</button>
+                        <button onClick={e => { e.stopPropagation(); onPermanentDelete(m.id); }} className="ps-msg-row-delete-link">Delete</button>
                       </div>
                     ) : (
-                      <button onClick={e => { e.stopPropagation(); onSoftDelete(m.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: 0 }}>
+                      <button onClick={e => { e.stopPropagation(); onSoftDelete(m.id); }} className="ps-msg-row-delete-icon-btn">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                       </button>
                     )
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      {m.isUrgent && <span style={{ fontSize: 9, fontWeight: 800, color: '#EF4444', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 4, padding: '1px 5px', textTransform: 'uppercase' as const, letterSpacing: '0.4px' }}>Urgent</span>}
-                      <span style={{ fontSize: 11, color: '#7a95b0', flexShrink: 0 }}>{relTime(m.timestamp)}</span>
+                    <div className="ps-msg-row-meta">
+                      {m.isUrgent && <span className="ps-msg-urgent-pill">Urgent</span>}
+                      <span className="ps-msg-row-time">{relTime(m.timestamp)}</span>
                     </div>
                   )
                 )}
               </div>
-              <div style={{ fontSize: 12, color: '#7a95b0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', marginBottom: 1 }}>{m.subject}</div>
-              <div style={{ fontSize: 11.5, color: '#8090a8', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{m.body}</div>
+              <div className="ps-msg-row-subject">{m.subject}</div>
+              <div className="ps-msg-row-preview">{m.body}</div>
             </div>
-            {!m.isRead && !isEditing && <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />}
+            {!m.isRead && !isEditing && <div className="ps-msg-unread-dot" />}
           </div>
         );
       })}
@@ -423,38 +425,27 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
     {/* Footer */}
     <div className="ps-msg-sidebar-footer">
       {isEditing ? (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={onBulkMarkRead} style={{ background: 'none', border: 'none', color: '#0891B2', cursor: 'pointer', fontSize: 14, padding: 0 }}>Read All</button>
-          <button onClick={onBulkDelete} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 14, fontWeight: 600, padding: 0 }}>Delete</button>
+        <div className="ps-msg-footer-edit-row">
+          <button onClick={onBulkMarkRead} className="ps-msg-footer-readall-btn">Read All</button>
+          <button onClick={onBulkDelete} className="ps-msg-footer-deleteall-btn">Delete</button>
         </div>
       ) : filterType === 'deleted' ? (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <button onClick={onEmptyDeleted} disabled={messages.length === 0}
-            style={{ background: 'none', border: 'none', cursor: messages.length === 0 ? 'default' : 'pointer', color: messages.length === 0 ? '#1e293b' : '#EF4444', fontSize: 14, fontWeight: 600 }}>Delete All</button>
+        <div className="ps-msg-footer-empty-row">
+          <button onClick={onEmptyDeleted} disabled={messages.length === 0} className="ps-msg-footer-deleteall-btn ps-msg-footer-deleteall-btn--centered">Delete All</button>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="ps-msg-footer-normal-row">
           {/* Search */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(14,23,38,0.9)', border: '1px solid rgba(100,130,160,0.35)', borderRadius: 8, padding: '8px 12px', transition: 'border-color 0.15s' }}
-            onFocusCapture={e => (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(8,145,178,0.5)'}
-            onBlurCapture={e => (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(80,110,140,0.5)'}
-          >
+          <div className="ps-msg-search">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8aaccc" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input className="ps-input" placeholder="Search" value={searchText} onChange={e => onSearchChange(e.target.value)}
-              style={{ flex: 1, background: 'none', border: 'none', color: '#d0daea', fontSize: 13, outline: 'none' }} />
+            <input placeholder="Search" value={searchText} onChange={e => onSearchChange(e.target.value)} />
           </div>
           {/* Compose */}
-          <button onClick={onCompose} disabled={isComposing} title="New internal message"
-            style={{ background: 'none', border: 'none', cursor: isComposing ? 'default' : 'pointer', color: isComposing ? '#334d66' : '#0891B2', display: 'flex', alignItems: 'center', padding: 5, borderRadius: 6, transition: 'all 0.15s' }}
-            onMouseEnter={e => { if (!isComposing) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(8,145,178,0.12)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}>
+          <button onClick={onCompose} disabled={isComposing} title="New internal message" className="ps-msg-compose-icon-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           {/* Secure email */}
-          <button onClick={onSecureEmail} title="Send secure external email"
-            style={{ background: 'none', border: '1px solid rgba(100,130,160,0.3)', cursor: 'pointer', color: '#7a95b0', display: 'flex', alignItems: 'center', padding: '4px 7px', borderRadius: 6, gap: 4, transition: 'all 0.15s', fontSize: 10, fontWeight: 700 }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#38bdf8'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(56,189,248,0.3)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#8aaccc'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(80,110,140,0.35)'; }}>
+          <button onClick={onSecureEmail} title="Send secure external email" className="ps-msg-footer-secure-btn">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </button>
@@ -629,7 +620,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
     if (isOpen) {
       setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose');
     }
-  }, [isOpen]);
+  }, [isOpen, prefillTo, prefillSubject, prefillBody]);
 
   const canSend = to.includes('@') && subject.trim() && body.trim();
 
@@ -883,16 +874,34 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, isDeleted: false } : m));
   };
 
-  const handlePermanentDelete = async (id: string) => {
-    if (!window.confirm('Permanently delete this message? This cannot be undone.')) return;
+  // Real fix: was window.confirm() in all 4 places below — replaced with
+  // the shared ConfirmModal. Each needs its own pending-state variable
+  // since ConfirmModal is async/UI-driven rather than a blocking call;
+  // rendered as 4 separate ConfirmModal instances at the end of this
+  // component, since each has a different message and trigger.
+  const [pendingPermanentDeleteId, setPendingPermanentDeleteId] = useState<string | null>(null);
+
+  const handlePermanentDelete = (id: string) => {
+    setPendingPermanentDeleteId(id);
+  };
+
+  const confirmPermanentDelete = async () => {
+    if (!pendingPermanentDeleteId) return;
+    const id = pendingPermanentDeleteId;
+    setPendingPermanentDeleteId(null);
     await messageService.permanentDelete(id);
     setMessages(prev => prev.filter(m => m.id !== id));
     if (selectedMsgId === id) setSelectedMsgId(null);
   };
 
-  const handleEmptyDeleted = async () => {
-    const count = messages.filter(m => m.isDeleted).length;
-    if (!window.confirm(`Permanently delete all ${count} messages? This cannot be undone.`)) return;
+  const [pendingEmptyDeletedCount, setPendingEmptyDeletedCount] = useState<number | null>(null);
+
+  const handleEmptyDeleted = () => {
+    setPendingEmptyDeletedCount(messages.filter(m => m.isDeleted).length);
+  };
+
+  const confirmEmptyDeleted = async () => {
+    setPendingEmptyDeletedCount(null);
     await messageService.emptyDeleted(userId);
     setMessages(prev => prev.filter(m => !m.isDeleted));
     setSelectedMsgId(null);
@@ -936,15 +945,23 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     setSecureEmailOpen(true);
   };
 
+  const [pendingBulkDeleteCount, setPendingBulkDeleteCount] = useState<number | null>(null);
+
   const handleBulkDelete = async () => {
     if (filterType === 'deleted') {
-      if (!window.confirm(`Permanently delete ${selectedIds.length} message(s)? This cannot be undone.`)) return;
-      await Promise.all(selectedIds.map(id => messageService.permanentDelete(id)));
-      setMessages(prev => prev.filter(m => !selectedIds.includes(m.id)));
-    } else {
-      await Promise.all(selectedIds.map(id => messageService.softDelete(id)));
-      setMessages(prev => prev.map(m => selectedIds.includes(m.id) ? { ...m, isDeleted: true } : m));
+      setPendingBulkDeleteCount(selectedIds.length);
+      return;
     }
+    await Promise.all(selectedIds.map(id => messageService.softDelete(id)));
+    setMessages(prev => prev.map(m => selectedIds.includes(m.id) ? { ...m, isDeleted: true } : m));
+    setSelectedIds([]);
+    setIsEditing(false);
+  };
+
+  const confirmBulkDelete = async () => {
+    setPendingBulkDeleteCount(null);
+    await Promise.all(selectedIds.map(id => messageService.permanentDelete(id)));
+    setMessages(prev => prev.filter(m => !selectedIds.includes(m.id)));
     setSelectedIds([]);
     setIsEditing(false);
   };
@@ -971,16 +988,23 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     setToDropdownOpen(false); setShowUserSearch(false);
   };
 
+  const [pendingCloseDrawer, setPendingCloseDrawer] = useState(false);
+
   const handleCloseDrawer = () => {
-    if (isDirty && window.confirm('You have an unsent message. Are you sure you want to close?')) {
-      setPortalOpen(false);
-      sessionStorage.removeItem('ps_drawer_open');
-      resetDrawerState();
-    } else if (!isDirty) {
-      setPortalOpen(false);
-      sessionStorage.removeItem('ps_drawer_open');
-      resetDrawerState();
+    if (isDirty) {
+      setPendingCloseDrawer(true);
+      return;
     }
+    setPortalOpen(false);
+    sessionStorage.removeItem('ps_drawer_open');
+    resetDrawerState();
+  };
+
+  const confirmCloseDrawer = () => {
+    setPendingCloseDrawer(false);
+    setPortalOpen(false);
+    sessionStorage.removeItem('ps_drawer_open');
+    resetDrawerState();
   };
 
   // ─── Voice command listeners ───────────────────────────────────────────────
@@ -1163,6 +1187,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       window.removeEventListener('PATHSCRIBE_MSG_URGENT',              msgUrgent);
       window.removeEventListener('PATHSCRIBE_MSG_RECIPIENT_SEARCH',    msgRecipientSearch);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real, honest justification: guardedNavigate and setMessages are genuinely called inside this effect's handlers. This effect's EXISTING deps (handleMarkRead, handleSoftDelete, handleRestore, handlePermanentDelete, handleEmptyDeleted, handleSend, handleSendNew, handleBulkDelete, handleBulkMarkRead, handleCloseDrawer) are themselves already unstable, unmemoized functions - a real, pre-existing condition confirmed directly, not something this fix introduces. Fully resolving this needs wrapping all 10 in useCallback, a significant, separate refactor deserving its own careful pass, not something to rush into this lint sweep.
   }, [
     navigate, setPortalOpen, displayMessages, selectedMsgId,
     filterType, isComposing, isEditing,
@@ -1185,24 +1210,22 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
       {/* Breadcrumb bar — dynamic */}
       {!hideNav && crumbs.length > 1 && (
-        <div style={{ flexShrink: 0, padding: '5px 24px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="ps-crumb-bar">
           {crumbs.map((crumb, i) => {
             const isLast = i === crumbs.length - 1;
             const isModal = crumb.path.includes('#');
             return (
               <React.Fragment key={crumb.path + i}>
-                {i > 0 && <span style={{ color: '#334155', fontSize: '11px' }}>{'›'}</span>}
+                {i > 0 && <span className="ps-crumb-sep">{'›'}</span>}
                 {isModal ? (
-                  <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 400 }}>{crumb.label}</span>
+                  <span className="ps-crumb-modal">{crumb.label}</span>
                 ) : isLast ? (
-                  <span style={{ color: '#0891B2', fontSize: '12px', fontWeight: 600 }}>{crumb.label}</span>
+                  <span className="ps-crumb-current">{crumb.label}</span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => guardedNavigate(crumb.path)}
-                    style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: 500 }}
-                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8'}
-                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = '#64748b'}
+                    className="ps-crumb-link"
                   >
                     {crumb.label}
                   </button>
@@ -1220,17 +1243,17 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
       {portalOpen && ReactDOM.createPortal(
         <>
-          <div className="ps-drawer-backdrop" onClick={handleCloseDrawer} style={{ zIndex: 1199 }} />
+          <div className="ps-drawer-backdrop" onClick={handleCloseDrawer} />
 
           {/* ── Unified messaging surface ── */}
-          <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 1200 }} onClick={e => e.stopPropagation()}>
+          <div className={`ps-msg-drawer${(selectedMsgId || isComposing) ? ' ps-msg-drawer--detail-active' : ''}`} onClick={e => e.stopPropagation()}>
 
             {/* ── Unified top bar ── */}
             <div className="ps-msg-topbar">
 
               {/* Left segment: title + controls */}
-              <div style={{ width: '320px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="ps-msg-topbar-left">
+                <div className="ps-msg-title-row">
                   <h2 className="ps-msg-title">
                     {filterType === 'deleted' ? 'Recently Deleted' : 'Messages'}
                   </h2>
@@ -1238,34 +1261,28 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                     <span className={`ps-unread-bubble${hasUrgent ? " ps-unread-urgent" : ""}`}>{unreadCount}</span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <button onClick={() => { setIsEditing(!isEditing); if (isEditing) setSelectedIds([]); }}
-                    style={{ color: '#0A84FF', background: 'none', border: 'none', fontSize: '14px', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', borderRadius: '6px' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(10,132,255,0.1)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                  >{isEditing ? 'Done' : 'Edit'}</button>
-                  <div style={{ position: 'relative' }}>
-                    <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '6px' }}
-                      onMouseEnter={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'none'; }}
-                    >
+                <div className="ps-msg-header-actions">
+                  <button className="ps-msg-edit-btn" onClick={() => { setIsEditing(!isEditing); if (isEditing) setSelectedIds([]); }}>
+                    {isEditing ? 'Done' : 'Edit'}
+                  </button>
+                  <div className="ps-msg-filter-wrap">
+                    <button className="ps-msg-filter-btn" onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} aria-label="Filter messages" title="Filter messages">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="21" y1="7" x2="3" y2="7" /><line x1="18" y1="12" x2="6" y2="12" /><line x1="15" y1="17" x2="9" y2="17" />
                       </svg>
                     </button>
                     {isFilterMenuOpen && (
                       <>
-                        <div onClick={() => setIsFilterMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
-                        <div style={{ position: 'absolute', top: '35px', right: 0, width: '190px', background: '#1a1d2a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 1000, padding: '4px' }}>
+                        <div className="ps-msg-filter-backdrop" onClick={() => setIsFilterMenuOpen(false)} />
+                        <div className="ps-msg-filter-menu">
                           {[{ id: 'all', label: 'Messages' }, { id: 'deleted', label: 'Recently Deleted' }].map((opt) => (
-                            <div key={opt.id} onClick={() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); }}
-                              style={{ padding: '12px 16px', fontSize: '14px', color: filterType === opt.id ? '#0891B2' : '#e2e8f0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', borderRadius: '8px' }}
-                              onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'}
-                              onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+                            <div
+                              key={opt.id}
+                              className={`ps-msg-filter-item${filterType === opt.id ? ' ps-msg-filter-item--active' : ''}`}
+                              onClick={() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); }}
                             >
                               <span>{opt.label}</span>
-                              {filterType === opt.id && <span style={{ color: '#0891B2' }}>✓</span>}
+                              {filterType === opt.id && <span className="ps-msg-filter-check">✓</span>}
                             </div>
                           ))}
                         </div>
@@ -1277,47 +1294,51 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
               {/* Right segment: thread context, compose title, or close button */}
               <div className="ps-msg-topbar-right">
+                <button
+                  type="button"
+                  className="ps-msg-mobile-back"
+                  onClick={() => { setSelectedMsgId(null); setIsComposing(false); }}
+                  aria-label="Back to message list"
+                  title="Back to message list"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
                 {selectedMsgId && currentMsg ? (
                   <>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '16px', fontWeight: 700, color: '#f1f5f9', letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentMsg.senderName}</span>
+                    <div className="ps-msg-thread-header">
+                      <div className="ps-msg-thread-name-row">
+                        <span className="ps-msg-thread-name">{currentMsg.senderName}</span>
                         {currentMsg.isUrgent && (
-                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,69,58,0.12)', color: '#FF453A', border: '1px solid rgba(255,69,58,0.25)', letterSpacing: '0.05em', textTransform: 'uppercase' as const, flexShrink: 0 }}>Urgent</span>
+                          <span className="ps-msg-urgent-badge">Urgent</span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="ps-msg-thread-meta-row">
                         {currentMsg.subject && (
-                          <span style={{ fontSize: '12px', color: '#6b7f99', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentMsg.subject}</span>
+                          <span className="ps-msg-thread-subject">{currentMsg.subject}</span>
                         )}
                         {currentMsg.caseNumber && (
-                          <button onClick={() => { setPortalOpen(false); sessionStorage.setItem('ps_reopen_messages', '1'); navigate(`/case/${currentMsg.caseNumber}/synoptic`); }}
-                            style={{ background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.2)', borderRadius: '5px', cursor: 'pointer', color: '#0891B2', fontSize: '11px', fontWeight: 600, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, transition: 'all 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.15)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.08)'; }}
-                          >
+                          <button className="ps-msg-case-link" onClick={() => { setPortalOpen(false); sessionStorage.setItem('ps_reopen_messages', '1'); navigate(`/case/${currentMsg.caseNumber}/synoptic`); }}>
                             Case {currentMsg.caseNumber}
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                           </button>
                         )}
                         {(currentMsg as any).configLink && (
-                          <button onClick={() => {
-                            const link = (currentMsg as any).configLink as string;
-                            setPortalOpen(false);
-                            navigate(link);
-                            // If the link targets a system section, fire the nav event after a tick
-                            const params = new URLSearchParams(link.split('?')[1] ?? '');
-                            const section = params.get('section');
-                            if (section) {
-                              setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('PATHSCRIBE_SYSTEM_NAVIGATE', { detail: { section } }));
-                              }, 150);
-                            }
-                          }}
-                            style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '5px', cursor: 'pointer', color: '#818cf8', fontSize: '11px', fontWeight: 600, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, transition: 'all 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; }}
+                          <button
+                            className="ps-msg-config-link"
                             title="Open configuration page"
+                            onClick={() => {
+                              const link = (currentMsg as any).configLink as string;
+                              setPortalOpen(false);
+                              navigate(link);
+                              // If the link targets a system section, fire the nav event after a tick
+                              const params = new URLSearchParams(link.split('?')[1] ?? '');
+                              const section = params.get('section');
+                              if (section) {
+                                setTimeout(() => {
+                                  window.dispatchEvent(new CustomEvent('PATHSCRIBE_SYSTEM_NAVIGATE', { detail: { section } }));
+                                }, 150);
+                              }
+                            }}
                           >
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                             Open Configuration
@@ -1325,31 +1346,19 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                         )}
                       </div>
                     </div>
-                    <button onClick={handleCloseDrawer}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a7299', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0, marginLeft: '12px', transition: 'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = '#5a7299'; e.currentTarget.style.background = 'none'; }}
-                    >
+                    <button className="ps-msg-close-btn ps-msg-close-btn--thread" onClick={handleCloseDrawer} aria-label="Close" title="Close">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </>
                 ) : isComposing ? (
                   <>
-                    <span style={{ fontSize: '15px', fontWeight: 600, color: '#0891B2' }}>New Message</span>
-                    <button onClick={handleCloseDrawer}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a7299', display: 'flex', alignItems: 'center', width: '32px', height: '32px', borderRadius: '50%', justifyContent: 'center', transition: 'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = '#5a7299'; e.currentTarget.style.background = 'none'; }}
-                    >
+                    <span className="ps-msg-compose-title">New Message</span>
+                    <button className="ps-msg-close-btn" onClick={handleCloseDrawer} aria-label="Close" title="Close">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </>
                 ) : (
-                  <button onClick={handleCloseDrawer}
-                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#5a7299', display: 'flex', alignItems: 'center', width: '32px', height: '32px', borderRadius: '50%', justifyContent: 'center', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#5a7299'; e.currentTarget.style.background = 'none'; }}
-                  >
+                  <button className="ps-msg-close-btn ps-msg-close-btn--empty" onClick={handleCloseDrawer} aria-label="Close" title="Close">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 )}
@@ -1385,7 +1394,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               />
 
               {/* RIGHT CONTENT */}
-              <div className="ps-msg-content" style={{ pointerEvents: 'all' }}>
+              <div className="ps-msg-content">
                 {isComposing ? (
                   <ComposePanel
                     recipients={newRecipients}
@@ -1424,11 +1433,11 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                     }}
                   />
                 ) : (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#8aaccc' }}>
-                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.35 }}>
+                  <div className="ps-msg-empty-state">
+                    <svg className="ps-msg-empty-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    <p style={{ fontSize: '13px', margin: 0 }}>Select a message to read</p>
+                    <p className="ps-msg-empty-text">Select a message to read</p>
                   </div>
                 )}
               </div>
@@ -1477,7 +1486,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
           <div className="ps-modal-dark" style={{ width: 340, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: '64px', height: '64px', borderRadius: '14px', border: '2px solid #0891B2', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '24px', fontWeight: 800 }}>{userInitials}</div>
             <h2 style={{ margin: '0 0 4px', color: '#f1f5f9', fontSize: 18 }}>{user?.name || 'Dr. Sarah Johnson'}</h2>
-            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>{user?.role ?? 'Pathologist'}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 20 }}>{user?.role ?? 'Pathologist'}</div>
 
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.07)', margin: '0 -24px', padding: '4px 0' }}>
               {/* User Guide */}
@@ -1528,6 +1537,38 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
         </div>
       )}
 
+      <ConfirmModal
+        show={!!pendingPermanentDeleteId}
+        title="Permanently Delete Message"
+        message="Permanently delete this message? This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmPermanentDelete}
+        onCancel={() => setPendingPermanentDeleteId(null)}
+      />
+      <ConfirmModal
+        show={pendingEmptyDeletedCount !== null}
+        title="Empty Deleted Messages"
+        message={`Permanently delete all ${pendingEmptyDeletedCount ?? 0} messages? This cannot be undone.`}
+        confirmLabel="Delete All"
+        onConfirm={confirmEmptyDeleted}
+        onCancel={() => setPendingEmptyDeletedCount(null)}
+      />
+      <ConfirmModal
+        show={pendingBulkDeleteCount !== null}
+        title="Permanently Delete Messages"
+        message={`Permanently delete ${pendingBulkDeleteCount ?? 0} message(s)? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setPendingBulkDeleteCount(null)}
+      />
+      <ConfirmModal
+        show={pendingCloseDrawer}
+        title="Unsent Message"
+        message="You have an unsent message. Are you sure you want to close?"
+        confirmLabel="Close"
+        onConfirm={confirmCloseDrawer}
+        onCancel={() => setPendingCloseDrawer(false)}
+      />
     </div>
   );
 };

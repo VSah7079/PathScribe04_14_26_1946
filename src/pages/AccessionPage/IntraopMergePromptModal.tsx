@@ -43,7 +43,7 @@ export const IntraopMergePromptModal: React.FC<Props> = ({ caseId, match, onMerg
           </div>
           <div className="ps-intraop-candidate-reason">{matchReason}</div>
 
-          <div className="ps-conf-form-field" style={{ marginTop: 16 }}>
+          <div className="ps-conf-form-field ps-intraop-note-group">
             <div className="ps-intraop-note">
               <span className="ps-intraop-note-label">{entry.orNumber} · {entry.surgeon} · {entry.specimens.length} specimen{entry.specimens.length === 1 ? '' : 's'}</span>
             </div>
@@ -55,7 +55,7 @@ export const IntraopMergePromptModal: React.FC<Props> = ({ caseId, match, onMerg
             ))}
           </div>
 
-          <p className="ps-intraop-merge-intro" style={{ marginTop: 12 }}>
+          <p className="ps-intraop-merge-intro ps-intraop-merge-intro--footer">
             Merging appends this to the case's Gross Description / Clinical History and attaches any mobile photos to the media gallery.
           </p>
         </div>

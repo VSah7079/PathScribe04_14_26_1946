@@ -84,8 +84,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ mode, category, onSave, o
           </div>
 
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">Default Grossing Template <span className="ps-conf-required">*</span></label>
-            <select className={`ps-conf-select ${errors.defaultGrossingTemplateId ? 'ps-conf-input--error' : ''}`} value={draft.defaultGrossingTemplateId} onChange={e => set('defaultGrossingTemplateId', e.target.value)}>
+            <label className="ps-conf-label" htmlFor="speccat-template">Default Grossing Template <span className="ps-conf-required">*</span></label>
+            <select id="speccat-template" className={`ps-conf-select ${errors.defaultGrossingTemplateId ? 'ps-conf-input--error' : ''}`} value={draft.defaultGrossingTemplateId} onChange={e => set('defaultGrossingTemplateId', e.target.value)}>
               {GROSSING_TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
             {errors.defaultGrossingTemplateId && <span className="ps-conf-error-text">{errors.defaultGrossingTemplateId}</span>}

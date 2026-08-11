@@ -5,6 +5,14 @@ import type { AmendmentRecord, AmendmentType, ClinicalNotification } from '@/typ
 export interface IAmendmentService {
   getByCaseId(caseId: string): Promise<ServiceResult<AmendmentRecord[]>>;
 
+  /** Every amendment/correction/addendum record across all cases, released
+   *  or still in draft — real fix, added for QualityTab.tsx's "Recently
+   *  Amended" list, which previously had no way to query amendments
+   *  across cases at all (getByCaseId requires already knowing the case;
+   *  getOpenDraftsForPathologist is scoped to one pathologist's open
+   *  drafts, not a released-amendment history). */
+  getAll(): Promise<ServiceResult<AmendmentRecord[]>>;
+
   /** Every open (status: 'draft') amendment or addendum a pathologist
    *  currently has in progress, across all their cases — this is what
    *  the worklist triage tile queries to keep an active draft "firmly

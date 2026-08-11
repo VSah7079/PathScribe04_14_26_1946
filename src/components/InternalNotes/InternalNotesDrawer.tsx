@@ -18,6 +18,7 @@ import '../../pathscribe.css';
 import { internalNoteService, INTERNAL_NOTE_TYPE_LABELS } from '../../services';
 import type { InternalNote, InternalNoteType, InternalNoteVisibility } from '../../services';
 import { useVoice, reportDictationCorrection } from '../../contexts/VoiceProvider';
+import ConfirmModal from '../Common/ConfirmModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,8 +184,19 @@ const InternalNotesDrawer: React.FC<Props> = ({
     };
   }, [isAdding, startDictation, stopDictation, handleAdd, handleCancel, onClose]);
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this note? This cannot be undone.')) return;
+  // Real fix: was window.confirm() — replaced with the shared ConfirmModal.
+  // Needs pending-delete state since ConfirmModal is async/UI-driven
+  // rather than a blocking call.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const handleDelete = (id: string) => {
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
     setDeletingId(id);
     const result = await internalNoteService.remove(id, userId);
     if (result.ok) setNotes(prev => prev.filter(n => n.id !== id));
@@ -438,6 +450,15 @@ const InternalNotesDrawer: React.FC<Props> = ({
           to   { transform: translateX(0); }
         }
       `}</style>
+
+      <ConfirmModal
+        show={!!pendingDeleteId}
+        title="Delete Note"
+        message="Delete this note? This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </>
   );
 };

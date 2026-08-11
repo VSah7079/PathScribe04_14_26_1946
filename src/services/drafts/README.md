@@ -48,7 +48,15 @@ it.
   `Drafts:DebounceIntervalMs` default) and exposes the cached payload
   directly (`existingDraftPayload`) rather than requiring a second fetch
   after the user decides to restore — wired into
-  `pages/SynopticReportPage/SynopticReportPage.tsx`.
+  `pages/SynopticReportPage/SynopticReportPage.tsx`. **Correction, a
+  later pass:** "wired into" was true structurally, but the whole
+  feature was silently non-functional end-to-end — a React 18 Strict
+  Mode interaction in `useDraftCache.ts` discarded every draft this
+  service correctly found, before the restore dialog ever had a
+  chance to appear. This service layer itself was never the problem —
+  confirmed directly, `getDraft()` always returned the right data.
+  See `hooks/README.md`'s entry on `useDraftCache.ts` for the full
+  mechanism and fix (item #109 in `PRIORITY_FIXES.md`).
 - **What actually gets cached is the sanitized full case, not just
   synoptic answers.** An earlier version of the consuming hook's wiring
   only cached `synopticReports.answers` — a full audit of that page's

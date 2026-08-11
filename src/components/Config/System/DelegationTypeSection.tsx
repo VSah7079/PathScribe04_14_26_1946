@@ -288,7 +288,7 @@ const DelegationTypeSection: React.FC = () => {
 
   const handleSave = async (dt: DelegationType) => {
     if (editing === 'new') {
-      const { id, isSystem, ...rest } = dt;
+      const { id: _id, isSystem: _isSystem, ...rest } = dt;
       await mockDelegationTypeService.add(rest);
     } else {
       await mockDelegationTypeService.update(dt.id, dt);

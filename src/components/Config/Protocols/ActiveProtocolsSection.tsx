@@ -192,13 +192,7 @@ const ActiveProtocolsSection: React.FC = () => {
             <button
               key={g}
               onClick={() => setGroupFilter(g)}
-              style={{
-                fontSize: '11px', fontWeight: 600, padding: '6px 12px', borderRadius: '6px',
-                border: active ? '1px solid #0891b2' : '1px solid #1e293b',
-                background: active ? 'rgba(8,145,178,0.15)' : 'transparent',
-                color: active ? '#22d3ee' : '#94a3b8',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
+              className={active ? 'ps-tat-filter-btn ps-tat-filter-btn--active' : 'ps-tat-filter-btn'}
             >
               {g} <span style={{ opacity: 0.7 }}>({groupCounts[g]})</span>
             </button>
@@ -242,17 +236,11 @@ export const ActionBtn: React.FC<{ children: React.ReactNode; onClick: () => voi
 );
 
 export const OutlineBtn: React.FC<{ children: React.ReactNode; onClick: () => void }> = ({ children, onClick }) => (
-  <button onClick={onClick} style={{ padding: '8px 16px', borderRadius: '7px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit' }}
-    onMouseEnter={e => { e.currentTarget.style.color = '#f1f5f9'; e.currentTarget.style.borderColor = '#475569'; }}
-    onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; }}
-  >{children}</button>
+  <button onClick={onClick} className="ps-conf-btn-secondary">{children}</button>
 );
 
 export const TealBtn: React.FC<{ children: React.ReactNode; onClick: () => void }> = ({ children, onClick }) => (
-  <button onClick={onClick} style={{ padding: '8px 16px', borderRadius: '7px', border: '1px solid rgba(8,145,178,0.4)', background: 'rgba(8,145,178,0.1)', color: '#0891B2', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit' }}
-    onMouseEnter={e => e.currentTarget.style.background = 'rgba(8,145,178,0.18)'}
-    onMouseLeave={e => e.currentTarget.style.background = 'rgba(8,145,178,0.1)'}
-  >{children}</button>
+  <button onClick={onClick} className="ps-conf-btn-teal-accent">{children}</button>
 );
 
 export const SearchBar: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (

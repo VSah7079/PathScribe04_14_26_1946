@@ -62,7 +62,7 @@ const SNOMED_FILTER_KEYWORDS: Record<SnomedFilter, string[]> = {
   organism:   ['bacterium','virus','fungus','organism','parasite'],
 };
 
-export async function searchSnomed(
+async function searchSnomed(
   query: string,
   filter: SnomedFilter = 'all',
   maxResults = 20
@@ -114,7 +114,7 @@ export async function searchSnomed(
 // data[1] = codes, data[3] = [[code, name], ...] when df=code,name
 // Note: Non-US variants (ICD-10-AM, ICD-10 WHO) require backend proxy.
 
-export async function searchIcd10(query: string, maxResults = 20): Promise<CodeResult[]> {
+async function searchIcd10(query: string, maxResults = 20): Promise<CodeResult[]> {
   if (!query.trim()) return [];
   try {
     const params = new URLSearchParams({
@@ -146,7 +146,7 @@ export async function searchIcd10(query: string, maxResults = 20): Promise<CodeR
 // NLM hosts ICD-11 directly — no WHO OAuth or backend proxy required.
 // data[1] = codes, data[3] = [[code, title], ...] when df=code,title
 
-export async function searchIcd11(query: string, maxResults = 20): Promise<CodeResult[]> {
+async function searchIcd11(query: string, maxResults = 20): Promise<CodeResult[]> {
   if (!query.trim()) return [];
   try {
     const params = new URLSearchParams({
@@ -178,7 +178,7 @@ export async function searchIcd11(query: string, maxResults = 20): Promise<CodeR
 // type=question filters to observable/test codes relevant to pathology.
 // data[1] = LOINC numbers, data[3] = [[LOINC_NUM, LONG_COMMON_NAME], ...]
 
-export async function searchLoinc(query: string, maxResults = 20): Promise<CodeResult[]> {
+async function searchLoinc(query: string, maxResults = 20): Promise<CodeResult[]> {
   if (!query.trim()) return [];
   try {
     const params = new URLSearchParams({
@@ -210,7 +210,7 @@ export async function searchLoinc(query: string, maxResults = 20): Promise<CodeR
 // Uses UTS SNOMED morphology search filtered to morphologic abnormality concepts.
 // Replace with a dedicated backend ICD-O-3 endpoint for full topography coverage.
 
-export async function searchIcdo(query: string, maxResults = 20): Promise<CodeResult[]> {
+async function searchIcdo(query: string, maxResults = 20): Promise<CodeResult[]> {
   if (!query.trim()) return [];
   try {
     const params = new URLSearchParams({
@@ -249,18 +249,35 @@ export async function searchIcdo(query: string, maxResults = 20): Promise<CodeRe
 // Dev/demo: returns empty with a console note.
 // TODO: wire to NHS TRUD API via backend proxy.
 
-export async function searchOpcs4(_query: string, _maxResults = 20): Promise<CodeResult[]> {
+async function searchOpcs4(_query: string, _maxResults = 20): Promise<CodeResult[]> {
   console.info('[codeSearchService] OPCS-4 search requires NHS TRUD backend proxy — not yet implemented');
   return [];
 }
 
 // ─── CPT ──────────────────────────────────────────────────────────────────────
-// NLM does not have CPT codes (AMA copyright restriction).
-// Requires a licensed backend proxy — placeholder until implemented.
+// NLM does not have CPT codes (AMA copyright restriction) - a full,
+// licensed CPT database is still not available. Real fix: this doesn't
+// need one. Searches the app's own, small, manually-curated, verified
+// Code_Map_Table (services/billing/codeMapTable.ts) instead - not a
+// substitute for full CPT coverage, but real, legally clean data for
+// the handful of codes this app actually tracks, rather than the
+// silent, permanent empty-array stub this was before.
 
-export async function searchCpt(_query: string, _maxResults = 20): Promise<CodeResult[]> {
-  console.info('[codeSearchService] CPT search requires AMA-licensed backend proxy — not yet implemented');
-  return [];
+async function searchCpt(query: string, maxResults = 20): Promise<CodeResult[]> {
+  const { mockRvuCodeMapService } = await import('../billing/mockRvuCodeMapService');
+  const activeRes = await mockRvuCodeMapService.getActiveVersion();
+  if (!activeRes.ok || !activeRes.data) return [];
+
+  const q = query.trim().toLowerCase();
+  const entries = activeRes.data.entries.filter(e =>
+    !q || e.code.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
+  );
+
+  return entries.slice(0, maxResults).map(e => ({
+    code: e.code,
+    display: e.description,
+    system: 'CPT',
+  }));
 }
 
 // ─── Unified dispatcher ───────────────────────────────────────────────────────

@@ -475,22 +475,13 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               display: 'flex', gap: '10px', justifyContent: 'flex-end',
               background: 'rgba(0,0,0,0.2)',
             }}>
-              <button onClick={onClose}
-                style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={onClose} className="ps-conf-btn-secondary">
                 Cancel
               </button>
               <button
                 onClick={handleSubmit} disabled={!canSubmit}
-                style={{
-                  padding: '9px 22px', borderRadius: '8px', fontSize: '13px', fontWeight: 700,
-                  cursor: canSubmit ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
-                  border: `1px solid ${canSubmit ? (isQA ? 'rgba(245,158,11,0.4)' : 'rgba(8,145,178,0.4)') : T.border}`,
-                  background: canSubmit ? (isQA ? 'rgba(245,158,11,0.15)' : 'rgba(8,145,178,0.15)') : 'rgba(255,255,255,0.04)',
-                  color: canSubmit ? (isQA ? '#fbbf24' : T.accent) : T.dimmer,
-                  opacity: submitting ? 0.7 : 1, transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = isQA ? 'rgba(245,158,11,0.25)' : 'rgba(8,145,178,0.25)'; }}
-                onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = isQA ? 'rgba(245,158,11,0.15)' : 'rgba(8,145,178,0.15)'; }}
+                className={`ps-enhance-submit-btn${isQA ? ' ps-enhance-submit-btn--qa' : ''}`}
+                style={{ opacity: submitting ? 0.7 : 1 }}
               >
                 {submitting ? '⏳ Submitting…' : isQA ? '🐛 Submit QA Feedback' : '💡 Submit Request'}
               </button>

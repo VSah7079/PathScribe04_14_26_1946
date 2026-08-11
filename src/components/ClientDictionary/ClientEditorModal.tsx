@@ -7,35 +7,40 @@
  *   isOpen  -- boolean
  *   onClose -- () => void
  *   client  -- Client | undefined (undefined = add mode, Client = edit mode)
- *   onSave  -- (input: ClientInput) => void — parent owns the actual
- *              clientService.add/update call, same convention as
+ *   onSave  -- (input: FacilityInput) => void — parent owns the actual
+ *              facilityService.add/update call, same convention as
  *              PhysiciansSection.tsx / SpecimenCategoriesSection.tsx
  */
 
 import React, { useState, useEffect } from "react";
 import '../../pathscribe.css';
-import type { Client, ClientInput } from "../../services/clients/IClientService";
+import type { Facility, FacilityInput, FacilityRole } from "../../services/facilities/IFacilityService";
+import { FACILITY_ROLE_LABELS } from "../../services/facilities/IFacilityService";
 import { JURISDICTION_LABELS, type Jurisdiction } from "../../types/systemConfig";
 import { SUFFIX_PRESETS, isPresetSuffix } from "../../utils/personName";
+import { getEligibleModelIdsForClient } from "../Config/AI/resolveClientAiModel";
+import { modelService, locationService } from "../../services";
+import type { AIModel } from "../../services/models/IModelService";
+import type { Location } from "../../services/locations/ILocationService";
+import { HL7_LOCATION_STATUS_OPTIONS, HL7_PERSON_LOCATION_TYPE_OPTIONS } from "../../services/locations/ILocationService";
 
 interface ClientEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Existing client to edit, or undefined to add a new one. Passed
-   *  directly rather than a clientId + internal lookup — matches
-   *  PhysiciansSection/SpecimenCategoriesSection's convention, and
-   *  removes the dependency on the retiring useClientDictionary context. */
-  client?: Client;
-  onSave: (input: ClientInput) => void;
-  /** Full client list, used to populate the Parent Institution dropdown
-   *  when Type is set to Internal — e.g. picking which NHS Trust a
-   *  hospital is an affiliate of. */
-  allClients: Client[];
+  /** Existing facility to edit, or undefined to add a new one. Passed
+   *  directly rather than a facilityId + internal lookup — matches
+   *  PhysiciansSection/SpecimenCategoriesSection's convention. */
+  client?: Facility;
+  onSave: (input: FacilityInput) => void;
+  /** Full facility list, used to populate the Parent Institution
+   *  dropdown — e.g. picking which NHS Trust a hospital is an
+   *  affiliate of. */
+  allClients: Facility[];
 }
 
 // ─── Static data (extracted to avoid inline type assertions in JSX) ───────────
 
-type ReportingOption = [keyof Client['reporting'], string];
+type ReportingOption = [keyof Facility['reporting'], string];
 
 const REPORTING_OPTIONS: ReportingOption[] = [
   ['autoRelease',     'Auto-release reports on finalization'],
@@ -51,11 +56,23 @@ const ESCALATION_TARGETS: EscalationOption[] = [
   ['referrer',  'Referring Physician - the requesting clinician is notified'],
 ];
 
+// Real feature, per direct confirmation: "One record per facility.
+// Multiple roles attached to that record." Display order for the role
+// checkboxes — performing_lab first since it's the role that unlocks
+// the most additional config (AI & Performance tab).
+const FACILITY_ROLE_ORDER: FacilityRole[] = [
+  'performing_lab',
+  'internal_submitting_location',
+  'internal_ordering_client',
+  'external_ordering_client',
+  'hl7_routing_endpoint',
+];
+
 // ─── Blank form state ─────────────────────────────────────────────────────────
 
-const blank = (): ClientInput => ({
+const blank = (): FacilityInput => ({
   name: "",
-  clientType: "external",
+  roles: ["external_ordering_client"],
   jurisdiction: "US",
   specimenLabelStyle: "alpha-specimen",
   assigningAuthority: "",
@@ -88,7 +105,9 @@ const blank = (): ClientInput => ({
   escalationTargets:  [],
   escalationPriority: 'high',
   internalAiOrchestratorEnabled: null,
+  internalAiModelId: null,
   idleTimeoutMinutesOverride: null,
+  releaseBufferOverride: null,
 });
 
 // ─── Style constants ──────────────────────────────────────────────────────────
@@ -109,7 +128,7 @@ const LABEL: React.CSSProperties = {
   display: "block",
   fontSize: "11px",
   fontWeight: 700,
-  color: "#475569",
+  color: "#cbd5e1",
   marginBottom: "4px",
   textTransform: "uppercase",
   letterSpacing: "0.5px",
@@ -151,7 +170,7 @@ const onB = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLText
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = "general" | "hl7" | "reporting" | "tat";
+type Tab = "general" | "hl7" | "reporting" | "tat" | "ai" | "locations";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -164,16 +183,16 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 }) => {
   const isEdit = !!client;
 
-  const [form, setForm] = useState<ClientInput>(blank);
+  const [form, setForm] = useState<FacilityInput>(blank);
   const [tab,  setTab]  = useState<Tab>("general");
-  const [errors, setErrors] = useState<Partial<Record<keyof ClientInput, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FacilityInput, string>>>({});
   const [saved, setSaved]   = useState(false);
   const [contactSuffixCustom, setContactSuffixCustom] = useState(!isPresetSuffix(form.contactNameSuffix));
 
   useEffect(() => {
     if (!isOpen) return;
     if (client) {
-      const { id, createdAt, updatedAt, ...input } = client;
+      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...input } = client;
       setForm(input);
       setContactSuffixCustom(!isPresetSuffix(client.contactNameSuffix));
     } else {
@@ -189,20 +208,127 @@ export const ClientEditorModal: React.FC<ClientEditorModalProps> = ({
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const set = (key: keyof ClientInput, val: unknown) =>
+  const set = (key: keyof FacilityInput, val: unknown) =>
     setForm((f) => ({ ...f, [key]: val }));
 
-  const setHL7 = (key: keyof Client["hl7"], val: unknown) =>
+  const setHL7 = (key: keyof Facility["hl7"], val: unknown) =>
     setForm((f) => ({ ...f, hl7: { ...f.hl7, [key]: val } }));
 
-  const setReporting = (key: keyof Client["reporting"], val: unknown) =>
+  const setReporting = (key: keyof Facility["reporting"], val: unknown) =>
     setForm((f) => ({ ...f, reporting: { ...f.reporting, [key]: val } }));
+
+  // Real feature, per direct confirmation: "One record per facility.
+  // Multiple roles attached to that record." Toggles a single role in
+  // the roles array — the single source of truth for which config
+  // sections (HL7, Reporting/TAT, AI & Performance) are relevant to
+  // this facility.
+  const toggleRole = (role: FacilityRole, checked: boolean) => {
+    setForm(f => ({
+      ...f,
+      roles: checked ? [...f.roles, role] : f.roles.filter(r => r !== role),
+    }));
+  };
+
+  const hasRole = (role: FacilityRole) => form.roles.includes(role);
+
+  // Safety: if the active tab's role gets unchecked (e.g. viewing "AI &
+  // Performance" then unchecking performing_lab), fall back to General
+  // rather than leaving the body showing nothing for a tab that no
+  // longer appears in the tab bar. Reporting/TAT & Escalation are not
+  // role-gated (see the tab bar below) so they need no reset here —
+  // TAT is a real concern for any facility that handles cases, not
+  // just ordering-client roles (confirmed against real data: a
+  // performing-lab-only facility can carry real TAT targets).
+  useEffect(() => {
+    if (tab === 'hl7' && !hasRole('hl7_routing_endpoint')) setTab('general');
+    if (tab === 'ai' && !hasRole('performing_lab')) setTab('general');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.roles]);
+
+  // Real feature, per direct confirmation: "AI configuration should be
+  // gated exclusively by the performing_lab role." Model eligibility —
+  // which models THIS facility has a passing validation study for —
+  // only meaningful once performing_lab is checked and the facility
+  // has a real id to check against (i.e. edit mode; a brand-new
+  // facility can't have a validation study yet).
+  const [eligibleModels, setEligibleModels] = useState<AIModel[]>([]);
+  useEffect(() => {
+    if (!isOpen || !client?.id || !hasRole('performing_lab')) { setEligibleModels([]); return; }
+    let cancelled = false;
+    (async () => {
+      const [eligibleIds, allModelsRes] = await Promise.all([
+        getEligibleModelIdsForClient(client.id),
+        modelService.getAll(),
+      ]);
+      if (cancelled) return;
+      const all = allModelsRes.ok ? allModelsRes.data : [];
+      setEligibleModels(all.filter(m => eligibleIds.includes(m.id)));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, client?.id, form.roles.includes('performing_lab')]);
+
+  // Real feature, per direct confirmation: "we will need to accept
+  // PV1 HL7 data... Location / Rooms... naturally associated to the
+  // Facility." Real fix, per direct confirmation: no longer gated to
+  // hl7_routing_endpoint — a facility can want locations configured
+  // purely for manual accessioning (AccessionPage.tsx's own Location
+  // dropdown), independent of whether HL7 integration exists at all.
+  // Only meaningful once the facility has a real id (edit mode) — a
+  // brand-new, unsaved facility can't have locations attached to it
+  // yet.
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const reloadLocations = async () => {
+    if (!client?.id) { setLocations([]); return; }
+    setLocationsLoading(true);
+    const res = await locationService.listForFacility(client.id);
+    if (res.ok) setLocations(res.data);
+    setLocationsLoading(false);
+  };
+  useEffect(() => {
+    if (!isOpen || !client?.id) { setLocations([]); return; }
+    reloadLocations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, client?.id]);
+
+  const [showAddLocation, setShowAddLocation] = useState(false);
+  const [newLocation, setNewLocation] = useState({
+    pointOfCare: '', room: '', bed: '', building: '', floor: '',
+    locationStatus: '', personLocationType: '',
+  });
+  const resetNewLocationForm = () => setNewLocation({ pointOfCare: '', room: '', bed: '', building: '', floor: '', locationStatus: '', personLocationType: '' });
+
+  const handleAddLocation = async () => {
+    if (!client?.id || !newLocation.pointOfCare.trim()) return;
+    await locationService.create({
+      facilityId: client.id,
+      pointOfCare: newLocation.pointOfCare.trim(),
+      room: newLocation.room.trim() || undefined,
+      bed: newLocation.bed.trim() || undefined,
+      building: newLocation.building.trim() || undefined,
+      floor: newLocation.floor.trim() || undefined,
+      locationStatus: newLocation.locationStatus || undefined,
+      personLocationType: newLocation.personLocationType || undefined,
+      status: 'Active',
+    });
+    resetNewLocationForm();
+    setShowAddLocation(false);
+    await reloadLocations();
+  };
+
+  const handleVerifyLocation = async (id: string) => { await locationService.verify(id); await reloadLocations(); };
+  const handleToggleLocationActive = async (loc: Location) => {
+    if (loc.status === 'Active') await locationService.deactivate(loc.id);
+    else await locationService.reactivate(loc.id);
+    await reloadLocations();
+  };
 
   // ── Validation ─────────────────────────────────────────────────────────────
 
   const validate = (): boolean => {
     const e: typeof errors = {};
-    if (!form.name.trim()) e.name = "Client name is required";
+    if (!form.name.trim()) e.name = "Facility name is required";
     if (!form.assigningAuthority.trim()) e.assigningAuthority = "Assigning Authority is required";
     if (!form.email.trim() || !form.email.includes("@"))
       e.email = "Valid email required";
@@ -249,7 +375,7 @@ className="ps-client-editor-shell"
         <div className="ps-client-editor-header">
           <div className="ps-client-editor-header-row">
             <h2 className="ps-client-editor-title">
-              {isEdit ? "Edit Client" : "Add Client"}
+              {isEdit ? "Edit Facility" : "Add Facility"}
             </h2>
             <button
               onClick={onClose}
@@ -258,9 +384,31 @@ className="ps-modal-close"
           </div>
           <div className="ps-client-editor-tabs">
             <button style={tabStyle("general")}   onClick={() => setTab("general")}>General</button>
-            <button style={tabStyle("hl7")}        onClick={() => setTab("hl7")}>HL7 Integration</button>
+            {hasRole('hl7_routing_endpoint') && (
+              <button style={tabStyle("hl7")}        onClick={() => setTab("hl7")}>HL7 Integration</button>
+            )}
+            {/* Real fix, per direct confirmation: not role-gated —
+                TAT/reporting apply to any facility that handles
+                cases, not just ordering-client roles. Confirmed
+                against real seed data: Fenwick General Hospital is
+                performing_lab-only but has real, configured TAT
+                targets (8h/48h) that were invisible under the old
+                isOrderingClient gate. */}
             <button style={tabStyle("reporting")}  onClick={() => setTab("reporting")}>Reporting</button>
             <button style={tabStyle("tat")}        onClick={() => setTab("tat")}>TAT &amp; Escalation</button>
+            {hasRole('performing_lab') && (
+              <button style={tabStyle("ai")}         onClick={() => setTab("ai")}>AI &amp; Performance</button>
+            )}
+            {/* Real fix, per direct confirmation: no longer gated to
+                hl7_routing_endpoint — a facility can want its
+                locations configured purely for manual accessioning
+                (AccessionPage.tsx's own Location dropdown), with no
+                HL7 integration involved at all. Still edit-mode only —
+                a brand-new, unsaved facility can't have locations
+                attached to it yet. */}
+            {isEdit && (
+              <button style={tabStyle("locations")}  onClick={() => setTab("locations")}>Locations</button>
+            )}
           </div>
         </div>
 
@@ -270,9 +418,9 @@ className="ps-modal-close"
           {/* General */}
           {tab === "general" && (
             <div className="ps-client-editor-form">
-              <div style={SECTION}>Client Details</div>
+              <div style={SECTION}>Facility Details</div>
               <div style={grid2}>
-                <Field label="Client Name *" span>
+                <Field label="Facility Name *" span>
                   <input
                     className={`ps-modal-dark-input${errors.name ? " ps-modal-dark-input--error" : ""}`}
                     value={form.name}
@@ -309,16 +457,34 @@ className="ps-modal-close"
                     {form.status === 'Unverified' && <option value="Unverified" disabled>Unverified (verify via table action)</option>}
                   </select>
                 </Field>
-                <Field label="Type">
-                  <select
-                    style={INPUT}
-                    value={form.clientType}
-                    onChange={(e) => set("clientType", e.target.value)}
-                    onFocus={onF} onBlur={onB}
-                  >
-                    <option value="external">External — independent submitting practice</option>
-                    <option value="internal">Internal — affiliated site of this institution</option>
-                  </select>
+                <Field label="Roles" span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {FACILITY_ROLE_ORDER.map(role => (
+                      <label
+                        key={role}
+                        htmlFor={`role-${role}`}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
+                          background: hasRole(role) ? 'rgba(8,145,178,0.12)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${hasRole(role) ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          id={`role-${role}`}
+                          checked={hasRole(role)}
+                          onChange={e => toggleRole(role, e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: '#0891b2', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{FACILITY_ROLE_LABELS[role]}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+                    A facility can hold any combination — e.g. a hospital can be both a Performing Lab and an
+                    Internal Ordering Client at once. HL7, Reporting/TAT, and AI &amp; Performance tabs above
+                    appear based on which roles are checked here.
+                  </div>
                 </Field>
                 <Field label="Jurisdiction">
                   <select
@@ -343,63 +509,19 @@ className="ps-modal-close"
                     <option value="numeric-specimen">Specimen 1, 2, 3 / Block 1A, 1B, 1C</option>
                   </select>
                 </Field>
-                {form.clientType === 'internal' && (
-                  <Field label="Parent Institution">
-                    <select
-                      style={INPUT}
-                      value={form.parentId ?? ''}
-                      onChange={(e) => set("parentId", e.target.value || undefined)}
-                      onFocus={onF} onBlur={onB}
-                    >
-                      <option value="">None — this is the top-level institution</option>
-                      {allClients
-                        .filter(c => c.clientType === 'internal' && c.id !== client?.id)
-                        .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </Field>
-                )}
-                {form.clientType === 'internal' && (
-                  <Field label="AI Orchestrator (narrative auto-draft)">
-                    <select
-                      style={INPUT}
-                      value={
-                        form.internalAiOrchestratorEnabled === true  ? 'on'
-                        : form.internalAiOrchestratorEnabled === false ? 'off'
-                        : 'inherit'
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        set("internalAiOrchestratorEnabled", v === 'inherit' ? null : v === 'on');
-                      }}
-                      onFocus={onF} onBlur={onB}
-                    >
-                      <option value="inherit">Inherit organisation default (Configuration → AI Behavior)</option>
-                      <option value="on">Enabled for this lab</option>
-                      <option value="off">Disabled for this lab</option>
-                    </select>
-                  </Field>
-                )}
-                {form.clientType === 'internal' && (
-                  <Field label="Idle session timeout override">
-                    <select
-                      style={INPUT}
-                      value={form.idleTimeoutMinutesOverride == null ? 'inherit' : String(form.idleTimeoutMinutesOverride)}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        set("idleTimeoutMinutesOverride", v === 'inherit' ? null : Number(v));
-                      }}
-                      onFocus={onF} onBlur={onB}
-                    >
-                      <option value="inherit">Inherit organisation default (Configuration → System)</option>
-                      <option value="5">5 minutes</option>
-                      <option value="10">10 minutes</option>
-                      <option value="15">15 minutes</option>
-                      <option value="20">20 minutes</option>
-                      <option value="30">30 minutes</option>
-                      <option value="60">60 minutes</option>
-                    </select>
-                  </Field>
-                )}
+                <Field label="Parent Institution">
+                  <select
+                    style={INPUT}
+                    value={form.parentId ?? ''}
+                    onChange={(e) => set("parentId", e.target.value || undefined)}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    <option value="">None — this is the top-level institution</option>
+                    {allClients
+                      .filter(c => c.id !== client?.id)
+                      .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </Field>
               </div>
 
               <div style={SECTION}>Contact</div>
@@ -449,7 +571,7 @@ className="ps-modal-close"
                     value={form.email}
                     onChange={(e) => set("email", e.target.value)}
                     onFocus={onF} onBlur={onB}
-                    placeholder="contact@client.com"
+                    placeholder="contact@facility.com"
                     type="email"
                   />
                   {errors.email && <div className="ps-client-editor-field-error">{errors.email}</div>}
@@ -482,7 +604,7 @@ className="ps-modal-close"
                 </label>
               </div>
 
-              <div style={{ opacity: form.hl7.enabled ? 1 : 0.45, pointerEvents: form.hl7.enabled ? "auto" : "none" }}>
+              <div style={{ opacity: form.hl7.enabled ? 1 : 0.65, pointerEvents: form.hl7.enabled ? "auto" : "none" }}>
                 <div style={{ ...grid2, marginBottom: "12px" }}>
                   <Field label="Sending Facility (MSH-4)">
                     <input style={INPUT} value={form.hl7.sendingFacility} onChange={(e) => setHL7("sendingFacility", e.target.value)} onFocus={onF} onBlur={onB} placeholder="pathscribe" />
@@ -641,6 +763,364 @@ className="ps-modal-close"
             </div>
           )}
 
+          {/* AI & Performance — real feature, per direct confirmation:
+              "AI configuration should be gated exclusively by the
+              performing_lab role." Only reachable via the tab bar when
+              that role is checked (see tab bar above), and the tab
+              itself resets to General if the role gets unchecked
+              while active (see the useEffect near the top). */}
+          {tab === "ai" && (
+            <div className="ps-client-editor-form">
+              <div style={SECTION}>AI Orchestrator</div>
+              <div style={grid2}>
+                <Field label="Narrative Auto-Draft">
+                  <select
+                    style={INPUT}
+                    value={
+                      form.internalAiOrchestratorEnabled === true ? 'on'
+                      : form.internalAiOrchestratorEnabled === false ? 'off'
+                      : 'inherit'
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      set("internalAiOrchestratorEnabled", v === 'inherit' ? null : v === 'on');
+                    }}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    <option value="inherit">Inherit organisation default (Configuration → AI Behavior)</option>
+                    <option value="on">Enabled for this lab</option>
+                    <option value="off">Disabled for this lab</option>
+                  </select>
+                </Field>
+                <Field label="Idle session timeout override">
+                  <select
+                    style={INPUT}
+                    value={form.idleTimeoutMinutesOverride == null ? 'inherit' : String(form.idleTimeoutMinutesOverride)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      set("idleTimeoutMinutesOverride", v === 'inherit' ? null : Number(v));
+                    }}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    <option value="inherit">Inherit organisation default (Configuration → System)</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">60 minutes</option>
+                  </select>
+                </Field>
+              </div>
+
+              {/* Real feature, per direct specification: Post-Sign-Out
+                  Release Buffer, Phase 2. Same real, explicit
+                  inheritSystemDefault split as the spec's own "Inherit
+                  System Default: Toggle (ON/OFF) — Facility Level Only"
+                  requirement — not the simpler "blank means inherit"
+                  shape idleTimeoutMinutesOverride above uses, since a
+                  facility here needs to override THREE related values
+                  together (enabled/duration/bypass), not one bare number. */}
+              <div style={SECTION}>Post-Sign-Out Release Buffer</div>
+              <div style={grid2}>
+                <Field label="Configuration for this lab">
+                  <select
+                    style={INPUT}
+                    value={form.releaseBufferOverride == null || form.releaseBufferOverride.inheritSystemDefault ? 'inherit' : 'override'}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      set("releaseBufferOverride", v === 'inherit'
+                        ? { inheritSystemDefault: true, enabled: true, durationMinutes: 10, bypassForStat: true }
+                        : { inheritSystemDefault: false, enabled: true, durationMinutes: 10, bypassForStat: true });
+                    }}
+                    onFocus={onF} onBlur={onB}
+                  >
+                    <option value="inherit">Inherit organisation default (Configuration → System → LIS Integration)</option>
+                    <option value="override">Override for this lab</option>
+                  </select>
+                </Field>
+                {form.releaseBufferOverride && !form.releaseBufferOverride.inheritSystemDefault && (
+                  <>
+                    <Field label="Buffer enabled for this lab">
+                      <select
+                        style={INPUT}
+                        value={form.releaseBufferOverride.enabled ? 'on' : 'off'}
+                        onChange={(e) => set("releaseBufferOverride", { ...form.releaseBufferOverride!, enabled: e.target.value === 'on' })}
+                        onFocus={onF} onBlur={onB}
+                      >
+                        <option value="on">Enabled</option>
+                        <option value="off">Disabled — release immediately on sign-out</option>
+                      </select>
+                    </Field>
+                    <Field label="Buffer duration (minutes)">
+                      <input
+                        type="number" min={1} max={30} style={INPUT}
+                        value={form.releaseBufferOverride.durationMinutes}
+                        disabled={!form.releaseBufferOverride.enabled}
+                        onChange={(e) => {
+                          const raw = Number(e.target.value);
+                          const clamped = Number.isFinite(raw) ? Math.min(30, Math.max(1, raw)) : form.releaseBufferOverride!.durationMinutes;
+                          set("releaseBufferOverride", { ...form.releaseBufferOverride!, durationMinutes: clamped });
+                        }}
+                        onFocus={onF} onBlur={onB}
+                      />
+                    </Field>
+                    <Field label="Bypass buffer for STAT cases">
+                      <select
+                        style={INPUT}
+                        value={form.releaseBufferOverride.bypassForStat ? 'on' : 'off'}
+                        disabled={!form.releaseBufferOverride.enabled}
+                        onChange={(e) => set("releaseBufferOverride", { ...form.releaseBufferOverride!, bypassForStat: e.target.value === 'on' })}
+                        onFocus={onF} onBlur={onB}
+                      >
+                        <option value="on">Bypass — STAT cases release immediately</option>
+                        <option value="off">No bypass — STAT cases still buffered</option>
+                      </select>
+                    </Field>
+                  </>
+                )}
+              </div>
+
+              <div style={SECTION}>AI Model Version</div>
+              <Field label="Model">
+                <select
+                  style={INPUT}
+                  value={form.internalAiModelId ?? 'inherit'}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    set("internalAiModelId", v === 'inherit' ? null : v);
+                  }}
+                  onFocus={onF} onBlur={onB}
+                >
+                  <option value="inherit">Inherit organisation default (Configuration → AI Behavior → Models)</option>
+                  {eligibleModels.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} {m.version}</option>
+                  ))}
+                </select>
+                {/* Real, deliberate design: this list is not "every
+                    model in the system" — only ones this exact
+                    facility has a reported, PASS-graded validation
+                    study for. No way around that from here, by
+                    design; a facility with none available sees only
+                    "Inherit," which is the correct, safe state. */}
+                {isEdit && eligibleModels.length === 0 && (
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                    No validated model versions available for this facility yet — a reported, passing
+                    Validation Study is required before a model override can be set here.
+                  </div>
+                )}
+                {!isEdit && (
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                    Save this facility first, then reopen it to set a model override — eligibility is
+                    checked against a real facility id.
+                  </div>
+                )}
+              </Field>
+            </div>
+          )}
+
+          {/* Locations — real feature, per direct confirmation: "we
+              will need to accept PV1 HL7 data, but I don't believe we
+              have Location / Rooms defined in config. They would
+              naturally be associated to the Facility." Only reachable
+              when hl7_routing_endpoint is checked (see tab bar
+              above) — a facility only needs a Location dictionary if
+              it's actually sending/receiving HL7 messages carrying
+              PV1 segments. */}
+          {tab === "locations" && (
+            <div className="ps-client-editor-form">
+              <div style={SECTION}>Locations</div>
+              <p className="ps-fixgate-intro" style={{ marginBottom: 12 }}>
+                Wards, rooms, and beds configured for this facility. An inbound PV1 (HL7 ADT/ORM) resolves
+                against this list — no match auto-creates an Unverified entry here for review, rather than
+                silently accepting or dropping unvalidated data.
+              </p>
+
+              {locationsLoading && <div style={{ fontSize: 13, color: '#64748b' }}>Loading…</div>}
+
+              {!locationsLoading && locations.length === 0 && !showAddLocation && (
+                <div style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', marginBottom: 12 }}>
+                  No locations configured yet.
+                </div>
+              )}
+
+              {!locationsLoading && locations.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                  {locations.map(loc => (
+                    <div
+                      key={loc.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 14px', borderRadius: 8,
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>
+                          {[loc.pointOfCare, loc.room, loc.bed].filter(Boolean).join(' / ')}
+                          {loc.status === 'Unverified' && (
+                            <span style={{
+                              marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 10,
+                              background: 'rgba(245,158,11,0.15)', color: '#fbbf24',
+                            }}>
+                              Unverified
+                            </span>
+                          )}
+                          {loc.status === 'Inactive' && (
+                            <span style={{
+                              marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 10,
+                              background: 'rgba(239,68,68,0.15)', color: '#f87171',
+                            }}>
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                          {[loc.building && `Building ${loc.building}`, loc.floor && `Floor ${loc.floor}`, loc.personLocationType, loc.locationStatus]
+                            .filter(Boolean).join(' · ') || '—'}
+                        </div>
+                        {loc.autoCreated && loc.autoCreatedNote && (
+                          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{loc.autoCreatedNote}</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {loc.status === 'Unverified' && (
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyLocation(loc.id)}
+                            className="ps-conf-btn-secondary"
+                            style={{ padding: '4px 10px', fontSize: 11, color: '#34d399', borderColor: 'rgba(34,197,94,0.35)' }}
+                          >
+                            Verify
+                          </button>
+                        )}
+                        {loc.status !== 'Unverified' && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLocationActive(loc)}
+                            className="ps-conf-btn-secondary"
+                            style={{
+                              padding: '4px 10px', fontSize: 11,
+                              color: loc.status === 'Active' ? '#f87171' : '#34d399',
+                              borderColor: loc.status === 'Active' ? 'rgba(239,68,68,0.35)' : 'rgba(34,197,94,0.35)',
+                            }}
+                          >
+                            {loc.status === 'Active' ? 'Deactivate' : 'Activate'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!showAddLocation ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddLocation(true)}
+                  className="ps-conf-btn-secondary"
+                  style={{ padding: '6px 14px', fontSize: 12 }}
+                >
+                  + Add Location
+                </button>
+              ) : (
+                <div style={{ padding: '12px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={grid2}>
+                    <Field label="Point of Care (Ward/Unit) *">
+                      <input
+                        style={INPUT}
+                        value={newLocation.pointOfCare}
+                        onChange={e => setNewLocation(p => ({ ...p, pointOfCare: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                        placeholder="e.g. Ward 3"
+                      />
+                    </Field>
+                    <Field label="Room">
+                      <input
+                        style={INPUT}
+                        value={newLocation.room}
+                        onChange={e => setNewLocation(p => ({ ...p, room: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                        placeholder="e.g. 101"
+                      />
+                    </Field>
+                    <Field label="Bed">
+                      <input
+                        style={INPUT}
+                        value={newLocation.bed}
+                        onChange={e => setNewLocation(p => ({ ...p, bed: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                        placeholder="e.g. A"
+                      />
+                    </Field>
+                    <Field label="Building">
+                      <input
+                        style={INPUT}
+                        value={newLocation.building}
+                        onChange={e => setNewLocation(p => ({ ...p, building: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                        placeholder="e.g. Main"
+                      />
+                    </Field>
+                    <Field label="Floor">
+                      <input
+                        style={INPUT}
+                        value={newLocation.floor}
+                        onChange={e => setNewLocation(p => ({ ...p, floor: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                        placeholder="e.g. 1"
+                      />
+                    </Field>
+                    <Field label="Location Status (HL7 Table 0306)">
+                      <select
+                        style={INPUT}
+                        value={newLocation.locationStatus}
+                        onChange={e => setNewLocation(p => ({ ...p, locationStatus: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                      >
+                        <option value="">— None —</option>
+                        {HL7_LOCATION_STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Person Location Type (HL7 Table 0305)" span>
+                      <select
+                        style={INPUT}
+                        value={newLocation.personLocationType}
+                        onChange={e => setNewLocation(p => ({ ...p, personLocationType: e.target.value }))}
+                        onFocus={onF} onBlur={onB}
+                      >
+                        <option value="">— None —</option>
+                        {HL7_PERSON_LOCATION_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button
+                      type="button"
+                      disabled={!newLocation.pointOfCare.trim()}
+                      onClick={handleAddLocation}
+                      style={{
+                        padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600, border: 'none',
+                        background: newLocation.pointOfCare.trim() ? '#0891b2' : 'rgba(255,255,255,0.06)',
+                        color: newLocation.pointOfCare.trim() ? '#0f172a' : '#64748b',
+                        cursor: newLocation.pointOfCare.trim() ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      Add Location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddLocation(false); resetNewLocationForm(); }}
+                      style={{ padding: '6px 14px', fontSize: 12, color: '#94a3b8', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    >
+                      Never mind
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>{/* end body */}
 
         {/* ── Footer ── */}
@@ -653,7 +1133,7 @@ className="ps-modal-close"
             onClick={handleSubmit}
             style={{ padding: "9px 24px", borderRadius: "8px", border: "none", background: saved ? "#10b981" : "#0891b2", color: "#0f172a", fontWeight: 700, fontSize: "13px", cursor: "pointer", transition: "background 0.2s" }}
           >
-            {saved ? "Saved" : isEdit ? "Save Changes" : "Add Client"}
+            {saved ? "Saved" : isEdit ? "Save Changes" : "Add Facility"}
           </button>
         </div>
 

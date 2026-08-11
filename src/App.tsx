@@ -8,7 +8,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SystemConfigProvider } from "./contexts/SystemConfigContext";
 import { MessagingProvider } from "./contexts/MessagingContext";
-import { SubspecialtyProvider } from "./contexts/useSubspecialties";
 import { SpecimenDictionaryProvider } from "./components/Config/System/useSpecimenDictionary";
 
 // Breadcrumb
@@ -23,6 +22,7 @@ import { ScannerProvider } from "./contexts/ScannerProvider";
 
 // Standard Wrappers
 import ProtectedRoute from "./ProtectedRoute";
+import MobileRestrictedRoute from "./MobileRestrictedRoute";
 import AppShell from "./components/AppShell/AppShell";
 
 // Loaders
@@ -50,10 +50,6 @@ const SynopticReportPage = lazy(() =>
   import("./pages/SynopticReportPage/SynopticReportPage")
 );
 const FullReportPage = lazy(() => import("./pages/FullReportPage"));
-
-const ReportPreviewPage = lazy(() =>
-  import('./pages/ReportPreview/ReportPreviewPage')
-);
 
 const SynopticEditor = lazy(() =>
   import("./components/Config/Protocols/SynopticEditor")
@@ -106,9 +102,8 @@ const App: React.FC = () => (
     <SystemConfigProvider>
       <AuthProvider>
         <MessagingProvider>
-          <SubspecialtyProvider>
-            <SpecimenDictionaryProvider>
-                <DirtyStateProvider>
+          <SpecimenDictionaryProvider>
+              <DirtyStateProvider>
                 <BreadcrumbProvider>
                 <VoiceProvider>
                   <Suspense fallback={<PageLoader />}>
@@ -119,6 +114,7 @@ const App: React.FC = () => (
 
                       {/* Protected Routes — ScannerProvider only active when authenticated */}
                       <Route element={<ProtectedRoute />}>
+                        <Route element={<MobileRestrictedRoute />}>
                         <Route element={<ScannerProvider><AppShell /></ScannerProvider>}>
                           <Route path="/" element={<Home />} />
                           <Route path="/accession" element={<AccessionPage />} />
@@ -149,12 +145,6 @@ const App: React.FC = () => (
                             element={<FullReportPage />}
                           />
                         </Route>
-
-                        {/* ── Report Preview — detachable live preview window ── */}
-                        <Route
-                          path="/report-preview/:caseId"
-                          element={<ReportPreviewPage />}
-                        />
 
                         {/* ── Report Part Builder — full-screen canvas for one part ── */}
                         <Route
@@ -192,6 +182,7 @@ const App: React.FC = () => (
                           path="/mock-emr"
                           element={<MockEMRPage />}
                         />
+                        </Route>
                       </Route>
                       {/* Redirect any unmatched paths to login */}
                       <Route path="*" element={<Navigate to="/login" replace />} />
@@ -201,7 +192,6 @@ const App: React.FC = () => (
                 </BreadcrumbProvider>
                 </DirtyStateProvider>
             </SpecimenDictionaryProvider>
-          </SubspecialtyProvider>
         </MessagingProvider>
       </AuthProvider>
     </SystemConfigProvider>

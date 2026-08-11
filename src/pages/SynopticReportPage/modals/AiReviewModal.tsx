@@ -13,6 +13,13 @@ export interface ReviewField {
   confidence:   number;
   source:       string;
   verification: 'unverified' | 'verified' | 'disputed';
+  /** True when this field's AI-cited source genuinely can't be located
+   *  verbatim in the report text (see utils/sourceTextMatching.ts) —
+   *  distinct from low confidence. A field can be flagged here even at
+   *  94%+ confidence, since a confident-but-unverifiable value is
+   *  arguably a bigger concern than an honestly-uncertain one, not a
+   *  smaller one. */
+  sourceNotFound?: boolean;
 }
 
 interface AiReviewModalProps {
@@ -129,6 +136,14 @@ export const AiReviewModal: React.FC<AiReviewModalProps> = ({
             </div>
             <div className="ps-ai-review-card-value">{displayValue || '—'}</div>
             <div className="ps-ai-review-card-source">{current.source}</div>
+            {current.sourceNotFound && (
+              <div
+                style={{ marginTop: 8, padding: '6px 10px', borderRadius: 6, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}
+                title="The AI cited this source, but it couldn't be located verbatim anywhere in the Gross, Microscopic, or Ancillary text — confidence alone doesn't confirm this value is genuinely grounded in the report."
+              >
+                <span aria-hidden="true">⚠</span> Source not found in report text — this is why it needs review despite the confidence score above
+              </div>
+            )}
           </div>
 
           <div className="ps-ai-review-hints">

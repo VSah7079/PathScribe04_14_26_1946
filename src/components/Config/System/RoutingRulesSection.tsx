@@ -18,6 +18,7 @@ import {
 import { subspecialtyService } from '../../../services';
 import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyService';
 import RuleModal from './RuleModal';
+import ConfirmModal from '../../Common/ConfirmModal';
 
 const INPUT: React.CSSProperties = {
   padding: '8px 12px', fontSize: 13, color: '#e5e7eb',
@@ -36,6 +37,11 @@ const RoutingRulesSection: React.FC = () => {
   const [modal,       setModal]       = useState<{ mode: 'add' | 'edit'; rule?: RoutingRule } | null>(null);
   const [testInput,   setTestInput]   = useState('');
   const [testResult,  setTestResult]  = useState<ReturnType<typeof testSpecimenRouting> | null>(null);
+  // Real fix: was window.confirm() — replaced with the shared ConfirmModal
+  // (its own README describes it as "explicitly meant to replace
+  // window.confirm() throughout the app"). Needs pending-delete state
+  // since ConfirmModal is async/UI-driven rather than a blocking call.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     subspecialtyService.getAll().then(res => {
@@ -58,8 +64,13 @@ const RoutingRulesSection: React.FC = () => {
   const handleDelete = (id: string) => {
     // Safety guard — built-in rules cannot be deleted even if called programmatically
     if (BUILT_IN_ROUTING_RULES.some(r => r.id === id)) return;
-    if (!window.confirm('Delete this routing rule?')) return;
-    persist(rules.filter(r => r.id !== id));
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDeleteId) return;
+    persist(rules.filter(r => r.id !== pendingDeleteId));
+    setPendingDeleteId(null);
   };
 
   const handleToggle = (id: string) => {
@@ -114,7 +125,7 @@ const RoutingRulesSection: React.FC = () => {
             style={{ ...INPUT, flex: 1 }}
           />
           <button onClick={handleTest}
-            style={{ padding: '8px 20px', borderRadius: 7, border: 'none', background: '#8AB4F8', color: '#0d1117', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            className="ps-conf-btn-primary" style={{ whiteSpace: 'nowrap' }}>
             Test
           </button>
         </div>
@@ -143,6 +154,7 @@ const RoutingRulesSection: React.FC = () => {
         <input type="text" placeholder="Search keywords or notes…" value={search} onChange={e => setSearch(e.target.value)}
           style={{ flex: 1, padding: '9px 16px', fontSize: 13, color: '#d1d5db', background: '#0f0f0f', border: '1px solid #1f2937', borderRadius: 8, outline: 'none' }} />
         <select value={filter} onChange={e => setFilter(e.target.value as any)}
+          aria-label="Filter routing rules"
           className="ps-conf-select">
           <option value="all">All</option>
           <option value="active">Active</option>
@@ -247,6 +259,15 @@ const RoutingRulesSection: React.FC = () => {
           onClose={() => setModal(null)}
         />
       )}
+
+      <ConfirmModal
+        show={!!pendingDeleteId}
+        title="Delete Routing Rule"
+        message="Delete this routing rule?"
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 };

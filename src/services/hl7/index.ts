@@ -46,9 +46,10 @@ export function generateOutboundHL7ForBlock(
   caseData: Pick<Case, 'id' | 'patient'>,
   specimen: Pick<Specimen, 'id' | 'label' | 'collection' | 'container'>,
   block: HistologyBlock,
+  timezone: string,
   adapter: IHL7VendorAdapter = identityAdapter
 ): { message: string; messageControlId: string; adapterUsed: string } {
-  const standard = buildOrmO01ForBlock(ctx, caseData, specimen, block);
+  const standard = buildOrmO01ForBlock(ctx, caseData, specimen, block, timezone);
   const adapted = adapter.adapt(standard.message, {
     caseId: caseData.id, specimenLabel: specimen.label, blockLabel: block.label,
   });

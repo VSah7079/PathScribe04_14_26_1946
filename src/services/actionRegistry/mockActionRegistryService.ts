@@ -601,13 +601,6 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    // Worklist filter for completed cases
-    id: 'TABLE_FILTER_COMPLETED', label: 'Show Completed', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: '', internalKey: ACTION_MAP['table.clearSearch']?.internalKey ?? 'F15+PS018',
-    voiceTriggers: ['show completed', 'completed cases', 'filter completed', 'show completed cases'],
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
-  },
-  {
     // Delete a row in a table — context guards which tables support this
     id: 'TABLE_DELETE', label: 'Delete Row', category: VOICE_CONTEXT.WORKLIST,
     shortcut: '', internalKey: ACTION_MAP['table.clearSearch']?.internalKey ?? 'F15+PS018',
@@ -1613,7 +1606,7 @@ function dispatchInternalKey(internalKey: string) {
 let currentAppContext: string = VOICE_CONTEXT.WORKLIST;
 
 // ─── Live registry — loaded from storage, mutated by updateAction ─────────────
-let LIVE_ACTIONS: SystemAction[] = loadActions();
+const LIVE_ACTIONS: SystemAction[] = loadActions();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Learning layer — persisted to localStorage so mappings survive page refresh
@@ -1682,7 +1675,7 @@ function syncLearnedTriggersToActions(mappings: LocalLearnedMapping[]) {
   }
 }
 
-let learnedMappings: LocalLearnedMapping[] = loadMappings().filter(m => !!m.transcript && !!m.actionId);
+const learnedMappings: LocalLearnedMapping[] = loadMappings().filter(m => !!m.transcript && !!m.actionId);
 syncLearnedTriggersToActions(learnedMappings);
 
 // ── Pending miss window ───────────────────────────────────────────────────
