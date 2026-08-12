@@ -26,7 +26,11 @@ export interface Protocol {
   name:         string;
   category:     string;
   version:      string;
+<<<<<<< HEAD
   source:       'CAP' | 'RCPath' | 'ICCR' | 'Custom';
+=======
+  source:       'CAP' | 'RCPath' | 'ICCR' | 'PathScribe' | 'Custom';
+>>>>>>> upstream/main
   type:         string;
   status:       LifecycleState;
   fields:       number;
@@ -37,6 +41,61 @@ export interface Protocol {
   reviewNote?:  string;
   reviewedBy?:  string;   // who requested changes or approved
   reviewedAt?:  string;   // ISO timestamp of last review action
+<<<<<<< HEAD
+=======
+  /**
+   * Whether this protocol's answers are diagnostic content destined for a
+   * pathology report / cancer registry submission, as opposed to procedural
+   * data (e.g. Grossing checklists) that never gets coded or transmitted
+   * the same way. Drives whether SNOMED/ICD coverage should be expected
+   * or encouraged for this protocol — NOT whether coding fields are
+   * available (every field always has snomed/icd keys, regardless).
+   * Default TRUE when unset — use isDiagnosticProtocol() below rather than
+   * reading this field directly, so existing entries that predate this flag
+   * (effectively all CAP/RCPath/diagnostic-Custom protocols) don't need to
+   * be touched one by one to keep their correct default behavior.
+   */
+  isDiagnostic?: boolean;
+  /**
+   * High-level grouping for the Synoptic Library's top-level filter —
+   * coarser than category (which is organ/purpose-specific: BREAST,
+   * COLON, GROSSING, CYTOLOGY_NONGYN, etc.). Optional — when unset,
+   * derived from category via protocolGroup() below, so existing
+   * entries don't need to be touched one by one. Set explicitly only
+   * when a category's default grouping is genuinely wrong for a
+   * specific entry.
+   */
+  group?: 'Surgical Pathology' | 'Non-GYN Cytology' | 'GYN Cytology' | 'Grossing';
+}
+
+/**
+ * Resolves a protocol's Synoptic Library group. Call this rather than
+ * reading category or group directly, so the derivation rule lives in
+ * one place. Explicit group wins if set; otherwise derived from
+ * category. GYN Cytology has no real category prefix yet (none built —
+ * see the HPV-testing note on why GYN was deliberately deprioritized),
+ * included here so the filter UI has a real place for it to land
+ * without another change once it exists.
+ */
+export function protocolGroup(p: Protocol): 'Surgical Pathology' | 'Non-GYN Cytology' | 'GYN Cytology' | 'Grossing' {
+  if (p.group) return p.group;
+  if (p.category === 'GROSSING') return 'Grossing';
+  if (p.category.startsWith('CYTOLOGY_NONGYN')) return 'Non-GYN Cytology';
+  if (p.category.startsWith('CYTOLOGY_GYN')) return 'GYN Cytology';
+  return 'Surgical Pathology';
+}
+
+/**
+ * Whether coverage (SNOMED/ICD coding) should be expected/encouraged for
+ * this protocol. Defaults to true (diagnostic) unless isDiagnostic is
+ * explicitly set to false. Any future coverage-checker tool or Review
+ * Queue enforcement should call this rather than reading isDiagnostic
+ * directly, both for the default-true behavior and as a single place to
+ * change the rule later if it needs to get more nuanced than a flat flag.
+ */
+export function isDiagnosticProtocol(p: Protocol): boolean {
+  return p.isDiagnostic !== false;
+>>>>>>> upstream/main
 }
 
 // ─── Data registry ────────────────────────────────────────────────────────────
@@ -66,6 +125,7 @@ export function saveRegistryOverride(patch: Partial<Protocol> & { id: string }):
 }
 
 export let PROTOCOL_REGISTRY: Protocol[] = [
+<<<<<<< HEAD
   {
     // CAP v4.10.0.0 — 6 sections, 35 fields (real eCC JSON)
     id: 'breast_invasive', name: 'CAP Breast Invasive Carcinoma — Resection',
@@ -105,12 +165,162 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
   {
     id: 'liver_biopsy_medical', name: 'Liver Biopsy — Medical (Native)',
+=======
+  // CAP/RCPath-derived registry entries removed entirely (not just
+  // disabled) as part of the CAP/RCPath content-licensing cleanup, pending
+  // a confirmed CAP license. Note this doesn't affect the 19 real synoptic
+  // templates (breast_invasive, colon_resection, etc.) -- those were never
+  // listed in PROTOCOL_REGISTRY to begin with (see templateService.ts's
+  // getTemplate() fallback for templates seeded directly into editorStore).
+  // Those templates' JSON content was separately genericized in place
+  // rather than removed. Replaced with two generic, non-clinical test
+  // templates below.
+  {
+    id: 'generic_test_basic', name: 'Generic Synoptic Test Form -- Basic',
+    category: 'TEST', version: '1.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 6, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-17', owner: 'System',
+  },
+  {
+    id: 'generic_test_complex', name: 'Generic Synoptic Test Form -- Complex',
+    category: 'TEST', version: '1.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 17, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-17', owner: 'System',
+  },
+  // 19 generic templates below -- registered here for the first time (see
+  // this file's own comment above: these were seeded into editorStore at
+  // module load but never had a PROTOCOL_REGISTRY entry, so they were
+  // reachable only by direct URL, invisible to normal browsing/assignment).
+  // Content is genericized placeholder (CAP/RCPath-derived structure, no
+  // licensed wording) pending a confirmed CAP/RCPath license -- version
+  // strings' "-generic" suffix marks this; will be bumped to a real
+  // version number at the same time real licensed content replaces the
+  // placeholder options, rather than tracking a separate status for the
+  // interim period.
+  {
+    id: 'breast_invasive', name: 'Generic Template — Breast Invasive',
+    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 44, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'breast_dcis_resection', name: 'Generic Template — Breast Dcis Resection',
+    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 20, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'lung_adeno', name: 'Generic Template — Lung Adeno',
+    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_needle_biopsy', name: 'Generic Template — Prostate Needle Biopsy',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colon_resection', name: 'Generic Template — Colon Resection',
+    category: 'COLON', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 46, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'skin_melanoma_bx', name: 'Generic Template — Skin Melanoma Bx',
+    category: 'SKIN', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'kidney_resection', name: 'Generic Template — Kidney Resection',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 25, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'kidney_biopsy', name: 'Generic Template — Kidney Biopsy',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 10, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'wilms_resection', name: 'Generic Template — Wilms Resection',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 32, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'wilms_biopsy', name: 'Generic Template — Wilms Biopsy',
+    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_resection', name: 'Generic Template — Prostate Resection',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 28, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'lung_resection', name: 'Generic Template — Lung Resection',
+    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'breast_surgical_excision', name: 'Generic Template — Breast Surgical Excision',
+    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 96, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colorectal_resection_b', name: 'Generic Template — Colorectal Resection B',
+    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colorectal_local_excision', name: 'Generic Template — Colorectal Local Excision',
+    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'colorectal_further_investigations', name: 'Generic Template — Colorectal Further Investigations',
+    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 26, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_biopsy', name: 'Generic Template — Prostate Biopsy',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 45, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_radical_prostatectomy', name: 'Generic Template — Prostate Radical Prostatectomy',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 38, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'prostate_turp_enucleation', name: 'Generic Template — Prostate Turp Enucleation',
+    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-25', owner: 'System',
+  },
+  {
+    id: 'liver_biopsy_medical', name: 'Liver Biopsy -- Medical (Native)',
+>>>>>>> upstream/main
     category: 'LIVER', version: '1.0.1', source: 'Custom', type: 'Non-cancer / Custom',
     status: 'in_review', fields: 18, snomedPct: 72, icdPct: 60,
     lastModified: '2025-12-01', owner: 'Dr. L. Okonkwo',
     reviewNote: 'Awaiting clinical sign-off from hepatopathology',
   },
   {
+<<<<<<< HEAD
     id: 'lung_small_cell', name: 'Lung — Small Cell Carcinoma',
     category: 'LUNG', version: '2.0.0', source: 'CAP', type: 'Base template',
     status: 'needs_changes', fields: 41, snomedPct: 68, icdPct: 55,
@@ -127,10 +337,21 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
   {
     id: 'renal_transplant_biopsy', name: 'Renal Biopsy — Transplant',
+=======
+    id: 'placenta_term', name: 'Placenta -- Term Delivery',
+    category: 'PLACENTA', version: '1.0.0', source: 'Custom', type: 'Non-cancer / Custom',
+    status: 'in_review', fields: 24, snomedPct: 40, icdPct: 20,
+    lastModified: '2025-12-03', owner: 'Dr. S. Torres',
+    reviewNote: 'First submission -- please review section structure and SNOMED coverage.',
+  },
+  {
+    id: 'renal_transplant_biopsy', name: 'Renal Biopsy -- Transplant',
+>>>>>>> upstream/main
     category: 'KIDNEY', version: '0.9.0', source: 'Custom', type: 'Non-cancer / Custom',
     status: 'draft', fields: 21, snomedPct: 33, icdPct: 15,
     lastModified: '2025-12-04', owner: 'Dr. J. Williams',
   },
+<<<<<<< HEAD
   // ── RCPath Templates (UK) ──────────────────────────────────────────────
   {
     id: 'rcpath_g148_breast_surgical_excision',
@@ -180,6 +401,96 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     category: 'PROSTATE', version: 'v5-2024', source: 'RCPath', type: 'Base template',
     status: 'published', fields: 22, snomedPct: 80, icdPct: 72,
     lastModified: '2026-04-10', owner: 'Dr. S. Johnson',
+=======
+  // -- Grossing Templates --------------------------------------------------
+  // Not diagnostic checklists -- these are PA bench-grossing protocols, the
+  // data-entry equivalent for Stage 0/1 of the Orchestration workflow rather
+  // than the diagnostic Synoptic Template assignment stage. snomedPct/icdPct
+  // are intentionally 0 (isDiagnostic: false).
+  {
+    id: 'grossing_standard_tissue',
+    name: 'Standard Tissue Grossing (Gold Standard) -- Route A',
+    category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
+    status: 'published', fields: 31, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-06-27', owner: 'System',
+    isDiagnostic: false,
+  },
+  {
+    id: 'grossing_fluid_cytology',
+    name: 'Fluid / Cell Block Grossing (Gold Standard) -- Route B',
+    category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
+    status: 'published', fields: 12, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-06-27', owner: 'System',
+    isDiagnostic: false,
+  },
+  {
+    id: 'grossing_histology_only',
+    name: 'Histology-Only / Direct Triage (Gold Standard) -- Route C',
+    category: 'GROSSING', version: '1.0.0', source: 'PathScribe', type: 'Non-cancer / Custom',
+    status: 'published', fields: 9, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-06-27', owner: 'System',
+    isDiagnostic: false,
+  },
+  {
+    // Self-authored -- no CAP/RCPath equivalent exists; their own Cancer
+    // Protocol FAQ explicitly excludes cytology specimens. Real content
+    // (Bethesda System, 3rd Edition), same schema every other template
+    // here uses.
+    id: 'thyroid_fna_cytology',
+    name: 'Thyroid FNA -- The Bethesda System for Reporting Thyroid Cytopathology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-08', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-08T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // Milan System (2018) -- genuinely different category names/structure
+    // from Bethesda despite both being 6-tier; not interchangeable.
+    id: 'salivary_gland_fna_cytology',
+    name: 'Salivary Gland FNA -- The Milan System for Reporting Salivary Gland Cytopathology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 18, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // Paris System, 2nd Edition (2022) -- built specifically around
+    // detecting high-grade urothelial carcinoma; LGUN deliberately kept
+    // as its own separate category rather than folded into the main tier.
+    id: 'urine_cytology',
+    name: 'Urine Cytology -- The Paris System for Reporting Urinary Cytology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 16, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // Papanicolaou Society System (2014) -- Category IV deliberately
+    // split into IVA (benign) / IVB (premalignant) rather than one tier,
+    // since the two carry very different clinical management.
+    id: 'pancreaticobiliary_cytology',
+    name: 'Pancreaticobiliary Cytology -- Papanicolaou Society System for Reporting Pancreaticobiliary Cytology',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 18, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+  },
+  {
+    // No single dominant named system exists for lymph node FNA, unlike
+    // the other three above -- the template's own "standard" field says
+    // so honestly rather than implying a citation that doesn't exist.
+    id: 'lymph_node_fna_cytology',
+    name: 'Lymph Node FNA -- General Reporting Categories',
+    category: 'CYTOLOGY_NONGYN', version: '1.0.0', source: 'PathScribe', type: 'Custom / Institution',
+    status: 'published', fields: 15, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-07-09', owner: 'System',
+    reviewedBy: 'Pete Nimmo', reviewedAt: '2026-07-09T00:00:00Z',
+    isDiagnostic: true,
+>>>>>>> upstream/main
   },
 ];
 
@@ -248,10 +559,18 @@ export const LIFECYCLE_STYLES: Record<LifecycleState, { bg: string; color: strin
 };
 
 export const SOURCE_STYLES: Record<string, { color: string; bg: string }> = {
+<<<<<<< HEAD
   CAP:    { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)'  },
   RCPath: { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
   ICCR:   { color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)'  },
   Custom: { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)'  },
+=======
+  CAP:        { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)'  },
+  RCPath:     { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
+  ICCR:       { color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)'  },
+  PathScribe: { color: '#34d399', bg: 'rgba(52,211,153,0.12)'  },
+  Custom:     { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)'  },
+>>>>>>> upstream/main
 };
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -262,6 +581,10 @@ export const CATEGORY_COLORS: Record<string, string> = {
   LIVER:    '#4ade80',
   PLACENTA: '#f472b6',
   KIDNEY:   '#818cf8',
+<<<<<<< HEAD
+=======
+  CYTOLOGY_NONGYN: '#fb923c',
+>>>>>>> upstream/main
 };
 
 export const LIFECYCLE_ORDER: LifecycleState[] = ['draft', 'in_review', 'approved', 'published'];
@@ -326,8 +649,13 @@ export const UploadProtocolModal: React.FC<{
   };
 
   return (
+<<<<<<< HEAD
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '500px', background: '#1e293b', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+=======
+    <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-modal-dark" style={{ width: 500, padding: 0 }} onClick={e => e.stopPropagation()}>
+>>>>>>> upstream/main
 
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -388,10 +716,17 @@ export const UploadProtocolModal: React.FC<{
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+<<<<<<< HEAD
             <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             <button
               disabled={!file} onClick={onClose}
               style={{ padding: '9px 20px', borderRadius: '8px', border: `1px solid ${file ? 'rgba(8,145,178,0.4)' : '#334155'}`, background: file ? 'rgba(8,145,178,0.15)' : 'rgba(255,255,255,0.04)', color: file ? '#0891B2' : '#334155', fontSize: '13px', fontWeight: 600, cursor: file ? 'pointer' : 'not-allowed', fontFamily: 'inherit', transition: 'all 0.15s' }}
+=======
+            <button onClick={onClose} className="ps-conf-btn-secondary">Cancel</button>
+            <button
+              disabled={!file} onClick={onClose}
+              className="ps-conf-btn-teal-accent"
+>>>>>>> upstream/main
             >
               Upload to Review Queue →
             </button>
@@ -423,8 +758,13 @@ export const BuildCustomiseModal: React.FC<{
     : publishedTemplates;
 
   return (
+<<<<<<< HEAD
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '500px', background: '#1e293b', borderRadius: '14px', border: '1px solid #334155', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+=======
+    <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-modal-dark" style={{ width: 500, padding: 0 }} onClick={e => e.stopPropagation()}>
+>>>>>>> upstream/main
 
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -507,11 +847,19 @@ export const BuildCustomiseModal: React.FC<{
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+<<<<<<< HEAD
             <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             {selectedTpl && (
               <button
                 onClick={() => onBuildFromTemplate(selectedTpl)}
                 style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(8,145,178,0.4)', background: 'rgba(8,145,178,0.15)', color: '#0891B2', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+=======
+            <button onClick={onClose} className="ps-conf-btn-secondary">Cancel</button>
+            {selectedTpl && (
+              <button
+                onClick={() => onBuildFromTemplate(selectedTpl)}
+                className="ps-conf-btn-teal-accent"
+>>>>>>> upstream/main
               >
                 Customise This Template →
               </button>

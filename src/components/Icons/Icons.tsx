@@ -89,6 +89,7 @@ export const HelpIcon = ({
 );
 
 //
+<<<<<<< HEAD
 // Logout Icon
 //
 export const LogOutIcon = ({
@@ -114,6 +115,8 @@ export const LogOutIcon = ({
 );
 
 //
+=======
+>>>>>>> upstream/main
 // Monitor Icon
 //
 export const MonitorIcon = ({

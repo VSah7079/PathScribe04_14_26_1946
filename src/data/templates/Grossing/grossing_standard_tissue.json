@@ -1,0 +1,442 @@
+{
+  "id": "grossing_standard_tissue",
+  "name": "Standard Tissue Grossing (Gold Standard) — Route A",
+  "source": "Custom",
+  "version": "1.0.0",
+  "category": "GROSSING",
+  "sections": [
+    {
+      "id": "identification_logistics",
+      "title": "Specimen Identification & Logistics",
+      "fields": [
+        {
+          "id": "label_id_verified",
+          "label": "Specimen Label/Identification Verified?",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "label_verified_yes", "label": "Yes", "snomed": "", "icd": "" },
+            { "id": "label_verified_no", "label": "No — Reject/Hold (specify discrepancy in comment)", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "received_in",
+          "label": "Specimen Received In",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "received_nbf", "label": "10% Neutral Buffered Formalin", "snomed": "", "icd": "" },
+            { "id": "received_fresh", "label": "Fresh", "snomed": "", "icd": "" },
+            { "id": "received_rpmi", "label": "RPMI", "snomed": "", "icd": "" },
+            { "id": "received_cytolyt_alcohol", "label": "CytoLyt / Alcohol Fixative", "snomed": "", "icd": "" },
+            { "id": "received_unfixed_dry", "label": "Unfixed/Dry", "snomed": "", "icd": "" },
+            { "id": "received_other", "label": "Other (specify in comment)", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "specimen_integrity",
+          "label": "Specimen Integrity",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "integrity_intact", "label": "Received intact", "snomed": "", "icd": "" },
+            { "id": "integrity_fragmented", "label": "Received fragmented", "snomed": "", "icd": "" },
+            { "id": "integrity_previously_opened", "label": "Received previously incised/opened", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "number_of_containers",
+          "label": "Number of Containers Received",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "nature_measurements",
+      "title": "Specimen Nature & Measurements",
+      "fields": [
+        {
+          "id": "specimen_type",
+          "label": "Specimen Type",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. \"Appendix\", \"Gallbladder\", \"Colon Resection\""
+        },
+        {
+          "id": "weight",
+          "label": "Weight (g)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "overall_dimensions",
+          "label": "Overall Dimensions (3D)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Format: ___ x ___ x ___ cm"
+        }
+      ]
+    },
+    {
+      "id": "external_appearance",
+      "title": "External/Macroscopic Appearance",
+      "fields": [
+        {
+          "id": "external_surface_features",
+          "label": "External Surface Features",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "surface_smooth_glistening", "label": "Smooth/Glistening", "snomed": "", "icd": "" },
+            { "id": "surface_serosal_exudate", "label": "Serosal exudate/fibrinous", "snomed": "", "icd": "" },
+            { "id": "surface_granular", "label": "Granular", "snomed": "", "icd": "" },
+            { "id": "surface_ruptured_perforated", "label": "Ruptured/Perforated", "snomed": "", "icd": "" },
+            { "id": "surface_hemorrhagic", "label": "Hemorrhagic", "snomed": "", "icd": "" },
+            { "id": "surface_infarcted", "label": "Infarcted", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "color",
+          "label": "Color",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "color_tan_pink", "label": "Tan-pink", "snomed": "", "icd": "" },
+            { "id": "color_gray_white", "label": "Gray-white", "snomed": "", "icd": "" },
+            { "id": "color_yellow_adipose", "label": "Yellow-adipose", "snomed": "", "icd": "" },
+            { "id": "color_brown", "label": "Brown", "snomed": "", "icd": "" },
+            { "id": "color_green_bile_stained", "label": "Green-bile stained", "snomed": "", "icd": "" },
+            { "id": "color_mottled", "label": "Mottled", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "orientation_inking",
+          "label": "Specimen Oriented / Margins Inked?",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "orientation_not_oriented", "label": "Not oriented", "snomed": "", "icd": "" },
+            { "id": "orientation_by_surgeon", "label": "Oriented by surgeon (sutures/clips)", "snomed": "", "icd": "" },
+            { "id": "orientation_by_pa", "label": "Oriented by PA at bench", "snomed": "", "icd": "" },
+            { "id": "orientation_inked", "label": "Inked per protocol", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "orientation_inking_detail",
+          "label": "Orientation/Inking Detail",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Describe orientation markers and/or ink colors per margin, if applicable.",
+          "visibleWhen": { "fieldId": "orientation_inking", "answerId": "orientation_inked" }
+        }
+      ]
+    },
+    {
+      "id": "lesion_characterization",
+      "title": "Lesion / Tumor Characterization (If Applicable)",
+      "fields": [
+        {
+          "id": "lesion_present",
+          "label": "Lesion Present?",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "lesion_present_yes", "label": "Yes", "snomed": "", "icd": "" },
+            { "id": "lesion_present_no_unremarkable", "label": "No, unremarkable", "snomed": "", "icd": "" },
+            { "id": "lesion_present_no_diffuse", "label": "No, diffuse changes only", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "number_of_lesions",
+          "label": "Number of Lesions Identified",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "",
+          "visibleWhen": { "fieldId": "lesion_present", "answerId": "lesion_present_yes" }
+        },
+        {
+          "id": "lesion_type",
+          "label": "Lesion Type/Configuration",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "lesion_exophytic_fungating", "label": "Exophytic/Fungating", "snomed": "", "icd": "" },
+            { "id": "lesion_ulcerated", "label": "Ulcerated", "snomed": "", "icd": "" },
+            { "id": "lesion_infiltrative_endophytic", "label": "Infiltrative/Endophytic", "snomed": "", "icd": "" },
+            { "id": "lesion_cystic", "label": "Cystic", "snomed": "", "icd": "" },
+            { "id": "lesion_nodular_polypoid", "label": "Nodular/Polypoid", "snomed": "", "icd": "" }
+          ],
+          "note": "",
+          "visibleWhen": { "fieldId": "lesion_present", "answerId": "lesion_present_yes" }
+        },
+        {
+          "id": "lesion_dimensions",
+          "label": "Lesion Dimensions (3D)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Format: ___ x ___ x ___ cm",
+          "visibleWhen": { "fieldId": "lesion_present", "answerId": "lesion_present_yes" }
+        },
+        {
+          "id": "lesion_color_consistency",
+          "label": "Lesion Color & Consistency",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "lesion_color_white_tan_firm", "label": "White-tan, firm", "snomed": "", "icd": "" },
+            { "id": "lesion_color_yellow_soft", "label": "Yellow, soft/fleshy", "snomed": "", "icd": "" },
+            { "id": "lesion_color_brown_friable", "label": "Brown, friable", "snomed": "", "icd": "" },
+            { "id": "lesion_color_other", "label": "Other (specify in comment)", "snomed": "", "icd": "" }
+          ],
+          "note": "",
+          "visibleWhen": { "fieldId": "lesion_present", "answerId": "lesion_present_yes" }
+        },
+        {
+          "id": "distance_to_closest_margin",
+          "label": "Distance to Closest Margin",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Format: ___ cm to the ________ margin",
+          "visibleWhen": { "fieldId": "lesion_present", "answerId": "lesion_present_yes" }
+        }
+      ]
+    },
+    {
+      "id": "sectioning_internal",
+      "title": "Sectioning & Internal Appearance",
+      "fields": [
+        {
+          "id": "cut_surface",
+          "label": "Cut Surface of Remaining Specimen",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. \"Homogeneous tan-pink parenchyma without additional focal lesions.\""
+        }
+      ]
+    },
+    {
+      "id": "tissue_submission",
+      "title": "Tissue Submission (Cassette Key)",
+      "fields": [
+        {
+          "id": "submission_status",
+          "label": "Submission Status",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "submission_entire", "label": "Entirely submitted", "snomed": "", "icd": "" },
+            { "id": "submission_representative", "label": "Representatively submitted", "snomed": "", "icd": "" },
+            { "id": "submission_partial", "label": "Partially submitted", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "total_cassettes",
+          "label": "Total Number of Cassettes",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "cassette_key",
+          "label": "Cassette Key / Summary",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "One line per cassette. Format: Cassette # \u2014 Contents/Block source \u2014 Number of Pieces/Fragments \u2014 Aggregate size if fragmented. e.g. \"A1: prostate, right base \u2014 4 pieces \u2014 1.2 cm aggregate\""
+        },
+        {
+          "id": "cassette_special_processing",
+          "label": "Cassettes Requiring Special Processing",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "List any cassette needing non-routine processing \u2014 Decalcification, Rush/Priority, Short-Cycle (Biopsy), Cell Block. Format: Cassette # \u2014 Processing required. e.g. \"B2 \u2014 Decalcification required\". Leave blank if all cassettes are routine."
+        },
+        {
+          "id": "megablock_used",
+          "label": "Megablock Submission? (multiple specimen parts/sites combined in one cassette)",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "megablock_no", "label": "No \u2014 one part/site per cassette", "snomed": "", "icd": "" },
+            { "id": "megablock_yes", "label": "Yes \u2014 see Megablock Key", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "megablock_key",
+          "label": "Megablock Key \u2014 Cassette # : Sites/Parts Combined",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "One row per megablock cassette. e.g. \"Cassette 3: Sites 4, 5, 6 (RML, RBL, RAL)\"",
+          "visibleWhen": { "fieldId": "megablock_used", "answerId": "megablock_yes" }
+        },
+        {
+          "id": "gross_photography_taken",
+          "label": "Gross Photography Taken?",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "photography_yes", "label": "Yes", "snomed": "", "icd": "" },
+            { "id": "photography_no", "label": "No", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "frozen_section",
+      "title": "Frozen Section",
+      "fields": [
+        {
+          "id": "frozen_section_performed",
+          "label": "Frozen Section Performed?",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "frozen_section_no", "label": "No", "snomed": "", "icd": "" },
+            { "id": "frozen_section_yes", "label": "Yes", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "frozen_section_time",
+          "label": "Time Frozen Section Performed",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "e.g. 14:32",
+          "visibleWhen": { "fieldId": "frozen_section_performed", "answerId": "frozen_section_yes" }
+        },
+        {
+          "id": "frozen_section_count",
+          "label": "Number of Sections/Blocks Frozen",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "",
+          "visibleWhen": { "fieldId": "frozen_section_performed", "answerId": "frozen_section_yes" }
+        },
+        {
+          "id": "frozen_section_diagnosis",
+          "label": "Frozen Section Diagnosis (as called to OR)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "",
+          "visibleWhen": { "fieldId": "frozen_section_performed", "answerId": "frozen_section_yes" }
+        },
+        {
+          "id": "frozen_tissue_resubmitted",
+          "label": "Frozen Tissue Resubmitted for Permanent Sections?",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "frozen_resubmit_yes", "label": "Yes \u2014 see Cassette Key for FS block ID", "snomed": "", "icd": "" },
+            { "id": "frozen_resubmit_no_consumed", "label": "No \u2014 tissue entirely consumed by freezing", "snomed": "", "icd": "" }
+          ],
+          "note": "If resubmitted, identify the resulting block (e.g. \"FS1\") in the Cassette Key above.",
+          "visibleWhen": { "fieldId": "frozen_section_performed", "answerId": "frozen_section_yes" }
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

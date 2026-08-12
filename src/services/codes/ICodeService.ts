@@ -24,6 +24,10 @@
  */
 
 import type { ServiceResult } from '../types';
+<<<<<<< HEAD
+=======
+import type { Jurisdiction } from '../../types/systemConfig';
+>>>>>>> upstream/main
 
 // ─── Code systems ─────────────────────────────────────────────────────────────
 
@@ -116,6 +120,26 @@ export interface CodeSearchParams {
    * Set to true when resolving historical case data.
    */
   includeRetired?: boolean;
+<<<<<<< HEAD
+=======
+
+  /**
+   * Explicit jurisdiction override — added June 2026. When provided, the
+   * search routes to that jurisdiction's terminology collection instead
+   * of the implementation's own default resolution (previously a single
+   * system-wide SystemConfig.jurisdiction value that nothing meaningful
+   * ever changed — see Client.jurisdiction for the real per-case
+   * mechanism, added earlier the same session).
+   *
+   * Callers with a single case/client in context (e.g. a synoptic report
+   * editor) should resolve the case's client's jurisdiction and pass it
+   * here. Callers without a single definite context (e.g. a cross-case
+   * search page, where results could span multiple clients/jurisdictions
+   * at once) should omit this and accept the implementation's default —
+   * there isn't one "correct" jurisdiction to force in that situation.
+   */
+  jurisdiction?: Jurisdiction;
+>>>>>>> upstream/main
 }
 
 // ─── Service interface ────────────────────────────────────────────────────────
@@ -123,7 +147,13 @@ export interface CodeSearchParams {
 export interface ICodeService {
   /**
    * Search for clinical codes matching the given params.
+<<<<<<< HEAD
    * Jurisdiction is resolved internally from SystemConfig.
+=======
+   * Jurisdiction: pass params.jurisdiction explicitly when the caller has
+   * a single case/client in context; omit it to fall back to the
+   * implementation's own default (see CodeSearchParams.jurisdiction).
+>>>>>>> upstream/main
    * Returns up to 50 results for Browse modal; up to 8 for typeahead.
    */
   search(params: CodeSearchParams): Promise<ServiceResult<ClinicalCode[]>>;
@@ -133,11 +163,19 @@ export interface ICodeService {
    * Used to resolve saved filter state (stored codes) back to display labels.
    * Returns an error result if the code is not found.
    */
+<<<<<<< HEAD
   getByCode(system: CodeSystem, code: string): Promise<ServiceResult<ClinicalCode>>;
+=======
+  getByCode(system: CodeSystem, code: string, jurisdiction?: Jurisdiction): Promise<ServiceResult<ClinicalCode>>;
+>>>>>>> upstream/main
 
   /**
    * Returns all available category groupings for a given system + subtype.
    * Used to populate the category filter in the Browse modal.
    */
+<<<<<<< HEAD
   getCategories(system: CodeSystem, subtype?: IcdOSubtype): Promise<ServiceResult<string[]>>;
+=======
+  getCategories(system: CodeSystem, subtype?: IcdOSubtype, jurisdiction?: Jurisdiction): Promise<ServiceResult<string[]>>;
+>>>>>>> upstream/main
 }

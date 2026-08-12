@@ -1,0 +1,259 @@
+{
+  "id": "wilms_biopsy",
+  "name": "Generic Template \u2014 Wilms Biopsy",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "KIDNEY",
+  "standard": "Generic",
+  "sections": [
+    {
+      "id": "expert_consultation",
+      "title": "Review Status",
+      "fields": [
+        {
+          "id": "expert_consultation",
+          "label": "Review Status",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "expert_consultation_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "expert_consultation_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "expert_consultation_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "procedure_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "specimen_laterality",
+          "label": "Specimen Laterality",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "specimen_laterality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tumor",
+      "title": "Findings",
+      "fields": [
+        {
+          "id": "histologic_type",
+          "label": "Type",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "ihc",
+          "label": "Ancillary Marker Panel",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "ihc_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ihc_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ihc_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "ancillary_studies",
+          "label": "Ancillary Studies",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "ancillary_studies_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ancillary_studies_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ancillary_studies_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "ancillary_studies_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "additional_findings",
+      "title": "Additional Findings",
+      "fields": [
+        {
+          "id": "additional_findings",
+          "label": "Additional Findings",
+          "type": "longtext",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "longtext",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        }
+      ]
+    }
+  ]
+}

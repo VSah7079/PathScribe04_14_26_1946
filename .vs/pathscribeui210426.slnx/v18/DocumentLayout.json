@@ -1,0 +1,628 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\pathscribeui210426\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\pages\\Home.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\pages\\Home.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\HOME_PAGE_DESIGN_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:HOME_PAGE_DESIGN_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\Login.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\Login.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\components\\Config\\Templates\\TemplateRenderer.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\Config\\Templates\\TemplateRenderer.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\contexts\\AuthContext.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\contexts\\AuthContext.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\styles\\navbarResponsive.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\styles\\navbarResponsive.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\App.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\App.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\styles\\navbar-responsive.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\styles\\navbar-responsive.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\vk381\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\2081794031\\HomeCinematic.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\HomeCinematicNew.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\HomeCinematicNew.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\components\\AppShell\\AppShell.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\AppShell\\AppShell.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\pathscribe.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\pathscribe.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\components\\AppShell\\AppShell.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\AppShell\\AppShell.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\RESPONSIVE_DESIGN_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RESPONSIVE_DESIGN_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\TESTING_RESPONSIVE_DESIGN.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:TESTING_RESPONSIVE_DESIGN.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\IMPLEMENTATION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:IMPLEMENTATION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\QUICKSTART.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:QUICKSTART.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\messaging.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:messaging.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\styles\\globals.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\styles\\globals.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\utils\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\utils\\index.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\main.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\main.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\docs\\messaging.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:docs\\messaging.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\DESIGN_COMPLETION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DESIGN_COMPLETION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\IMPLEMENTATION_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:IMPLEMENTATION_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\DESIGN_IMPLEMENTATION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DESIGN_IMPLEMENTATION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\QUICK_START_VISUAL_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:QUICK_START_VISUAL_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\MIGRATION_CHECKLIST.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:MIGRATION_CHECKLIST.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\DOCUMENTATION_INDEX.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:DOCUMENTATION_INDEX.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\MIGRATION_COMPLETION_CERTIFICATE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:MIGRATION_COMPLETION_CERTIFICATE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\URDU_MIGRATION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:URDU_MIGRATION_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\FINAL_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:FINAL_SUMMARY.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\QUICK_REFERENCE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:QUICK_REFERENCE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\START_HERE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:START_HERE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\pathscribeui210426\\src\\components\\NavBar\\NavBar.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\components\\NavBar\\NavBar.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "vite.config.ts",
+              "DocumentMoniker": "E:\\pathscribeui210426\\vite.config.ts",
+              "RelativeDocumentMoniker": "vite.config.ts",
+              "ToolTip": "E:\\pathscribeui210426\\vite.config.ts",
+              "RelativeToolTip": "vite.config.ts",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAAwAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-21T05:31:09.004Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 37,
+              "Title": "NavBar.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\components\\NavBar\\NavBar.tsx",
+              "RelativeDocumentMoniker": "src\\components\\NavBar\\NavBar.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\components\\NavBar\\NavBar.tsx",
+              "RelativeToolTip": "src\\components\\NavBar\\NavBar.tsx",
+              "ViewState": "AgIAAAgBAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-05-03T11:44:31.843Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "FINAL_SUMMARY.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\FINAL_SUMMARY.md",
+              "RelativeDocumentMoniker": "FINAL_SUMMARY.md",
+              "ToolTip": "E:\\pathscribeui210426\\FINAL_SUMMARY.md",
+              "RelativeToolTip": "FINAL_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.487Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "URDU_MIGRATION_SUMMARY.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\URDU_MIGRATION_SUMMARY.md",
+              "RelativeDocumentMoniker": "URDU_MIGRATION_SUMMARY.md",
+              "ToolTip": "E:\\pathscribeui210426\\URDU_MIGRATION_SUMMARY.md",
+              "RelativeToolTip": "URDU_MIGRATION_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.448Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "MIGRATION_COMPLETION_CERTIFICATE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\MIGRATION_COMPLETION_CERTIFICATE.md",
+              "RelativeDocumentMoniker": "MIGRATION_COMPLETION_CERTIFICATE.md",
+              "ToolTip": "E:\\pathscribeui210426\\MIGRATION_COMPLETION_CERTIFICATE.md",
+              "RelativeToolTip": "MIGRATION_COMPLETION_CERTIFICATE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.404Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Home.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\pages\\Home.tsx",
+              "RelativeDocumentMoniker": "src\\pages\\Home.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\pages\\Home.tsx",
+              "RelativeToolTip": "src\\pages\\Home.tsx",
+              "ViewState": "AgIAAPEAAAAAAAAAAAAtwPkBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-21T05:00:53.605Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "index.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\index.css",
+              "RelativeDocumentMoniker": "src\\index.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\index.css",
+              "RelativeToolTip": "src\\index.css",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-04-21T13:10:41.073Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "QUICK_REFERENCE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\QUICK_REFERENCE.md",
+              "RelativeDocumentMoniker": "QUICK_REFERENCE.md",
+              "ToolTip": "E:\\pathscribeui210426\\QUICK_REFERENCE.md",
+              "RelativeToolTip": "QUICK_REFERENCE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.526Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 36,
+              "Title": "START_HERE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\START_HERE.md",
+              "RelativeDocumentMoniker": "START_HERE.md",
+              "ToolTip": "E:\\pathscribeui210426\\START_HERE.md",
+              "RelativeToolTip": "START_HERE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.564Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "DOCUMENTATION_INDEX.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\DOCUMENTATION_INDEX.md",
+              "RelativeDocumentMoniker": "DOCUMENTATION_INDEX.md",
+              "ToolTip": "E:\\pathscribeui210426\\DOCUMENTATION_INDEX.md",
+              "RelativeToolTip": "DOCUMENTATION_INDEX.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.364Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "MIGRATION_CHECKLIST.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\MIGRATION_CHECKLIST.md",
+              "RelativeDocumentMoniker": "MIGRATION_CHECKLIST.md",
+              "ToolTip": "E:\\pathscribeui210426\\MIGRATION_CHECKLIST.md",
+              "RelativeToolTip": "MIGRATION_CHECKLIST.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.32Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "QUICK_START_VISUAL_GUIDE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\QUICK_START_VISUAL_GUIDE.md",
+              "RelativeDocumentMoniker": "QUICK_START_VISUAL_GUIDE.md",
+              "ToolTip": "E:\\pathscribeui210426\\QUICK_START_VISUAL_GUIDE.md",
+              "RelativeToolTip": "QUICK_START_VISUAL_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.242Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "DESIGN_IMPLEMENTATION_SUMMARY.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\DESIGN_IMPLEMENTATION_SUMMARY.md",
+              "RelativeDocumentMoniker": "DESIGN_IMPLEMENTATION_SUMMARY.md",
+              "ToolTip": "E:\\pathscribeui210426\\DESIGN_IMPLEMENTATION_SUMMARY.md",
+              "RelativeToolTip": "DESIGN_IMPLEMENTATION_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.195Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "IMPLEMENTATION_GUIDE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\IMPLEMENTATION_GUIDE.md",
+              "RelativeDocumentMoniker": "IMPLEMENTATION_GUIDE.md",
+              "ToolTip": "E:\\pathscribeui210426\\IMPLEMENTATION_GUIDE.md",
+              "RelativeToolTip": "IMPLEMENTATION_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:40:59.144Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "DESIGN_COMPLETION_SUMMARY.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\DESIGN_COMPLETION_SUMMARY.md",
+              "RelativeDocumentMoniker": "DESIGN_COMPLETION_SUMMARY.md",
+              "ToolTip": "E:\\pathscribeui210426\\DESIGN_COMPLETION_SUMMARY.md",
+              "RelativeToolTip": "DESIGN_COMPLETION_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIMBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:37:15.796Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "HOME_PAGE_DESIGN_GUIDE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\HOME_PAGE_DESIGN_GUIDE.md",
+              "RelativeDocumentMoniker": "HOME_PAGE_DESIGN_GUIDE.md",
+              "ToolTip": "E:\\pathscribeui210426\\HOME_PAGE_DESIGN_GUIDE.md",
+              "RelativeToolTip": "HOME_PAGE_DESIGN_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:37:12.945Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "RESPONSIVE_DESIGN_GUIDE.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\RESPONSIVE_DESIGN_GUIDE.md",
+              "RelativeDocumentMoniker": "RESPONSIVE_DESIGN_GUIDE.md",
+              "ToolTip": "E:\\pathscribeui210426\\RESPONSIVE_DESIGN_GUIDE.md",
+              "RelativeToolTip": "RESPONSIVE_DESIGN_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAPwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:02:06.265Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": ".gitignore",
+              "DocumentMoniker": "E:\\pathscribeui210426\\.gitignore",
+              "RelativeDocumentMoniker": ".gitignore",
+              "ToolTip": "E:\\pathscribeui210426\\.gitignore",
+              "RelativeToolTip": ".gitignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-05-03T10:46:11.339Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Login.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\Login.tsx",
+              "RelativeDocumentMoniker": "src\\Login.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\Login.tsx",
+              "RelativeToolTip": "src\\Login.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-21T06:39:59.282Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "AppShell.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\components\\AppShell\\AppShell.css",
+              "RelativeDocumentMoniker": "src\\components\\AppShell\\AppShell.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\components\\AppShell\\AppShell.css",
+              "RelativeToolTip": "src\\components\\AppShell\\AppShell.css",
+              "ViewState": "AgIAAG8AAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-03T10:58:05.533Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "messaging.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\docs\\messaging.css",
+              "RelativeDocumentMoniker": "docs\\messaging.css",
+              "ToolTip": "E:\\pathscribeui210426\\docs\\messaging.css",
+              "RelativeToolTip": "docs\\messaging.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-03T11:14:03.41Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "main.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\main.tsx",
+              "RelativeDocumentMoniker": "src\\main.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\main.tsx",
+              "RelativeToolTip": "src\\main.tsx",
+              "ViewState": "AgIAAAEAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-05-03T11:12:12.232Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "index.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\utils\\index.css",
+              "RelativeDocumentMoniker": "src\\utils\\index.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\utils\\index.css",
+              "RelativeToolTip": "src\\utils\\index.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-03T11:11:53.326Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "globals.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\styles\\globals.css",
+              "RelativeDocumentMoniker": "src\\styles\\globals.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\styles\\globals.css",
+              "RelativeToolTip": "src\\styles\\globals.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-03T11:11:53.193Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "messaging.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\messaging.css",
+              "RelativeDocumentMoniker": "messaging.css",
+              "ToolTip": "E:\\pathscribeui210426\\messaging.css",
+              "RelativeToolTip": "messaging.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-03T11:11:52.901Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "QUICKSTART.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\QUICKSTART.md",
+              "RelativeDocumentMoniker": "QUICKSTART.md",
+              "ToolTip": "E:\\pathscribeui210426\\QUICKSTART.md",
+              "RelativeToolTip": "QUICKSTART.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEEBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:04:04.758Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "IMPLEMENTATION_SUMMARY.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\IMPLEMENTATION_SUMMARY.md",
+              "RelativeDocumentMoniker": "IMPLEMENTATION_SUMMARY.md",
+              "ToolTip": "E:\\pathscribeui210426\\IMPLEMENTATION_SUMMARY.md",
+              "RelativeToolTip": "IMPLEMENTATION_SUMMARY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIIBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:03:17.71Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "TESTING_RESPONSIVE_DESIGN.md",
+              "DocumentMoniker": "E:\\pathscribeui210426\\TESTING_RESPONSIVE_DESIGN.md",
+              "RelativeDocumentMoniker": "TESTING_RESPONSIVE_DESIGN.md",
+              "ToolTip": "E:\\pathscribeui210426\\TESTING_RESPONSIVE_DESIGN.md",
+              "RelativeToolTip": "TESTING_RESPONSIVE_DESIGN.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADABAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-05-03T11:02:34.402Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "AuthContext.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\contexts\\AuthContext.tsx",
+              "RelativeDocumentMoniker": "src\\contexts\\AuthContext.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\contexts\\AuthContext.tsx",
+              "RelativeToolTip": "src\\contexts\\AuthContext.tsx",
+              "ViewState": "AgIAAGUAAAAAAAAAAAAuwHgAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-21T05:55:09.118Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "navbarResponsive.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\styles\\navbarResponsive.css",
+              "RelativeDocumentMoniker": "src\\styles\\navbarResponsive.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\styles\\navbarResponsive.css",
+              "RelativeToolTip": "src\\styles\\navbarResponsive.css",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-04-28T02:33:13.674Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "AppShell.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\components\\AppShell\\AppShell.tsx",
+              "RelativeDocumentMoniker": "src\\components\\AppShell\\AppShell.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\components\\AppShell\\AppShell.tsx",
+              "RelativeToolTip": "src\\components\\AppShell\\AppShell.tsx",
+              "ViewState": "AgIAAGwEAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-28T13:08:31.13Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TemplateRenderer.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\components\\Config\\Templates\\TemplateRenderer.tsx",
+              "RelativeDocumentMoniker": "src\\components\\Config\\Templates\\TemplateRenderer.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\components\\Config\\Templates\\TemplateRenderer.tsx",
+              "RelativeToolTip": "src\\components\\Config\\Templates\\TemplateRenderer.tsx",
+              "ViewState": "AgIAAEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-21T05:43:52.921Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "pathscribe.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\pathscribe.css",
+              "RelativeDocumentMoniker": "src\\pathscribe.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\pathscribe.css",
+              "RelativeToolTip": "src\\pathscribe.css",
+              "ViewState": "AgIAAAABAAAAAAAAAEBVwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-04-28T13:23:27.061Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "HomeCinematic.tsx",
+              "DocumentMoniker": "C:\\Users\\vk381\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\2081794031\\HomeCinematic.tsx",
+              "ToolTip": "C:\\Users\\vk381\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\2081794031\\HomeCinematic.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-28T03:04:42.131Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "HomeCinematicNew.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\HomeCinematicNew.tsx",
+              "RelativeDocumentMoniker": "src\\HomeCinematicNew.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\HomeCinematicNew.tsx",
+              "RelativeToolTip": "src\\HomeCinematicNew.tsx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-28T03:04:42.239Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "App.tsx",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\App.tsx",
+              "RelativeDocumentMoniker": "src\\App.tsx",
+              "ToolTip": "E:\\pathscribeui210426\\src\\App.tsx",
+              "RelativeToolTip": "src\\App.tsx",
+              "ViewState": "AgIAACEAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-22T16:15:30Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "navbar-responsive.css",
+              "DocumentMoniker": "E:\\pathscribeui210426\\src\\styles\\navbar-responsive.css",
+              "RelativeDocumentMoniker": "src\\styles\\navbar-responsive.css",
+              "ToolTip": "E:\\pathscribeui210426\\src\\styles\\navbar-responsive.css",
+              "RelativeToolTip": "src\\styles\\navbar-responsive.css",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-04-27T05:45:36.92Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "index.html",
+              "DocumentMoniker": "E:\\pathscribeui210426\\index.html",
+              "RelativeDocumentMoniker": "index.html",
+              "ToolTip": "E:\\pathscribeui210426\\index.html",
+              "RelativeToolTip": "index.html",
+              "ViewState": "AgIAAAMAAAAAAAAAAIBZwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2026-04-22T16:16:17.145Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

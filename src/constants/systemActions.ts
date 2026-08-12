@@ -76,7 +76,18 @@ export type ActionId =
   // ── Case management ───────────────────────────────────────────────────────
   | 'case.viewWorklist' | 'case.open' | 'case.create' | 'case.editDemographics'
   | 'case.assign' | 'case.reassign' | 'case.prioritize' | 'case.hold'
+<<<<<<< HEAD
   | 'case.releaseHold' | 'case.archive' | 'case.delete'
+=======
+  | 'case.releaseHold' | 'case.archive' | 'case.delete' | 'case.viewPediatric'
+  // ── Accession (only when the Accession page is active) ─────────────────────
+  | 'accession.importOrder' | 'accession.caseComment'
+  // ── Grossing (reachable from the same Synoptic Report page/context as
+  // regular reporting work — grossing isn't a separate page, so these
+  // share the SYNOPTIC category rather than needing their own
+  // context-switch) ───────────────────────────────────────────────────────
+  | 'grossing.nextBlock' | 'grossing.previousBlock' | 'grossing.markGrossed' | 'grossing.confirmTriage'
+>>>>>>> upstream/main
   // ── Specimen ──────────────────────────────────────────────────────────────
   | 'specimen.add' | 'specimen.edit' | 'specimen.remove'
   | 'specimen.applyFlag' | 'specimen.removeFlag' | 'specimen.assignSubspecialty'
@@ -105,6 +116,10 @@ export type ActionId =
   | 'config.access' | 'config.staff' | 'config.roles' | 'config.subspecialties'
   | 'config.specimens' | 'config.flags' | 'config.ai' | 'config.macros'
   | 'config.shortcuts' | 'config.lis' | 'config.auditLog'
+<<<<<<< HEAD
+=======
+  | 'config.reportTemplates' | 'config.routingRules' | 'config.validationStudies'
+>>>>>>> upstream/main
   // ── QC ────────────────────────────────────────────────────────────────────
   | 'qc.configure' | 'qc.viewQueue' | 'qc.claimReview'
   | 'qc.submitReview' | 'qc.escalateDiscordance' | 'qc.viewDashboard' | 'qc.exportReport'
@@ -113,7 +128,18 @@ export type ActionId =
   | 'billing.viewHistory' | 'billing.exportBatch'
   // ── Admin ─────────────────────────────────────────────────────────────────
   | 'admin.dashboard' | 'admin.reports' | 'admin.export'
+<<<<<<< HEAD
   | 'admin.backups' | 'admin.eventLog' | 'admin.impersonate';
+=======
+  | 'admin.backups' | 'admin.eventLog' | 'admin.impersonate'
+  | 'admin.validationStudies'
+  // ── AI narrative / orchestration ──────────────────────────────────────────
+  | 'ai.changeReportTemplate' | 'ai.acceptNarrativeSection' | 'ai.regenerateSection'
+  // ── Report template ───────────────────────────────────────────────────────
+  | 'report.selectTemplate' | 'report.overrideTemplate'
+  // ── Specimen LIS ──────────────────────────────────────────────────────────
+  | 'specimen.syncLIS' | 'specimen.editLISStatus';
+>>>>>>> upstream/main
 
 export interface SystemAction {
   id: ActionId;
@@ -289,6 +315,42 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'case.releaseHold',      label: 'Release Case From Hold',     internalKey: 'F19+PS009' },
       { id: 'case.archive',          label: 'Archive Case',               internalKey: 'F19+PS010' },
       { id: 'case.delete',           label: 'Delete Case',                internalKey: 'F19+PS011', description: 'Admin only' },
+<<<<<<< HEAD
+=======
+      { id: 'case.viewPediatric',    label: 'View Pediatric Cases',       internalKey: 'F19+PS012', description: 'Requires client authorization' },
+    ],
+  },
+
+  // Accession — specimen.add (F20+PS001) and case.create (F19+PS003) were
+  // already reserved above/elsewhere but never wired to a live action;
+  // reused here rather than assigned fresh keys. importOrder/caseComment
+  // are genuinely new, continuing the F24 block per this file's own
+  // convention of reusing F24 with higher PS numbers for anything added
+  // after the original per-Fkey allocation was exhausted.
+  {
+    id: 'accession',
+    title: 'Accession',
+    actions: [
+      { id: 'accession.importOrder',  label: 'Import From Order',     internalKey: 'F24+PS034' },
+      { id: 'accession.caseComment',  label: 'Add Case Comment',      internalKey: 'F24+PS035' },
+    ],
+  },
+
+  // Grossing — reachable from the same Synoptic Report page/context as
+  // regular reporting work, not a separate page. "Mark grossed" and
+  // "confirm triage" needed real underlying actions built alongside
+  // these voice triggers — neither existed anywhere before this pass
+  // (no UI advanced a block's status, no state tracked triage
+  // confirmation), so this isn't just a voice-layer addition.
+  {
+    id: 'grossing',
+    title: 'Grossing',
+    actions: [
+      { id: 'grossing.nextBlock',      label: 'Next Block',            internalKey: 'F24+PS036' },
+      { id: 'grossing.previousBlock',  label: 'Previous Block',        internalKey: 'F24+PS037' },
+      { id: 'grossing.markGrossed',    label: 'Mark Block Grossed',    internalKey: 'F24+PS038' },
+      { id: 'grossing.confirmTriage',  label: 'Confirm Triage',        internalKey: 'F24+PS039' },
+>>>>>>> upstream/main
     ],
   },
 
@@ -303,6 +365,11 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'specimen.applyFlag',          label: 'Apply Flag to Specimen',    internalKey: 'F20+PS004' },
       { id: 'specimen.removeFlag',         label: 'Remove Flag from Specimen', internalKey: 'F20+PS005' },
       { id: 'specimen.assignSubspecialty', label: 'Assign to Subspecialty',    internalKey: 'F20+PS006' },
+<<<<<<< HEAD
+=======
+      { id: 'specimen.syncLIS',           label: 'Sync Specimen to LIS',       internalKey: 'F20+PS007', description: 'Request LIS sync for a locally-created specimen' },
+      { id: 'specimen.editLISStatus',     label: 'Edit LIS Sync Status',       internalKey: 'F20+PS008', description: 'View and update the LIS synchronisation status of a specimen' },
+>>>>>>> upstream/main
     ],
   },
 
@@ -316,7 +383,13 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'report.deliver',     label: 'Deliver Report to Physician',  internalKey: 'F21+PS003', description: 'Fax or email' },
       { id: 'report.redeliver',   label: 'Re-Deliver Report',            internalKey: 'F21+PS004' },
       { id: 'report.viewHistory', label: 'View Report History',          internalKey: 'F21+PS005' },
+<<<<<<< HEAD
       { id: 'report.download',    label: 'Download Report PDF',          internalKey: 'F21+PS006' },
+=======
+      { id: 'report.download',         label: 'Download Report PDF',               internalKey: 'F21+PS006' },
+      { id: 'report.selectTemplate',   label: 'Select Report Template',            internalKey: 'F21+PS007', description: 'View the report template resolved for this case' },
+      { id: 'report.overrideTemplate', label: 'Override Report Template',          internalKey: 'F21+PS008', description: 'Pathologist override of system-resolved report template' },
+>>>>>>> upstream/main
     ],
   },
 
@@ -329,7 +402,14 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'ai.grossAssist',      label: 'Use AI Gross Description Assist',  internalKey: 'F22+PS002' },
       { id: 'ai.macroSuggest',     label: 'Use AI Macro Suggestion',          internalKey: 'F22+PS003' },
       { id: 'ai.viewConfidence',   label: 'View AI Confidence Scores',        internalKey: 'F22+PS004' },
+<<<<<<< HEAD
       { id: 'ai.override',         label: 'Override AI Suggestion',           internalKey: 'F22+PS005' },
+=======
+      { id: 'ai.override',              label: 'Override AI Suggestion',           internalKey: 'F22+PS005' },
+      { id: 'ai.changeReportTemplate',  label: 'Change Report Template',           internalKey: 'F22+PS006', shortcutable: true, description: 'Override the system-resolved report template for this case' },
+      { id: 'ai.acceptNarrativeSection',label: 'Accept Narrative Section',         internalKey: 'F22+PS007', shortcutable: true, description: 'Accept AI-generated narrative section without edits' },
+      { id: 'ai.regenerateSection',     label: 'Regenerate Narrative Section',     internalKey: 'F22+PS008', shortcutable: true, description: 'Trigger AI regeneration of a single narrative section' },
+>>>>>>> upstream/main
     ],
   },
 
@@ -361,7 +441,14 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'config.macros',         label: 'Manage Macros',                   internalKey: 'F24+PS008' },
       { id: 'config.shortcuts',      label: 'Manage Keyboard Shortcuts',       internalKey: 'F24+PS009' },
       { id: 'config.lis',            label: 'Manage LIS Integration Settings', internalKey: 'F24+PS010' },
+<<<<<<< HEAD
       { id: 'config.auditLog',       label: 'View Audit Log',                  internalKey: 'F24+PS011' },
+=======
+      { id: 'config.auditLog',          label: 'View Audit Log',                  internalKey: 'F24+PS011' },
+      { id: 'config.reportTemplates',   label: 'Manage Report Templates',         internalKey: 'F24+PS030' },
+      { id: 'config.routingRules',      label: 'Manage Template Routing Rules',   internalKey: 'F24+PS031', description: 'Client and physician overrides for report template resolution' },
+      { id: 'config.validationStudies', label: 'Manage Validation Studies',       internalKey: 'F24+PS032', description: 'Admin and superadmin only' },
+>>>>>>> upstream/main
     ],
   },
 
@@ -399,15 +486,27 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'admin.export',      label: 'Export Data',            internalKey: 'F24+PS026' },
       { id: 'admin.backups',     label: 'Manage Backups',         internalKey: 'F24+PS027' },
       { id: 'admin.eventLog',    label: 'View Error / Event Log', internalKey: 'F24+PS028' },
+<<<<<<< HEAD
       { id: 'admin.impersonate', label: 'Impersonate User',       internalKey: 'F24+PS029', description: 'Super admin only' },
+=======
+      { id: 'admin.impersonate',        label: 'Impersonate User',              internalKey: 'F24+PS029', description: 'Super admin only' },
+      { id: 'admin.validationStudies',  label: 'View Validation Study Data',    internalKey: 'F24+PS033', description: 'Access aggregate validation study metrics and reports — superadmin only' },
+>>>>>>> upstream/main
     ],
   },
 
 
+<<<<<<< HEAD
   // ── AI CoPilot ───────────────────────────────────────────────────────────
   {
     id: 'ai_copilot',
     title: 'AI CoPilot',
+=======
+  // ── AI Assist ────────────────────────────────────────────────────────────
+  {
+    id: 'ai_assist',
+    title: 'AI Assist',
+>>>>>>> upstream/main
     actions: [
       { id: 'ai.diagnosisSuggest',   label: 'AI Diagnosis Suggestions',      description: 'View and interact with AI-suggested synoptic field values', internalKey: 'F17+PS001', shortcutable: true },
       { id: 'ai.grossAssist',        label: 'AI Gross Description Assist',   description: 'AI assistance when entering gross description', internalKey: 'F17+PS002' },
@@ -465,7 +564,11 @@ export const ACTION_MAP: Record<ActionId, SystemAction> =
   {} as Record<ActionId, SystemAction>;
 
 /** internalKey → action — used by keyboard handler to dispatch */
+<<<<<<< HEAD
 export const INTERNAL_KEY_MAP: Record<string, SystemAction> = {};
+=======
+const INTERNAL_KEY_MAP: Record<string, SystemAction> = {};
+>>>>>>> upstream/main
 
 ACTION_GROUPS.forEach(g =>
   g.actions.forEach(a => {
@@ -484,9 +587,19 @@ export const VOICE_CONTEXT = {
   WORKLIST:      'WORKLIST',
   CASE_VIEW:     'CASE_VIEW',
   REPORTING:     'REPORTING',
+<<<<<<< HEAD
   MESSAGES:      'MESSAGES',
   SEARCH:        'SEARCH',
   CONFIGURATION: 'CONFIGURATION',
+=======
+  SYNOPTIC:      'SYNOPTIC',
+  MESSAGES:      'MESSAGES',
+  SEARCH:        'SEARCH',
+  CONFIGURATION: 'CONFIGURATION',
+  ACCESSION:     'ACCESSION',
+  CONTRIBUTION:  'CONTRIBUTION',
+  INTRAOP:       'INTRAOP',
+>>>>>>> upstream/main
 } as const;
 
 export type VoiceContextName = typeof VOICE_CONTEXT[keyof typeof VOICE_CONTEXT];
@@ -537,8 +650,18 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'physician.view': true, 'client.view': true,
     'qc.viewQueue': true, 'qc.claimReview': true, 'qc.submitReview': true,
     'qc.escalateDiscordance': true, 'qc.viewDashboard': true,
+<<<<<<< HEAD
     // AI CoPilot
     'ai.reviewTriage': true, 'ai.codeSuggest': true, 'ai.narrativeGenerate': true,
+=======
+    // AI Assist
+    'ai.reviewTriage': true, 'ai.codeSuggest': true, 'ai.narrativeGenerate': true,
+    // Orchestration — narrative template selection and section management
+    'ai.changeReportTemplate': true, 'ai.acceptNarrativeSection': true, 'ai.regenerateSection': true,
+    'report.selectTemplate': true, 'report.overrideTemplate': true,
+    // Specimen LIS sync
+    'specimen.syncLIS': true, 'specimen.editLISStatus': true,
+>>>>>>> upstream/main
     // Delegation
     'delegation.open': true, 'delegation.reassign': true, 'delegation.pool': true,
     'delegation.secondOpinion': true, 'delegation.casualReview': true,
@@ -550,6 +673,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     // Synoptic Navigation
     'synoptic.jumpNextUnanswered': true, 'synoptic.jumpNextRequired': true,
     'synoptic.markDeferred': true, 'synoptic.confirmField': true, 'synoptic.overrideField': true,
+<<<<<<< HEAD
+=======
+    // Pediatric access — off by default, enabled per role by admin
+    'case.viewPediatric': false,
+>>>>>>> upstream/main
   },
   Resident: {
     'system.openMessages': true, 'system.openWorklist': true,
@@ -584,7 +712,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.markUrgent': true,
     'physician.view': true, 'client.view': true,
     'qc.viewQueue': true, 'qc.viewDashboard': true,
+<<<<<<< HEAD
     // AI CoPilot — residents can use AI but not narrative generation
+=======
+    // AI Assist — residents can use AI but not narrative generation
+>>>>>>> upstream/main
     'ai.reviewTriage': true, 'ai.codeSuggest': true,
     // Delegation — residents can request review but not reassign or countersign
     'delegation.open': true, 'delegation.secondOpinion': true,
@@ -610,6 +742,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'config.subspecialties': true, 'config.specimens': true, 'config.flags': true,
     'config.ai': true, 'config.macros': true, 'config.shortcuts': true,
     'config.lis': true, 'config.auditLog': true,
+<<<<<<< HEAD
+=======
+    'config.reportTemplates': true, 'config.routingRules': true,
+    'config.validationStudies': true,
+>>>>>>> upstream/main
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
@@ -622,6 +759,149 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'qc.configure': true, 'qc.viewDashboard': true, 'qc.exportReport': true,
     'admin.dashboard': true, 'admin.reports': true, 'admin.export': true,
     'admin.backups': true, 'admin.eventLog': true,
+<<<<<<< HEAD
+=======
+    'admin.validationStudies': true,
+  },
+  /**
+   * Pathology Fellow — subspecialty-focused, near-attending autonomy.
+   * Built by deliberate delta from Resident based on four dimensions:
+   * scope/breadth, sign-out autonomy, gross-room involvement, and teaching/
+   * leadership responsibility. Key differences from Resident, not just
+   * "more of everything":
+   *   - Full diagnostic entry + report drafting (enterDiagnosis,
+   *     microscopicDescription, report.generate, template selection,
+   *     narrative accept/regenerate) — manages a case end-to-end through
+   *     a complete draft, consistent with "pre-sign-out" autonomy.
+   *   - Still NO diagnosis.signOut/amend/revokeSignOut or
+   *     report.deliver/redeliver — the attending still officially
+   *     signs/releases, same line Resident already draws.
+   *   - FEWER gross-room permissions than Resident, not more: no
+   *     specimen.add/remove (routine hands-on registration a Fellow is
+   *     "minimally involved" in) — kept edit/flag/subspecialty for
+   *     supervisory correction on complex cases.
+   *   - delegation.teaching added (Resident doesn't have this) — running
+   *     tumor boards, overseeing resident rotations.
+   *   - delegation.countersign deliberately NOT granted — debatable; the
+   *     "attending officially signs" framing reads as resident→attending,
+   *     not resident→fellow→attending, but this is institution-dependent.
+   *   - case.assign added beyond Resident's set, specifically tied to
+   *     overseeing resident rotations, not general case authority.
+   */
+  Fellow: {
+    'system.openMessages': true, 'system.openWorklist': true,
+    'system.goBack': true, 'system.goForward': true,
+    'nav.nextCase': true, 'nav.previousCase': true,
+    'nav.nextTab': true, 'nav.previousTab': true,
+    'table.next': true, 'table.previous': true, 'table.pageDown': true, 'table.pageUp': true,
+    'table.first': true, 'table.last': true, 'table.select': true,
+    'table.selectAll': true, 'table.deselectAll': true, 'table.openSelected': true,
+    'table.refresh': true, 'table.search': true, 'table.clearSearch': true,
+    'case.viewWorklist': true, 'case.open': true, 'case.editDemographics': true,
+    'case.assign': true, 'case.prioritize': true, 'case.hold': true, 'case.releaseHold': true,
+    'specimen.edit': true, 'specimen.applyFlag': true, 'specimen.removeFlag': true,
+    'specimen.assignSubspecialty': true,
+    'diagnosis.grossDescription': true, 'diagnosis.microscopicDescription': true,
+    'diagnosis.enterDiagnosis': true, 'diagnosis.enterAddendum': true, 'diagnosis.coSign': true,
+    'report.preview': true, 'report.generate': true, 'report.viewHistory': true, 'report.download': true,
+    'ai.diagnosisSuggest': true, 'ai.grossAssist': true, 'ai.macroSuggest': true,
+    'ai.viewConfidence': true, 'ai.override': true,
+    'ai.reviewTriage': true, 'ai.codeSuggest': true, 'ai.narrativeGenerate': true,
+    'ai.changeReportTemplate': true, 'ai.acceptNarrativeSection': true, 'ai.regenerateSection': true,
+    'report.selectTemplate': true, 'report.overrideTemplate': true,
+    // Full editor tier — same as Pathologist, NOT Resident's restricted
+    // subset. A Fellow drafting a complete pre-sign-out report needs
+    // signature-block and section-navigation access, not just basic text.
+    'editor.nextField': true, 'editor.previousField': true,
+    'editor.nextSection': true, 'editor.previousSection': true,
+    'editor.insertMacro': true, 'editor.insertTable': true, 'editor.insertSignature': true,
+    'editor.bold': true, 'editor.italic': true, 'editor.underline': true,
+    'editor.bullets': true, 'editor.numbering': true,
+    'editor.increaseIndent': true, 'editor.decreaseIndent': true,
+    'editor.find': true, 'editor.replace': true, 'editor.selectAll': true,
+    'editor.showRuler': true, 'editor.toggleFormatting': true,
+    'messages.next': true, 'messages.previous': true, 'messages.reply': true,
+    'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
+    'messages.compose': true, 'messages.send': true, 'messages.close': true,
+    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.search': true, 'messages.edit': true, 'messages.restore': true,
+    'messages.viewDeleted': true, 'messages.deleteAll': true,
+    'messages.gotoSubject': true, 'messages.gotoBody': true,
+    'messages.clearSubject': true, 'messages.clearBody': true,
+    'messages.markUrgent': true,
+    'physician.view': true, 'client.view': true,
+    'qc.viewQueue': true, 'qc.claimReview': true, 'qc.submitReview': true,
+    'qc.escalateDiscordance': true, 'qc.viewDashboard': true,
+    // Teaching/leadership — the real differentiator from Resident.
+    'delegation.open': true, 'delegation.secondOpinion': true,
+    'delegation.casualReview': true, 'delegation.tumorBoard': true,
+    'delegation.teaching': true, 'delegation.externalConsult': true,
+    // Pool — subspecialty-bound, same as Resident.
+    'pool.viewCases': true, 'pool.acceptCase': true, 'pool.passCase': true,
+    'synoptic.jumpNextUnanswered': true, 'synoptic.jumpNextRequired': true,
+    'synoptic.markDeferred': true, 'synoptic.confirmField': true, 'synoptic.overrideField': true,
+    // Pediatric access — off by default, same as every other clinical role.
+    'case.viewPediatric': false,
+  },
+  /**
+   * Pathologists' Assistant (PA) — grossing-bench role. Note: "PA" here
+   * means Pathologists' Assistant (PA(ASCP)/AAPA certified profession),
+   * NOT the general-healthcare "Physician Assistant" — a completely
+   * different role with prescribing authority. This system already has a
+   * separate Physician role; the naming overlap is a real, common
+   * confusion worth flagging explicitly rather than letting it surface
+   * later as a support ticket or, worse, a misconfigured permission.
+   *
+   * Built primarily by analogy to Resident (closest existing case-access-
+   * without-sign-out role), narrowed to grossing-bench scope: no
+   * microscopic/diagnosis/sign-out access, no delegation (PA has no
+   * occasion to request a second opinion or tumor board), no pool access
+   * (grossing assignment is intentionally NOT routed through the existing
+   * subspecialty pool-claim mechanism — see Worklist discussion), no QC
+   * (Computational Sidecar review is diagnostic ancillary-test review,
+   * not grossing). Has case.hold/releaseHold specifically to support the
+   * SOP's identification-verification reject/hold gate.
+   */
+  'Pathologists Assistant': {
+    'system.openMessages': true, 'system.openWorklist': true,
+    'system.goBack': true, 'system.goForward': true,
+    'nav.nextCase': true, 'nav.previousCase': true,
+    'nav.nextTab': true, 'nav.previousTab': true,
+    'table.next': true, 'table.previous': true, 'table.pageDown': true, 'table.pageUp': true,
+    'table.first': true, 'table.last': true, 'table.select': true,
+    'table.openSelected': true, 'table.refresh': true, 'table.search': true,
+    'case.viewWorklist': true, 'case.open': true,
+    'case.hold': true, 'case.releaseHold': true,
+    'specimen.add': true, 'specimen.edit': true, 'specimen.remove': true,
+    'specimen.applyFlag': true, 'specimen.removeFlag': true,
+    'diagnosis.grossDescription': true,
+    'report.preview': true, 'report.viewHistory': true, 'report.download': true,
+    'ai.grossAssist': true, 'ai.macroSuggest': true,
+    'ai.viewConfidence': true, 'ai.override': true,
+    'editor.nextField': true, 'editor.previousField': true,
+    'editor.insertMacro': true, 'editor.insertTable': true,
+    'editor.bold': true, 'editor.italic': true, 'editor.underline': true,
+    'editor.bullets': true, 'editor.numbering': true,
+    'editor.find': true, 'editor.replace': true, 'editor.selectAll': true,
+    'messages.next': true, 'messages.previous': true, 'messages.reply': true,
+    'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
+    'messages.compose': true, 'messages.send': true, 'messages.close': true,
+    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.search': true, 'messages.edit': true, 'messages.restore': true,
+    'messages.viewDeleted': true, 'messages.deleteAll': true,
+    'messages.gotoSubject': true, 'messages.gotoBody': true,
+    'messages.clearSubject': true, 'messages.clearBody': true,
+    'messages.markUrgent': true,
+    'physician.view': true, 'client.view': true,
+    // Synoptic Navigation — same as Resident/Pathologist; this is how a PA
+    // navigates the Grossing checklist itself, same schema-driven panel
+    // diagnostic synoptics use.
+    'synoptic.jumpNextUnanswered': true, 'synoptic.jumpNextRequired': true,
+    'synoptic.markDeferred': true, 'synoptic.confirmField': true, 'synoptic.overrideField': true,
+    // Pediatric access — off by default, enabled per role by admin, same
+    // as every other clinical role's default.
+    'case.viewPediatric': false,
+>>>>>>> upstream/main
   },
   Physician: {},
 };

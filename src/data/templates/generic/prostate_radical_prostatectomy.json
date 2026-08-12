@@ -1,0 +1,1095 @@
+{
+  "id": "prostate_radical_prostatectomy",
+  "name": "Generic Template \u2014 Prostate Radical Prostatectomy",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "PROSTATE",
+  "locale": "en-GB",
+  "sections": [
+    {
+      "id": "clinical_information",
+      "title": "Clinical Information",
+      "fields": [
+        {
+          "id": "pre_biopsy_psa",
+          "label": "Pre-Procedure Marker Value",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "pre_biopsy_psa_availability",
+          "label": "Pre-Procedure Marker Availability",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "pre_biopsy_psa_availability_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pre_biopsy_psa_availability_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "specimen_weight_g",
+          "label": "Specimen Weight (g)",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "seminal_vesicles_present",
+          "label": "Field 2",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "seminal_vesicles_present_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicles_present_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "seminal_vesicle_laterality",
+          "label": "Field 3",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "seminal_vesicle_laterality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_laterality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_laterality_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_laterality_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "lymph_nodes_present",
+          "label": "Field 4",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymph_nodes_present_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymph_nodes_present_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "lymph_nodes_laterality",
+          "label": "Field 5",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymph_nodes_laterality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymph_nodes_laterality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymph_nodes_laterality_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymph_nodes_laterality_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "tumour_pathology",
+      "title": "Findings",
+      "fields": [
+        {
+          "id": "histological_tumour_type",
+          "label": "Type",
+          "type": "checkboxes",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histological_tumour_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_tumour_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_tumour_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_tumour_type_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_tumour_type_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "histological_tumour_type_other_specify",
+          "label": "Type \u2014 Other (specify)",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "location_dominant_tumour",
+          "label": "Field 3",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "grading",
+      "title": "Grade Summary",
+      "fields": [
+        {
+          "id": "gleason_applicable",
+          "label": "Score Applicable",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "gleason_applicable_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_applicable_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "primary_gleason_grade",
+          "label": "Primary Grade",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "primary_gleason_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "secondary_gleason_grade",
+          "label": "Secondary Grade",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "secondary_gleason_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "tertiary_gleason_grade",
+          "label": "Tertiary Grade",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "tertiary_gleason_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tertiary_gleason_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tertiary_gleason_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tertiary_gleason_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "gleason_score_total",
+          "label": "Score \u2014 Total",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "gleason_score_total_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "grade_group",
+          "label": "Grade Group",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "grade_group_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "invasive_cribriform_intraductal",
+          "label": "Secondary Pattern Present",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "invasive_cribriform_intraductal_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_cribriform_intraductal_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "local_extension",
+      "title": "Extension",
+      "fields": [
+        {
+          "id": "extraprostatic_extension",
+          "label": "Extension Beyond Organ",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "extraprostatic_extension_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "extraprostatic_extension_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "extraprostatic_extension_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "extraprostatic_extension_location",
+          "label": "Field 2",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "extraprostatic_extension_extent",
+          "label": "Field 3",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "extraprostatic_extension_extent_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "extraprostatic_extension_extent_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "extraprostatic_extension_extent_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "bladder_neck_involvement",
+          "label": "Field 4",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "bladder_neck_involvement_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "bladder_neck_involvement_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "bladder_neck_involvement_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "seminal_vesicle_involvement",
+          "label": "Field 5",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "seminal_vesicle_involvement_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_involvement_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "seminal_vesicle_involvement_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "margins",
+      "title": "Margins",
+      "fields": [
+        {
+          "id": "margin_status",
+          "label": "Margin Status",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "margin_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_status_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "margin_extent",
+          "label": "Margin Extent",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "margin_extent_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_extent_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_extent_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "margin_location",
+          "label": "Margin Location",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "margin_location_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_location_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_location_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_location_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "circumferential_margin_type",
+          "label": "Field 4",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "circumferential_margin_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "circumferential_margin_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "circumferential_margin_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "circumferential_margin_location",
+          "label": "Field 5",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "vascular_invasion",
+      "title": "Secondary Involvement",
+      "fields": [
+        {
+          "id": "lymphovascular_invasion",
+          "label": "Lymphatic/Vascular Involvement",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymphovascular_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphovascular_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "lymph_node_assessment",
+      "title": "Regional Nodes",
+      "fields": [
+        {
+          "id": "number_lymph_nodes_examined",
+          "label": "Field 1",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "number_positive_lymph_nodes",
+          "label": "Field 2",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "max_dimension_largest_deposit_mm",
+          "label": "Field 3",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "tnm_stage",
+      "title": "Stage Summary",
+      "fields": [
+        {
+          "id": "t_category",
+          "label": "Category A",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "t_category_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_category_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_category_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_category_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_category_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "n_category",
+          "label": "Category B",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "n_category_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_category_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_category_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "molecular_block",
+      "title": "Ancillary Block Information",
+      "fields": [
+        {
+          "id": "representative_molecular_block",
+          "label": "Representative Block (identifier)",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "molecular_block_tumour_content",
+          "label": "Content of Representative Block",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "molecular_block_tumour_content_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "molecular_block_tumour_content_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "snomed_codes",
+      "title": "Reference Codes",
+      "fields": [
+        {
+          "id": "snomed_t_code",
+          "label": "Reference Code A",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "snomed_m_code",
+          "label": "Reference Code B",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

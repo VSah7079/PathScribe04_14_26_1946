@@ -1,0 +1,265 @@
+﻿@import "tailwindcss";
+
+/* Inter — self-hosted via @fontsource/inter
+   REQUIRED: run  npm install @fontsource/inter  before building
+   No external network request, no render blocking — ~200ms faster on first load */
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+
+@layer base {
+  button {
+    @apply appearance-none border-0 bg-transparent;
+  }
+}
+
+@layer utilities {
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+/* =========================================================
+   pathscribe DESIGN TOKENS
+   ========================================================= */
+
+:root {
+  /* ── Brand (Gold) ── */
+  --ps-teal:            #f59e0b;
+  --ps-teal-light:      #fcd34d;
+  --ps-teal-dim:        rgba(245, 158, 11, 0.15);
+  --ps-teal-border:     rgba(245, 158, 11, 0.25);
+
+  /* ── Research mode surfaces (Black/slate-950) ── */
+  --ps-navy-base:       #020617;
+  --ps-navy-left:       #0f172a;
+  --ps-navy-right:      #020617;
+  --ps-navy-card:       rgba(15, 23, 42, 0.95);
+  --ps-navy-input:      rgba(30, 41, 59, 0.9);
+
+  /* ── Action mode surfaces (white) ── */
+  --ps-white:           #ffffff;
+  --ps-surface:         #f8fafc;
+  --ps-border-light:    #e2e8f0;
+
+  /* ── Text ── */
+  --ps-text-primary:    #f8fafc;
+  --ps-text-secondary:  #cbd5e1;
+  --ps-text-muted:      #94a3b8;
+  --ps-text-dim:        #475569;
+
+  /* ── Semantic ── */
+  --ps-red:             #ef4444;
+  --ps-red-dim:         rgba(239, 68, 68, 0.12);
+  --ps-amber:           #f59e0b;
+  --ps-green:           #f59e0b;
+
+  /* ── Borders (dark surfaces) ── */
+  --ps-border-dark:     rgba(51, 65, 85, 0.9);
+  --ps-border-bright:   rgba(71, 85, 105, 0.9);
+  --ps-border-soft:     rgba(148, 163, 184, 0.4);
+
+  /* ── Gradients ── */
+  --ps-grad-header:     radial-gradient(circle at top left, rgba(245, 158, 11, 0.15), transparent 55%);
+  --ps-grad-left:       radial-gradient(circle at top, rgba(245, 158, 11, 0.10), transparent 60%);
+  --ps-grad-right:      radial-gradient(circle at top right, rgba(2, 6, 23, 0.90), transparent 60%);
+
+  /* ── Border radius ── */
+  --ps-radius-sm:       8px;
+  --ps-radius-md:       12px;
+  --ps-radius-lg:       18px;
+  --ps-radius-xl:       20px;
+
+  /* ── Shadows ── */
+  --ps-shadow-modal:    0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --ps-shadow-research: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* =========================================================
+   GLOBAL BACKGROUND + RESET
+   ========================================================= */
+
+html, body, #root {
+  background-color: var(--ps-navy-base);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--ps-text-primary);
+}
+
+/* =========================================================
+   SCROLLBARS
+   Unified across all ps-scroll, ps-msg-list, ps-thread-body
+   ========================================================= */
+
+.ps-scroll,
+.ps-msg-list,
+.ps-thread-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+  overscroll-behavior: contain;
+}
+
+.ps-scroll::-webkit-scrollbar,
+.ps-msg-list::-webkit-scrollbar,
+.ps-thread-body::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.ps-scroll::-webkit-scrollbar-track,
+.ps-msg-list::-webkit-scrollbar-track,
+.ps-thread-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ps-scroll::-webkit-scrollbar-thumb,
+.ps-msg-list::-webkit-scrollbar-thumb,
+.ps-thread-body::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.2);
+  border-radius: 99px;
+}
+
+.ps-scroll::-webkit-scrollbar-thumb:hover,
+.ps-msg-list::-webkit-scrollbar-thumb:hover,
+.ps-thread-body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.4);
+}
+
+/* Suppress scrollbars entirely — outer page containers that should never scroll */
+.ps-no-scroll {
+  scrollbar-width: none;
+  overflow: hidden;
+}
+
+.ps-no-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* =========================================================
+   MESSAGING
+   ========================================================= */
+
+.msg-item {
+  transition: background 0.15s ease;
+}
+
+.msg-item:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Delete button hidden by default, revealed on row hover */
+.individual-delete-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.msg-item:hover .individual-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.msg-item:hover .msg-date {
+  opacity: 0;
+}
+
+.trash-svg {
+  stroke: #636366;
+  transition: stroke 0.2s ease;
+}
+
+.individual-delete-btn:hover .trash-svg {
+  stroke: var(--ps-teal);
+}
+
+/* =========================================================
+   ACTION REGISTRY
+   ========================================================= */
+
+.category-section {
+  margin-top: 16px;
+}
+
+.category-title {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.shortcut-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 80px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shortcut-label {
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.shortcut-display {
+  font-size: 13px;
+  font-family: monospace;
+  color: #9fb4ab;
+}
+
+.shortcut-change-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: var(--ps-radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f7fcfa;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.shortcut-change-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}

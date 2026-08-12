@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuditLog } from '../components/Audit/useAuditLog';
+<<<<<<< HEAD
 import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import NarrativeTemplatesTab from '../components/Config/NarrativeTemplates';
@@ -34,6 +35,67 @@ const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'macros',    label: 'Macros'            },
   { id: 'narrative', label: 'Narrative Templates' },
 
+=======
+import { useAuth } from '../contexts/AuthContext';
+import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
+import { VOICE_CONTEXT } from '../constants/systemActions';
+import AITab         from '../components/Config/AI/index';
+import ModelsTab     from '../components/Config/Models/index';
+import ProtocolsTab  from '../components/Config/Protocols/index';
+import StaffTab      from '../components/Config/Staff/StaffTab';
+import SystemTab     from '../components/Config/System/index';
+import IntegrationsTab from '../components/Config/Integrations/index';
+import TATConfigSection from '../components/Config/System/TATConfigSection';
+import MacrosTab     from '../components/Config/Macros/index';
+import VoiceSettings from '../components/Voice/VoiceSettings';
+import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
+import DemoResetTab    from '../components/Config/System/DemoResetTab';
+import ReportTemplatesSection    from '../components/TemplateBuilder/ReportTemplatesSection';
+import ValidationStudiesSection from '../components/ValidationStudies/ValidationStudiesSection';
+import ConfigSearchBar from '../components/Config/Search/ConfigSearchBar';
+import '../pathscribe.css';
+
+// ── Admin permission check ────────────────────────────────────────────────────
+// Validation Studies tab is only visible to admin-tier roles (admin,
+// pathologist-admin, or superadmin) — a broader check than AuthContext's
+// own roleHas() helper, which deliberately doesn't fold superadmin into
+// its "admin" check (see roleHas's own doc comment). Was previously its
+// own independent localStorage.getItem('pathscribe-user') + JSON.parse,
+// duplicating exactly what AuthContext already does under the same
+// storage key — now reads useAuth()'s already-parsed user.role instead,
+// so there's one source of truth for the stored shape rather than two
+// that could drift out of sync.
+function useIsAdmin(): boolean {
+  const { user } = useAuth();
+  return !!user && ['admin', 'pathologist-admin', 'superadmin'].includes(user.role);
+}
+
+function useIsSuperAdmin(): boolean {
+  const { user } = useAuth();
+  return user?.role === 'superadmin';
+}
+
+const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'integrations', 'tat', 'actions', 'macros', 'templates', 'validation', 'demo'] as const;
+type TabId = typeof VALID_TABS[number];
+
+const TAB_LABELS: { id: TabId; label: string }[] = [
+  { id: 'actions',    label: 'Action Registry'    },
+  { id: 'ai',         label: 'AI Behavior'        },
+  { id: 'macros',     label: 'Macros'             },
+  { id: 'templates',  label: 'Report Templates'   },
+  { id: 'staff',      label: 'Staff'              },
+  { id: 'protocols',  label: 'Synoptic Library'   },
+  { id: 'system',     label: 'System'             },
+  { id: 'integrations', label: 'Integrations'     },
+  { id: 'tat',        label: 'TAT Configuration'   },
+  { id: 'validation', label: 'Validation Studies' },
+  { id: 'voice',      label: 'Voice'              },
+  // Pinned last deliberately, not alphabetized — a reset/destructive
+  // action, same convention as keeping "Delete Account" separate from
+  // an alphabetized settings list rather than letting it land wherever
+  // "D" happens to sort.
+  { id: 'demo',       label: '⟳ Demo Reset'       },
+>>>>>>> upstream/main
 ];
 
 function getTabFromSearch(search: string): TabId {
@@ -49,6 +111,11 @@ const ConfigurationPage: React.FC = () => {
   const [activeTab,   setActiveTab]   = useState<TabId>(() => getTabFromSearch(location.search));
   const [isLoaded,    setIsLoaded]    = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+<<<<<<< HEAD
+=======
+  const isAdmin      = useIsAdmin();
+  const isSuperAdmin = useIsSuperAdmin();
+>>>>>>> upstream/main
 
   useEffect(() => { setActiveTab(getTabFromSearch(location.search)); }, [location.search]);
   useEffect(() => { const t = setTimeout(() => setIsLoaded(true), 100); return () => clearTimeout(t); }, []);
@@ -98,6 +165,7 @@ const ConfigurationPage: React.FC = () => {
 
   const renderActiveTab = () => {
     switch (activeTab) {
+<<<<<<< HEAD
       case 'ai':        return <AITab />;
       case 'models':    return <ModelsTab />;
       case 'protocols': return <ProtocolsTab />;
@@ -107,10 +175,31 @@ const ConfigurationPage: React.FC = () => {
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
       case 'narrative': return <NarrativeTemplatesTab />;
+=======
+      case 'ai':        return <AITab ModelsPanel={ModelsTab} />;
+      case 'protocols': return <ProtocolsTab />;
+      case 'staff':     return <StaffTab />;
+      case 'system':    return <SystemTab />;
+      case 'integrations': return <IntegrationsTab />;
+      case 'tat':       return <TATConfigSection />;
+      case 'actions':   return <ActionsTab />;
+      case 'macros':    return <MacrosTab />;
+      case 'voice':     return <VoiceSettings />;
+      case 'templates':  return <ReportTemplatesSection />;
+      case 'validation': return isAdmin
+        ? <ValidationStudiesSection isSuperAdmin={isSuperAdmin} />
+        : <div className="ps-cfgpage-locked">
+            <div className="ps-cfgpage-locked-icon">🔒</div>
+            <div className="ps-cfgpage-locked-title">Admin access required</div>
+            <div className="ps-cfgpage-locked-sub">Validation Studies is available to administrators only.</div>
+          </div>;
+      case 'demo':      return <DemoResetTab />;
+>>>>>>> upstream/main
       default:          return null;
     }
   };
 
+<<<<<<< HEAD
   if (!isLoaded) return <div style={{ padding: '24px', color: '#e2e8f0' }}>Loading configuration…</div>;
 
   return (
@@ -138,20 +227,54 @@ const ConfigurationPage: React.FC = () => {
                 color: activeTab === tab.id ? '#0891b2' : '#94a3b8',
                 borderBottom: activeTab === tab.id ? '2px solid #0891b2' : '2px solid transparent',
               }}
+=======
+  if (!isLoaded) return <div className="ps-cfgpage-loading">Loading configuration…</div>;
+
+  return (
+    <div className="ps-cfgpage-shell">
+
+      {/* ── Header + Tab bar — full width, never scrolls ── */}
+      <div className="ps-cfgpage-header">
+        <div className="ps-cfgpage-title-block">
+          <h1 className="ps-cfgpage-title">Configuration</h1>
+          <p className="ps-cfgpage-subtitle">Control AI behavior, templates, users, and system settings</p>
+          <ConfigSearchBar onNavigate={tabId => handleTabChange(tabId)} />
+        </div>
+
+        <div className="ps-cfgpage-tabbar">
+          {TAB_LABELS.filter(tab => {
+            if (tab.id === 'validation') return isAdmin; // admin, pathologist-admin, superadmin
+            return true;
+          }).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`ps-cfgpage-tab-btn${activeTab === tab.id ? ' ps-cfgpage-tab-btn--active' : ''}`}
+>>>>>>> upstream/main
             >
               {tab.label}
             </button>
           ))}
         </div>
+<<<<<<< HEAD
 
         {/* Tab Content */}
         <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 220px)', paddingBottom: 40 }}>
+=======
+      </div>
+
+      {/* ── Scrollable content — FULL WIDTH so scrollbar lands at viewport edge ── */}
+      <div className="ps-cfgpage-scroll">
+        {/* Inner content: full width, padding on sides */}
+        <div className="ps-cfgpage-inner">
+>>>>>>> upstream/main
           {renderActiveTab()}
         </div>
       </div>
 
       {/* Unsaved Changes Modal */}
       {showWarning && (
+<<<<<<< HEAD
         <div
           onClick={() => setShowWarning(false)}
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
@@ -175,6 +298,15 @@ const ConfigurationPage: React.FC = () => {
               >
                 Leave
               </button>
+=======
+        <div className="ps-overlay" onClick={() => setShowWarning(false)}>
+          <div className="ps-modal-dark ps-cfgpage-modal--w420" onClick={e => e.stopPropagation()}>
+            <span className="ps-modal-dark-title">Unsaved Changes</span>
+            <p className="ps-modal-dark-body">You have unsaved changes. Are you sure you want to leave?</p>
+            <div className="ps-modal-dark-footer">
+              <button className="ps-btn-ghost-dark" onClick={() => setShowWarning(false)}>Stay</button>
+              <button className="ps-btn-red" onClick={() => navigate('/')}>Leave</button>
+>>>>>>> upstream/main
             </div>
           </div>
         </div>

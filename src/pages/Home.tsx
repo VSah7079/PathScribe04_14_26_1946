@@ -1,15 +1,33 @@
+<<<<<<< HEAD
+=======
+// src/pages/Home.tsx
+>>>>>>> upstream/main
 import { useState, useEffect } from 'react';
 import '../pathscribe.css';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@contexts/AuthContext";
 import { useLogout } from '@hooks/useLogout';
+<<<<<<< HEAD
 import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
 import CaseSearchBar from '../components/Search/CaseSearchBar';
+=======
+import LogoutWarningModal from '@/components/Common/LogoutWarningModal';
+import PubMedTicker from '@/components/Common/PubMedTicker';
+
+interface Card {
+  title: string;
+  description: string;
+  route: string;
+  color: string;
+  image: string;
+}
+>>>>>>> upstream/main
 
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const handleLogout = useLogout();
+<<<<<<< HEAD
   
   // --- UI State ---
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -172,10 +190,96 @@ const cards = [
                 </div>
               </div>
             ))}
+=======
+
+  // --- UI State ---
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => { clearTimeout(timer); };
+  }, []);
+
+  const cards: Card[] = [
+    // ⭐ New tile
+    {
+      title: 'Accession',
+      description: 'Log new specimens and assign Grossing Templates',
+      route: '/accession',
+      color: '#22C55E',
+      image: '/accession.webp'
+    },
+
+    { title: 'Worklist', description: 'View and manage pending pathology cases', route: '/worklist', color: '#0891B2', image: '/worklist.webp' },
+    { title: 'Configuration', description: 'System settings and AI preferences', route: '/configuration', color: '#F59E0B', image: '/config.webp' },
+    { title: 'Search', description: 'Search completed and in-progress cases', route: '/search', color: '#8B5CF6', image: '/search.webp' },
+    { title: 'Audit', description: 'Review System Activities, Audit Trail, and Quality Assurance', route: '/audit', color: '#EF4444', image: '/logs.webp' },
+    { title: 'Quality Assurance', description: 'Deficiencies, Intraoperative Linkage, and Discordance & Reconciliation reporting', route: '/deficiencies', color: '#F97316', image: '/deficiencies.webp' },
+    { title: 'Intraop Queue', description: 'Unlinked intraoperative entries awaiting a formal LIS accession to merge into', route: '/intraop-queue', color: '#0EA5E9', image: '/worklist.webp' },
+
+    // ⭐ New tile
+    {
+      title: 'My Contribution',
+      description: 'Workload • Quality • TAT • Trends',
+      route: '/contribution',
+      color: '#0EA5E9',
+      image: '/my_contributions.webp'
+    }
+  ];
+
+  return (
+    <div className={`ps-page${isLoaded ? ' ps-page--loaded' : ''}`}>
+      {/* Background */}
+      <div className="ps-page-bg" />
+      <div className="ps-page-gradient" />
+
+      {/* UI Content */}
+      <div className="ps-page-content">
+
+        <main className="ps-home-main">
+          <header className="ps-home-header">
+            <h1 className="ps-home-title">
+              Welcome back,&nbsp;<span className="ps-home-title-name">{user?.name ? user.name.split(',')[0] : 'Doctor'}</span>
+            </h1>
+            <PubMedTicker />
+          </header>
+
+          <div className="ps-home-cards-grid">
+            {cards.map((card, index) => {
+              const hovered = hoveredCard === index;
+              return (
+                <div
+                  key={card.title}
+                  onClick={() => navigate(card.route)}
+                  onMouseEnter={() => setHoveredCard(index)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  className={`ps-home-card${hovered ? ' ps-home-card--hovered' : ''}`}
+                  style={{ '--card-accent': card.color, '--card-accent-dim': `${card.color}40` } as React.CSSProperties}
+                >
+                  {/* Background Image */}
+                  {card.image && (
+                    <div className="ps-home-card-image" style={{ '--card-image': `url(${card.image})` } as React.CSSProperties} />
+                  )}
+
+                  {/* Gradient Overlay - Static */}
+                  <div className="ps-home-card-overlay" />
+
+                  {/* Text Content */}
+                  <div className="ps-home-card-text">
+                    <h3 className="ps-home-card-title">{card.title}</h3>
+                    <p className="ps-home-card-desc">{card.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+>>>>>>> upstream/main
           </div>
         </main>
 
         {/* Footer Status */}
+<<<<<<< HEAD
         <footer style={{ 
           padding: '30px 60px', 
           display: 'flex', 
@@ -194,11 +298,18 @@ const cards = [
               borderRadius: '50%',
               boxShadow: '0 0 8px #10B981'
             }} />
+=======
+        <footer className="ps-home-footer">
+          <div>© 2026 PathScribe AI Systems • HIPAA Compliant</div>
+          <div className="ps-home-footer-status">
+            <span className="ps-home-status-dot" />
+>>>>>>> upstream/main
             SYSTEMS OPERATIONAL
           </div>
         </footer>
       </div>
 
+<<<<<<< HEAD
       {/* PROFILE MODAL */}
       {isProfileOpen && (
         <div 
@@ -789,3 +900,13 @@ const cards = [
 // Global Styles
 const overlayStyle = { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 };
 const warningCardStyle = { width: '400px', backgroundColor: '#111', padding: '40px', borderRadius: '28px', textAlign: 'center' as const, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' };
+=======
+      <LogoutWarningModal
+        isOpen={showWarning}
+        onClose={() => setShowWarning(false)}
+        onLogout={handleLogout}
+      />
+    </div>
+  );
+}
+>>>>>>> upstream/main

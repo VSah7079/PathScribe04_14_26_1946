@@ -1,7 +1,11 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { InternalNote, NewInternalNote, IInternalNoteService } from './IInternalNoteService';
+<<<<<<< HEAD
 import { mockAuditService } from '../auditLog/mockAuditService';
+=======
+import { mockAuditService } from '../auditlog/mockAuditService';
+>>>>>>> upstream/main
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 

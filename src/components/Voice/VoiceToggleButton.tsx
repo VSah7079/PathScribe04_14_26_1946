@@ -21,7 +21,11 @@ export const VoiceToggleButton: React.FC = () => {
     ? aiAvailable
       ? 'Voice AI — click to enable'
       : IS_DEV
+<<<<<<< HEAD
         ? 'Voice Local only (VITE_GEMINI_API_KEY not set)'
+=======
+        ? 'Voice Local only (active voice model unavailable — check its provider API key)'
+>>>>>>> upstream/main
         : 'Click to enable voice'
     : isAi
       ? 'Voice AI active — click for Local'
@@ -63,7 +67,11 @@ export const VoiceToggleButton: React.FC = () => {
             background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '8px', padding: '8px 12px',
             fontSize: '11px', color: '#94a3b8',
+<<<<<<< HEAD
             whiteSpace: 'nowrap', zIndex: 9999, pointerEvents: 'none',
+=======
+            whiteSpace: 'nowrap', zIndex: 10000, pointerEvents: 'none',
+>>>>>>> upstream/main
             boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           }}>
             Voice is disabled for this deployment
@@ -135,12 +143,20 @@ export const VoiceToggleButton: React.FC = () => {
           background: '#0f172a', border: '1px solid rgba(245,158,11,0.4)',
           borderRadius: '8px', padding: '8px 12px',
           fontSize: '11px', color: '#fbbf24',
+<<<<<<< HEAD
           whiteSpace: 'nowrap', zIndex: 9999, pointerEvents: 'none',
+=======
+          whiteSpace: 'nowrap', zIndex: 10000, pointerEvents: 'none',
+>>>>>>> upstream/main
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
         }}>
           ⚠️ AI refinement unavailable
           <div style={{ color: '#94a3b8', marginTop: '2px', fontSize: '10px' }}>
+<<<<<<< HEAD
             VITE_GEMINI_API_KEY not set in .env
+=======
+            No validated voice model configured, or its provider API key isn't set
+>>>>>>> upstream/main
           </div>
         </div>
       )}

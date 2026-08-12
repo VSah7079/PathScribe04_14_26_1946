@@ -1,0 +1,642 @@
+{
+  "id": "breast_dcis_resection",
+  "name": "Generic Template \u2014 Breast Dcis Resection",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "BREAST",
+  "sections": [
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "procedure_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "specimen_laterality",
+          "label": "Specimen Laterality",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "specimen_laterality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "tumor",
+      "title": "Findings",
+      "fields": [
+        {
+          "id": "tumor_type",
+          "label": "Finding Type",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "tumor_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_type_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_type_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "tumor_site",
+          "label": "Finding Site",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "tumor_site_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_size_extent",
+          "label": "Size (Extent) of Secondary Finding",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "dcis_architectural_patterns",
+          "label": "Architectural Pattern",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_architectural_patterns_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_architectural_patterns_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_architectural_patterns_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_architectural_patterns_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_architectural_patterns_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_architectural_patterns_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_nuclear_grade",
+          "label": "Nuclear Grade",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_nuclear_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_nuclear_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_nuclear_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_nuclear_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_necrosis",
+          "label": "Necrosis (Secondary Finding)",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_necrosis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_necrosis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_necrosis_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "microcalcifications",
+          "label": "Secondary Finding",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "microcalcifications_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "microcalcifications_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "microcalcifications_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "microcalcifications_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "lcis",
+          "label": "Secondary Finding (LCIS-equivalent)",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lcis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lcis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "margins",
+      "title": "Margins",
+      "fields": [
+        {
+          "id": "margin_status_dcis",
+          "label": "Margin Status B",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "margin_status_dcis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_status_dcis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margin_status_dcis_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "closest_margins_dcis",
+          "label": "Closest Margin(s) B",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "closest_margins_dcis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "closest_margins_dcis_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "margins_involved_dcis",
+          "label": "Margin(s) Involved B",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "margins_involved_dcis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "margins_involved_dcis_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "distance_dcis_to_named_margins",
+          "label": "Distance to Named Margins B",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "margin_comment",
+          "label": "Margin Comment",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "regional_lymph_nodes",
+      "title": "Regional Nodes",
+      "fields": [
+        {
+          "id": "regional_ln_status",
+          "label": "Regional Node Status",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "regional_ln_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "regional_ln_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "regional_ln_status_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "regional_ln_status_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "total_ln_examined",
+          "label": "Total Number Examined",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "regional_ln_comment",
+          "label": "Regional Node Comment",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "ptnm_classification",
+      "title": "Stage Summary",
+      "fields": [
+        {
+          "id": "ptnm_classification",
+          "label": "Stage Summary (free text placeholder)",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

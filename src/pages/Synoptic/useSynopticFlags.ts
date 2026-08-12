@@ -44,6 +44,13 @@ export function useSynopticFlags(caseId: string) {
     setShowFlagManager(true);
   }, [caseId]);
 
+<<<<<<< HEAD
+=======
+  // Real, immediate persist -- called only from FlagManagerModal's own
+  // Save button (see that file), never per-click. Kept here since this
+  // hook owns the real API call and keeps flagCaseData in sync with
+  // whatever was actually committed.
+>>>>>>> upstream/main
   const onApplyFlags = useCallback(async (payload: ApplyFlagPayload) => {
     const updated = await applyFlags(payload);
     setFlagCaseData(updated);

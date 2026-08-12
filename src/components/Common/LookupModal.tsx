@@ -52,7 +52,11 @@ export const LookupModal: React.FC<LookupModalProps> = ({
     <div
       onClick={onClose}
       style={{
+<<<<<<< HEAD
         position: 'fixed', inset: 0, zIndex: 10000,
+=======
+        position: 'fixed', inset: 0, zIndex: 9000,
+>>>>>>> upstream/main
         backgroundColor: 'rgba(0,0,0,0.85)',
         backdropFilter: 'blur(10px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -95,7 +99,11 @@ export const LookupModal: React.FC<LookupModalProps> = ({
               )}
             </div>
             {subtitle && (
+<<<<<<< HEAD
               <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>{subtitle}</p>
+=======
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>{subtitle}</p>
+>>>>>>> upstream/main
             )}
           </div>
           <button
@@ -115,6 +123,38 @@ export const LookupModal: React.FC<LookupModalProps> = ({
         <div className="ps-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {children}
         </div>
+<<<<<<< HEAD
+=======
+
+        {/* Footer — Done button */}
+        <div style={{
+          padding: '12px 24px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          background: 'rgba(255,255,255,0.02)',
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 28px',
+              borderRadius: 8,
+              border: 'none',
+              background: '#22c55e',
+              color: '#022c22',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#16a34a'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#22c55e'; }}
+          >
+            Done
+          </button>
+        </div>
+>>>>>>> upstream/main
       </div>
     </div>
   );

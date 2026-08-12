@@ -1,0 +1,436 @@
+{
+  "id": "kidney_biopsy",
+  "name": "Generic Template \u2014 Kidney Biopsy",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "KIDNEY",
+  "standard": "Generic",
+  "sections": [
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "procedure_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "procedure_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "specimen_laterality",
+          "label": "Specimen Laterality",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "specimen_laterality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tumor",
+      "title": "Findings",
+      "fields": [
+        {
+          "id": "tumor_site",
+          "label": "Finding Site",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "tumor_site_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tumor_site_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "histologic_type",
+          "label": "Type",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_11",
+              "label": "Option 11",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_12",
+              "label": "Option 12",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_13",
+              "label": "Option 13",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_14",
+              "label": "Option 14",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_15",
+              "label": "Option 15",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_16",
+              "label": "Option 16",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_17",
+              "label": "Option 17",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_18",
+              "label": "Option 18",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_19",
+              "label": "Option 19",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_20",
+              "label": "Option 20",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_type_opt_21",
+              "label": "Option 21",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "histologic_grade",
+          "label": "Grade",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_grade_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_grade_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "histologic_features",
+          "label": "Features",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histologic_features_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_features_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_features_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histologic_features_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "necrosis",
+          "label": "Necrosis",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "necrosis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "necrosis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "lymphatic_vascular_invasion",
+          "label": "Lymphatic/Vascular Involvement",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymphatic_vascular_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphatic_vascular_invasion_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "additional_findings",
+      "title": "Additional Findings",
+      "fields": [
+        {
+          "id": "additional_findings",
+          "label": "Additional Findings",
+          "type": "checkboxes",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "additional_findings_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "additional_findings_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "longtext",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": []
+        }
+      ]
+    }
+  ]
+}

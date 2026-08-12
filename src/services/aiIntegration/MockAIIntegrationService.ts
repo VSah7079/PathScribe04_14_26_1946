@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { IAIIntegrationService, AIProcessingOptions, AiFieldSuggestionResult } from './IAIIntegrationService';
+=======
+import { IAIIntegrationService, AIProcessingOptions, AiFieldSuggestionResult, SynopticEvaluationInput, SynopticEvaluationResult } from './IAIIntegrationService';
+>>>>>>> upstream/main
 import { ServiceResult, VoiceMacro } from '../../types';
 
 export class MockAIIntegrationService implements IAIIntegrationService {
@@ -84,4 +88,28 @@ export class MockAIIntegrationService implements IAIIntegrationService {
       data: '[Mock narrative] The specimen is consistent with the provided synoptic data. Final diagnosis pending pathologist review.',
     };
   }
+<<<<<<< HEAD
+=======
+
+  /**
+   * Mock implementation of synoptic assignment evaluation.
+   * Deliberately returns an EMPTY changes array rather than canned demo
+   * data — the "Sim Microscopic" dev button in SynopticReportPage.tsx
+   * already serves the demo/UI-testing purpose with its own static
+   * payload. Having this mock also return fake proposals would create two
+   * different fake-data sources for the same UI surface (the Protocol
+   * Change Review modal), which could conflict or confuse rather than
+   * help. This mock exists only to satisfy the interface for dev/testing
+   * without a live API key — not to power demos.
+   */
+  async evaluateSynopticAssignment(
+    _input: SynopticEvaluationInput
+  ): Promise<ServiceResult<SynopticEvaluationResult>> {
+    await new Promise(r => setTimeout(r, 500)); // simulate latency
+    return {
+      success: true,
+      data: { changes: [], warnings: [] },
+    };
+  }
+>>>>>>> upstream/main
 }

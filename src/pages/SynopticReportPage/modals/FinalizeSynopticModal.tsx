@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * FinalizeSynopticModal
  * ---------------------
@@ -61,6 +62,13 @@ type SynopticReport = any;
 interface FinalizeSynopticModalProps {
   show: boolean;
   overlayStyle: React.CSSProperties;
+=======
+import React from 'react';
+type SynopticReport = any;
+
+interface FinalizeSynopticModalProps {
+  show: boolean;
+>>>>>>> upstream/main
   activeSynoptic: SynopticReport | null;
   finalizePassword: string;
   finalizeError: string;
@@ -71,6 +79,7 @@ interface FinalizeSynopticModalProps {
 }
 
 const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
+<<<<<<< HEAD
   show,
   overlayStyle,
   activeSynoptic,
@@ -80,10 +89,15 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
   onClose,
   onPasswordChange,
   onConfirm,
+=======
+  show, activeSynoptic, finalizePassword, finalizeError,
+  finalizeAndNext, onClose, onPasswordChange, onConfirm,
+>>>>>>> upstream/main
 }) => {
   if (!show) return null;
 
   return (
+<<<<<<< HEAD
     <div data-capture-hide="true" style={overlayStyle}>
       <div
         style={{
@@ -119,6 +133,24 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
           <br />
           Enter your password to confirm.
         </p>
+=======
+    <div data-capture-hide="true" className="ps-overlay">
+      <div className="ps-modal-dark ps-modal-dark--narrow ps-modal-dark--centered">
+
+        <div className="ps-modal-dark-emoji">🔒</div>
+
+        <div className="ps-modal-dark-header ps-modal-dark-header--center">
+          <span className="ps-modal-dark-title">
+            Finalize {activeSynoptic?.title ?? 'Synoptic Report'}
+          </span>
+        </div>
+
+        <p className="ps-modal-dark-body ps-modal-dark-body--center">
+          Finalizing this report locks it for editing and creates an audit entry.
+          <br />Enter your password to confirm.
+        </p>
+
+>>>>>>> upstream/main
         <input
           type="password"
           autoFocus
@@ -126,6 +158,7 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
           onChange={e => onPasswordChange(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && onConfirm()}
           placeholder="Your password"
+<<<<<<< HEAD
           style={{
             width: '100%',
             padding: '10px 14px',
@@ -164,10 +197,24 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
               cursor: 'pointer',
             }}
           >
+=======
+          className={"ps-modal-dark-input" + (finalizeError ? " ps-modal-dark-input--error" : "")}
+        />
+
+        {finalizeError && (
+          <p className="ps-modal-dark-field-error">
+            {finalizeError}
+          </p>
+        )}
+
+        <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
+          <button className="ps-btn-ghost-dark ps-modal-dark-footer__flex-btn" onClick={onClose}>
+>>>>>>> upstream/main
             Cancel
           </button>
           <button
             onClick={onConfirm}
+<<<<<<< HEAD
             style={{
               flex: 1,
               padding: '11px',
@@ -185,13 +232,24 @@ const FinalizeSynopticModal: React.FC<FinalizeSynopticModalProps> = ({
             onMouseLeave={e => {
               e.currentTarget.style.background = '#0891B2';
             }}
+=======
+            className="ps-btn-primary ps-modal-dark-footer__flex-btn"
+>>>>>>> upstream/main
           >
             🔒 Confirm &amp; Finalize{finalizeAndNext ? ' →' : ''}
           </button>
         </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> upstream/main
       </div>
     </div>
   );
 };
 
+<<<<<<< HEAD
 export default FinalizeSynopticModal;
+=======
+export default FinalizeSynopticModal;
+>>>>>>> upstream/main

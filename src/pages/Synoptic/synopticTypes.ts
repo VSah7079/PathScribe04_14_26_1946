@@ -34,7 +34,11 @@ export interface SynopticField {
 
 export interface MedicalCode {
   id: string;
+<<<<<<< HEAD
   system: 'SNOMED' | 'ICD';
+=======
+  system: 'SNOMED' | 'ICD' | 'CPT';
+>>>>>>> upstream/main
   code: string;
   display: string;
   source: CodeSource;
@@ -90,6 +94,17 @@ export interface CaseData {
   caseComments: Partial<Record<CaseRole, string>>;
   synoptics: SpecimenSynoptic[];
 }
+<<<<<<< HEAD
+=======
+
+export interface SpecimenOption {
+  index: number;
+  id: number;
+  specimenId?: string | null;
+  name: string;
+}
+
+>>>>>>> upstream/main
 export interface OtherRoleComment {
   role: CaseRole;
   text: string;

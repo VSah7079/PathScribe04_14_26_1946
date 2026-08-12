@@ -1,0 +1,190 @@
+{
+  "id": "grossing_fluid_cytology",
+  "name": "Fluid / Cell Block Grossing (Gold Standard) — Route B",
+  "source": "Custom",
+  "version": "1.0.0",
+  "category": "GROSSING",
+  "sections": [
+    {
+      "id": "identification_logistics",
+      "title": "Specimen Identification & Logistics",
+      "fields": [
+        {
+          "id": "label_id_verified",
+          "label": "Specimen Label/Identification Verified?",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "label_verified_yes", "label": "Yes", "snomed": "", "icd": "" },
+            { "id": "label_verified_no", "label": "No — Reject/Hold (specify discrepancy in comment)", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "number_of_containers",
+          "label": "Number of Containers Received",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "fluid_dynamics",
+      "title": "Fluid Dynamics & Volume",
+      "fields": [
+        {
+          "id": "total_fluid_volume",
+          "label": "Total Fluid Volume Received (mL)",
+          "type": "numeric",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "fluid_clarity",
+          "label": "Fluid Clarity",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "clarity_clear", "label": "Clear", "snomed": "", "icd": "" },
+            { "id": "clarity_hazy", "label": "Hazy", "snomed": "", "icd": "" },
+            { "id": "clarity_turbid", "label": "Turbid/Cloudy", "snomed": "", "icd": "" },
+            { "id": "clarity_opaque", "label": "Opaque", "snomed": "", "icd": "" },
+            { "id": "clarity_mucoid", "label": "Mucoid", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "fluid_color",
+          "label": "Fluid Color",
+          "type": "checkboxes",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "color_straw_serous", "label": "Straw/Serous", "snomed": "", "icd": "" },
+            { "id": "color_sanguinous", "label": "Sanguinous/Bloody", "snomed": "", "icd": "" },
+            { "id": "color_serosanguinous", "label": "Serosanguinous", "snomed": "", "icd": "" },
+            { "id": "color_yellow_purulent", "label": "Yellow/Purulent", "snomed": "", "icd": "" },
+            { "id": "color_green_bile", "label": "Green-bile", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "sedimentation_preparation",
+      "title": "Sedimentation & Preparation",
+      "fields": [
+        {
+          "id": "pellet_sediment_quality",
+          "label": "Pre-Processing Pellet/Sediment Quality",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "pellet_abundant_dense", "label": "Abundant/Dense Pellet", "snomed": "", "icd": "" },
+            { "id": "pellet_scant", "label": "Scant Sediment", "snomed": "", "icd": "" },
+            { "id": "pellet_mucoid_fibrinous", "label": "Mucoid/Fibrinous Clot Only", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "cell_block_method",
+          "label": "Cell Block Preparation Method",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "method_thrombin_plasma", "label": "Thrombin/Plasma Method", "snomed": "", "icd": "" },
+            { "id": "method_histogel", "label": "Histogel", "snomed": "", "icd": "" },
+            { "id": "method_agar", "label": "Agar", "snomed": "", "icd": "" },
+            { "id": "method_filtration_cellient", "label": "Direct Filtration/Cellient", "snomed": "", "icd": "" }
+          ],
+          "note": "Leave blank if no cell block was prepared from this fluid (smears/direct prep only)."
+        }
+      ]
+    },
+    {
+      "id": "tissue_submission",
+      "title": "Submission & Cassette/Block Key",
+      "fields": [
+        {
+          "id": "submission_status",
+          "label": "Submission Status",
+          "type": "dropdown",
+          "required": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "submission_cell_block_only", "label": "Cell Block Preparation Only", "snomed": "", "icd": "" },
+            { "id": "submission_entire", "label": "Entirely submitted", "snomed": "", "icd": "" },
+            { "id": "submission_representative", "label": "Representatively submitted", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        },
+        {
+          "id": "total_cassettes",
+          "label": "Total Number of Cell Block Cassettes",
+          "type": "numeric",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "cassette_key",
+          "label": "Cell Block Cassette Key / Summary",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "One line per cassette. Format: Cassette ID \u2014 Contents/Origin. e.g. \"CB1: Pleural fluid cell block sediment\""
+        },
+        {
+          "id": "gross_photography_taken",
+          "label": "Gross Photography Taken?",
+          "type": "dropdown",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            { "id": "photography_yes", "label": "Yes", "snomed": "", "icd": "" },
+            { "id": "photography_no", "label": "No", "snomed": "", "icd": "" }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

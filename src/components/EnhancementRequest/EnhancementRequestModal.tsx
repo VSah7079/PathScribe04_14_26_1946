@@ -144,7 +144,11 @@ const ScreenshotPreview: React.FC<{
       <div
         onClick={() => setLightbox(false)}
         style={{
+<<<<<<< HEAD
           position: 'fixed', inset: 0, zIndex: 200000,
+=======
+          position: 'fixed', inset: 0, zIndex: 9500,
+>>>>>>> upstream/main
           background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'zoom-out', padding: '32px',
@@ -280,12 +284,16 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     <div
       data-enhancement-modal="true"
       onClick={onClose}
+<<<<<<< HEAD
       style={{
         position: 'fixed', inset: 0, zIndex: 60000,
         background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         paddingTop: '40px', paddingBottom: '40px', overflowY: 'auto',
       }}
+=======
+      className="ps-overlay" style={{ zIndex: 9000, alignItems: 'flex-start', paddingTop: 40, paddingBottom: 40, overflowY: 'auto' }}
+>>>>>>> upstream/main
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -480,12 +488,17 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               display: 'flex', gap: '10px', justifyContent: 'flex-end',
               background: 'rgba(0,0,0,0.2)',
             }}>
+<<<<<<< HEAD
               <button onClick={onClose}
                 style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+=======
+              <button onClick={onClose} className="ps-conf-btn-secondary">
+>>>>>>> upstream/main
                 Cancel
               </button>
               <button
                 onClick={handleSubmit} disabled={!canSubmit}
+<<<<<<< HEAD
                 style={{
                   padding: '9px 22px', borderRadius: '8px', fontSize: '13px', fontWeight: 700,
                   cursor: canSubmit ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
@@ -496,6 +509,10 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                 }}
                 onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = isQA ? 'rgba(245,158,11,0.25)' : 'rgba(8,145,178,0.25)'; }}
                 onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = isQA ? 'rgba(245,158,11,0.15)' : 'rgba(8,145,178,0.15)'; }}
+=======
+                className={`ps-enhance-submit-btn${isQA ? ' ps-enhance-submit-btn--qa' : ''}`}
+                style={{ opacity: submitting ? 0.7 : 1 }}
+>>>>>>> upstream/main
               >
                 {submitting ? '⏳ Submitting…' : isQA ? '🐛 Submit QA Feedback' : '💡 Submit Request'}
               </button>

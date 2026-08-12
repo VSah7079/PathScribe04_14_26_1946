@@ -173,9 +173,15 @@ const ServiceRow: React.FC<{
     alignItems: 'center',
     padding: '12px 16px',
     marginBottom: '6px',
+<<<<<<< HEAD
     background: '#1e293b',
     borderRadius: '9px',
     border: '1px solid #334155',
+=======
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '9px',
+    border: '1px solid rgba(255,255,255,0.08)',
+>>>>>>> upstream/main
     transition: 'all 0.15s',
   }}>
 
@@ -209,7 +215,11 @@ const ServiceRow: React.FC<{
           <span style={{
             fontSize: '10px', fontFamily: 'monospace', color: '#475569',
             background: 'rgba(255,255,255,0.04)', padding: '1px 6px',
+<<<<<<< HEAD
             borderRadius: '4px', border: '1px solid #334155',
+=======
+            borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)',
+>>>>>>> upstream/main
           }}>
             {def.envVar}
           </span>
@@ -282,7 +292,15 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
             Terminology Services
           </h3>
           <p style={{ fontSize: '12px', color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+<<<<<<< HEAD
             Endpoint health for clinical coding systems used in code search and AI suggestions.
+=======
+            Connectivity check only — confirms PathScribe can reach these coding
+            systems for code search and AI suggestions. Nothing to add or upload
+            here: every system below is maintained by its own standards body
+            (SNOMED International, NLM, WHO, AMA, etc.), not versioned within
+            PathScribe.
+>>>>>>> upstream/main
             {lastChecked && (
               <span style={{ color: '#475569' }}>
                 {' '}· Last checked {lastChecked.toLocaleTimeString()}
@@ -320,6 +338,7 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
           <button
             onClick={runChecks}
             disabled={checking}
+<<<<<<< HEAD
             style={{
               padding: '7px 16px', borderRadius: '7px',
               border: '1px solid rgba(8,145,178,0.4)',
@@ -329,6 +348,10 @@ const TerminologyServicesSection: React.FC<{ isSuperAdmin?: boolean }> = ({
               cursor: checking ? 'wait' : 'pointer',
               fontFamily: 'inherit', transition: 'all 0.15s',
             }}
+=======
+            className="ps-conf-btn-teal-accent"
+            style={{ cursor: checking ? 'wait' : 'pointer' }}
+>>>>>>> upstream/main
           >
             {checking ? 'Testing…' : '↻ Test All'}
           </button>

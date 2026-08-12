@@ -6,6 +6,14 @@
 // Admins select the provider and model; API keys are configured
 // in the backend secrets manager and never entered here.
 // Developers can set a personal override (with key) for local testing.
+<<<<<<< HEAD
+=======
+//
+// Labels/notes below deliberately show real vendor and model names —
+// unlike the internal AiProviderId type (protocol-shape-named, see
+// aiProviderConfig.ts), an admin picking a provider here needs to know
+// which real vendor account/contract they're actually configuring.
+>>>>>>> upstream/main
 // ─────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
@@ -21,6 +29,7 @@ import {
 } from '@/components/Config/AI/aiProviderConfig';
 
 const PROVIDER_LABELS: Record<AiProviderId, string> = {
+<<<<<<< HEAD
   anthropic:   'Anthropic (Claude)',
   openai:      'OpenAI (GPT-4)',
   azure_openai:'Azure OpenAI',
@@ -34,6 +43,25 @@ const PROVIDER_NOTES: Record<AiProviderId, string> = {
   azure_openai:'Requires Azure deployment name and endpoint. Key managed server-side.',
   aws_bedrock: 'Uses IAM role credentials on the server. No API key needed here.',
   custom:      'Must be an OpenAI-compatible endpoint. Auth managed server-side.',
+=======
+  structured_messages:      'Anthropic (Claude)',
+  chat_completions:         'OpenAI (GPT-4)',
+  chat_completions_managed: 'Azure OpenAI',
+  model_gateway:            'AWS Bedrock',
+  structured_content:       'Google (Gemini)',
+  mock:                     'Mock — Demo Mode',
+  custom:                   'Self-hosted / Custom endpoint',
+};
+
+const PROVIDER_NOTES: Record<AiProviderId, string> = {
+  structured_messages:      'API key managed server-side. Contact PathScribe support to rotate keys.',
+  chat_completions:         'API key managed server-side. Contact PathScribe support to rotate keys.',
+  chat_completions_managed: 'Requires Azure deployment name and endpoint. Key managed server-side.',
+  model_gateway:            'Uses IAM role credentials on the server. No API key needed here.',
+  structured_content:       'API key managed server-side. Contact PathScribe support to rotate keys.',
+  mock:                     'No API connection. Returns instant deterministic responses. Use for demos and offline testing only.',
+  custom:                   'Must be an OpenAI-compatible endpoint. Auth managed server-side.',
+>>>>>>> upstream/main
 };
 
 const inputStyle: React.CSSProperties = {
@@ -59,6 +87,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   isAdmin = false,
   onSaved,
 }) => {
+<<<<<<< HEAD
   const current = resolveAiConfig();
 
   const [providerId,    setProviderId]    = useState<AiProviderId>(current.providerId);
@@ -66,6 +95,21 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   const [azureEndpoint, setAzureEndpoint] = useState(current.azureEndpoint ?? '');
   const [azureDeployment, setAzureDeployment] = useState(current.azureDeploymentName ?? '');
   const [awsRegion,     setAwsRegion]     = useState(current.awsRegion ?? 'us-east-1');
+=======
+  const rawConfig = resolveAiConfig();
+  // Guard: if the stored providerId isn't a known key (e.g. after a host
+  // migration corrupted / cleared localStorage), fall back to
+  // 'structured_messages' so PROVIDER_MODELS[providerId] is never undefined.
+  const current = PROVIDER_MODELS[rawConfig.providerId]
+    ? rawConfig
+    : { ...rawConfig, providerId: 'structured_messages' as AiProviderId, modelId: PROVIDER_MODELS['structured_messages'][0].id };
+
+  const [providerId,    setProviderId]    = useState<AiProviderId>(current.providerId);
+  const [modelId,       setModelId]       = useState(current.modelId);
+  const [managedEndpoint, setManagedEndpoint] = useState(current.managedEndpoint ?? '');
+  const [managedDeployment, setManagedDeployment] = useState(current.managedDeploymentName ?? '');
+  const [gatewayRegion, setGatewayRegion] = useState(current.gatewayRegion ?? 'us-east-1');
+>>>>>>> upstream/main
   const [customEndpoint,setCustomEndpoint]= useState(current.customEndpoint ?? '');
   const [devApiKey,     setDevApiKey]     = useState('');
   const [saved,         setSaved]         = useState(false);
@@ -82,10 +126,17 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     const config = {
       providerId,
       modelId,
+<<<<<<< HEAD
       azureDeploymentName: azureEndpoint ? azureDeployment : undefined,
       azureEndpoint:       azureEndpoint || undefined,
       awsRegion:           awsRegion || undefined,
       customEndpoint:      customEndpoint || undefined,
+=======
+      managedDeploymentName: managedEndpoint ? managedDeployment : undefined,
+      managedEndpoint:       managedEndpoint || undefined,
+      gatewayRegion:         gatewayRegion || undefined,
+      customEndpoint:        customEndpoint || undefined,
+>>>>>>> upstream/main
     };
 
     if (isAdmin) {
@@ -125,9 +176,15 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     const refreshed = resolveAiConfig();
     setProviderId(refreshed.providerId);
     setModelId(refreshed.modelId);
+<<<<<<< HEAD
     setAzureEndpoint(refreshed.azureEndpoint ?? '');
     setAzureDeployment(refreshed.azureDeploymentName ?? '');
     setAwsRegion(refreshed.awsRegion ?? 'us-east-1');
+=======
+    setManagedEndpoint(refreshed.managedEndpoint ?? '');
+    setManagedDeployment(refreshed.managedDeploymentName ?? '');
+    setGatewayRegion(refreshed.gatewayRegion ?? 'us-east-1');
+>>>>>>> upstream/main
     setCustomEndpoint(refreshed.customEndpoint ?? '');
     setDevApiKey('');
   };
@@ -152,6 +209,16 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         {isDevMode() && <span style={{ marginLeft: 8, color: '#fbbf24' }}>⚠ Dev mode — direct API calls enabled</span>}
       </div>
 
+<<<<<<< HEAD
+=======
+      {/* Demo mode banner */}
+      {providerId === 'mock' && (
+        <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 24, fontSize: 12, color: '#34d399' }}>
+          <strong>Demo Mode active</strong> — AI responses are instant and simulated. No API calls are made. Safe for offline demos and testing. Switch to a real provider before clinical use.
+        </div>
+      )}
+
+>>>>>>> upstream/main
       {/* Provider selector */}
       <div style={{ marginBottom: 20 }}>
         <label style={labelStyle}>AI Provider</label>
@@ -160,9 +227,22 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           onChange={e => setProviderId(e.target.value as AiProviderId)}
           style={inputStyle}
         >
+<<<<<<< HEAD
           {(Object.keys(PROVIDER_LABELS) as AiProviderId[]).map(id => (
             <option key={id} value={id}>{PROVIDER_LABELS[id]}</option>
           ))}
+=======
+          {/* Real providers */}
+          <optgroup label="Production Providers">
+            {(['structured_messages', 'chat_completions', 'chat_completions_managed', 'model_gateway', 'structured_content', 'custom'] as AiProviderId[]).map(id => (
+              <option key={id} value={id}>{PROVIDER_LABELS[id]}</option>
+            ))}
+          </optgroup>
+          {/* Mock for demos */}
+          <optgroup label="Development &amp; Demo">
+            <option value="mock">{PROVIDER_LABELS.mock}</option>
+          </optgroup>
+>>>>>>> upstream/main
         </select>
         <p style={{ fontSize: 11, color: '#475569', marginTop: 6 }}>
           {PROVIDER_NOTES[providerId]}
@@ -173,20 +253,34 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       <div style={{ marginBottom: 20 }}>
         <label style={labelStyle}>Model</label>
         <select value={modelId} onChange={e => setModelId(e.target.value)} style={inputStyle}>
+<<<<<<< HEAD
           {PROVIDER_MODELS[providerId].map(m => (
+=======
+          {(PROVIDER_MODELS[providerId] ?? PROVIDER_MODELS['structured_messages']).map(m => (
+>>>>>>> upstream/main
             <option key={m.id} value={m.id}>{m.label}</option>
           ))}
         </select>
       </div>
 
+<<<<<<< HEAD
       {/* Azure-specific fields */}
       {providerId === 'azure_openai' && (
+=======
+      {/* Managed-deployment-specific fields */}
+      {providerId === 'chat_completions_managed' && (
+>>>>>>> upstream/main
         <>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Azure Resource Endpoint</label>
             <input
+<<<<<<< HEAD
               type="url" value={azureEndpoint}
               onChange={e => setAzureEndpoint(e.target.value)}
+=======
+              type="url" value={managedEndpoint}
+              onChange={e => setManagedEndpoint(e.target.value)}
+>>>>>>> upstream/main
               placeholder="https://my-org.openai.azure.com"
               style={inputStyle}
             />
@@ -194,8 +288,13 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Deployment Name</label>
             <input
+<<<<<<< HEAD
               type="text" value={azureDeployment}
               onChange={e => setAzureDeployment(e.target.value)}
+=======
+              type="text" value={managedDeployment}
+              onChange={e => setManagedDeployment(e.target.value)}
+>>>>>>> upstream/main
               placeholder="my-gpt4-deployment"
               style={inputStyle}
             />
@@ -203,6 +302,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         </>
       )}
 
+<<<<<<< HEAD
       {/* Bedrock region */}
       {providerId === 'aws_bedrock' && (
         <div style={{ marginBottom: 16 }}>
@@ -210,6 +310,15 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           <input
             type="text" value={awsRegion}
             onChange={e => setAwsRegion(e.target.value)}
+=======
+      {/* Model gateway region */}
+      {providerId === 'model_gateway' && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>AWS Region</label>
+          <input
+            type="text" value={gatewayRegion}
+            onChange={e => setGatewayRegion(e.target.value)}
+>>>>>>> upstream/main
             placeholder="us-east-1"
             style={inputStyle}
           />
@@ -254,10 +363,14 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
         <button
           onClick={handleSave}
+<<<<<<< HEAD
           style={{
             padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700,
             background: '#0891B2', border: 'none', color: '#fff', cursor: 'pointer',
           }}
+=======
+          className="ps-conf-btn-primary"
+>>>>>>> upstream/main
         >
           {saved ? '✓ Saved' : isAdmin ? 'Save Org Config' : 'Save Override'}
         </button>
@@ -265,9 +378,14 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         <button
           onClick={handleTest}
           disabled={testResult === 'testing'}
+<<<<<<< HEAD
           style={{
             padding: '9px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
             background: 'transparent',
+=======
+          className="ps-conf-btn-secondary"
+          style={{
+>>>>>>> upstream/main
             border: `1.5px solid ${testResult === 'ok' ? '#10b981' : testResult === 'fail' ? '#f87171' : 'rgba(148,163,184,0.3)'}`,
             color: testResult === 'ok' ? '#10b981' : testResult === 'fail' ? '#f87171' : '#94a3b8',
             cursor: testResult === 'testing' ? 'wait' : 'pointer',
@@ -282,11 +400,16 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
         {devOnly && (
           <button
             onClick={handleClearOverride}
+<<<<<<< HEAD
             style={{
               marginLeft: 'auto', padding: '9px 16px', borderRadius: 8,
               fontSize: 12, background: 'transparent',
               border: '1px solid rgba(148,163,184,0.2)', color: '#64748b', cursor: 'pointer',
             }}
+=======
+            className="ps-conf-btn-secondary"
+            style={{ marginLeft: 'auto', fontSize: 12 }}
+>>>>>>> upstream/main
           >
             Clear Override
           </button>

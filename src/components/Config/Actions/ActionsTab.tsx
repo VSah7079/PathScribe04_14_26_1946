@@ -1,6 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { mockActionRegistryService } from '../../../services/actionRegistry/mockActionRegistryService';
 import { SystemAction } from '../../../services/actionRegistry/IActionRegistryService';
+<<<<<<< HEAD
+=======
+import { toTitleCase } from '../../../utils/formatLabel';
+>>>>>>> upstream/main
 
 export const ActionsTab: React.FC = () => {
   const [actions, setActions] = useState<SystemAction[]>(mockActionRegistryService.getActions());
@@ -11,15 +15,80 @@ export const ActionsTab: React.FC = () => {
   const [editingAction, setEditingAction] = useState<SystemAction | null>(null);
   const [tempShortcut, setTempShortcut] = useState('');
   const [tempTriggers, setTempTriggers] = useState('');
+<<<<<<< HEAD
+=======
+  const [isRecording, setIsRecording] = useState(false);
+  const [shortcutError, setShortcutError] = useState('');
+  const [shortcutSuggestion, setShortcutSuggestion] = useState('');
+>>>>>>> upstream/main
 
   const openEditModal = (action: SystemAction) => {
     setEditingAction(action);
     setTempShortcut(action.shortcut);
     setTempTriggers(action.voiceTriggers.join(', '));
+<<<<<<< HEAD
+=======
+    setShortcutError('');
+    setShortcutSuggestion('');
+    setIsRecording(false);
+  };
+
+  // Capture key combo from actual keypress
+  const handleShortcutKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isRecording) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const parts: string[] = [];
+    if (e.ctrlKey)  parts.push('Ctrl');
+    if (e.altKey)   parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.metaKey)  parts.push('Meta');
+
+    const key = e.key;
+    // Ignore standalone modifier keys
+    if (['Control','Alt','Shift','Meta'].includes(key)) return;
+
+    // Normalise key names
+    const keyMap: Record<string,string> = {
+      ' ': 'Space', 'ArrowUp': 'ArrowUp', 'ArrowDown': 'ArrowDown',
+      'ArrowLeft': 'ArrowLeft', 'ArrowRight': 'ArrowRight',
+      'Enter': 'Enter', 'Escape': 'Escape', 'Backspace': 'Backspace',
+      'Delete': 'Delete', 'Tab': 'Tab', 'Home': 'Home', 'End': 'End',
+      'PageUp': 'PageUp', 'PageDown': 'PageDown',
+    };
+    const normKey = keyMap[key] ?? (key.length === 1 ? key.toUpperCase() : key);
+    parts.push(normKey);
+
+    const combo = parts.join('+');
+    setTempShortcut(combo);
+    setIsRecording(false);
+    validateShortcut(combo, editingAction?.id ?? '');
+  };
+
+  const validateShortcut = (combo: string, currentId: string) => {
+    setShortcutError('');
+    setShortcutSuggestion('');
+    if (!combo) return;
+    const conflict = actions.find(a => a.id !== currentId && a.shortcut.toLowerCase() === combo.toLowerCase());
+    if (conflict) {
+      setShortcutError('"' + combo + '" is already assigned to "' + conflict.label + '"');
+      // Suggest Alt+Shift variant or Ctrl variant
+      const base = combo.replace(/^(Ctrl[+]|Alt[+]|Shift[+])*/i, '').replace(/[+]$/, '');
+      const suggestions = [
+        'Alt+Shift+' + base, 'Ctrl+' + base, 'Ctrl+Shift+' + base
+      ].filter(s => !actions.find(a => a.shortcut.toLowerCase() === s.toLowerCase()));
+      if (suggestions[0]) setShortcutSuggestion(suggestions[0]);
+    }
+>>>>>>> upstream/main
   };
 
   const handleSave = async () => {
     if (!editingAction) return;
+<<<<<<< HEAD
+=======
+    if (shortcutError) return;
+>>>>>>> upstream/main
     const triggers = tempTriggers.split(',').map(t => t.trim()).filter(t => t !== "");
     await mockActionRegistryService.updateAction(editingAction.id, { 
       shortcut: tempShortcut, 
@@ -173,6 +242,7 @@ export const ActionsTab: React.FC = () => {
   const displayedCategories = Array.from(new Set(filteredActions.map(a => a.category)));
 
   return (
+<<<<<<< HEAD
     <div style={{ padding: '24px', color: '#fff' }}>
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
@@ -182,22 +252,45 @@ export const ActionsTab: React.FC = () => {
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             <button onClick={exportCurrentRegistry} style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}>Download Template</button>
             <button onClick={() => fileInputRef.current?.click()} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '8px 20px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>📥 Bulk Import</button>
+=======
+    <div style={{ padding: '24px', color: 'var(--ps-conf-text)' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h3 style={{ fontSize: '24px', marginBottom: '8px' }}>⚙️ System Action Registry</h3>
+          <p style={{ color: 'var(--ps-conf-text-2)' }}>Admin-only command configuration. Keyboard shortcuts must be unique system-wide.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button onClick={exportCurrentRegistry} className="ps-conf-btn-secondary">Download Template</button>
+            <button onClick={() => fileInputRef.current?.click()} className="ps-conf-btn-secondary">📥 Bulk Import</button>
+>>>>>>> upstream/main
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".csv" />
         </div>
       </div>
 
+<<<<<<< HEAD
       <input className="registry-search" type="text" placeholder="Search actions..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', marginBottom: '16px', outline: 'none' }} />
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
         {filterOptions.map(cat => (
           <button key={cat} onClick={() => setSelectedCategory(cat)} style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', background: selectedCategory === cat ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.03)', color: selectedCategory === cat ? '#38bdf8' : '#64748b', border: `1px solid ${selectedCategory === cat ? '#38bdf8' : 'rgba(255,255,255,0.1)'}` }}>{cat}</button>
+=======
+      <input type="text" placeholder="Search actions..." value={search} onChange={(e) => setSearch(e.target.value)} className="registry-search-input" />
+
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        {filterOptions.map(cat => (
+          <button key={cat} onClick={() => setSelectedCategory(cat)} className={`ps-conf-category-btn${selectedCategory === cat ? ' active' : ''}`}>{cat === 'All' ? cat : toTitleCase(cat)}</button>
+>>>>>>> upstream/main
         ))}
       </div>
 
       <div style={{ overflowX: 'auto', opacity: editingAction ? 0.2 : 1, pointerEvents: editingAction ? 'none' : 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
           <thead>
+<<<<<<< HEAD
             <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.2)', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
+=======
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.2)', color: 'var(--ps-conf-text-3)', fontSize: '12px', textTransform: 'uppercase', position: 'sticky', top: 0, background: 'var(--ps-conf-bg)', zIndex: 2 }}>
+>>>>>>> upstream/main
               <th style={{ padding: '12px' }}>Action</th>
               <th style={{ padding: '12px' }}>Shortcut</th>
               <th style={{ padding: '12px' }}>Voice Triggers</th>
@@ -207,8 +300,13 @@ export const ActionsTab: React.FC = () => {
           <tbody>
             {displayedCategories.map(cat => (
               <React.Fragment key={cat}>
+<<<<<<< HEAD
                 <tr style={{ background: 'rgba(255,255,255,0.03)', borderTop: '1px solid rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
                   <td colSpan={4} style={{ padding: '10px 12px', fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>{cat}</td>
+=======
+                <tr style={{ background: 'rgba(10,15,30,0.98)', borderTop: '1px solid rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.15)', position: 'sticky', top: '41px', zIndex: 1 }}>
+                  <td colSpan={4} style={{ padding: '10px 12px', fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>{toTitleCase(cat)}</td>
+>>>>>>> upstream/main
                 </tr>
                 {filteredActions.filter(a => a.category === cat).map((action) => (
                   <tr key={action.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -216,14 +314,22 @@ export const ActionsTab: React.FC = () => {
                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{action.label}</div>
                        <div style={{ fontSize: '10px', color: '#475569' }}>{action.requiredRole}</div>
                     </td>
+<<<<<<< HEAD
                     <td style={{ padding: '16px' }}><code style={{ background: '#1e293b', padding: '4px 8px', borderRadius: '4px', color: '#38bdf8' }}>{action.shortcut}</code></td>
+=======
+                    <td style={{ padding: '16px' }}><code style={{ background: 'var(--ps-conf-surface)', padding: '4px 8px', borderRadius: '4px', color: '#38bdf8' }}>{action.shortcut}</code></td>
+>>>>>>> upstream/main
                     <td style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {action.voiceTriggers.map(t => <span key={t} style={{ background: 'rgba(8, 145, 178, 0.15)', color: '#22d3ee', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', border: '1px solid rgba(34, 211, 238, 0.2)' }}>{t}</span>)}
                       </div>
                     </td>
                     <td style={{ padding: '16px', textAlign: 'right' }}>
+<<<<<<< HEAD
                       <button onClick={() => openEditModal(action)} style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', borderRadius: '4px', padding: '6px 16px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+=======
+                      <button onClick={() => openEditModal(action)} className="ps-conf-btn-row">Edit</button>
+>>>>>>> upstream/main
                     </td>
                   </tr>
                 ))}
@@ -234,6 +340,7 @@ export const ActionsTab: React.FC = () => {
       </div>
 
       {editingAction && (
+<<<<<<< HEAD
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '32px', width: '480px' }}>
             <h4 style={{ fontSize: '20px', marginBottom: '4px' }}>Edit Action</h4>
@@ -249,6 +356,56 @@ export const ActionsTab: React.FC = () => {
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingAction(null)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontWeight: 'bold' }}>CANCEL</button>
               <button onClick={handleSave} style={{ background: '#38bdf8', border: 'none', color: '#000', padding: '10px 28px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>SAVE CHANGES</button>
+=======
+        <div className="ps-conf-edit-modal-overlay">
+          <div className="ps-conf-edit-modal">
+            <h4 style={{ fontSize: '20px', marginBottom: '4px' }}>Edit Action</h4>
+            <p style={{ color: 'var(--ps-conf-text-3)', fontSize: '14px', marginBottom: '24px' }}>{editingAction.label}</p>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', color: 'var(--ps-conf-text-2)', fontSize: '11px', fontWeight: 'bold', marginBottom: '8px' }}>Shortcut</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={isRecording ? '⏺ Press your keys now…' : (tempShortcut || 'None')}
+                  readOnly
+                  onKeyDown={handleShortcutKeyDown}
+                  onFocus={() => { setIsRecording(true); setShortcutError(''); setShortcutSuggestion(''); }}
+                  onBlur={() => setIsRecording(false)}
+                  style={{ flex: 1, background: isRecording ? 'rgba(56,189,248,0.1)' : 'var(--ps-conf-surface)', border: `1px solid ${isRecording ? '#38bdf8' : shortcutError ? '#ef4444' : 'var(--ps-conf-border)'}`, color: isRecording ? '#38bdf8' : 'var(--ps-conf-text)', padding: '12px', borderRadius: '6px', outline: 'none', cursor: 'pointer', fontFamily: 'monospace', fontSize: 14 }}
+                  placeholder="Click then press keys"
+                />
+                {tempShortcut && (
+                  <button onClick={() => { setTempShortcut(''); setShortcutError(''); setShortcutSuggestion(''); }}
+                    className="ps-conf-shortcut-clear">
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: '#475569', marginTop: 5 }}>
+                {isRecording ? '🎯 Recording — press your key combination now' : 'Click the field and press the key combination you want to assign'}
+              </div>
+              {shortcutError && (
+                <div style={{ marginTop: 6, padding: '8px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', fontSize: 12, color: '#f87171' }}>
+                  ⚠ {shortcutError}
+                  {shortcutSuggestion && (
+                    <span
+                      onClick={() => { setTempShortcut(shortcutSuggestion); validateShortcut(shortcutSuggestion, editingAction?.id ?? ''); }}
+                      style={{ marginLeft: 10, color: '#38bdf8', cursor: 'pointer', textDecoration: 'underline' }}>
+                      {'Use "' + shortcutSuggestion + '" instead?'}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{ display: 'block', color: 'var(--ps-conf-text-2)', fontSize: '11px', fontWeight: 'bold', marginBottom: '8px' }}>Voice Triggers (Comma Separated)</label>
+              <textarea value={tempTriggers} onChange={(e) => setTempTriggers(e.target.value)} style={{ width: '100%', background: 'var(--ps-conf-surface)', border: '1px solid #334155', color: '#fff', padding: '12px', borderRadius: '6px', height: '100px', resize: 'none', outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingAction(null)} className="fm-btn-cancel">Cancel</button>
+              <button onClick={handleSave} className="ps-conf-btn-primary" disabled={!!shortcutError}>
+                SAVE CHANGES
+              </button>
+>>>>>>> upstream/main
             </div>
           </div>
         </div>

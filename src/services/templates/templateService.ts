@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 ﻿/**
  * services/templateService.ts
+=======
+/**
+ * services/templates/templateService.ts
+>>>>>>> upstream/main
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * Service layer for all synoptic template operations.
  *
@@ -17,12 +22,21 @@
  *   components/Config/Protocols/SynopticEditor.tsx
  *   components/Config/Templates/TemplateRenderer.tsx
  *
+<<<<<<< HEAD
  * Drop-in path: src/services/templateService.ts
+=======
+ * Drop-in path: src/services/templates/templateService.ts
+>>>>>>> upstream/main
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  */
 
 import { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
 import { PROTOCOL_REGISTRY, Protocol, LifecycleState, notifyRegistryChanged, saveRegistryOverride } from '../../components/Config/Protocols/protocolShared';
+<<<<<<< HEAD
+=======
+import { getSessionUser } from '../auth/caseAccessControl';
+import { fromLegacyName, formatFullDisplayName } from '../../utils/personName';
+>>>>>>> upstream/main
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -78,9 +92,45 @@ export interface ServiceError {
 // Stores the full EditorTemplate structure keyed by id.
 // PROTOCOL_REGISTRY holds the summary/status view; this holds the field data.
 // Both are updated together on every write.
+<<<<<<< HEAD
 
 const editorStore = new Map<string, EditorTemplate>();
 
+=======
+//
+// localStorage bridge — same pattern as protocolShared.tsx's registry
+// overrides, added for the same reason: this was a plain in-memory Map,
+// meaning a real Build/Customise session lost all its field/section work
+// on a page refresh even though the registry's lifecycle status (draft,
+// in_review, etc.) survived. That mismatch was flagged directly rather
+// than left implicit — a template could show "draft" in the registry
+// with no real content behind it anymore. Local-only, same tradeoff as
+// the registry bridge: fast, protects against accidental refresh, but
+// doesn't sync across machines or survive clearing browser data. A real
+// backend-backed autosave is separate, larger scope — deliberately not
+// attempted here.
+// Key: ps_editor_store_v1  Value: Record<id, EditorTemplate>
+
+const editorStore = new Map<string, EditorTemplate>();
+
+const EDITOR_STORE_KEY = 'ps_editor_store_v1';
+
+function loadEditorStoreOverrides(): Record<string, EditorTemplate> {
+  try {
+    const raw = localStorage.getItem(EDITOR_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveEditorStoreOverride(id: string, template: EditorTemplate): void {
+  try {
+    const overrides = loadEditorStoreOverrides();
+    overrides[id] = template;
+    localStorage.setItem(EDITOR_STORE_KEY, JSON.stringify(overrides));
+  } catch { /* storage unavailable */ }
+}
+
+>>>>>>> upstream/main
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const delay = (ms = 400) => new Promise(res => setTimeout(res, ms));
@@ -117,6 +167,60 @@ function upsertRegistry(patch: Partial<Protocol> & { id: string }): void {
   notifyRegistryChanged();
 }
 
+<<<<<<< HEAD
+=======
+// ─── Real prefetch/cache layer ─────────────────────────────────────────────
+// Added to close a real load-time gap: RightSynopticPanel.tsx couldn't
+// start fetching a case's template until AFTER the case itself had
+// loaded and the panel had mounted — a genuinely sequential dependency
+// chain (case fetch -> mount -> template fetch) that stacks their
+// artificial mock delays (30ms + 350ms) instead of overlapping them.
+// These cache the actual in-flight PROMISE, not just the resolved value
+// — that's what lets a prefetch triggered from the worklist (before
+// navigation even completes) and the real load inside
+// RightSynopticPanel.tsx share the SAME request instead of firing two,
+// even if the real load's own call happens before the prefetch settles.
+const templateDetailCache = new Map<string, Promise<TemplateDetail>>();
+const templateListCache   = new Map<string, Promise<Protocol[]>>();
+
+export function getTemplateCached(id: string): Promise<TemplateDetail> {
+  let entry = templateDetailCache.get(id);
+  if (!entry) {
+    entry = getTemplate(id);
+    templateDetailCache.set(id, entry);
+    // A failed fetch shouldn't poison the cache forever — let a later
+    // caller retry instead of being stuck replaying the same rejection.
+    entry.catch(() => templateDetailCache.delete(id));
+  }
+  return entry;
+}
+
+export function listTemplatesCached(status?: TemplateStatus | TemplateStatus[]): Promise<Protocol[]> {
+  const key = status ? (Array.isArray(status) ? status.join(',') : status) : '__all__';
+  let entry = templateListCache.get(key);
+  if (!entry) {
+    entry = listTemplates(status);
+    templateListCache.set(key, entry);
+    entry.catch(() => templateListCache.delete(key));
+  }
+  return entry;
+}
+
+/** Real prefetch trigger — call the moment a case is clicked in the
+ *  worklist, well before navigation to the report page completes, so
+ *  both requests are already in flight (or resolved) by the time
+ *  RightSynopticPanel.tsx actually needs them. Deliberately takes the
+ *  template id directly rather than re-fetching the case to find it —
+ *  the worklist already has the full case object in memory at click
+ *  time, so there's no reason to pay a second round trip just to learn
+ *  something already known. */
+export function prefetchTemplateData(templateId: string | undefined): void {
+  if (!templateId) return;
+  getTemplateCached(templateId).catch(() => {});
+  listTemplatesCached('approved').catch(() => {});
+}
+
+>>>>>>> upstream/main
 // â”€â”€â”€ GET /api/templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function listTemplates(
   status?: TemplateStatus | TemplateStatus[]
@@ -140,8 +244,36 @@ export async function getTemplate(id: string): Promise<TemplateDetail> {
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
+<<<<<<< HEAD
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   const template = editorStore.get(id) ?? {
+=======
+  const storedTemplate = editorStore.get(id);
+
+  // Fallback: template seeded directly into editorStore but not in PROTOCOL_REGISTRY
+  // (e.g. skin_melanoma_bx, or any template added via editorStore.set without a registry entry)
+  if (!entry && storedTemplate) {
+    const tpl = storedTemplate as any;
+    const fieldCount = (tpl.sections ?? []).reduce((n: number, s: any) => n + (s.fields?.length ?? 0), 0);
+    return {
+      id,
+      name:      tpl.name ?? id,
+      source:    tpl.source ?? 'Custom',
+      version:   tpl.version ?? '1.0.0',
+      category:  tpl.category ?? 'Other',
+      status:    'approved' as TemplateStatus,
+      fields:    fieldCount,
+      sections:  (tpl.sections ?? []).length,
+      createdBy: 'System',
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
+      template:  storedTemplate,
+    };
+  }
+
+  if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
+  const template = storedTemplate ?? {
+>>>>>>> upstream/main
     id, name: entry.name, source: entry.source,
     version: entry.version, category: entry.category, sections: [],
   };
@@ -168,12 +300,32 @@ export async function getTemplate(id: string): Promise<TemplateDetail> {
 }
 
 // â”€â”€â”€ POST /api/templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+<<<<<<< HEAD
+=======
+// Real fix, found via a direct audit: this used to hardcode
+// owner: 'Current User' with a `// TODO: replace with auth context`
+// comment — every template ever saved through this function got
+// credited to a literal, fake name regardless of who actually saved
+// it. getSessionUser() already exists and is used throughout this app;
+// this just wires it in here too, with an honest fallback ('Unknown
+// User', not a guess) for the genuinely-unauthenticated edge case.
+function resolveOwnerDisplayName(): string {
+  const session = getSessionUser();
+  if (!session?.firstName && !session?.lastName) return 'Unknown User';
+  return formatFullDisplayName(fromLegacyName(session.firstName ?? '', session.lastName ?? ''));
+}
+
+>>>>>>> upstream/main
 export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResult> {
   await delay(400);
 
   // â”€â”€ MOCK â”€â”€
   const ts = now();
   editorStore.set(template.id, template);
+<<<<<<< HEAD
+=======
+  saveEditorStoreOverride(template.id, template);
+>>>>>>> upstream/main
   upsertRegistry({
     id:           template.id,
     name:         template.name || 'Untitled',
@@ -183,7 +335,11 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
     status:       'draft',
     fields:       template.sections.reduce((n, s) => n + s.fields.length, 0),
     lastModified: ts.slice(0, 10),
+<<<<<<< HEAD
     owner:        'Current User',  // TODO: replace with auth context
+=======
+    owner:        resolveOwnerDisplayName(),
+>>>>>>> upstream/main
   });
 
   console.info(`[templateService] Draft saved: ${template.name} (${template.id})`);
@@ -261,6 +417,29 @@ export async function publishTemplate(id: string, _note?: string): Promise<Trans
   upsertRegistry({ id, status: 'published', reviewNote: undefined, lastModified: ts.slice(0, 10) });
 
   console.info(`[templateService] Published: ${entry.name}`);
+<<<<<<< HEAD
+=======
+
+  // Notify the requester if template was built from a request
+  // Requester info stored in reviewNote as NOTIFY_REQUESTER:{...} marker
+  try {
+    const metaMatch = (entry.reviewNote ?? '').match(/NOTIFY_REQUESTER:({.*?})/);
+    if (metaMatch) {
+      const meta = JSON.parse(metaMatch[1]);
+      if (meta.requesterId && meta.requesterName) {
+        const { messageService } = await import('../../services');
+        await messageService.send({
+          senderId: 'u3', senderName: 'System Admin',
+recipientId: meta.requesterId, recipientName: meta.requesterName,
+subject: `Your template request is ready — ${entry.name}`,
+body: `Great news — the synoptic template you requested, "${entry.name}", has been published and is now available in the Synoptic Library. You can add it to any case via "+ Add Synoptic Report".`,
+timestamp: new Date(), isUrgent: false,
+caseNumber: '',
+        });
+      }
+    }
+  } catch { /* notification is best-effort */ }
+>>>>>>> upstream/main
   return { id, status: 'published', updatedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -529,6 +708,7 @@ export async function validateTerminologyCodes(
   // return res.json();
 }
 
+<<<<<<< HEAD
 // â”€â”€â”€ DEVELOPMENT SEED (CAP eCC JSON files) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Imports real CAP protocol JSON files converted from official eCCs.
 // Each is seeded into editorStore at module load so getTemplate() returns
@@ -565,3 +745,108 @@ editorStore.set('rcpath_colorectal_further_investigations',   RCPATH_COLORECTAL_
 editorStore.set('rcpath_prostate_biopsy',                     RCPATH_PROSTATE_BX_JSON   as any);
 editorStore.set('rcpath_prostate_radical_prostatectomy',      RCPATH_PROSTATE_RP_JSON   as any);
 editorStore.set('rcpath_prostate_turp_enucleation',           RCPATH_PROSTATE_TURP_JSON as any);
+=======
+// ─── DEVELOPMENT SEED (generic synoptic template JSON files) ─────────────
+// These were originally derived from CAP protocol content. As of the
+// CAP/RCPath content-licensing cleanup, all field labels, section titles,
+// and option text have been replaced with generic placeholders -- no CAP
+// or RCPath content remains in these files. Structure (field types,
+// section counts) is preserved so the editor/validation UI still exercises
+// the same code paths. Restore real CAP-derived content only once a CAP
+// license is confirmed in place.
+// Each is seeded into editorStore at module load so getTemplate() returns
+// real field data during development. Remove when backend API is wired in.
+
+import BREAST_INVASIVE_JSON      from '../../data/templates/generic/breast_invasive.json';
+import BREAST_DCIS_JSON          from '../../data/templates/generic/breast_dcis_resection.json';
+import LUNG_ADENO_JSON           from '../../data/templates/generic/lung_adeno.json';
+import PROSTATE_NEEDLE_JSON      from '../../data/templates/generic/prostate_needle_biopsy.json';
+import COLON_RESECTION_JSON      from '../../data/templates/generic/colon_resection.json';
+import SKIN_MELANOMA_JSON        from '../../data/templates/generic/skin_melanoma_bx.json';
+import PROSTATE_RESECTION_JSON   from '../../data/templates/generic/prostate_resection.json';
+import LUNG_RESECTION_JSON       from '../../data/templates/generic/lung_resection.json';
+import KIDNEY_RESECTION_JSON    from '../../data/templates/generic/kidney_resection.json';
+import KIDNEY_BIOPSY_JSON       from '../../data/templates/generic/kidney_biopsy.json';
+import WILMS_RESECTION_JSON     from '../../data/templates/generic/wilms_resection.json';
+import WILMS_BIOPSY_JSON        from '../../data/templates/generic/wilms_biopsy.json';
+
+// Seed all generic templates (see comment block above)
+editorStore.set('breast_invasive',        BREAST_INVASIVE_JSON   as any);
+editorStore.set('breast_dcis_resection',  BREAST_DCIS_JSON       as any);
+editorStore.set('lung_adeno',             LUNG_ADENO_JSON        as any);
+editorStore.set('prostate_needle_biopsy', PROSTATE_NEEDLE_JSON   as any);
+editorStore.set('colon_resection',        COLON_RESECTION_JSON   as any);
+editorStore.set('skin_melanoma_bx',          SKIN_MELANOMA_JSON       as any);
+editorStore.set('kidney_resection',    KIDNEY_RESECTION_JSON    as unknown as EditorTemplate);
+editorStore.set('kidney_biopsy',       KIDNEY_BIOPSY_JSON       as unknown as EditorTemplate);
+editorStore.set('wilms_resection',     WILMS_RESECTION_JSON     as unknown as EditorTemplate);
+editorStore.set('wilms_biopsy',        WILMS_BIOPSY_JSON        as unknown as EditorTemplate);
+editorStore.set('prostate_resection',        PROSTATE_RESECTION_JSON  as any);
+editorStore.set('lung_resection',            LUNG_RESECTION_JSON      as any);
+// Alias — internal protocol ID used by the generic seed template above
+editorStore.set('skin_invasive_melanoma_biopsy', SKIN_MELANOMA_JSON as any);
+
+// UK generic templates (formerly RCPath-derived; see comment block above --
+// same content-licensing cleanup applies. Ids/filenames were also renamed
+// to drop the "rcpath_" prefix and RCPath's internal document numbering,
+// e.g. rcpath_g148_breast_surgical_excision -> breast_surgical_excision.)
+import UK_BREAST_JSON         from '../../data/templates/generic/breast_surgical_excision.json';
+import UK_COLORECTAL_RES_JSON from '../../data/templates/generic/colorectal_resection_b.json';
+import UK_COLORECTAL_LOC_JSON from '../../data/templates/generic/colorectal_local_excision.json';
+import UK_COLORECTAL_FI_JSON  from '../../data/templates/generic/colorectal_further_investigations.json';
+import UK_PROSTATE_BX_JSON    from '../../data/templates/generic/prostate_biopsy.json';
+import UK_PROSTATE_RP_JSON    from '../../data/templates/generic/prostate_radical_prostatectomy.json';
+import UK_PROSTATE_TURP_JSON  from '../../data/templates/generic/prostate_turp_enucleation.json';
+
+editorStore.set('breast_surgical_excision',            UK_BREAST_JSON         as any);
+editorStore.set('colorectal_resection_b',               UK_COLORECTAL_RES_JSON as any);
+editorStore.set('colorectal_local_excision',            UK_COLORECTAL_LOC_JSON as any);
+editorStore.set('colorectal_further_investigations',    UK_COLORECTAL_FI_JSON  as any);
+editorStore.set('prostate_biopsy',                      UK_PROSTATE_BX_JSON   as any);
+editorStore.set('prostate_radical_prostatectomy',       UK_PROSTATE_RP_JSON   as any);
+editorStore.set('prostate_turp_enucleation',            UK_PROSTATE_TURP_JSON as any);
+
+// Grossing Templates
+// NOTE: unlike the generic template imports above, these do NOT rely on the
+// getTemplate() fallback path (the "seeded into editorStore but not in
+// PROTOCOL_REGISTRY" case) — each has an explicit PROTOCOL_REGISTRY entry
+// in protocolShared.tsx (see "Grossing Templates" section there), set to
+// status: 'published' so they show in Active Protocols / are selectable
+// for assignment, the same as any other Base/Custom template. Both files
+// must be kept in sync by id.
+//
+// Three peer templates (Route A/B/C), not one generic + variants — see the
+// "Grossing Templates" comment block in protocolShared.tsx for why there's
+// no parent/child relationship between them; Stage 0's AI assignment picks
+// the right one per specimen, the same way CAP_TO_REPORT picks a Report
+// Template in TemplateRoutingService.ts.
+import GROSSING_STANDARD_TISSUE_JSON from '../../data/templates/Grossing/grossing_standard_tissue.json';
+import GROSSING_FLUID_CYTOLOGY_JSON  from '../../data/templates/Grossing/grossing_fluid_cytology.json';
+import THYROID_FNA_CYTOLOGY_JSON     from '../../data/templates/Cytology/cytology_thyroid_fna_cytology.json';
+import SALIVARY_GLAND_FNA_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_salivary_gland_fna_cytology.json';
+import URINE_CYTOLOGY_JSON           from '../../data/templates/Cytology/cytology_urine_cytology.json';
+import PANCREATICOBILIARY_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_pancreaticobiliary_cytology.json';
+import LYMPH_NODE_FNA_CYTOLOGY_JSON  from '../../data/templates/Cytology/cytology_lymph_node_fna_cytology.json';
+import GROSSING_HISTOLOGY_ONLY_JSON  from '../../data/templates/Grossing/grossing_histology_only.json';
+
+editorStore.set('grossing_standard_tissue', GROSSING_STANDARD_TISSUE_JSON as any);
+editorStore.set('grossing_fluid_cytology',  GROSSING_FLUID_CYTOLOGY_JSON  as any);
+editorStore.set('thyroid_fna_cytology',     THYROID_FNA_CYTOLOGY_JSON     as any);
+editorStore.set('salivary_gland_fna_cytology', SALIVARY_GLAND_FNA_CYTOLOGY_JSON as any);
+editorStore.set('urine_cytology',           URINE_CYTOLOGY_JSON           as any);
+editorStore.set('pancreaticobiliary_cytology', PANCREATICOBILIARY_CYTOLOGY_JSON as any);
+editorStore.set('lymph_node_fna_cytology',  LYMPH_NODE_FNA_CYTOLOGY_JSON  as any);
+editorStore.set('grossing_histology_only',  GROSSING_HISTOLOGY_ONLY_JSON  as any);
+
+// Hydrate from localStorage on module load — merges saved template content
+// on top of the seed data, same timing and same reasoning as
+// protocolShared.tsx's registry hydration: reflects prior-session edits
+// immediately, and restores any template that only ever existed at
+// runtime (never had a hardcoded seed import at all).
+{
+  const overrides = loadEditorStoreOverrides();
+  Object.entries(overrides).forEach(([id, template]) => {
+    editorStore.set(id, template);
+  });
+}
+>>>>>>> upstream/main

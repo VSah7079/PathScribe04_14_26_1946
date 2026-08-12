@@ -23,7 +23,11 @@
  */
 
 import { useCallback, useState } from 'react';
+<<<<<<< HEAD
 import { PHI_SELECTORS, REDACTION_LABEL } from '../services/phiSelectors';
+=======
+import { PHI_SELECTORS, REDACTION_LABEL, REDACTION_STYLE, REDACTION_LABEL_STYLE } from '../services/phiSelectors';
+>>>>>>> upstream/main
 
 export interface ScreenCaptureResult {
   dataUrl:            string;
@@ -60,6 +64,7 @@ function applyRedactionOverlays(): RedactionOverlay[] {
 
         const overlay = document.createElement('div');
         overlay.setAttribute('data-phi-overlay', 'true');
+<<<<<<< HEAD
         overlay.style.cssText = `
           position:        fixed;
           left:            ${rect.left + window.scrollX}px;
@@ -84,6 +89,23 @@ function applyRedactionOverlays(): RedactionOverlay[] {
           letter-spacing: 0.05em;
           user-select:    none;
         `;
+=======
+        Object.assign(overlay.style, REDACTION_STYLE, {
+          position:       'fixed',
+          left:           `${rect.left + window.scrollX}px`,
+          top:            `${rect.top  + window.scrollY}px`,
+          width:          `${Math.max(rect.width,  80)}px`,
+          height:         `${Math.max(rect.height, 18)}px`,
+          zIndex:         '999999',
+          display:        'flex', // deliberate override of REDACTION_STYLE's inline-block, needed to center the label
+          alignItems:     'center',
+          justifyContent: 'center',
+          pointerEvents:  'none',
+        });
+        const label = document.createElement('span');
+        label.textContent = REDACTION_LABEL;
+        Object.assign(label.style, REDACTION_LABEL_STYLE, { userSelect: 'none' });
+>>>>>>> upstream/main
         overlay.appendChild(label);
         document.body.appendChild(overlay);
         overlays.push({ element: el, overlay });
@@ -300,9 +322,13 @@ export function useScreenCapture(): UseScreenCaptureReturn {
         scale:           window.devicePixelRatio ?? 1,
         logging:         false,
         ignoreElements:  (el: Element) =>
+<<<<<<< HEAD
           el.hasAttribute('data-enhancement-modal')      ||
           el.hasAttribute('data-phi-overlay')            ||
           el.hasAttribute('data-pdf-placeholder'),
+=======
+          el.hasAttribute('data-enhancement-modal'),
+>>>>>>> upstream/main
       });
 
       return {
@@ -315,8 +341,13 @@ export function useScreenCapture(): UseScreenCaptureReturn {
         height:            canvas.height,
       };
 
+<<<<<<< HEAD
     } catch (err: any) {
       const msg = err?.message ?? 'Screen capture failed';
+=======
+    } catch (err) {
+      const msg = (err as Error)?.message ?? 'Screen capture failed';
+>>>>>>> upstream/main
       setError(msg);
       console.error('[useScreenCapture]', err);
       return null;

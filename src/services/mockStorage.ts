@@ -30,6 +30,7 @@ export function storageClear(key: string): void {
     localStorage.removeItem(PREFIX + key);
   } catch {}
 }
+<<<<<<< HEAD
 
 export function storageClearAll(): void {
   try {
@@ -38,3 +39,5 @@ export function storageClearAll(): void {
       .forEach(k => localStorage.removeItem(k));
   } catch {}
 }
+=======
+>>>>>>> upstream/main

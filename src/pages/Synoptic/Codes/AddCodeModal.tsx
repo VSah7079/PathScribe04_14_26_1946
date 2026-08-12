@@ -6,9 +6,16 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { callAi } from '@/services/aiIntegration/aiProviderService';
+<<<<<<< HEAD
 import '../../../pathscribe.css';
 import type { MedicalCode } from '../synopticTypes';
 import { searchCodes, type CodeResult, type SnomedFilter } from './codeSearchService';
+=======
+import { resolveAiConfigOverrideForClient } from '@/components/Config/AI/resolveClientAiModel';
+import '../../../pathscribe.css';
+import type { MedicalCode } from '../synopticTypes';
+import { searchCodes, type CodeResult, type SnomedFilter } from '../../../services/terminologySearch/codeSearchService';
+>>>>>>> upstream/main
 import { getOrganisationByHospitalId, type CodingSystem } from '@/services/organisation/organisationService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,7 +35,17 @@ export interface AddCodeModalProps {
   existingCodes: MedicalCode[];
   allSpecimens: SpecimenOption[];
   activeSpecimenIndex?: number;  // reserved for future per-specimen default targeting
+<<<<<<< HEAD
   onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[]) => void;
+=======
+  /** Real fix: which coding-system tab to open on - e.g. 'CPT' when
+   *  launched from a specimen's own "+Code" contextual button, so the
+   *  user lands directly where they meant to go rather than needing to
+   *  switch tabs manually. Defaults to 'SNOMED', preserving existing
+   *  behavior for every other caller. */
+  initialSystem?: CodeSystem;
+  onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[]) => Promise<void>;
+>>>>>>> upstream/main
   onClose: () => void;
   originHospitalId?: string;
   /** Optional — if provided, enables AI code suggestions */
@@ -39,6 +56,14 @@ export interface AddCodeModalProps {
   synopticDerivedCodes?: AiCodeSuggestion[];
   /** Whether Orchestrator/narrative mode is active */
   narrativeText?: string;
+<<<<<<< HEAD
+=======
+  /** The case's ordering client — needed to resolve which AI model this
+   *  specific client is actually approved to use for AI code
+   *  suggestions. Optional so callers without a resolvable client
+   *  still fall back safely to the org-wide default. */
+  clientId?: string;
+>>>>>>> upstream/main
 }
 
 type CodeSystem = 'SNOMED' | 'ICD10' | 'ICD11' | 'LOINC' | 'ICDO' | 'CPT' | 'OPCS4';
@@ -121,7 +146,11 @@ const IcoUndo = () => (
 export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   existingCodes, allSpecimens, onAddToSpecimens, onClose,
   caseText, synopticAnswers, templateName, synopticDerivedCodes, narrativeText,
+<<<<<<< HEAD
   originHospitalId,
+=======
+  originHospitalId, activeSpecimenIndex, initialSystem, clientId,
+>>>>>>> upstream/main
 }) => {
   // ── Site coding config ────────────────────────────────────────────────────
   // Coding systems shown are driven by site config from organisationService.
@@ -130,19 +159,30 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   const siteOrg = React.useMemo(() => {
     return getOrganisationByHospitalId(originHospitalId ?? 'HOSP-001');
   }, [originHospitalId]);
+<<<<<<< HEAD
   const siteCodingSystems = React.useMemo<CodeSystem[]>(() => {
     const systems = siteOrg?.sites?.[0]?.codingSystems;
     return (systems?.length ? systems : ['SNOMED', 'ICD10', 'ICD11', 'LOINC', 'ICDO', 'CPT']) as CodeSystem[];
+=======
+  const siteCodingSystems = React.useMemo<CodingSystem[]>(() => {
+    const systems = siteOrg?.sites?.[0]?.codingSystems;
+    return systems?.length ? systems : ['SNOMED', 'ICD10', 'ICD11', 'LOINC', 'ICDO', 'CPT'] as CodingSystem[];
+>>>>>>> upstream/main
   }, [siteOrg]);
   const SYSTEMS = ALL_SYSTEMS.filter(s => siteCodingSystems.includes(s.id));
   const isUK = siteOrg?.sites?.[0]?.defaultLocale === 'en-GB';
 
+<<<<<<< HEAD
   const [system,       setSystem]       = useState<CodeSystem>('SNOMED');
+=======
+  const [system,       setSystem]       = useState<CodeSystem>(initialSystem ?? 'SNOMED');
+>>>>>>> upstream/main
   const [snomedFilter, setSnomedFilter] = useState<SnomedFilter>('morphology');
   const [query,        setQuery]        = useState('');
   const [results,      setResults]      = useState<CodeResult[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [focused,      setFocused]      = useState(-1);
+<<<<<<< HEAD
   const [target,       setTarget]       = useState<number | null>(null);
   const [applied,      setApplied]      = useState<PendingCode[]>(() =>
     existingCodes.map(c => {
@@ -158,6 +198,34 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
         pendingDelete: false,
       };
     })
+=======
+  const [target,       setTarget]       = useState<number | null>(activeSpecimenIndex ?? null);
+  const [applied,      setApplied]      = useState<PendingCode[]>(() =>
+    existingCodes
+      // Guards against malformed entries with an empty/missing code --
+      // these were rendering as blank rows (grabber + trash icon, no
+      // visible text) with no indication anything was wrong. Filtering
+      // here means they're excluded from the very first render, and
+      // since handleSave's diff logic works entirely off this `applied`
+      // array (not existingCodes directly), any of these already sitting
+      // in the real backend data get silently dropped the next time this
+      // case's codes are saved for any reason -- no separate cleanup
+      // migration needed.
+      .filter(c => !!c.code)
+      .map(c => {
+        // Resolve specimenId back to specimenIndex so left panel groups correctly
+        const specOption = (c as any).specimenId
+          ? allSpecimens.find(s => s.specimenId === (c as any).specimenId)
+          : null;
+        return {
+          code:          c.code,
+          display:       c.display,
+          system:        c.system,
+          specimenIndex: specOption ? specOption.index : null,
+          pendingDelete: false,
+        };
+      })
+>>>>>>> upstream/main
   );
   const [isDirty, setIsDirty] = useState(false);
   const [aiSuggestions,    setAiSuggestions]    = useState<AiCodeSuggestion[]>([]);
@@ -168,6 +236,10 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
 
 
   const [saving,       setSaving]       = useState(false);
+<<<<<<< HEAD
+=======
+  const [saveError,    setSaveError]    = useState<string | null>(null);
+>>>>>>> upstream/main
   const [dragCode,     setDragCode]     = useState<PendingCode | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<number | null | 'none'>('none'); // null=case, number=spec, 'none'=not dragging
   const [contextMenu,  setContextMenu]  = useState<{ entry: PendingCode; x: number; y: number } | null>(null);
@@ -180,7 +252,18 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+<<<<<<< HEAD
     if (!query.trim()) { setResults([]); setLoading(false); return; }
+=======
+    // Real fix: CPT is a small, curated table (services/billing/), not
+    // a large live search like every other system here - an empty
+    // query still searches, showing the real, active table's full list
+    // as a default view (Pete's "top/frequent codes" default) rather
+    // than requiring a keystroke first. Every other system keeps the
+    // original "require a real query" behavior - correct for a live
+    // NLM search that could otherwise return thousands of results.
+    if (!query.trim() && system !== 'CPT') { setResults([]); setLoading(false); return; }
+>>>>>>> upstream/main
 
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
@@ -371,9 +454,16 @@ Rules:
 - Only include codes you are highly confident are correct
 - For CPT 88307 vs 88309: mastectomy with lymph nodes = 88307, complex cases = 88309`,
         maxTokens: 1200,
+<<<<<<< HEAD
       });
 
       const clean = raw.replace(/\`\`\`json|\`\`\`/g, '').trim();
+=======
+        configOverride: await resolveAiConfigOverrideForClient(clientId),
+      });
+
+      const clean = raw.replace(/```json|```/g, '').trim();
+>>>>>>> upstream/main
       const parsed: AiCodeSuggestion[] = JSON.parse(clean);
       const filtered = Array.isArray(parsed)
         ? parsed.filter(s => siteCodingSystems.includes(s.system as CodeSystem))
@@ -385,7 +475,11 @@ Rules:
     } finally {
       setAiLoading(false);
     }
+<<<<<<< HEAD
   }, [caseText, synopticAnswers, templateName]);
+=======
+  }, [caseText, synopticAnswers, templateName, isUK, narrativeText, siteCodingSystems]);
+>>>>>>> upstream/main
 
   // Auto-run on open — after generateAiCodes is defined
   // Tier 1: use pre-derived synoptic codes immediately
@@ -401,8 +495,14 @@ Rules:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+<<<<<<< HEAD
   const handleSave = useCallback(() => {
     setSaving(true);
+=======
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaveError(null);
+>>>>>>> upstream/main
     // Include codes that are new OR have been moved to a different specimen
     const toAdd = applied.filter(c => {
       if (c.pendingDelete) return false;
@@ -434,11 +534,35 @@ Rules:
     const hasDeletions = applied.some(c => c.pendingDelete);
     if (toAdd.length > 0 || hasDeletions) {
       const specimenIndices = [...new Set(toAdd.map(c => c.specimenIndex ?? 0))];
+<<<<<<< HEAD
       onAddToSpecimens(allActiveCodes, specimenIndices);
     } else {
       onClose();
     }
     }, [applied, existingCodes, onAddToSpecimens, onClose]);
+=======
+      // Previously fired onAddToSpecimens and closed the modal
+      // immediately afterward regardless of whether the save actually
+      // succeeded -- the parent's real persist call only had a
+      // console.error on failure, invisible in normal use. Now the
+      // modal genuinely waits: closes only on confirmed success, shows
+      // a real error and stays open (so nothing looks "saved" when it
+      // wasn't) on failure. Also fixes saving never being reset to
+      // false, which previously left the button stuck disabled.
+      try {
+        await onAddToSpecimens(allActiveCodes, specimenIndices);
+        onClose();
+      } catch (err: any) {
+        setSaveError(err?.message ?? 'Failed to save — please try again.');
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      setSaving(false);
+      onClose();
+    }
+  }, [applied, existingCodes, allSpecimens, onAddToSpecimens, onClose]);
+>>>>>>> upstream/main
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
@@ -458,7 +582,11 @@ Rules:
 
   // Grabber icon SVG
   const IcoGrab = () => (
+<<<<<<< HEAD
     <svg width="10" height="14" viewBox="0 0 10 14" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+=======
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="none" className="acd-drag-handle">
+>>>>>>> upstream/main
       <circle cx="3" cy="2.5" r="1.2" fill="currentColor"/>
       <circle cx="7" cy="2.5" r="1.2" fill="currentColor"/>
       <circle cx="3" cy="7"   r="1.2" fill="currentColor"/>
@@ -494,12 +622,20 @@ Rules:
       >
         {/* Grabber — only shown when not deleted */}
         {!entry.pendingDelete && (
+<<<<<<< HEAD
           <span style={{ display: 'flex', alignItems: 'center', marginRight: 2, color: '#94a3b8' }}>
+=======
+          <span className="acd-icon-wrap">
+>>>>>>> upstream/main
             <IcoGrab />
           </span>
         )}
         <span className={`fm-flag-chip-name${entry.pendingDelete ? ' strikethrough' : ''}`}>
+<<<<<<< HEAD
           <span style={{ fontSize: 10, fontFamily: 'monospace', opacity: 0.65, marginRight: 4 }}>{entry.code}</span>
+=======
+          <span className="acd-code-mono">{entry.code}</span>
+>>>>>>> upstream/main
           {entry.display}
         </span>
         {entry.pendingDelete ? (
@@ -548,7 +684,11 @@ Rules:
   const ContextMenu = contextMenu ? (
     <div
       onClick={() => setContextMenu(null)}
+<<<<<<< HEAD
       style={{ position: 'fixed', inset: 0, zIndex: 99999 }}
+=======
+      style={{ position: 'fixed', inset: 0, zIndex: 9000 }}
+>>>>>>> upstream/main
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -562,10 +702,17 @@ Rules:
           borderRadius: 8,
           boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
           overflow: 'hidden',
+<<<<<<< HEAD
           zIndex: 100000,
         }}
       >
         <div style={{ padding: '8px 12px 6px', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+=======
+          zIndex: 9001,
+        }}
+      >
+        <div className="acd-ctx-menu-label">
+>>>>>>> upstream/main
           Move to
         </div>
 
@@ -573,7 +720,11 @@ Rules:
         {contextMenu.entry.specimenIndex !== null && (
           <button
             onClick={() => moveCode(contextMenu.entry, null)}
+<<<<<<< HEAD
             style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#e2e8f0', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+=======
+            className="acd-ctx-menu-btn"
+>>>>>>> upstream/main
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,145,178,0.15)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'none')}
           >
@@ -589,13 +740,22 @@ Rules:
             <button
               key={sp.index}
               onClick={() => moveCode(contextMenu.entry, sp.index)}
+<<<<<<< HEAD
               style={{ width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#e2e8f0', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+=======
+              className="acd-ctx-menu-btn"
+>>>>>>> upstream/main
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,145,178,0.15)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}
             >
               <IcoSpec />
+<<<<<<< HEAD
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 <span style={{ color: '#38bdf8', fontWeight: 600 }}>Sp {sp.id}:</span> {sp.name}
+=======
+              <span className="acd-sp-label">
+                <span className="acd-sp-label-prefix">Sp {sp.id}:</span> {sp.name}
+>>>>>>> upstream/main
               </span>
             </button>
           ))
@@ -609,8 +769,13 @@ Rules:
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
+<<<<<<< HEAD
     <div data-capture-hide="true" className="fm-overlay" onClick={onClose}>
       <div className="ps-research-modal fm-modal" style={{ maxWidth: 1100, width: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+=======
+    <div data-capture-hide="true" className="ps-overlay">
+      <div className="ps-research-modal fm-modal acd-modal-inner" onClick={e => e.stopPropagation()}>
+>>>>>>> upstream/main
 
         {/* ── HEADER ── */}
         <div className="ps-research-header">
@@ -624,12 +789,17 @@ Rules:
               )}
             </div>
           </div>
+<<<<<<< HEAD
           <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1, flexShrink: 0 }} aria-label="Close" onClick={onClose}
+=======
+          <button className="acd-close-btn" aria-label="Close" onClick={onClose}
+>>>>>>> upstream/main
             onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
           >✕</button>
         </div>
 
+<<<<<<< HEAD
         <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
           {/* ── LEFT PANEL ── */}
@@ -637,6 +807,15 @@ Rules:
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Applied Codes</div>
             {dragCode && (
               <div style={{ fontSize: 10, color: '#38bdf8', marginBottom: 8, fontStyle: 'italic' }}>
+=======
+        <div className="acd-body">
+
+          {/* ── LEFT PANEL ── */}
+          <div className="fm-left-panel acd-left">
+            <div className="acd-left-title">Applied Codes</div>
+            {dragCode && (
+              <div className="acd-left-hint">
+>>>>>>> upstream/main
                 Drop on a target to move · Right-click for menu
               </div>
             )}
@@ -648,7 +827,11 @@ Rules:
                 onClick={() => setTarget(null)}
               >
                 <IcoCase />
+<<<<<<< HEAD
                 <span style={{ flex: 1 }}>Case Level</span>
+=======
+                <span className="acd-case-label-flex">Case Level</span>
+>>>>>>> upstream/main
                 {activeCaseApplied.length > 0 && (
                   <span className="fm-count-badge">{activeCaseApplied.length}</span>
                 )}
@@ -672,8 +855,13 @@ Rules:
                     onClick={() => setTarget(sp.index)}
                   >
                     <IcoSpec />
+<<<<<<< HEAD
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>
                       <span style={{ color: '#38bdf8', fontWeight: 600 }}>Sp {sp.id}:</span>{' '}{sp.name}
+=======
+                    <span className="acd-sp-row-label">
+                      <span className="acd-sp-label-prefix">Sp {sp.id}:</span>{'  '}{sp.name}
+>>>>>>> upstream/main
                     </span>
                     {activeCount > 0 && (
                       <span className="fm-count-badge">{activeCount}</span>
@@ -689,11 +877,19 @@ Rules:
           </div>
 
           {/* ── RIGHT PANEL ── */}
+<<<<<<< HEAD
           <div className="fm-right-panel" style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '16px 20px', overflowY: 'auto' }}>
 
             {/* AI Suggest button */}
             {caseText && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+=======
+          <div className="fm-right-panel acd-right">
+
+            {/* AI Suggest button */}
+            {caseText && (
+              <div className="acd-ai-header-row">
+>>>>>>> upstream/main
                 <button
                   onClick={generateAiCodes}
                   disabled={aiLoading}
@@ -706,7 +902,11 @@ Rules:
                     cursor: aiLoading ? 'wait' : 'pointer', transition: 'all 0.15s',
                   }}
                 >
+<<<<<<< HEAD
                   <span style={{ fontSize: 14 }}>✦</span>
+=======
+                  <span className="acd-ai-sparkle">✦</span>
+>>>>>>> upstream/main
                   {aiLoading ? 'AI thinking…'
                     : aiRan && synopticDerivedCodes?.length ? '↻ Re-run (Synoptic)'
                     : aiRan && narrativeText ? '↻ Re-run (Narrative)'
@@ -714,12 +914,17 @@ Rules:
                     : narrativeText ? '✦ AI Suggest (Narrative)'
                     : '✦ AI Suggest Codes'}
                 </button>
+<<<<<<< HEAD
                 {aiError && <span style={{ fontSize: 11, color: '#f87171' }}>⚠ {aiError}</span>}
+=======
+                {aiError && <span className="acd-ai-error">⚠ {aiError}</span>}
+>>>>>>> upstream/main
               </div>
             )}
 
             {/* AI Suggestions panel */}
             {aiSuggestions.length > 0 && (
+<<<<<<< HEAD
               <div style={{ marginBottom: 12, border: '1px solid rgba(8,145,178,0.3)', borderRadius: 8, overflow: 'hidden' }}>
                 <div
                   onClick={() => setAiPanelCollapsed(c => !c)}
@@ -728,6 +933,16 @@ Rules:
                   <span>✦</span>
                   <span style={{ flex: 1 }}>AI Suggested Codes — review and apply</span>
                   <span style={{ fontSize: 11, opacity: 0.7 }}>
+=======
+              <div className="acd-ai-panel">
+                <div
+                  onClick={() => setAiPanelCollapsed(c => !c)}
+                  className="acd-ai-panel-header"
+                >
+                  <span>✦</span>
+                  <span className="acd-ai-panel-label">AI Suggested Codes — review and apply</span>
+                  <span className="acd-ai-panel-count">
+>>>>>>> upstream/main
                     {aiSuggestions
                       .filter((s, i, a) => a.findIndex(x => x.code === s.code) === i)
                       .filter(s => !existingCodes.some(ec => ec.code === s.code && ec.system === s.system))
@@ -754,10 +969,17 @@ Rules:
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(8,145,178,0.08)'; }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                     >
+<<<<<<< HEAD
                       <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 4, flexShrink: 0 }}>
                         {sug.code}
                       </span>
                       <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0, background: 'rgba(8,145,178,0.1)', padding: '2px 7px', borderRadius: 4 }}>
+=======
+                      <span className="acd-code-badge">
+                        {sug.code}
+                      </span>
+                      <span className="acd-system-badge">
+>>>>>>> upstream/main
                         {sug.system}
                       </span>
                       <span style={{ flex: 1, fontSize: 13, color: isActive ? '#64748b' : '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -767,14 +989,24 @@ Rules:
                         {sug.confidence}%
                       </span>
                       {sug.rvu != null && (
+<<<<<<< HEAD
                         <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0, fontFamily: 'monospace' }}>
+=======
+                        <span className="acd-already-added">
+>>>>>>> upstream/main
                           {sug.rvu} RVU
                         </span>
                       )}
                       {isActive ? (
+<<<<<<< HEAD
                         <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, flexShrink: 0 }}>✓</span>
                       ) : (
                         <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 700, flexShrink: 0 }}>+ Apply</span>
+=======
+                        <span className="acd-added-check">✓</span>
+                      ) : (
+                        <span className="acd-add-btn" title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+>>>>>>> upstream/main
                       )}
                     </div>
                   );
@@ -783,7 +1015,11 @@ Rules:
             )}
 
             {/* System tabs */}
+<<<<<<< HEAD
             <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+=======
+            <div className="acd-filter-row">
+>>>>>>> upstream/main
               {SYSTEMS.map(s => (
                 <button key={s.id} onClick={() => { setSystem(s.id); setQuery(''); setFocused(-1); inputRef.current?.focus(); }}
                   style={{
@@ -798,7 +1034,11 @@ Rules:
 
             {/* Hierarchy filters — SNOMED only */}
             {system === 'SNOMED' && (
+<<<<<<< HEAD
               <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+=======
+              <div className="acd-filter-row">
+>>>>>>> upstream/main
                 {SNOMED_FILTERS.map(f => (
                   <button key={f.id} onClick={() => setSnomedFilter(f.id)} title={f.hint}
                     style={{
@@ -814,6 +1054,7 @@ Rules:
             )}
 
             {/* Target indicator */}
+<<<<<<< HEAD
             <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
               Applying to:{' '}
               <strong style={{ color: '#e2e8f0' }}>
@@ -825,6 +1066,19 @@ Rules:
             {/* Search */}
             <div className="fm-search-wrap" style={{ marginBottom: 12 }}>
               <IcoSearch />
+=======
+            <div className="acd-hint-text">
+              Applying to:{' '}
+              <strong className="acd-hint-strong">
+                {target === null ? 'Case Level' : `Specimen ${allSpecimens.find(s => s.index === target)?.id ?? target + 1}`}
+              </strong>
+              <span className="acd-hint-muted">— click a row on the left to change</span>
+            </div>
+
+            {/* Search */}
+            <div className="fm-search-wrap acd-search-mb">
+              <span className="fm-search-icon"><IcoSearch /></span>
+>>>>>>> upstream/main
               <input
                 ref={inputRef}
                 autoFocus
@@ -840,7 +1094,11 @@ Rules:
             </div>
 
             {/* Results */}
+<<<<<<< HEAD
             <div style={{ flex: 1, overflowY: 'auto' }}>
+=======
+            <div className="acd-list-scroll">
+>>>>>>> upstream/main
               {loading ? (
                 <div className="fm-empty">
                   <div className="fm-empty-hint">Searching {sysInfo.label}…</div>
@@ -881,9 +1139,15 @@ Rules:
                       {r.display}
                     </span>
                     {isActive ? (
+<<<<<<< HEAD
                       <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, textAlign: 'right' }}>✓ Applied</span>
                     ) : (
                       <span className="fm-apply-btn" style={{ textAlign: 'right' }}>+ Apply</span>
+=======
+                      <span className="acd-added-text">✓ Applied</span>
+                    ) : (
+                      <span className="fm-apply-btn acd-apply-btn-right" title="Apply code"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+>>>>>>> upstream/main
                     )}
                   </div>
                 );
@@ -897,13 +1161,24 @@ Rules:
 
         {/* ── FOOTER ── */}
         <div className="fm-footer">
+<<<<<<< HEAD
           <span className={`fm-footer-status${isDirty ? ' dirty' : ''}`}>
             {isDirty
+=======
+          <span className={`fm-footer-status${isDirty ? ' dirty' : ''}`} style={saveError ? { color: '#f87171' } : undefined}>
+            {saveError
+              ? saveError
+              : isDirty
+>>>>>>> upstream/main
               ? `${toAddCount > 0 ? `${toAddCount} to add` : ''}${toAddCount > 0 && toRemoveCount > 0 ? ' · ' : ''}${toRemoveCount > 0 ? `${toRemoveCount} to remove` : ''}`
               : 'No changes'
             }
           </span>
+<<<<<<< HEAD
           <div style={{ display: 'flex', gap: 8 }}>
+=======
+          <div className="acd-footer-row">
+>>>>>>> upstream/main
             <button className="fm-btn-cancel" onClick={onClose}>Cancel</button>
             <button
               className="fm-btn-save"

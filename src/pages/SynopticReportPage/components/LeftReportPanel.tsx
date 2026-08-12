@@ -1,13 +1,35 @@
 // src/pages/SynopticReportPage/components/LeftReportPanel.tsx
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import React, { useEffect } from 'react';
+>>>>>>> upstream/main
 import type { Case } from '@/types/case/Case';
 import { useAuth } from '@/contexts/AuthContext';
 import InternalNotesDrawer from '@/components/InternalNotes/InternalNotesDrawer';
 import { internalNoteService } from '@/services';
+<<<<<<< HEAD
+=======
+import { getMarkersFromAnswers, type MarkerAnswer } from '@/orchestrator/contextBuilder';
+import { getTemplate } from '@/services/templates/templateService';
+import { matchSourceText } from '@/utils/sourceTextMatching';
+import MarkersPanel from './MarkersPanel';
+import { buildWatermarkBackgroundImage } from './PendingReleaseWatermark';
+import { mockReportReleaseService } from '@/services/reportRelease/mockReportReleaseService';
+>>>>>>> upstream/main
 
 interface LeftReportPanelProps {
   caseData: Case | null;
   highlightText?: string;
+<<<<<<< HEAD
+=======
+  /** Fired once per highlightText change, reporting whether a real,
+   *  verbatim match was actually found in the report text. Lets the
+   *  right panel show an honest "source not found" indicator next to
+   *  the field that triggered the highlight, instead of a silent
+   *  no-op when the AI's cited source can't be located. */
+  onMatchResolved?: (found: boolean) => void;
+>>>>>>> upstream/main
 }
 
 // Splits text and wraps matching substring in a highlight mark.
@@ -41,12 +63,35 @@ const HighlightedText: React.FC<{
   );
 };
 
+<<<<<<< HEAD
 const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightText }) => {
+=======
+const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightText, onMatchResolved }) => {
+>>>>>>> upstream/main
   const { user } = useAuth();
   const [notesOpen, setNotesOpen] = React.useState(false);
   const [unreadNoteCount, setUnreadNoteCount] = React.useState(0);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+<<<<<<< HEAD
+=======
+  // Real feature, per direct specification: Post-Sign-Out Release
+  // Buffer, Phase 3. The real, org-configured watermark text — fetched
+  // once per mount, not re-resolved on every render. watermarkText is
+  // deliberately enterprise-only (see ReportReleaseOrgConfig's own doc
+  // comment), so a plain getOrgDefault() suffices here — no per-
+  // facility async resolution needed the way resolveBufferForCase()
+  // itself requires.
+  const isPendingRelease = caseData?.status === 'pending-release';
+  const [watermarkText, setWatermarkText] = React.useState('');
+  useEffect(() => {
+    if (!isPendingRelease) return;
+    mockReportReleaseService.getOrgDefault().then(res => {
+      if (res.ok) setWatermarkText(res.data.watermarkText);
+    });
+  }, [isPendingRelease]);
+
+>>>>>>> upstream/main
   // Count shared notes by other authors — proxy for "unread colleague notes"
   useEffect(() => {
     if (!caseData) return;
@@ -59,7 +104,32 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
       }
     }).catch(() => {});
   }, [caseData, user?.id]);
+<<<<<<< HEAD
   const markRef   = React.useRef<HTMLElement | null>(null);
+=======
+  
+
+  // Phase D of the biomarker display work (see PRIORITY_FIXES.md). Resolves
+  // markers across ALL of this case's synoptic report instances (a case can
+  // have more than one specimen, each with its own template) -- template-
+  // agnostic by design via getMarkersFromAnswers(), so this works
+  // automatically for any template with a "biomarkers" section, present or
+  // future, with zero changes needed here.
+  const [markers, setMarkers] = React.useState<MarkerAnswer[]>([]);
+  useEffect(() => {
+    if (!caseData?.synopticReports?.length) { setMarkers([]); return; }
+    let cancelled = false;
+    Promise.all(
+      caseData.synopticReports.map(async (inst: any) => {
+        const detail = await getTemplate(inst.templateId);
+        return detail ? getMarkersFromAnswers(inst.answers ?? {}, detail.template) : [];
+      })
+    ).then(results => {
+      if (!cancelled) setMarkers(results.flat());
+    }).catch(() => { if (!cancelled) setMarkers([]); });
+    return () => { cancelled = true; };
+  }, [caseData?.synopticReports]);
+>>>>>>> upstream/main
 
   const sections = caseData ? [
     { title: 'CLINICAL HISTORY',     text: caseData.order?.clinicalIndication ?? '(not recorded)' },
@@ -69,6 +139,7 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   ] : [];
 
   // Extract the quoted phrase from source strings like 'Gross: "2.3 × 1.8 × 1.5 cm"'
+<<<<<<< HEAD
   // Falls back to progressively shorter word sequences if the full phrase isn't found
   const matchPhrase = React.useMemo(() => {
     if (!highlightText) return undefined;
@@ -96,6 +167,27 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   // Scroll the panel to bring the highlighted mark into view whenever it changes
   const handleMarkMount = React.useCallback((el: HTMLElement | null) => {
     markRef.current = el;
+=======
+  // Falls back to progressively shorter word sequences if the full phrase isn't found.
+  // Shared with the finalize-time proactive check — see sourceTextMatching.ts.
+  const matchResult = React.useMemo(
+    () => matchSourceText(highlightText, caseData),
+    [highlightText, caseData]
+  );
+
+  const matchPhrase = matchResult.phrase;
+
+  // Report whether the highlight actually resolved, once per
+  // highlightText change — lets the right panel show an honest
+  // indicator next to the field instead of a silent no-op.
+  useEffect(() => {
+    if (highlightText) onMatchResolved?.(matchResult.found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightText, matchResult.found]);
+
+  // Scroll the panel to bring the highlighted mark into view whenever it changes
+  const handleMarkMount = React.useCallback((el: HTMLElement | null) => {
+>>>>>>> upstream/main
     if (el && scrollRef.current) {
       // Small delay so the DOM has settled before we measure
       setTimeout(() => {
@@ -111,10 +203,26 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
         width: '100%',
         height: '100%',
         background: '#111827',
+<<<<<<< HEAD
+=======
+        // Real fix: background-image + backgroundAttachment: 'local'
+        // scrolls WITH this element's own content, tiling the real,
+        // configured watermark text across the full scrollable height
+        // — not just the initially-visible viewport. See
+        // PendingReleaseWatermark.tsx's own header comment for the
+        // real bug this specifically avoids.
+        backgroundImage: isPendingRelease && watermarkText ? buildWatermarkBackgroundImage(watermarkText) : undefined,
+        backgroundRepeat: isPendingRelease && watermarkText ? 'repeat' : undefined,
+        backgroundAttachment: isPendingRelease && watermarkText ? 'local' : undefined,
+>>>>>>> upstream/main
         borderRight: '1px solid rgba(8,145,178,0.3)',
         overflowY: 'auto',
         padding: '16px 32px 32px',
         boxSizing: 'border-box',
+<<<<<<< HEAD
+=======
+        position: 'relative',
+>>>>>>> upstream/main
       }}
     >
       <style>{`
@@ -170,6 +278,7 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
         <p style={{ color: '#94a3b8', fontSize: '14px' }}>No case loaded.</p>
       ) : (
         <>
+<<<<<<< HEAD
           {/* Patient info grid */}
           <div style={{ background: 'rgba(8,145,178,0.06)', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', fontSize: '13px', border: '1px solid rgba(8,145,178,0.2)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -189,6 +298,33 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
             </div>
           </div>
 
+=======
+          {/* Patient info row — compact single row, CAP two-identifier
+              minimum (Pete: case number, MRN, Name, DOB). Sex/Priority
+              dropped from always-visible display -- not patient
+              identifiers, and keeping this simple rather than adding
+              another toggle/overlay so soon after removing the broken
+              full-screen review feature. Case number kept even though
+              it's a case (not patient) identifier -- it's what ties this
+              panel to a specific specimen while scrolling a long report. */}
+          <div className="ps-patient-info-row">
+            {[
+              { label: 'Case',    value: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '—', mono: true },
+              { label: 'MRN',     value: caseData.patient?.mrn ?? '—' },
+              { label: 'Patient', value: caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—' },
+              { label: 'DOB',     value: caseData.patient?.dateOfBirth ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '—' },
+            ].map(({ label, value, mono }, i) => (
+              <React.Fragment key={label}>
+                {i > 0 && <span className="ps-patient-info-sep">·</span>}
+                <span className="ps-patient-info-label">{label}</span>
+                <span className={`ps-patient-info-value${mono ? ' ps-patient-info-value--mono' : ''}`}>{value}</span>
+              </React.Fragment>
+            ))}
+          </div>
+
+          <MarkersPanel markers={markers} />
+
+>>>>>>> upstream/main
           {/* Report sections */}
           {sections.map(s => (
             <div key={s.title} style={{ marginBottom: '28px', borderLeft: '3px solid rgba(8,145,178,0.4)', paddingLeft: '14px' }}>

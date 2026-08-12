@@ -17,22 +17,39 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+<<<<<<< HEAD
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
+=======
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
+import { useAuditLog } from '@/components/Audit/useAuditLog';
+>>>>>>> upstream/main
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
 import { messageService } from '../../services';
+<<<<<<< HEAD
 import type { MessageThread } from '../../services';
 import { useMessaging } from '../../contexts/MessagingContext';
 import NavBar from '../NavBar/NavBar';
 import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
 import { useDirtyState } from '../../contexts/DirtyStateContext';
 import '../../pathscribe.css';
+=======
+import { useMessaging } from '../../contexts/MessagingContext';
+import NavBar, { SystemInfoModal } from '../NavBar/NavBar';
+import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
+import { useDirtyState } from '../../contexts/DirtyStateContext';
+import '../../pathscribe.css';
+import { openUserGuide, openAdminGuide } from '../../utils/guideAssets';
+import ConfirmModal from '../Common/ConfirmModal';
+>>>>>>> upstream/main
 
 // ─── Internal user directory ─────────────────────────────────────────────────
 interface InternalUser { id: string; name: string; role: string; }
 const INTERNAL_USERS: InternalUser[] = [
+<<<<<<< HEAD
   { id: 'u2',  name: 'Lab Manager',     role: 'Laboratory'           },
   { id: 'u3',  name: 'System Admin',    role: 'IT / Administration'  },
   { id: 'u4',  name: 'Dr. Sarah Chen',  role: 'Pathology'            },
@@ -81,6 +98,31 @@ const formatMessageDate = (date: Date | string | number) => {
   } catch (e) {
     return ""; // Total safety fallback
   }
+=======
+  { id: 'u2',  name: 'Lab Manager',          role: 'Laboratory'           },
+  { id: 'u3',  name: 'System Admin',          role: 'IT / Administration'  },
+  { id: 'u4',  name: 'Dr. Sarah Li Chen',     role: 'Pathology'            },
+  { id: 'u5',  name: 'Dr. James Emeka Okafor',role: 'Pathology'            },
+  { id: 'u6',  name: 'IT Support',            role: 'IT / Administration'  },
+  { id: 'u7',  name: 'Billing Dept',          role: 'Finance'              },
+  { id: 'u8',  name: 'Dr. Miller',            role: 'Pathology'            },
+  { id: 'u9',  name: 'Archives',              role: 'Medical Records'      },
+  { id: 'u10', name: 'QA Team',               role: 'Quality Assurance'    },
+  { id: 'u11', name: 'Dr. Aisha Priya Patel', role: 'Gastroenterology'     },
+  { id: 'u12', name: 'Transcription',         role: 'Medical Transcription'},
+  { id: 'u13', name: 'Medical Records',       role: 'Medical Records'      },
+  { id: 'u14', name: 'Dr. Wilson',            role: 'Oncology'             },
+  { id: 'u15', name: 'Compliance',            role: 'Compliance'           },
+  { id: 'u16', name: 'Supply Room',           role: 'Operations'           },
+  { id: 'u17', name: 'Dr. Lee',               role: 'Dermatopathology'     },
+];
+
+const avatarInitials = (name: string) => {
+  const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s*/i, '').split(' ').filter(Boolean);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : parts[0]?.[0]?.toUpperCase() ?? '?';
+>>>>>>> upstream/main
 };
 
 
@@ -107,25 +149,68 @@ interface UserSearchOverlayProps {
   onClose: () => void;
 }
 const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onSelect, onClose }) => {
+<<<<<<< HEAD
   const [q, setQ] = React.useState('');
   const ref = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { ref.current?.focus(); }, []);
+=======
+  const [q,        setQ]        = React.useState('');
+  const [pending,  setPending]  = React.useState<InternalUser[]>([]);
+  const ref = React.useRef<HTMLInputElement>(null);
+  React.useEffect(() => { ref.current?.focus(); }, []);
+
+  const pendingIds = pending.map(u => u.id);
+>>>>>>> upstream/main
   const results = INTERNAL_USERS.filter(u =>
     !alreadyAdded.includes(u.id) &&
     (u.name.toLowerCase().includes(q.toLowerCase()) || u.role.toLowerCase().includes(q.toLowerCase()))
   );
+<<<<<<< HEAD
+=======
+
+  const toggle = (u: InternalUser) => {
+    setPending(prev =>
+      prev.find(p => p.id === u.id) ? prev.filter(p => p.id !== u.id) : [...prev, u]
+    );
+  };
+
+  const handleDone = () => {
+    pending.forEach(u => onSelect(u));
+    onClose();
+  };
+
+>>>>>>> upstream/main
   return (
     <div className="ps-user-search-modal">
       <div className="ps-user-search-header">
         <span className="ps-user-search-title">Find a recipient</span>
         <button className="ps-user-search-close" onClick={onClose}>×</button>
       </div>
+<<<<<<< HEAD
+=======
+
+      {/* Selected chips */}
+      {pending.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, padding:'8px 16px 0' }}>
+          {pending.map(u => (
+            <span key={u.id} style={{ display:'inline-flex', alignItems:'center', gap:5,
+              padding:'3px 10px', borderRadius:999, fontSize:12, fontWeight:600,
+              background:'rgba(8,145,178,0.15)', color:'#38bdf8', border:'1px solid rgba(8,145,178,0.3)' }}>
+              {u.name}
+              <span onClick={() => toggle(u)} style={{ cursor:'pointer', opacity:0.7, fontSize:13 }}>×</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+>>>>>>> upstream/main
       <div className="ps-user-search-input-wrap">
         <div className="ps-user-search-bar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input ref={ref} className="ps-user-search-input" type="text" placeholder="Search by name or department…" value={q} onChange={e => setQ(e.target.value)} />
         </div>
       </div>
+<<<<<<< HEAD
       <div className="ps-user-search-results">
         {results.length === 0
           ? <div className="ps-user-search-empty">No users found.</div>
@@ -142,6 +227,43 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
       </div>
       <div className="ps-user-search-footer">
         <button className="ps-user-search-cancel" onClick={onClose}>Cancel</button>
+=======
+
+      <div className="ps-user-search-results">
+        {results.length === 0
+          ? <div className="ps-user-search-empty">No users found.</div>
+          : results.map(u => {
+              const sel = pendingIds.includes(u.id);
+              return (
+                <div key={u.id}
+                  className="ps-user-search-item"
+                  onClick={() => toggle(u)}
+                  style={{ background: sel ? 'rgba(8,145,178,0.08)' : undefined }}>
+                  <div className="ps-user-search-avatar" style={{ background: sel ? 'rgba(8,145,178,0.3)' : undefined }}>
+                    {sel ? '✓' : avatarInitials(u.name)}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div className="ps-user-search-name">{u.name}</div>
+                    <div className="ps-user-search-role">{u.role}</div>
+                  </div>
+                  {sel && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+              );
+            })
+        }
+      </div>
+
+      <div className="ps-user-search-footer" style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+        <button className="ps-user-search-cancel" onClick={onClose}>Cancel</button>
+        <button
+          onClick={handleDone}
+          disabled={pending.length === 0}
+          style={{ padding:'8px 20px', borderRadius:8, border:'none', fontSize:13, fontWeight:700, cursor: pending.length > 0 ? 'pointer' : 'default',
+            background: pending.length > 0 ? '#0891b2' : 'rgba(255,255,255,0.05)',
+            color: pending.length > 0 ? '#fff' : '#475569', transition:'all 0.15s' }}>
+          Add {pending.length > 0 ? `${pending.length} recipient${pending.length > 1 ? 's' : ''}` : 'recipients'}
+        </button>
+>>>>>>> upstream/main
       </div>
     </div>
   );
@@ -191,7 +313,11 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
   React.useEffect(() => {
     onToDropdownOpenChange(suggestions.length > 0 && toInput.trim().length > 0);
     onToHighlightIdxChange(0);
+<<<<<<< HEAD
   }, [suggestions.length, toInput]);
+=======
+  }, [suggestions.length, toInput, onToDropdownOpenChange, onToHighlightIdxChange]);
+>>>>>>> upstream/main
 
   const addRecipient = (u: InternalUser) => {
     onRecipientsChange(prev => [...prev, u]);
@@ -328,6 +454,7 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
   onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail,
 }) => (
   <div className="ps-msg-sidebar">
+<<<<<<< HEAD
     <div className="ps-msg-list" style={{ flex: 1, overflowY: 'auto' }}>
       {loading ? (
         <div style={{ padding: '40px 20px', textAlign: 'center', color: '#6b8099', fontSize: 14 }}>Loading…</div>
@@ -354,10 +481,39 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             {/* Checkbox in edit mode */}
             {isEditing && (
               <div style={{ width: 18, height: 18, borderRadius: 4, border: isChecked ? 'none' : '1.5px solid #6b8099', background: isChecked ? '#0891B2' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+=======
+    <div className="ps-msg-list" tabIndex={0} role="region" aria-label="Message list">
+      {loading ? (
+        <div className="ps-msg-list-status">Loading…</div>
+      ) : messages.length === 0 ? (
+        <div className="ps-msg-list-status">
+          {filterType === 'deleted' ? 'No deleted messages.' : 'Your inbox is empty.'}
+        </div>
+      ) : messages.map(m => {
+        const isChecked  = selectedIds.includes(m.id);
+        const isSelected = selectedMsgId === m.id;
+        const rowClass = [
+          'ps-msg-row',
+          isSelected && 'selected',
+          !m.isRead && 'unread',
+          !isSelected && m.isUrgent && 'urgent-row',
+        ].filter(Boolean).join(' ');
+        return (
+          <div key={m.id}
+            className={rowClass}
+            onMouseEnter={() => onHover(m.id)}
+            onMouseLeave={() => onHover(null)}
+            onClick={() => isEditing ? onToggleCheck(m.id) : onSelect(m.id)}
+          >
+            {/* Checkbox in edit mode */}
+            {isEditing && (
+              <div className={`ps-msg-row-checkbox${isChecked ? ' checked' : ''}`}>
+>>>>>>> upstream/main
                 {isChecked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5"><polyline points="2,6 5,9 10,3"/></svg>}
               </div>
             )}
             {/* Avatar */}
+<<<<<<< HEAD
             <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#162036', border: `1px solid ${m.isUrgent ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.07)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: m.isUrgent ? '#EF4444' : '#0891B2', flexShrink: 0 }}>
               {avatarInitials(m.senderName)}
             </div>
@@ -365,32 +521,63 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3, gap: 6 }}>
                 <span style={{ fontWeight: m.isRead ? 500 : 700, color: m.isUrgent ? (m.isRead ? '#7f3530' : '#EF4444') : m.isRead ? '#5a7299' : '#e8f0fc', fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+=======
+            <div className={`ps-msg-avatar${m.isUrgent ? ' urgent-avatar' : ''}`}>
+              {avatarInitials(m.senderName)}
+            </div>
+            {/* Body */}
+            <div className="ps-msg-row-body">
+              <div className="ps-msg-row-top">
+                <span className="ps-msg-row-sender">
+>>>>>>> upstream/main
                   {m.senderName}
                 </span>
                 {!isEditing && (
                   hoveredMsgId === m.id ? (
                     filterType === 'deleted' ? (
+<<<<<<< HEAD
                       <div style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
                         <button onClick={e => { e.stopPropagation(); onRestore(m.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0891B2', fontSize: 11, fontWeight: 600, padding: 0 }}>Restore</button>
                         <button onClick={e => { e.stopPropagation(); onPermanentDelete(m.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontSize: 11, fontWeight: 600, padding: 0 }}>Delete</button>
                       </div>
                     ) : (
                       <button onClick={e => { e.stopPropagation(); onSoftDelete(m.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: 0 }}>
+=======
+                      <div className="ps-msg-row-hover-actions" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); onRestore(m.id); }} className="ps-msg-row-restore-btn">Restore</button>
+                        <button onClick={e => { e.stopPropagation(); onPermanentDelete(m.id); }} className="ps-msg-row-delete-link">Delete</button>
+                      </div>
+                    ) : (
+                      <button onClick={e => { e.stopPropagation(); onSoftDelete(m.id); }} className="ps-msg-row-delete-icon-btn">
+>>>>>>> upstream/main
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                       </button>
                     )
                   ) : (
+<<<<<<< HEAD
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       {m.isUrgent && <span style={{ fontSize: 9, fontWeight: 800, color: '#EF4444', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 4, padding: '1px 5px', textTransform: 'uppercase' as const, letterSpacing: '0.4px' }}>Urgent</span>}
                       <span style={{ fontSize: 11, color: '#7a95b0', flexShrink: 0 }}>{relTime(m.timestamp)}</span>
+=======
+                    <div className="ps-msg-row-meta">
+                      {m.isUrgent && <span className="ps-msg-urgent-pill">Urgent</span>}
+                      <span className="ps-msg-row-time">{relTime(m.timestamp)}</span>
+>>>>>>> upstream/main
                     </div>
                   )
                 )}
               </div>
+<<<<<<< HEAD
               <div style={{ fontSize: 12, color: '#7a95b0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', marginBottom: 1 }}>{m.subject}</div>
               <div style={{ fontSize: 11.5, color: '#8090a8', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{m.body}</div>
             </div>
             {!m.isRead && !isEditing && <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />}
+=======
+              <div className="ps-msg-row-subject">{m.subject}</div>
+              <div className="ps-msg-row-preview">{m.body}</div>
+            </div>
+            {!m.isRead && !isEditing && <div className="ps-msg-unread-dot" />}
+>>>>>>> upstream/main
           </div>
         );
       })}
@@ -399,6 +586,7 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
     {/* Footer */}
     <div className="ps-msg-sidebar-footer">
       {isEditing ? (
+<<<<<<< HEAD
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={onBulkMarkRead} style={{ background: 'none', border: 'none', color: '#0891B2', cursor: 'pointer', fontSize: 14, padding: 0 }}>Read All</button>
           <button onClick={onBulkDelete} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 14, fontWeight: 600, padding: 0 }}>Delete</button>
@@ -431,6 +619,29 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             style={{ background: 'none', border: '1px solid rgba(100,130,160,0.3)', cursor: 'pointer', color: '#7a95b0', display: 'flex', alignItems: 'center', padding: '4px 7px', borderRadius: 6, gap: 4, transition: 'all 0.15s', fontSize: 10, fontWeight: 700 }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#38bdf8'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(56,189,248,0.3)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#8aaccc'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(80,110,140,0.35)'; }}>
+=======
+        <div className="ps-msg-footer-edit-row">
+          <button onClick={onBulkMarkRead} className="ps-msg-footer-readall-btn">Read All</button>
+          <button onClick={onBulkDelete} className="ps-msg-footer-deleteall-btn">Delete</button>
+        </div>
+      ) : filterType === 'deleted' ? (
+        <div className="ps-msg-footer-empty-row">
+          <button onClick={onEmptyDeleted} disabled={messages.length === 0} className="ps-msg-footer-deleteall-btn ps-msg-footer-deleteall-btn--centered">Delete All</button>
+        </div>
+      ) : (
+        <div className="ps-msg-footer-normal-row">
+          {/* Search */}
+          <div className="ps-msg-search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8aaccc" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input placeholder="Search" value={searchText} onChange={e => onSearchChange(e.target.value)} />
+          </div>
+          {/* Compose */}
+          <button onClick={onCompose} disabled={isComposing} title="New internal message" className="ps-msg-compose-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          {/* Secure email */}
+          <button onClick={onSecureEmail} title="Send secure external email" className="ps-msg-footer-secure-btn">
+>>>>>>> upstream/main
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </button>
@@ -449,9 +660,25 @@ interface ThreadPanelProps {
   onSend: () => void;
   onSoftDelete: () => void;
   onMarkUnread: () => void;
+<<<<<<< HEAD
 }
 
 const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, onInputChange, onSend, onSoftDelete, onMarkUnread }) => {
+=======
+  onCreateTemplate?: (messageId: string) => void;
+}
+
+const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, onInputChange, onSend, onSoftDelete, onMarkUnread, onCreateTemplate }) => {
+  // Detect template requests — body contains embedded metadata marker
+  const isTemplateRequest = typeof message.body === 'string' && message.body.includes('<!-- TEMPLATE_REQUEST_META:');
+  const templateMeta = React.useMemo(() => {
+    if (!isTemplateRequest) return null;
+    try {
+      const match = message.body.match(/<!-- TEMPLATE_REQUEST_META:(.*?) -->/s);
+      return match ? JSON.parse(match[1]) : null;
+    } catch { return null; }
+  }, [message.body, isTemplateRequest]);
+>>>>>>> upstream/main
   const [menuOpen, setMenuOpen] = React.useState(false);
   const bubbleEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -480,6 +707,45 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, o
         })}
         <div ref={bubbleEndRef} />
 
+<<<<<<< HEAD
+=======
+        {/* ── Template Request Action Banner ── */}
+        {isTemplateRequest && templateMeta && (
+          <div style={{
+            margin: '0 0 16px', padding: '12px 16px', borderRadius: 10,
+            background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.25)',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <span style={{ fontSize: 18 }}>📋</span>
+            <div style={{ flex: 1, fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+              <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: 2 }}>
+                Synoptic Template Request
+              </strong>
+              {templateMeta.standard} {templateMeta.organ} — {templateMeta.procedure}
+              {templateMeta.baseTemplateName && (
+                <span style={{ color: '#38bdf8' }}> · Base: {templateMeta.baseTemplateName}</span>
+              )}
+            </div>
+            {onCreateTemplate && (
+              <button
+                onClick={() => onCreateTemplate(message.id)}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', border: '1.5px solid rgba(8,145,178,0.5)',
+                  background: 'rgba(8,145,178,0.15)', color: '#38bdf8',
+                  fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap' as const,
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(8,145,178,0.28)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(8,145,178,0.15)')}
+              >
+                ＋ Create Template
+              </button>
+            )}
+          </div>
+        )}
+
+>>>>>>> upstream/main
         {/* ⋯ menu */}
         <div style={{ position: 'absolute', top: 0, right: 0 }}>
           <button onClick={() => setMenuOpen(v => !v)} style={{ background: 'none', border: 'none', color: '#7a95b0', cursor: 'pointer', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center' }}
@@ -539,10 +805,22 @@ interface SecureEmailModalProps {
   prefillSubject?: string;
   prefillBody?:  string;
   onClose:       () => void;
+<<<<<<< HEAD
 }
 
 const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose,
+=======
+  /** Called once the simulated send completes — lets the caller log
+   *  the event. Previously declared at the call site but never in
+   *  this interface, and never invoked here either, so the intended
+   *  audit log for sent emails never actually fired. */
+  onSent?:       (to: string, subject: string) => void;
+}
+
+const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
+  isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose, onSent,
+>>>>>>> upstream/main
 }) => {
   const [to,      setTo]      = React.useState(prefillTo);
   const [subject, setSubject] = React.useState(prefillSubject);
@@ -554,7 +832,11 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
     if (isOpen) {
       setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose');
     }
+<<<<<<< HEAD
   }, [isOpen]);
+=======
+  }, [isOpen, prefillTo, prefillSubject, prefillBody]);
+>>>>>>> upstream/main
 
   const canSend = to.includes('@') && subject.trim() && body.trim();
 
@@ -564,11 +846,16 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
     // Simulate NHSMail SMTP handshake delay
     await new Promise(r => setTimeout(r, 1800));
     setStatus('sent');
+<<<<<<< HEAD
+=======
+    onSent?.(to, subject);
+>>>>>>> upstream/main
   };
 
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
+<<<<<<< HEAD
     <div
       onClick={onClose}
       style={{ position:'fixed', inset:0, background:'rgba(4,10,18,0.82)', backdropFilter:'blur(6px)', zIndex:20000, display:'flex', alignItems:'center', justifyContent:'center' }}
@@ -577,6 +864,10 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
         onClick={e => e.stopPropagation()}
         style={{ width: 560, background:'#0b1120', border:'1px solid rgba(148,163,184,0.3)', borderRadius:18, boxShadow:'0 24px 60px rgba(0,0,0,0.6)', display:'flex', flexDirection:'column', overflow:'hidden' }}
       >
+=======
+    <div className="ps-overlay" onClick={onClose}>
+      <div className="ps-modal-dark" style={{ width: 560, padding: 0 }} onClick={e => e.stopPropagation()}>
+>>>>>>> upstream/main
         {/* Header */}
         <div style={{ padding:'18px 24px 14px', borderBottom:'1px solid rgba(51,65,85,0.9)', background:'radial-gradient(circle at top left, rgba(56,189,248,0.08), transparent 55%), #0b1120', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div>
@@ -687,6 +978,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   );
 };
 
+<<<<<<< HEAD
 const AppShell: React.FC = () => {
   const navigate = useNavigate();
 
@@ -698,6 +990,30 @@ const AppShell: React.FC = () => {
   const { requestNavigate, pendingPath, confirmNavigate, cancelNavigate } = useDirtyState();
 
   const guardedNavigate = React.useCallback((path: string) => {
+=======
+interface AppShellProps { hideNav?: boolean; }
+
+const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
+  const navigate = useNavigate();
+
+  const { user } = useAuth();
+  const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
+  const handleLogout = useLogout();
+  const location = useLocation();
+  const { crumbs, pushCrumb } = useBreadcrumb();
+  const { requestNavigate } = useDirtyState();
+
+  const guardedNavigate = React.useCallback((path: string) => {
+    // Tell SearchPage to restore its previous results/filters when
+    // navigating back to it — mirrors the exact same one-line pattern
+    // SynopticReportPage.tsx's own guard() function already uses for its
+    // internal "back to search" actions. Without this, only those
+    // specific in-page actions set the flag; breadcrumb clicks, nav-bar
+    // buttons, and the logo (which all route through this one shared
+    // guardedNavigate) bypassed it entirely, silently dropping the
+    // search session every time.
+    if (path === '/search') sessionStorage.setItem('pathscribe:searchReturn', '1');
+>>>>>>> upstream/main
     requestNavigate(path, (p) => navigate(p));
   }, [navigate, requestNavigate]);
   const PAGE_LABELS: Record<string, string> = {
@@ -707,6 +1023,10 @@ const AppShell: React.FC = () => {
     '/audit':         'Audit Log',
     '/configuration': 'Configuration',
     '/contribution':  'Contributions',
+<<<<<<< HEAD
+=======
+    '/intraop-queue': 'Intraop Queue',
+>>>>>>> upstream/main
   };
   React.useEffect(() => {
     const label = PAGE_LABELS[location.pathname];
@@ -723,6 +1043,10 @@ const AppShell: React.FC = () => {
 
 // ─── Drawers & Modals ──────────────────────────────────────────────────────
   const [aboutOpen, setAboutOpen]             = useState(false);
+<<<<<<< HEAD
+=======
+  const [systemInfoOpen, setSystemInfoOpen]   = useState(false);
+>>>>>>> upstream/main
   const [newRecipients, setNewRecipients]     = useState<InternalUser[]>([]);
   const [newToInput,    setNewToInput]        = useState('');
   const [newSubject,    setNewSubject]        = useState('');
@@ -730,7 +1054,11 @@ const AppShell: React.FC = () => {
   const [showUserSearch,   setShowUserSearch]   = useState(false);
   const [toDropdownOpen,   setToDropdownOpen]   = useState(false);
   const [toHighlightIdx,   setToHighlightIdx]   = useState(0);
+<<<<<<< HEAD
   const [secureEmailToast, setSecureEmailToast] = useState<string | null>(null);
+=======
+  const [secureEmailToast, _setSecureEmailToast] = useState<string | null>(null);
+>>>>>>> upstream/main
   const [secureEmailOpen,  setSecureEmailOpen]  = useState(false);
   const toInputRef = useRef<HTMLInputElement>(null);
 
@@ -752,6 +1080,10 @@ const AppShell: React.FC = () => {
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
   const userId = user?.id ?? 'u1';
+<<<<<<< HEAD
+=======
+  const { log } = useAuditLog();
+>>>>>>> upstream/main
 
   // ─── Load inbox ─────────────────────────────────────────────────────────────
   const loadInbox = useCallback(async () => {
@@ -799,16 +1131,45 @@ const AppShell: React.FC = () => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, isDeleted: false } : m));
   };
 
+<<<<<<< HEAD
   const handlePermanentDelete = async (id: string) => {
     if (!window.confirm('Permanently delete this message? This cannot be undone.')) return;
+=======
+  // Real fix: was window.confirm() in all 4 places below — replaced with
+  // the shared ConfirmModal. Each needs its own pending-state variable
+  // since ConfirmModal is async/UI-driven rather than a blocking call;
+  // rendered as 4 separate ConfirmModal instances at the end of this
+  // component, since each has a different message and trigger.
+  const [pendingPermanentDeleteId, setPendingPermanentDeleteId] = useState<string | null>(null);
+
+  const handlePermanentDelete = (id: string) => {
+    setPendingPermanentDeleteId(id);
+  };
+
+  const confirmPermanentDelete = async () => {
+    if (!pendingPermanentDeleteId) return;
+    const id = pendingPermanentDeleteId;
+    setPendingPermanentDeleteId(null);
+>>>>>>> upstream/main
     await messageService.permanentDelete(id);
     setMessages(prev => prev.filter(m => m.id !== id));
     if (selectedMsgId === id) setSelectedMsgId(null);
   };
 
+<<<<<<< HEAD
   const handleEmptyDeleted = async () => {
     const count = messages.filter(m => m.isDeleted).length;
     if (!window.confirm(`Permanently delete all ${count} messages? This cannot be undone.`)) return;
+=======
+  const [pendingEmptyDeletedCount, setPendingEmptyDeletedCount] = useState<number | null>(null);
+
+  const handleEmptyDeleted = () => {
+    setPendingEmptyDeletedCount(messages.filter(m => m.isDeleted).length);
+  };
+
+  const confirmEmptyDeleted = async () => {
+    setPendingEmptyDeletedCount(null);
+>>>>>>> upstream/main
     await messageService.emptyDeleted(userId);
     setMessages(prev => prev.filter(m => !m.isDeleted));
     setSelectedMsgId(null);
@@ -819,6 +1180,11 @@ const AppShell: React.FC = () => {
     const result = await messageService.reply(selectedMsgId, userId, user?.name ?? 'Dr. Sarah Johnson', inputText);
     if (result.ok) {
       setMessages(prev => prev.map(m => m.id === selectedMsgId ? result.data : m));
+<<<<<<< HEAD
+=======
+      const msg = messages.find(m => m.id === selectedMsgId);
+      if (msg) log('message_sent', { recipientId: msg.senderId ?? '', recipientName: msg.senderName ?? '', isUrgent: false });
+>>>>>>> upstream/main
     }
     setInputText('');
     setIsDirty(false);
@@ -837,7 +1203,14 @@ const AppShell: React.FC = () => {
         timestamp:     new Date(),
         isUrgent:      isUrgentNew,
       });
+<<<<<<< HEAD
       if (result.ok) setMessages(prev => [result.data, ...prev]);
+=======
+      if (result.ok) {
+        setMessages(prev => [result.data, ...prev]);
+        log('message_sent', { recipientId: recipient.id, recipientName: recipient.name, isUrgent: isUrgentNew });
+      }
+>>>>>>> upstream/main
     }
     setNewRecipients([]); setNewToInput(''); setNewSubject(''); setNewBody('');
     setIsUrgentNew(false); setIsDirty(false); setIsComposing(false);
@@ -847,6 +1220,7 @@ const AppShell: React.FC = () => {
     setSecureEmailOpen(true);
   };
 
+<<<<<<< HEAD
   const handleBulkDelete = async () => {
     if (filterType === 'deleted') {
       if (!window.confirm(`Permanently delete ${selectedIds.length} message(s)? This cannot be undone.`)) return;
@@ -856,6 +1230,25 @@ const AppShell: React.FC = () => {
       await Promise.all(selectedIds.map(id => messageService.softDelete(id)));
       setMessages(prev => prev.map(m => selectedIds.includes(m.id) ? { ...m, isDeleted: true } : m));
     }
+=======
+  const [pendingBulkDeleteCount, setPendingBulkDeleteCount] = useState<number | null>(null);
+
+  const handleBulkDelete = async () => {
+    if (filterType === 'deleted') {
+      setPendingBulkDeleteCount(selectedIds.length);
+      return;
+    }
+    await Promise.all(selectedIds.map(id => messageService.softDelete(id)));
+    setMessages(prev => prev.map(m => selectedIds.includes(m.id) ? { ...m, isDeleted: true } : m));
+    setSelectedIds([]);
+    setIsEditing(false);
+  };
+
+  const confirmBulkDelete = async () => {
+    setPendingBulkDeleteCount(null);
+    await Promise.all(selectedIds.map(id => messageService.permanentDelete(id)));
+    setMessages(prev => prev.filter(m => !selectedIds.includes(m.id)));
+>>>>>>> upstream/main
     setSelectedIds([]);
     setIsEditing(false);
   };
@@ -882,6 +1275,7 @@ const AppShell: React.FC = () => {
     setToDropdownOpen(false); setShowUserSearch(false);
   };
 
+<<<<<<< HEAD
   const handleCloseDrawer = () => {
     if (isDirty && window.confirm('You have an unsent message. Are you sure you want to close?')) {
       setPortalOpen(false);
@@ -892,6 +1286,25 @@ const AppShell: React.FC = () => {
       sessionStorage.removeItem('ps_drawer_open');
       resetDrawerState();
     }
+=======
+  const [pendingCloseDrawer, setPendingCloseDrawer] = useState(false);
+
+  const handleCloseDrawer = () => {
+    if (isDirty) {
+      setPendingCloseDrawer(true);
+      return;
+    }
+    setPortalOpen(false);
+    sessionStorage.removeItem('ps_drawer_open');
+    resetDrawerState();
+  };
+
+  const confirmCloseDrawer = () => {
+    setPendingCloseDrawer(false);
+    setPortalOpen(false);
+    sessionStorage.removeItem('ps_drawer_open');
+    resetDrawerState();
+>>>>>>> upstream/main
   };
 
   // ─── Voice command listeners ───────────────────────────────────────────────
@@ -901,6 +1314,10 @@ const AppShell: React.FC = () => {
     const openHome               = () => guardedNavigate('/');
     const openMessages           = () => setPortalOpen(true);
     const openWorklist           = () => guardedNavigate('/worklist');
+<<<<<<< HEAD
+=======
+    const openIntraopQueue       = () => guardedNavigate('/intraop-queue');
+>>>>>>> upstream/main
     const openConfig             = () => guardedNavigate('/configuration');
     const openSearch             = () => guardedNavigate('/search');
     const openAudit              = () => guardedNavigate('/audit');
@@ -991,6 +1408,10 @@ const AppShell: React.FC = () => {
     window.addEventListener('PATHSCRIBE_OPEN_HOME',               openHome);
     window.addEventListener('PATHSCRIBE_OPEN_MESSAGES',           openMessages);
     window.addEventListener('PATHSCRIBE_OPEN_WORKLIST',           openWorklist);
+<<<<<<< HEAD
+=======
+    window.addEventListener('PATHSCRIBE_OPEN_INTRAOP_QUEUE',      openIntraopQueue);
+>>>>>>> upstream/main
     window.addEventListener('PATHSCRIBE_OPEN_CONFIGURATION',      openConfig);
     window.addEventListener('PATHSCRIBE_OPEN_SEARCH',             openSearch);
     window.addEventListener('PATHSCRIBE_OPEN_AUDIT',              openAudit);
@@ -1033,6 +1454,10 @@ const AppShell: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_OPEN_HOME',               openHome);
       window.removeEventListener('PATHSCRIBE_OPEN_MESSAGES',           openMessages);
       window.removeEventListener('PATHSCRIBE_OPEN_WORKLIST',           openWorklist);
+<<<<<<< HEAD
+=======
+      window.removeEventListener('PATHSCRIBE_OPEN_INTRAOP_QUEUE',      openIntraopQueue);
+>>>>>>> upstream/main
       window.removeEventListener('PATHSCRIBE_OPEN_CONFIGURATION',      openConfig);
       window.removeEventListener('PATHSCRIBE_OPEN_SEARCH',             openSearch);
       window.removeEventListener('PATHSCRIBE_OPEN_AUDIT',              openAudit);
@@ -1071,6 +1496,10 @@ const AppShell: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_MSG_URGENT',              msgUrgent);
       window.removeEventListener('PATHSCRIBE_MSG_RECIPIENT_SEARCH',    msgRecipientSearch);
     };
+<<<<<<< HEAD
+=======
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real, honest justification: guardedNavigate and setMessages are genuinely called inside this effect's handlers. This effect's EXISTING deps (handleMarkRead, handleSoftDelete, handleRestore, handlePermanentDelete, handleEmptyDeleted, handleSend, handleSendNew, handleBulkDelete, handleBulkMarkRead, handleCloseDrawer) are themselves already unstable, unmemoized functions - a real, pre-existing condition confirmed directly, not something this fix introduces. Fully resolving this needs wrapping all 10 in useCallback, a significant, separate refactor deserving its own careful pass, not something to rush into this lint sweep.
+>>>>>>> upstream/main
   }, [
     navigate, setPortalOpen, displayMessages, selectedMsgId,
     filterType, isComposing, isEditing,
@@ -1080,6 +1509,7 @@ const AppShell: React.FC = () => {
   ]);
 
  return (
+<<<<<<< HEAD
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', color: '#f1f5f9', background: '#020617', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       
      {/* ── NAVBAR ── */}
@@ -1093,23 +1523,51 @@ const AppShell: React.FC = () => {
       {/* Breadcrumb bar — dynamic */}
       {crumbs.length > 1 && (
         <div style={{ flexShrink: 0, padding: '5px 24px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+=======
+    <div className="ps-app-root" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', color: '#f1f5f9', background: '#020617', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      
+      {/* ── NAVBAR ── */}
+      {!hideNav && (
+        <NavBar
+          onLogoClick={() => guardedNavigate('/')}
+          onLogout={handleLogout}
+          onProfileClick={() => setAboutOpen(true)}
+        />
+      )}
+
+      {/* Breadcrumb bar — dynamic */}
+      {!hideNav && crumbs.length > 1 && (
+        <div className="ps-crumb-bar">
+>>>>>>> upstream/main
           {crumbs.map((crumb, i) => {
             const isLast = i === crumbs.length - 1;
             const isModal = crumb.path.includes('#');
             return (
               <React.Fragment key={crumb.path + i}>
+<<<<<<< HEAD
                 {i > 0 && <span style={{ color: '#334155', fontSize: '11px' }}>{'›'}</span>}
                 {isModal ? (
                   <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 400 }}>{crumb.label}</span>
                 ) : isLast ? (
                   <span style={{ color: '#0891B2', fontSize: '12px', fontWeight: 600 }}>{crumb.label}</span>
+=======
+                {i > 0 && <span className="ps-crumb-sep">{'›'}</span>}
+                {isModal ? (
+                  <span className="ps-crumb-modal">{crumb.label}</span>
+                ) : isLast ? (
+                  <span className="ps-crumb-current">{crumb.label}</span>
+>>>>>>> upstream/main
                 ) : (
                   <button
                     type="button"
                     onClick={() => guardedNavigate(crumb.path)}
+<<<<<<< HEAD
                     style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: 500 }}
                     onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8'}
                     onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = '#64748b'}
+=======
+                    className="ps-crumb-link"
+>>>>>>> upstream/main
                   >
                     {crumb.label}
                   </button>
@@ -1119,6 +1577,7 @@ const AppShell: React.FC = () => {
           })}
         </div>
       )}
+<<<<<<< HEAD
       {/* Outlet — flex:1 so it fills remaining height exactly */}
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Outlet />
@@ -1131,13 +1590,32 @@ const AppShell: React.FC = () => {
 
           {/* ── Unified messaging surface ── */}
           <div className="ps-msg-drawer" style={{ width: '850px', zIndex: 20000 }} onClick={e => e.stopPropagation()}>
+=======
+      {/* Outlet — flex:1 so it fills remaining height and full width exactly */}
+      <div style={{ flex: 1, minHeight: 0, overflow: hideNav ? 'visible' : 'hidden', width: '100%', isolation: 'isolate' }}>
+        <Outlet />
+      </div>
+
+      {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
+      {portalOpen && ReactDOM.createPortal(
+        <>
+          <div className="ps-drawer-backdrop" onClick={handleCloseDrawer} />
+
+          {/* ── Unified messaging surface ── */}
+          <div className={`ps-msg-drawer${(selectedMsgId || isComposing) ? ' ps-msg-drawer--detail-active' : ''}`} onClick={e => e.stopPropagation()}>
+>>>>>>> upstream/main
 
             {/* ── Unified top bar ── */}
             <div className="ps-msg-topbar">
 
               {/* Left segment: title + controls */}
+<<<<<<< HEAD
               <div style={{ width: '320px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+=======
+              <div className="ps-msg-topbar-left">
+                <div className="ps-msg-title-row">
+>>>>>>> upstream/main
                   <h2 className="ps-msg-title">
                     {filterType === 'deleted' ? 'Recently Deleted' : 'Messages'}
                   </h2>
@@ -1145,6 +1623,7 @@ const AppShell: React.FC = () => {
                     <span className={`ps-unread-bubble${hasUrgent ? " ps-unread-urgent" : ""}`}>{unreadCount}</span>
                   )}
                 </div>
+<<<<<<< HEAD
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <button onClick={() => { setIsEditing(!isEditing); if (isEditing) setSelectedIds([]); }}
                     style={{ color: '#0A84FF', background: 'none', border: 'none', fontSize: '14px', cursor: 'pointer', fontWeight: 600, padding: '4px 8px', borderRadius: '6px' }}
@@ -1157,12 +1636,21 @@ const AppShell: React.FC = () => {
                       onMouseEnter={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = 'none'; }}
                     >
+=======
+                <div className="ps-msg-header-actions">
+                  <button className="ps-msg-edit-btn" onClick={() => { setIsEditing(!isEditing); if (isEditing) setSelectedIds([]); }}>
+                    {isEditing ? 'Done' : 'Edit'}
+                  </button>
+                  <div className="ps-msg-filter-wrap">
+                    <button className="ps-msg-filter-btn" onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} aria-label="Filter messages" title="Filter messages">
+>>>>>>> upstream/main
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="21" y1="7" x2="3" y2="7" /><line x1="18" y1="12" x2="6" y2="12" /><line x1="15" y1="17" x2="9" y2="17" />
                       </svg>
                     </button>
                     {isFilterMenuOpen && (
                       <>
+<<<<<<< HEAD
                         <div onClick={() => setIsFilterMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
                         <div style={{ position: 'absolute', top: '35px', right: 0, width: '190px', background: '#1a1d2a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 1000, padding: '4px' }}>
                           {[{ id: 'all', label: 'Messages' }, { id: 'deleted', label: 'Recently Deleted' }].map((opt) => (
@@ -1173,6 +1661,18 @@ const AppShell: React.FC = () => {
                             >
                               <span>{opt.label}</span>
                               {filterType === opt.id && <span style={{ color: '#0891B2' }}>✓</span>}
+=======
+                        <div className="ps-msg-filter-backdrop" onClick={() => setIsFilterMenuOpen(false)} />
+                        <div className="ps-msg-filter-menu">
+                          {[{ id: 'all', label: 'Messages' }, { id: 'deleted', label: 'Recently Deleted' }].map((opt) => (
+                            <div
+                              key={opt.id}
+                              className={`ps-msg-filter-item${filterType === opt.id ? ' ps-msg-filter-item--active' : ''}`}
+                              onClick={() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); }}
+                            >
+                              <span>{opt.label}</span>
+                              {filterType === opt.id && <span className="ps-msg-filter-check">✓</span>}
+>>>>>>> upstream/main
                             </div>
                           ))}
                         </div>
@@ -1184,6 +1684,7 @@ const AppShell: React.FC = () => {
 
               {/* Right segment: thread context, compose title, or close button */}
               <div className="ps-msg-topbar-right">
+<<<<<<< HEAD
                 {selectedMsgId && currentMsg ? (
                   <>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -1203,10 +1704,37 @@ const AppShell: React.FC = () => {
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.15)'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(8,145,178,0.08)'; }}
                           >
+=======
+                <button
+                  type="button"
+                  className="ps-msg-mobile-back"
+                  onClick={() => { setSelectedMsgId(null); setIsComposing(false); }}
+                  aria-label="Back to message list"
+                  title="Back to message list"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                {selectedMsgId && currentMsg ? (
+                  <>
+                    <div className="ps-msg-thread-header">
+                      <div className="ps-msg-thread-name-row">
+                        <span className="ps-msg-thread-name">{currentMsg.senderName}</span>
+                        {currentMsg.isUrgent && (
+                          <span className="ps-msg-urgent-badge">Urgent</span>
+                        )}
+                      </div>
+                      <div className="ps-msg-thread-meta-row">
+                        {currentMsg.subject && (
+                          <span className="ps-msg-thread-subject">{currentMsg.subject}</span>
+                        )}
+                        {currentMsg.caseNumber && (
+                          <button className="ps-msg-case-link" onClick={() => { setPortalOpen(false); sessionStorage.setItem('ps_reopen_messages', '1'); navigate(`/case/${currentMsg.caseNumber}/synoptic`); }}>
+>>>>>>> upstream/main
                             Case {currentMsg.caseNumber}
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                           </button>
                         )}
+<<<<<<< HEAD
                       </div>
                     </div>
                     <button onClick={handleCloseDrawer}
@@ -1214,26 +1742,62 @@ const AppShell: React.FC = () => {
                       onMouseEnter={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = '#5a7299'; e.currentTarget.style.background = 'none'; }}
                     >
+=======
+                        {(currentMsg as any).configLink && (
+                          <button
+                            className="ps-msg-config-link"
+                            title="Open configuration page"
+                            onClick={() => {
+                              const link = (currentMsg as any).configLink as string;
+                              setPortalOpen(false);
+                              navigate(link);
+                              // If the link targets a system section, fire the nav event after a tick
+                              const params = new URLSearchParams(link.split('?')[1] ?? '');
+                              const section = params.get('section');
+                              if (section) {
+                                setTimeout(() => {
+                                  window.dispatchEvent(new CustomEvent('PATHSCRIBE_SYSTEM_NAVIGATE', { detail: { section } }));
+                                }, 150);
+                              }
+                            }}
+                          >
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            Open Configuration
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <button className="ps-msg-close-btn ps-msg-close-btn--thread" onClick={handleCloseDrawer} aria-label="Close" title="Close">
+>>>>>>> upstream/main
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </>
                 ) : isComposing ? (
                   <>
+<<<<<<< HEAD
                     <span style={{ fontSize: '15px', fontWeight: 600, color: '#0891B2' }}>New Message</span>
                     <button onClick={handleCloseDrawer}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a7299', display: 'flex', alignItems: 'center', width: '32px', height: '32px', borderRadius: '50%', justifyContent: 'center', transition: 'all 0.15s' }}
                       onMouseEnter={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = '#5a7299'; e.currentTarget.style.background = 'none'; }}
                     >
+=======
+                    <span className="ps-msg-compose-title">New Message</span>
+                    <button className="ps-msg-close-btn" onClick={handleCloseDrawer} aria-label="Close" title="Close">
+>>>>>>> upstream/main
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </>
                 ) : (
+<<<<<<< HEAD
                   <button onClick={handleCloseDrawer}
                     style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#5a7299', display: 'flex', alignItems: 'center', width: '32px', height: '32px', borderRadius: '50%', justifyContent: 'center', transition: 'all 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
                     onMouseLeave={e => { e.currentTarget.style.color = '#5a7299'; e.currentTarget.style.background = 'none'; }}
                   >
+=======
+                  <button className="ps-msg-close-btn ps-msg-close-btn--empty" onClick={handleCloseDrawer} aria-label="Close" title="Close">
+>>>>>>> upstream/main
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 )}
@@ -1269,7 +1833,11 @@ const AppShell: React.FC = () => {
               />
 
               {/* RIGHT CONTENT */}
+<<<<<<< HEAD
               <div className="ps-msg-content" style={{ pointerEvents: 'all' }}>
+=======
+              <div className="ps-msg-content">
+>>>>>>> upstream/main
                 {isComposing ? (
                   <ComposePanel
                     recipients={newRecipients}
@@ -1302,6 +1870,7 @@ const AppShell: React.FC = () => {
                     onSend={handleSend}
                     onSoftDelete={() => handleSoftDelete(selectedMsgId)}
                     onMarkUnread={() => setMessages(prev => prev.map(m => m.id === selectedMsgId ? { ...m, isRead: false } : m))}
+<<<<<<< HEAD
                   />
                 ) : (
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#8aaccc' }}>
@@ -1309,17 +1878,39 @@ const AppShell: React.FC = () => {
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     <p style={{ fontSize: '13px', margin: 0 }}>Select a message to read</p>
+=======
+                    onCreateTemplate={(msgId) => {
+                      setPortalOpen(false);
+                      navigate(`/template-editor/new?from=request&requestId=${msgId}`);
+                    }}
+                  />
+                ) : (
+                  <div className="ps-msg-empty-state">
+                    <svg className="ps-msg-empty-icon" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <p className="ps-msg-empty-text">Select a message to read</p>
+>>>>>>> upstream/main
                   </div>
                 )}
               </div>
 
             </div>
           </div>
+<<<<<<< HEAD
         </>
       )}
 {/* Secure email toast — kept for voice trigger fallback */}
       {secureEmailToast && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#0f1d2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#d0daea', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 5000, whiteSpace: 'nowrap' }}>
+=======
+        </>,
+        document.body
+      )}
+{/* Secure email toast — kept for voice trigger fallback */}
+      {secureEmailToast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#0f1d2e', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#d0daea', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 10000, whiteSpace: 'nowrap' }}>
+>>>>>>> upstream/main
           <span style={{ color: '#38bdf8', fontSize: 16 }}>🔒</span>
           {secureEmailToast}
         </div>
@@ -1327,6 +1918,10 @@ const AppShell: React.FC = () => {
 
       {/* Secure Email Modal */}
       <SecureEmailModal
+<<<<<<< HEAD
+=======
+        onSent={(to, subject) => log('secure_email_sent', { recipientEmail: to, subject })}
+>>>>>>> upstream/main
         isOpen={secureEmailOpen}
         fromName={user?.name ?? 'Dr. Paul Carter'}
         fromEmail={user?.id === 'PATH-UK-001' ? 'paul.carter@mft.nhs.uk' : 'pathscribe@hospital.org'}
@@ -1348,6 +1943,7 @@ const AppShell: React.FC = () => {
 
 
       {/* MODALS */}
+<<<<<<< HEAD
 {aboutOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#1C1C1E', width: '380px', borderRadius: '16px', padding: '30px', textAlign: 'center', border: '1px solid #333' }}>
@@ -1369,6 +1965,59 @@ const AppShell: React.FC = () => {
             <button 
               onClick={() => setAboutOpen(false)} 
               style={{ marginTop: '10px', background: '#0891B2', color: '#FFF', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', width: '100%', fontWeight: 600 }}
+=======
+      {systemInfoOpen && <SystemInfoModal onClose={() => setSystemInfoOpen(false)} />}
+
+      {aboutOpen && (
+        <div className="ps-overlay" onClick={() => setAboutOpen(false)}>
+          <div className="ps-modal-dark" style={{ width: 340, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '14px', border: '2px solid #0891B2', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '24px', fontWeight: 800 }}>{userInitials}</div>
+            <h2 style={{ margin: '0 0 4px', color: '#f1f5f9', fontSize: 18 }}>{user?.name || 'Dr. Sarah Johnson'}</h2>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 20 }}>{user?.role ?? 'Pathologist'}</div>
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.07)', margin: '0 -24px', padding: '4px 0' }}>
+              {/* User Guide */}
+              <button
+                onClick={() => { setAboutOpen(false); openUserGuide(); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 24px', color: '#38bdf8', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(56,189,248,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                User Guide
+              </button>
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '0 24px' }} />
+              {/* Admin Guide — all users in demo */}
+              <button
+                onClick={() => { setAboutOpen(false); openAdminGuide(); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 24px', color: '#c084fc', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(139,92,246,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                Admin Guide
+              </button>
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '0 24px' }} />
+              <button
+                onClick={() => { setAboutOpen(false); setSystemInfoOpen(true); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 24px', color: '#38bdf8', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(56,189,248,0.06)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                </svg>
+                System Information
+              </button>
+            </div>
+
+            <button
+              onClick={() => setAboutOpen(false)}
+              className="ps-btn-ghost-teal"
+              style={{ marginTop: 16, width: '100%', justifyContent: 'center' }}
+>>>>>>> upstream/main
             >
               Close
             </button>
@@ -1376,8 +2025,47 @@ const AppShell: React.FC = () => {
         </div>
       )}
 
+<<<<<<< HEAD
+=======
+      <ConfirmModal
+        show={!!pendingPermanentDeleteId}
+        title="Permanently Delete Message"
+        message="Permanently delete this message? This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmPermanentDelete}
+        onCancel={() => setPendingPermanentDeleteId(null)}
+      />
+      <ConfirmModal
+        show={pendingEmptyDeletedCount !== null}
+        title="Empty Deleted Messages"
+        message={`Permanently delete all ${pendingEmptyDeletedCount ?? 0} messages? This cannot be undone.`}
+        confirmLabel="Delete All"
+        onConfirm={confirmEmptyDeleted}
+        onCancel={() => setPendingEmptyDeletedCount(null)}
+      />
+      <ConfirmModal
+        show={pendingBulkDeleteCount !== null}
+        title="Permanently Delete Messages"
+        message={`Permanently delete ${pendingBulkDeleteCount ?? 0} message(s)? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setPendingBulkDeleteCount(null)}
+      />
+      <ConfirmModal
+        show={pendingCloseDrawer}
+        title="Unsent Message"
+        message="You have an unsent message. Are you sure you want to close?"
+        confirmLabel="Close"
+        onConfirm={confirmCloseDrawer}
+        onCancel={() => setPendingCloseDrawer(false)}
+      />
+>>>>>>> upstream/main
     </div>
   );
 };
 
+<<<<<<< HEAD
 export default AppShell;
+=======
+export default AppShell;
+>>>>>>> upstream/main

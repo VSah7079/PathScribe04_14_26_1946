@@ -1,0 +1,2205 @@
+{
+  "id": "breast_surgical_excision",
+  "name": "Generic Template \u2014 Breast Surgical Excision",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "BREAST",
+  "locale": "en-GB",
+  "sections": [
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "specimen_laterality",
+          "label": "Specimen Laterality",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "specimen_laterality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_laterality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "specimen_type",
+          "label": "Type of Specimen",
+          "type": "checkboxes",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "specimen_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_11",
+              "label": "Option 11",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_type_opt_12",
+              "label": "Option 12",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "axillary_procedure",
+          "label": "Field 3",
+          "type": "checkboxes",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "axillary_procedure_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "axillary_procedure_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "axillary_procedure_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "axillary_procedure_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "axillary_procedure_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "axillary_procedure_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "axillary_procedure_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "specimen_weight_g",
+          "label": "Specimen Weight (g)",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "macroscopic_description",
+          "label": "Field 5",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "specimen_radiograph_seen",
+          "label": "Field 6",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "specimen_radiograph_seen_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "specimen_radiograph_seen_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "mammographic_abnormality",
+          "label": "Field 7",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "mammographic_abnormality_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mammographic_abnormality_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mammographic_abnormality_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "core_biopsy_site_seen",
+          "label": "Field 8",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "core_biopsy_site_seen_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "core_biopsy_site_seen_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "histological_calcification",
+          "label": "Field 9",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histological_calcification_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_calcification_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_calcification_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_calcification_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "benign_lesions",
+      "title": "Secondary Findings A",
+      "fields": [
+        {
+          "id": "benign_lesion_type",
+          "label": "Field 1",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "benign_lesion_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "benign_lesion_type_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "epithelial_proliferation",
+          "label": "Field 2",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "epithelial_proliferation_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "epithelial_proliferation_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "epithelial_proliferation_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "epithelial_proliferation_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "epithelial_proliferation_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "malignant_in_situ",
+      "title": "Secondary Findings B",
+      "fields": [
+        {
+          "id": "malignant_in_situ_present",
+          "label": "Field 1",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "malignant_in_situ_present_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "malignant_in_situ_present_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "in_situ_components",
+          "label": "Field 2",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "in_situ_components_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "in_situ_components_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_grade",
+          "label": "Field 3",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_growth_pattern",
+          "label": "Field 4",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_growth_pattern_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_growth_pattern_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_growth_pattern_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_growth_pattern_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_growth_pattern_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_growth_pattern_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_growth_pattern_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_necrosis",
+          "label": "Field 5",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_necrosis_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_necrosis_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_inflammation",
+          "label": "Field 6",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "dcis_inflammation_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "dcis_inflammation_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "dcis_size_mm",
+          "label": "Field 7",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "pagets_disease",
+          "label": "Field 8",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "pagets_disease_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pagets_disease_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "microinvasion",
+          "label": "Field 9",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "microinvasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "microinvasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "lcis_type",
+          "label": "Field 10",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lcis_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lcis_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lcis_type_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "lcis_size_mm",
+          "label": "Field 11",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "invasive_carcinoma",
+      "title": "Primary Finding",
+      "fields": [
+        {
+          "id": "invasive_carcinoma_present",
+          "label": "Field 1",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "invasive_carcinoma_present_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_carcinoma_present_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "tumour_size_mm",
+          "label": "Field 2",
+          "type": "text",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "whole_tumour_size_mm",
+          "label": "Field 3",
+          "type": "text",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "disease_extent",
+          "label": "Field 4",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "disease_extent_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "disease_extent_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "disease_extent_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "invasive_tumour_type_purity",
+          "label": "Field 5",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "invasive_tumour_type_purity_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_tumour_type_purity_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "invasive_tumour_type_components",
+          "label": "Field 6",
+          "type": "checkboxes",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "invasive_tumour_type_components_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_tumour_type_components_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_tumour_type_components_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_tumour_type_components_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_tumour_type_components_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "invasive_tumour_type_components_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "histological_grade",
+          "label": "Field 7",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "histological_grade_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_grade_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_grade_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "histological_grade_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "tubule_formation_score",
+          "label": "Field 8",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "tubule_formation_score_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tubule_formation_score_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tubule_formation_score_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "tubule_formation_score_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "nuclear_pleomorphism_score",
+          "label": "Field 9",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "nuclear_pleomorphism_score_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nuclear_pleomorphism_score_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nuclear_pleomorphism_score_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nuclear_pleomorphism_score_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "mitosis_score",
+          "label": "Field 10",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "mitosis_score_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mitosis_score_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mitosis_score_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mitosis_score_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "lymphovascular_invasion",
+          "label": "Lymphatic/Vascular Involvement",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "lymphovascular_invasion_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphovascular_invasion_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "lymphovascular_invasion_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "lymph_node_stage",
+      "title": "Regional Node Stage",
+      "fields": [
+        {
+          "id": "sentinel_axillary_nodes_present",
+          "label": "Field 1",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "sentinel_axillary_nodes_present_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "sentinel_axillary_nodes_present_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "sentinel_total_present",
+          "label": "Field 2",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "sentinel_total_positive",
+          "label": "Field 3",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "sentinel_total_itcs",
+          "label": "Field 4",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "sentinel_metastasis_size_mm",
+          "label": "Field 5",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "extracapsular_spread",
+          "label": "Field 6",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "extracapsular_spread_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "extracapsular_spread_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "single_node_positive_type",
+          "label": "Field 7",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "single_node_positive_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "single_node_positive_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "other_nodes_present",
+          "label": "Field 8",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "other_nodes_present_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "other_nodes_present_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "other_nodes_site",
+          "label": "Field 9",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "other_nodes_total_present",
+          "label": "Field 10",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "other_nodes_total_positive",
+          "label": "Field 11",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "other_nodes_single_node_type",
+          "label": "Field 12",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "other_nodes_single_node_type_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "other_nodes_single_node_type_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "perinodal_fat_status",
+          "label": "Field 13",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "perinodal_fat_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "perinodal_fat_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "summary_lymph_node_stage",
+          "label": "Field 14",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "summary_lymph_node_stage_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "summary_lymph_node_stage_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "summary_lymph_node_stage_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "post_neoadjuvant_therapy",
+      "title": "Treatment Response",
+      "fields": [
+        {
+          "id": "post_nat_axillary_total_present",
+          "label": "Field 1",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "post_nat_axillary_total_positive",
+          "label": "Field 2",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "post_nat_axillary_response_no_tumour",
+          "label": "Field 3",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "post_nat_other_nodes_site",
+          "label": "Field 4",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "post_nat_other_nodes_total_present",
+          "label": "Field 5",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "post_nat_other_nodes_total_positive",
+          "label": "Field 6",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "post_nat_other_nodes_response_no_tumour",
+          "label": "Field 7",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "treatment_response_in_metastases",
+          "label": "Field 8",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "treatment_response_in_metastases_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "treatment_response_in_metastases_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "chemo_response_breast",
+          "label": "Field 9",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "chemo_response_lymph_node",
+          "label": "Field 10",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "tnm_stage",
+      "title": "Stage Summary",
+      "fields": [
+        {
+          "id": "t_stage",
+          "label": "Category A",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "t_stage_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_11",
+              "label": "Option 11",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "t_stage_opt_12",
+              "label": "Option 12",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "n_stage",
+          "label": "Category B",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "n_stage_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_5",
+              "label": "Option 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_6",
+              "label": "Option 6",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_7",
+              "label": "Option 7",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_8",
+              "label": "Option 8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_9",
+              "label": "Option 9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "n_stage_opt_10",
+              "label": "Option 10",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "m_stage",
+          "label": "Category C",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "m_stage_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "m_stage_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "excision_margins",
+      "title": "Margins",
+      "fields": [
+        {
+          "id": "invasive_margin_superior_mm",
+          "label": "Field 1",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "invasive_margin_inferior_mm",
+          "label": "Field 2",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "invasive_margin_medial_mm",
+          "label": "Field 3",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "invasive_margin_lateral_mm",
+          "label": "Field 4",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "invasive_margin_deep_mm",
+          "label": "Field 5",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "invasive_margin_superficial_mm",
+          "label": "Field 6",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "invasive_margin_nipple_mm",
+          "label": "Field 7",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_superior_mm",
+          "label": "Field 8",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_inferior_mm",
+          "label": "Field 9",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_medial_mm",
+          "label": "Field 10",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_lateral_mm",
+          "label": "Field 11",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_deep_mm",
+          "label": "Field 12",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_superficial_mm",
+          "label": "Field 13",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "insitu_margin_nipple_mm",
+          "label": "Field 14",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "receptor_status",
+      "title": "Ancillary Marker Panel",
+      "fields": [
+        {
+          "id": "er_status",
+          "label": "Field 1",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "er_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_status_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "er_percent_positive",
+          "label": "Field 2",
+          "type": "text",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "er_staining_intensity",
+          "label": "Field 3",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "er_staining_intensity_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_staining_intensity_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_staining_intensity_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "er_allred_score",
+          "label": "Field 4",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "er_h_score",
+          "label": "Field 5",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "er_on_slide_control",
+          "label": "Field 6",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "er_on_slide_control_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "er_on_slide_control_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "pr_status",
+          "label": "Field 7",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "pr_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "pr_percent_positive",
+          "label": "Field 8",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "pr_staining_intensity",
+          "label": "Field 9",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "pr_staining_intensity_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_staining_intensity_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_staining_intensity_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "pr_allred_score",
+          "label": "Field 10",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "pr_h_score",
+          "label": "Field 11",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "pr_on_slide_control",
+          "label": "Field 12",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "pr_on_slide_control_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "pr_on_slide_control_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": "Optional"
+        },
+        {
+          "id": "her2_ihc_score",
+          "label": "Field 13",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "her2_ihc_score_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ihc_score_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ihc_score_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ihc_score_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "her2_ish_ratio",
+          "label": "Field 14",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "her2_ish_status",
+          "label": "Field 15",
+          "type": "dropdown",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "her2_ish_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ish_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ish_status_opt_3",
+              "label": "Option 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_ish_status_opt_4",
+              "label": "Option 4",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "her2_copy_number",
+          "label": "Field 16",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "chromosome_17_copy_number",
+          "label": "Field 17",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        },
+        {
+          "id": "her2_final_status",
+          "label": "Field 18",
+          "type": "dropdown",
+          "required": true,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [
+            {
+              "id": "her2_final_status_opt_1",
+              "label": "Option 1",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "her2_final_status_opt_2",
+              "label": "Option 2",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "note": ""
+        },
+        {
+          "id": "ki67_proliferation_index",
+          "label": "Field 19",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "snomed_codes",
+      "title": "Reference Codes",
+      "fields": [
+        {
+          "id": "snomed_t_code",
+          "label": "Reference Code A",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        },
+        {
+          "id": "snomed_m_code",
+          "label": "Reference Code B",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "comments",
+          "label": "Comment(s)",
+          "type": "text",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "options": [],
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

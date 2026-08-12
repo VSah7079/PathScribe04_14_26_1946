@@ -5,9 +5,31 @@
  *
  * Architecture role:
  *   Reached via /template-review/:templateId. Displays the protocol's sections
+<<<<<<< HEAD
  *   and questions for review, provides lifecycle transition controls, and
  *   navigates back to /configuration?tab=protocols.
  *
+=======
+ *   and fields for review, provides lifecycle transition controls, and
+ *   navigates back to /configuration?tab=protocols.
+ *
+ * Content source (REWRITTEN July 2026 — see git history / COMPONENTS_REVIEW.md
+ * for the prior state):
+ *   Fetches real content via services/templates/templateService.ts's
+ *   getTemplate(templateId), which returns a TemplateDetail whose `template`
+ *   field is a real EditorTemplate — the same rich content model
+ *   SynopticEditor.tsx (the actual template builder, in ../Protocols/)
+ *   authors: sections of fields, 6 field types (dropdown/radio/checkboxes/
+ *   numeric/text/longtext), per-field AND per-option SNOMED/ICD coding.
+ *   Previously this component ignored templateId entirely and always
+ *   rendered a hardcoded placeholder (mockDcisTemplate, in the older,
+ *   incompatible types/templateTypes.ts schema) — both that file and
+ *   types/templateTypes.ts have been deleted as part of this fix; nothing
+ *   else in the app used either one. See services/templates/templateService.ts
+ *   for the 19 real generic (post-CAP/RCPath-licensing-cleanup) templates
+ *   already seeded and available today.
+ *
+>>>>>>> upstream/main
  * Lifecycle model (linear — matches CAP validation practice):
  *   draft → in_review → approved → published
  *   needs_changes can be applied from in_review or approved (rejection)
@@ -32,16 +54,26 @@
  *   shows a warning modal: "You have unsaved annotations — leave anyway?"
  *
  * Known limitations / TODO:
+<<<<<<< HEAD
  *   - Loads mockDcisTemplate regardless of templateId. Wire to protocolRegistry
  *     once templates and protocols are fully unified.
  *   - InlineCommentThread "Add a comment" input retains its own styling —
  *     style that component separately when ready.
+=======
+ *   - InlineCommentThread "Add a comment" input retains its own styling —
+ *     style that component separately when ready.
+ *   - No content authored yet (empty sections[]) shows an explicit empty
+ *     state rather than fabricating placeholder content — see EmptyState
+ *     below. This is deliberate: showing fake content for an unauthored
+ *     protocol is exactly the bug this rewrite fixes.
+>>>>>>> upstream/main
  *
  * Consumed by:
  *   App.tsx  route: /template-review/:templateId
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+<<<<<<< HEAD
 import React, { useEffect, useState, useCallback } from 'react';
 import '../../../pathscribe.css';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -56,6 +88,18 @@ import { useSynopticAudit } from '../../../hooks/useSynopticAudit';
 
 const isChoiceQuestion = (q: Question): q is ChoiceQuestion => q.type === 'choice';
 
+=======
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import '../../../pathscribe.css';
+import { useNavigate, useParams } from 'react-router-dom';
+import { InlineCommentThread } from '../../Common/InlineCommentThread';
+import { TemplateLifecycleState } from '../../../types/AuditEvent';
+import type { EditorSection, EditorField } from '../Protocols/SynopticEditor';
+import { getTemplate, transitionTemplate, TemplateDetail } from '../../../services/templates/templateService';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useSynopticAudit } from '../../../hooks/useSynopticAudit';
+
+>>>>>>> upstream/main
 type AnswerMap = Record<string, string | string[]>;
 
 // ─── Lifecycle definitions ────────────────────────────────────────────────────
@@ -181,6 +225,7 @@ const LifecycleBadge: React.FC<{ state: TemplateLifecycleState; source?: string 
   );
 };
 
+<<<<<<< HEAD
 // ─── Overlay modal shell ──────────────────────────────────────────────────────
 
 const ModalOverlay: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({ children, onClose }) => (
@@ -197,11 +242,57 @@ const ModalOverlay: React.FC<{ children: React.ReactNode; onClose: () => void }>
       border: '1px solid rgba(255,255,255,0.1)',
       boxShadow: '0 25px 50px rgba(0,0,0,0.6)', padding: '28px',
     }}>
+=======
+// ─── Coding badge (SNOMED / ICD) ───────────────────────────────────────────────
+// New in this rewrite — the old renderer had no way to show coding at all,
+// since its schema didn't carry any. Matches SynopticEditor.tsx's own
+// SCT/ICD pill styling for visual consistency between builder and reviewer.
+
+const CodingBadges: React.FC<{ snomed?: string; icd?: string }> = ({ snomed, icd }) => {
+  if (!snomed && !icd) return null;
+  return (
+    <span style={{ display: 'inline-flex', gap: '4px', marginLeft: '8px' }}>
+      {snomed && (
+        <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: 'rgba(8,145,178,0.15)', color: '#38bdf8', fontFamily: 'monospace' }}>
+          SCT {snomed}
+        </span>
+      )}
+      {icd && (
+        <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '3px', background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontFamily: 'monospace' }}>
+          ICD {icd}
+        </span>
+      )}
+    </span>
+  );
+};
+
+// ─── Overlay modal shell ──────────────────────────────────────────────────────
+
+const ModalOverlay: React.FC<{ children: React.ReactNode; onClose: () => void }> = ({ children, onClose }) => (
+  <div className="ps-overlay" onClick={onClose}>
+    <div className="ps-modal-dark" style={{ width: 440 }} onClick={e => e.stopPropagation()}>
+>>>>>>> upstream/main
       {children}
     </div>
   </div>
 );
 
+<<<<<<< HEAD
+=======
+// ─── Full-page status screens (loading / not found) ────────────────────────────
+
+const StatusScreen: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{
+    minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: '#0f172a', backgroundImage: 'linear-gradient(to bottom, #0f172a 0%, #020617 100%)',
+    color: '#94a3b8', fontFamily: "'Inter', sans-serif", fontSize: '14px', textAlign: 'center',
+    padding: '40px',
+  }}>
+    {children}
+  </div>
+);
+
+>>>>>>> upstream/main
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const TemplateRenderer: React.FC = () => {
@@ -211,6 +302,7 @@ export const TemplateRenderer: React.FC = () => {
   const currentUser    = user?.name ?? 'Unknown User';
   const { auditAndNotify, auditOnly } = useSynopticAudit();
 
+<<<<<<< HEAD
   const registryEntry = PROTOCOL_REGISTRY.find(p => p.id === templateId) ?? null;
   const template = registryEntry
     ? { ...mockDcisTemplate, id: registryEntry.id, name: registryEntry.name, version: registryEntry.version, source: registryEntry.source, category: registryEntry.category }
@@ -232,6 +324,25 @@ export const TemplateRenderer: React.FC = () => {
   );
   const [isDirty, setIsDirty] = useState(false);
 
+=======
+  // Always return to Review Queue
+  const backTarget = '/configuration?tab=protocols&section=review';
+
+  const [template,  setTemplate]  = useState<TemplateDetail | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [answers, setAnswers] = useState<AnswerMap>({});
+  const [state,   setState]   = useState<TemplateLifecycleState>('draft');
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Tracks whether a locally-persisted lifecycle state was found, so the
+  // real fetched status (below) doesn't clobber it once it resolves — the
+  // async fetch and the sync localStorage read can complete in either
+  // order, and localStorage (an in-progress local review) should win.
+  const hasStoredState = useRef(false);
+
+>>>>>>> upstream/main
   // ── Confirmation modal state ───────────────────────────────────────────────
   const [confirmAction,  setConfirmAction]  = useState<TransitionAction | null>(null);
   const [confirmNote,    setConfirmNote]    = useState('');
@@ -241,7 +352,14 @@ export const TemplateRenderer: React.FC = () => {
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
 
+<<<<<<< HEAD
   // ── Load persisted data ────────────────────────────────────────────────────
+=======
+  const ANSWERS_KEY = `ps_answers_${templateId}`;
+  const STATE_KEY   = `ps_state_${templateId}`;
+
+  // ── Load persisted reviewer annotations + lifecycle override ──────────────
+>>>>>>> upstream/main
   useEffect(() => {
     try {
       const raw = localStorage.getItem(ANSWERS_KEY);
@@ -249,9 +367,36 @@ export const TemplateRenderer: React.FC = () => {
     } catch {}
     try {
       const raw = localStorage.getItem(STATE_KEY);
+<<<<<<< HEAD
       if (raw) setState(raw as TemplateLifecycleState);
     } catch {}
   }, []);
+=======
+      if (raw) { setState(raw as TemplateLifecycleState); hasStoredState.current = true; }
+    } catch {}
+  }, [templateId, ANSWERS_KEY, STATE_KEY]);
+
+  // ── Load real template content ─────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    if (!templateId) { setLoadError('No template ID provided.'); setLoading(false); return; }
+    setLoading(true);
+    setLoadError(null);
+    getTemplate(templateId)
+      .then(detail => {
+        if (cancelled) return;
+        setTemplate(detail);
+        if (!hasStoredState.current) setState(detail.status as TemplateLifecycleState);
+        setLoading(false);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        setLoadError(err?.message ?? `Template "${templateId}" not found.`);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [templateId]);
+>>>>>>> upstream/main
 
   const persistAnswers = (next: AnswerMap) => {
     setAnswers(next);
@@ -261,6 +406,10 @@ export const TemplateRenderer: React.FC = () => {
 
   const persistState = (next: TemplateLifecycleState) => {
     setState(next);
+<<<<<<< HEAD
+=======
+    hasStoredState.current = true;
+>>>>>>> upstream/main
     setIsDirty(false);  // completed a transition — annotations no longer "unsaved"
     localStorage.setItem(STATE_KEY, next);
   };
@@ -281,6 +430,7 @@ export const TemplateRenderer: React.FC = () => {
   };
 
   // ── Answer handlers ────────────────────────────────────────────────────────
+<<<<<<< HEAD
   const handleSingleChange = (questionId: string, optionId: string) => {
     const prev = answers[questionId];
     persistAnswers({ ...answers, [questionId]: optionId });
@@ -300,6 +450,27 @@ export const TemplateRenderer: React.FC = () => {
     const prev = answers[questionId];
     persistAnswers({ ...answers, [questionId]: value });
     auditOnly({ category: 'user', action: 'set_text_answer', templateId: template.id, questionId, oldValue: prev, newValue: value });
+=======
+  const handleSingleChange = (fieldId: string, optionId: string) => {
+    const prev = answers[fieldId];
+    persistAnswers({ ...answers, [fieldId]: optionId });
+    auditOnly({ user: currentUser, category: 'user', action: 'set_single_answer', templateId, questionId: fieldId, oldValue: prev, newValue: optionId });
+  };
+
+  const handleMultiChange = (fieldId: string, optionId: string) => {
+    const current   = (answers[fieldId] as string[]) || [];
+    const exists    = current.includes(optionId);
+    const nextArray = exists ? current.filter(id => id !== optionId) : [...current, optionId];
+    const prev      = answers[fieldId];
+    persistAnswers({ ...answers, [fieldId]: nextArray });
+    auditOnly({ user: currentUser, category: 'user', action: exists ? 'remove_multi_answer' : 'add_multi_answer', templateId, questionId: fieldId, oldValue: prev, newValue: nextArray });
+  };
+
+  const handleTextChange = (fieldId: string, value: string) => {
+    const prev = answers[fieldId];
+    persistAnswers({ ...answers, [fieldId]: value });
+    auditOnly({ user: currentUser, category: 'user', action: 'set_text_answer', templateId, questionId: fieldId, oldValue: prev, newValue: value });
+>>>>>>> upstream/main
   };
 
   // ── Lifecycle transition ───────────────────────────────────────────────────
@@ -309,7 +480,11 @@ export const TemplateRenderer: React.FC = () => {
   };
 
   const handleTransitionConfirm = () => {
+<<<<<<< HEAD
     if (!confirmAction) return;
+=======
+    if (!confirmAction || !templateId) return;
+>>>>>>> upstream/main
     const prev   = state;
     const target = confirmAction.target;
     const note   = confirmNote || undefined;
@@ -319,15 +494,33 @@ export const TemplateRenderer: React.FC = () => {
     setConfirmNote('');
 
     // Sync to PROTOCOL_REGISTRY so queue cards update immediately
+<<<<<<< HEAD
     transitionTemplate(template.id, target as any, note, currentUser).catch(err =>
+=======
+    transitionTemplate(templateId, target, note, currentUser).catch(err =>
+>>>>>>> upstream/main
       console.error('[TemplateRenderer] transition failed:', err)
     );
 
     auditAndNotify({
+<<<<<<< HEAD
       category:     'user',
       action:       'state_transition',
       templateId:   template.id,
       templateName: (template as any).name ?? (template as any).displayName ?? 'Unknown',
+=======
+      user:         currentUser,
+      category:     'user',
+      action:       (
+        target === 'needs_changes' ? 'template.needs_changes' :
+        target === 'approved'      ? 'template.approved' :
+        target === 'published'     ? 'template.published' :
+        target === 'in_review'     ? 'template.submitted_for_review' :
+        'state_transition' // fallback for any target not in NOTIFY_ON_ACTIONS -- won't trigger a notification, matches prior (silent) behavior for anything unrecognized
+      ),
+      templateId,
+      templateName: template?.name ?? templateId,
+>>>>>>> upstream/main
       stateFrom:    prev,
       stateTo:      target,
       note,
@@ -335,6 +528,7 @@ export const TemplateRenderer: React.FC = () => {
   };
 
   const handleReset = () => {
+<<<<<<< HEAD
     persistAnswers({});
     persistState('draft');
     setConfirmReset(false);
@@ -345,6 +539,19 @@ export const TemplateRenderer: React.FC = () => {
   // ── Derived ────────────────────────────────────────────────────────────────
   const allowed      = ALLOWED_TRANSITIONS[state] ?? [];
   const isPublished  = state === 'published';
+=======
+    if (!templateId) return;
+    persistAnswers({});
+    persistState('draft');
+    setConfirmReset(false);
+    transitionTemplate(templateId, 'draft').catch(() => {});
+    auditOnly({ user: 'System', category: 'system', action: 'reset_template', templateId });
+  };
+
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const allowed = ALLOWED_TRANSITIONS[state] ?? [];
+  const isPublished = state === 'published';
+>>>>>>> upstream/main
 
   const inputBase: React.CSSProperties = {
     padding: '8px 12px', borderRadius: '7px',
@@ -353,6 +560,40 @@ export const TemplateRenderer: React.FC = () => {
     color: '#f1f5f9', fontSize: '13px', outline: 'none',
   };
 
+<<<<<<< HEAD
+=======
+  // ── Loading / not-found states (after all hooks — safe early return) ──────
+  if (loading) {
+    return <StatusScreen>Loading protocol…</StatusScreen>;
+  }
+  if (loadError || !template) {
+    return (
+      <StatusScreen>
+        <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
+        <div style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', marginBottom: '8px' }}>
+          Couldn't load this protocol
+        </div>
+        <div style={{ marginBottom: '20px' }}>{loadError ?? 'Unknown error.'}</div>
+        <button
+          onClick={() => navigate(backTarget)}
+          style={{
+            padding: '9px 18px', borderRadius: '8px', border: '1px solid #334155',
+            background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
+            cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+          }}
+        >
+          ← Back to Protocols
+        </button>
+      </StatusScreen>
+    );
+  }
+
+  const terms        = getTerms(template.source);
+  const transActions = getTransitionActions(template.source);
+  const sections      = template.template.sections;
+  const hasContent    = sections.length > 0;
+
+>>>>>>> upstream/main
   return (
     <div style={{
       minHeight: '100vh',
@@ -404,7 +645,11 @@ export const TemplateRenderer: React.FC = () => {
             </span>
             <span style={{ color: '#334155' }}>›</span>
             <span style={{ color: '#f1f5f9', fontWeight: 600 }}>
+<<<<<<< HEAD
               {(template as any).name ?? (template as any).displayName ?? templateId}
+=======
+              {template.name}
+>>>>>>> upstream/main
             </span>
           </div>
         </div>
@@ -425,12 +670,21 @@ export const TemplateRenderer: React.FC = () => {
         {/* ── Page header ── */}
         <div style={{ marginBottom: '24px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#f1f5f9', margin: '0 0 6px' }}>
+<<<<<<< HEAD
             {(template as any).name ?? (template as any).displayName ?? templateId}
           </h1>
           <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', gap: '10px' }}>
             <span>Version {(template as any).version ?? (template as any).sourceVersion}</span>
             <span>•</span><span>{template.source}</span>
             <span>•</span><span>{registryEntry?.category ?? ""}</span>
+=======
+            {template.name}
+          </h1>
+          <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', gap: '10px' }}>
+            <span>Version {template.version}</span>
+            <span>•</span><span>{template.source}</span>
+            <span>•</span><span>{template.category ?? ''}</span>
+>>>>>>> upstream/main
           </div>
         </div>
 
@@ -463,9 +717,15 @@ export const TemplateRenderer: React.FC = () => {
                         padding: '7px 16px', borderRadius: '7px', fontSize: '13px', fontWeight: 600,
                         border: `1px solid ${isAllowed ? s.border : 'rgba(255,255,255,0.06)'}`,
                         background: isAllowed ? s.bg : 'rgba(255,255,255,0.02)',
+<<<<<<< HEAD
                         color: isAllowed ? s.color : '#334155',
                         cursor: isAllowed ? 'pointer' : 'not-allowed',
                         opacity: isAllowed ? 1 : 0.45,
+=======
+                        color: isAllowed ? s.color : '#cbd5e1',
+                        cursor: isAllowed ? 'pointer' : 'not-allowed',
+                        opacity: isAllowed ? 1 : 0.65,
+>>>>>>> upstream/main
                         transition: 'all 0.15s',
                       }}
                       onMouseEnter={e => { if (isAllowed) e.currentTarget.style.opacity = '0.85'; }}
@@ -525,7 +785,37 @@ export const TemplateRenderer: React.FC = () => {
         </div>
 
         {/* ── Template sections ── */}
+<<<<<<< HEAD
         {template.sections.map((section: TemplateSection) => (
+=======
+        {!hasContent && (
+          <div style={{
+            padding: '32px', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.02)', textAlign: 'center', color: '#64748b',
+          }}>
+            <div style={{ fontSize: '28px', marginBottom: '10px' }}>📝</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#94a3b8', marginBottom: '6px' }}>
+              No content has been authored for this protocol yet
+            </div>
+            <div style={{ fontSize: '13px', marginBottom: '16px' }}>
+              Metadata exists in the registry, but no sections/fields have been
+              built in the editor.
+            </div>
+            <button
+              onClick={() => navigate(`/template-editor/${templateId}`)}
+              style={{
+                padding: '9px 18px', borderRadius: '8px', border: '1px solid rgba(8,145,178,0.3)',
+                background: 'rgba(8,145,178,0.1)', color: '#38bdf8',
+                cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              }}
+            >
+              Open Editor →
+            </button>
+          </div>
+        )}
+
+        {sections.map((section: EditorSection) => (
+>>>>>>> upstream/main
           <div key={section.id} style={{ marginBottom: '32px' }}>
             <div style={{
               fontSize: '16px', fontWeight: 700, color: '#f1f5f9',
@@ -535,13 +825,19 @@ export const TemplateRenderer: React.FC = () => {
               {section.title}
             </div>
 
+<<<<<<< HEAD
             {section.questions.map((q: Question) => (
               <div key={q.id} style={{
+=======
+            {section.fields.map((field: EditorField) => (
+              <div key={field.id} data-field-key={field.id} style={{
+>>>>>>> upstream/main
                 marginBottom: '16px', padding: '16px',
                 borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)',
                 background: 'rgba(255,255,255,0.03)',
               }}>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: '#cbd5e1', marginBottom: '10px' }}>
+<<<<<<< HEAD
                   {q.text}
                 </div>
 
@@ -565,16 +861,68 @@ export const TemplateRenderer: React.FC = () => {
                           style={{ accentColor: '#0891B2', width: '14px', height: '14px' }}
                         />
                         <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{opt.label}</span>
+=======
+                  {field.label}
+                  <CodingBadges snomed={field.snomed} icd={field.icd} />
+                  {field.required && <span style={{ color: '#f87171', marginLeft: '4px' }}>*</span>}
+                </div>
+
+                <InlineCommentThread questionId={field.id} templateId={templateId!} currentUser={currentUser} />
+
+                {/* Dropdown — real <select>, single-select */}
+                {field.type === 'dropdown' && (
+                  <select
+                    value={(answers[field.id] as string) || ''}
+                    onChange={e => handleSingleChange(field.id, e.target.value)}
+                    data-field-key={field.id}
+                    style={{ ...inputBase, width: '100%', marginTop: '8px', boxSizing: 'border-box' }}
+                  >
+                    <option value="">Select…</option>
+                    {field.options.map(opt => (
+                      <option key={opt.id} value={opt.id}>{opt.label}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Radio — single-select, radio buttons */}
+                {field.type === 'radio' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                    {field.options.map(opt => (
+                      <label key={opt.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '8px 12px', borderRadius: '7px', cursor: 'pointer',
+                        border: `1px solid ${answers[field.id] === opt.id ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.07)'}`,
+                        background: answers[field.id] === opt.id ? 'rgba(8,145,178,0.08)' : 'rgba(255,255,255,0.02)',
+                        transition: 'all 0.15s',
+                      }}>
+                        <input
+                          type="radio" name={field.id} value={opt.id}
+                          checked={answers[field.id] === opt.id}
+                          onChange={() => handleSingleChange(field.id, opt.id)}
+                          data-field-key={field.id}
+                          style={{ accentColor: '#0891B2', width: '14px', height: '14px' }}
+                        />
+                        <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{opt.label}</span>
+                        <CodingBadges snomed={opt.snomed} icd={opt.icd} />
+>>>>>>> upstream/main
                       </label>
                     ))}
                   </div>
                 )}
 
+<<<<<<< HEAD
                 {/* Multi-select */}
                 {isChoiceQuestion(q) && q.multiple && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
                     {q.options.map(opt => {
                       const current = (answers[q.id] as string[]) || [];
+=======
+                {/* Checkboxes — multi-select */}
+                {field.type === 'checkboxes' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                    {field.options.map(opt => {
+                      const current = (answers[field.id] as string[]) || [];
+>>>>>>> upstream/main
                       const checked = current.includes(opt.id);
                       return (
                         <label key={opt.id} style={{
@@ -586,16 +934,26 @@ export const TemplateRenderer: React.FC = () => {
                         }}>
                           <input
                             type="checkbox" value={opt.id} checked={checked}
+<<<<<<< HEAD
                             onChange={() => handleMultiChange(q.id, opt.id)}
                             style={{ accentColor: '#0891B2', width: '14px', height: '14px' }}
                           />
                           <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{opt.label}</span>
+=======
+                            onChange={() => handleMultiChange(field.id, opt.id)}
+                            data-field-key={field.id}
+                            style={{ accentColor: '#0891B2', width: '14px', height: '14px' }}
+                          />
+                          <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{opt.label}</span>
+                          <CodingBadges snomed={opt.snomed} icd={opt.icd} />
+>>>>>>> upstream/main
                         </label>
                       );
                     })}
                   </div>
                 )}
 
+<<<<<<< HEAD
                 {/* Text */}
                 {q.type === 'text' && (
                   <input
@@ -606,6 +964,46 @@ export const TemplateRenderer: React.FC = () => {
                     style={{ ...inputBase, width: '100%', marginTop: '8px', boxSizing: 'border-box' }}
                   />
                 )}
+=======
+                {/* Numeric */}
+                {field.type === 'numeric' && (
+                  <input
+                    type="number"
+                    value={(answers[field.id] as string) || ''}
+                    onChange={e => handleTextChange(field.id, e.target.value)}
+                    placeholder="Enter value…"
+                    data-field-key={field.id}
+                    id={field.id}
+                    style={{ ...inputBase, width: '100%', marginTop: '8px', boxSizing: 'border-box' }}
+                  />
+                )}
+
+                {/* Free text */}
+                {field.type === 'text' && (
+                  <input
+                    type="text"
+                    value={(answers[field.id] as string) || ''}
+                    onChange={e => handleTextChange(field.id, e.target.value)}
+                    placeholder="Enter value…"
+                    data-field-key={field.id}
+                    id={field.id}
+                    style={{ ...inputBase, width: '100%', marginTop: '8px', boxSizing: 'border-box' }}
+                  />
+                )}
+
+                {/* Long text */}
+                {field.type === 'longtext' && (
+                  <textarea
+                    value={(answers[field.id] as string) || ''}
+                    onChange={e => handleTextChange(field.id, e.target.value)}
+                    placeholder="Enter value…"
+                    rows={4}
+                    data-field-key={field.id}
+                    id={field.id}
+                    style={{ ...inputBase, width: '100%', marginTop: '8px', boxSizing: 'border-box', resize: 'vertical' }}
+                  />
+                )}
+>>>>>>> upstream/main
               </div>
             ))}
           </div>
@@ -650,11 +1048,15 @@ export const TemplateRenderer: React.FC = () => {
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setConfirmAction(null)}
+<<<<<<< HEAD
                     style={{
                       padding: '9px 18px', borderRadius: '8px',
                       border: '1px solid #334155', background: 'transparent',
                       color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                     }}
+=======
+                    className="ps-conf-btn-secondary"
+>>>>>>> upstream/main
                   >
                     Cancel
                   </button>
@@ -665,7 +1067,10 @@ export const TemplateRenderer: React.FC = () => {
                       background: confirmAction.destructive ? '#ef4444' : s.bg,
                       color: confirmAction.destructive ? 'white' : s.color,
                       fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+<<<<<<< HEAD
                       // border (dup): `1px solid ${s.border}`,
+=======
+>>>>>>> upstream/main
                     }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -694,16 +1099,21 @@ export const TemplateRenderer: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button
               onClick={() => setConfirmReset(false)}
+<<<<<<< HEAD
               style={{
                 padding: '9px 18px', borderRadius: '8px',
                 border: '1px solid #334155', background: 'transparent',
                 color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               }}
+=======
+              className="ps-conf-btn-secondary"
+>>>>>>> upstream/main
             >
               Cancel
             </button>
             <button
               onClick={handleReset}
+<<<<<<< HEAD
               style={{
                 padding: '9px 20px', borderRadius: '8px', border: 'none',
                 background: '#ef4444', color: 'white',
@@ -711,6 +1121,9 @@ export const TemplateRenderer: React.FC = () => {
               }}
               onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
               onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
+=======
+              className="ps-btn-danger-solid"
+>>>>>>> upstream/main
             >
               Reset to Draft
             </button>
@@ -736,11 +1149,15 @@ export const TemplateRenderer: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button
               onClick={() => setShowLeaveWarning(false)}
+<<<<<<< HEAD
               style={{
                 padding: '9px 18px', borderRadius: '8px',
                 border: '1px solid #334155', background: 'transparent',
                 color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               }}
+=======
+              className="ps-conf-btn-secondary"
+>>>>>>> upstream/main
             >
               Stay
             </button>

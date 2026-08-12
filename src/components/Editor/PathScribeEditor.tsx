@@ -1,6 +1,14 @@
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import '../../pathscribe.css';
 import { X } from "../Icons";
+=======
+import React, { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef, createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
+import '../../pathscribe.css';
+import { X } from "../Icons";
+import type { PathScribeEditorHandle } from './PathScribeEditorRef';
+>>>>>>> upstream/main
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
@@ -12,13 +20,22 @@ import {
   Table as TableIcon,
   Search,
   Undo2, Redo2,
+<<<<<<< HEAD
   Ruler as RulerIcon, PilcrowSquare,
+=======
+  Sun, Moon,
+  PilcrowSquare,
+>>>>>>> upstream/main
   Zap, PenLine,
   ArrowUpDown, PaintBucket, SquareDashedBottom,
   SplitSquareHorizontal,
   Rows3, Columns3, Combine,
 } from 'lucide-react';
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
+<<<<<<< HEAD
+=======
+import Paragraph from '@tiptap/extension-paragraph';
+>>>>>>> upstream/main
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
@@ -33,7 +50,11 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+<<<<<<< HEAD
 import type { Editor } from '@tiptap/react';
+=======
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+>>>>>>> upstream/main
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +74,7 @@ export interface PathScribeEditorProps {
   showRulerDefault?: boolean;
   minHeight?: string;
   readOnly?: boolean;
+<<<<<<< HEAD
 }
 
 // ─── IMPERATIVE HANDLE ────────────────────────────────────────────────────────
@@ -88,6 +110,100 @@ export interface PathScribeEditorHandle {
    */
   setEditable: (editable: boolean) => void;
 }
+=======
+  // ── Multi-instance toolbar sharing ──────────────────────────────────────────
+  // suppressToolbar=true + toolbarPortalId → portal toolbar to that DOM node
+  // suppressToolbar=true + no toolbarPortalId → render NO toolbar (unfocused)
+  // suppressToolbar omitted/false → render toolbar inline (default, backward compat)
+  suppressToolbar?: boolean;
+  toolbarPortalId?: string;
+  theme?: 'light' | 'dark';
+  /** Shows a real toggle button in the toolbar letting the user switch
+   *  themes themselves. `theme` above becomes only the STARTING point --
+   *  once the user has ever clicked the toggle anywhere it appears, that
+   *  becomes their real preference (persisted to localStorage), shared
+   *  across every editor instance that opts into this, overriding
+   *  whatever `theme` any individual screen was built with. Off by
+   *  default so contexts that shouldn't show it (e.g. a small font
+   *  preview box) don't get one uninvited. */
+  allowThemeToggle?: boolean;
+  // ── Tab width — industry-standard user preference ────────────────────────────
+  // Number of spaces a Tab keypress inserts. Word/Docs/Notion all expose this as
+  // a user setting rather than hardcoding it. Defaults to 4, persisted by the
+  // parent (e.g. via localStorage or user profile) and passed back in on mount.
+  tabWidthChars?: number;
+  onTabWidthChange?: (chars: number) => void;
+}
+
+// ─── THEME CONTEXT ────────────────────────────────────────────────────────────
+// Set once at the PathScribeEditor root; consumed by TBtn, Divider, Ruler,
+// MacroModal, FindReplacePanel, InsertTableModal, and any other sub-component
+// without prop drilling. This is what prevents the "forgot to pass theme"
+// class of bugs we hit repeatedly when theme was a plain prop on every
+// sub-component — a sub-component rendered without a Provider simply falls
+// back to LIGHT_THEME instead of crashing.
+
+export interface EditorThemeTokens {
+  toolbarBg: string; toolbarBorder: string;
+  btnBg: string; btnBgActive: string; btnBorder: string; btnBorderActive: string;
+  btnHoverBg: string;
+  btnText: string; btnTextActive: string; btnTextDisabled: string;
+  dividerColor: string;
+  panelBg: string; panelBorder: string; panelShadow: string; panelText: string; panelHoverBg: string;
+  inputBg: string; inputBorder: string; inputText: string;
+  contentBg: string; contentText: string; contentBorder: string;
+  rulerBg: string; rulerBorder: string; rulerMarkColor: string;
+  accent: string; accentText: string;
+}
+
+const LIGHT_THEME: EditorThemeTokens = {
+  toolbarBg: 'white', toolbarBorder: '#e2e8f0',
+  btnBg: 'white', btnBgActive: '#0891B2', btnBorder: '#e2e8f0', btnBorderActive: '#0891B2',
+  btnHoverBg: '#f1f5f9',
+  btnText: '#1e293b', btnTextActive: 'white', btnTextDisabled: '#cbd5e1',
+  dividerColor: '#e2e8f0',
+  panelBg: 'white', panelBorder: '#e2e8f0', panelShadow: '0 8px 24px rgba(0,0,0,0.12)', panelText: '#1e293b', panelHoverBg: '#f1f5f9',
+  inputBg: 'white', inputBorder: '#e2e8f0', inputText: '#1e293b',
+  contentBg: 'white', contentText: '#1e293b', contentBorder: '#e2e8f0',
+  rulerBg: '#f8fafc', rulerBorder: '#e2e8f0', rulerMarkColor: '#64748b',
+  accent: '#0891B2', accentText: 'white',
+};
+
+const DARK_THEME: EditorThemeTokens = {
+  toolbarBg: 'transparent', toolbarBorder: 'transparent',
+  btnBg: 'transparent', btnBgActive: 'transparent', btnBorder: 'transparent', btnBorderActive: 'transparent',
+  btnHoverBg: 'rgba(148,163,184,0.14)',
+  btnText: '#cbd5e1', btnTextActive: 'white', btnTextDisabled: '#5b6573',
+  dividerColor: 'rgba(148,163,184,0.18)',
+  panelBg: '#252d3a', panelBorder: 'rgba(148,163,184,0.18)', panelShadow: '0 8px 24px rgba(0,0,0,0.5)', panelText: '#e9edf2', panelHoverBg: 'rgba(148,163,184,0.12)',
+  inputBg: 'rgba(148,163,184,0.08)', inputBorder: 'rgba(148,163,184,0.18)', inputText: '#e2e8f0',
+  contentBg: '#0f172a', contentText: '#e2e8f0', contentBorder: 'rgba(148,163,184,0.15)',
+  rulerBg: '#1a212c', rulerBorder: 'rgba(148,163,184,0.15)', rulerMarkColor: '#94a3b8',
+  accent: '#22b8d8', accentText: 'white',
+};
+
+// IMPORTANT: default context value is LIGHT_THEME, not undefined.
+// Any sub-component rendered outside a ThemeProvider (or before one mounts)
+// gets a safe, correct theme instead of crashing on `theme.whatever`.
+const EditorThemeContext = createContext<EditorThemeTokens>(LIGHT_THEME);
+const useEditorTheme = () => useContext(EditorThemeContext);
+
+// ─── IMPERATIVE HANDLE ────────────────────────────────────────────────────────
+// Exposed via forwardRef so the Orchestrator Engine and NarrativeEditor
+// can drive the editor programmatically without going through React props.
+//
+// FIXED (July 2026): this used to re-declare its own separate
+// PathScribeEditorHandle interface here, structurally identical to (but
+// nominally distinct from) the one in PathScribeEditorRef.ts — which
+// every external consumer (NarrativeEditor.tsx, OrchestratorReportPanel.tsx,
+// OrchestratorSectionEditor.tsx) actually imports. Two independent
+// declarations of the same shape, kept in sync only by manual discipline —
+// exactly the class of drift bug found live elsewhere in this codebase
+// this session (aiProviderService, protocolRegistry/protocolShared, the
+// reportingMode mismatch — see services/cases/caseFilterUtils.ts's own
+// comment). Consolidated to a single source of truth — now imported at
+// the top of this file instead of re-declared here.
+>>>>>>> upstream/main
 
 // ─── MACRO HOTKEY EXTENSION ───────────────────────────────────────────────────
 
@@ -147,6 +263,7 @@ const createMacroExtension = (
 
 // ─── TAB KEY EXTENSION ────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 const TAB_DEFAULT_PX = 48;
 
 const createTabExtension = (
@@ -178,6 +295,34 @@ const createTabExtension = (
             )
             .run();
 
+=======
+// ─── TAB KEY EXTENSION ────────────────────────────────────────────────────────
+// Industry-standard behaviour:
+//   • In a list item → Tab/Shift-Tab sink/lift the item (indent level), same
+//     as Word, Google Docs, Notion.
+//   • In plain text → Tab inserts a fixed-width space run sized by the user's
+//     tabWidthChars setting (default 4) — this is what "tab width" means in
+//     every code editor and most word processors when no ruler/tab-stops
+//     are in play. We use non-breaking spaces inside a styled span so the
+//     run can't collapse or wrap, and so it copies/pastes as plain spaces.
+//   • Shift-Tab in plain text removes one tab-width of leading whitespace
+//     from the start of the current line, mirroring "Reduce Indent".
+
+const DEFAULT_TAB_WIDTH_CHARS = 4;
+
+const createTabExtension = (tabWidthChars: number) =>
+  Extension.create({
+    name: 'tabKey',
+    addKeyboardShortcuts() {
+      const spaces = '\u00A0'.repeat(Math.max(1, tabWidthChars));
+      return {
+        Tab: ({ editor }) => {
+          if (editor.can().sinkListItem('listItem')) {
+            editor.chain().focus().sinkListItem('listItem').run();
+            return true;
+          }
+          editor.chain().focus().insertContent(spaces).run();
+>>>>>>> upstream/main
           return true;
         },
         'Shift-Tab': ({ editor }) => {
@@ -185,12 +330,29 @@ const createTabExtension = (
             editor.chain().focus().liftListItem('listItem').run();
             return true;
           }
+<<<<<<< HEAD
+=======
+          // Remove up to one tab-width of leading nbsp/space immediately
+          // before the cursor, if present — best-effort "reduce indent".
+          const { state } = editor;
+          const { $from } = state.selection;
+          const lineStart = $from.start();
+          const textBefore = state.doc.textBetween(lineStart, $from.pos, '\n', '\n');
+          const trailingSpaces = textBefore.match(/[\u00A0 ]+$/)?.[0] ?? '';
+          if (trailingSpaces.length > 0) {
+            const removeCount = Math.min(trailingSpaces.length, tabWidthChars);
+            editor.chain().focus()
+              .deleteRange({ from: $from.pos - removeCount, to: $from.pos })
+              .run();
+          }
+>>>>>>> upstream/main
           return true;
         },
       };
     },
   });
 
+<<<<<<< HEAD
 // ─── RULER COMPONENT ──────────────────────────────────────────────────────────
 
 interface RulerProps {
@@ -324,10 +486,158 @@ const Ruler: React.FC<RulerProps> = ({
 };
 
 // ─── TOOLBAR BUTTON ───────────────────────────────────────────────────────────
+=======
+// ─── FONT SIZE EXTENSION ──────────────────────────────────────────────────────
+// Tiptap has no built-in font-size command (unlike FontFamily, which ships as
+// its own package). This extends TextStyle with a `fontSize` attribute and
+// setFontSize/unsetFontSize commands, mirroring how FontFamily itself works
+// internally. Without this, the font-size dropdown was purely cosmetic —
+// it updated its own label but never touched the editor at all.
+
+const FontSize = TextStyle.extend({
+  name: 'textStyle', // intentionally reuse the same mark name as TextStyle so
+                      // font-family and font-size attributes live on one mark
+                      // instead of competing/nesting marks for the same text
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      fontSize: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.style.fontSize || null,
+        renderHTML: (attributes: { fontSize?: string | null }) => {
+          if (!attributes.fontSize) return {};
+          return { style: `font-size: ${attributes.fontSize}` };
+        },
+      },
+    };
+  },
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      setFontSize: (size: string) => ({ chain }: any) =>
+        chain().setMark('textStyle', { fontSize: size }).run(),
+      unsetFontSize: () => ({ chain }: any) =>
+        chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run(),
+    } as any;
+  },
+});
+
+// ─── PARAGRAPH SHADING & BORDERS ──────────────────────────────────────────────
+// Extends Tiptap's default Paragraph node with `shading` (background colour)
+// and `borderStyle` attributes, applied to the WHOLE paragraph block — not
+// selected text. This is block-level formatting, like a callout box or table
+// row shading in Word, distinct from the existing text-highlight mark (which
+// stays as-is and colors only selected characters).
+//
+// Both attributes are no-selection-required: setParagraphShading/setBorder
+// act on whichever paragraph the cursor currently sits in, the same way
+// setTextAlign works on the current block regardless of selection.
+//
+// Border styles render via individual side properties so "Left Border" etc.
+// can be combined or replaced cleanly without fighting a single shorthand.
+
+type BorderStyle = 'none' | 'box' | 'left' | 'right' | 'top' | 'bottom';
+
+const BORDER_CSS: Record<BorderStyle, string> = {
+  none:   '',
+  box:    'border: 1.5px solid #475569;',
+  left:   'border-left: 3px solid #475569;',
+  right:  'border-right: 3px solid #475569;',
+  top:    'border-top: 3px solid #475569;',
+  bottom: 'border-bottom: 3px solid #475569;',
+};
+
+const ShadedParagraph = Paragraph.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      shading: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.style.backgroundColor || null,
+        renderHTML: (attributes: { shading?: string | null }) => {
+          if (!attributes.shading) return {};
+          return { style: `background-color: ${attributes.shading}; padding: 6px 10px; border-radius: 4px;` };
+        },
+      },
+      borderStyle: {
+        default: null,
+        parseHTML: (element: HTMLElement) => (element.getAttribute('data-border') as BorderStyle) || null,
+        renderHTML: (attributes: { borderStyle?: BorderStyle | null }) => {
+          if (!attributes.borderStyle || attributes.borderStyle === 'none') return {};
+          return {
+            'data-border': attributes.borderStyle,
+            style: BORDER_CSS[attributes.borderStyle] + ' padding: 6px 10px;',
+          };
+        },
+      },
+    };
+  },
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      setParagraphShading: (color: string | null) => ({ commands }: any) =>
+        commands.updateAttributes('paragraph', { shading: color }),
+      setParagraphBorder: (style: BorderStyle) => ({ commands }: any) =>
+        commands.updateAttributes('paragraph', { borderStyle: style === 'none' ? null : style }),
+    } as any;
+  },
+});
+
+// ─── FORMATTING MARKS EXTENSION ───────────────────────────────────────────────
+// Shows visible markers for whitespace characters that are otherwise
+// invisible — regular spaces, non-breaking spaces (used by Tab), and
+// paragraph ends. This is the "¶ Show Formatting Marks" feature found in
+// Word/Google Docs, essential for debugging whitespace issues (e.g.
+// confirming Tab actually inserted characters, or that trailing spaces
+// weren't silently dropped).
+//
+// Implemented as a ProseMirror decoration plugin rather than pure CSS,
+// because CSS pseudo-elements can't target individual characters inside a
+// text run — only an inline decoration per character position can do that.
+
+const formatMarksVisibleRef = { current: false };
+
+const FormatMarksExtension = Extension.create({
+  name: 'formatMarks',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('formatMarks'),
+        props: {
+          decorations(state) {
+            if (!formatMarksVisibleRef.current) return null;
+            const decorations: Decoration[] = [];
+            state.doc.descendants((node, pos) => {
+              if (!node.isText || !node.text) return;
+              for (let i = 0; i < node.text.length; i++) {
+                const ch = node.text[i];
+                if (ch === ' ' || ch === '\u00A0') {
+                  const from = pos + i;
+                  const isNbsp = ch === '\u00A0';
+                  decorations.push(
+                    Decoration.inline(from, from + 1, {
+                      class: isNbsp ? 'ps-fm-nbsp' : 'ps-fm-space',
+                    })
+                  );
+                }
+              }
+            });
+            return DecorationSet.create(state.doc, decorations);
+          },
+        },
+      }),
+    ];
+  },
+});
+
+// ─── TOOLBAR BUTTON ───────────────────────────────────────────────────────────
+// Reads theme from context — no prop needed, no way to forget passing it.
+>>>>>>> upstream/main
 
 const TBtn: React.FC<{
   onClick: () => void; isActive?: boolean; title?: string;
   disabled?: boolean; children: React.ReactNode; width?: string;
+<<<<<<< HEAD
 }> = ({ onClick, isActive, title, disabled, children, width }) => (
   <button onClick={onClick} title={title} disabled={disabled}
     style={{ padding: '5px 8px', minWidth: width || '30px', height: '28px', background: isActive ? '#0891B2' : 'white', color: isActive ? 'white' : disabled ? '#cbd5e1' : '#1e293b', border: `1px solid ${isActive ? '#0891B2' : '#e2e8f0'}`, borderRadius: '4px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', transition: 'all 0.15s', flexShrink: 0, whiteSpace: 'nowrap' }}
@@ -341,6 +651,43 @@ const TBtn: React.FC<{
 const Divider = () => (
   <div style={{ width: '1px', height: '22px', background: '#e2e8f0', margin: '0 4px', flexShrink: 0 }} />
 );
+=======
+}> = ({ onClick, isActive, title, disabled, children, width }) => {
+  const theme = useEditorTheme();
+  return (
+    <button onClick={onClick} title={title} disabled={disabled}
+      style={{
+        padding: '5px 7px',
+        minWidth: width || '28px',
+        height: '26px',
+        background: isActive ? theme.btnHoverBg : 'transparent',
+        color: disabled ? theme.btnTextDisabled : (isActive ? theme.accent : theme.btnText),
+        border: 'none',
+        borderRadius: '5px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontSize: '12px',
+        fontWeight: 500,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '3px',
+        transition: 'background 0.12s, color 0.12s',
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = theme.btnHoverBg; }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = isActive ? theme.btnHoverBg : 'transparent'; }}
+    >
+      {children}
+    </button>
+  );
+};
+
+const Divider = () => {
+  const theme = useEditorTheme();
+  return <div style={{ width: '1px', height: '18px', background: theme.dividerColor, margin: '0 5px', flexShrink: 0 }} />;
+};
+>>>>>>> upstream/main
 
 // ─── FIND/REPLACE PANEL ───────────────────────────────────────────────────────
 
@@ -411,7 +758,11 @@ const MacroModal: React.FC<{ macros: Macro[]; initialSearch?: string; onSelect: 
   const [search, setSearch] = useState(initialSearch);
   const filtered = macros.filter(m => m.name.toLowerCase().includes(search.toLowerCase()) || m.trigger.toLowerCase().includes(search.toLowerCase()));
   return (
+<<<<<<< HEAD
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+=======
+    <div className="ps-overlay" onClick={onClose}>
+>>>>>>> upstream/main
       <div onClick={e => e.stopPropagation()} style={{ width: '480px', maxHeight: '70vh', background: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -470,7 +821,11 @@ const COLORS = [
   '#fee2e2', '#ffedd5', '#fef3c7', '#dcfce7', '#e0f2fe', '#ede9fe',
 ];
 
+<<<<<<< HEAD
 const ColorPicker: React.FC<{ onSelect: (color: string) => void; onClose: () => void; title: string }> = ({ onSelect, onClose, title }) => (
+=======
+const ColorPicker: React.FC<{ onSelect: (color: string | null) => void; onClose: () => void; title: string }> = ({ onSelect, onClose, title }) => (
+>>>>>>> upstream/main
   <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: '176px' }}>
     <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</div>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px' }}>
@@ -478,12 +833,17 @@ const ColorPicker: React.FC<{ onSelect: (color: string) => void; onClose: () => 
         <div key={color} onClick={() => { onSelect(color); onClose(); }} style={{ width: '24px', height: '24px', background: color, borderRadius: '4px', cursor: 'pointer', border: color === '#ffffff' ? '1px solid #e2e8f0' : '1px solid transparent', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
       ))}
     </div>
+<<<<<<< HEAD
     <button onClick={onClose} style={{ marginTop: '10px', width: '100%', padding: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#64748b', cursor: 'pointer', fontWeight: 600 }}>No Color</button>
+=======
+    <button onClick={() => { onSelect(null); onClose(); }} style={{ marginTop: '10px', width: '100%', padding: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', color: '#64748b', cursor: 'pointer', fontWeight: 600 }}>No Color</button>
+>>>>>>> upstream/main
   </div>
 );
 
 // ─── BORDER DROPDOWN ──────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 const BorderDropdown: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const borders = [
     { label: 'Box Border',    svg: <svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" fill="none" stroke="#1e293b" strokeWidth="1.5"/></svg> },
@@ -492,11 +852,25 @@ const BorderDropdown: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     { label: 'Top Border',    svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="1" x2="13" y2="1" stroke="#1e293b" strokeWidth="2"/><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="0.5"/></svg> },
     { label: 'Bottom Border', svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="13" x2="13" y2="13" stroke="#1e293b" strokeWidth="2"/><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="0.5"/></svg> },
     { label: 'No Border',     svg: <svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2 2"/></svg> },
+=======
+const BorderDropdown: React.FC<{ onSelect: (style: BorderStyle) => void; onClose: () => void }> = ({ onSelect, onClose }) => {
+  const borders: { label: string; value: BorderStyle; svg: React.ReactNode }[] = [
+    { label: 'Box Border',    value: 'box',    svg: <svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" fill="none" stroke="#1e293b" strokeWidth="1.5"/></svg> },
+    { label: 'Left Border',   value: 'left',   svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="1" x2="1" y2="13" stroke="#1e293b" strokeWidth="2"/><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="0.5"/></svg> },
+    { label: 'Right Border',  value: 'right',  svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="13" y1="1" x2="13" y2="13" stroke="#1e293b" strokeWidth="2"/><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="0.5"/></svg> },
+    { label: 'Top Border',    value: 'top',    svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="1" x2="13" y2="1" stroke="#1e293b" strokeWidth="2"/><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="0.5"/></svg> },
+    { label: 'Bottom Border', value: 'bottom', svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="13" x2="13" y2="13" stroke="#1e293b" strokeWidth="2"/><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="0.5"/></svg> },
+    { label: 'No Border',     value: 'none',   svg: <svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" fill="none" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2 2"/></svg> },
+>>>>>>> upstream/main
   ];
   return (
     <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '160px' }}>
       {borders.map(b => (
+<<<<<<< HEAD
         <button key={b.label} onClick={onClose} style={{ width: '100%', padding: '7px 12px', textAlign: 'left', background: 'none', border: 'none', borderRadius: '6px', fontSize: '13px', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 500 }} onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+=======
+        <button key={b.label} onClick={() => { onSelect(b.value); onClose(); }} style={{ width: '100%', padding: '7px 12px', textAlign: 'left', background: 'none', border: 'none', borderRadius: '6px', fontSize: '13px', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 500 }} onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+>>>>>>> upstream/main
           {b.svg} {b.label}
         </button>
       ))}
@@ -516,6 +890,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
     approvedFonts = ['Arial', 'Times New Roman', 'Courier New', 'Calibri'],
     macros = [],
     placeholder: _placeholder = 'Begin typing or use a macro trigger (e.g. ;gs)...',
+<<<<<<< HEAD
     showRulerDefault = true,
     minHeight = '400px',
     readOnly = false,
@@ -524,6 +899,39 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
 ) => {
   // ── UI State ──────────────────────────────────────────────────────────────
   const [showRuler, setShowRuler]             = useState(showRulerDefault);
+=======
+    minHeight = '400px',
+    readOnly = false,
+    suppressToolbar = false,
+    toolbarPortalId,
+    theme: themeProp = 'light',
+    allowThemeToggle = false,
+    tabWidthChars = DEFAULT_TAB_WIDTH_CHARS,
+    onTabWidthChange,
+  },
+  ref
+) => {
+  // themeProp is only the STARTING point -- see allowThemeToggle's doc
+  // comment above. A real saved user preference, once one exists, always
+  // wins over whatever theme an individual screen was built with.
+  const THEME_PREF_KEY = 'ps-editor-theme-preference';
+  const [activeThemeName, setActiveThemeName] = useState<'light' | 'dark'>(() => {
+    if (!allowThemeToggle) return themeProp;
+    try {
+      const saved = localStorage.getItem(THEME_PREF_KEY);
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch { /* ignore */ }
+    return themeProp;
+  });
+  const theme = activeThemeName === 'dark' ? DARK_THEME : LIGHT_THEME;
+  const toggleTheme = () => {
+    const next = activeThemeName === 'dark' ? 'light' : 'dark';
+    setActiveThemeName(next);
+    try { localStorage.setItem(THEME_PREF_KEY, next); } catch { /* ignore quota errors */ }
+  };
+
+  // ── UI State ──────────────────────────────────────────────────────────────
+>>>>>>> upstream/main
   const [showFormatMarks, setShowFormatMarks] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
@@ -531,6 +939,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   const [macroModalSearch, setMacroModalSearch] = useState('');
   const [showFontColor, setShowFontColor]     = useState(false);
   const [showHighlight, setShowHighlight]     = useState(false);
+<<<<<<< HEAD
   const [showBorder, setShowBorder]           = useState(false);
   const [showSpacing, setShowSpacing]         = useState(false);
   const [selectedFont, setSelectedFont]       = useState(approvedFonts[0] || 'Arial');
@@ -546,6 +955,16 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
 
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const pageWidthPx = 680;
+=======
+  const [showShading, setShowShading]         = useState(false);
+  const [showBorder, setShowBorder]           = useState(false);
+  const [showSpacing, setShowSpacing]         = useState(false);
+  const [showTabWidthMenu, setShowTabWidthMenu] = useState(false);
+  const [selectedFont, setSelectedFont]       = useState(approvedFonts[0] || 'Arial');
+  const [fontSize, setFontSize]               = useState('12');
+
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
+>>>>>>> upstream/main
 
   // ── Editor Setup ──────────────────────────────────────────────────────────
   const handleUnknownTrigger = useCallback((partial: string) => {
@@ -559,6 +978,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   );
 
   const tabExtension = React.useMemo(
+<<<<<<< HEAD
     () => createTabExtension(tabStops, pageWidthPx),
     [tabStops, pageWidthPx]
   );
@@ -567,22 +987,74 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
     extensions: [
       StarterKit.configure({}),
       TextStyle, FontFamily, Color, Underline, Subscript, Superscript,
+=======
+    () => createTabExtension(tabWidthChars),
+    [tabWidthChars]
+  );
+
+  // Tracks whether the next content-prop change originated from this
+  // editor's own typing (via onUpdate) vs. an external source (AI
+  // generation, template switch). See the content-sync useEffect below.
+  const isInternalChange = useRef(false);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ underline: false, paragraph: false }),
+      ShadedParagraph,
+      FontSize, FontFamily, Color, Underline, Subscript, Superscript,
+>>>>>>> upstream/main
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Table.configure({ resizable: true }),
       TableRow, TableHeader, TableCell,
+<<<<<<< HEAD
       macroExtension, tabExtension,
+=======
+      macroExtension, tabExtension, FormatMarksExtension,
+>>>>>>> upstream/main
     ],
     content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
+<<<<<<< HEAD
       onChange?.(editor.getHTML());
     },
+=======
+      isInternalChange.current = true;
+      onChange?.(editor.getHTML());
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Keep the font/size dropdowns honest — show what's actually at the
+      // cursor or selection, not just "whatever was last picked." Without
+      // this, the dropdown looked unresponsive: picking a font for a
+      // selection would apply correctly (as an inline mark) but the
+      // dropdown itself wouldn't reflect it when you clicked elsewhere,
+      // making it seem like font changes weren't taking effect at all.
+      const attrs = editor.getAttributes('textStyle');
+      const fontAttr = attrs.fontFamily as string | undefined;
+      setSelectedFont(fontAttr || approvedFonts[0] || 'Arial');
+      const sizeAttr = attrs.fontSize as string | undefined; // e.g. "14pt"
+      setFontSize(sizeAttr ? sizeAttr.replace(/pt$/, '') : '12');
+    },
+>>>>>>> upstream/main
     editorProps: {
       attributes: { class: 'ps-editor-content', spellcheck: 'true' },
     },
   });
 
+<<<<<<< HEAD
+=======
+  // Keep the module-level ref in sync with state, and force ProseMirror to
+  // recompute decorations immediately (decorations() only re-runs when the
+  // editor state changes, so a no-op transaction nudges it after toggling).
+  useEffect(() => {
+    formatMarksVisibleRef.current = showFormatMarks;
+    if (editor) {
+      editor.view.dispatch(editor.state.tr);
+    }
+  }, [showFormatMarks, editor]);
+
+>>>>>>> upstream/main
   // ── Imperative handle — exposes the editor to the Orchestrator ────────────
   useImperativeHandle(ref, () => ({
     getEditor: () => editor ?? null,
@@ -642,11 +1114,31 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   }, [editor]);
 
   // ── Update content when prop changes ──────────────────────────────────────
+<<<<<<< HEAD
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
     }
   }, [content]);
+=======
+  // IMPORTANT: only apply external content changes (AI generation, template
+  // switch, etc.) — never re-apply content that originated from this editor's
+  // own typing. Without this guard, every keystroke triggers React re-render
+  // → new content prop → setContent() → which can silently drop or collapse
+  // characters (notably trailing/plain spaces, which HTML serializers treat
+  // as collapsible whitespace) and resets the cursor to the start.
+
+  useEffect(() => {
+    if (!editor) return;
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
+    if (content !== editor.getHTML()) {
+      editor.commands.setContent(content, { emitUpdate: false }); // don't emit another update event
+    }
+  }, [content, editor]);
+>>>>>>> upstream/main
 
   const insertMacro = (macro: Macro) => {
     editor?.chain().focus().insertContent(macro.content).run();
@@ -672,12 +1164,21 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   const IC = 14;
 
   const renderToolbar = () => (
+<<<<<<< HEAD
     <div onMouseDown={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', alignItems: 'center', padding: '6px 10px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '10px 10px 0 0' }}>
       <select value={selectedFont} onChange={e => { setSelectedFont(e.target.value); editor.chain().focus().setFontFamily(e.target.value).run(); }} style={{ padding: '3px 6px', height: '28px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', fontWeight: 500, color: '#1e293b', background: 'white', cursor: 'pointer', maxWidth: '140px' }}>
         {approvedFonts.map(f => <option key={f} value={f}>{f}</option>)}
       </select>
       <select value={fontSize} onChange={e => setFontSize(e.target.value)} style={{ padding: '3px 4px', height: '28px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', color: '#1e293b', background: 'white', cursor: 'pointer', width: '52px' }}>
         {['8','9','10','11','12','14','16','18','20','24','28','32','36','48','72'].map(s => <option key={s} value={s}>{s}</option>)}
+=======
+    <div onMouseDown={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', alignItems: 'center', padding: '6px 8px', background: theme.toolbarBg, borderBottom: `1px solid ${theme.toolbarBorder}`, borderRadius: '10px 10px 0 0' }}>
+      <select value={selectedFont} onChange={e => { setSelectedFont(e.target.value); editor.chain().focus().setFontFamily(e.target.value).run(); }} style={{ padding: '3px 6px', height: '26px', border: `1px solid ${theme.inputBorder}`, borderRadius: '5px', fontSize: '12px', fontWeight: 500, color: theme.inputText, background: theme.inputBg, cursor: 'pointer', maxWidth: '140px' }}>
+        {approvedFonts.map(f => <option key={f} value={f} style={{ color: theme.panelText, background: theme.panelBg }}>{f}</option>)}
+      </select>
+      <select value={fontSize} onChange={e => { setFontSize(e.target.value); (editor.chain().focus() as any).setFontSize(`${e.target.value}pt`).run(); }} style={{ padding: '3px 4px', height: '26px', border: `1px solid ${theme.inputBorder}`, borderRadius: '5px', fontSize: '12px', color: theme.inputText, background: theme.inputBg, cursor: 'pointer', width: '48px' }}>
+        {['8','9','10','11','12','14','16','18','20','24','28','32','36','48','72'].map(s => <option key={s} value={s} style={{ color: theme.panelText, background: theme.panelBg }}>{s}</option>)}
+>>>>>>> upstream/main
       </select>
       <Divider />
       <TBtn onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} title="Bold (Ctrl+B)"><Bold size={IC} /></TBtn>
@@ -688,6 +1189,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       <TBtn onClick={() => editor.chain().focus().toggleSuperscript().run()} isActive={editor.isActive('superscript')} title="Superscript"><SuperscriptIcon size={IC} /></TBtn>
       <Divider />
       <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+<<<<<<< HEAD
         <TBtn onClick={() => { setShowFontColor(v => !v); setShowHighlight(false); setShowBorder(false); setShowSpacing(false); }} title="Font Color">
           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}><Baseline size={IC} /><span style={{ width: '14px', height: '3px', background: '#dc2626', borderRadius: '1px', marginTop: '1px' }} /></span>
         </TBtn>
@@ -698,6 +1200,18 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}><Highlighter size={IC} /><span style={{ width: '14px', height: '3px', background: '#fde047', borderRadius: '1px', marginTop: '1px' }} /></span>
         </TBtn>
         {showHighlight && <ColorPicker title="Highlight" onSelect={color => editor.chain().focus().setHighlight({ color }).run()} onClose={() => setShowHighlight(false)} />}
+=======
+        <TBtn onClick={() => { setShowFontColor(v => !v); setShowHighlight(false); setShowShading(false); setShowBorder(false); setShowSpacing(false); }} title="Font Color">
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}><Baseline size={IC} /><span style={{ width: '14px', height: '3px', background: '#dc2626', borderRadius: '1px', marginTop: '1px' }} /></span>
+        </TBtn>
+        {showFontColor && <ColorPicker title="Font Color" onSelect={color => color ? editor.chain().focus().setColor(color).run() : editor.chain().focus().unsetColor().run()} onClose={() => setShowFontColor(false)} />}
+      </div>
+      <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        <TBtn onClick={() => { setShowHighlight(v => !v); setShowFontColor(false); setShowShading(false); setShowBorder(false); setShowSpacing(false); }} title="Text Highlight Color">
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}><Highlighter size={IC} /><span style={{ width: '14px', height: '3px', background: '#fde047', borderRadius: '1px', marginTop: '1px' }} /></span>
+        </TBtn>
+        {showHighlight && <ColorPicker title="Highlight" onSelect={color => color ? editor.chain().focus().setHighlight({ color }).run() : editor.chain().focus().unsetHighlight().run()} onClose={() => setShowHighlight(false)} />}
+>>>>>>> upstream/main
       </div>
       <Divider />
       <TBtn onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} title="Align Left"><AlignLeft size={IC} /></TBtn>
@@ -716,15 +1230,42 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       <TBtn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} title="Heading 3"><Heading3 size={IC} /></TBtn>
       <Divider />
       <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+<<<<<<< HEAD
         <TBtn onClick={() => { setShowSpacing(v => !v); setShowFontColor(false); setShowHighlight(false); setShowBorder(false); }} title="Line & Paragraph Spacing"><ArrowUpDown size={IC} /></TBtn>
+=======
+        <TBtn onClick={() => { setShowSpacing(v => !v); setShowFontColor(false); setShowHighlight(false); setShowShading(false); setShowBorder(false); }} title="Line & Paragraph Spacing"><ArrowUpDown size={IC} /></TBtn>
+>>>>>>> upstream/main
         {showSpacing && <SpacingDropdown editor={editor} onClose={() => setShowSpacing(false)} />}
       </div>
       <TBtn onClick={() => setShowFormatMarks(v => !v)} isActive={showFormatMarks} title="Show/Hide Formatting Marks (¶)"><PilcrowSquare size={IC} /></TBtn>
       <Divider />
+<<<<<<< HEAD
       <TBtn onClick={() => editor.chain().focus().setHighlight({ color: '#e0f2fe' }).run()} title="Paragraph Shading"><PaintBucket size={IC} /></TBtn>
       <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
         <TBtn onClick={() => { setShowBorder(v => !v); setShowFontColor(false); setShowHighlight(false); setShowSpacing(false); }} title="Borders"><SquareDashedBottom size={IC} /></TBtn>
         {showBorder && <BorderDropdown onClose={() => setShowBorder(false)} />}
+=======
+      <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        <TBtn onClick={() => { setShowShading(v => !v); setShowFontColor(false); setShowHighlight(false); setShowBorder(false); setShowSpacing(false); }} title="Paragraph Shading — whole-paragraph background">
+          <PaintBucket size={IC} />
+        </TBtn>
+        {showShading && (
+          <ColorPicker
+            title="Paragraph Shading"
+            onSelect={color => (editor.chain().focus() as any).setParagraphShading(color).run()}
+            onClose={() => setShowShading(false)}
+          />
+        )}
+      </div>
+      <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        <TBtn onClick={() => { setShowBorder(v => !v); setShowFontColor(false); setShowHighlight(false); setShowShading(false); setShowSpacing(false); }} title="Borders"><SquareDashedBottom size={IC} /></TBtn>
+        {showBorder && (
+          <BorderDropdown
+            onSelect={style => (editor.chain().focus() as any).setParagraphBorder(style).run()}
+            onClose={() => setShowBorder(false)}
+          />
+        )}
+>>>>>>> upstream/main
       </div>
       <Divider />
       <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
@@ -755,12 +1296,38 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       <Divider />
       <TBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo (Ctrl+Z)"><Undo2 size={IC} /></TBtn>
       <TBtn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo (Ctrl+Shift+Z)"><Redo2 size={IC} /></TBtn>
+<<<<<<< HEAD
       <Divider />
       <TBtn onClick={() => setShowRuler(v => !v)} isActive={showRuler} title="Show/Hide Ruler"><RulerIcon size={IC} /></TBtn>
+=======
+      {allowThemeToggle && (
+        <TBtn onClick={toggleTheme} title={activeThemeName === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {activeThemeName === 'dark' ? <Sun size={IC} /> : <Moon size={IC} />}
+        </TBtn>
+      )}
+      <Divider />
+      <div style={{ position: 'relative' }} onMouseDown={e => e.stopPropagation()}>
+        <TBtn onClick={() => setShowTabWidthMenu(v => !v)} isActive={showTabWidthMenu} title={`Tab width: ${tabWidthChars} spaces`} width="auto">
+          Tab: {tabWidthChars}
+        </TBtn>
+        {showTabWidthMenu && (
+          <div style={{ position: 'absolute', top: '32px', left: 0, background: theme.panelBg, border: `1px solid ${theme.panelBorder}`, borderRadius: '8px', padding: '6px', boxShadow: theme.panelShadow, zIndex: 50, minWidth: '90px' }}>
+            {[2, 4, 6, 8].map(n => (
+              <button key={n} onClick={() => { onTabWidthChange?.(n); setShowTabWidthMenu(false); }}
+                style={{ display: 'block', width: '100%', padding: '6px 10px', textAlign: 'left', background: n === tabWidthChars ? theme.btnBgActive : 'none', color: n === tabWidthChars ? theme.btnTextActive : theme.panelText, border: 'none', borderRadius: '5px', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
+              >
+                {n} spaces
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+>>>>>>> upstream/main
     </div>
   );
 
   return (
+<<<<<<< HEAD
     <div ref={editorWrapperRef} style={{ display: 'flex', flexDirection: 'column', border: '1px solid #e2e8f0', borderRadius: '12px', background: 'white' }}>
       {renderToolbar()}
 
@@ -779,6 +1346,21 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
           />
         </div>
       )}
+=======
+    <EditorThemeContext.Provider value={theme}>
+    <div ref={editorWrapperRef} style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${theme.contentBorder}`, borderRadius: '12px', background: theme.contentBg }}>
+
+      {/* Toolbar — portal-aware:
+          suppressToolbar=false (default) → inline (backward compat for every
+          other usage of this component across the app)
+          suppressToolbar=true + toolbarPortalId → portal to shared sticky header
+          suppressToolbar=true + no portalId → render nothing (unfocused instance) */}
+      {!suppressToolbar && renderToolbar()}
+      {suppressToolbar && toolbarPortalId && (() => {
+        const node = typeof document !== 'undefined' ? document.getElementById(toolbarPortalId) : null;
+        return node ? createPortal(renderToolbar(), node) : null;
+      })()}
+>>>>>>> upstream/main
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight, borderRadius: '0 0 12px 12px' }}>
         <EditorContent editor={editor} />
@@ -789,7 +1371,11 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       )}
 
       <style>{`
+<<<<<<< HEAD
         .ps-editor-content { padding: 20px 24px; min-height: ${minHeight}; outline: none; font-size: 12pt; line-height: 1.8; color: #1e293b; font-family: ${selectedFont}, sans-serif; }
+=======
+        .ps-editor-content { padding: 20px 24px; min-height: ${minHeight}; outline: none; font-size: 12pt; line-height: 1.8; color: #1e293b; font-family: ${approvedFonts[0] || 'Arial'}, sans-serif; }
+>>>>>>> upstream/main
         .ps-editor-content:focus { outline: none; }
         .ps-editor-content p { margin: 0 0 10px 0; }
         .ps-editor-content strong { font-weight: 700; }
@@ -807,6 +1393,24 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
         .ps-editor-content .selectedCell:after { background: rgba(8,145,178,0.12); content: ''; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; position: absolute; z-index: 2; }
         .ps-editor-content .tableWrapper { overflow-x: auto; }
         .ps-editor-content .ps-tab { display: inline-block; white-space: pre; }
+<<<<<<< HEAD
+=======
+        /* Show Formatting Marks — visible dots over space characters.
+           Regular spaces (typed by hitting spacebar) get a light grey dot;
+           non-breaking spaces (inserted by Tab) get a teal dot so the two
+           are visually distinguishable when debugging whitespace. */
+        .ps-fm-space, .ps-fm-nbsp { position: relative; }
+        .ps-fm-space::after, .ps-fm-nbsp::after {
+          content: '·';
+          position: absolute;
+          left: 0; right: 0; top: -2px;
+          text-align: center;
+          font-weight: 700;
+          pointer-events: none;
+        }
+        .ps-fm-space::after { color: #94a3b8; }
+        .ps-fm-nbsp::after  { color: #0891B2; }
+>>>>>>> upstream/main
         .ai-generated-content { background: rgba(8,145,178,0.04); border-left: 2px solid rgba(8,145,178,0.25); padding-left: 8px; transition: background 0.2s; }
         .user-edited-content  { background: rgba(251,191,36,0.04); border-left: 2px solid rgba(251,191,36,0.25); padding-left: 8px; }
         ${showFormatMarks ? `
@@ -817,6 +1421,10 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
         ` : ''}
       `}</style>
     </div>
+<<<<<<< HEAD
+=======
+    </EditorThemeContext.Provider>
+>>>>>>> upstream/main
   );
 });
 

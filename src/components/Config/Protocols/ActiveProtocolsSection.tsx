@@ -30,6 +30,10 @@ import {
   CoverageBar,
   UploadProtocolModal,
   BuildCustomiseModal,
+<<<<<<< HEAD
+=======
+  protocolGroup,
+>>>>>>> upstream/main
 } from './protocolShared';
 
 // ─── ProtocolCard ─────────────────────────────────────────────────────────────
@@ -53,6 +57,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
         style={{
           display: 'flex', alignItems: 'center', gap: '14px',
           padding: '14px 18px',
+<<<<<<< HEAD
           background:   open ? '#1a2744' : '#1e293b',
           border:       `1px solid ${open ? 'rgba(8,145,178,0.3)' : '#334155'}`,
           borderRadius: open ? '10px 10px 0 0' : '10px',
@@ -60,6 +65,15 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
         }}
         onMouseEnter={e => { if (!open) { e.currentTarget.style.background = '#243050'; e.currentTarget.style.borderColor = '#475569'; }}}
         onMouseLeave={e => { if (!open) { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.borderColor = '#334155'; }}}
+=======
+          background:   open ? 'var(--ps-conf-surface-2)' : 'var(--ps-conf-surface)',
+          border:       `1px solid ${open ? 'var(--ps-conf-border-active)' : 'var(--ps-conf-border)'}`,
+          borderRadius: open ? '10px 10px 0 0' : '10px',
+          cursor: 'pointer', transition: 'all 0.12s',
+        }}
+        onMouseEnter={e => { if (!open) { e.currentTarget.style.background = 'var(--ps-conf-surface-2)'; e.currentTarget.style.borderColor = '#475569'; }}}
+        onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'var(--ps-conf-surface)'; e.currentTarget.style.borderColor = '#334155'; }}}
+>>>>>>> upstream/main
       >
         <div style={{ width: '3px', height: '36px', borderRadius: '2px', background: catColor, flexShrink: 0 }} />
 
@@ -80,7 +94,11 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
 
       {/* Expanded panel */}
       {open && (
+<<<<<<< HEAD
         <div style={{ background: '#131c30', border: '1px solid rgba(8,145,178,0.2)', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '16px 20px 18px' }}>
+=======
+        <div style={{ background: 'var(--ps-conf-surface-3)', border: '1px solid rgba(8,145,178,0.2)', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '16px 20px 18px' }}>
+>>>>>>> upstream/main
 
           {/* Stats */}
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', paddingBottom: '14px', marginBottom: '14px', borderBottom: '1px solid #1e293b' }}>
@@ -144,16 +162,37 @@ const ActiveProtocolsSection: React.FC = () => {
   const [search,     setSearch]       = useState('');
   const [showUpload,  setShowUpload]  = useState(false);
   const [showBuild,   setShowBuild]   = useState(false);
+<<<<<<< HEAD
 
   const protocols = useProtocols(p => p.status === 'published');
 
   const filtered = search.trim()
     ? protocols.filter(p =>
+=======
+  const [groupFilter, setGroupFilter] = useState<'All' | ReturnType<typeof protocolGroup>>('All');
+
+  const protocols = useProtocols(p => p.status === 'published');
+
+  const GROUPS: ('All' | ReturnType<typeof protocolGroup>)[] = ['All', 'Surgical Pathology', 'Non-GYN Cytology', 'GYN Cytology', 'Grossing'];
+  const groupCounts = GROUPS.reduce<Record<string, number>>((acc, g) => {
+    acc[g] = g === 'All' ? protocols.length : protocols.filter(p => protocolGroup(p) === g).length;
+    return acc;
+  }, {});
+
+  const byGroup = groupFilter === 'All' ? protocols : protocols.filter(p => protocolGroup(p) === groupFilter);
+
+  const filtered = search.trim()
+    ? byGroup.filter(p =>
+>>>>>>> upstream/main
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.category.toLowerCase().includes(search.toLowerCase()) ||
         p.source.toLowerCase().includes(search.toLowerCase())
       )
+<<<<<<< HEAD
     : protocols;
+=======
+    : byGroup;
+>>>>>>> upstream/main
 
   const grouped = filtered.reduce<Record<string, Protocol[]>>((acc, p) => {
     (acc[p.category] = acc[p.category] || []).push(p);
@@ -174,6 +213,25 @@ const ActiveProtocolsSection: React.FC = () => {
         </div>
       </div>
 
+<<<<<<< HEAD
+=======
+      {/* Group filter */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        {GROUPS.map(g => {
+          const active = groupFilter === g;
+          return (
+            <button
+              key={g}
+              onClick={() => setGroupFilter(g)}
+              className={active ? 'ps-tat-filter-btn ps-tat-filter-btn--active' : 'ps-tat-filter-btn'}
+            >
+              {g} <span style={{ opacity: 0.7 }}>({groupCounts[g]})</span>
+            </button>
+          );
+        })}
+      </div>
+
+>>>>>>> upstream/main
       {/* Search */}
       <SearchBar value={search} onChange={setSearch} />
 
@@ -210,6 +268,7 @@ export const ActionBtn: React.FC<{ children: React.ReactNode; onClick: () => voi
 );
 
 export const OutlineBtn: React.FC<{ children: React.ReactNode; onClick: () => void }> = ({ children, onClick }) => (
+<<<<<<< HEAD
   <button onClick={onClick} style={{ padding: '8px 16px', borderRadius: '7px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit' }}
     onMouseEnter={e => { e.currentTarget.style.color = '#f1f5f9'; e.currentTarget.style.borderColor = '#475569'; }}
     onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; }}
@@ -221,13 +280,24 @@ export const TealBtn: React.FC<{ children: React.ReactNode; onClick: () => void 
     onMouseEnter={e => e.currentTarget.style.background = 'rgba(8,145,178,0.18)'}
     onMouseLeave={e => e.currentTarget.style.background = 'rgba(8,145,178,0.1)'}
   >{children}</button>
+=======
+  <button onClick={onClick} className="ps-conf-btn-secondary">{children}</button>
+);
+
+export const TealBtn: React.FC<{ children: React.ReactNode; onClick: () => void }> = ({ children, onClick }) => (
+  <button onClick={onClick} className="ps-conf-btn-teal-accent">{children}</button>
+>>>>>>> upstream/main
 );
 
 export const SearchBar: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (
   <div style={{ position: 'relative', marginBottom: '16px' }}>
     <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: '14px', pointerEvents: 'none' }}>🔍</span>
     <input value={value} onChange={e => onChange(e.target.value)} placeholder="Search protocols…"
+<<<<<<< HEAD
       style={{ width: '100%', padding: '9px 12px 9px 36px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '13px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+=======
+      style={{ width: '100%', padding: '9px 12px 9px 36px', background: 'var(--ps-conf-surface)', border: '1px solid var(--ps-conf-border)', borderRadius: '8px', fontSize: '13px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+>>>>>>> upstream/main
       onFocus={e => (e.currentTarget.style.borderColor = '#0891B2')}
       onBlur={e  => (e.currentTarget.style.borderColor = '#334155')}
     />

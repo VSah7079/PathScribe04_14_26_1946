@@ -1,0 +1,217 @@
+﻿import { useState, useEffect } from 'react';
+import '../formedrix.css';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from "@contexts/AuthContext";
+import { useLogout } from '@hooks/useLogout';
+import { SunIcon, MoonIcon, HelpIcon, MonitorIcon, WarningIcon } from '../components/Icons';
+import CaseSearchBar from '../components/Search/CaseSearchBar';
+
+export default function Home() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const handleLogout = useLogout();
+
+  // --- UI State ---
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+
+  // --- Theme State ---
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'auto'>('dark');
+
+  // --- Navigation Handler with Unsaved Data Check ---
+
+  // --- Quick Links Data (MVP - Hardcoded) ---
+const quickLinks = {
+  protocols: [
+    { title: 'CAP Cancer Protocols', url: 'https://www.cap.org/protocols-and-guidelines' },
+    { title: 'WHO Classification', url: 'https://www.who.int/publications' }
+  ],
+  references: [
+    { title: 'PathologyOutlines', url: 'https://www.pathologyoutlines.com' },
+    { title: 'UpToDate', url: 'https://www.uptodate.com' }
+  ],
+  systems: [
+    { title: 'Hospital LIS', url: '#' },
+    { title: 'Lab Management', url: '#' }
+  ]
+};
+
+  // --- Theme Engine ---
+  useEffect(() => {
+    const root = document.documentElement;
+    const applyTheme = (theme: 'light' | 'dark') => {
+      if (theme === 'dark') {
+        root.style.setProperty('--bg-color', '#000000');
+        root.style.setProperty('--text-color', '#ffffff');
+        root.style.setProperty('--text-secondary', '#94a3b8');
+        root.style.setProperty('--nav-bg', 'rgba(0, 0, 0, 0.4)');
+        root.style.setProperty('--border-color', 'rgba(255, 255, 255, 0.1)');
+        root.style.setProperty('--bg-filter', 'brightness(0.4) contrast(1.1)');
+      } else {
+        root.style.setProperty('--bg-color', '#f8fafc');
+        root.style.setProperty('--text-color', '#0f172a');
+        root.style.setProperty('--text-secondary', '#475569');
+        root.style.setProperty('--nav-bg', 'rgba(255, 255, 255, 0.8)');
+        root.style.setProperty('--border-color', 'rgba(0, 0, 0, 0.1)');
+        root.style.setProperty('--bg-filter', 'brightness(0.7) saturate(0.8)');
+      }
+    };
+
+    if (currentTheme === 'auto') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const updateAuto = () => applyTheme(mediaQuery.matches ? 'dark' : 'light');
+      updateAuto();
+      mediaQuery.addEventListener('change', updateAuto);
+      return () => mediaQuery.removeEventListener('change', updateAuto);
+    } else {
+      applyTheme(currentTheme);
+    }
+  }, [currentTheme]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    document.body.style.margin = '0';
+    return () => { clearTimeout(timer); };
+  }, []);
+
+const cards = [
+  { title: 'Worklist', description: 'View and manage pending pathology cases', route: '/worklist', color: '#0891B2', image: '/worklist.jpg' },
+  { title: 'Configuration', description: 'System settings and AI preferences', route: '/configuration', color: '#F59E0B', image: '/config.jpg' },
+  { title: 'Search', description: 'Search completed and in-progress cases', route: '/search', color: '#8B5CF6', image: '/search.jpg' },
+  { title: 'System Audit', description: 'Review system activity and audit trails', route: '/audit', color: '#EF4444', image: '/logs.jpg' },
+
+  // New tile
+  {
+    title: 'My Contribution',
+    description: 'Workload • Quality • TAT • Trends',
+    route: '/contribution',
+    color: '#0EA5E9',
+    image: '/my_contributions.jpg'
+  }
+];
+
+  return (
+    <div className="ps-page" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', opacity: isLoaded ? 1 : 0, transition: 'opacity 0.8s ease, background-color 0.4s ease' }}>
+      {/* Background */}
+      <div className="ps-page-bg" style={{ backgroundImage: 'url(/main_background.jpg)', filter: 'var(--bg-filter)', transition: 'filter 0.5s ease' }} />
+      <div className="ps-page-gradient" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, var(--bg-color) 100%)' }} />
+
+      {/* UI Content */}
+      <div className="ps-page-content">
+
+
+        {/* Case Search Bar */}
+        <div className="ps-search-strip">
+          <CaseSearchBar />
+        </div>
+
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 60px', overflow: 'hidden' }}>
+          <header style={{ marginBottom: '32px' }}>
+            <h1 style={{ fontSize: '48px', fontWeight: 900, margin: 0, letterSpacing: '-2px' }}>
+              Welcome back, <span style={{ color: '#0891B2' }}>{user?.name ? user.name.split(',')[0] : 'Doctor'}</span>
+            </h1>
+            <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginTop: '12px' }}>
+              The AI models are updated and synchronized with the latest CAP protocols.
+            </p>
+          </header>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+          <div className="grid grid-cols-3 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1 gap-8 lg:gap-7 md:gap-6 sm:gap-5 px-10 lg:px-10 md:px-5 sm:px-4">
+            {cards.map((card, index) => (
+              <div
+                key={card.title}
+                onClick={() => navigate(card.route)}
+                onMouseEnter={() => setHoveredCard(index)}
+                onMouseLeave={() => setHoveredCard(null)}
+                className={`relative cursor-pointer overflow-hidden rounded-2xl bg-slate-800 border h-60 transition-all duration-400 group ${
+                  hoveredCard === index 
+                    ? 'border-amber-500 shadow-2xl scale-105 -translate-y-3' 
+                    : 'border-slate-700 shadow-lg'
+                }`}
+              >
+                {/* Accent Line */}
+                <div 
+                  className={`absolute top-0 left-0 right-0 h-1 transition-colors duration-400 ${
+                    hoveredCard === index ? 'bg-amber-500' : 'bg-transparent'
+                  }`}
+                />
+
+                {/* Radial Gradient Background */}
+                <div 
+                  className="absolute inset-0 pointer-events-none transition-all duration-400"
+                  style={{
+                    background: hoveredCard === index 
+                      ? `radial-gradient(circle at 80% 20%, ${card.color}15, transparent 65%)`
+                      : 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.02), transparent 50%)'
+                  }}
+                />
+
+                {/* Texture Layer */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+
+                {/* Content */}
+                <div className="relative z-20 h-full flex flex-col p-8 sm:p-6">
+                  {/* Icon & Arrow */}
+                  <div className="flex justify-between items-start mb-auto">
+                    <div 
+                      className={`w-14 h-14 rounded-xl border flex items-center justify-center text-2xl transition-all duration-400 ${
+                        hoveredCard === index 
+                          ? 'bg-amber-500/20 border-amber-500/40 shadow-lg shadow-amber-500/30' 
+                          : 'bg-black/30 border-white/10'
+                      }`}
+                    >
+                      {card.icon}
+                    </div>
+
+                    <div 
+                      className={`text-xl transition-all duration-400 ${
+                        hoveredCard === index 
+                          ? 'opacity-100 translate-x-0' 
+                          : 'opacity-0 -translate-x-3'
+                      }`}
+                      style={{ color: card.color }}
+                    >
+                      →
+                    </div>
+                  </div>
+
+                  {/* Text */}
+                  <div className="mt-5">
+                    <h3 
+                      className={`text-xl sm:text-lg font-extrabold -tracking-tight mb-2 transition-colors duration-300 ${
+                        hoveredCard === index ? 'text-white' : 'text-slate-100'
+                      }`}
+                      style={{ color: hoveredCard === index ? card.color : undefined }}
+                    >
+                      {card.title}
+                    </h3>
+                    <p 
+                      className={`text-sm leading-relaxed transition-colors duration-300 ${
+                        hoveredCard === index ? 'text-slate-300' : 'text-slate-500'
+                      }`}
+                    >
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t border-slate-700 px-10 py-4 flex justify-between items-center text-xs text-slate-600 lg:px-10 md:px-5 sm:px-4">
+          <div>© 2026 PathScribe AI Systems • Premium</div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-amber-500 rounded-full shadow-lg shadow-amber-500/50" />
+            SYSTEMS OPERATIONAL
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}

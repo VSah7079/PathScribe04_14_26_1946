@@ -43,6 +43,17 @@ export interface EditorField {
   id: string; label: string; type: FieldType; required: boolean;
   snomed: string; icd: string; options: FieldOption[];
   hint?: string; visibleWhen?: VisibilityCondition;
+<<<<<<< HEAD
+=======
+  /** Groups related fields under one marker card in the Biomarkers display
+   *  (e.g. "ER Status", "ER % Positivity", "ER Intensity" all tagged
+   *  markerGroup: "ER" render as one card with those details listed
+   *  together, rather than as separate, disconnected badges). Only
+   *  meaningful within a template's "biomarkers" section. Falls back to
+   *  the field's own label if unset, so older/untagged templates still
+   *  degrade gracefully rather than breaking. */
+  markerGroup?: string;
+>>>>>>> upstream/main
 }
 
 export interface EditorSection {
@@ -442,7 +453,11 @@ const PreviewModal: React.FC<{ template: EditorTemplate; onClose: () => void }> 
   };
 
   return (
+<<<<<<< HEAD
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+=======
+    <div className="ps-overlay" onClick={onClose}>
+>>>>>>> upstream/main
       <div onClick={e => e.stopPropagation()} style={{ width: '660px', maxHeight: '88vh', background: '#fff', borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -519,6 +534,11 @@ const SynopticEditor: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
   const [searchParams] = useSearchParams();
   const isDuplicate  = searchParams.get('mode') === 'duplicate';
+<<<<<<< HEAD
+=======
+  const fromRequest  = searchParams.get('fromRequest') === 'true';
+const requestMeta  = searchParams.get('meta') ? JSON.parse(decodeURIComponent(searchParams.get('meta')!)) : null;
+>>>>>>> upstream/main
   const fromSection  = searchParams.get('from');
   const backTarget   = fromSection === 'review' ? '/configuration?tab=protocols&section=review' : '/configuration?tab=protocols';
   const isNew        = !templateId || templateId === 'new';
@@ -638,6 +658,57 @@ const SynopticEditor: React.FC = () => {
 
       {/* ── Main layout ── */}
       <div style={{ display: 'flex', gap: '24px', padding: '28px 40px 80px', maxWidth: '1200px', margin: '0 auto' }}>
+<<<<<<< HEAD
+=======
+
+        {/* ── Request Details Banner (shown when opened from a template request message) ── */}
+        {fromRequest && requestMeta && (
+          <div style={{
+            position: 'absolute', left: 40, right: 40, top: 72,
+            padding: '12px 20px', borderRadius: 10, zIndex: 50,
+            background: 'rgba(8,145,178,0.08)', border: '1px solid rgba(8,145,178,0.3)',
+            display: 'flex', alignItems: 'flex-start', gap: 16, fontSize: 13,
+          }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>📋</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>
+                Template Request from {requestMeta.requestedByName}
+                <span style={{
+                  marginLeft: 10, fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                  borderRadius: 20, background: 'rgba(8,145,178,0.18)', color: '#38bdf8',
+                  textTransform: 'uppercase', letterSpacing: '0.04em', verticalAlign: 'middle',
+                }}>
+                  {requestMeta.urgency}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 24px', fontSize: 12 }}>
+                {[
+                  ['Standard', requestMeta.standard],
+                  ['Organ', requestMeta.organ],
+                  ['Procedure', requestMeta.procedure],
+                  ['Base', requestMeta.baseTemplateName ?? 'None specified'],
+                ].map(([l, v]) => (
+                  <span key={l} style={{ color: '#64748b' }}>
+                    {l}: <strong style={{ color: '#cbd5e1' }}>{v}</strong>
+                  </span>
+                ))}
+              </div>
+              {requestMeta.keyFields && (
+                <details style={{ marginTop: 6 }}>
+                  <summary style={{ fontSize: 11, color: '#38bdf8', cursor: 'pointer' }}>
+                    View requested fields
+                  </summary>
+                  <pre style={{
+                    margin: '6px 0 0', padding: '8px 12px', borderRadius: 6,
+                    background: 'rgba(0,0,0,0.25)', color: '#94a3b8',
+                    fontSize: 11, fontFamily: 'inherit', whiteSpace: 'pre-wrap', lineHeight: 1.5,
+                  }}>{requestMeta.keyFields}</pre>
+                </details>
+              )}
+            </div>
+          </div>
+        )}
+>>>>>>> upstream/main
         <div style={{ flex: 1, minWidth: 0 }}>
           {registryEntry?.status === 'needs_changes' && registryEntry.reviewNote && (
             <div style={{ marginBottom: '16px', padding: '14px 18px', borderRadius: '10px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)' }}>
@@ -734,20 +805,33 @@ const SynopticEditor: React.FC = () => {
       {showPreview && <PreviewModal template={template} onClose={() => setShowPreview(false)} />}
 
       {showSubmitConfirm && (
+<<<<<<< HEAD
         <div onClick={() => setShowSubmitConfirm(false)} style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+=======
+        <div className="ps-overlay" style={{ zIndex: 9500 }} onClick={() => setShowSubmitConfirm(false)}>
+>>>>>>> upstream/main
           <div onClick={e => e.stopPropagation()} style={{ width: '420px', background: T.surface, borderRadius: '14px', border: `1px solid ${T.border}`, boxShadow: '0 25px 50px rgba(0,0,0,0.6)', padding: '24px' }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: T.text, marginBottom: '8px' }}>Submit for Review?</div>
             <p style={{ fontSize: '13px', color: T.muted, lineHeight: 1.7, margin: '0 0 20px' }}>This will move <strong>{template.name || 'this template'}</strong> to the Review Queue and notify admins and clinical leads. You won't be able to edit it until it's returned for changes.</p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+<<<<<<< HEAD
               <button onClick={() => setShowSubmitConfirm(false)} style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleSubmitForReview} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(8,145,178,0.4)', background: 'rgba(8,145,178,0.15)', color: T.accent, fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Submit for Review →</button>
+=======
+              <button onClick={() => setShowSubmitConfirm(false)} className="ps-conf-btn-secondary">Cancel</button>
+              <button onClick={handleSubmitForReview} className="ps-conf-btn-teal-accent" style={{ fontWeight: 700 }}>Submit for Review →</button>
+>>>>>>> upstream/main
             </div>
           </div>
         </div>
       )}
 
       {showDiscardConfirm && (
+<<<<<<< HEAD
         <div style={{ position: 'fixed', inset: 0, zIndex: 50000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+=======
+        <div className="ps-overlay" style={{ zIndex: 9500 }}>
+>>>>>>> upstream/main
           <div onClick={e => e.stopPropagation()} style={{ width: '420px', background: T.surface, borderRadius: '14px', border: '1px solid rgba(239,68,68,0.3)', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', padding: '24px' }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: T.text, marginBottom: '8px' }}>Unsaved Changes</div>
             <p style={{ fontSize: '13px', color: T.muted, lineHeight: 1.7, margin: '0 0 20px' }}>You have unsaved changes to <strong>{template.name || 'this template'}</strong>. Would you like to save a draft before leaving, or discard your changes?</p>

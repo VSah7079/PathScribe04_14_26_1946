@@ -24,7 +24,11 @@ export type OrganisationType =
 export type LisType =
   | 'WinPath' | 'Telepath' | 'Epic' | 'CoPath' | 'Beaker' | 'Other';
 
+<<<<<<< HEAD
 export type WorkflowMode = 'copilot' | 'orchestration';
+=======
+export type WorkflowMode = 'assist' | 'orchestration';
+>>>>>>> upstream/main
 
 export type TemplateStandard = 'CAP' | 'RCPath';
 export type CodingSystem = 'SNOMED' | 'ICD10' | 'ICD11' | 'LOINC' | 'ICDO' | 'CPT' | 'OPCS4';
@@ -34,6 +38,20 @@ export interface Organisation {
   name:          string;
   shortName:     string;
   type:          OrganisationType;
+<<<<<<< HEAD
+=======
+  /** Real link to the enterprise this organisation belongs to — matches
+   *  EnterpriseConfig.id (contexts/SystemConfigContext.tsx). Added to
+   *  close a real gap: Case.originEnterpriseId was previously hardcoded
+   *  to a literal string at accession time ('ENT-ACME') rather than
+   *  resolved from anything, and that literal didn't even match
+   *  EnterpriseConfig's own default id ('ENT-DEFAULT') — two separate,
+   *  disagreeing hardcoded values for what was supposed to be the same
+   *  single demo enterprise. This field is the real, resolvable source
+   *  AccessionPage.tsx now reads from instead of hardcoding either one.
+   */
+  enterpriseId:  string;
+>>>>>>> upstream/main
   country:       'UK' | 'US' | 'AU' | 'CA';
   locale:        string;
   timezone:      string;
@@ -80,6 +98,10 @@ const MOCK_ORGANISATIONS: Organisation[] = [
     name: 'Desert Valley Medical Center',
     shortName: 'DVMC',
     type: 'health_system',
+<<<<<<< HEAD
+=======
+    enterpriseId: 'ENT-DEFAULT',
+>>>>>>> upstream/main
     country: 'US',
     locale: 'en-US',
     timezone: 'America/Phoenix',
@@ -99,7 +121,11 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.dvmc.org:2575',
         defaultTemplateStandard: 'CAP',
         defaultLocale: 'en-US',
+<<<<<<< HEAD
         defaultWorkflowMode: 'copilot',
+=======
+        defaultWorkflowMode: 'assist',
+>>>>>>> upstream/main
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
         secureEmailGateway: 'Paubox',
       },
@@ -121,6 +147,10 @@ const MOCK_ORGANISATIONS: Organisation[] = [
     name: 'Manchester University NHS Foundation Trust',
     shortName: 'MFT',
     type: 'nhs_foundation_trust',
+<<<<<<< HEAD
+=======
+    enterpriseId: 'ENT-DEFAULT',
+>>>>>>> upstream/main
     country: 'UK',
     locale: 'en-GB',
     timezone: 'Europe/London',
@@ -140,7 +170,11 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.mft.nhs.uk:2575',
         defaultTemplateStandard: 'RCPath',
         defaultLocale: 'en-GB',
+<<<<<<< HEAD
         defaultWorkflowMode: 'copilot',
+=======
+        defaultWorkflowMode: 'assist',
+>>>>>>> upstream/main
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'OPCS4', 'LOINC'],
       },
       {
@@ -155,7 +189,11 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.mft.nhs.uk:2575',
         defaultTemplateStandard: 'RCPath',
         defaultLocale: 'en-GB',
+<<<<<<< HEAD
         defaultWorkflowMode: 'copilot',
+=======
+        defaultWorkflowMode: 'assist',
+>>>>>>> upstream/main
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'OPCS4', 'LOINC'],
       },
       {
@@ -170,7 +208,11 @@ const MOCK_ORGANISATIONS: Organisation[] = [
         lisEndpoint: 'hl7://lis.mft.nhs.uk:2575',
         defaultTemplateStandard: 'RCPath',
         defaultLocale: 'en-GB',
+<<<<<<< HEAD
         defaultWorkflowMode: 'copilot',
+=======
+        defaultWorkflowMode: 'assist',
+>>>>>>> upstream/main
         codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'OPCS4', 'LOINC'],
       },
     ],
@@ -186,6 +228,93 @@ const MOCK_ORGANISATIONS: Organisation[] = [
       },
     ],
   },
+<<<<<<< HEAD
+=======
+  {
+    id: 'ORG-MPA',
+    name: 'Midwest Pathology Associates',
+    shortName: 'MPA',
+    type: 'independent_lab',
+    enterpriseId: 'ENT-DEFAULT',
+    country: 'US',
+    locale: 'en-US',
+    timezone: 'America/Chicago',
+    contractStart: '2026-04-01',
+    contractTier: 'professional',
+    active: true,
+    sites: [
+      {
+        id: 'SITE-MPA-MAIN',
+        organisationId: 'ORG-MPA',
+        name: 'Midwest Pathology Associates — Chicago',
+        shortName: 'MPA',
+        siteCode: 'MPA',
+        address: '200 E Illinois St, Chicago, IL 60611',
+        active: true,
+        lisType: 'CoPath',
+        lisEndpoint: 'hl7://lis.midwestpath.com:2575',
+        defaultTemplateStandard: 'CAP',
+        defaultLocale: 'en-US',
+        defaultWorkflowMode: 'assist',
+        codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
+        secureEmailGateway: 'Paubox',
+      },
+    ],
+    labs: [
+      {
+        id: 'LAB-MPA-PATH',
+        siteId: 'SITE-MPA-MAIN',
+        organisationId: 'ORG-MPA',
+        name: 'Surgical Pathology',
+        subspecialties: ['Breast', 'GI', 'GU', 'Gynecologic', 'Lung'],
+        pathologistIds: ['PATH-US-001'],
+        poolIds: ['POOL-GYN-MPA'],
+      },
+    ],
+  },
+  {
+    id: 'ORG-HFHS',
+    name: 'Henry Ford Health System',
+    shortName: 'HFHS',
+    type: 'health_system',
+    enterpriseId: 'ENT-DEFAULT',
+    country: 'US',
+    locale: 'en-US',
+    timezone: 'America/Detroit',
+    contractStart: '2026-04-01',
+    contractTier: 'enterprise',
+    active: true,
+    sites: [
+      {
+        id: 'SITE-HFHS-MAIN',
+        organisationId: 'ORG-HFHS',
+        name: 'Henry Ford Hospital — Main Campus',
+        shortName: 'HFH',
+        siteCode: 'HFHS',
+        address: '2799 W Grand Blvd, Detroit, MI 48202',
+        active: true,
+        lisType: 'CoPath',
+        lisEndpoint: 'hl7://lis.henryford.org:2575',
+        defaultTemplateStandard: 'CAP',
+        defaultLocale: 'en-US',
+        defaultWorkflowMode: 'assist',
+        codingSystems: ['SNOMED', 'ICD10', 'ICDO', 'LOINC', 'CPT'],
+        secureEmailGateway: 'Paubox',
+      },
+    ],
+    labs: [
+      {
+        id: 'LAB-HFHS-PATH',
+        siteId: 'SITE-HFHS-MAIN',
+        organisationId: 'ORG-HFHS',
+        name: 'Department of Pathology',
+        subspecialties: ['Breast', 'GI', 'GU', 'Lung', 'Gynecologic', 'Neuropathology', 'Hematopathology'],
+        pathologistIds: ['PATH-US-001', 'PATH-US-002'],
+        poolIds: ['POOL-GYN-US'],
+      },
+    ],
+  },
+>>>>>>> upstream/main
 ];
 
 // ─── In-memory lookup ─────────────────────────────────────────
@@ -239,13 +368,59 @@ export function getSiteBySiteCode(siteCode: string): Site | null {
 export function getOrganisationByHospitalId(hospitalId: string): Organisation | null {
   // Legacy field mapping — hospitalId maps to organisationId in new model
   const legacyMap: Record<string, string> = {
+<<<<<<< HEAD
     'HOSP-001': 'ORG-DVMC',
     'HOSP-MFT': 'ORG-MFT',
+=======
+    'HOSP-001':  'ORG-DVMC',
+    'HOSP-MFT':  'ORG-MFT',
+    'HOSP-MPA':  'ORG-MPA',
+    'HOSP-HFHS': 'ORG-HFHS',
+>>>>>>> upstream/main
   };
   const orgId = legacyMap[hospitalId];
   return orgId ? (ORG_BY_ID.get(orgId) ?? null) : null;
 }
 
+<<<<<<< HEAD
+=======
+/**
+ * Reverse of getOrganisationByHospitalId — given a session's
+ * organisationId, returns the legacy hospital ID a new Case should carry
+ * as originHospitalId. Added June 2026 for the Accession page: Origin
+ * Hospital should be derived from the accessioning user's own
+ * organisation, not a free-pick dropdown across every organisation in the
+ * system — a mis-click there would put a case under the wrong tenant
+ * entirely, which is exactly the boundary caseAccessControl.ts exists to
+ * protect. Single-sourced here rather than duplicating the legacy map in
+ * AccessionPage.tsx.
+ */
+export function getHospitalIdForOrganisation(organisationId: string): string | null {
+  const legacyReverseMap: Record<string, string> = {
+    'ORG-DVMC': 'HOSP-001',
+    'ORG-MFT':  'HOSP-MFT',
+    'ORG-MPA':  'HOSP-MPA',
+    'ORG-HFHS': 'HOSP-HFHS',
+  };
+  return legacyReverseMap[organisationId] ?? null;
+}
+
+/** Fallback site for an organisation when no explicit originSiteId was
+ *  captured at accessioning — used by ModeAInterfaceService's context
+ *  resolution. Deliberately just the first entry in the organisation's
+ *  real sites[] array, not a dedicated "primary site" field — no such
+ *  field exists on Organisation today, and this codebase already has one
+ *  documented lesson (Site.siteCode being shared across MFT's three
+ *  sites) about not inventing a designation that isn't actually modeled.
+ *  If a genuine "which site is primary" concept is needed later, it
+ *  should be a real field with an admin UI to set it, not inferred from
+ *  array order. */
+export function getDefaultSiteId(organisationId: string): string | null {
+  const org = MOCK_ORGANISATIONS.find(o => o.id === organisationId);
+  return org?.sites?.[0]?.id ?? null;
+}
+
+>>>>>>> upstream/main
 /** Get display name for a hospital ID (used in UI until full migration) */
 export function getOrganisationDisplayName(hospitalId?: string | null): string | null {
   if (!hospitalId) return null;
@@ -259,3 +434,22 @@ export function getOrganisationShortName(hospitalId?: string | null): string | n
   const org = getOrganisationByHospitalId(hospitalId);
   return org?.shortName ?? null;
 }
+<<<<<<< HEAD
+=======
+
+/** Real, critical fix, extracted for testability: the real, stable
+ *  scope for MPI (patient-matching) purposes is this LAB's own
+ *  enterprise, not whichever hospital/clinic happens to have referred
+ *  a given case. A real bug had this scoped to the referring
+ *  organisation's own id instead — the same real patient referred by
+ *  two different hospitals to the same lab would incorrectly get two
+ *  separate MPI identities, directly undermining the reason
+ *  IPatientIndexService.ts exists (reliably surfacing a patient's full
+ *  case history). Falls back to the same 'ENT-DEFAULT' literal
+ *  EnterpriseConfig itself uses when nothing resolves, matching
+ *  Case.originEnterpriseId's own established fallback rather than a
+ *  second, different one. */
+export function resolveMpiScopeEnterpriseId(originOrganisation: { enterpriseId: string } | null | undefined): string {
+  return originOrganisation?.enterpriseId ?? 'ENT-DEFAULT';
+}
+>>>>>>> upstream/main

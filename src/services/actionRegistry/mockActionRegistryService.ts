@@ -58,6 +58,11 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   'VOICE_CASE_COMMENT', 'VOICE_SPECIMEN_COMMENT', 'VOICE_INTERNAL_NOTE', 'VOICE_ADD_SYNOPTIC', 'VOICE_FLAGS',
   // Internal notes drawer actions
   'NOTE_ADD', 'NOTE_DICTATE', 'NOTE_VISIBILITY_PRIVATE', 'NOTE_VISIBILITY_SHARED', 'NOTE_SAVE', 'NOTE_CANCEL', 'NOTE_CLOSE',
+<<<<<<< HEAD
+=======
+  // Finalisation flow
+  'OPEN_PRE_FINALISE', 'FINALISE_AND_NEXT', 'FINALISE_CONFIRM', 'FINALISE_CANCEL',
+>>>>>>> upstream/main
   // Post-finalization
   'ADD_ADDENDUM', 'ADD_AMENDMENT', 'SIGNOUT_NEXT',
   // Navigation + cancel
@@ -67,7 +72,24 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   // AI Review Mode (triage before finalize)
   'AI_REVIEW_CONFIRM', 'AI_REVIEW_OVERRIDE', 'AI_REVIEW_SKIP', 'AI_REVIEW_NEXT', 'AI_REVIEW_CANCEL',
   // Pool Case actions
+<<<<<<< HEAD
   'POOL_ACCEPT_CASE', 'POOL_PASS_CASE',
+=======
+  'POOL_ACCEPT_CASE', 'POOL_PASS_CASE', 'INTRAOP_LOG_SURGEON_REPORT',
+  // Case Team actions
+  'OPEN_CASE_TEAM', 'CASE_TEAM_ADD', 'CASE_TEAM_ASSIGN',
+  // Worklist participation filters
+  'TABLE_FILTER_PARTICIPATING', 'TABLE_FILTER_COUNTERSIGN', 'TABLE_FILTER_POOL',
+  // Config navigation
+  'OPEN_ROUTING_RULES', 'TEST_ROUTING', 'OPEN_PARTICIPATION_TYPES',
+  'COMP_OPEN_SIDECAR', 'COMP_ORDER_OPEN', 'COMP_ORDER_PLACE', 'COMP_ORDER_CANCEL',
+  'FLAG_OPEN_MANAGER', 'FLAG_APPLY_STAT',
+  'TAT_SHOW_FIRST_TOUCH', 'TAT_SHOW_TOTAL_CASE', 'TAT_SHOW_FROZEN_SECTION',
+  'TAT_SHOW_GROSSING', 'TAT_SHOW_SIGN_OUT', 'TAT_SHOW_COLD_ISCHEMIA',
+  'TAT_SHOW_CONSULT_RESPONSE', 'TAT_SHOW_CONSULT_AWAITING',
+  'FOCUS_CASE_SEARCH', 'DELEGATE_CONSULTATION',
+  'SAVE_DRAFT', 'DISCARD_CHANGES', 'TEMPLATE_SELECT',
+>>>>>>> upstream/main
   // Search page
   'SEARCH_EXECUTE', 'SEARCH_CLEAR', 'SEARCH_LOAD_SAVED',
   // Flag manager
@@ -97,7 +119,11 @@ const CUSTOM_EVENT_ACTIONS = new Set([
 // The AppShell listener checks filterType/isEditing to route correctly.
 // ─────────────────────────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 const MOCK_ACTIONS: SystemAction[] = [
+=======
+const SEED_ACTIONS: SystemAction[] = [
+>>>>>>> upstream/main
 
 // ── DELEGATION — Case Hand-off & Review ────────────────────────────────────
   {
@@ -215,6 +241,26 @@ const MOCK_ACTIONS: SystemAction[] = [
     isActive: true,
   },
   {
+<<<<<<< HEAD
+=======
+    id: 'INTRAOP_LOG_SURGEON_REPORT',
+    label: 'Log Surgeon Report',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS275',
+    // Only meaningful — and only listened for — while a single entry's
+    // "Report to Surgeon" note field is already open (see
+    // IntraopQueuePage.tsx), the same way POOL_ACCEPT_CASE is only
+    // listened for while its modal is open. There's never more than one
+    // possible target, so no separate "which entry" selection step is
+    // needed.
+    voiceTriggers: ['report logged', 'surgeon notified', 'log the report', 'confirm report'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+>>>>>>> upstream/main
     id: 'POOL_PASS_CASE',
     label: 'Pass Pool Case',
     category: 'SYNOPTIC',
@@ -249,6 +295,42 @@ const MOCK_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
+<<<<<<< HEAD
+=======
+    id: 'OPEN_INTRAOP_QUEUE', label: 'Open Intraop Queue', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS270',
+    voiceTriggers: [
+      'open intraop queue', 'show intraop queue', 'open intraoperative queue',
+      'unlinked intraoperative entries', 'intraop queue',
+    ],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_START_NEW_ENTRY', label: 'Start New Intraop Entry', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS271',
+    voiceTriggers: ['start new intraop entry', 'start intraop entry', 'new intraop entry', 'start entry'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_TOUCH_PREP_PERFORMED', label: 'Log Touch Prep Performed', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS272',
+    voiceTriggers: ['log touch prep performed', 'touch prep performed', 'touch prep done'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_TOUCH_PREP_SKIP', label: 'Skip Touch Prep', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS273',
+    voiceTriggers: ['skip touch prep', 'no touch prep', 'direct to frozen'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_FROZEN_SECTION_CUT', label: 'Log Frozen Section Cut', category: 'NAVIGATION',
+    shortcut: '', internalKey: 'F13+PS274',
+    voiceTriggers: ['log frozen section cut', 'frozen section cut', 'frozen cut logged'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+>>>>>>> upstream/main
     id: 'GO_BACK', label: 'Go Back', category: 'SYSTEM',
     shortcut: 'Alt+ArrowLeft', internalKey: ACTION_MAP['system.goBack']?.internalKey ?? 'F13+PS003',
     voiceTriggers: ['go back', 'back', 'previous page', 'go to previous page'],
@@ -335,6 +417,7 @@ const MOCK_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
+<<<<<<< HEAD
     id: 'NEXT_TAB', label: 'Next Tab', category: 'NAVIGATION',
     shortcut: 'Alt+.', internalKey: ACTION_MAP['nav.nextTab']?.internalKey ?? 'F14+PS003',
     voiceTriggers: ['next tab', 'go to next tab', 'tab right'],
@@ -344,6 +427,49 @@ const MOCK_ACTIONS: SystemAction[] = [
     id: 'PREVIOUS_TAB', label: 'Previous Tab', category: 'NAVIGATION',
     shortcut: 'Alt+,', internalKey: ACTION_MAP['nav.previousTab']?.internalKey ?? 'F14+PS004',
     voiceTriggers: ['previous tab', 'go to previous tab', 'tab left', 'prior tab'],
+=======
+    id: 'NEXT_TAB', label: 'Next Tab / Section', category: 'NAVIGATION',
+    shortcut: 'Alt+.', internalKey: ACTION_MAP['nav.nextTab']?.internalKey ?? 'F14+PS003',
+    voiceTriggers: ['next tab', 'go to next tab', 'tab right', 'next section', 'go to next section'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'PREVIOUS_TAB', label: 'Previous Tab / Section', category: 'NAVIGATION',
+    shortcut: 'Alt+,', internalKey: ACTION_MAP['nav.previousTab']?.internalKey ?? 'F14+PS004',
+    voiceTriggers: ['previous tab', 'go to previous tab', 'tab left', 'prior tab', 'previous section', 'go to previous section', 'prior section'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+
+  // ── ACCESSION — only when the Accession page is active. NEXT_TAB/
+  // PREVIOUS_TAB above already work here for free (NAVIGATION is a
+  // GLOBAL_CATEGORIES member, eligible everywhere) — AccessionPage.tsx
+  // just needs to listen for those two ids alongside the ones below.
+  // ADD_SPECIMEN and SUBMIT_ACCESSION reuse internalKeys reserved in
+  // systemActions.ts (specimen.add, case.create) that were cataloged but
+  // never wired to a live action until now.
+  {
+    id: 'ADD_SPECIMEN', label: 'Add Specimen', category: 'ACCESSION',
+    shortcut: 'Alt+N', internalKey: ACTION_MAP['specimen.add']?.internalKey ?? 'F20+PS001',
+    voiceTriggers: ['add specimen', 'add another specimen', 'new specimen', 'add a specimen'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'SUBMIT_ACCESSION', label: 'Submit Case', category: 'ACCESSION',
+    shortcut: 'Alt+Enter', internalKey: ACTION_MAP['case.create']?.internalKey ?? 'F19+PS003',
+    voiceTriggers: ['submit case', 'submit accession', 'complete accession', 'finish accession'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'ACCESSION_IMPORT_ORDER', label: 'Import From Order', category: 'ACCESSION',
+    shortcut: 'Alt+I', internalKey: ACTION_MAP['accession.importOrder']?.internalKey ?? 'F24+PS034',
+    voiceTriggers: ['import order', 'import from order', 'search orders', 'find order'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'ACCESSION_CASE_COMMENT', label: 'Add Case Comment', category: 'ACCESSION',
+    shortcut: 'Alt+Shift+C', internalKey: ACTION_MAP['accession.caseComment']?.internalKey ?? 'F24+PS035',
+    voiceTriggers: ['add case comment', 'open case comment', 'case comment'],
+>>>>>>> upstream/main
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
@@ -504,6 +630,7 @@ const MOCK_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
+<<<<<<< HEAD
     // Worklist filter for completed cases
     id: 'TABLE_FILTER_COMPLETED', label: 'Show Completed', category: VOICE_CONTEXT.WORKLIST,
     shortcut: '', internalKey: ACTION_MAP['table.clearSearch']?.internalKey ?? 'F15+PS018',
@@ -511,6 +638,8 @@ const MOCK_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
+=======
+>>>>>>> upstream/main
     // Delete a row in a table — context guards which tables support this
     id: 'TABLE_DELETE', label: 'Delete Row', category: VOICE_CONTEXT.WORKLIST,
     shortcut: '', internalKey: ACTION_MAP['table.clearSearch']?.internalKey ?? 'F15+PS018',
@@ -534,22 +663,73 @@ const MOCK_ACTIONS: SystemAction[] = [
   {
     id: 'SIGN_OUT', label: 'Sign Out Case', category: VOICE_CONTEXT.REPORTING,
     shortcut: 'Alt+Shift+S', internalKey: ACTION_MAP['system.signOut']?.internalKey ?? 'F13+PS006',
+<<<<<<< HEAD
     voiceTriggers: [
       'sign out case', 'sign out the case',
       'finalise', 'finalize', 'finalise case', 'finalize case',
+=======
+    voiceTriggers: ['sign out case', 'sign out the case', 'case sign out'],
+    learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
+  },
+  {
+    id: 'OPEN_PRE_FINALISE', label: 'Finalise Report', category: VOICE_CONTEXT.REPORTING,
+    shortcut: 'Alt+F', internalKey: (ACTION_MAP as any)['system.finalise']?.internalKey ?? 'F13+PS010',
+    voiceTriggers: [
+      'finalise', 'finalize', 'finalise report', 'finalize report',
+      'finalise case', 'finalize case', 'sign off', 'sign off report',
+      'submit report', 'complete report',
+>>>>>>> upstream/main
     ],
+    learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
+  },
+  {
+<<<<<<< HEAD
+    id: 'NEXT_FIELD', label: 'Next Field', category: VOICE_CONTEXT.REPORTING,
+    shortcut: 'Tab', internalKey: ACTION_MAP['editor.nextField']?.internalKey ?? 'F16+PS001',
+    voiceTriggers: ['next field', 'tab forward', 'move to next field'],
+=======
+    id: 'FINALISE_AND_NEXT', label: 'Finalise and Next Case', category: VOICE_CONTEXT.REPORTING,
+    shortcut: 'Alt+Shift+F', internalKey: (ACTION_MAP as any)['system.finaliseNext']?.internalKey ?? 'F13+PS011',
+    voiceTriggers: [
+      'finalise and next', 'finalize and next',
+      'finalise next', 'finalize next',
+      'sign off and next', 'complete and next',
+    ],
+    learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
+  },
+  {
+    id: 'FINALISE_CONFIRM', label: 'Confirm Finalise', category: VOICE_CONTEXT.REPORTING,
+    shortcut: '', internalKey: '',
+    voiceTriggers: ['confirm finalise', 'confirm finalize', 'confirm sign off', 'yes finalise', 'yes finalize'],
+    learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
+  },
+  {
+    id: 'FINALISE_CANCEL', label: 'Cancel Finalise', category: VOICE_CONTEXT.REPORTING,
+    shortcut: 'Escape', internalKey: '',
+    voiceTriggers: ['cancel finalise', 'cancel finalize', 'cancel sign off', 'go back'],
     learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
   },
   {
     id: 'NEXT_FIELD', label: 'Next Field', category: VOICE_CONTEXT.REPORTING,
     shortcut: 'Tab', internalKey: ACTION_MAP['editor.nextField']?.internalKey ?? 'F16+PS001',
-    voiceTriggers: ['next field', 'tab forward', 'move to next field'],
+    voiceTriggers: [
+      'next field', 'next question', 'go forward', 'forward',
+      'tab forward', 'move to next field', 'move forward', 'next item',
+    ],
+>>>>>>> upstream/main
     learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
   },
   {
     id: 'PREVIOUS_FIELD', label: 'Previous Field', category: VOICE_CONTEXT.REPORTING,
     shortcut: 'Shift+Tab', internalKey: ACTION_MAP['editor.previousField']?.internalKey ?? 'F16+PS002',
+<<<<<<< HEAD
     voiceTriggers: ['previous field', 'tab back', 'move to previous field', 'go back one field'],
+=======
+    voiceTriggers: [
+      'previous field', 'previous question', 'go back', 'back',
+      'tab back', 'move to previous field', 'go back one field', 'back one', 'prior field',
+    ],
+>>>>>>> upstream/main
     learnedTriggers: [], requiredRole: 'Pathologist', isActive: true,
   },
 
@@ -988,8 +1168,461 @@ const MOCK_ACTIONS: SystemAction[] = [
     voiceTriggers: ['delete all', 'delete all selected', 'delete all messages', 'empty deleted'],
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
+<<<<<<< HEAD
 ];
 
+=======
+
+  // ── CASE TEAM ─────────────────────────────────────────────────────────────
+  {
+    id: 'OPEN_CASE_TEAM',
+    label: 'Open Case Team',
+    category: 'SYNOPTIC',
+    shortcut: 'Alt+T',
+    internalKey: 'F13+PS200',
+    voiceTriggers: ['open case team', 'case team', 'manage team', 'show team', 'team members'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'CASE_TEAM_ADD',
+    label: 'Add Team Member',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS201',
+    voiceTriggers: ['add team member', 'add participant', 'add to team', 'assign participant'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'CASE_TEAM_ASSIGN',
+    label: 'Assign to Participation Type',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS202',
+    voiceTriggers: ['assign as', 'assign to', 'set as primary', 'set as consultant', 'set as grossing'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+
+  // ── WORKLIST — participation filters ──────────────────────────────────────
+  {
+    id: 'TABLE_FILTER_PARTICIPATING',
+    label: 'Filter My Cases',
+    category: 'WORKLIST',
+    shortcut: '',
+    internalKey: 'F15+PS030',
+    voiceTriggers: ['my cases', 'cases i am on', 'my participating cases', 'filter my cases', 'show my cases'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TABLE_FILTER_COUNTERSIGN',
+    label: 'Filter Awaiting Countersign',
+    category: 'WORKLIST',
+    shortcut: '',
+    internalKey: 'F15+PS031',
+    voiceTriggers: ['awaiting countersign', 'needs countersign', 'pending countersign', 'countersign cases'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'TABLE_FILTER_POOL',
+    label: 'Filter Pool Cases',
+    category: 'WORKLIST',
+    shortcut: '',
+    internalKey: 'F15+PS032',
+    voiceTriggers: ['pool cases', 'show pool', 'unassigned cases', 'filter pool'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+
+  // ── ROUTING (Config context) ───────────────────────────────────────────────
+  {
+    id: 'OPEN_ROUTING_RULES',
+    label: 'Open Routing Rules',
+    category: 'SYSTEM',
+    shortcut: '',
+    internalKey: 'F13+PS210',
+    voiceTriggers: ['open routing rules', 'routing rules', 'case routing', 'open case routing'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TEST_ROUTING',
+    label: 'Test Routing Rule',
+    category: 'SYSTEM',
+    shortcut: '',
+    internalKey: 'F13+PS211',
+    voiceTriggers: ['test routing', 'test rule', 'check routing', 'route this specimen'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── PARTICIPATION TYPES (Config context) ──────────────────────────────────
+  {
+    id: 'OPEN_PARTICIPATION_TYPES',
+    label: 'Open Participation Types',
+    category: 'SYSTEM',
+    shortcut: '',
+    internalKey: 'F13+PS220',
+    voiceTriggers: ['participation types', 'open participation types', 'case participation', 'manage participation types'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── Computational Sidecar ───────────────────────────────────────────────────
+  {
+    id: 'COMP_OPEN_SIDECAR',
+    label: 'Open Computational Panel',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS230',
+    voiceTriggers: ['open computational', 'show computationals', 'open results panel', 'lab results', 'show lab panel'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'COMP_ORDER_OPEN',
+    label: 'Order Additional Test',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS231',
+    voiceTriggers: ['order test', 'order additional test', 'add test', 'order panel', 'order lab test'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'COMP_ORDER_PLACE',
+    label: 'Place Computational Orders',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS232',
+    voiceTriggers: ['place order', 'place orders', 'confirm order', 'submit order', 'send order'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'COMP_ORDER_CANCEL',
+    label: 'Cancel Computational Order',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS233',
+    voiceTriggers: ['cancel order', 'cancel test', 'cancel lab order', 'remove order'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+
+  // ── Flag Management ─────────────────────────────────────────────────────────
+  {
+    id: 'FLAG_OPEN_MANAGER',
+    label: 'Open Flag Manager',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS240',
+    voiceTriggers: ['open flags', 'manage flags', 'show flags', 'flag case', 'add flag'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'FLAG_APPLY_STAT',
+    label: 'Apply STAT Flag',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS241',
+    voiceTriggers: ['flag stat', 'mark stat', 'stat flag', 'urgent stat', 'rush processing'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── Add Orders — Block/Recut, Specimen, Stain tiers ─────────────────────────
+  // Four separate actions, not one generic "add orders" plus manual tab
+  // clicks — someone saying "add block" already knows which tier they
+  // mean, and landing them straight on that tab is the whole point of
+  // having the tiers be distinct in the first place. ADD_ORDERS alone
+  // (no tier specified) opens to whichever tab the case's current
+  // status puts first, matching the button's own default.
+  {
+    id: 'ADD_ORDERS',
+    label: 'Add Orders',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS040',
+    voiceTriggers: ['add orders', 'open add orders', 'new order'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'ADD_ORDERS_BLOCK',
+    label: 'Add Block / Recut',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS041',
+    voiceTriggers: ['add block', 'add recut', 'add cassette', 'order deeper levels', 'recut block'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'ADD_ORDERS_STAIN',
+    label: 'Order Stain / Sectioning',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS042',
+    voiceTriggers: ['order stain', 'order sectioning', 'add stain', 'order ihc', 'order levels'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'ADD_ORDERS_SPECIMEN',
+    label: 'Add New Specimen',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F24+PS043',
+    voiceTriggers: ['add new specimen', 'add specimen container', 'new tissue container'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── Report / Dirty State ────────────────────────────────────────────────────
+  {
+    id: 'SAVE_DRAFT',
+    label: 'Save Report Draft',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS250',
+    voiceTriggers: ['save draft', 'save report', 'save changes', 'save my work'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+  {
+    id: 'DISCARD_CHANGES',
+    label: 'Discard Unsaved Changes',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS251',
+    voiceTriggers: ['discard changes', 'undo all changes', 'revert changes', 'cancel changes'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+
+  // ── Report Template ─────────────────────────────────────────────────────────
+  {
+    id: 'TEMPLATE_SELECT',
+    label: 'Select Report Template',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F13+PS260',
+    voiceTriggers: ['select template', 'change template', 'choose template', 'switch template'],
+    learnedTriggers: [],
+    requiredRole: 'Pathologist',
+    isActive: true,
+  },
+
+
+
+  // ── Case Search — NavBar identifier search bar ──────────────────────────────
+  {
+    id: 'FOCUS_CASE_SEARCH',
+    label: 'Focus Case Search',
+    category: 'SYSTEM',
+    shortcut: '',
+    internalKey: 'F13+PS011',
+    voiceTriggers: ['search case', 'find case', 'look up case', 'case search', 'search identifier', 'open case search'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── Consultation delegation ───────────────────────────────────────────────────
+  {
+    id: 'DELEGATE_CONSULTATION',
+    label: 'Request Consultation',
+    category: 'SYNOPTIC',
+    shortcut: '',
+    internalKey: 'F18+PS014',
+    voiceTriggers: ['request consultation', 'request review', 'send for review', 'consult colleague', 'second opinion', 'peer review'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+  // ── GROSSING — reachable from the same page as the SYNOPTIC actions
+  // above, not a separate context; grossing isn't a separate page.
+  // "Mark grossed" and "confirm triage" are the two that actually
+  // change real case state (block status, specimen triage
+  // confirmation) — built alongside these triggers since neither
+  // existed anywhere before this pass (no UI advanced a block's
+  // status, no state tracked triage confirmation).
+  {
+    id: 'GROSSING_NEXT_BLOCK', label: 'Next Block', category: 'SYNOPTIC',
+    shortcut: 'Alt+.', internalKey: 'F24+PS036',
+    voiceTriggers: ['next block', 'go to next block'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'GROSSING_PREVIOUS_BLOCK', label: 'Previous Block', category: 'SYNOPTIC',
+    shortcut: 'Alt+,', internalKey: 'F24+PS037',
+    voiceTriggers: ['previous block', 'go to previous block', 'prior block'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'GROSSING_MARK_GROSSED', label: 'Mark Block Grossed', category: 'SYNOPTIC',
+    shortcut: 'Alt+G', internalKey: 'F24+PS038',
+    voiceTriggers: ['mark grossed', 'block grossed', 'block complete', 'grossing complete'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'GROSSING_CONFIRM_TRIAGE', label: 'Confirm Triage', category: 'SYNOPTIC',
+    shortcut: '', internalKey: 'F24+PS039',
+    voiceTriggers: ['confirm triage', 'triage complete', 'triage confirmed'],
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+
+  // ── TAT Trend tile switching — Contribution Dashboard ────────────────────────
+  {
+    id: 'TAT_SHOW_FIRST_TOUCH',
+    label: 'Show First Touch TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS001',
+    voiceTriggers: ['show first touch', 'first touch trend', 'first touch tat'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_TOTAL_CASE',
+    label: 'Show Total Case TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS002',
+    voiceTriggers: ['show total case', 'total case trend', 'total tat'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_FROZEN_SECTION',
+    label: 'Show Frozen Section TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS003',
+    voiceTriggers: ['show frozen section', 'frozen section trend', 'frozen section tat', 'intraop trend'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_GROSSING',
+    label: 'Show Grossing TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS004',
+    voiceTriggers: ['show grossing', 'grossing trend', 'grossing tat'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_SIGN_OUT',
+    label: 'Show Sign-Out TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS005',
+    voiceTriggers: ['show sign out', 'sign out trend', 'sign out tat', 'signout trend'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_COLD_ISCHEMIA',
+    label: 'Show Cold Ischaemia TAT Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS006',
+    voiceTriggers: ['show cold ischemia', 'cold ischemia trend', 'cold ischaemia', 'ischemia trend'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_CONSULT_RESPONSE',
+    label: 'Show My Response Time Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS007',
+    voiceTriggers: ['show my response time', 'response time trend', 'consultation response trend', 'how fast do i respond'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+  {
+    id: 'TAT_SHOW_CONSULT_AWAITING',
+    label: 'Show Awaiting Response Trend',
+    category: 'CONTRIBUTION',
+    shortcut: '',
+    internalKey: 'F25+PS008',
+    voiceTriggers: ['show awaiting response', 'awaiting response trend', 'how long am i waiting', 'consultation awaiting'],
+    learnedTriggers: [],
+    requiredRole: 'All Staff',
+    isActive: true,
+  },
+
+// ─────────────────────────────────────────────────────────────────────────────
+];
+
+// Action registry persistence
+// Admins edit shortcuts + voice triggers in the UI — these must survive deploys.
+// Pattern: seed from SEED_ACTIONS, load from localStorage, write back on updateAction.
+// New actions added to SEED_ACTIONS are merged in on load (migration guard).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ACTIONS_STORAGE_KEY = 'ps_action_registry';
+
+function loadActions(): SystemAction[] {
+  try {
+    const raw = localStorage.getItem(ACTIONS_STORAGE_KEY);
+    if (!raw) return SEED_ACTIONS.map(a => ({ ...a }));
+    const stored: SystemAction[] = JSON.parse(raw);
+    const storedIds = new Set(stored.map(a => a.id));
+    // Migration: add any new seed actions not yet in storage
+    const newActions = SEED_ACTIONS.filter(a => !storedIds.has(a.id));
+    return [...stored, ...newActions];
+  } catch {
+    return SEED_ACTIONS.map(a => ({ ...a }));
+  }
+}
+
+function persistActions(actions: SystemAction[]) {
+  try {
+    localStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(actions));
+  } catch {
+    // localStorage unavailable — degrade gracefully
+  }
+}
+
+>>>>>>> upstream/main
 // ─────────────────────────────────────────────────────────────────────────────
 // Text helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1032,6 +1665,12 @@ function dispatchInternalKey(internalKey: string) {
 
 let currentAppContext: string = VOICE_CONTEXT.WORKLIST;
 
+<<<<<<< HEAD
+=======
+// ─── Live registry — loaded from storage, mutated by updateAction ─────────────
+const LIVE_ACTIONS: SystemAction[] = loadActions();
+
+>>>>>>> upstream/main
 // ─────────────────────────────────────────────────────────────────────────────
 // Learning layer — persisted to localStorage so mappings survive page refresh
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1089,17 +1728,28 @@ function saveMappings(mappings: LocalLearnedMapping[]) {
   }
 }
 
+<<<<<<< HEAD
 // Sync learnedTriggers from storage into MOCK_ACTIONS so findActionByTrigger
 // picks them up immediately on first load (e.g. after a page refresh).
 function syncLearnedTriggersToActions(mappings: LocalLearnedMapping[]) {
   for (const action of MOCK_ACTIONS) {
+=======
+// Sync learnedTriggers from storage into LIVE_ACTIONS so findActionByTrigger
+// picks them up immediately on first load (e.g. after a page refresh).
+function syncLearnedTriggersToActions(mappings: LocalLearnedMapping[]) {
+  for (const action of LIVE_ACTIONS) {
+>>>>>>> upstream/main
     action.learnedTriggers = mappings
       .filter(m => m.actionId === action.id)
       .map(m => m.transcript);
   }
 }
 
+<<<<<<< HEAD
 let learnedMappings: LocalLearnedMapping[] = loadMappings().filter(m => !!m.transcript && !!m.actionId);
+=======
+const learnedMappings: LocalLearnedMapping[] = loadMappings().filter(m => !!m.transcript && !!m.actionId);
+>>>>>>> upstream/main
 syncLearnedTriggersToActions(learnedMappings);
 
 // ── Pending miss window ───────────────────────────────────────────────────
@@ -1110,6 +1760,7 @@ const pendingMisses: LocalPendingMiss[] = [];
 // ─────────────────────────────────────────────────────────────────────────────
 export const mockActionRegistryService: IActionRegistryService = {
 
+<<<<<<< HEAD
   getActions: () => MOCK_ACTIONS,
 
   getActionById: (id: string) => MOCK_ACTIONS.find(a => a.id === id),
@@ -1117,6 +1768,18 @@ export const mockActionRegistryService: IActionRegistryService = {
   updateAction: async (id: string, updates: Partial<SystemAction>) => {
     const index = MOCK_ACTIONS.findIndex(a => a.id === id);
     if (index !== -1) MOCK_ACTIONS[index] = { ...MOCK_ACTIONS[index], ...updates };
+=======
+  getActions: () => LIVE_ACTIONS,
+
+  getActionById: (id: string) => LIVE_ACTIONS.find(a => a.id === id),
+
+  updateAction: async (id: string, updates: Partial<SystemAction>) => {
+    const index = LIVE_ACTIONS.findIndex(a => a.id === id);
+    if (index !== -1) {
+      LIVE_ACTIONS[index] = { ...LIVE_ACTIONS[index], ...updates };
+      persistActions(LIVE_ACTIONS);
+    }
+>>>>>>> upstream/main
   },
 
   setCurrentContext: (c: string) => {
@@ -1130,7 +1793,11 @@ onAction: (callback: (actionId: string) => void) => {
     return () => window.removeEventListener('VOICE_ACTION_TRIGGERED', handler);
   },
   findActionByTrigger: (transcript: string): SystemAction | undefined => {
+<<<<<<< HEAD
     const eligible = MOCK_ACTIONS.filter(
+=======
+    const eligible = LIVE_ACTIONS.filter(
+>>>>>>> upstream/main
       a => a.isActive && (
         GLOBAL_CATEGORIES.has(a.category) ||
         a.category === currentAppContext
@@ -1217,7 +1884,11 @@ onAction: (callback: (actionId: string) => void) => {
     };
     pendingMisses.push(miss);
     // Compute candidates now so onMissRecorded subscribers receive them
+<<<<<<< HEAD
     const candidates = computeCandidates(transcript, MOCK_ACTIONS);
+=======
+    const candidates = computeCandidates(transcript, LIVE_ACTIONS);
+>>>>>>> upstream/main
     window.dispatchEvent(new CustomEvent('VOICE_COMMAND_NOT_FOUND', { detail: transcript }));
     window.dispatchEvent(new CustomEvent('VOICE_MISS_RECORDED', { detail: { miss, candidates } }));
     return miss;
@@ -1272,7 +1943,11 @@ onAction: (callback: (actionId: string) => void) => {
     saveMappings(learnedMappings);
 
     // Sync onto the live action so it works immediately (no reload needed)
+<<<<<<< HEAD
     const action = MOCK_ACTIONS.find(a => a.id === actionId);
+=======
+    const action = LIVE_ACTIONS.find(a => a.id === actionId);
+>>>>>>> upstream/main
     if (action) {
       action.learnedTriggers = [...(action.learnedTriggers ?? []), trigger];
     }
@@ -1298,7 +1973,11 @@ onAction: (callback: (actionId: string) => void) => {
     saveMappings(learnedMappings);
 
     // Remove from the live action's learnedTriggers
+<<<<<<< HEAD
     const action = MOCK_ACTIONS.find(a => a.id === actionId);
+=======
+    const action = LIVE_ACTIONS.find(a => a.id === actionId);
+>>>>>>> upstream/main
     if (action) {
       action.learnedTriggers = (action.learnedTriggers ?? []).filter(tr => tr !== t);
     }

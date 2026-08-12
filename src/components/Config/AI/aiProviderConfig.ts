@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────
 
 export type AiProviderId =
+<<<<<<< HEAD
   | 'anthropic'
   | 'openai'
   | 'azure_openai'
@@ -30,10 +31,35 @@ export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }
     { id: 'claude-haiku-4-5-20251001',label: 'Claude Haiku 4.5 (fastest)' },
   ],
   openai: [
+=======
+  | 'structured_messages'     // Anthropic-shaped: system as a separate field, SSE content_block_delta streaming
+  | 'chat_completions'        // OpenAI-shaped: messages array with system role, /chat/completions
+  | 'chat_completions_managed'// Same body shape as chat_completions, deployment-name + resource-endpoint routing
+  | 'model_gateway'           // Multi-model hosting platform: region + modelId routing, wraps multiple underlying formats
+  | 'structured_content'      // Gemini-shaped: contents/parts array, separate systemInstruction field
+  | 'mock'        // Demo / offline testing — no API calls
+  | 'custom';
+
+// ─── Per-provider model options ───────────────────────────────
+// Labels here are shown directly in the admin configuration dropdown
+// (AiProviderSettings.tsx) — kept as real vendor/model names deliberately,
+// since an admin picking a model needs to know which real model their
+// actual account/contract covers. Only the AiProviderId keys above (an
+// internal type, never shown to users) are protocol-shape-named.
+
+export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }[]> = {
+  structured_messages: [
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4 (recommended)' },
+    { id: 'claude-opus-4-8',   label: 'Claude Opus 4 (highest accuracy)' },
+    { id: 'claude-haiku-4-5',label: 'Claude Haiku 4.5 (fastest)' },
+  ],
+  chat_completions: [
+>>>>>>> upstream/main
     { id: 'gpt-4o',        label: 'GPT-4o (recommended)' },
     { id: 'gpt-4-turbo',   label: 'GPT-4 Turbo' },
     { id: 'gpt-4',         label: 'GPT-4' },
   ],
+<<<<<<< HEAD
   azure_openai: [
     { id: 'gpt-4o',      label: 'GPT-4o (Azure)' },
     { id: 'gpt-4-turbo', label: 'GPT-4 Turbo (Azure)' },
@@ -43,6 +69,24 @@ export const PROVIDER_MODELS: Record<AiProviderId, { id: string; label: string }
     { id: 'anthropic.claude-opus-4-20250514-v1:0',   label: 'Claude Opus 4 via Bedrock' },
     { id: 'amazon.nova-pro-v1:0',                    label: 'Amazon Nova Pro' },
   ],
+=======
+  chat_completions_managed: [
+    { id: 'gpt-4o',      label: 'GPT-4o (Azure)' },
+    { id: 'gpt-4-turbo', label: 'GPT-4 Turbo (Azure)' },
+  ],
+  model_gateway: [
+    { id: 'anthropic.claude-sonnet-4-6-v1:0', label: 'Claude Sonnet 4 via Bedrock' },
+    { id: 'anthropic.claude-opus-4-8-v1:0',   label: 'Claude Opus 4 via Bedrock' },
+    { id: 'amazon.nova-pro-v1:0',                    label: 'Amazon Nova Pro' },
+  ],
+  structured_content: [
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (recommended)' },
+    { id: 'gemini-1.5-pro',   label: 'Gemini 1.5 Pro (highest accuracy)' },
+  ],
+  mock: [
+    { id: 'mock-v1', label: 'Mock (instant, no API cost — demo only)' },
+  ],
+>>>>>>> upstream/main
   custom: [
     { id: 'custom', label: 'Custom model (set in endpoint config)' },
   ],
@@ -58,6 +102,7 @@ export interface AiProviderConfig {
   modelId: string;
 
   /**
+<<<<<<< HEAD
    * Only for azure_openai: your deployment name.
    * e.g. 'my-gpt4-deployment'
    */
@@ -74,6 +119,24 @@ export interface AiProviderConfig {
    * e.g. 'us-east-1'
    */
   awsRegion?: string;
+=======
+   * Only for chat_completions_managed: your deployment name.
+   * e.g. 'my-gpt4-deployment'
+   */
+  managedDeploymentName?: string;
+
+  /**
+   * Only for chat_completions_managed: your resource endpoint.
+   * e.g. 'https://my-org.openai.azure.com'
+   */
+  managedEndpoint?: string;
+
+  /**
+   * Only for model_gateway: hosting region.
+   * e.g. 'us-east-1'
+   */
+  gatewayRegion?: string;
+>>>>>>> upstream/main
 
   /**
    * Only for custom: full base URL of the OpenAI-compatible endpoint.
@@ -102,6 +165,7 @@ export interface AiProviderConfig {
 // Set these in your .env / deployment config.
 // VITE_ prefix makes them available to the Vite build.
 //
+<<<<<<< HEAD
 //   VITE_AI_PROVIDER=anthropic
 //   VITE_AI_MODEL=claude-sonnet-4-20250514
 //   VITE_AI_PROXY_URL=/api/ai
@@ -114,16 +178,39 @@ export interface AiProviderConfig {
 
 function envDefaults(): AiProviderConfig {
   const providerId = (import.meta.env.VITE_AI_PROVIDER ?? 'anthropic') as AiProviderId;
+=======
+//   VITE_AI_PROVIDER=structured_messages   # structured_messages | chat_completions | chat_completions_managed | model_gateway | structured_content | mock | custom
+//   VITE_AI_MODEL=claude-sonnet-4-6
+//   VITE_AI_PROXY_URL=/api/ai
+//   VITE_AI_DEV_MODE=true          # enables direct browser→API calls
+//   VITE_AI_API_KEY=sk-ant-...     # only used when DEV_MODE=true
+//   VITE_AI_MANAGED_ENDPOINT=https://...
+//   VITE_AI_MANAGED_DEPLOYMENT=...
+//   VITE_AI_GATEWAY_REGION=us-east-1
+//   VITE_AI_CUSTOM_ENDPOINT=https://...
+
+function envDefaults(): AiProviderConfig {
+  const providerId = (import.meta.env.VITE_AI_PROVIDER ?? 'structured_messages') as AiProviderId;
+>>>>>>> upstream/main
   const isDevMode  = import.meta.env.VITE_AI_DEV_MODE === 'true';
 
   return {
     providerId,
+<<<<<<< HEAD
     modelId:              import.meta.env.VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-20250514',
     proxyUrl:             import.meta.env.VITE_AI_PROXY_URL ?? '/api/ai',
     apiKey:               isDevMode ? (import.meta.env.VITE_AI_API_KEY ?? '') : undefined,
     azureDeploymentName:  import.meta.env.VITE_AI_AZURE_DEPLOYMENT,
     azureEndpoint:        import.meta.env.VITE_AI_AZURE_ENDPOINT,
     awsRegion:            import.meta.env.VITE_AI_AWS_REGION ?? 'us-east-1',
+=======
+    modelId:              import.meta.env.VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-6',
+    proxyUrl:             import.meta.env.VITE_AI_PROXY_URL ?? '/api/ai',
+    apiKey:               isDevMode ? (import.meta.env.VITE_AI_API_KEY ?? '') : undefined,
+    managedDeploymentName:import.meta.env.VITE_AI_MANAGED_DEPLOYMENT,
+    managedEndpoint:      import.meta.env.VITE_AI_MANAGED_ENDPOINT,
+    gatewayRegion:        import.meta.env.VITE_AI_GATEWAY_REGION ?? 'us-east-1',
+>>>>>>> upstream/main
     customEndpoint:       import.meta.env.VITE_AI_CUSTOM_ENDPOINT,
     maxTokens:            Number(import.meta.env.VITE_AI_MAX_TOKENS ?? 1000),
   };
@@ -134,9 +221,15 @@ function envDefaults(): AiProviderConfig {
 export interface OrgAiConfig {
   providerId: AiProviderId;
   modelId: string;
+<<<<<<< HEAD
   azureDeploymentName?: string;
   azureEndpoint?: string;
   awsRegion?: string;
+=======
+  managedDeploymentName?: string;
+  managedEndpoint?: string;
+  gatewayRegion?: string;
+>>>>>>> upstream/main
   customEndpoint?: string;
   maxTokens?: number;
   // Note: API keys are NEVER stored here — they live in your backend secrets manager

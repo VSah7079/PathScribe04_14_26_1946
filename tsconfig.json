@@ -29,16 +29,35 @@
     },
 
     // Linting
+<<<<<<< HEAD
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+=======
+    "strict": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitReturns": false,
+    
+>>>>>>> upstream/main
     // Node types
     "types": ["node"]
   },
 
+<<<<<<< HEAD
   "include": ["src"],
+=======
+  "include": ["src", "firestore.rules.test.ts"],
+>>>>>>> upstream/main
 
   "exclude": [
     "node_modules",

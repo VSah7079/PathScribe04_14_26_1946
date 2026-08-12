@@ -18,6 +18,10 @@ export interface Message {
   subject: string;
   body: string;
   caseNumber?: string;
+<<<<<<< HEAD
+=======
+  configLink?: string;
+>>>>>>> upstream/main
   timestamp: Date;
   isUrgent: boolean;
   isRead: boolean;

@@ -18,6 +18,10 @@ import '../../pathscribe.css';
 import { internalNoteService, INTERNAL_NOTE_TYPE_LABELS } from '../../services';
 import type { InternalNote, InternalNoteType, InternalNoteVisibility } from '../../services';
 import { useVoice, reportDictationCorrection } from '../../contexts/VoiceProvider';
+<<<<<<< HEAD
+=======
+import ConfirmModal from '../Common/ConfirmModal';
+>>>>>>> upstream/main
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,8 +187,24 @@ const InternalNotesDrawer: React.FC<Props> = ({
     };
   }, [isAdding, startDictation, stopDictation, handleAdd, handleCancel, onClose]);
 
+<<<<<<< HEAD
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this note? This cannot be undone.')) return;
+=======
+  // Real fix: was window.confirm() — replaced with the shared ConfirmModal.
+  // Needs pending-delete state since ConfirmModal is async/UI-driven
+  // rather than a blocking call.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const handleDelete = (id: string) => {
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+>>>>>>> upstream/main
     setDeletingId(id);
     const result = await internalNoteService.remove(id, userId);
     if (result.ok) setNotes(prev => prev.filter(n => n.id !== id));
@@ -197,7 +217,11 @@ const InternalNotesDrawer: React.FC<Props> = ({
       {/* Backdrop */}
       <div
         onClick={onClose}
+<<<<<<< HEAD
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2999 }}
+=======
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1199 }}
+>>>>>>> upstream/main
       />
 
       {/* Drawer */}
@@ -206,7 +230,11 @@ const InternalNotesDrawer: React.FC<Props> = ({
         width: '420px', height: '100vh',
         background: '#0F172A',
         borderLeft: '1px solid rgba(255,255,255,0.08)',
+<<<<<<< HEAD
         zIndex: 3000,
+=======
+        zIndex: 1200,
+>>>>>>> upstream/main
         display: 'flex', flexDirection: 'column',
         animation: 'internalNoteSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         fontFamily: "'Inter', -apple-system, sans-serif",
@@ -296,10 +324,30 @@ const InternalNotesDrawer: React.FC<Props> = ({
                   onBlur={e => reportDictationCorrection(e.target.value)}
                   placeholder="Enter your clinical note — avoid patient names, DOB, or MRN"
                   rows={4}
+<<<<<<< HEAD
                   style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 12px', color: '#f1f5f9', fontSize: '14px', lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                 />
                 <div style={{ fontSize: '11px', color: '#475569', marginTop: '-4px' }}>
                   These notes are part of the clinical record but will not appear in the formatted patient report.
+=======
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${isInterimNote ? 'rgba(8,145,178,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '8px', padding: '10px 12px', color: '#f1f5f9',
+                    fontSize: '14px', lineHeight: 1.6, resize: 'vertical', outline: 'none',
+                    boxSizing: 'border-box', fontFamily: 'inherit',
+                    transition: 'border-color 0.2s',
+                  }}
+                />
+                <div style={{ fontSize: '11px', marginTop: '-4px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {isInterimNote ? (
+                    <span style={{ color: '#0891b2', fontWeight: 600 }}>● Listening…</span>
+                  ) : (
+                    <span style={{ color: '#475569' }}>
+                      These notes are part of the clinical record but will not appear in the formatted patient report.
+                    </span>
+                  )}
+>>>>>>> upstream/main
                 </div>
               </div>
 
@@ -425,6 +473,18 @@ const InternalNotesDrawer: React.FC<Props> = ({
           to   { transform: translateX(0); }
         }
       `}</style>
+<<<<<<< HEAD
+=======
+
+      <ConfirmModal
+        show={!!pendingDeleteId}
+        title="Delete Note"
+        message="Delete this note? This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+>>>>>>> upstream/main
     </>
   );
 };

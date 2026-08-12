@@ -1,7 +1,11 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { Message, MessageThread, IMessageService } from './IMessageService';
+<<<<<<< HEAD
 import { mockAuditService } from '../auditLog/mockAuditService';
+=======
+import { mockAuditService } from '../auditlog/mockAuditService';
+>>>>>>> upstream/main
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 
@@ -24,14 +28,22 @@ const SEED_MESSAGES: Message[] = [
     recipientName: 'Dr. Sarah Johnson',
     subject: 'Urgent: Morphology Review',
     body: 'Please review the secondary morphology for this case immediately.',
+<<<<<<< HEAD
     caseNumber: '24-8821',
+=======
+    caseNumber: 'O26-0007',
+>>>>>>> upstream/main
     timestamp: new Date(),
     isUrgent: true,
     isRead: false,
     isDeleted: false,
     thread: [
       { sender: 'Lab Manager',       senderId: 'u2', text: 'Please review the secondary morphology for this case immediately.',  timestamp: new Date(Date.now() - 1000 * 60 * 20) },
+<<<<<<< HEAD
       { sender: 'Dr. Sarah Johnson', senderId: 'PATH-001', text: 'Checking now. Is this for Case 24-8821?',                            timestamp: new Date(Date.now() - 1000 * 60 * 10) },
+=======
+      { sender: 'Dr. Sarah Johnson', senderId: 'PATH-001', text: 'Checking now. Is this for Case O26-0007?',                            timestamp: new Date(Date.now() - 1000 * 60 * 10) },
+>>>>>>> upstream/main
       { sender: 'Lab Manager',       senderId: 'u2', text: 'Correct. Block A-4 specifically.',                                   timestamp: new Date(Date.now() - 1000 * 60 * 5)  },
     ],
   },
@@ -75,7 +87,11 @@ const SEED_MESSAGES: Message[] = [
     recipientName: 'Dr. Sarah Johnson',
     subject: 'Consultation Request',
     body: 'I have shared a complex lung biopsy case for your review.',
+<<<<<<< HEAD
     caseNumber: '24-7710',
+=======
+    caseNumber: 'S26-4437',
+>>>>>>> upstream/main
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6),
     isUrgent: false,
     isRead: true,
@@ -139,18 +155,30 @@ const SEED_MESSAGES: Message[] = [
     recipientId: 'PATH-001',
     recipientName: 'Dr. Sarah Johnson',
     subject: 'Slide Retrieval',
+<<<<<<< HEAD
     body: 'The historical slides for patient Case-8829 have been pulled.',
+=======
+    body: 'The historical slides for patient MFT26-8805-CR-FIN have been pulled.',
+>>>>>>> upstream/main
     timestamp: new Date('2026-02-13T10:00:00'),
     isUrgent: false,
     isRead: true,
     isDeleted: false,
     thread: [
+<<<<<<< HEAD
       { sender: 'Archives', senderId: 'u9', text: 'The historical slides for patient Case-8829 have been pulled.', timestamp: new Date('2026-02-13T10:00:00') },
+=======
+      { sender: 'Archives', senderId: 'u9', text: 'The historical slides for patient MFT26-8805-CR-FIN have been pulled.', timestamp: new Date('2026-02-13T10:00:00') },
+>>>>>>> upstream/main
     ],
   },
   { id: 'm9',  senderId: 'u10', senderName: 'QA Team',         recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Audit Review',    body: 'Stats ready.',             timestamp: new Date('2026-02-12'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'QA Team',         senderId: 'u10', text: 'Stats ready.',             timestamp: new Date('2026-02-12') }] },
   { id: 'm10', senderId: 'u11', senderName: 'Dr. Patel',        recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'GI Consult',      body: 'Unusual case.',            timestamp: new Date('2026-02-11'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Dr. Patel',        senderId: 'u11', text: 'Unusual case.',            timestamp: new Date('2026-02-11') }] },
+<<<<<<< HEAD
   { id: 'm11', senderId: 'u12', senderName: 'Transcription',    recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Draft Ready',     body: 'Case 24-110.',             timestamp: new Date('2026-02-10'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Transcription',    senderId: 'u12', text: 'Case 24-110.',             timestamp: new Date('2026-02-10') }] },
+=======
+  { id: 'm11', senderId: 'u12', senderName: 'Transcription',    recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Draft Ready',     body: 'Case O26-0007.',             timestamp: new Date('2026-02-10'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Transcription',    senderId: 'u12', text: 'Case O26-0007.',             timestamp: new Date('2026-02-10') }] },
+>>>>>>> upstream/main
   { id: 'm12', senderId: 'u13', senderName: 'Medical Records',  recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Patient History', body: 'Prior pathology.',         timestamp: new Date('2026-02-09'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Medical Records',  senderId: 'u13', text: 'Prior pathology.',         timestamp: new Date('2026-02-09') }] },
   { id: 'm13', senderId: 'u14', senderName: 'Dr. Wilson',       recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Tumor Board',     body: 'Agenda attached.',         timestamp: new Date('2026-02-08'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Dr. Wilson',       senderId: 'u14', text: 'Agenda attached.',         timestamp: new Date('2026-02-08') }] },
   { id: 'm14', senderId: 'u15', senderName: 'Compliance',       recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Training Due',    body: 'Annual update.',           timestamp: new Date('2026-02-07'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Compliance',       senderId: 'u15', text: 'Annual update.',           timestamp: new Date('2026-02-07') }] },
@@ -350,6 +378,7 @@ const SEED_MESSAGES: Message[] = [
     ],
   },
 
+<<<<<<< HEAD
   {
     id: 'uk-m6',
     senderName: 'MFT Laboratory Admin',
@@ -359,15 +388,146 @@ const SEED_MESSAGES: Message[] = [
     body: 'Dr. Carter, a STAT pool case has been added to the histopathology queue — MFT26-8809, Dorothy Whitworth, right hemicolectomy emergency resection. This case has not yet been assigned. Please accept from the pool if you are able to report today.',
     caseNumber: 'MFT26-8809-POOL',
     timestamp: new Date(Date.now() - 1000 * 60 * 30),
+=======
+ {
+  id: 'uk-m6',
+  senderId: 'mft-admin', // FIX: Added missing required property
+  senderName: 'MFT Laboratory Admin',
+  recipientId: 'PATH-UK-001',
+  recipientName: 'Dr. Paul Carter',
+  subject: `Pool case available — Right hemicolectomy emergency resection`,
+  // Use backticks to safely handle apostrophes like "patient's" or "Carter's"
+  body: `Dr. Carter, a STAT pool case has been added to the histopathology queue — MFT26-8809, Dorothy Whitworth, right hemicolectomy emergency resection. This case has not yet been assigned. Please accept from the pool if you are able to report today.`,
+  caseNumber: 'MFT26-8809-POOL',
+  timestamp: new Date(Date.now() - 1000 * 60 * 30),
+  isUrgent: true,
+  isRead: false,
+  isDeleted: false,
+  thread: [
+    {
+      sender: 'MFT Laboratory Admin',
+      senderId: 'mft-admin',
+      text: `Dr. Carter, a STAT pool case has been added to the histopathology queue — MFT26-8809, Dorothy Whitworth, right hemicolectomy emergency resection. This case has not yet been assigned. Please accept from the pool if you are able to report today.`,
+      timestamp: new Date(Date.now() - 1000 * 60 * 30),
+    },
+  ],
+},
+
+  // ── Amber Fehrs-Battey (PATH-US-001) — Michigan Pathology Associates ────────
+
+  // Urgent: case-linked consultation request from ordering physician
+  {
+    id: 'mpa-001',
+    senderId: 'u-priya-nair', senderName: 'Dr. Priya Nair',
+    recipientId: 'PATH-US-001', recipientName: 'Dr. Amber Fehrs-Battey',
+    subject: 'Urgent Query — MPA26-1001-BR',
+    body: `Dr. Fehrs-Battey — the patient's oncologist is requesting clarification on the ER Allred score for case MPA26-1001-BR (Patricia Novak). They need it before the tumour board meeting tomorrow at 09:00. Please advise when you have a moment.`,
+    caseNumber: 'MPA26-1001-BR',
+    timestamp: new Date(Date.now() - 1000 * 60 * 45),
+    isUrgent: true, isRead: false, isDeleted: false,
+    thread: [
+      { sender: 'Dr. Priya Nair', senderId: 'u-priya-nair',
+        text: `Dr. Fehrs-Battey — the patient's oncologist is requesting clarification on the ER Allred score for case MPA26-1001-BR (Patricia Novak). They need it before the tumour board meeting tomorrow at 09:00. Please advise when you have a moment.`,
+        timestamp: new Date(Date.now() - 1000 * 60 * 45) },
+    ],
+  },
+
+  // System: AI confidence alert on colorectal case
+  {
+    id: 'mpa-002',
+    senderId: 'system', senderName: 'PathScribe AI',
+    recipientId: 'PATH-US-001', recipientName: 'Dr. Amber Fehrs-Battey',
+    subject: 'AI Confidence Alert — MPA26-1002-CR',
+    body: 'PathScribe AI flagged low confidence (61%) on the Tumour Deposits field for case MPA26-1002-CR (Robert Dziedzic, colorectal resection). Manual review of the synoptic is recommended before sign-out. Case MPA26-1002-CR is ready for your review.',
+    caseNumber: 'MPA26-1002-CR',
+    timestamp: new Date(Date.now() - 1000 * 60 * 90),
+    isUrgent: false, isRead: false, isDeleted: false,
+    thread: [
+      { sender: 'PathScribe AI', senderId: 'system',
+        text: 'PathScribe AI flagged low confidence (61%) on the Tumour Deposits field for case MPA26-1002-CR. Manual review recommended.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 90) },
+    ],
+  },
+
+  // Pediatric access request auto-notification to Amber
+  {
+    id: 'mpa-003',
+    senderId: 'system', senderName: 'PathScribe System',
+    recipientId: 'PATH-US-001', recipientName: 'Dr. Amber Fehrs-Battey',
+    subject: 'Pediatric Case Access Restricted — MPA26-1007-PED',
+    body: 'You attempted to open case MPA26-1007-PED which contains a pediatric patient (age 8) from Metro General Hospital.\n\nAccess to this case requires authorization on the facility record.\n\nTo request access:\n1. Go to Configuration → System → Facility Configuration\n2. Open Metro General Hospital\n3. Add your name to the Authorized Pediatric Pathologists list\n\nIf you believe this is an error, contact your System Administrator.',
+    caseNumber: 'MPA26-1007-PED',
+    timestamp: new Date(Date.now() - 1000 * 60 * 20),
+    isUrgent: false, isRead: false, isDeleted: false,
+    thread: [
+      { sender: 'PathScribe System', senderId: 'system',
+        text: 'Access restricted: case MPA26-1007-PED contains a pediatric patient. See message for instructions to request authorization.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 20) },
+    ],
+  },
+
+  // Read: case assigned notification
+  {
+    id: 'mpa-004',
+    senderId: 'u3', senderName: 'System Admin',
+    recipientId: 'PATH-US-001', recipientName: 'Dr. Amber Fehrs-Battey',
+    subject: 'Cases Assigned — MPA26-1001, 1002, 1003',
+    body: 'Three new cases have been assigned to you from Michigan Pathology Associates:\n\n• MPA26-1001-BR — Breast lumpectomy, Patricia Novak\n• MPA26-1002-CR — Colorectal resection, Robert Dziedzic\n• MPA26-1003-PRO — Radical prostatectomy, Charles Okafor\n\nAll cases are available in your worklist. CAP synoptic templates have been pre-loaded.',
+    caseNumber: undefined,
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
+    isUrgent: false, isRead: true, isDeleted: false,
+    thread: [
+      { sender: 'System Admin', senderId: 'u3',
+        text: 'Three new cases assigned: MPA26-1001-BR, MPA26-1002-CR, MPA26-1003-PRO. All available in worklist.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3) },
+    ],
+  },
+
+  // Read: LIS sync confirmation
+  {
+    id: 'mpa-005',
+    senderId: 'system', senderName: 'PathScribe System',
+    recipientId: 'PATH-US-001', recipientName: 'Dr. Amber Fehrs-Battey',
+    subject: 'LIS Sync Complete — MPA26-1003-PRO',
+    body: 'Gross description for case MPA26-1003-PRO (Charles Okafor, radical prostatectomy) has been received from the LIS and is now available in the synoptic editor. AI analysis is in progress.',
+    caseNumber: 'MPA26-1003-PRO',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
+    isUrgent: false, isRead: true, isDeleted: false,
+    thread: [
+      { sender: 'PathScribe System', senderId: 'system',
+        text: 'LIS sync complete for MPA26-1003-PRO. Gross description available.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5) },
+    ],
+  },
+
+  // ── Pediatric Access Routing Notification ────────────────────────────────
+  {
+    id: 'm-ped-001',
+    senderId: 'system',
+    senderName: 'PathScribe System',
+    recipientId: 'u3',
+    recipientName: 'System Admin',
+    subject: '⚠️ Pediatric Case Requires Assignment — MPA26-1007-PED',
+    body: 'Case MPA26-1007-PED (Liam Osei, age 8) was received from Metro General Hospital and could not be assigned to Dr. Amber Fehrs-Battey.\n\nReason: Metro General Hospital has a pediatric age threshold of 18 years. The assigned pathologist does not have Pediatric Access enabled on their role.\n\nThe case has been moved to the Pediatric — Awaiting Assignment pool and requires manual assignment to a qualified pathologist.\n\nTo resolve:\n• Assign the case to a pathologist with Pediatric Access, OR\n• Enable Pediatric Access on Dr. Fehrs-Battey\'s role in Configuration → Staff → Role Dictionary\n\nCase: Right radical nephrectomy, Wilms tumour (nephroblastoma), 7.2 cm.',
+    caseNumber: 'MPA26-1007-PED',
+    timestamp: new Date(Date.now() - 1000 * 60 * 20),
+>>>>>>> upstream/main
     isUrgent: true,
     isRead: false,
     isDeleted: false,
     thread: [
       {
+<<<<<<< HEAD
         sender: 'MFT Laboratory Admin',
         senderId: 'mft-admin',
         text: 'Dr. Carter, a STAT pool case has been added to the histopathology queue — MFT26-8809, Dorothy Whitworth, right hemicolectomy emergency resection. This case has not yet been assigned. Please accept from the pool if you are able to report today.',
         timestamp: new Date(Date.now() - 1000 * 60 * 30),
+=======
+        sender: 'PathScribe System',
+        senderId: 'system',
+        text: 'Case MPA26-1007-PED automatically rerouted to Pediatric — Awaiting Assignment pool. Assigned pathologist PATH-US-001 lacks Pediatric Access permission.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 20),
+>>>>>>> upstream/main
       },
     ],
   },
@@ -376,7 +536,11 @@ const SEED_MESSAGES: Message[] = [
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'pathscribe_messages';
+<<<<<<< HEAD
 const MESSAGES_VERSION = '4'; // bump this to force seed data refresh
+=======
+const MESSAGES_VERSION = '7'; // bumped: added Amber seed messages
+>>>>>>> upstream/main
 const VERSION_KEY = 'pathscribe_messages_version';
 
 const load = (): Message[] => {

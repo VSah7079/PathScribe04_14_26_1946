@@ -1,6 +1,7 @@
 /**
  * components/Config/System/GoverningBodiesSection.tsx
  * ─────────────────────────────────────────────────────────────────────────────
+<<<<<<< HEAD
  * Super-admin only section for configuring which governing bodies are active
  * in pathscribe's Synoptic Library and nightly sync.
  *
@@ -35,6 +36,19 @@ import React, { useState } from 'react';
 import '../../../pathscribe.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+=======
+ * Super-admin only. Configure which governing bodies are active in the
+ * Synoptic Library and nightly sync.
+ *
+ * Standard bodies (CAP, RCPath, ICCR, RCPA): toggle only.
+ * Custom bodies: full CRUD with ID conflict guard.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+import React, { useState, useEffect } from 'react';
+import '../../../pathscribe.css';
+import { mockGoverningBodyService } from '@/services/governingBodies/mockGoverningBodyService';
+>>>>>>> upstream/main
 
 export interface GoverningBody {
   id:          string;
@@ -47,6 +61,7 @@ export interface GoverningBody {
   isCustom:    boolean;
 }
 
+<<<<<<< HEAD
 // ─── Default governing bodies ─────────────────────────────────────────────────
 // TODO: Replace with API call to GET /api/config/governing-bodies
 // so settings persist across sessions.
@@ -143,17 +158,72 @@ const AddBodyModal: React.FC<{
     if (!canSubmit) return;
     onAdd({
       id:          label.trim().toUpperCase().replace(/\s+/g, '_'),
+=======
+const DEFAULT_BODIES: GoverningBody[] = [
+  { id: 'CAP',    label: 'CAP',    fullName: 'College of American Pathologists',               region: 'United States',          website: 'https://www.cap.org',        enabled: true,  syncEnabled: true,  isCustom: false },
+  { id: 'RCPath', label: 'RCPath', fullName: 'Royal College of Pathologists',                  region: 'United Kingdom',          website: 'https://www.rcpath.org',     enabled: true,  syncEnabled: true,  isCustom: false },
+  { id: 'ICCR',   label: 'ICCR',   fullName: 'International Collaboration on Cancer Reporting', region: 'International',           website: 'https://www.iccr-cancer.org',enabled: true,  syncEnabled: true,  isCustom: false },
+  { id: 'RCPA',   label: 'RCPA',   fullName: 'Royal College of Pathologists of Australasia',   region: 'Australia / New Zealand', website: 'https://www.rcpa.edu.au',    enabled: false, syncEnabled: false, isCustom: false },
+];
+
+// ── Toggle ────────────────────────────────────────────────────────────────────
+
+const Toggle: React.FC<{
+  checked:   boolean;
+  onChange:  (v: boolean) => void;
+  disabled?: boolean;
+  color?:    string;
+}> = ({ checked, onChange, disabled = false, color = '#0891B2' }) => (
+  <div
+    onClick={() => !disabled && onChange(!checked)}
+    className={`ps-toggle-track${checked ? ' on' : ' off'}${disabled ? ' disabled' : ''}`}
+    style={{ background: checked ? color : undefined }}
+  >
+    <div className="ps-toggle-thumb" />
+  </div>
+);
+
+// ── Body Modal ────────────────────────────────────────────────────────────────
+
+const BodyModal: React.FC<{
+  initial?:    GoverningBody;
+  existingIds: string[];
+  onClose:     () => void;
+  onSave:      (body: GoverningBody) => void;
+}> = ({ initial, existingIds, onClose, onSave }) => {
+  const isEdit = !!initial;
+
+  const [label,    setLabel]    = useState(initial?.label    ?? '');
+  const [fullName, setFullName] = useState(initial?.fullName ?? '');
+  const [region,   setRegion]   = useState(initial?.region   ?? '');
+  const [website,  setWebsite]  = useState(initial?.website  ?? '');
+
+  const derivedId  = label.trim().toUpperCase().replace(/\s+/g, '_');
+  const idConflict = !isEdit && existingIds.includes(derivedId);
+  const canSubmit  = !!(label.trim() && fullName.trim() && !idConflict);
+
+  const handleSave = () => {
+    if (!canSubmit) return;
+    onSave({
+      id:          isEdit ? initial!.id : derivedId,
+>>>>>>> upstream/main
       label:       label.trim().toUpperCase(),
       fullName:    fullName.trim(),
       region:      region.trim(),
       website:     website.trim(),
+<<<<<<< HEAD
       enabled:     true,
       syncEnabled: false,   // custom bodies start with sync off pending setup
+=======
+      enabled:     initial?.enabled     ?? true,
+      syncEnabled: initial?.syncEnabled ?? false,
+>>>>>>> upstream/main
       isCustom:    true,
     });
     onClose();
   };
 
+<<<<<<< HEAD
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '9px 12px',
     background: 'rgba(255,255,255,0.04)',
@@ -221,10 +291,83 @@ const AddBodyModal: React.FC<{
                 style={inputStyle}
                 onFocus={e  => (e.currentTarget.style.borderColor = '#0891B2')}
                 onBlur={e   => (e.currentTarget.style.borderColor = '#334155')}
+=======
+  return (
+    <div className="ps-conf-backdrop">
+      <div className="fm-modal fm-modal--config" style={{ width: 'min(480px, 96vw)' }} onClick={e => e.stopPropagation()}>
+
+        <div className="fm-modal-header">
+          <div>
+            <div className="fm-eyebrow">Configuration · Governing Bodies</div>
+            <h2 className="fm-title" style={{ fontSize: 16 }}>
+              {isEdit ? `Edit — ${initial!.label}` : 'Add Governing Body'}
+            </h2>
+          </div>
+          <button onClick={onClose} className="fm-btn-cancel" style={{ padding: '4px 10px' }}>✕</button>
+        </div>
+        <div className="ps-client-editor-body">
+
+          <div className="ps-body-modal-field">
+            <label className="ps-body-modal-label">
+              Abbreviation <span className="ps-body-modal-label-req">*</span>
+              {isEdit && <span className="ps-body-modal-label-note">(cannot be changed)</span>}
+            </label>
+            <input
+              value={label}
+              onChange={e => !isEdit && setLabel(e.target.value)}
+              disabled={isEdit}
+              placeholder="e.g. RCPA"
+              className={[
+                'ps-body-modal-input',
+                'ps-body-modal-input--mono',
+                isEdit     ? 'ps-body-modal-input--disabled' : '',
+                idConflict ? 'ps-body-modal-input--error'    : '',
+              ].filter(Boolean).join(' ')}
+            />
+            {idConflict && (
+              <div className="ps-body-modal-error">
+                ID <strong>{derivedId}</strong> already exists. Custom bodies must have a unique
+                abbreviation that does not duplicate a standard body (CAP, RCPath, ICCR, RCPA)
+                or another custom body.
+              </div>
+            )}
+          </div>
+
+          <div className="ps-body-modal-field">
+            <label className="ps-body-modal-label">
+              Full Name <span className="ps-body-modal-label-req">*</span>
+            </label>
+            <input
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              placeholder="e.g. Royal College of Pathologists of Australasia"
+              className="ps-body-modal-input"
+            />
+          </div>
+
+          <div className="ps-body-modal-field-row">
+            <div className="ps-body-modal-field">
+              <label className="ps-body-modal-label">Region</label>
+              <input
+                value={region}
+                onChange={e => setRegion(e.target.value)}
+                placeholder="e.g. Australia / NZ"
+                className="ps-body-modal-input"
+              />
+            </div>
+            <div className="ps-body-modal-field">
+              <label className="ps-body-modal-label">Website</label>
+              <input
+                value={website}
+                onChange={e => setWebsite(e.target.value)}
+                placeholder="https://..."
+                className="ps-body-modal-input"
+>>>>>>> upstream/main
               />
             </div>
           </div>
 
+<<<<<<< HEAD
           {/* Note about sync */}
           <div style={{ padding: '10px 13px', borderRadius: '7px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', fontSize: '11px', color: '#94a3b8', lineHeight: 1.6 }}>
             <span style={{ color: '#fbbf24', fontWeight: 600 }}>ℹ️ Note — </span>
@@ -242,12 +385,33 @@ const AddBodyModal: React.FC<{
               Add Governing Body
             </button>
           </div>
+=======
+          {!isEdit && (
+            <div className="ps-body-modal-note">
+              <span className="ps-body-modal-note-label">ℹ️ Note — </span>
+              auto-sync is disabled for custom bodies by default. Enable it manually once
+              the sync feed is configured.
+            </div>
+          )}
+
+          <div className="fm-footer">
+            <span className="fm-footer-status" />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={onClose} className="fm-btn-cancel">Cancel</button>
+              <button onClick={handleSave} disabled={!canSubmit} className="fm-btn-apply">
+                {isEdit ? 'Save Changes' : 'Add Governing Body'}
+              </button>
+            </div>
+          </div>
+
+>>>>>>> upstream/main
         </div>
       </div>
     </div>
   );
 };
 
+<<<<<<< HEAD
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface GoverningBodiesSectionProps {
@@ -331,10 +495,138 @@ const GoverningBodiesSection: React.FC<GoverningBodiesSectionProps> = ({
             The nightly sync will also monitor SNOMED CT and ICD-10/11 for deprecated, superseded,
             or updated codes used in your published templates — surfacing alerts in the Synoptic Library
             before they affect reporting accuracy.
+=======
+// ── Body Row ──────────────────────────────────────────────────────────────────
+
+const BodyRow: React.FC<{
+  body:         GoverningBody;
+  isSuperAdmin: boolean;
+  onUpdate:     (patch: Partial<GoverningBody>) => void;
+  canRemove:    boolean;
+  onEdit?:      () => void;
+  onRemove?:    () => void;
+}> = ({ body, isSuperAdmin, onUpdate, canRemove, onEdit, onRemove }) => (
+  <div className={`ps-gov-row${body.enabled ? '' : ' ps-gov-row--disabled'}`}>
+
+    <div>
+      <div className="ps-gov-row-name">
+        {body.label}
+        {body.isCustom && <span className="ps-gov-custom-badge" style={{ marginLeft: 8 }}>CUSTOM</span>}
+      </div>
+      <div className="ps-gov-row-fullname">
+        {body.fullName}
+        {body.website && (
+          <a href={body.website} target="_blank" rel="noreferrer" className="ps-gov-row-link">↗</a>
+        )}
+      </div>
+    </div>
+
+    <div className="ps-gov-row-region">{body.region}</div>
+
+    <Toggle
+      checked={body.enabled}
+      onChange={v => onUpdate({ enabled: v, syncEnabled: v ? body.syncEnabled : false })}
+      disabled={!isSuperAdmin}
+    />
+
+    <Toggle
+      checked={body.syncEnabled}
+      onChange={v => onUpdate({ syncEnabled: v })}
+      disabled={!isSuperAdmin || !body.enabled}
+      color="#a78bfa"
+    />
+
+    <div className="ps-gov-row-actions">
+      {canRemove && onEdit && (
+        <button className="ps-btn-ghost-dark" onClick={onEdit} style={{ fontSize: 11, padding: '4px 8px' }}>
+          Edit
+        </button>
+      )}
+      {canRemove && onRemove && (
+        <button className="ps-gov-remove-btn" onClick={onRemove} title="Remove">✕</button>
+      )}
+    </div>
+
+  </div>
+);
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+const GoverningBodiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperAdmin = false }) => {
+  const [bodies,     setBodies]     = useState<GoverningBody[]>(DEFAULT_BODIES);
+  const [showAdd,    setShowAdd]    = useState(false);
+  const [editTarget, setEditTarget] = useState<GoverningBody | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [saveError,  setSaveError]  = useState<string | null>(null);
+
+  // Real load — DEFAULT_BODIES above is only the pre-load fallback so
+  // the list isn't empty for one render, matching the pattern used
+  // elsewhere in this file's own folder for async-loaded config
+  // sections. Was previously the ONLY source of truth (a hardcoded
+  // constant, never actually loaded from anywhere).
+  useEffect(() => {
+    mockGoverningBodyService.getAll().then(setBodies).catch(() => {});
+  }, []);
+
+  const updateBody = (id: string, patch: Partial<GoverningBody>) => { setBodies(p => p.map(b => b.id === id ? { ...b, ...patch } : b)); setHasChanges(true); };
+  const removeBody = (id: string)                                  => { setBodies(p => p.filter(b => b.id !== id));                       setHasChanges(true); };
+  const handleAdd  = (body: GoverningBody)                         => { setBodies(p => [...p, body]);                                      setHasChanges(true); };
+  const handleEdit = (body: GoverningBody)                         => { setBodies(p => p.map(b => b.id === body.id ? body : b));           setHasChanges(true); };
+  // Real fix, found via a direct audit: this used to be
+  // `/* TODO: persist */ setHasChanges(false);` — every toggle, edit,
+  // add, and remove only ever touched in-memory React state, and this
+  // handler cleared the "unsaved changes" indicator as if a save had
+  // genuinely happened. A page refresh silently discarded everything.
+  // Now actually calls the real service, and — importantly — only
+  // clears hasChanges and the error state on a CONFIRMED successful
+  // save, surfacing a real failure instead of hiding it the same way
+  // the old version hid the fact that nothing was ever saved at all.
+  const handleSave = async () => {
+    setSaveError(null);
+    try {
+      await mockGoverningBodyService.saveAll(bodies);
+      setHasChanges(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Save failed.');
+    }
+  };
+
+  const standardBodies = bodies.filter(b => !b.isCustom);
+  const customBodies   = bodies.filter(b =>  b.isCustom);
+  const allIds         = bodies.map(b => b.id);
+
+  return (
+    <div className="ps-gov-shell">
+
+      <div className="ps-gov-header">
+        <div className="ps-gov-header-text">
+          <h3 className="ps-gov-title">Governing Bodies</h3>
+          <p className="ps-gov-subtitle">
+            Controls which governing bodies appear in the Synoptic Library and nightly protocol sync.
+            {!isSuperAdmin && <span className="ps-gov-subtitle-warn"> · Super admin access required.</span>}
+          </p>
+        </div>
+        <div className="ps-gov-header-actions">
+          {hasChanges && <span className="ps-gov-unsaved">● Unsaved changes</span>}
+          {saveError && <span style={{ color: '#f87171', fontSize: 12 }}>{saveError}</span>}
+          {isSuperAdmin && hasChanges && <button className="ps-conf-btn-primary" onClick={handleSave}>Save Changes</button>}
+          {isSuperAdmin && <button className="ps-section-add-btn" onClick={() => setShowAdd(true)}>+ Add Custom Body</button>}
+        </div>
+      </div>
+
+      <div className="ps-gov-callout">
+        <span className="ps-gov-callout-icon">🔬</span>
+        <div>
+          <div className="ps-gov-callout-title">Terminology Monitoring — Coming Soon</div>
+          <div className="ps-gov-callout-body">
+            The nightly sync will monitor SNOMED CT and ICD-10/11 for deprecated or updated codes
+            in your published templates, surfacing alerts in the Synoptic Library.
+>>>>>>> upstream/main
           </div>
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Column headers */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 100px 100px 32px', gap: '0 16px', padding: '0 16px 8px', marginBottom: '4px' }}>
         {['Governing Body', 'Region', 'Enabled', 'Auto-sync', ''].map(h => (
@@ -369,10 +661,39 @@ const GoverningBodiesSection: React.FC<GoverningBodiesSectionProps> = ({
               canRemove={isSuperAdmin}
               onRemove={() => removeBody(body.id)}
             />
+=======
+      <div className="ps-gov-col-headers">
+        {['Governing Body', 'Region', 'Active', 'Auto-sync', ''].map(h => (
+          <div key={h} className="ps-gov-col-header">{h}</div>
+        ))}
+      </div>
+
+      {standardBodies.map(body => (
+        <BodyRow key={body.id} body={body} isSuperAdmin={isSuperAdmin}
+          onUpdate={patch => updateBody(body.id, patch)} canRemove={false} />
+      ))}
+
+      {customBodies.length > 0 && (
+        <>
+          <div className="ps-gov-divider-row">
+            <span className="ps-gov-divider-label">Custom</span>
+            <div className="ps-gov-divider-line" />
+          </div>
+          <p className="ps-gov-custom-note">
+            Custom bodies supplement standard ones — use them for institutional overlays or bodies
+            not in the standard list. Enable alongside standard bodies only if they cover distinct
+            protocol sets.
+          </p>
+          {customBodies.map(body => (
+            <BodyRow key={body.id} body={body} isSuperAdmin={isSuperAdmin}
+              onUpdate={patch => updateBody(body.id, patch)} canRemove={isSuperAdmin}
+              onEdit={() => setEditTarget(body)} onRemove={() => removeBody(body.id)} />
+>>>>>>> upstream/main
           ))}
         </>
       )}
 
+<<<<<<< HEAD
       {showAdd && (
         <AddBodyModal
           onClose={() => setShowAdd(false)}
@@ -382,10 +703,16 @@ const GoverningBodiesSection: React.FC<GoverningBodiesSectionProps> = ({
           }}
         />
       )}
+=======
+      {showAdd && <BodyModal existingIds={allIds} onClose={() => setShowAdd(false)} onSave={handleAdd} />}
+      {editTarget && <BodyModal initial={editTarget} existingIds={allIds} onClose={() => setEditTarget(null)} onSave={handleEdit} />}
+
+>>>>>>> upstream/main
     </div>
   );
 };
 
+<<<<<<< HEAD
 // ─── Body row ─────────────────────────────────────────────────────────────────
 
 const BodyRow: React.FC<{
@@ -460,4 +787,6 @@ const BodyRow: React.FC<{
   </div>
 );
 
+=======
+>>>>>>> upstream/main
 export default GoverningBodiesSection;

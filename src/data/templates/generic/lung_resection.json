@@ -1,0 +1,806 @@
+{
+  "id": "lung_resection",
+  "name": "Generic Template \u2014 Lung Resection",
+  "source": "Custom",
+  "version": "0.1.0-generic",
+  "category": "LUNG",
+  "sections": [
+    {
+      "id": "specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "synchronous_tumors",
+          "label": "Multiple Findings",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "synchronous_tumors_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "synchronous_tumors_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "synchronous_tumors_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        },
+        {
+          "id": "procedure",
+          "label": "Procedure",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "procedure_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "procedure_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "procedure_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "procedure_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "procedure_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "procedure_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "procedure_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "procedure_opt_8",
+              "label": "Option 8"
+            },
+            {
+              "id": "procedure_opt_9",
+              "label": "Option 9"
+            },
+            {
+              "id": "procedure_opt_10",
+              "label": "Option 10"
+            },
+            {
+              "id": "procedure_opt_11",
+              "label": "Option 11"
+            }
+          ]
+        },
+        {
+          "id": "specimen_laterality",
+          "label": "Specimen Laterality",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "specimen_laterality_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "specimen_laterality_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "specimen_laterality_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tumor",
+      "title": "Findings",
+      "fields": [
+        {
+          "id": "tumor_focality",
+          "label": "Focality",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "tumor_focality_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "tumor_focality_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "tumor_focality_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "tumor_focality_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "tumor_focality_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "tumor_focality_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "tumor_focality_opt_7",
+              "label": "Option 7"
+            }
+          ]
+        },
+        {
+          "id": "tumor_site",
+          "label": "Finding Site",
+          "type": "checkboxes",
+          "required": true,
+          "options": [
+            {
+              "id": "tumor_site_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "tumor_site_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "tumor_site_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "tumor_site_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "tumor_site_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "tumor_site_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "tumor_site_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "tumor_site_opt_8",
+              "label": "Option 8"
+            }
+          ]
+        },
+        {
+          "id": "tumor_size_invasive_cm",
+          "label": "Tumor size invasive cm",
+          "type": "text",
+          "required": true,
+          "options": []
+        },
+        {
+          "id": "histologic_type",
+          "label": "Type",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "histologic_type_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "histologic_type_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "histologic_type_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "histologic_type_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "histologic_type_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "histologic_type_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "histologic_type_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "histologic_type_opt_8",
+              "label": "Option 8"
+            },
+            {
+              "id": "histologic_type_opt_9",
+              "label": "Option 9"
+            },
+            {
+              "id": "histologic_type_opt_10",
+              "label": "Option 10"
+            },
+            {
+              "id": "histologic_type_opt_11",
+              "label": "Option 11"
+            },
+            {
+              "id": "histologic_type_opt_12",
+              "label": "Option 12"
+            },
+            {
+              "id": "histologic_type_opt_13",
+              "label": "Option 13"
+            },
+            {
+              "id": "histologic_type_opt_14",
+              "label": "Option 14"
+            },
+            {
+              "id": "histologic_type_opt_15",
+              "label": "Option 15"
+            },
+            {
+              "id": "histologic_type_opt_16",
+              "label": "Option 16"
+            },
+            {
+              "id": "histologic_type_opt_17",
+              "label": "Option 17"
+            },
+            {
+              "id": "histologic_type_opt_18",
+              "label": "Option 18"
+            },
+            {
+              "id": "histologic_type_opt_19",
+              "label": "Option 19"
+            },
+            {
+              "id": "histologic_type_opt_20",
+              "label": "Option 20"
+            },
+            {
+              "id": "histologic_type_opt_21",
+              "label": "Option 21"
+            },
+            {
+              "id": "histologic_type_opt_22",
+              "label": "Option 22"
+            },
+            {
+              "id": "histologic_type_opt_23",
+              "label": "Option 23"
+            },
+            {
+              "id": "histologic_type_opt_24",
+              "label": "Option 24"
+            },
+            {
+              "id": "histologic_type_opt_25",
+              "label": "Option 25"
+            },
+            {
+              "id": "histologic_type_opt_26",
+              "label": "Option 26"
+            },
+            {
+              "id": "histologic_type_opt_27",
+              "label": "Option 27"
+            },
+            {
+              "id": "histologic_type_opt_28",
+              "label": "Option 28"
+            },
+            {
+              "id": "histologic_type_opt_29",
+              "label": "Option 29"
+            },
+            {
+              "id": "histologic_type_opt_30",
+              "label": "Option 30"
+            },
+            {
+              "id": "histologic_type_opt_31",
+              "label": "Option 31"
+            },
+            {
+              "id": "histologic_type_opt_32",
+              "label": "Option 32"
+            },
+            {
+              "id": "histologic_type_opt_33",
+              "label": "Option 33"
+            },
+            {
+              "id": "histologic_type_opt_34",
+              "label": "Option 34"
+            },
+            {
+              "id": "histologic_type_opt_35",
+              "label": "Option 35"
+            },
+            {
+              "id": "histologic_type_opt_36",
+              "label": "Option 36"
+            },
+            {
+              "id": "histologic_type_opt_37",
+              "label": "Option 37"
+            },
+            {
+              "id": "histologic_type_opt_38",
+              "label": "Option 38"
+            },
+            {
+              "id": "histologic_type_opt_39",
+              "label": "Option 39"
+            }
+          ]
+        },
+        {
+          "id": "histologic_grade",
+          "label": "Grade",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "histologic_grade_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "histologic_grade_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "histologic_grade_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "histologic_grade_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "histologic_grade_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "histologic_grade_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "histologic_grade_opt_7",
+              "label": "Option 7"
+            }
+          ]
+        },
+        {
+          "id": "stas",
+          "label": "Secondary Spread Pattern",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "stas_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "stas_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "stas_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "stas_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "visceral_pleura_invasion",
+          "label": "Adjacent Structure Involvement",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "visceral_pleura_invasion_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "visceral_pleura_invasion_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "visceral_pleura_invasion_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "margins",
+      "title": "Margins",
+      "fields": [
+        {
+          "id": "margin_status_invasive",
+          "label": "Margin Status A",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "margin_status_invasive_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margin_status_invasive_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margin_status_invasive_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "margin_status_invasive_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "margin_status_noninvasive",
+          "label": "Margin Status B",
+          "type": "checkboxes",
+          "required": false,
+          "options": [
+            {
+              "id": "margin_status_noninvasive_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "margin_status_noninvasive_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "margin_status_noninvasive_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "margin_status_noninvasive_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "margin_status_noninvasive_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "margin_status_noninvasive_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "margin_status_noninvasive_opt_7",
+              "label": "Option 7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lymph_nodes",
+      "title": "Regional Nodes",
+      "fields": [
+        {
+          "id": "prior_ln_sampling",
+          "label": "Prior Node Sampling",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "prior_ln_sampling_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "prior_ln_sampling_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "prior_ln_sampling_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        },
+        {
+          "id": "regional_ln_status",
+          "label": "Regional Node Status",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "regional_ln_status_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "regional_ln_status_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "regional_ln_status_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "regional_ln_status_opt_4",
+              "label": "Option 4"
+            }
+          ]
+        },
+        {
+          "id": "ln_number_positive",
+          "label": "Number Positive",
+          "type": "numeric",
+          "required": false,
+          "options": []
+        },
+        {
+          "id": "ln_number_examined",
+          "label": "Number Examined",
+          "type": "numeric",
+          "required": false,
+          "options": []
+        },
+        {
+          "id": "extranodal_extension",
+          "label": "Extranodal Extension",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "extranodal_extension_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "extranodal_extension_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "extranodal_extension_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "staging",
+      "title": "Stage Summary",
+      "fields": [
+        {
+          "id": "tnm_modifiers",
+          "label": "Stage Modifiers",
+          "type": "checkboxes",
+          "required": false,
+          "options": [
+            {
+              "id": "tnm_modifiers_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "tnm_modifiers_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "tnm_modifiers_opt_3",
+              "label": "Option 3"
+            }
+          ]
+        },
+        {
+          "id": "stage_category_a",
+          "label": "Category A",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "stage_category_a_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "stage_category_a_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "stage_category_a_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "stage_category_a_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "stage_category_a_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "stage_category_a_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "stage_category_a_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "stage_category_a_opt_8",
+              "label": "Option 8"
+            },
+            {
+              "id": "stage_category_a_opt_9",
+              "label": "Option 9"
+            },
+            {
+              "id": "stage_category_a_opt_10",
+              "label": "Option 10"
+            },
+            {
+              "id": "stage_category_a_opt_11",
+              "label": "Option 11"
+            },
+            {
+              "id": "stage_category_a_opt_12",
+              "label": "Option 12"
+            },
+            {
+              "id": "stage_category_a_opt_13",
+              "label": "Option 13"
+            }
+          ]
+        },
+        {
+          "id": "stage_category_b",
+          "label": "Category B",
+          "type": "dropdown",
+          "required": true,
+          "options": [
+            {
+              "id": "stage_category_b_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "stage_category_b_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "stage_category_b_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "stage_category_b_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "stage_category_b_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "stage_category_b_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "stage_category_b_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "stage_category_b_opt_8",
+              "label": "Option 8"
+            }
+          ]
+        },
+        {
+          "id": "stage_category_c",
+          "label": "Category C",
+          "type": "dropdown",
+          "required": false,
+          "options": [
+            {
+              "id": "stage_category_c_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "stage_category_c_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "stage_category_c_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "stage_category_c_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "stage_category_c_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "stage_category_c_opt_6",
+              "label": "Option 6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "additional_findings",
+      "title": "Additional Findings",
+      "fields": [
+        {
+          "id": "additional_findings",
+          "label": "Additional Findings",
+          "type": "checkboxes",
+          "required": false,
+          "options": [
+            {
+              "id": "additional_findings_opt_1",
+              "label": "Option 1"
+            },
+            {
+              "id": "additional_findings_opt_2",
+              "label": "Option 2"
+            },
+            {
+              "id": "additional_findings_opt_3",
+              "label": "Option 3"
+            },
+            {
+              "id": "additional_findings_opt_4",
+              "label": "Option 4"
+            },
+            {
+              "id": "additional_findings_opt_5",
+              "label": "Option 5"
+            },
+            {
+              "id": "additional_findings_opt_6",
+              "label": "Option 6"
+            },
+            {
+              "id": "additional_findings_opt_7",
+              "label": "Option 7"
+            },
+            {
+              "id": "additional_findings_opt_8",
+              "label": "Option 8"
+            },
+            {
+              "id": "additional_findings_opt_9",
+              "label": "Option 9"
+            },
+            {
+              "id": "additional_findings_opt_10",
+              "label": "Option 10"
+            },
+            {
+              "id": "additional_findings_opt_11",
+              "label": "Option 11"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

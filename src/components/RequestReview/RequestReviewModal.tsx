@@ -4,11 +4,30 @@
 // Lets a pathologist send an internal message to a colleague with the case
 // number attached so the colleague can open the report and leave a note.
 // This is NOT the same as Delegate — it does not transfer case ownership.
+<<<<<<< HEAD
+=======
+//
+// Reviewer list (FIXED July 2026): used to be a hardcoded, standalone
+// REVIEWERS array whose own comment claimed it "mirrors AppShell
+// INTERNAL_USERS" — it didn't. AppShell's list is a broad, non-clinical
+// general-staff messaging directory (Lab Manager, IT Support, Billing,
+// Archives — departments, not reviewers); this modal needs a narrow,
+// clinically-appropriate subset instead, which AppShell's list was never
+// meant to provide. The two were legitimately different scopes, but the
+// standalone array was never actually connected to any real data source,
+// which let it drift into real ID collisions with AppShell's directory
+// ('u3'/'u4' meant different people in each list). Now sources from the
+// real, canonical services/users/mockUserService.ts (the same directory
+// StaffTab.tsx and CaseTeamModal.tsx use), filtered to active
+// Pathologist-role users — a real, clinically-appropriate, collision-free
+// subset instead of a second hand-maintained copy.
+>>>>>>> upstream/main
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { mockMessageService } from '@/services/messages/mockMessageService';
+<<<<<<< HEAD
 
 // ─── Internal user directory (mirrors AppShell INTERNAL_USERS) ────────────────
 const REVIEWERS = [
@@ -19,6 +38,25 @@ const REVIEWERS = [
   { id: 'u3',          name: 'Dr. James Chen',       role: 'Consultant Histopathologist' },
   { id: 'u4',          name: 'Dr. Maria Santos',     role: 'Consultant Histopathologist' },
 ];
+=======
+import { userService, subspecialtyService } from '@/services';
+import type { StaffUser } from '@/services/users/IUserService';
+import type { ServiceResult } from '@/services/types';
+import { getStaffSubspecialtyDisplay } from '@/utils/staffSubspecialties';
+
+interface ReviewerOption { id: string; name: string; role: string; }
+
+// Real display name/role derived from StaffUser — "Dr." prefix kept for
+// consistency with existing UI copy (avatarInitials already strips it).
+// Real fix, per direct confirmation: department (a free-text field) was
+// used as the subtitle here — replaced with the user's real, assigned
+// Subspecialty name(s), the actual data this stood in for.
+const toReviewerOption = (u: StaffUser, allSubspecialties: import('@/services/subspecialties/ISubspecialtyService').Subspecialty[]): ReviewerOption => ({
+  id:   u.id,
+  name: `Dr. ${u.firstName} ${u.lastName}`.trim(),
+  role: getStaffSubspecialtyDisplay(u.id, allSubspecialties) || 'Pathologist',
+});
+>>>>>>> upstream/main
 
 const NOTE_TYPES = [
   { value: 'informal_review',      label: 'Informal Review'      },
@@ -50,12 +88,20 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
   const [message,     setMessage]     = useState('');
   const [status,      setStatus]      = useState<'compose' | 'sending' | 'sent'>('compose');
   const [query,       setQuery]       = useState('');
+<<<<<<< HEAD
 
   // Reset when opened
+=======
+  const [reviewers,   setReviewers]   = useState<ReviewerOption[]>([]);
+  const [loadingReviewers, setLoadingReviewers] = useState(true);
+
+  // Reset + fetch real reviewers when opened
+>>>>>>> upstream/main
   React.useEffect(() => {
     if (isOpen) {
       setSelectedId(''); setNoteType('informal_review');
       setMessage(''); setStatus('compose'); setQuery('');
+<<<<<<< HEAD
     }
   }, [isOpen]);
 
@@ -66,6 +112,30 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
   );
 
   const selected = REVIEWERS.find(r => r.id === selectedId);
+=======
+      setLoadingReviewers(true);
+      Promise.all([userService.getAll(), subspecialtyService.getAll()]).then(([res, subsRes]: [ServiceResult<StaffUser[]>, ServiceResult<import('@/services/subspecialties/ISubspecialtyService').Subspecialty[]>]) => {
+        if (res.ok) {
+          const allSubspecialties = subsRes.ok ? subsRes.data : [];
+          const active = res.data
+            .filter(u => u.status === 'Active' && u.roles.includes('Pathologist') && u.id !== fromUserId)
+            .map(u => toReviewerOption(u, allSubspecialties));
+          setReviewers(active);
+        } else {
+          setReviewers([]);
+        }
+        setLoadingReviewers(false);
+      });
+    }
+  }, [isOpen, fromUserId]);
+
+  const filtered = reviewers.filter(r =>
+    r.name.toLowerCase().includes(query.toLowerCase()) ||
+    r.role.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const selected = reviewers.find(r => r.id === selectedId);
+>>>>>>> upstream/main
   const canSend  = !!selectedId;
 
   const handleSend = async () => {
@@ -98,11 +168,19 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
   return ReactDOM.createPortal(
     <div
       onClick={onClose}
+<<<<<<< HEAD
       style={{ position: 'fixed', inset: 0, background: 'rgba(4,10,18,0.82)', backdropFilter: 'blur(6px)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{ width: 520, background: '#0b1120', border: '1px solid rgba(148,163,184,0.3)', borderRadius: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+=======
+      className="ps-overlay"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="ps-modal-dark ps-review-req-shell"
+>>>>>>> upstream/main
       >
         {/* Header */}
         <div style={{ padding: '18px 24px 14px', borderBottom: '1px solid rgba(51,65,85,0.9)', background: 'radial-gradient(circle at top left, rgba(139,92,246,0.08), transparent 55%), #0b1120', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -113,7 +191,11 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
             <div style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>Request Colleague Review</div>
             {caseLabel && <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{caseId} · {caseLabel}</div>}
           </div>
+<<<<<<< HEAD
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
+=======
+          <button onClick={onClose} className="ps-close-btn" aria-label="Close">
+>>>>>>> upstream/main
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
           </button>
         </div>
@@ -140,7 +222,11 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Review type */}
             <div>
+<<<<<<< HEAD
               <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Review Type</div>
+=======
+              <div className="fm-eyebrow">Review Type</div>
+>>>>>>> upstream/main
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {NOTE_TYPES.map(t => (
                   <button
@@ -156,16 +242,35 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Colleague picker */}
             <div>
+<<<<<<< HEAD
               <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Send To</div>
+=======
+              <div className="fm-eyebrow">Send To</div>
+>>>>>>> upstream/main
               <input
                 type="text"
                 placeholder="Search colleagues…"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
+<<<<<<< HEAD
                 style={{ width: '100%', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }}
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
                 {filtered.map(r => (
+=======
+                className="ps-modal-dark-input"
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+                {loadingReviewers ? (
+                  <div style={{ padding: '16px 12px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                    Loading colleagues…
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div style={{ padding: '16px 12px', fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                    No active pathologists found{query ? ' matching your search' : ''}.
+                  </div>
+                ) : filtered.map(r => (
+>>>>>>> upstream/main
                   <div
                     key={r.id}
                     onClick={() => setSelectedId(r.id)}
@@ -176,7 +281,11 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{r.name}</div>
+<<<<<<< HEAD
                       <div style={{ fontSize: 11, color: '#64748b' }}>{r.role}</div>
+=======
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.role}</div>
+>>>>>>> upstream/main
                     </div>
                     {selectedId === r.id && (
                       <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -188,20 +297,32 @@ const RequestReviewModal: React.FC<RequestReviewModalProps> = ({
 
             {/* Optional note */}
             <div>
+<<<<<<< HEAD
               <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Additional Context <span style={{ fontWeight: 400, color: '#334155' }}>(optional)</span></div>
+=======
+              <div className="fm-eyebrow">Additional Context <span style={{ fontWeight: 400, color: '#334155' }}>(optional)</span></div>
+>>>>>>> upstream/main
               <textarea
                 placeholder="e.g. Please review the deep margin — uncertain if pT1 or muscularis invasion…"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 rows={3}
+<<<<<<< HEAD
                 style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+=======
+                className="ps-modal-dark-input" style={{ resize: 'vertical' }}
+>>>>>>> upstream/main
               />
             </div>
 
             {/* Info notice */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 8 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<<<<<<< HEAD
               <span style={{ fontSize: 11, color: '#8B5CF6' }}>This does not transfer case ownership. The colleague will receive a message with a link to the case report.</span>
+=======
+              <span style={{ fontSize: 11, color: '#a78bfa' }}>This does not transfer case ownership. The colleague will receive a message with a link to the case report.</span>
+>>>>>>> upstream/main
             </div>
 
             {/* Actions */}

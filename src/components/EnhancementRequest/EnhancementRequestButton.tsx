@@ -62,7 +62,11 @@ export const EnhancementRequestButton: React.FC<Props> = ({
           transition:  'opacity 0.2s ease',
           flexShrink:  0,
           position:    'relative',
+<<<<<<< HEAD
           zIndex:      99999,
+=======
+          zIndex:      2,
+>>>>>>> upstream/main
         }}
         onMouseEnter={e => e.currentTarget.style.opacity = '1'}
         onMouseLeave={e => e.currentTarget.style.opacity = '0.75'}

@@ -1,0 +1,21 @@
+﻿export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer style={{
+      backgroundColor: 'rgba(17, 24, 39, 0.95)',
+      borderTop: '1px solid rgba(245, 158, 11, 0.2)',
+      padding: '24px 40px',
+      textAlign: 'center',
+      color: '#64748b',
+      fontSize: '14px',
+      marginTop: 'auto',
+      backdropFilter: 'blur(20px)',
+      flexShrink: 0
+    }}>
+      <p style={{ margin: 0 }}>
+        © {currentYear} PathScribe AI Systems. All rights reserved.
+      </p>
+    </footer>
+  );
+}

@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+// Stub only — real implementation pending backend cutover.
+// mockDelegationTypeService.ts is the active implementation; this satisfies the
+// service interface's contract so the swap to a real backend is a
+// one-line change in services/index.ts when that backend exists.
+
+>>>>>>> upstream/main
 import {
   collection, doc,
   getDocs, getDoc,
@@ -23,6 +31,10 @@ function fromDoc(id: string, data: Record<string, any>): DelegationType {
     description:        data.description        ?? '',
     transfersOwnership: data.transfersOwnership ?? false,
     requiresNote:       data.requiresNote       ?? false,
+<<<<<<< HEAD
+=======
+    multiAssign:        data.multiAssign        ?? false,
+>>>>>>> upstream/main
     color:              data.color              ?? '#94a3b8',
     active:             data.active             ?? true,
     isSystem:           data.isSystem           ?? false,

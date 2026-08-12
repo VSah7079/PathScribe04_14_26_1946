@@ -1,4 +1,5 @@
 // useSpecimenDictionary.tsx
+<<<<<<< HEAD
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { SpecimenEntry } from './specimenTypes';
@@ -15,6 +16,28 @@ const STARTER_SPECIMENS = starterData.specimens as unknown as SpecimenEntry[];
 // Separate from specimenDictionary so a user clearing their dictionary
 // doesn't trigger a re-seed on next load.
 const SEED_KEY = 'specimenDictionarySeeded_v1';
+=======
+// ─────────────────────────────────────────────────────────────
+// Thin React hook wrapper around specimenDictionaryService — the real
+// backend service (src/services/specimenDictionary/). Rewritten June
+// 2026: this file used to call localStorage.getItem/setItem directly,
+// inline, with no interface and no Firestore path — the one domain in
+// the app not following the IXxxService/mockXxxService/
+// firestoreXxxService pattern everything else uses. See
+// ISpecimenDictionaryService.ts's own header for the full reasoning.
+//
+// Public API (dictionary, addEntries, updateEntries, deprecateEntries,
+// replaceDictionary, exportDictionary) is deliberately UNCHANGED from
+// before — every existing consumer (AccessionPage, SpecimenEditModal,
+// SearchPage, SpecimenDictionarySection, TATConfigSection,
+// SubspecialtiesSection) keeps working without modification. Only what's
+// behind the hook changed, not what it looks like from the outside.
+// ─────────────────────────────────────────────────────────────
+
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { SpecimenEntry } from '../../../services/specimenDictionary/specimenTypes';
+import { specimenDictionaryService } from '../../../services';
+>>>>>>> upstream/main
 
 interface SpecimenDictionaryContextValue {
   dictionary:         SpecimenEntry[];
@@ -36,6 +59,7 @@ export const useSpecimenDictionary = () => {
 
 export const SpecimenDictionaryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [dictionary, setDictionary] = useState<SpecimenEntry[]>([]);
+<<<<<<< HEAD
   const [version,    setVersion]    = useState<number>(1);
 
   // Load from localStorage on mount — seed from starter data if first run
@@ -92,6 +116,50 @@ export const SpecimenDictionaryProvider: React.FC<{ children: React.ReactNode }>
   };
 
   const exportDictionary = () => dictionary;
+=======
+  // Kept for API-shape compatibility — no existing consumer destructures
+  // this (confirmed by checking every useSpecimenDictionary() call site),
+  // but removing it would be a breaking change to the hook's contract
+  // for no real benefit. Simple local-mutation counter now, rather than
+  // anything persisted — the service itself is the source of truth for
+  // the actual data.
+  const [version, setVersion] = useState(1);
+
+  useEffect(() => {
+    specimenDictionaryService.getAll().then(res => {
+      if (res.ok) setDictionary(res.data);
+    });
+  }, []);
+
+  // Every mutation re-fetches from the service's response rather than
+  // computing the new array locally — the service is the source of
+  // truth, not a local reducer that the service happens to mirror.
+  const addEntries = useCallback((entries: SpecimenEntry[]) => {
+    specimenDictionaryService.addEntries(entries).then(res => {
+      if (res.ok) { setDictionary(res.data); setVersion(v => v + 1); }
+    });
+  }, []);
+
+  const updateEntries = useCallback((entries: SpecimenEntry[]) => {
+    specimenDictionaryService.updateEntries(entries).then(res => {
+      if (res.ok) { setDictionary(res.data); setVersion(v => v + 1); }
+    });
+  }, []);
+
+  const deprecateEntries = useCallback((ids: string[]) => {
+    specimenDictionaryService.deprecateEntries(ids).then(res => {
+      if (res.ok) { setDictionary(res.data); setVersion(v => v + 1); }
+    });
+  }, []);
+
+  const replaceDictionary = useCallback((entries: SpecimenEntry[]) => {
+    specimenDictionaryService.replaceDictionary(entries).then(res => {
+      if (res.ok) { setDictionary(res.data); setVersion(v => v + 1); }
+    });
+  }, []);
+
+  const exportDictionary = useCallback(() => dictionary, [dictionary]);
+>>>>>>> upstream/main
 
   return (
     <SpecimenDictionaryContext.Provider

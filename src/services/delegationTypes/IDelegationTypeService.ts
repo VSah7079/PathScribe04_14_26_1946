@@ -6,6 +6,11 @@ export interface DelegationType {
   description:        string;
   transfersOwnership: boolean;
   requiresNote:       boolean;
+<<<<<<< HEAD
+=======
+  /** When true the delegate modal allows selecting multiple recipients */
+  multiAssign:        boolean;
+>>>>>>> upstream/main
   color:              string;
   active:             boolean;
   isSystem:           boolean;   // system types can be toggled but never deleted

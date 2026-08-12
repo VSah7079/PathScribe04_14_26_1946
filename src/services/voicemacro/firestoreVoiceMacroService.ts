@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+// Stub only — real implementation pending backend cutover.
+// mockVoiceService.ts is the active implementation; this satisfies the
+// service interface's contract so the swap to a real backend is a
+// one-line change in services/index.ts when that backend exists.
+
+>>>>>>> upstream/main
 import { IVoiceMacroService } from './IVoiceMacroService';
 import { VoiceMacro } from '../../types/voiceMacros';
 import { db } from '../../firebase/config'; // <-- Verify this path matches your project

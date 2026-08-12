@@ -10,43 +10,71 @@ const SEED: DelegationType[] = [
   {
     id: 'REASSIGN', label: 'Case Reassignment',
     description: 'Full transfer of case ownership — you are no longer responsible',
+<<<<<<< HEAD
     transfersOwnership: true,  requiresNote: false,
+=======
+    transfersOwnership: true,  requiresNote: false, multiAssign: false,
+>>>>>>> upstream/main
     color: '#0891B2', active: true, isSystem: true, sortOrder: 1,
   },
   {
     id: 'POOL', label: 'Move to Pool',
     description: 'Transfer to a workgroup queue for any available pathologist to accept',
+<<<<<<< HEAD
     transfersOwnership: true,  requiresNote: false,
+=======
+    transfersOwnership: true,  requiresNote: false, multiAssign: false,
+>>>>>>> upstream/main
     color: '#6366f1', active: true, isSystem: true, sortOrder: 2,
   },
   {
     id: 'SECOND_OPINION', label: 'Second Opinion',
     description: 'Formal consultation — you retain ownership and sign-out responsibility',
+<<<<<<< HEAD
     transfersOwnership: false, requiresNote: true,
+=======
+    transfersOwnership: false, requiresNote: true,  multiAssign: false,
+>>>>>>> upstream/main
     color: '#f59e0b', active: true, isSystem: true, sortOrder: 3, cptHint: '88321–88325',
   },
   {
     id: 'CASUAL_REVIEW', label: 'Informal Review',
     description: 'Informal peer review — no formal obligation for the reviewer',
+<<<<<<< HEAD
     transfersOwnership: false, requiresNote: false,
+=======
+    transfersOwnership: false, requiresNote: false, multiAssign: false,
+>>>>>>> upstream/main
     color: '#10b981', active: false, isSystem: true, sortOrder: 4,
   },
   {
     id: 'TUMOR_BOARD', label: 'Tumor Board',
     description: 'Submitted for multidisciplinary team discussion — not a sign-out',
+<<<<<<< HEAD
     transfersOwnership: false, requiresNote: false,
+=======
+    transfersOwnership: false, requiresNote: false, multiAssign: false,
+>>>>>>> upstream/main
     color: '#8b5cf6', active: true, isSystem: true, sortOrder: 5,
   },
   {
     id: 'TEACHING', label: 'Teaching Case',
     description: 'Assigned to resident or fellow for educational review',
+<<<<<<< HEAD
     transfersOwnership: false, requiresNote: false,
+=======
+    transfersOwnership: false, requiresNote: false, multiAssign: true,
+>>>>>>> upstream/main
     color: '#64748b', active: true, isSystem: true, sortOrder: 6,
   },
   {
     id: 'CONSULT_EXT', label: 'External Consultation',
     description: 'Sent to an outside institution or specialist',
+<<<<<<< HEAD
     transfersOwnership: false, requiresNote: true,
+=======
+    transfersOwnership: false, requiresNote: true,  multiAssign: false,
+>>>>>>> upstream/main
     color: '#ef4444', active: true, isSystem: true, sortOrder: 7, cptHint: '88321–88325',
   },
 ];

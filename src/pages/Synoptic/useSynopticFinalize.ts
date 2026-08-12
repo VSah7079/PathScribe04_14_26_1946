@@ -18,7 +18,11 @@ export function useSynopticFinalize() {
   );
   const [showAmendmentModal,   setShowAmendmentModal]   = useState(false);
   const [amendmentText,        setAmendmentText]        = useState('');
+<<<<<<< HEAD
   const [amendmentMode,        setAmendmentMode]        = useState<'amendment' | 'addendum'>('amendment');
+=======
+  const [amendmentMode,        setAmendmentMode]        = useState<'amendment' | 'correction' | 'addendum'>('amendment');
+>>>>>>> upstream/main
 
   return {
     showFinalizeModal,    setShowFinalizeModal,

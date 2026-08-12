@@ -51,12 +51,21 @@ const ProtocolsTab: React.FC = () => {
   };
 
   return (
+<<<<<<< HEAD
     <div style={{ display: 'flex', gap: '0', minHeight: '600px' }}>
 
       {/* ── Sidebar ── */}
       <div style={{
         width: '220px', flexShrink: 0,
         paddingRight: '24px',
+=======
+    <div style={{ display: 'flex', gap: '20px' }}>
+
+      {/* ── Sidebar ── */}
+      <div style={{
+        width: '210px', flexShrink: 0,
+        paddingRight: '10px',
+>>>>>>> upstream/main
         borderRight: '1px solid #1e293b',
       }}>
         {NAV_ITEMS.map(item => {
@@ -102,7 +111,11 @@ const ProtocolsTab: React.FC = () => {
       </div>
 
       {/* ── Section content ── */}
+<<<<<<< HEAD
       <div style={{ flex: 1, paddingLeft: '32px', minWidth: 0 }}>
+=======
+      <div style={{ flex: 1, minWidth: 0, padding: '20px 24px', boxSizing: 'border-box', background: 'rgba(8,145,178,0.06)', border: '1px solid rgba(8,145,178,0.18)', borderRadius: '12px' }}>
+>>>>>>> upstream/main
         {activeSection === 'active' && <ActiveProtocolsSection />}
         {activeSection === 'review' && <ReviewQueueSection />}
         {activeSection === 'all'    && <AllProtocolsSection />}

@@ -43,7 +43,21 @@ export type SynopticAuditAction =
   | 'template.snomed_applied'
   | 'template.icd_applied'
   | 'template.snomed_removed'
+<<<<<<< HEAD
   | 'template.icd_removed';
+=======
+  | 'template.icd_removed'
+
+  // Answer-level — logged when a pathologist fills in a synoptic field
+  | 'set_single_answer'
+  | 'add_multi_answer'
+  | 'remove_multi_answer'
+  | 'set_text_answer'
+
+  // Generic lifecycle
+  | 'state_transition'
+  | 'reset_template';
+>>>>>>> upstream/main
 
 // ─── Event payload ────────────────────────────────────────────────────────────
 // Intentionally compatible with the existing logEvent() object shape.
@@ -54,7 +68,11 @@ export interface SynopticAuditEvent {
   category:    'user' | 'system';
   action:      SynopticAuditAction;
   templateId:  string;
+<<<<<<< HEAD
 
+=======
+  detail?:     string;    // human-readable summary (optional for synoptic events)
+>>>>>>> upstream/main
   // Template metadata
   templateName?: string;
   stateFrom?:    TemplateLifecycleState;
@@ -70,6 +88,10 @@ export interface SynopticAuditEvent {
   // Editor-specific
   sectionId?:    string;
   fieldId?:      string;
+<<<<<<< HEAD
+=======
+  questionId?:   string;           // synoptic question ID (answer-level events)
+>>>>>>> upstream/main
   oldValue?:     unknown;
   newValue?:     unknown;
 

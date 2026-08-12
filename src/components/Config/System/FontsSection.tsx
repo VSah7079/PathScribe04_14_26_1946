@@ -73,12 +73,23 @@ interface ToggleProps {
   enabled: boolean;
   onChange: (val: boolean) => void;
   disabled?: boolean;
+<<<<<<< HEAD
 }
 
 const Toggle: React.FC<ToggleProps> = ({ enabled, onChange, disabled = false }) => (
   <button
     role="switch"
     aria-checked={enabled}
+=======
+  ariaLabel: string;
+}
+
+const Toggle: React.FC<ToggleProps> = ({ enabled, onChange, disabled = false, ariaLabel }) => (
+  <button
+    role="switch"
+    aria-checked={enabled}
+    aria-label={ariaLabel}
+>>>>>>> upstream/main
     disabled={disabled}
     onClick={() => !disabled && onChange(!enabled)}
     title={disabled ? 'At least one font must remain enabled' : undefined}
@@ -129,7 +140,11 @@ const FontsSection: React.FC = () => {
   const totalCount    = AVAILABLE_FONTS.length;
 
   return (
+<<<<<<< HEAD
     <div style={{ padding: '4px 0', maxWidth: '560px' }}>
+=======
+    <div style={{ padding: '4px 0', maxWidth: '900px' }}>
+>>>>>>> upstream/main
 
       {/* ── Header ── */}
       <div style={{ marginBottom: '16px' }}>
@@ -181,13 +196,21 @@ const FontsSection: React.FC = () => {
           <div key={category} style={{ marginBottom: '20px' }}>
             {/* Category label */}
             <div style={{
+<<<<<<< HEAD
               fontSize: '11px', fontWeight: 700, color: '#64748b',
+=======
+              fontSize: '11px', fontWeight: 700, color: '#94a3b8',
+>>>>>>> upstream/main
               textTransform: 'uppercase', letterSpacing: '0.6px',
               marginBottom: '8px', paddingLeft: '2px',
             }}>
               {category}
             </div>
 
+<<<<<<< HEAD
+=======
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
+>>>>>>> upstream/main
             {fonts.map(font => {
               const enabled  = isApproved(font.name);
               const isLast   = enabled && approvedCount <= 1;
@@ -195,25 +218,40 @@ const FontsSection: React.FC = () => {
               return (
                 <div key={font.name} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+<<<<<<< HEAD
                   padding: '10px 14px', marginBottom: '6px',
+=======
+                  padding: '10px 14px',
+>>>>>>> upstream/main
                   border: `1px solid ${enabled ? 'rgba(8,145,178,0.25)' : 'rgba(255,255,255,0.06)'}`,
                   borderRadius: '8px',
                   background: enabled ? 'rgba(8,145,178,0.06)' : 'rgba(255,255,255,0.02)',
                   transition: 'all 0.15s',
+<<<<<<< HEAD
                   opacity: enabled ? 1 : 0.5,
+=======
+>>>>>>> upstream/main
                 }}>
                   {/* Font name rendered in its own typeface */}
                   <div>
                     <span style={{
                       fontFamily: font.name,
                       fontSize: '15px',
+<<<<<<< HEAD
                       color: enabled ? '#f1f5f9' : '#64748b',
+=======
+                      color: enabled ? '#f1f5f9' : '#94a3b8',
+>>>>>>> upstream/main
                       display: 'block',
                       marginBottom: '1px',
                     }}>
                       {font.label}
                     </span>
+<<<<<<< HEAD
                     <span style={{ fontSize: '11px', color: '#475569', fontFamily: 'inherit' }}>
+=======
+                    <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'inherit' }}>
+>>>>>>> upstream/main
                       {font.category}
                     </span>
                   </div>
@@ -222,19 +260,33 @@ const FontsSection: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{
                       fontSize: '11px', fontWeight: 600,
+<<<<<<< HEAD
                       color: enabled ? '#10B981' : '#475569',
                     }}>
                       {enabled ? 'Enabled' : 'Disabled'}
+=======
+                      color: enabled ? '#10B981' : '#94a3b8',
+                    }}>
+                      {enabled ? 'Active' : 'Inactive'}
+>>>>>>> upstream/main
                     </span>
                     <Toggle
                       enabled={enabled}
                       onChange={val => toggleFont(font.name, val)}
                       disabled={isLast}
+<<<<<<< HEAD
+=======
+                      ariaLabel={`${enabled ? 'Disable' : 'Enable'} ${font.label} font`}
+>>>>>>> upstream/main
                     />
                   </div>
                 </div>
               );
             })}
+<<<<<<< HEAD
+=======
+            </div>
+>>>>>>> upstream/main
           </div>
         );
       })}

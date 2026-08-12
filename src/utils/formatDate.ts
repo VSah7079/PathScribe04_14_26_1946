@@ -1,4 +1,5 @@
 // src/utils/formatDate.ts
+<<<<<<< HEAD
 // Locale-aware date and datetime formatting utilities.
 // Single source of truth for all date display across PathScribe.
 //
@@ -8,6 +9,52 @@
 //   formatDate('1974-03-14', 'en-US')  → '03/14/1974'
 
 // ── Date only ─────────────────────────────────────────────────────────────────
+=======
+// ─────────────────────────────────────────────────────────────────────────────
+// Locale-aware date, datetime, age, and relative time formatting.
+// Single source of truth for all date display across PathScribe.
+//
+// All display formatting derives from the institution's jurisdiction via
+// JURISDICTION_LOCALE in systemConfig.ts. Internal storage is always UTC ISO 8601.
+//
+// Usage:
+//   import { formatDate, formatDateTime, localeForJurisdiction } from '@/utils/formatDate';
+//   formatDate('1974-03-14', 'en-GB')  → '14/03/1974'
+//   formatDate('1974-03-14', 'en-US')  → '03/14/1974'
+//
+// With jurisdiction:
+//   const locale = localeForJurisdiction(config.jurisdiction);
+//   formatDate(caseDate, locale)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import type { Jurisdiction } from '../types/systemConfig';
+import { JURISDICTION_LOCALE } from '../types/systemConfig';
+
+// ── Jurisdiction helpers ──────────────────────────────────────────────────────
+
+/** Returns the BCP-47 locale string for a given jurisdiction. */
+export function localeForJurisdiction(j: Jurisdiction): string {
+  return JURISDICTION_LOCALE[j]?.locale ?? 'en-US';
+}
+
+/** Returns the spellcheck lang attribute value for a given jurisdiction. */
+export function spellLangForJurisdiction(j: Jurisdiction): string {
+  return JURISDICTION_LOCALE[j]?.spellLang ?? 'en-US';
+}
+
+/** Returns a display hint for the date format (e.g. 'DD/MM/YYYY'). */
+export function dateFormatHint(j: Jurisdiction): string {
+  return JURISDICTION_LOCALE[j]?.dateFormat ?? 'MM/DD/YYYY';
+}
+
+/** Returns '12h' or '24h' for the jurisdiction. */
+export function timeFormatForJurisdiction(j: Jurisdiction): '12h' | '24h' {
+  return JURISDICTION_LOCALE[j]?.timeFormat ?? '12h';
+}
+
+// ── Date only ─────────────────────────────────────────────────────────────────
+
+>>>>>>> upstream/main
 export function formatDate(iso: string | undefined, locale?: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -20,16 +67,27 @@ export function formatDate(iso: string | undefined, locale?: string): string {
 }
 
 // ── Date + time ───────────────────────────────────────────────────────────────
+<<<<<<< HEAD
+=======
+
+>>>>>>> upstream/main
 export function formatDateTime(iso: string | undefined, locale?: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
+<<<<<<< HEAD
   return d.toLocaleDateString(locale ?? 'en-US', {
+=======
+  const j    = localeToJurisdiction(locale);
+  const is24 = j ? timeFormatForJurisdiction(j) === '24h' : false;
+  return d.toLocaleString(locale ?? 'en-US', {
+>>>>>>> upstream/main
     day:    '2-digit',
     month:  '2-digit',
     year:   'numeric',
     hour:   '2-digit',
     minute: '2-digit',
+<<<<<<< HEAD
   });
 }
 
@@ -38,6 +96,42 @@ export function formatAge(dobIso: string | undefined): string {
   if (!dobIso) return '—';
   const dob  = new Date(dobIso);
   const now  = new Date();
+=======
+    hour12: !is24,
+  });
+}
+
+// ── Long-form date (unambiguous — for reports and audit) ──────────────────────
+// Always spelled out: '4 June 2026' or 'June 4, 2026'
+// Use this on finalised reports to avoid any DD/MM vs MM/DD ambiguity.
+
+export function formatDateLong(iso: string | undefined, locale?: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(locale ?? 'en-US', {
+    day:   'numeric',
+    month: 'long',
+    year:  'numeric',
+  });
+}
+
+// ── UTC audit timestamp (always unambiguous) ──────────────────────────────────
+
+export function formatAuditTimestamp(iso: string | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toISOString().replace('T', ' ').slice(0, 23) + ' UTC';
+}
+
+// ── Age label (days / weeks / months / years) ─────────────────────────────────
+
+export function formatAge(dobIso: string | undefined): string {
+  if (!dobIso) return '—';
+  const dob   = new Date(dobIso);
+  const now   = new Date();
+>>>>>>> upstream/main
   const msOld = now.getTime() - dob.getTime();
   const days  = Math.floor(msOld / (1000 * 3600 * 24));
 
@@ -49,6 +143,10 @@ export function formatAge(dobIso: string | undefined): string {
 }
 
 // ── Relative label (today / yesterday / day name / date) ──────────────────────
+<<<<<<< HEAD
+=======
+
+>>>>>>> upstream/main
 export function formatRelative(iso: string | undefined, locale?: string): string {
   if (!iso) return '—';
   const d   = new Date(iso);
@@ -63,3 +161,17 @@ export function formatRelative(iso: string | undefined, locale?: string): string
   if (diffDays < 365) return d.toLocaleDateString(locale ?? 'en-US', { month: 'short', day: 'numeric' });
   return formatDate(iso, locale);
 }
+<<<<<<< HEAD
+=======
+
+// ── Internal helper ───────────────────────────────────────────────────────────
+
+/** Best-effort reverse lookup: locale string → Jurisdiction.
+ *  Used only for time format (12h/24h) inference. */
+function localeToJurisdiction(locale?: string): Jurisdiction | null {
+  if (!locale) return null;
+  const entry = (Object.entries(JURISDICTION_LOCALE) as [Jurisdiction, { locale: string }][])
+    .find(([, v]) => v.locale === locale);
+  return entry?.[0] ?? null;
+}
+>>>>>>> upstream/main

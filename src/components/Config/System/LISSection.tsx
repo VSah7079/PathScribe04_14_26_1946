@@ -30,7 +30,11 @@
  *   types/systemConfig.ts               ← SystemConfig interface + defaults
  *   contexts/SystemConfigContext.tsx    ← provider + useSystemConfig hook
  *   pages/SynopticReportPage.tsx        ← reads lisIntegrationEnabled,
+<<<<<<< HEAD
  *                                          allowpathscribePostFinalActions
+=======
+ *                                          allowPathScribePostFinalActions
+>>>>>>> upstream/main
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -146,7 +150,11 @@ const LISSection: React.FC = () => {
   const {
     lisIntegrationEnabled,
     lisOwnsStatuses,
+<<<<<<< HEAD
     allowpathscribePostFinalActions,
+=======
+    allowPathScribePostFinalActions,
+>>>>>>> upstream/main
   } = config;
 
   // Derived: post-final action toggle is only meaningful when LIS is enabled
@@ -274,14 +282,23 @@ const LISSection: React.FC = () => {
         dimmed={postFinalDimmed}
       >
         <Toggle
+<<<<<<< HEAD
           enabled={allowpathscribePostFinalActions}
           onChange={val => updateConfig({ allowpathscribePostFinalActions: val })}
+=======
+          enabled={allowPathScribePostFinalActions}
+          onChange={val => updateConfig({ allowPathScribePostFinalActions: val })}
+>>>>>>> upstream/main
           disabled={!lisIntegrationEnabled}
         />
       </SettingRow>
 
       {/* ── Contextual note when LIS is on but actions are disabled ── */}
+<<<<<<< HEAD
       {lisIntegrationEnabled && !allowpathscribePostFinalActions && (
+=======
+      {lisIntegrationEnabled && !allowPathScribePostFinalActions && (
+>>>>>>> upstream/main
         <div style={{
           marginLeft: '20px',
           padding: '10px 14px',
@@ -296,7 +313,11 @@ const LISSection: React.FC = () => {
       )}
 
       {/* ── Contextual note when LIS is on and actions are enabled ── */}
+<<<<<<< HEAD
       {lisIntegrationEnabled && allowpathscribePostFinalActions && (
+=======
+      {lisIntegrationEnabled && allowPathScribePostFinalActions && (
+>>>>>>> upstream/main
         <div style={{
           marginLeft: '20px',
           padding: '10px 14px',

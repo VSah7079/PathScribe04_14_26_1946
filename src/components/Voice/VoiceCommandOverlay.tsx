@@ -56,7 +56,11 @@ export const VoiceCommandOverlay: React.FC<VoiceCommandOverlayProps> = ({
         border: `1px solid ${isRefining ? '#38bdf8' : '#22c55e'}`,
         borderRadius: '12px', padding: '12px 20px',
         display: 'flex', alignItems: 'center', gap: '14px',
+<<<<<<< HEAD
         zIndex: 10000, color: '#fff',
+=======
+        zIndex: 9000, color: '#fff',
+>>>>>>> upstream/main
         boxShadow: '0 0 24px rgba(34,197,94,0.2)',
         minWidth: '320px',
         animation: 'popIn 0.2s ease-out',
@@ -137,7 +141,11 @@ export const VoiceCommandOverlay: React.FC<VoiceCommandOverlayProps> = ({
       border: `1px solid ${isSuccess ? '#38bdf8' : '#f59e0b'}`,
       borderRadius: '12px', padding: '12px 24px',
       display: 'flex', alignItems: 'center', gap: '16px',
+<<<<<<< HEAD
       zIndex: 10000, color: '#fff',
+=======
+      zIndex: 9000, color: '#fff',
+>>>>>>> upstream/main
       boxShadow: `0 0 20px ${isSuccess ? '#38bdf844' : '#f59e0b44'}`,
       animation: 'popIn 0.2s ease-out',
     }}>
