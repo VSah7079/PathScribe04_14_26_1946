@@ -1,0 +1,21 @@
+# Tests
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.test.jsx
+**/*.spec.ts
+**/*.spec.tsx
+**/*.integration.test.ts
+**/__tests__/**
+
+# Documentation & Large binary files
+docs/
+*.docx
+*.ai
+*.eps
+*.ps1
+*.txt
+CLAUDE.md
+MANIFEST.md
+pathscribe-file-manifest.txt
+file-tree.txt
