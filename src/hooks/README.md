@@ -301,3 +301,45 @@ Every file here that used `react-router-dom` now imports the same hooks and comp
 ## Batch 380 (PS-359)
 
 `useFieldRequirements(page)`: a page's (or modal's) Field Requirements for the signed-in user's organisation. It starts from the page's defaults, so nothing is looser than the default while the settings load. The decisions stay in `services/fieldRequirements/`.
+
+## Batch 395
+
+`useFillViewportHeight` keeps a panel reaching the bottom of the window. It re-measures on resize and whenever anything above it changes size (a `ResizeObserver` on the page body), on the next animation frame. The number comes from `utils/fillViewportHeight.ts`. Used by the Search result table. (Batch 395 also used it for the Worklist, and said it fixed the empty space there. It didn't: the Worklist page is exactly window-height, so its body never changes size, the observer never fires, and the height could stay at its 400 px start. Batch 416 replaced it on the Worklist with CSS flex layout. A panel on a fixed-height page should fill with `flex: 1; min-height: 0` rather than this hook.)
+
+## Batch 396
+
+- `useSurgicalQaReview.ts`: surgical post-sign-out QA items, for the queue or one case, with record and dismiss.
+- `useCytologyQcActions.ts`: take a cytology QC review and record its verdict (queue and case screen); `useCytologyQcCaseReview` for one case.
+- `useReviewQueueCounts.ts`: the counts on the Worklist's two review-queue tiles.
+
+## useRegistryGoLive (Batch 423)
+
+`useRegistryGoLive(domain, registryId, user)` provides the go-live panel's state:
+- the view;
+- the evidence fields and live pre-check preview;
+- the approver's capacities;
+- the credential prompt's open state;
+- `request`, `approve(confirmation)`, `withdraw`, `toTest` and `saveGovernance`.
+
+Every decision is in `services/registryGoLive/`.
+
+## useRegistryGoLive (Batch 424)
+
+The hook now covers both instances:
+- **Validation instance:** `recordAgreement`, `runSuite`, `exportValidation`.
+- **Production instance:** `importValidation(text)`, `request`, `approve`, `withdraw`, `stopLive` (this replaces `toTest`).
+- **Both:** `addRule`, `removeRule`, `confirmLocalChanges`, `saveGovernance`.
+
+## Batch 425
+
+- `useRegistryExceptionCount`: the live registry exception count for the nav and tile badges. It reads on mount, every minute and on window focus, scoped to the user's organisation, and returns null without `screen:registry-exceptions:open`. A SignalR push replaces the minute poll when the API server has it (PS-345).
+- `usePatientRegistryDetailsEditor`: loads and saves a case's patient identifiers and opt-outs after accessioning.
+
+## Batch 431
+
+- `usePersonalLanguage.ts` (new): applies and saves the signed-in person's language.
+- `usePreviewChannel.ts`: window position as a display preference; pop-up flag as a session flag.
+
+## Batch 432
+
+`useCytologyQcActions`: `escalate` and `bypass`. `useCaseSpellCheck`: `canManageFacility` from the capability.

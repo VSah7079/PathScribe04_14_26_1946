@@ -68,5 +68,9 @@ The Instruments entry became **Equipment** (`EquipmentSection.tsx`), no-Duplicat
 
 `duplicateRole` drops ForMedrixAI platform-only capabilities, since a copy is always a hospital role.
 
+## Batch 428: Configuration permissions
+
+Removed the deleted `SpecimenCategoriesSection.tsx` from the policy.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

@@ -21,6 +21,12 @@ Voice-triggered macro dictionary — distinct from the text-expansion macros/ fo
 ## Batch 348 (PS-67): result shape
 
 `refineTranscript` returns `ServiceResult<string>` from `services/types.ts` (`{ ok: true, data }`), the app's one result shape. It used to return `{ success, data }`.
+
+## Batch 430: personal settings per person; view-only fields
+
+- A person's own voice macro (Personal Quick Text, or one added in Configuration → Voice → Speech Processing Rules) is theirs to change. A shared one (enterprise or facility), or someone else's, needs `config:macros:manage`, the same rule as report macros (`macroChangeNeedsCapability`). A refusal throws `CONFIG_NOT_PERMITTED` and changes nothing.
+- New: `getMacrosForCurrentUser` (your own and the shared ones, not other people's), `addPersonalMacro`, `importPersonalMacros`. The Voice settings screen uses them, so what you add there is yours.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

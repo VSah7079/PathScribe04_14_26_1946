@@ -40,5 +40,9 @@ On a UK case (Royal Manchester Centre, facility default en-GB):
 
 Frame gaps stayed at 16.8 ms at most while typing. The Case Hold note, the cytology notes and the intraop quick gross were also checked; the squiggles lined up with the text.
 
+## Batch 432
+
+`DictionaryWordList.tsx` (new): a dictionary's words with add and remove, for "My dictionary" and a facility's Spelling tab. The context now carries `canManageFacility` (the capability) instead of the role.
+
 ---
 *See [components/README.md](../README.md) for the rest of the components/ layer.*

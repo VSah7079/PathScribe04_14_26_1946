@@ -232,6 +232,31 @@ It reads `hooks/useCapabilities.ts` and decides nothing itself. The service behi
 
 - **Batch 375, `ScreenGate`:** takes a Home tile id too; a tile opens when any of its screens may be opened (the Worklist and its two queues, the hubs).
 
+## Batch 410
+
+`CapabilityButton` takes `disabledTitle`, the tooltip saying why when it's disabled for another reason. The Cytology Workspace's Set as Final uses it.
+
+## Batch 417
+
+`NationalIdentifierFields.tsx`: one input per national identifier the facility's jurisdiction uses (NHS number, BSN, IHI…), with the check-digit result on the label as the person types. Presentation only: the rule is `services/patientIdentifiers/checkDigits.ts`; saving goes through `recordNationalPatientIdentifier`. Used on the Accession page.
+
+## Batch 418
+
+`RegistryConsentFields.tsx`: the two opt-out checkboxes (screening programme; cancer registry, with a tooltip saying it is honoured only where the law allows). Presentation only; saved through `recordPatientRegistryConsent`. On the Accession page.
+
+## Batch 425
+
+- `PatientRegistryDetailsModal`: a case's patient's national identifiers and registry opt-outs, edited after accessioning. It is opened from the Registry Exceptions page. Saving needs `patient:national-identifier:record` (an A08 goes to the engine) and `patient:registry-consent:record`.
+- `RegistryOptOutBadge`: shows on a case's patient card when the patient has opted out of screening and/or cancer registry reporting.
+
+## Batch 431
+
+`InlineCommentThread.tsx` keeps comments through `services/templates/templateReviewWork.ts`.
+
+## Batch 432
+
+`ReasonPromptModal.tsx` (new): a confirmation that needs a written reason (QC escalate, supervisor bypass, denying an access request).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

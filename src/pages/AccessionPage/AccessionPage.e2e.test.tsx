@@ -64,6 +64,8 @@ vi.mock('react-router', async () => {
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'path-1', name: 'Test Pathologist' } }),
+  // Batch 430: the voice provider reads who is signed in for their accent.
+  useAuthOptional: () => ({ user: { id: 'path-1', name: 'Test Pathologist' } }),
 }));
 
 describe('AccessionPage \u2014 real, full form-submission walkthrough (Autopsy specimen \u2192 real, protocol-generated blocks)', () => {

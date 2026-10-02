@@ -66,6 +66,11 @@ Before this batch, anyone who reached the Sign PAD / Sign FAD button could sign.
   - **Sub-national appointments.** Jurisdictions are country-level, so this stops cross-country sign-out but not cross-county. A US medical examiner's county or state, or a coroner's area, would need a region on both the case and the credential. Pete agreed this is a follow-up.
   - **Still-English text.** The adjacent "Ready for Body Release" banner on the report page is still English. It's outside this change.
 
+## Batch 383 (PS-359)
+
+- **`releaseAutopsyBody.ts`** needs `autopsy:body:release` for the case, before it fetches anything; a refusal returns `{ ok: false, notPermitted: true }`.
+- **`resolveAutopsyAuthorizationCompletionValidation.ts`** takes the organisation's Field Requirements as an optional third argument (defaults: the same order/date/consent-time rules as before, and the consent scope optional). Its `missingFieldIds` are now Field Requirement ids (`autopsyOrderReference`, `autopsyOrderDate`, `autopsyConsentGivenAt`, `autopsyConsentScope`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

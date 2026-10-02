@@ -112,6 +112,10 @@ is pure logic (no React) bridging the editor to the AI orchestrator.
 
 `PathScribeEditor.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 391
+
+`PathScribeEditor`: Korean typed in any approved font is drawn in Pretendard (`'Pretendard Variable'` after the chosen font in the stack), since none of the approved fonts has Hangul. The same font prints Korean report PDFs. The approved-font list itself is unchanged.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -55,6 +55,7 @@ import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { visibleTiles, type ScreenId } from '@/services/screens/screenAccess';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
 
 interface SubTile {
   key: string;
@@ -84,6 +85,8 @@ export default function QualityComplianceHubPage() {
   // Real, same colors each tile already carried as a flat Home tile —
   // same real precedent as PathologyWorkspacePage.tsx's own tiles.
   const capabilities = useCapabilities();
+  // Batch 425: registry submissions needing a person (own organisation), on the tile that leads to them.
+  const registryExceptionCount = useRegistryExceptionCount();
   const allTiles: SubTile[] = [
     {
       key: 'audit',
@@ -102,6 +105,16 @@ export default function QualityComplianceHubPage() {
       route: '/quality-assurance',
       color: '#E69F00',
       image: '/deficiencies.webp',
+    },
+    // Batch 421: registry submissions that need a person (Registry Engine SRS v2.1, FR-008.6).
+    {
+      key: 'registryExceptions',
+      screen: 'registryExceptions',
+      title: t('qualityComplianceHub.registryExceptionsTile.title'),
+      description: t('qualityComplianceHub.registryExceptionsTile.description'),
+      route: '/registry-exceptions',
+      color: '#CC79A7',
+      image: '/logs.webp',
     },
   ];
   // Batch 374: only the screens this user may open (services/screens/screenAccess.ts).
@@ -157,6 +170,9 @@ export default function QualityComplianceHubPage() {
                   <div className="ps-home-card-overlay" />
                   <div className="ps-home-card-text">
                     <h3 className="ps-home-card-title">{tile.title}</h3>
+                    {tile.key === 'registryExceptions' && !!registryExceptionCount && (
+                      <span className="ps-home-card-badge" title={t('home.registryExceptionsBadge', { count: registryExceptionCount })}>{t('home.registryExceptionsBadge', { count: registryExceptionCount })}</span>
+                    )}
                     <p className="ps-home-card-desc">{tile.description}</p>
                   </div>
                 </div>

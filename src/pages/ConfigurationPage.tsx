@@ -30,6 +30,9 @@ import { resetConfigScroll } from '../utils/resetConfigScroll';
 import { ConfigDirtyGuardContext } from '../components/Config/configDirtyGuardContext';
 import ConfirmModal from '../components/Common/ConfirmModal';
 import '../pathscribe.css';
+import ConfigRefusalBanner from '../components/Config/ConfigRefusalBanner';
+import ConfigSectionGate from '../components/Config/ConfigSectionGate';
+import { CONFIG_TABS, type ConfigTabId } from '../constants/configSearchIndex';
 
 // ── Admin permission check ────────────────────────────────────────────────────
 // Validation Studies tab is only visible to admin-tier roles. useIsAdmin/
@@ -39,8 +42,9 @@ import '../pathscribe.css';
 // localStorage.getItem('pathscribe-user') + JSON.parse); Config/AI/index.tsx
 // carried a second, real-bug-prone copy of the same check. Both now share
 // one implementation.
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'cytology', 'tat', 'actions', 'macros', 'templates', 'validation', 'demo'] as const;
-type TabId = typeof VALID_TABS[number];
+// Batch 431: one list of tabs, shared with the Configuration search.
+const VALID_TABS = CONFIG_TABS;
+type TabId = ConfigTabId;
 
 const TAB_LABEL_KEYS: Record<TabId, string> = {
   actions:    'configuration.tabs.actions',
@@ -116,7 +120,9 @@ const ConfigurationPage: React.FC = () => {
   // so both the "just go" path and the "confirm first" path call the exact
   // same code.
   const performNavigateToTab = useCallback((tabId: TabId, withScrollReset: boolean, section?: string) => {
-    navigate(`/configuration?tab=${tabId}`);
+    // Batch 431: the section rides in the address too, so the Cytology and
+    // Synoptic Library tabs (which read ?section=) open on it as well.
+    navigate(`/configuration?tab=${tabId}${section ? `&section=${encodeURIComponent(section)}` : ''}`);
     log('navigate_tab', { tabId });
     if (withScrollReset) {
       // Real fix, per direct report: switching tabs used to leave
@@ -208,18 +214,18 @@ const ConfigurationPage: React.FC = () => {
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case 'ai':        return <AITab ModelsPanel={ModelsTab} />;
-      case 'protocols': return <ProtocolsTab />;
+      case 'ai':        return <ConfigSectionGate section="tab:ai"><AITab ModelsPanel={ModelsTab} /></ConfigSectionGate>;
+      case 'protocols': return <ConfigSectionGate section="tab:protocols"><ProtocolsTab /></ConfigSectionGate>;
       case 'staff':     return <StaffTab />;
       case 'system':    return <SystemTab />;
       case 'cytology':  return <CytologyTab />;
-      case 'tat':       return <TATConfigSection />;
-      case 'actions':   return <ActionsTab />;
+      case 'tat':       return <ConfigSectionGate section="tab:tat"><TATConfigSection /></ConfigSectionGate>;
+      case 'actions':   return <ConfigSectionGate section="tab:actions"><ActionsTab /></ConfigSectionGate>;
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
-      case 'templates':  return <ReportTemplatesSection />;
+      case 'templates':  return <ConfigSectionGate section="tab:templates"><ReportTemplatesSection /></ConfigSectionGate>;
       case 'validation': return isAdmin
-        ? <ValidationStudiesSection isSuperAdmin={isSuperAdmin} />
+        ? <ConfigSectionGate section="tab:validation"><ValidationStudiesSection isSuperAdmin={isSuperAdmin} /></ConfigSectionGate>
         : <div className="ps-cfgpage-locked">
             <div className="ps-cfgpage-locked-icon">🔒</div>
             <div className="ps-cfgpage-locked-title">{t('configuration.adminRequiredTitle')}</div>
@@ -234,6 +240,9 @@ const ConfigurationPage: React.FC = () => {
 
   return (
     <div className="ps-cfgpage-shell">
+
+      {/* Batch 428: a refused change names the missing permission. */}
+      <ConfigRefusalBanner />
 
       {/* ── Header + Tab bar — full width, never scrolls ── */}
       <div className="ps-cfgpage-header">

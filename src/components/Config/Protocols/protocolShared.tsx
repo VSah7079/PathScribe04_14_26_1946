@@ -29,6 +29,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { TemplateApproval } from '../../../services/templates/templatePublishingRules';
+import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,25 +133,23 @@ export function isDiagnosticProtocol(p: Protocol): boolean {
 // templateService mutates this array directly during the mock phase.
 // Replace with a useProtocols() hook backed by API once the backend is ready.
 //
-// localStorage bridge: on module load we merge any saved protocol overrides
-// back into the registry so that lifecycle transitions survive page reloads.
+// Saved overrides: on module load we merge any saved protocol overrides back
+// into the registry so that lifecycle transitions survive page reloads.
 // Key: ps_registry_overrides_v1  Value: Record<id, Partial<Protocol>>
+// Batch 431: kept in the lab settings store (services/labSettings/), so every
+// workstation sees the same protocol state once the API server holds it (PS-345).
 
 const REGISTRY_STORE_KEY = 'ps_registry_overrides_v1';
 
 export function loadRegistryOverrides(): Record<string, Partial<Protocol>> {
-  try {
-    const raw = localStorage.getItem(REGISTRY_STORE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  const saved = readLabSetting<Record<string, Partial<Protocol>> | null>(REGISTRY_STORE_KEY, null);
+  return saved && typeof saved === 'object' ? saved : {};
 }
 
 export function saveRegistryOverride(patch: Partial<Protocol> & { id: string }): void {
-  try {
-    const overrides = loadRegistryOverrides();
-    overrides[patch.id] = { ...(overrides[patch.id] ?? {}), ...patch };
-    localStorage.setItem(REGISTRY_STORE_KEY, JSON.stringify(overrides));
-  } catch { /* storage unavailable */ }
+  const overrides = loadRegistryOverrides();
+  overrides[patch.id] = { ...(overrides[patch.id] ?? {}), ...patch };
+  saveLabSetting(REGISTRY_STORE_KEY, overrides);
 }
 
 export let PROTOCOL_REGISTRY: Protocol[] = [
@@ -416,7 +415,7 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
 ];
 
-// Hydrate from localStorage on module load — merges saved overrides so that
+// Hydrate from the lab settings store on module load — merges saved overrides so that
 // transitions made in previous sessions are reflected immediately on reload.
 // This is the mock-phase bridge; remove when the backend API is wired in.
 {
@@ -723,7 +722,7 @@ export const BuildCustomiseModal: React.FC<{
             {/* Search */}
             <div className="ps-pshare-search-wrap">
               <span className="ps-pshare-search-icon">🔍</span>
-              <input
+              <input data-config-nav
                 type="text"
                 placeholder={t('protocolShared.buildModal.searchPlaceholder')}
                 value={search}

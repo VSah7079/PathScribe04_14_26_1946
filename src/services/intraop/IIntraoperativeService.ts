@@ -13,6 +13,7 @@
 // points in their own workflow.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
+import type { VerbalReportInput } from '@/types/intraop/IntraoperativeEntry';
 import type { IntraoperativeEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory, MergeResolutionContext, PreparationType } from '@/types/intraop/IntraoperativeEntry';
 import type { DigitalAsset } from '@/types/case/Material';
 
@@ -120,5 +121,11 @@ export interface IIntraoperativeService {
    *  merge, which is automatic). Before this, verbalReportLog only ever
    *  existed in hardcoded seed data with no real way to set it for a live
    *  case — this is that missing capture path. */
-  recordVerbalReport(sessionId: string, note?: string): Promise<ServiceResult<IntraoperativeEntry>>;
+  //
+  // Batch 399 (Pete): a structured record. Who received it, their role and
+  // the read-back are required; a critical result given to anyone but the
+  // operating surgeon needs a "Surgeon unavailable" reason
+  // (services/intraop/verbalReport.ts). Refused with VERBAL_REPORT_INCOMPLETE
+  // otherwise. Audited.
+  recordVerbalReport(sessionId: string, input: VerbalReportInput): Promise<ServiceResult<IntraoperativeEntry>>;
 }

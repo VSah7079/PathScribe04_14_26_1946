@@ -195,5 +195,26 @@ happens to use.
 
 `duplicate(id, name)` now takes the copy's name from the caller, in the user's language (`t('common.copyOfName', { name })`). It used to store the English `"Copy of …"` as data. The copy still starts inactive.
 
+## Batch 395
+
+`demoCytologyQcAssignments.ts`: three demo QC peer-review assignments (one per priority tier) on Desert Valley cytology cases, loaded when the store has never been written. Primary sign-out provider Dr. Sarah Johnson, so Pete Nimmo can review them.
+
+## Batch 396: recording a QC verdict from the case screen
+
+- Pete: "I would not want to force the pathologist to go to 2 screens." The screening page now has a QC review bar (`components/CytologyQc/CytologyQcCaseBar.tsx`) with the queue's buttons, and each queue row has **Open Case**.
+- `resolveCytologyQcCaseReview.ts`: which open review a reader can act on for a case, and whether they can take it (not their own sign-out), record the verdict (their review), or see it is taken. `cytologyQcErrorKey` maps service errors to messages.
+- `assignReviewer`, `recordConcurrence` and `recordDiscrepancy` check **`cytology:qc-review:record`** (high risk), seeded to Pathologist and Fellow, the roles that had the queue. A refusal returns `QC_REVIEW_NOT_PERMITTED` (`qcReviewErrors.ts`). The queue used to ignore a failed action; it now shows why.
+- `supervisorBypass` and `escalateForSlaBreach` are unchanged and have no screen yet.
+
+## Batch 428: Configuration permissions
+
+- `mockCytologyQcRuleService`: `add`, `update`, `deactivate`, `reactivate`, `remove`, `duplicate` need `config:cytology-qc-rules:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 432
+
+From the queue: Escalate (an SLA-breached review back to the queue; `cytology:qc-review:record`, reason required) and Supervisor bypass (`cytology:qc-review:bypass`, justification required, shown only to holders). The audit entries name the person who did it.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

@@ -28,6 +28,14 @@
 // "simulated" barcode affordance — no real camera/barcode library exists
 // anywhere in this app (checked directly), and pretending otherwise here
 // would be dishonest about what's actually wired.
+//
+// Batch 397 (PS-359): Field Requirements (page "intraop"). The new session
+// form, the specimen capture, Quick Gross on a specimen card, the touch prep
+// skip note, the verbal report and the merge each ask
+// services/fieldRequirements/intraopChecks.ts, show "Still required: …" and
+// mark required labels. Starting the session, saving a specimen (next or
+// close) and merging can also be said (INTRAOP_START_SESSION,
+// INTRAOP_SAVE_SPECIMEN_NEXT, INTRAOP_SAVE_SPECIMEN_CLOSE, INTRAOP_MERGE_CONFIRM).
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
@@ -35,7 +43,15 @@ import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { intraoperativeService, facilityService, locationService, actionRegistryService } from '@/services';
+import {
+  intraoperativeService, facilityService, locationService, actionRegistryService,
+  intraopSessionMissing, intraopSpecimenMissing, intraopQuickGrossMissing, intraopTouchPrepSkipMissing,
+  intraopMergeMissing, type ResolvedFieldRequirement,
+} from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { StillRequired, Req } from '@/components/Intraop/IntraopFieldBits';
+import { VerbalReportForm } from '@/components/Intraop/VerbalReportForm';
+import { formatLocationDisplay } from '@/services/locations/formatLocationDisplay';
 import type { IntraoperativeEntry, IntraopSpecimen, MatchCandidate, MilestoneType, SkipReason, FrozenCategory, PreparationType } from '@/types/intraop/IntraoperativeEntry';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import type { Location } from '@/services/locations/ILocationService';
@@ -71,6 +87,8 @@ const SKIP_REASON_LABEL_KEY: Record<string, string> = {
 
 const formatTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+// Batch 399: StillRequired and Req moved to components/Intraop/IntraopFieldBits.tsx.
+
 // ─── New session form — scan leads, session info once, specimens loop ─────────
 // Scan/manual -> patient identified -> demographics + OR/surgeon (creates
 // the session) -> specimen label + Quick Gross + frozen dx -> Next
@@ -81,6 +99,7 @@ const NewEntryForm: React.FC<{
   onRequestReset: () => void;
 }> = ({ performedBy, onSessionSaved, onRequestReset }) => {
   const { t } = useTranslation();
+  const requirements = useFieldRequirements('intraop');
   const [step, setStep] = useState<'scan' | 'demographics' | 'specimen'>('scan');
   const [patientName, setPatientName] = useState('');
   const [mrn, setMrn] = useState('');
@@ -261,9 +280,14 @@ const NewEntryForm: React.FC<{
   }, [step, onRequestReset]);
 
   const patientIdentified = patientName.trim() && mrn.trim();
+  const sessionMissing = intraopSessionMissing({
+    patientName, mrn, patientConfirmed, dateOfBirth, adtMatched, orNumber, surgeon,
+    facilityId, locationId, facilityHasLocations: locations.length > 0,
+  }, requirements);
+  const specimenMissing = intraopSpecimenMissing({ specimenLabel, quickGross, frozenDiagnosis: frozenDx, frozenCategory }, requirements);
 
   const startSession = async () => {
-    if (!patientIdentified || !orNumber.trim() || !surgeon.trim()) return;
+    if (busy || sessionMissing.length > 0) return;
     setBusy(true);
     const res = await intraoperativeService.createSession({
       patientMatch: { source, patientName: patientName.trim(), mrn: mrn.trim(), dateOfBirth: dateOfBirth.trim() || undefined },
@@ -275,7 +299,7 @@ const NewEntryForm: React.FC<{
   };
 
   const saveSpecimen = async (andContinue: boolean) => {
-    if (!sessionId || !specimenLabel.trim() || !quickGross.trim()) return;
+    if (busy || !sessionId || specimenMissing.length > 0) return;
     setBusy(true);
     const specRes = await intraoperativeService.addSpecimen(sessionId, specimenLabel);
     if (!specRes.ok) { setBusy(false); return; }
@@ -295,6 +319,19 @@ const NewEntryForm: React.FC<{
       onSessionSaved();
     }
   };
+
+  // Voice/keyboard: Continue (start the session) and the two specimen saves,
+  // each only on its own step and with the same checks as the buttons.
+  const actionsRef = React.useRef({ startSession, saveSpecimen });
+  actionsRef.current = { startSession, saveSpecimen };
+  useEffect(() => {
+    if (showResetConfirm || step === 'scan') return;
+    return actionRegistryService.onAction((actionId: string) => {
+      if (step === 'demographics' && actionId === 'INTRAOP_START_SESSION') void actionsRef.current.startSession();
+      else if (step === 'specimen' && actionId === 'INTRAOP_SAVE_SPECIMEN_NEXT') void actionsRef.current.saveSpecimen(true);
+      else if (step === 'specimen' && actionId === 'INTRAOP_SAVE_SPECIMEN_CLOSE') void actionsRef.current.saveSpecimen(false);
+    });
+  }, [step, showResetConfirm]);
 
   if (showResetConfirm) {
     return (
@@ -382,11 +419,11 @@ const NewEntryForm: React.FC<{
               {t('intraopQueue.demographicsStep.noAdtMatch', { mrn })}
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('intraopQueue.demographicsStep.patientNameLabel')}</label>
+              <label className="ps-conf-label">{t('intraopQueue.demographicsStep.patientNameLabel')}<Req requirements={requirements} id="patientName" /></label>
               <input className="ps-conf-input" data-phi="name" value={patientName} onChange={e => { setPatientName(e.target.value); setPatientConfirmed(false); }} onFocus={() => setFocusedFieldId('patientName')} placeholder={t('intraopQueue.demographicsStep.patientNamePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('intraopQueue.demographicsStep.dateOfBirthLabel')}</label>
+              <label className="ps-conf-label">{t('intraopQueue.demographicsStep.dateOfBirthLabel')}<Req requirements={requirements} id="dateOfBirth" /></label>
               <input className="ps-conf-input" type="date" data-phi="dob" value={dateOfBirth} onChange={e => { setDateOfBirth(e.target.value); setPatientConfirmed(false); }} />
             </div>
           </>
@@ -402,11 +439,11 @@ const NewEntryForm: React.FC<{
           </label>
         )}
         <div className="ps-conf-form-field">
-          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.orNumberLabel')}</label>
+          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.orNumberLabel')}<Req requirements={requirements} id="orNumber" /></label>
           <input className="ps-conf-input" value={orNumber} onChange={e => setOrNumber(e.target.value)} onFocus={() => setFocusedFieldId('orNumber')} placeholder={t('intraopQueue.demographicsStep.orNumberPlaceholder')} />
         </div>
         <div className="ps-conf-form-field">
-          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.surgeonLabel')}</label>
+          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.surgeonLabel')}<Req requirements={requirements} id="surgeon" /></label>
           <input className="ps-conf-input" value={surgeon} onChange={e => setSurgeon(e.target.value)} onFocus={() => setFocusedFieldId('surgeon')} placeholder={t('intraopQueue.demographicsStep.surgeonPlaceholder')} />
         </div>
         {/* Real feature, per direct confirmation: "Let's wire in
@@ -414,14 +451,14 @@ const NewEntryForm: React.FC<{
             session can genuinely be started before the facility/
             location is known. */}
         <div className="ps-conf-form-field">
-          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.facilityLabel')}</label>
+          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.facilityLabel')}<Req requirements={requirements} id="facility" /></label>
           <select className="ps-conf-input" value={facilityId} onChange={e => setFacilityId(e.target.value)}>
             <option value="">{t('intraopQueue.demographicsStep.facilityPlaceholder')}</option>
             {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div className="ps-conf-form-field">
-          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.locationLabel')}</label>
+          <label className="ps-conf-label">{t('intraopQueue.demographicsStep.locationLabel')}<Req requirements={requirements} id="location" /></label>
           <select className="ps-conf-input" value={locationId} onChange={e => setLocationId(e.target.value)} disabled={!facilityId}>
             <option value="">
               {!facilityId
@@ -431,13 +468,14 @@ const NewEntryForm: React.FC<{
                   : t('intraopQueue.demographicsStep.locationNoneSpecified')}
             </option>
             {locations.map(l => (
-              <option key={l.id} value={l.id}>{[l.pointOfCare, l.room, l.bed].filter(Boolean).join(' / ')}</option>
+              <option key={l.id} value={l.id}>{formatLocationDisplay(l)}</option>
             ))}
           </select>
         </div>
+        <StillRequired missing={sessionMissing} />
         <button
           className="ps-conf-btn-primary ps-intraop-scan-btn"
-          disabled={busy || !patientIdentified || !patientConfirmed || !orNumber.trim() || !surgeon.trim()}
+          disabled={busy || sessionMissing.length > 0}
           onClick={startSession}
         >
           {t('intraopQueue.demographicsStep.continueButton')}
@@ -457,25 +495,25 @@ const NewEntryForm: React.FC<{
       <div className="ps-intraop-identified-banner" data-phi="true">
         {patientName} · {mrn} · {orNumber} · {surgeon}
         {facilityId ? ` · ${facilities.find(c => c.id === facilityId)?.name ?? ''}` : ''}
-        {locationId ? ` · ${(() => { const l = locations.find(l => l.id === locationId); return l ? [l.pointOfCare, l.room, l.bed].filter(Boolean).join(' / ') : ''; })()}` : ''}
+        {locationId ? ` · ${formatLocationDisplay(locations.find(l => l.id === locationId))}` : ''}
         {specimenCount > 0 ? t('intraopQueue.specimenStep.specimenSummary', { count: specimenCount }) : ''}
       </div>
       <div className="ps-conf-form-field">
-        <label className="ps-conf-label">{t('intraopQueue.specimenStep.specimenLabelField')}</label>
+        <label className="ps-conf-label">{t('intraopQueue.specimenStep.specimenLabelField')}<Req requirements={requirements} id="specimenLabel" /></label>
         <input className="ps-conf-input" value={specimenLabel} onChange={e => setSpecimenLabel(e.target.value)} onFocus={() => setFocusedFieldId('specimenLabel')} placeholder={t('intraopQueue.specimenStep.specimenLabelPlaceholder')} />
       </div>
       <div className="ps-conf-form-field">
-        <label className="ps-conf-label">{t('intraopQueue.specimenStep.quickGrossLabel')}</label>
+        <label className="ps-conf-label">{t('intraopQueue.specimenStep.quickGrossLabel')}<Req requirements={requirements} id="quickGross" /></label>
         <SpellCheckedTextarea className="ps-conf-input ps-conf-textarea" value={quickGross} onChange={e => setQuickGross(e.target.value)} onFocus={() => setFocusedFieldId('quickGross')}
           placeholder={t('intraopQueue.specimenStep.quickGrossPlaceholder')} />
       </div>
       <div className="ps-conf-form-field">
-        <label className="ps-conf-label">{t('intraopQueue.specimenStep.frozenDxLabel')}</label>
+        <label className="ps-conf-label">{t('intraopQueue.specimenStep.frozenDxLabel')}<Req requirements={requirements} id="frozenDiagnosis" /></label>
         <SpellCheckedTextarea className="ps-conf-input ps-conf-textarea" value={frozenDx} onChange={e => setFrozenDx(e.target.value)} onFocus={() => setFocusedFieldId('frozenDx')}
           placeholder={t('intraopQueue.specimenStep.frozenDxPlaceholder')} />
       </div>
       <div className="ps-conf-form-field">
-        <label className="ps-conf-label" htmlFor="intraop-preliminary-category">{t('intraopQueue.specimenStep.categoryLabel')}</label>
+        <label className="ps-conf-label" htmlFor="intraop-preliminary-category">{t('intraopQueue.specimenStep.categoryLabel')}<Req requirements={requirements} id="frozenCategory" /></label>
         <select id="intraop-preliminary-category" className="ps-conf-select" value={frozenCategory} onChange={e => setFrozenCategory(e.target.value as FrozenCategory | '')}>
           <option value="">{t('intraopQueue.specimenStep.categorySelect')}</option>
           <option value="benign">{t('intraopQueue.specimenStep.categoryBenign')}</option>
@@ -485,11 +523,12 @@ const NewEntryForm: React.FC<{
         </select>
         <p className="ps-intraop-scan-hint">{t('intraopQueue.specimenStep.categoryHint')}</p>
       </div>
+      <StillRequired missing={specimenMissing} />
       <div className="ps-intraop-specimen-actions">
-        <button className="ps-conf-btn-row" disabled={busy || !specimenLabel.trim() || !quickGross.trim()} onClick={() => saveSpecimen(true)}>
+        <button className="ps-conf-btn-row" disabled={busy || specimenMissing.length > 0} onClick={() => saveSpecimen(true)}>
           {t('intraopQueue.specimenStep.saveAndNext')}
         </button>
-        <button className="ps-conf-btn-primary ps-intraop-scan-btn" disabled={busy || !specimenLabel.trim() || !quickGross.trim()} onClick={() => saveSpecimen(false)}>
+        <button className="ps-conf-btn-primary ps-intraop-scan-btn" disabled={busy || specimenMissing.length > 0} onClick={() => saveSpecimen(false)}>
           {t('intraopQueue.specimenStep.saveAndClose')}
         </button>
         <button type="button" className="ps-conf-btn-row" onClick={() => setShowResetConfirm(true)}>
@@ -502,7 +541,7 @@ const NewEntryForm: React.FC<{
 };
 
 // ─── Skip-reason micro-menu ─────────────────────────────────────────────────
-const SkipReasonMenu: React.FC<{ onPick: (reason: SkipReason, note?: string) => void; onClose: () => void }> = ({ onPick, onClose }) => {
+const SkipReasonMenu: React.FC<{ onPick: (reason: SkipReason, note?: string) => void; onClose: () => void; requirements: readonly ResolvedFieldRequirement[] }> = ({ onPick, onClose, requirements }) => {
   const { t } = useTranslation();
   const [otherNote, setOtherNote] = useState('');
   const [showOther, setShowOther] = useState(false);
@@ -514,8 +553,9 @@ const SkipReasonMenu: React.FC<{ onPick: (reason: SkipReason, note?: string) => 
         <button className="ps-conf-btn-row" onClick={() => setShowOther(true)}>{t('intraopQueue.skipMenu.otherEllipsis')}</button>
       ) : (
         <div className="ps-intraop-skipmenu-other">
-          <input className="ps-conf-input ps-intraop-skipmenu-other-input" value={otherNote} onChange={e => setOtherNote(e.target.value)} placeholder={t('intraopQueue.skipMenu.reasonPlaceholder')} autoFocus />
-          <button className="ps-conf-btn-row" onClick={() => onPick('other', otherNote.trim() || undefined)}>{t('intraopQueue.skipMenu.ok')}</button>
+          <input className="ps-conf-input ps-intraop-skipmenu-other-input" value={otherNote} onChange={e => setOtherNote(e.target.value)} placeholder={t('intraopQueue.skipMenu.reasonPlaceholder')} aria-label={t('fieldRequirements.fields.intraop.touchPrepSkipNote')} autoFocus />
+          <button className="ps-conf-btn-row" disabled={intraopTouchPrepSkipMissing('other', otherNote, requirements).length > 0} onClick={() => onPick('other', otherNote.trim() || undefined)}>{t('intraopQueue.skipMenu.ok')}</button>
+          <StillRequired missing={intraopTouchPrepSkipMissing('other', otherNote, requirements)} />
         </div>
       )}
       <button className="ps-conf-btn-row ps-intraop-skipmenu-cancel" onClick={onClose}>{t('common.cancel')}</button>
@@ -652,6 +692,7 @@ const PreparationLogger: React.FC<{ sessionId: string; specimen: IntraopSpecimen
 const MilestoneActions: React.FC<{ sessionId: string; specimen: IntraopSpecimen; onLogged: () => void; voiceEligible: boolean }> = ({ sessionId, specimen, onLogged, voiceEligible }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const requirements = useFieldRequirements('intraop');
   const [quickGrossDraft, setQuickGrossDraft] = useState('');
   const [showSkipMenu, setShowSkipMenu] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -712,11 +753,12 @@ const MilestoneActions: React.FC<{ sessionId: string; specimen: IntraopSpecimen;
   if (!hasGrossLogged) {
     return (
       <div className="ps-intraop-action-block">
-        <label className="ps-conf-label">{t('intraopQueue.specimenStep.quickGrossLabel')}</label>
+        <label className="ps-conf-label">{t('intraopQueue.specimenStep.quickGrossLabel')}<Req requirements={requirements} id="quickGross" /></label>
         <SpellCheckedTextarea className="ps-conf-input ps-conf-textarea" value={quickGrossDraft} onChange={e => setQuickGrossDraft(e.target.value)}
           onFocus={() => setGrossFocused(true)} onBlur={() => setGrossFocused(false)}
           placeholder={t('intraopQueue.specimenStep.quickGrossPlaceholder')} />
-        <button className="ps-conf-btn-primary" disabled={busy || !quickGrossDraft.trim()} onClick={() => log('gross_logged', undefined, undefined, quickGrossDraft)}>
+        <StillRequired missing={intraopQuickGrossMissing(quickGrossDraft, requirements)} />
+        <button className="ps-conf-btn-primary" disabled={busy || intraopQuickGrossMissing(quickGrossDraft, requirements).length > 0} onClick={() => log('gross_logged', undefined, undefined, quickGrossDraft)}>
           {t('intraopQueue.milestoneActions.logQuickGross')}
         </button>
         <p className="ps-intraop-gate-note">{t('intraopQueue.milestoneActions.quickGrossHint')}</p>
@@ -756,6 +798,7 @@ const MilestoneActions: React.FC<{ sessionId: string; specimen: IntraopSpecimen;
         <button className="ps-conf-btn-row" disabled={busy} onClick={() => setShowSkipMenu(true)}>{t('intraopQueue.milestoneActions.skipTouchPrep')}</button>
         {showSkipMenu && (
           <SkipReasonMenu
+            requirements={requirements}
             onClose={() => setShowSkipMenu(false)}
             onPick={(reason, note) => log('touch_prep_skipped', reason, note)}
           />
@@ -782,9 +825,19 @@ const MergeModal: React.FC<{
   onClose: () => void;
 }> = ({ entry, candidates, onConfirm, onClose }) => {
   const { t } = useTranslation();
+  const requirements = useFieldRequirements('intraop');
   const [selected, setSelected] = useState(candidates[0]?.caseId ?? '');
   const [manualCaseId, setManualCaseId] = useState('');
   const finalCaseId = selected === '__manual__' ? manualCaseId.trim() : selected;
+  const mergeMissing = intraopMergeMissing(finalCaseId, requirements);
+  const confirm = () => { if (mergeMissing.length === 0) onConfirm(finalCaseId); };
+
+  // Voice/keyboard "merge session": the same Merge, with the same check, while this modal is open.
+  const confirmRef = React.useRef(confirm);
+  confirmRef.current = confirm;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'INTRAOP_MERGE_CONFIRM') confirmRef.current();
+  }), []);
 
   return (
     <div className="ps-ms-overlay">
@@ -827,13 +880,14 @@ const MergeModal: React.FC<{
 
           {(selected === '__manual__' || candidates.length === 0) && (
             <div className="ps-conf-form-field">
-              <input className="ps-conf-input" placeholder={t('intraopQueue.mergeModal.caseIdPlaceholder')} value={manualCaseId} onChange={e => setManualCaseId(e.target.value)} />
+              <input className="ps-conf-input" placeholder={t('intraopQueue.mergeModal.caseIdPlaceholder')} aria-label={t('fieldRequirements.fields.intraop.mergeCase')} value={manualCaseId} onChange={e => setManualCaseId(e.target.value)} />
             </div>
           )}
+          <StillRequired missing={mergeMissing} />
         </div>
         <div className="ps-ms-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="ps-conf-btn-primary" data-phi="accession" disabled={!finalCaseId} onClick={() => finalCaseId && onConfirm(finalCaseId)}>
+          <button className="ps-conf-btn-primary" data-phi="accession" disabled={mergeMissing.length > 0} onClick={confirm}>
             {t('intraopQueue.mergeModal.mergeInto', { caseId: finalCaseId || '…' })}
           </button>
         </div>
@@ -897,33 +951,8 @@ const EntryCard: React.FC<{
   onRefresh: () => void;
 }> = ({ entry, onMergeClick, onRefresh }) => {
   const { t } = useTranslation();
+  // Batch 399: the verbal report is its own form (components/Intraop/VerbalReportForm).
   const [reporting, setReporting] = useState(false);
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const handleReportToSurgeon = React.useCallback(async () => {
-    setBusy(true);
-    await intraoperativeService.recordVerbalReport(entry.id, note);
-    setBusy(false);
-    setReporting(false);
-    setNote('');
-    onRefresh();
-  }, [entry.id, note, onRefresh]);
-
-  // Voice: INTRAOP_LOG_SURGEON_REPORT. Only listened for while this
-  // specific card's reporting form is open (reporting === true) — same
-  // pattern as PoolClaimModal.tsx's POOL_ACCEPT_CASE: the action only
-  // ever means something with exactly this one form open, so there's
-  // never a "which entry" ambiguity to resolve. Gated on !busy so a
-  // stray recognition can't double-fire while the write is in flight.
-  useEffect(() => {
-    if (!reporting) return;
-    const unsubscribe = actionRegistryService.onAction((actionId: string) => {
-      if (busy) return;
-      if (actionId === 'INTRAOP_LOG_SURGEON_REPORT') handleReportToSurgeon();
-    });
-    return unsubscribe;
-  }, [reporting, busy, note, handleReportToSurgeon]);
 
   // PS-342 (Batch 338): quick-gross edits in this session are checked in
   // the performing pathologist's language, else the session facility's.
@@ -970,23 +999,29 @@ const EntryCard: React.FC<{
     {entry.verbalReportLog ? (
       <div className="ps-intraop-note">
         <span className="ps-intraop-note-label">{t('intraopQueue.entryCard.verbalReportLabel', { time: formatTime(entry.verbalReportLog.timestamp) })}</span>
+        {/* Batch 399: who received it, their role, the read-back and any "Surgeon unavailable" reason. */}
+        {entry.verbalReportLog.receivedBy && (
+          <div className="ps-verbal-report__summary">
+            {t('intraopQueue.verbalReport.summary', {
+              name: entry.verbalReportLog.receivedBy,
+              role: entry.verbalReportLog.recipientRole ? t(`intraopQueue.verbalReport.roles.${entry.verbalReportLog.recipientRole}`) : '—',
+            })}
+            {entry.verbalReportLog.readBackConfirmed && <span className="ps-verbal-report__tag">{t('intraopQueue.verbalReport.readBackTag')}</span>}
+            {entry.verbalReportLog.critical?.flagged && <span className="ps-verbal-report__tag ps-verbal-report__tag--critical">{t('intraopQueue.verbalReport.criticalTag')}</span>}
+          </div>
+        )}
+        {entry.verbalReportLog.surgeonUnavailable && (
+          <div className="ps-verbal-report__summary">
+            {t('intraopQueue.verbalReport.unavailableSummary', {
+              reason: t(`intraopQueue.verbalReport.reasons.${entry.verbalReportLog.surgeonUnavailable.reasonId}`, { defaultValue: entry.verbalReportLog.surgeonUnavailable.reasonName }),
+            })}
+            {entry.verbalReportLog.surgeonUnavailable.note ? ` (${entry.verbalReportLog.surgeonUnavailable.note})` : ''}
+          </div>
+        )}
         {entry.verbalReportLog.note}
       </div>
     ) : reporting ? (
-      <div className="ps-intraop-note">
-        <span className="ps-intraop-note-label">{t('intraopQueue.entryCard.reportToSurgeonLabel')}</span>
-        <input
-          className="ps-conf-input"
-          value={note}
-          onChange={e => setNote(e.target.value)}
-          placeholder={t('intraopQueue.entryCard.reportNotePlaceholder')}
-          autoFocus
-        />
-        <div className="ps-intraop-report-actions">
-          <button className="ps-conf-btn-primary" disabled={busy} onClick={handleReportToSurgeon}>{t('intraopQueue.entryCard.logNow')}</button>
-          <button className="ps-conf-btn-secondary" disabled={busy} onClick={() => { setReporting(false); setNote(''); }}>{t('common.cancel')}</button>
-        </div>
-      </div>
+      <VerbalReportForm entry={entry} onLogged={() => { setReporting(false); onRefresh(); }} onCancel={() => setReporting(false)} />
     ) : (
       // The real, deliberate capture point this whole TAT metric
       // depends on — the moment of verbal communication to the surgeon

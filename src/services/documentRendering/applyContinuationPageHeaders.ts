@@ -53,17 +53,25 @@ export interface ContinuationHeaderLayout {
   pageWidthMm: number;
 }
 
+/** Batch 391: the wording of the line, with {{placeholders}} (mrn, accession, page/total). Defaults are the English wording used before. */
+export interface ContinuationHeaderLabels { mrn: string; accession: string; page: string }
+const DEFAULT_LABELS: ContinuationHeaderLabels = { mrn: 'MRN {{mrn}}', accession: 'Accession: {{accession}}', page: 'Page {{page}} of {{total}}' };
+const fill = (tpl: string, vars: Record<string, string | number>) => tpl.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => String(vars[k] ?? ''));
+
 export function applyContinuationPageHeaders(
   doc: jsPDF,
   identity: ContinuationHeaderIdentity,
   layout: ContinuationHeaderLayout,
+  labels: ContinuationHeaderLabels = DEFAULT_LABELS,
+  /** Batch 391: the family the document is printed in (Pretendard for Korean). */
+  fontFamily: string = EMBEDDED_PRINT_FONT_FAMILY,
 ): void {
   const totalPages = doc.getNumberOfPages();
   for (let page = 2; page <= totalPages; page++) {
     doc.setPage(page);
-    doc.setFont(EMBEDDED_PRINT_FONT_FAMILY, 'normal');
+    doc.setFont(fontFamily, 'normal');
     doc.setFontSize(8);
-    const line = `${identity.patientName}${identity.patientMrn ? ` · MRN ${identity.patientMrn}` : ''} · Accession: ${identity.accessionNumber} · Page ${page} of ${totalPages}`;
+    const line = [identity.patientName, identity.patientMrn ? fill(labels.mrn, { mrn: identity.patientMrn }) : '', fill(labels.accession, { accession: identity.accessionNumber }), fill(labels.page, { page, total: totalPages })].filter(Boolean).join(' · ');
     doc.text(line, layout.marginMm, layout.marginMm + 4);
     doc.setDrawColor(180);
     doc.line(layout.marginMm, layout.marginMm + 6, layout.pageWidthMm - layout.marginMm, layout.marginMm + 6);

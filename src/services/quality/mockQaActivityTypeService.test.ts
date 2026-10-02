@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockQaActivityTypeService } from './mockQaActivityTypeService';
 
 // Real, minimal localStorage mock - same established pattern every
@@ -64,17 +69,27 @@ describe('mockQaActivityTypeService', () => {
     expect(all.data.length).toBe(7); // 6 real seeds (PS-324) + this one
   });
 
-  it('deactivate/reactivate toggle the real active flag', async () => {
-    await mockQaActivityTypeService.deactivate('qa-activity-cyto-histo');
+  it('deactivate/reactivate toggle a custom type\'s active flag', async () => {
+    const created = await mockQaActivityTypeService.add({ name: 'Custom toggle', tabScope: 'custom', fields: [{ id: 'x', label: 'X', type: 'text', required: false, options: [] }], teachingOnboardingEnabled: false, active: true, createdBy: 'user-1' });
+    if (!created.ok) throw new Error('add failed');
+    await mockQaActivityTypeService.deactivate(created.data.id);
     let all = await mockQaActivityTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.find(t => t.id === 'qa-activity-cyto-histo')?.active).toBe(false);
-
-    await mockQaActivityTypeService.reactivate('qa-activity-cyto-histo');
+    expect(all.data.find(t => t.id === created.data.id)?.active).toBe(false);
+    await mockQaActivityTypeService.reactivate(created.data.id);
     all = await mockQaActivityTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.find(t => t.id === 'qa-activity-cyto-histo')?.active).toBe(true);
+    expect(all.data.find(t => t.id === created.data.id)?.active).toBe(true);
   });
+
+  it('Batch 428: a standard type can\'t be switched off (the service refuses, not only the screen)', async () => {
+    const res = await mockQaActivityTypeService.deactivate('qa-activity-cyto-histo');
+    expect(res.ok).toBe(false);
+    const all = await mockQaActivityTypeService.getAll();
+    if (!all.ok) return;
+    expect(all.data.find(t => t.id === 'qa-activity-cyto-histo')?.active).not.toBe(false);
+  });
+
 
   it('update rejects an unknown id', async () => {
     const res = await mockQaActivityTypeService.update('not-real', { name: 'X' });

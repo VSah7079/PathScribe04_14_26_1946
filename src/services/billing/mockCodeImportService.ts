@@ -27,6 +27,7 @@ import { planCodeImport, type CodeImportRequest, type ImportRowProblem } from '.
 import { planApproveImportJob, planRejectImportJob, planRollbackImportJob, type ImportJobRefusal } from './codeEngine/planImportJob';
 import { importApprovedAudit, importRejectedAudit, importRolledBackAudit, importUploadedAudit, type ImportJobAuditEntry } from './codeEngine/importJobAudit';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export const CODE_IMPORT_JOBS_KEY = 'billing_code_import_jobs_v1';
 
@@ -79,7 +80,7 @@ async function audit(entry: ImportJobAuditEntry, user: string): Promise<void> {
 
 const newJobId = () => `IMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-export const mockCodeImportService = {
+const codeImportServiceUnchecked = {
   async listJobs(): Promise<ServiceResult<CodeImportJob[]>> {
     return ok([...loadJobs()].sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
   },
@@ -159,3 +160,9 @@ async function decide(
   await audit(auditEntry(result.job), actor);
   return { ok: true, data: result.job };
 }
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCodeImportService = guardConfigWrites(codeImportServiceUnchecked, [
+  ['config:billing-tables:approve', ['approveJob', 'rejectJob']],
+  ['config:billing-code-import:run', ['importRows', 'rollbackJob']],
+]);

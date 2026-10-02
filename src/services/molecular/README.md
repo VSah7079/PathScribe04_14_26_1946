@@ -331,3 +331,48 @@ No new tests beyond the 6 corrected — this is real UI/data-reference wiring ag
 ## Batch 358
 
 Target instruments come from the equipment register (`services/equipment/`): active equipment of kind `analyser`. `checkBatchInstrument` also refuses a non-analyser code. Dispatch uses `checkEquipmentStation`.
+
+## Batch 405
+
+`mockMolecularBatchService.ts`:
+- `create` refuses a patient well that names no specimen (`MOLECULAR_BATCH_WELL_SPECIMEN_MISSING`; Pete, locked).
+- `cloneAndSupersede` needs `molecular:batch:supersede` (`MOLECULAR_BATCH_NOT_PERMITTED`).
+
+The control-rule and extraction-rack services are now exported from `services/index.ts`.
+
+## Batch 406: deck slots and rack placement (Pete)
+
+How PathScribe knows and checks a rack's deck slot:
+
+1. **Instrument profile.**
+   - `Equipment.deckSlots` (in `services/equipment/`) records each analyser's slots and the rack types each slot takes.
+   - Demo Panther 1 and 2: SLOT_A1–A4 take sample racks, A4 also takes the plate, and SLOT_R1 is the reagent bay.
+   - Demo Panther 3 has one slot.
+2. **Assay mapping.**
+   - `MolecularAssayControlRule.allowedSampleRackSlotIds` lists the slots an assay's sample rack may use. The HPV seed rule allows SLOT_A1 or SLOT_A2.
+   - Changing a rule now needs `config:molecular-control-rules:manage`.
+   - The rule service returns error codes instead of English text: `notPermitted`, `duplicateAssay`, `notFound`.
+3. **Rack Loading.**
+   - `deckSlots.ts` provides `slotsForRack`, `deckSlotRequired`, `checkDeckSlot`, `parseDeckLocationBarcode` and `resolveDeckScan`.
+   - Scanning a deck position's `LOC-INST-<code>-<slot>` barcode fills the slot, or explains why it can't: `notDeckBarcode`, `unknownInstrument`, `otherInstrument`, `unknownSlot`, `wrongRackType` or `notForAssay`.
+   - An instrument interface reporting where a rack was placed would go through the same check.
+
+**`mockMolecularExtractionRackService.ts`:**
+- `create` takes the physical rack's barcode, stored upper case. It must be unique and 3–40 letters, digits, `-` or `_`. Left blank, the next unused `RACK-MOLE-` number is generated.
+- `setPositionAccession` gives a tube already on the rack its accession.
+- `placeOnDeck` records the instrument, assay, slot, who placed the rack and when, and whether the slot came from the pick-list or a deck scan. It refuses a placement that misses a locked Field Requirement (page `molecularRack`), names an inactive analyser, or puts the rack in a slot that doesn't fit.
+- Errors are codes (`MOLECULAR_RACK_ERRORS`).
+- Demo rack `RK-HPV-0417` (`rack-002`) has three named tubes and is ready to place.
+
+**`mockMolecularBatchService.ts`:**
+- A plate on an instrument with a deck layout must go in a slot that takes an extraction plate (`MOLECULAR_BATCH_DECK_SLOT_INVALID`).
+- The seeded run moved from SLOT_A1 to SLOT_A4.
+- Clone & Supersede drops a slot the deck no longer takes, rather than failing.
+
+**Moved out of the pages:**
+- `rackWorklist.ts`: the rack list's rows and status.
+- `molecularAssays.ts`: the assay list.
+- `controlRuleDraft.ts`: the Control Rules page's checks and slot choices.
+- `molecularActor` and `UNKNOWN_STATION_NAME` in `resolveMolecularMovementRecord.ts`.
+
+**Still open:** a browser that stored the batches before this change keeps `mb-001` in SLOT_A1, which no longer takes a plate. A supersede of it leaves the slot blank.

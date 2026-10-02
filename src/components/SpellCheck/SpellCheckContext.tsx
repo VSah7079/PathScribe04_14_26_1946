@@ -19,8 +19,9 @@ export interface SpellCheckContextValue {
   unavailableChoice?: SpellingLocale;
   facilityDictionaryId?: string;
   facilityDictionaryLabel?: string;
-  /** The signed-in user's role, for the facility-dictionary permission. */
-  role?: string;
+  /** Batch 432: whether the signed-in person holds config:facilities:manage
+   *  (changing the facility dictionary). */
+  canManageFacility?: boolean;
   client: SpellCheckClient;
   /** Changes whenever the language or the word lists change; editors re-check. */
   revision: number;

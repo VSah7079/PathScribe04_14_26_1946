@@ -11,6 +11,7 @@ import type { IGrossingHardwareProfileService, GrossingHardwareProfile } from '.
 import { mockEquipmentService } from '../equipment/mockEquipmentService';
 import { checkEquipmentLink } from '../equipment/equipmentRules';
 import { EQUIPMENT_LINK_INVALID } from '../equipment/IEquipmentService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const genId = () => `grossing-hw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -55,7 +56,7 @@ async function equipmentLinkOk(equipmentId: string | undefined, kind: GrossingHa
   return checkEquipmentLink(equipmentId, res.ok ? res.data : [], kind) === null;
 }
 
-export const mockGrossingHardwareProfileService: IGrossingHardwareProfileService = {
+const grossingHardwareProfileServiceUnchecked: IGrossingHardwareProfileService = {
   async getAll(): Promise<ServiceResult<GrossingHardwareProfile[]>> {
     return { ok: true, data: load() };
   },
@@ -87,3 +88,8 @@ export const mockGrossingHardwareProfileService: IGrossingHardwareProfileService
     return { ok: true, data: updated };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockGrossingHardwareProfileService: IGrossingHardwareProfileService = guardConfigWrites(grossingHardwareProfileServiceUnchecked, [
+  ['config:grossing-hardware:manage', ['create', 'update']],
+]);

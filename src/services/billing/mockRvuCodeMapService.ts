@@ -4,6 +4,7 @@ import type { ServiceResult } from '../types';
 import type { IRvuCodeMapService } from './IRvuCodeMapService';
 import type { RvuTableVersion } from './RvuTableVersion';
 import { CODE_MAP_TABLE } from './codeMapTable';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'rvu_code_map_versions_v1';
 
@@ -40,7 +41,7 @@ const persist = (versions: RvuTableVersion[]) => storageSet(STORAGE_KEY, version
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockRvuCodeMapService: IRvuCodeMapService = {
+const rvuCodeMapServiceUnchecked: IRvuCodeMapService = {
   async getAllVersions() {
     return ok([...load()].sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate)));
   },
@@ -140,3 +141,9 @@ export const mockRvuCodeMapService: IRvuCodeMapService = {
     return ok(rejected);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockRvuCodeMapService: IRvuCodeMapService = guardConfigWrites(rvuCodeMapServiceUnchecked, [
+  ['config:billing-tables:approve', ['approveVersion', 'rejectVersion', 'activateVersion']],
+  ['config:billing-rvu:manage', ['createVersion']],
+]);

@@ -2,6 +2,7 @@
 import type { IDepartmentService, Department } from './IDepartmentService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
 // One department per existing Grossing Route (protocolShared.tsx's three
@@ -59,7 +60,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockDepartmentService: IDepartmentService = {
+const departmentServiceUnchecked: IDepartmentService = {
   async getAll() {
     await delay();
     return ok([...DEPARTMENTS]);
@@ -88,11 +89,11 @@ export const mockDepartmentService: IDepartmentService = {
   },
 
   async verify(id) {
-    return mockDepartmentService.update(id, { status: 'Active' });
+    return departmentServiceUnchecked.update(id, { status: 'Active' });
   },
 
   async deactivate(id) {
-    return mockDepartmentService.update(id, { status: 'Inactive' });
+    return departmentServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async findOrCreateByName(name, note) {
@@ -120,3 +121,8 @@ export const mockDepartmentService: IDepartmentService = {
     return ok({ ...newC });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDepartmentService: IDepartmentService = guardConfigWrites(departmentServiceUnchecked, [
+  ['config:departments:manage', ['add', 'update', 'verify', 'deactivate']],
+]);

@@ -6,18 +6,14 @@
 // Spec's own Core Outbound Transaction Registry (ORU^R01): the real
 // outbound queue for finalized/corrected/addendum pathology results.
 //
-// Scoped deliberately to reportingMode === 'orchestrator' cases only.
-// ReportingMode's own doc comment (types/case/Case.ts) is explicit:
-// 'assist' means "LIS owns the report, PathScribe is read-only on
-// lifecycle... never CaseStatus." For an assist-mode case, PathScribe
-// is not the authoritative source of the finalized report — an
-// external LIS is — so PathScribe emitting its own ORU^R01 for one
-// would duplicate or preempt whatever the real LIS itself sends.
-// Assist mode already has its own, separate (if currently only
-// simulated) outbound mechanism — sendSynopticReportToLis()
-// (pages/SynopticReportPage/hooks/useLisIntegration.ts) — deliberately
-// left alone here, not folded into this queue.
-//
+// Scoped to reportingMode === 'orchestrator' cases: an Orchestration case's
+// formal report (narrative, report PDF) goes out as ORU^R01 from this queue.
+// Batch 426 correction (Pete, Oct 1 2026): this comment used to say an Assist
+// case's report "is never PathScribe's to send". That was wrong. In Assist the
+// LIS owns the formal report, and PathScribe sends it the synoptic data (the
+// structured result and one PDF per workup). That goes through its own queue,
+// OutboundLisSyncQueueEntry, built by services/reports/dispatchAssistSynopticResult.ts.
+
 // Mirrors OutboundChargeQueueEntry/OutboundPatientAdtQueueEntry's own
 // proven architecture exactly: a lightweight reference + dedup key +
 // status tracker, never a pre-built payload — the actual enriched JSON

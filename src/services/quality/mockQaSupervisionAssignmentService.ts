@@ -18,6 +18,7 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { IQaSupervisionAssignmentService } from './IQaSupervisionAssignmentService';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'qa_supervision_assignments';
 
@@ -107,7 +108,7 @@ function completionReason(a: QaSupervisionAssignment): 'case_count_met' | 'durat
   return a.casesReviewedCount >= a.endCondition.caseCountThreshold ? 'case_count_met' : 'duration_met';
 }
 
-export const mockQaSupervisionAssignmentService: IQaSupervisionAssignmentService = {
+const qaSupervisionAssignmentServiceUnchecked: IQaSupervisionAssignmentService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -169,3 +170,8 @@ export const mockQaSupervisionAssignmentService: IQaSupervisionAssignmentService
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockQaSupervisionAssignmentService: IQaSupervisionAssignmentService = guardConfigWrites(qaSupervisionAssignmentServiceUnchecked, [
+  ['config:cytotech-competency:manage', ['create', 'graduate']],
+]);

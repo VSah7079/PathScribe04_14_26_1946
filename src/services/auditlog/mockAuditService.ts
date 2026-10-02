@@ -220,10 +220,20 @@ export const mockAuditService: IAuditService = {
 
   async resolveError(id) {
     await delay();
+    // Batch 432: resolving needs audit:error:resolve (Admin, Lab Director, QA
+    // Reviewer); the check itself is audited (high risk). Imported when used:
+    // the authorization service writes to this audit service.
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('audit:error:resolve')).allowed) return err('NOT_PERMITTED');
     const idx = MOCK_ERROR_LOGS.findIndex(e => e.id === id);
     if (idx === -1) return err(`Error log ${id} not found`);
-    MOCK_ERROR_LOGS = MOCK_ERROR_LOGS.map(e => e.id === id ? { ...e, resolved: true } : e);
+    if (MOCK_ERROR_LOGS[idx].resolved) return ok({ ...MOCK_ERROR_LOGS[idx] });
+    const { getSessionUser } = await import('../auth/caseAccessControl');
+    const me = getSessionUser();
+    const resolvedBy = me ? ([me.firstName, me.lastName].filter(Boolean).join(' ') || me.id) : 'Unknown';
+    const updated: ErrorLog = { ...MOCK_ERROR_LOGS[idx], resolved: true, resolvedBy, resolvedAt: nowTs() };
+    MOCK_ERROR_LOGS = MOCK_ERROR_LOGS.map(e => e.id === id ? updated : e);
     persistErrors(MOCK_ERROR_LOGS);
-    return ok({ ...MOCK_ERROR_LOGS[idx], resolved: true });
+    return ok({ ...updated });
   },
 };

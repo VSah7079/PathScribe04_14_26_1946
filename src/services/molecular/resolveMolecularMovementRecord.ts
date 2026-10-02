@@ -33,3 +33,15 @@ export function resolveMolecularMovementRecord(
     stationId: context.stationId, stationName: context.stationName,
   };
 }
+
+/**
+ * Batch 406: who and where a movement (or rack placement) is recorded
+ * against, from the signed-in user and the device's scan station. Moved out
+ * of the Rack Loading page. The fallbacks are record data, in English like
+ * audit text, not screen text.
+ */
+export const UNKNOWN_STATION_NAME = 'Unknown Station';
+export function molecularActor(session: { id: string; firstName?: string; lastName?: string } | null | undefined): { byUserId: string; byUserName: string } {
+  if (!session) return { byUserId: 'unknown', byUserName: 'Unknown User' };
+  return { byUserId: session.id, byUserName: `${session.firstName ?? ''} ${session.lastName ?? ''}`.trim() || session.id };
+}

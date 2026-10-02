@@ -266,14 +266,14 @@ const ReagentLotsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('reagentLotsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-config-nav type="text" placeholder={t('reagentLotsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('reagentLotsSection.filters.allStatuses')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>
         </select>
-        <select value={qcFilter} onChange={e => setQcFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-config-nav value={qcFilter} onChange={e => setQcFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('reagentLotsSection.filters.allQcStates')}</option>
           {QC_STATUS_OPTIONS.map(s => <option key={s} value={s}>{t(QC_STATUS_LABEL_KEY[s])}</option>)}
         </select>

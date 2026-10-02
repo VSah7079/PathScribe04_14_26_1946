@@ -12,6 +12,7 @@ import { NavBarScanStation } from './NavBarScanStation';
 import LanguageSwitcher from './LanguageSwitcher';
 import CaseSearchBar from '../Search/CaseSearchBar';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
 import { isConstrainedMobileDevice, hasDesktopViewOverride, clearDesktopViewOverride } from '../../utils/deviceDetection';
@@ -238,6 +239,8 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
   const capabilities                               = useCapabilities();
   const { unreadCount, hasUrgent, setPortalOpen } = useMessaging();
   const messagesLabel = unreadCount > 0 ? t('navBar.messagesUnread', { count: unreadCount }) : t('navBar.messages');
+  // Batch 425: registry submissions needing a person (own organisation), for those who can open the worklist.
+  const registryExceptionCount = useRegistryExceptionCount();
   const [linksOpen, setLinksOpen]                 = useState(false);
   // Reference material, not patient context: closeOnUnmount is false so
   // navigating to another page doesn't shut a protocol page the user is
@@ -429,6 +432,23 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
               {unreadCount > 0 && <div className="ps-nav-badge">{unreadCount}</div>}
             </div>
           </button>
+
+          {/* Batch 425: Registry Exceptions, with the live count. */}
+          {registryExceptionCount !== null && registryExceptionCount > 0 && (
+            <button type="button" className="ps-nav-btn nb-regx-btn" onMouseDown={e => e.preventDefault()}
+              onClick={() => navigate('/registry-exceptions')}
+              aria-label={t('navBar.registryExceptions', { count: registryExceptionCount })}
+              title={t('navBar.registryExceptions', { count: registryExceptionCount })}>
+              <div className="nb-messages-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <div className="ps-nav-badge">{registryExceptionCount}</div>
+              </div>
+            </button>
+          )}
 
           {/* Clinical Links */}
           <button type="button" className="ps-nav-btn" onMouseDown={e => e.preventDefault()}

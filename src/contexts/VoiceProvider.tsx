@@ -7,10 +7,13 @@ import { useSystemConfig } from './SystemConfigContext';
 import { callAi } from '../services/aiIntegration/aiProviderService';
 import { resolveVoiceAiConfig } from '../components/Config/AI/resolveVoiceAiModel';
 import { getSessionUser } from '../services/auth/caseAccessControl';
+import { useAuthOptional } from './AuthContext';
+import { getPersonalSetting, setPersonalSetting } from '../services/userSettings/personalSettings';
 import { MockVoiceMacroService } from '../services/voicemacro/mockVoiceMacroService';
 import { isVoiceMacroVisibleTo, applyVoiceMacroSubstitutions, type VoiceMacro } from '../types/voiceMacros';
 import { getVoiceProfileRecognitionLang, getVoiceProfileLanguage } from '../constants/voiceProfiles';
 import { getPunctuationMapForLanguage } from './punctuationMaps';
+import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 
@@ -74,7 +77,7 @@ const MISS_CONFIRMATION_WINDOW_MS = 8000;
 const STRUCTURED_CONTENT_TIMEOUT_MS = 2000; // fall back to local if the AI call takes longer
 
 // ── AI-refinement availability ────────────────────────────────────────────────
-// Cached in sessionStorage so the probe only fires once per browser session,
+// Cached as a session flag so the probe only fires once per browser session,
 // not on every HMR reload or component mount.
 // Real fix: previously hardcoded to the Gemini proxy path specifically —
 // now resolves whichever model is actually configured as the active
@@ -86,7 +89,7 @@ const STRUCTURED_CONTENT_SESSION_KEY = 'ps_voice_ai_available';
 
 async function checkStructuredContentAvailable(): Promise<boolean> {
   // Return cached result if already probed this session
-  const cached = sessionStorage.getItem(STRUCTURED_CONTENT_SESSION_KEY);
+  const cached = getSessionFlag(STRUCTURED_CONTENT_SESSION_KEY);
   if (cached !== null) return cached === 'true';
 
   let available = false;
@@ -95,7 +98,7 @@ async function checkStructuredContentAvailable(): Promise<boolean> {
     if (!configOverride) {
       // No validated voice model configured at all — genuinely
       // unavailable, not a network/proxy problem.
-      sessionStorage.setItem(STRUCTURED_CONTENT_SESSION_KEY, 'false');
+      setSessionFlag(STRUCTURED_CONTENT_SESSION_KEY, 'false');
       return false;
     }
     await callAi({ system: 'Reply with: OK', prompt: 'ping', maxTokens: 10, configOverride });
@@ -107,7 +110,7 @@ async function checkStructuredContentAvailable(): Promise<boolean> {
     available = typeof e?.message === 'string' && e.message.includes('429');
   }
 
-  sessionStorage.setItem(STRUCTURED_CONTENT_SESSION_KEY, String(available));
+  setSessionFlag(STRUCTURED_CONTENT_SESSION_KEY, String(available));
   return available;
 }
 
@@ -169,31 +172,36 @@ function applyPunctuation(text: string, language: import('../constants/voiceProf
 }
 
 // ── Dictation learning store ───────────────────────────────────────────────────
+// Batch 430: what dictation learns from a person's corrections is theirs, kept
+// per signed-in person (services/userSettings/personalSettings.ts), not shared
+// by everyone on the browser. Loaded for whoever is signed in when it's used.
 const DICTATION_LEARN_KEY = 'ps_dictation_corrections';
+const VOICE_ACCENT_KEY = 'pathscribe_voice_accent';
+let correctionsCache: { userId: string | undefined; map: Record<string, string> } | null = null;
 
-function loadDictationCorrections(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(DICTATION_LEARN_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+function dictationCorrectionsForCurrentUser(): Record<string, string> {
+  const userId = getSessionUser()?.id;
+  if (!correctionsCache || correctionsCache.userId !== userId) {
+    correctionsCache = { userId, map: { ...getPersonalSetting<Record<string, string>>(DICTATION_LEARN_KEY, {}) } };
+  }
+  return correctionsCache.map;
 }
 
 function saveDictationCorrections(map: Record<string, string>) {
-  try { localStorage.setItem(DICTATION_LEARN_KEY, JSON.stringify(map)); } catch {}
+  setPersonalSetting(DICTATION_LEARN_KEY, map);
 }
-
-const dictationCorrections: Record<string, string> = loadDictationCorrections();
 
 function applyDictationLearning(rawTranscript: string, localText: string): string {
   const key = norm(rawTranscript);
-  return dictationCorrections[key] ?? localText;
+  return dictationCorrectionsForCurrentUser()[key] ?? localText;
 }
 
 function recordDictationCorrection(rawTranscript: string, corrected: string) {
   const key = norm(rawTranscript);
   if (!key || !corrected.trim()) return;
-  dictationCorrections[key] = corrected;
-  saveDictationCorrections(dictationCorrections);
+  const map = dictationCorrectionsForCurrentUser();
+  map[key] = corrected;
+  saveDictationCorrections(map);
 }
 
 // ── Voice-dictation AI refinement ─────────────────────────────────────────────
@@ -272,12 +280,16 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // what the user had actually picked. Client-side only (no real
   // server-side user-profile store exists in this mock app to persist
   // to instead).
-  const [accent, setAccentState] = useState(() => {
-    try { return localStorage.getItem('pathscribe_voice_accent') || 'en-US'; } catch { return 'en-US'; }
-  });
+  // Batch 430: the accent is the person's, kept per signed-in person
+  // (services/userSettings/personalSettings.ts), and reloaded when someone
+  // else signs in on the same browser.
+  const readAccent = () => getPersonalSetting<string>(VOICE_ACCENT_KEY, 'en-US', raw => raw) || 'en-US';
+  const [accent, setAccentState] = useState(readAccent);
+  const signedInId = useAuthOptional()?.user?.id ?? getSessionUser()?.id;
+  useEffect(() => { setAccentState(readAccent()); }, [signedInId]);
   const setAccent = useCallback((next: string) => {
     setAccentState(next);
-    try { localStorage.setItem('pathscribe_voice_accent', next); } catch { /* persistence is an optimisation, not a requirement */ }
+    setPersonalSetting(VOICE_ACCENT_KEY, next);
   }, []);
   const [dictationTarget, setDictationTarget]   = useState<DictationTarget | null>(null);
   const [isRefining, setIsRefining]             = useState(false);
@@ -462,7 +474,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setTranscript(t('voiceProvider.status.refining'));
 
       const context       = dictationTargetRef.current?.context ?? 'Pathology Report';
-      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrections);
+      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrectionsForCurrentUser());
       const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), STRUCTURED_CONTENT_TIMEOUT_MS));
       const refined        = await Promise.race([structuredContentPromise, timeoutPromise]);
 

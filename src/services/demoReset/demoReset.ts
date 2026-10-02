@@ -171,6 +171,8 @@ export const SETTINGS_KEYS = [
   'pathscribe_orchestrator_mode', 'pathscribe_idle_timeout_minutes',
   'pathscribe_release_buffer_org_config',
   'pathscribe_org_document_style_footer', 'pathscribe_org_document_style_header', 'pathscribe_org_document_style_body',
+  // Batch 431: the lab's page size and margins (services/reportAppearance/pageSetup.ts).
+  'pathscribe_org_page_setup',
   'pathscribe_governing_bodies', 'pathscribe_tat_entries_v2', 'pathscribe_retention_policy',
   'pathscribe_external_resources', 'pathscribe_encounters',
   // Real feature, per direct follow-up: dispatched-event log for the
@@ -226,7 +228,11 @@ export const SETTINGS_KEYS = [
   'facilityCytologyInstrumentationOverrides',
   'staffCytologyQcOverrides', 'staffCytologyWorkloadCapOverrides', 'staffConcordanceReviewOverrides',
   // Cancer registry settings + facility overrides.
-  'cancerRegistrySettings', 'facilityCancerRegistryOverrides', 'registrySettings', 'facilityRegistryOverrides',
+  'cancerRegistrySettings', 'facilityCancerRegistryOverrides', 'registrySettings', 'facilityRegistryOverrides', 'screeningRegistryConfigs', 'cytologyComplianceFeatures',
+  // Batch 423: registry go-live requests and approvals, and the go-live approval settings.
+  'registryGoLiveRecords', 'registryGoLiveGovernance',
+  // Batch 424: data-sharing agreements, the engine adapter's local rules, validation records.
+  'registryAgreements', 'registryAdapterRules', 'registryValidationRecords',
   // Equipment/hardware dictionaries — real seed data confirmed for
   // each; a lab's own configured scan stations, cassette colors, and
   // grossing hardware profiles, same real category as the Stain/
@@ -318,8 +324,10 @@ export const CASE_KEYS = [
   'discordance_records',
   'amendment_records',
   'report_version_records',
+  'released_report_pdfs',       // Batch 392: report PDFs kept from release for ORU^R01 retries
   'lis_amendment_notices',
   'intraop_entries',
+  'pathscribe_intraop_critical_results', // Batch 399: the critical intraoperative results dictionary
   'pathscribe_drafts',
   // Real fix, found ahead of a live demo: the Charge Capture ledger
   // (mockServiceChargeService.ts) is real, per-case transactional data
@@ -407,6 +415,8 @@ export const STATE_KEYS = [
   'pathscribe-tab-width', 'pathscribe_header_compact_manual', 'pathscribe_voice_accent',
   // Batch 381: the report page's display preferences moved to utils/uiPreferences.
   'ps_ui_reportHeaderCompact', 'ps_ui_reportSidebarCollapsed', 'ps_ui_reportTabWidth',
+  // Batch 431: the preview window's position moved to utils/uiPreferences.
+  'ps_ui_previewWindowGeometry',
   'pathscribe:desktopViewOverride', 'ps_sidebar_collapsed', 'ps_preview_margins', 'ps_preview_page_size',
   'pathscribe:savedSearches', 'pathscribe:lastSearch', 'ps_post_signout_pref',
   'pathscribe_show_superseded_notice', 'pathscribe_footpedal_bindings', 'ps_voice_ai_available',
@@ -530,14 +540,19 @@ function executeFullReset(): string[] {
   // (ps_rpart_ — Report Part Builder's own per-part draft storage;
   // ps_orch_sections_ — Orchestrator draft sections, keyed by real
   // caseId), never a single, fixed key name a literal list could
-  // ever fully enumerate.
+  // ever fully enumerate. Batch 431: also template review work (ps_answers_,
+  // ps_comments_, services/templates/templateReviewWork.ts) and old
+  // reviewer-page state copies (ps_state_).
   Object.keys(localStorage)
-    .filter(k => k.startsWith('ps_rpart_') || k.startsWith('ps_orch_sections_'))
+    .filter(k => RUNTIME_KEY_PREFIXES.some(p => k.startsWith(p)))
     .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
 
   sessionStorage.clear();
   return cleared;
 }
+
+/** Key families built at run time (per case, per template, per part). */
+export const RUNTIME_KEY_PREFIXES: readonly string[] = ['ps_rpart_', 'ps_orch_sections_', 'ps_answers_', 'ps_comments_', 'ps_state_'];
 
 /**
  * Partial reset — removes only the current user's cases from the mock case

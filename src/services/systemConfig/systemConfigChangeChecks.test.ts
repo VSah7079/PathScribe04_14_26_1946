@@ -1,0 +1,27 @@
+// Batch 428: which capability each system-settings field needs.
+import { describe, expect, it, vi } from 'vitest';
+import { permitEnterpriseConfigPatch, permitSystemConfigPatch } from './systemConfigChangeChecks';
+
+const deps = (allowed: string[]) => {
+  const enforce = vi.fn(async (c: string) => ({ allowed: allowed.includes(c) }));
+  return { enforce };
+};
+
+describe('system settings changes (Batch 428)', () => {
+  it('each field needs its section\'s capability', async () => {
+    const d = deps(['config:voice:manage']);
+    expect(await permitSystemConfigPatch({ voiceEnabled: false }, d)).toBe(true);
+    expect(await permitSystemConfigPatch({ approvedFonts: [] }, d)).toBe(false);
+    expect(await permitSystemConfigPatch({ facilityTimezone: 'UTC' }, d)).toBe(false);
+    expect(d.enforce.mock.calls.map(c => c[0])).toEqual(['config:voice:manage', 'config:report-appearance:manage', 'config:contribution-settings:manage']);
+  });
+  it('a field no Configuration screen changes needs nothing', async () => {
+    const d = deps([]);
+    expect(await permitSystemConfigPatch({ somethingElse: 1 }, d)).toBe(true);
+    expect(d.enforce).not.toHaveBeenCalled();
+  });
+  it('switching abnormal-result detection needs config:abnormal-triggers:manage', async () => {
+    expect(await permitEnterpriseConfigPatch({ features: { abnormalDetectionEnabled: false } }, deps([]))).toBe(false);
+    expect(await permitEnterpriseConfigPatch({ features: { abnormalDetectionEnabled: false } }, deps(['config:abnormal-triggers:manage']))).toBe(true);
+  });
+});

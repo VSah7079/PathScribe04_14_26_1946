@@ -59,6 +59,7 @@ import { formatDateTime } from '@/utils/formatDate';
 import { TerminologyAlertBanner } from './TerminologyAlertBanner';
 import { useTerminologyAlerts } from '../../../hooks/useTerminologyAlerts';
 import { calcTemplateCoverage, SNOMED_PUBLISH_THRESHOLD } from '../../../services/templates/templatePublishingRules';
+import { SYNOPTIC_REPORTING_ROLES, type SynopticReportingRole } from '@/services/reports/synopticResultPayload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,12 @@ export interface EditorField {
    *  the field's own label if unset, so older/untagged templates still
    *  degrade gracefully rather than breaking. */
   markerGroup?: string;
+  /** Batch 426: the unit a numeric answer is in (e.g. "cm"), sent with it to the LIS. */
+  unit?: string;
+  /** Batch 426: what this field reports, for the structured result
+   *  (services/reports/synopticResultPayload.ts): pT, pN, pM, FIGO stage,
+   *  or a block identifier (e.g. the block used for HER2). */
+  reportingRole?: SynopticReportingRole;
 }
 
 export interface EditorSection {
@@ -127,6 +134,8 @@ export interface EditorTemplate {
    *  The first save inherits that protocol's registry-only attributes
    *  (isDiagnostic, type, group), which this editor doesn't show. */
   copiedFromId?: string;
+  /** Batch 426: the staging edition the protocol follows (e.g. "AJCC 8th"), sent with the staging. */
+  ajccEdition?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -367,6 +376,24 @@ const FieldCard: React.FC<{
               <label className="ps-syned-label">{t('synopticEditor.field.hintLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
               <input value={field.hint ?? ''} onChange={e => onChange({ hint: e.target.value })} placeholder={t('synopticEditor.field.hintPlaceholder')} className="ps-syned-input" />
             </div>
+          </div>
+
+          {/* Batch 426: what the field reports in the structured result to the LIS, and its unit. */}
+          <div className="ps-syned-field-row">
+            <div className="ps-syned-field-type-wrap">
+              <label className="ps-syned-label">{t('synopticEditor.field.reportingRoleLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+              <select value={field.reportingRole ?? ''} title={t('synopticEditor.field.reportingRoleHint')}
+                onChange={e => onChange({ reportingRole: (e.target.value || undefined) as SynopticReportingRole | undefined })} className="ps-syned-input ps-syned-select">
+                <option value="">{t('synopticEditor.field.reportingRoles.none')}</option>
+                {SYNOPTIC_REPORTING_ROLES.map(r => <option key={r} value={r}>{t(`synopticEditor.field.reportingRoles.${r}`)}</option>)}
+              </select>
+            </div>
+            {field.type === 'numeric' && (
+              <div className="ps-flex-1">
+                <label className="ps-syned-label">{t('synopticEditor.field.unitLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                <input value={field.unit ?? ''} onChange={e => onChange({ unit: e.target.value || undefined })} placeholder={t('synopticEditor.field.unitPlaceholder')} className="ps-syned-input" />
+              </div>
+            )}
           </div>
 
           <div className="ps-mb-14">
@@ -890,6 +917,12 @@ const SynopticEditor: React.FC = () => {
                     ))}
                   </div>
                 </div>
+              </div>
+              {/* Batch 426: the staging edition, sent with pT/pN/pM in the structured result. */}
+              <div className="ps-syned-metadata-full">
+                <label className="ps-syned-label">{t('synopticEditor.metadata.stagingEditionLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                <input value={template.ajccEdition ?? ''} onChange={e => update({ ajccEdition: e.target.value || undefined })}
+                  placeholder={t('synopticEditor.metadata.stagingEditionPlaceholder')} className="ps-syned-input" />
               </div>
               <div className="ps-syned-metadata-full">
                 <label className="ps-syned-label">{t('synopticEditor.metadata.categoryLabel')}</label>

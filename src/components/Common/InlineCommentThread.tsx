@@ -2,21 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { logEvent } from "../../audit/auditLogger";
+import { getTemplateQuestionComments, saveTemplateQuestionComments, type TemplateQuestionComment } from "@/services/templates/templateReviewWork";
 
-interface Comment {
-  id: string;
-  author: string;
-  text: string;
-  resolved: boolean;
-}
+// Batch 431: comments are kept by the template review service (shared with
+// the other reviewers once the API server holds them, PS-345).
+type Comment = TemplateQuestionComment;
 
 interface InlineCommentThreadProps {
   questionId:  string;
   templateId:  string;   // passed from parent — no longer hardcoded to DCIS
   currentUser?: string;
 }
-
-const COMMENTS_KEY_PREFIX = "ps_comments_";
 
 export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({
   questionId,
@@ -27,23 +23,13 @@ export const InlineCommentThread: React.FC<InlineCommentThreadProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
 
-  const storageKey = `${COMMENTS_KEY_PREFIX}${templateId}_${questionId}`;
-
-  // Load comments from localStorage
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        setComments(JSON.parse(raw) as Comment[]);
-      }
-    } catch {
-      // ignore
-    }
-  }, [storageKey]);
+    setComments(getTemplateQuestionComments(templateId, questionId));
+  }, [templateId, questionId]);
 
   const persist = (next: Comment[]) => {
     setComments(next);
-    localStorage.setItem(storageKey, JSON.stringify(next));
+    saveTemplateQuestionComments(templateId, questionId, next);
   };
 
   // -----------------------------

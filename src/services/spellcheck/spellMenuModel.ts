@@ -11,7 +11,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { SpellIssue } from './spellCascade';
-import { canManageFacilityDictionary } from './customDictionaryRules';
 
 export interface SpellMenuModel {
   word: string;
@@ -30,12 +29,13 @@ export const MENU_SUGGESTION_LIMIT = 5;
 export function buildSpellMenuModel(
   issue: Pick<SpellIssue, 'word' | 'reason' | 'preferred'>,
   suggestions: readonly string[],
-  ctx: { role?: string; facilityDictionaryId?: string; facilityDictionaryLabel?: string },
+  ctx: { canManageFacility?: boolean; facilityDictionaryId?: string; facilityDictionaryLabel?: string },
 ): SpellMenuModel {
   const ordered = [...(issue.preferred ? [issue.preferred] : []), ...suggestions]
     .filter((s, i, all) => s && s !== issue.word && all.indexOf(s) === i)
     .slice(0, MENU_SUGGESTION_LIMIT);
-  const canAddFacility = !!ctx.facilityDictionaryId && canManageFacilityDictionary(ctx.role);
+  // Batch 432: config:facilities:manage, decided by the caller's capabilities.
+  const canAddFacility = !!ctx.facilityDictionaryId && ctx.canManageFacility === true;
   return {
     word: issue.word,
     reason: issue.reason,

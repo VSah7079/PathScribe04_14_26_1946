@@ -29,5 +29,9 @@ Tag the element the message names, usually `data-phi="<kind>"` on the element th
 
 `VersionHistoryModal` showed the snapshot's patient name, MRN and date of birth without `data-phi`. The values came from a label/value list built by a helper (`snapshotFields`), and the check can't see through that. The screen is tagged now; the check still can't follow values passed through such lists.
 
+## Batch 417
+
+`classifyPath` treats `nationalIdentifiers` (and `nationalIdentifierValue`) as a patient identifier (kind `nhs`), so a national identifier rendered untagged fails the guard. `NationalIdentifierFields` tags its input `data-phi="nhs"`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

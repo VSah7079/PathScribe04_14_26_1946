@@ -30,6 +30,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import type { ScanStation, IScanStationService } from './IScanStationService';
 import { mockWorkstationGroupService } from '../workstationGroups/mockWorkstationGroupService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_STATIONS: ScanStation[] = [
   // Real, deliberate example: this station is configured to print real
@@ -66,7 +67,7 @@ function save(stations: ScanStation[]): void {
   storageSet(STORAGE_KEY, stations);
 }
 
-export const mockScanStationService: IScanStationService = {
+const scanStationServiceUnchecked: IScanStationService = {
   async getAll(): Promise<ServiceResult<ScanStation[]>> {
     return { ok: true, data: load() };
   },
@@ -121,10 +122,15 @@ export const mockScanStationService: IScanStationService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<ScanStation>> {
-    return mockScanStationService.update(id, { status: 'Inactive' });
+    return scanStationServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<ScanStation>> {
-    return mockScanStationService.update(id, { status: 'Active' });
+    return scanStationServiceUnchecked.update(id, { status: 'Active' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockScanStationService: IScanStationService = guardConfigWrites(scanStationServiceUnchecked, [
+  ['config:scan-stations:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

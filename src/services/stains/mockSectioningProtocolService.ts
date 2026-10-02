@@ -2,6 +2,7 @@
 
 import type { ServiceResult, ID } from '../types';
 import type { ISectioningProtocolService, SectioningProtocol } from './IStainService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 let PROTOCOLS: SectioningProtocol[] = [
   { id: 'sp-single',  name: 'Single Level',    description: 'One section, standard depth.',                         version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
@@ -12,7 +13,7 @@ let PROTOCOLS: SectioningProtocol[] = [
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export const mockSectioningProtocolService: ISectioningProtocolService = {
+const sectioningProtocolServiceUnchecked: ISectioningProtocolService = {
   async getAll() {
     return ok([...PROTOCOLS]);
   },
@@ -36,3 +37,8 @@ export const mockSectioningProtocolService: ISectioningProtocolService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSectioningProtocolService: ISectioningProtocolService = guardConfigWrites(sectioningProtocolServiceUnchecked, [
+  ['config:stain-dictionary:manage', ['add', 'update']],
+]);

@@ -29,15 +29,19 @@
 // exactly as entered/stored. CSV export headers/values in
 // handleDownloadStainTypes stay English per this sweep's established
 // "exported data stays English" convention.
+//
+// Batch 403 (Pete): a molecular test lists the reference labs approved to
+// perform it, and its default, so an add-on order fills the lab in and
+// offers only those (services/stains/referenceLabLink.ts). Targets now come
+// through @/services, so this file is off the deployment baseline.
 // ─────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseCsv, toCsv, downloadCsv, isCsvFile, readFileAsText } from '../../../utils/csv';
 import '../../../pathscribe.css';
-import { stainTypeService, sectioningProtocolService, stainOrderMacroService } from '../../../services';
+import { stainTypeService, sectioningProtocolService, stainOrderMacroService, molecularTargetService, facilityService, activeReferenceLabs, normalizeReferenceLabLink } from '../../../services';
 import type { StainType, StainCategory, SectioningProtocol, StainOrderMacro } from '../../../services';
-import { mockMolecularTargetService } from '@/services/stains/mockMolecularTargetService';
 import type { MolecularTarget, MolecularMethodology, BillingModel, CptMappingRule } from '@/types/billing/MolecularBillingRule';
 import { duplicateStainType, duplicateSectioningProtocol, duplicateStainOrderMacro, duplicateMolecularTarget } from '@/services/duplication/duplicateEntities';
 import { findDuplicate } from '../../../utils/validateUnique';
@@ -72,8 +76,10 @@ interface StainTypeModalProps {
   onAddTarget: (symbol: string, detail: string) => Promise<MolecularTarget | null>;
   onSave: (draft: Omit<StainType, 'id' | 'version' | 'updatedBy' | 'updatedAt'>) => void;
   onClose: () => void;
+  /** Batch 403: the active reference labs a molecular test can be linked to. */
+  referenceLabs: { id: string; name: string }[];
 }
-const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEntries, masterTargets, onAddTarget, onSave, onClose }) => {
+const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEntries, masterTargets, onAddTarget, onSave, onClose, referenceLabs }) => {
   const { t } = useTranslation();
   const [name, setName] = useState(entry?.name ?? '');
   const [category, setCategory] = useState<StainCategory>(entry?.category ?? 'Routine');
@@ -106,6 +112,9 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
   const [multiplexThreshold, setMultiplexThreshold] = useState(entry?.billingRule?.multiplexThreshold?.toString() ?? '3');
   const [perUnitCptCode, setPerUnitCptCode] = useState(entry?.billingRule?.perUnitCptCode ?? '');
   const [flatFeeCptCode, setFlatFeeCptCode] = useState(entry?.billingRule?.flatFeeCptCode ?? '');
+  // Batch 403 (Pete): the reference labs approved to perform this test, and its default.
+  const [labIds, setLabIds] = useState<string[]>(entry?.referenceLabFacilityIds ?? []);
+  const [defaultLabId, setDefaultLabId] = useState(entry?.defaultReferenceLabFacilityId ?? '');
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -146,6 +155,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
       defaultControlTissueType: requiresTargetControl && defaultControlTissueType.trim() ? defaultControlTissueType.trim() : undefined,
       methodology: category === 'Molecular' && methodology ? methodology : undefined,
       defaultTargets: category === 'Molecular' && selectedTargets.length > 0 ? selectedTargets : undefined,
+      ...normalizeReferenceLabLink(category, labIds, defaultLabId || undefined),
       billingRule,
       active,
     });
@@ -287,6 +297,33 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
               </div>
 
               <div className="ps-conf-form-field">
+                <p className="ps-conf-label">{t('stainDictionarySection.typeModal.referenceLabsLabel')}</p>
+                {referenceLabs.length === 0
+                  ? <span className="ps-conf-hint">{t('stainDictionarySection.typeModal.referenceLabsNone')}</span>
+                  : (
+                    <div className="ps-conf-checkbox-grid">
+                      {referenceLabs.map(lab => (
+                        <label key={lab.id} className="ps-conf-toggle-label-row">
+                          <input type="checkbox" className="ps-conf-radio-input" checked={labIds.includes(lab.id)}
+                            onChange={e => setLabIds(prev => e.target.checked ? [...prev, lab.id] : prev.filter(id => id !== lab.id))} />
+                          <span className="ps-conf-option-text">{lab.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">{t('stainDictionarySection.typeModal.referenceLabsHint')}</p>
+              </div>
+              {labIds.length > 1 && (
+                <div className="ps-conf-form-field">
+                  <label className="ps-conf-label" htmlFor="stain-default-lab">{t('stainDictionarySection.typeModal.defaultReferenceLabLabel')}</label>
+                  <select id="stain-default-lab" className="ps-conf-select" value={labIds.includes(defaultLabId) ? defaultLabId : ''} onChange={e => setDefaultLabId(e.target.value)}>
+                    <option value="">{t('stainDictionarySection.typeModal.defaultReferenceLabNone')}</option>
+                    {referenceLabs.filter(lab => labIds.includes(lab.id)).map(lab => <option key={lab.id} value={lab.id}>{lab.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('stainDictionarySection.typeModal.defaultTargetsLabel')}</label>
                 <div className="ps-staindict__target-chips">
                   {selectedTargets.map(target => (
@@ -302,7 +339,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
                   ))}
                   {selectedTargets.length === 0 && <span className="ps-conf-hint">{t('stainDictionarySection.typeModal.noDefaultTargets')}</span>}
                 </div>
-                <input
+                <input data-config-nav
                   className="ps-conf-input"
                   placeholder={t('stainDictionarySection.typeModal.targetSearchPlaceholder')}
                   value={targetSearch}
@@ -660,6 +697,7 @@ const StainDictionarySection: React.FC = () => {
   const [protocols, setProtocols] = useState<SectioningProtocol[]>([]);
   const [macros, setMacros] = useState<StainOrderMacro[]>([]);
   const [masterTargets, setMasterTargets] = useState<MolecularTarget[]>([]);
+  const [referenceLabs, setReferenceLabs] = useState<{ id: string; name: string }[]>([]);
   const [search, setSearch] = useState('');
   const [typeModal, setTypeModal] = useState<{ mode: 'add' | 'edit'; entry?: StainType } | null>(null);
   const [protocolModal, setProtocolModal] = useState<{ mode: 'add' | 'edit'; entry?: SectioningProtocol } | null>(null);
@@ -670,7 +708,8 @@ const StainDictionarySection: React.FC = () => {
     stainTypeService.getAll().then(res => { if (res.ok) setStainTypes(res.data); });
     sectioningProtocolService.getAll().then(res => { if (res.ok) setProtocols(res.data); });
     stainOrderMacroService.getAll().then(res => { if (res.ok) setMacros(res.data); });
-    mockMolecularTargetService.getAll().then(res => { if (res.ok) setMasterTargets(res.data); });
+    molecularTargetService.getAll().then(res => { if (res.ok) setMasterTargets(res.data); });
+    facilityService.getAll().then(res => { if (res.ok) setReferenceLabs(activeReferenceLabs(res.data)); });
   };
   useEffect(() => { loadAll(); }, []);
 
@@ -680,7 +719,7 @@ const StainDictionarySection: React.FC = () => {
   // immediately available to search/select for the rest of this
   // session, not just this one modal instance.
   const handleAddTarget = async (symbol: string, detail: string) => {
-    const res = await mockMolecularTargetService.add({ symbol, detail: detail || undefined, targetType: 'PROBE', active: true });
+    const res = await molecularTargetService.add({ symbol, detail: detail || undefined, targetType: 'PROBE', active: true });
     if (res.ok) { setMasterTargets(prev => [...prev, res.data]); return res.data; }
     return null;
   };
@@ -815,7 +854,7 @@ const StainDictionarySection: React.FC = () => {
       {subTab === 'types' && (
         <>
           <div className="ps-conf-form-row--3">
-            <input type="text" placeholder={t('stainDictionarySection.searchTypesPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+            <input data-config-nav type="text" placeholder={t('stainDictionarySection.searchTypesPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
             <div className="ps-specdict-header-actions">
               <button className="ps-conf-btn-secondary" onClick={handleDownloadStainTypes}>{t('common.export')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => stainImportFileInputRef.current?.click()}>{t('stainDictionarySection.importSpreadsheetBtn')}</button>
@@ -976,7 +1015,7 @@ const StainDictionarySection: React.FC = () => {
 
       {typeModal && (
         <StainTypeModal mode={typeModal.mode} entry={typeModal.entry} existingEntries={stainTypes}
-          masterTargets={masterTargets} onAddTarget={handleAddTarget}
+          masterTargets={masterTargets} onAddTarget={handleAddTarget} referenceLabs={referenceLabs}
           onSave={async draft => {
             if (typeModal.mode === 'edit' && typeModal.entry) await stainTypeService.update(typeModal.entry.id, draft);
             else await stainTypeService.add(draft);
@@ -1005,8 +1044,8 @@ const StainDictionarySection: React.FC = () => {
       {targetModal && (
         <MolecularTargetModal mode={targetModal.mode} entry={targetModal.entry} duplicateOf={targetModal.duplicateOf} existingEntries={masterTargets}
           onSave={async draft => {
-            if (targetModal.mode === 'edit' && targetModal.entry) await mockMolecularTargetService.update(targetModal.entry.id, draft);
-            else await mockMolecularTargetService.add(draft);
+            if (targetModal.mode === 'edit' && targetModal.entry) await molecularTargetService.update(targetModal.entry.id, draft);
+            else await molecularTargetService.add(draft);
             setTargetModal(null); loadAll();
           }}
           onClose={() => setTargetModal(null)} />

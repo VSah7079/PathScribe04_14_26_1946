@@ -12,11 +12,22 @@
 // itself (fetch, gate re-check, persist) rather than handing built
 // data back to a caller — closing the loop instead of deferring it
 // again.
+//
+// Batch 383 (PS-359, and the rule that a release needs a permission): who
+// the body goes to and who released it are locked Field Requirements
+// (chain of custody), shown as "Still required: …"; Release needs
+// autopsy:body:release (checked in releaseAutopsyBody, greyed out here) and
+// can be said ("release body", AUTOPSY_RELEASE_SUBMIT) with the same checks.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
+import { actionRegistryService, autopsyReleaseMissing, reportFieldRequired } from '@/services';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 import { resolveAutopsyBodyReleaseGate } from '@/services/autopsy/resolveAutopsyBodyReleaseGate';
 import { releaseAutopsyBody } from '@/services/autopsy/releaseAutopsyBody';
@@ -29,18 +40,22 @@ interface AutopsyBodyReleaseFormProps {
 }
 
 const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId, specimenId, autopsyDetails, onReleased }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('report');
+  const { decide } = useCapabilities();
   const [releasedTo, setReleasedTo] = useState('');
   const [releasedByName, setReleasedByName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [showErrors, setShowErrors] = useState(false);
 
   const gate = resolveAutopsyBodyReleaseGate(autopsyDetails);
-  const formValid = Boolean(releasedTo.trim() && releasedByName.trim());
+  const missing = autopsyReleaseMissing(releasedTo, releasedByName, requirements);
+  const formValid = missing.length === 0;
+  const star = (id: string) => reportFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
+  const context = { caseId };
 
   const handleSubmit = async () => {
-    if (!formValid) { setShowErrors(true); return; }
+    if (!formValid || !gate.allowed || submitting || !decide('autopsy:body:release', context)?.allowed) return;
     setSubmitting(true);
     setServerError(null);
     const result = await releaseAutopsyBody(caseId, specimenId, { releasedTo: releasedTo.trim(), releasedByName: releasedByName.trim() });
@@ -48,9 +63,16 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
     if (result.ok) {
       onReleased();
     } else {
-      setServerError(result.error ?? result.blockedReasons?.join(' ') ?? t('autopsyBodyRelease.genericError'));
+      setServerError(result.notPermitted ? t('autopsyBodyRelease.notPermitted') : (result.error ?? result.blockedReasons?.join(' ') ?? t('autopsyBodyRelease.genericError')));
     }
   };
+
+  // Voice/keyboard "release body": the same Release, with the same checks.
+  const submitRef = useRef(handleSubmit);
+  submitRef.current = handleSubmit;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'AUTOPSY_RELEASE_SUBMIT') void submitRef.current();
+  }), []);
 
   return (
     <div className="ps-conf-card ps-autopsy-intake-card">
@@ -67,7 +89,7 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
         <>
           <div className="ps-conf-form-row">
             <div>
-              <label className="ps-label" htmlFor="autopsy-release-to">{t('autopsyBodyRelease.releasedToLabel')}</label>
+              <label className="ps-label" htmlFor="autopsy-release-to">{t('autopsyBodyRelease.releasedToLabel')} {star('autopsyReleasedTo')}</label>
               <input
                 id="autopsy-release-to"
                 className="ps-conf-input"
@@ -77,7 +99,7 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
               />
             </div>
             <div>
-              <label className="ps-label" htmlFor="autopsy-release-by">{t('autopsyBodyRelease.releasedByLabel')}</label>
+              <label className="ps-label" htmlFor="autopsy-release-by">{t('autopsyBodyRelease.releasedByLabel')} {star('autopsyReleasedBy')}</label>
               <input
                 id="autopsy-release-by"
                 className="ps-conf-input"
@@ -88,8 +110,10 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
             </div>
           </div>
 
-          {showErrors && !formValid && (
-            <div className="ps-conf-validation-errors">{t('autopsyBodyRelease.validationError')}</div>
+          {!formValid && (
+            <p className="ps-field-still-required" role="status">
+              {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
+            </p>
           )}
 
           {serverError && (
@@ -97,9 +121,15 @@ const AutopsyBodyReleaseForm: React.FC<AutopsyBodyReleaseFormProps> = ({ caseId,
           )}
 
           <div className="ps-conf-modal-footer ps-autopsy-intake-footer">
-            <button className="ps-conf-btn-primary" disabled={submitting} onClick={handleSubmit}>
+            <CapabilityButton
+              capability="autopsy:body:release"
+              context={context}
+              className="ps-conf-btn-primary"
+              disabled={submitting || !formValid}
+              onClick={handleSubmit}
+            >
               {submitting ? t('autopsyBodyRelease.submittingBtn') : t('autopsyBodyRelease.submitBtn')}
-            </button>
+            </CapabilityButton>
           </div>
         </>
       )}

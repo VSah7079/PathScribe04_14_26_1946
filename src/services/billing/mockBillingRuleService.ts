@@ -6,6 +6,7 @@ import type { BillingRuleVersion } from '@/types/billing/BillingRuleVersion';
 import { resolveBillingRuleAt } from './resolveBillingRuleAt';
 import { applyNaturalSunset } from './codeEngine/naturalSunset';
 import { listAllSites, getOrganisation } from '../organisation/organisationService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'billing_rule_versions_v1';
 
@@ -161,7 +162,7 @@ const importJobRowError = (v: BillingRuleVersion) =>
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockBillingRuleService: IBillingRuleService = {
+const billingRuleServiceUnchecked: IBillingRuleService = {
   async getAll() {
     return ok([...load()].sort((a, b) => a.billingCode.localeCompare(b.billingCode) || (a.siteId ?? '').localeCompare(b.siteId ?? '') || a.version - b.version));
   },
@@ -214,14 +215,11 @@ export const mockBillingRuleService: IBillingRuleService = {
     const newVersion: BillingRuleVersion = {
       ...input,
       version: nextVersion,
-      // Real, per direct guidance's own Four-Eyes Principle
-      // requirement: a new rule change no longer goes live on save.
-      // An explicit status is still honored (the real, initial
-      // migration seed passes 'ACTIVE' directly in its own literal
-      // array below, never through this function, but any future
-      // caller with a genuine reason to bypass DRAFT can still do so
-      // explicitly).
-      status: input.status ?? 'DRAFT',
+      // Four-Eyes Principle: a new rule change never goes live on save.
+      // Batch 428: always a draft. A caller used to be able to pass a
+      // status and skip approval; the seed's ACTIVE rows don't come
+      // through here.
+      status: 'DRAFT',
       createdAt: new Date().toISOString(),
       vocabulary: input.vocabulary ?? 'CPT',
     };
@@ -303,3 +301,9 @@ export const mockBillingRuleService: IBillingRuleService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockBillingRuleService: IBillingRuleService = guardConfigWrites(billingRuleServiceUnchecked, [
+  ['config:billing-rules:manage', ['createVersion', 'submitForApproval', 'retireVersion']],
+  ['config:billing-tables:approve', ['approveVersion', 'rejectVersion']],
+]);

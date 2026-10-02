@@ -6,6 +6,7 @@ import { FootPedalSection } from '../Config/System/FootPedalSection';
 import { useVoice } from '../../contexts/VoiceProvider';
 import { VOICE_PROFILES, VoiceProfile, VoiceProfileId } from '../../constants/voiceProfiles';
 import SpeechConfigTab from './SpeechConfigTab';
+import ConfigSectionGate from '../Config/ConfigSectionGate';
 
 const VoiceSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -29,7 +30,8 @@ const VoiceSettings: React.FC = () => {
     <div className="vset-root">
 
       {/* Deployment-level voice toggle — PathScribe staff */}
-      <VoiceSection />
+      {/* Batch 429: turning voice on or off for everyone is view only without config:voice:manage. */}
+      <ConfigSectionGate section="voice:deployment"><VoiceSection /></ConfigSectionGate>
 
       {/* Divider */}
       <div className="vset-divider">

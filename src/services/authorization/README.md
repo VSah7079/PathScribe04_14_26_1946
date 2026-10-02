@@ -114,6 +114,152 @@ Pete: keep today's users, but as a permission of its own so a hospital can later
 
 Seeded to every role with case access and to Admin, Lab Director and QA Reviewer (who resolve billing deficiencies); a hospital's own roles with case or configuration access are offered it too. It sits in its own list in `capabilitySeeds.ts`, not in the case report actions. Checked in `services/billing/correctServiceCharge.ts` (`enforceAppliedCodeCorrection`), for the case, by the report page's correction and the QA resolution alike; the modal's button is a `CapabilityButton`. The Discordance and post-sign-out reason modals got no capability: they are steps inside sign-out and billing.
 
+## Batch 383: releasing an autopsy body
+
+Same approach as the billing correction: one new capability, in a new **Autopsy** group.
+- `autopsy:body:release` (high risk): record the release of a body to a funeral home or family, which ends the mortuary's custody.
+
+Seeded to every role with case access (the people who could release a body before); a hospital's own roles with case access are offered it too. Checked in `services/autopsy/releaseAutopsyBody.ts`, for the case; the form's button is a `CapabilityButton`. Recording the written order or consent (the authorization completion form) got no capability: it completes paperwork, and the gross-examination gate already controls what follows.
+
+## Batch 385: sending messages
+
+- **`message:internal:send`** (standard) and **`message:secure-email:send`** (high, it leaves the organisation), in a new **Messaging** group. Seeded to every built-in role and offered to every hospital-made role, so nobody loses sending today.
+- Checked in `services/messages/mockMessageService.ts`: `send` and `reply` when a person composed the message (`composedByPerson`), and `sendSecureEmail`. Notices the app sends itself (access requests, template and LIS notices) are not held to it, so someone without the permission can still ask for access. The drawer greys out Send and says why.
+
+## Batch 390: correcting a signed-out cytology report (PS-340)
+
+Two capabilities in the **Casework** group, one per act (a correction replaces what was reported; an addendum leaves it standing):
+- `cytology:report:correct` (high risk): release a corrected diagnosis for a signed-out cytology report.
+- `cytology:report:addend` (high risk): release an addendum to one.
+
+Seeded to **Pathologist only**: nobody had a screen for either before, and signing out a cytology diagnosis is already a pathologist act. A hospital's own roles are offered neither until an administrator grants them (`customRoleScreenSeed` is unchanged). Checked in `services/cytology/releaseCytologyCorrection.ts` and `releaseCytologyAddendum.ts`, before anything is written; the buttons on the Cytology screening page are `CapabilityButton`s.
+
+## Batch 396: peer-review verdicts
+
+- `cytology:qc-review:record` (high risk): take a cytology QC peer review and record concurrence or a discrepancy. Checked in `services/cytologyQc/mockCytologyQcCaseAssignmentService.ts`.
+- `surgical:qa-review:record` (high risk): record a surgical post-sign-out QA review, or dismiss a correlation candidate. Checked in `services/quality/surgicalQaReview.ts`.
+- Both seeded to Pathologist and Fellow, who had the two review queues, so nobody loses what they could do. A hospital's own roles get them only when an administrator grants them.
+
+## Batch 399
+
+`config:intraop-critical-results:manage` (high risk, administration): change the critical intraoperative results dictionary. Checked in `services/intraop/mockIntraopCriticalResultService.ts`; Admin gets it with the administration group.
+
+## Batch 403: add-on orders
+
+`add-on:order:place` and `add-on:exception:approve-destructive-cut` (high risk, casework). Pete chose both, for all three roles. Placing an add-on order, and cancelling it or modifying and resubmitting it after a block exception, need the first. Approving destructive cutting needs the second. Both are checked in `services/addOnOrders/addOnOrderActions.ts`. They are seeded to Pathologist, Fellow and Resident, who had the Add-On Orders screen, and offered to a hospital's own roles that have case access.
+
+## Batch 404: Batch Management overrides
+
+Three new permissions (high risk, casework): `batch:reconciliation:override`, `batch:run:abort` and `batch:cold-chain-excursion:acknowledge`. Pete: one permission each, keeping today's users. They're checked in `services/batches/mockBatchService.ts`, seeded to every built-in role with the Batch Management screen (Histotechnologist, Cytotechnologist, Molecular Technologist), and offered to a hospital's own roles with case access.
+
+## Batch 405
+
+`molecular:batch:supersede` (high risk, casework) covers Clone & Supersede, which retires a molecular run and starts its replacement. Pete: keep today's users. It's checked in `services/molecular/mockMolecularBatchService.ts`, seeded to the Molecular Technologist (the only built-in role with the Molecular screen), and offered to a hospital's own roles with case access.
+
+## Batch 406
+
+`config:molecular-control-rules:manage` (high risk, administration) covers adding, changing and deleting a molecular assay control rule: its required controls and the deck slots its sample rack may use. Pete: "default to admin but it remains an assignable permission". It's in the administration group, so Admin starts with it and nobody else does; a Lab Director (or any role) gets it in the Role Dictionary. Checked in `services/molecular/mockMolecularAssayControlRuleService.ts`.
+
+**System Capabilities:** `docs/architecture/AUTHORIZATION_API.md` now has a "Capability catalog" section listing all 64 capabilities with their group, risk, default roles and the service that checks each. Its endpoint table had stopped at Batch 380 and now covers every action through Batch 406. `capabilityDocs.guard.test.ts` fails when the catalog and that list disagree.
+
+## Batch 407
+
+Two permissions (high risk, casework), both seeded to every role with the Batch Management screen (Histotechnologist, Cytotechnologist, Molecular Technologist) and offered to a hospital's own roles with case access. Pete: keep today's users.
+- `retention:material:dispose`: disposing of retained material from the Disposal Queue, checked in `services/retentionPolicy/disposeItemByScan.ts`.
+- `retention:disposal-report:export`: exporting the disposal report, checked in `services/retentionPolicy/exportDisposalReport.ts`. This export had no check before.
+
+The catalog in `docs/architecture/AUTHORIZATION_API.md` now lists 66 capabilities.
+
+## Batch 409
+
+`cytology:report:sign-out` (high risk, casework): signing out a cytology specimen, or releasing it for countersign. Checked in `services/cytology/signOutCytologyCase.ts`. Pete: keep today's users, so it's seeded to Pathologist, Fellow, Resident and Cytotechnologist, and offered to a hospital's own roles with case access. It sits on top of signing authority and the CT and countersign rules, never instead of them. The catalog now lists 67 capabilities.
+
+## Batch 410
+
+Five new casework capabilities, all high risk, for the rest of the Cytology Workspace (Pete: each its own permission, today's users keep them):
+- `cytology:review:record`, checked in `services/cytology/saveCytologyReview.ts`.
+- `cytology:final-diagnosis:select`, checked in `services/cytology/cytologyCaseActions.ts`, like the three below.
+- `cytology:qc-flag:remove`.
+- `cytology:retrospective-review:record`.
+- `cytology:histology-correlation:record`.
+
+`CYTOLOGY_SIGN_OUT` in `capabilitySeeds.ts` now holds sign-out and these five. They are seeded to Pathologist, Fellow, Resident and Cytotechnologist (the roles with the Cytology Workspace screen) and offered to hospital roles with case access. The catalog lists 72 capabilities.
+
+## Batch 411
+
+`cytology:case:finalize` (high risk, casework): finalizing a cytology case before every specimen is signed out, with a reason and an audit entry. Checked in `services/cytology/cytologyCaseFinalization.ts`. It's an override, so it's seeded to Pathologist only and not offered to a hospital's own roles; an administrator grants it in the Role Dictionary. Otherwise a case finalizes itself when its last cytology specimen is signed out. The catalog now lists 73 capabilities.
+
+## Batch 412
+
+`cytology:revision:request` (high risk, casework): marking a note on someone's cytology review "Requires revision". It stops a cytotechnologist signing out until the author revises or a pathologist records their own review. Plain notes need no permission. Checked in `services/cytology/cytologyReviewNotes.ts`. It's seeded with the Cytology Workspace's other actions: Pathologist, Fellow, Resident, Cytotechnologist and hospital roles with case access. The catalog lists 74 capabilities.
+
+## Batch 414
+
+`config:screening-registry:manage` (high risk, administration): which cervical screening registry each facility reports to, and each registry's code mappings and hold rules. Checked in `services/screeningRegistry/saveScreeningRegistrySettings.ts`. Admin holds it by default. The catalog lists 75 capabilities.
+
+## Batch 415
+
+- `cytology:ct-report:sign-out` (high, casework, requires `cytology:report:sign-out`): a cytotechnologist signing out.
+  - Seeded to Cytotechnologist and offered to hospital roles with case access (keep today's users).
+  - A lab in a country where cytotechnologists may not sign reports removes it from the role.
+- `config:cytology-compliance:manage` (high, administration; Admin): switching the CLIA workload cap and CAP 5-year lookback.
+- The catalog lists 77 capabilities.
+
+## Batch 417
+
+`patient:national-identifier:record` (high risk, case work): recording or removing a patient's national identifier. Seeded to every case-access role (today's accessioners keep it) and to hospital roles with case access. Checked in `services/patientIdentifiers/recordNationalPatientIdentifier.ts`. 78 capabilities.
+
+## Batch 418
+
+`patient:registry-consent:record` (high risk, case work): recording or clearing a patient's registry opt-outs. Seeded like `patient:national-identifier:record`. Checked in `services/registryConsent/recordPatientRegistryConsent.ts`. 79 capabilities.
+
+## Batch 421
+
+`screen:registry-exceptions:open` (screens; Admin, Lab Director, QA Reviewer, and hospital roles with configuration access, through the Quality & Compliance screen list) and `registry:submission:resend` (administration, high, requires the screen; Admin through the group, Lab Director explicitly; QA Reviewer sees the list but can't resend). 81 capabilities.
+
+## Batch 422
+
+`config:cancer-registry:manage` (administration, high; Admin): the cancer registry Configuration screen's saves. 82 capabilities.
+
+## Batch 423
+
+Two capabilities (84 in the catalog):
+- `registry:live-register:approve` (high, administration): approving a registry's go-live, re-entering credentials. Admin and Lab Director (`REGISTRY_GO_LIVE_APPROVE`).
+- `config:registry-go-live:manage` (high, administration): the two go-live approval settings. Admin.
+
+Preparing a request and returning to test use the existing `config:screening-registry:manage` / `config:cancer-registry:manage`. All are checked in `services/registryGoLive/registryGoLive.ts`. `AUTHORIZATION_API.md`'s catalog has been regenerated.
+
+## Batch 424
+
+`registry:test-suite:run` (high, administration, Admin) covers sending the synthetic test suite to a registry's test system, on a validation instance only. It is checked in `registryGoLive.ts`. The catalog now has 85 capabilities.
+
+## Batch 425
+
+Three capabilities, 88 in all:
+
+| Capability | Group | Who has it | Checked in |
+|---|---|---|---|
+| `qa:registry-transmission-audit:export` | qaOperations | Admin and QA Reviewer, like every QA export | `qualityAssurance/qaExport.ts`, from `registrySubmission/registryExceptionsService.ts` and the cytology QA tab |
+| `registry:revision:review` | administration | Admin and the Lab Director, like resend | `registrySubmission/recordRegistryRevision.ts` |
+| `config:template-governance:manage` | administration | Admin | `templates/templateGovernanceSettings.ts` |
+
+`docs/architecture/AUTHORIZATION_API.md`'s catalog is regenerated.
+
+## Batch 428: Configuration permissions
+
+84 Configuration capabilities (one per section, Pete's choice) and `platform:signing-rules:manage`. `guardConfigWrites.ts` (new) wraps a service so each listed method is checked against its capability; `permitConfigChange` does the same at a single action; refusals reach `ConfigRefusalBanner` through `onConfigRefused`. `capabilities.guard.test.ts` reads the wrapper's rules. Seeds: Admin all; Lab Director all but drafting synoptic protocols; Template Author and Template Approver only the protocol and template ones; a hospital's own roles none.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+`equipment:maintenance:record` (new), seeded to the three bench roles, Admin and Lab Director. `docs/architecture/AUTHORIZATION_API.md` has a new section listing every Configuration write and the capability its endpoint must check (PS-345).
+
+## Batch 432
+
+Three new capabilities (177 in all; the `AUTHORIZATION_API.md` catalog is regenerated):
+- `audit:error:resolve` (qaOversight, high): mark an Audit Log error resolved. Seeded to everyone who opens the Audit Log: Admin, Lab Director, QA Reviewer, and hospital roles with configuration access.
+- `cytology:qc-review:bypass` (casework, high): the Cytology QC supervisor bypass. Pete: nobody by default; an administrator assigns it. Holding it also opens the Cytology QC queue (`services/screens/screenAccess.ts` `SCREEN_ALSO_OPENED_BY`).
+- `referral:transit-status:update` (casework, high): mark a referral batch in transit or delivered. Seeded to every role with the Batch Management screen, and hospital roles with case access.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -238,7 +238,7 @@ const ModifierDictionarySection: React.FC = () => {
 
       {olderVersions.length > 0 && (
         <div className="ps-conf-form-field">
-          <button className="ps-conf-btn-row" onClick={() => setShowOlder(o => !o)}>
+          <button data-config-nav className="ps-conf-btn-row" onClick={() => setShowOlder(o => !o)}>
             {showOlder
               ? t('modifierDictionarySection.olderVersions.toggleHide', { count: olderVersions.length })
               : t('modifierDictionarySection.olderVersions.toggleShow', { count: olderVersions.length })}

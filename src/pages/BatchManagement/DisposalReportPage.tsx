@@ -13,6 +13,12 @@
 // (pages/BatchManagement/README.md) — the action (disposing an item) already
 // lives at DisposalQueuePage.tsx; this page only ever reports on what
 // already happened, never disposes anything itself.
+//
+// Batch 407: the CSV export needs retention:disposal-report:export, checked in
+// services/retentionPolicy/exportDisposalReport.ts at the report's facility
+// (it had no check). Item ids and accessions are tagged data-phi; times follow
+// the user's language; the scan-station service comes from @/services, so the
+// page is off the deployment baseline.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -20,22 +26,20 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { facilityService } from '@/services';
+import { facilityService, scanStationService, authorizationService } from '@/services';
+import { exportDisposalReport, disposalReportContext } from '@/services/retentionPolicy/exportDisposalReport';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDateTime } from '@/utils/formatDate';
+import { toast } from 'react-toastify';
 import { computeDisposalReport } from '@/services/retentionPolicy/computeDisposalReport';
 import type { DisposalReportRow, DisposalReportFilters } from '@/services/retentionPolicy/computeDisposalReport';
 import type { RetainableMaterialType } from '@/services/retentionPolicy/RetentionPolicy';
-import { toCsv, downloadCsv } from '@/utils/csv';
 import type { Facility } from '@/services/facilities/IFacilityService';
 
 const MATERIAL_TYPES: RetainableMaterialType[] = ['block', 'slide', 'wet_tissue'];
 
-function formatDateTime(iso: string): string {
-  try { return new Date(iso).toLocaleString(); } catch { return iso; }
-}
-
 const DisposalReportPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('disposalReport.pageTitle'), '/batch-management/disposal-report'); }, [pushCrumb, t]);
   const { stationId } = useCurrentScanStation();
@@ -55,7 +59,7 @@ const DisposalReportPage: React.FC = () => {
   // back to "all facilities" from the dropdown.
   useEffect(() => {
     if (!stationId) return;
-    mockScanStationService.getById(stationId).then(res => {
+    scanStationService.getById(stationId).then(res => {
       if (res.ok) setFacilityId(prev => (prev === 'all' ? res.data.facilityId : prev));
     });
   }, [stationId]);
@@ -81,9 +85,9 @@ const DisposalReportPage: React.FC = () => {
 
   const countByMaterialType = (mt: RetainableMaterialType) => rows.filter(r => r.materialType === mt).length;
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     const exportRows: Record<string, string | number>[] = rows.map(r => ({
-      [t('disposalReport.export.disposedAt')]: formatDateTime(r.disposedAt),
+      [t('disposalReport.export.disposedAt')]: formatDateTime(r.disposedAt, i18n.language),
       [t('disposalReport.export.materialType')]: t(`disposalReport.materialType.${r.materialType}`),
       [t('disposalReport.export.itemId')]: r.displayId,
       [t('disposalReport.export.caseAccession')]: r.caseAccession,
@@ -91,10 +95,10 @@ const DisposalReportPage: React.FC = () => {
       [t('disposalReport.export.disposedBy')]: r.disposedByName,
       [t('disposalReport.export.location')]: r.lastKnownLocation ?? '',
     }));
-    // Not a QA report, so not one of the PS-355 QA export capabilities; this
-    // export isn't gated yet (listed for the PS-357 sweep).
-    downloadCsv(`waste-tracking-report-${new Date().toISOString().slice(0, 10)}`, toCsv(exportRows));
-  }, [rows, t]);
+    // Batch 407: its own permission, checked in the service at the report's facility.
+    const res = await exportDisposalReport(exportRows, `waste-tracking-report-${new Date().toISOString().slice(0, 10)}`, facilityId, { authorization: authorizationService });
+    if (!res.ok) toast.error(t('disposalReport.export.notPermitted'));
+  }, [rows, t, i18n.language, facilityId]);
 
   return (
     <div className="ps-batch-page">
@@ -158,9 +162,10 @@ const DisposalReportPage: React.FC = () => {
               className="ps-auditlog-select ps-auditlog-select--date"
             />
 
-            <button onClick={handleExport} disabled={rows.length === 0} className="ps-auditlog-export-btn">
+            <CapabilityButton capability="retention:disposal-report:export" context={disposalReportContext(facilityId)}
+              onClick={() => void handleExport()} disabled={rows.length === 0} className="ps-auditlog-export-btn">
               📊 {t('disposalReport.export.button')}
-            </button>
+            </CapabilityButton>
           </div>
 
           <div className="ps-auditlog-table ps-auditlog-table--disposal">
@@ -186,10 +191,10 @@ const DisposalReportPage: React.FC = () => {
               ) : (
                 rows.map(r => (
                   <div key={r.key} className="ps-auditlog-row ps-auditlog-row--disposal">
-                    <div className="ps-auditlog-cell-time">{formatDateTime(r.disposedAt)}</div>
+                    <div className="ps-auditlog-cell-time">{formatDateTime(r.disposedAt, i18n.language)}</div>
                     <div className="ps-auditlog-cell-event">{t(`disposalReport.materialType.${r.materialType}`)}</div>
-                    <div className="ps-auditlog-cell-code">{r.displayId}</div>
-                    <div className="ps-auditlog-cell-user">{r.caseAccession}</div>
+                    <div className="ps-auditlog-cell-code" data-phi="accession">{r.displayId}</div>
+                    <div className="ps-auditlog-cell-user" data-phi="accession">{r.caseAccession}</div>
                     <div className="ps-auditlog-cell-user">{r.specimenLabel}</div>
                     <div className="ps-auditlog-cell-user">{r.disposedByName}</div>
                     <div className="ps-auditlog-cell-detail">{r.lastKnownLocation ?? t('disposalReport.unknownLocation')}</div>

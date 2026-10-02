@@ -25,7 +25,7 @@ export type ScreenId =
   | 'accession' | 'worklist' | 'search' | 'addOnOrders' | 'intraopQueue' | 'cytologyQcQueue' | 'surgicalQaWorklist'
   | 'myContributions' | 'batchManagement' | 'configuration'
   | 'cytologyWorkspace' | 'microtomy' | 'embedding' | 'slideDistribution' | 'molecular'
-  | 'auditLog' | 'qualityAssurance';
+  | 'auditLog' | 'qualityAssurance' | 'registryExceptions';
 
 export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   accession: 'screen:accession:open',
@@ -45,7 +45,22 @@ export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   molecular: 'screen:molecular:open',
   auditLog: 'screen:audit-log:open',
   qualityAssurance: 'screen:quality-assurance:open',
+  registryExceptions: 'screen:registry-exceptions:open',
 };
+
+/**
+ * Batch 432 (Pete): an action capability that also opens a screen, so the
+ * person can reach the action. Holding the Cytology QC supervisor bypass opens
+ * the Cytology QC queue for the override, without the screen permission.
+ */
+export const SCREEN_ALSO_OPENED_BY: Readonly<Partial<Record<ScreenId, readonly CapabilityKey[]>>> = {
+  cytologyQcQueue: ['cytology:qc-review:bypass'],
+};
+
+/** Whether `has` grants the screen, directly or through an action that opens it (pure). */
+export function screenGranted(screen: ScreenId, has: (capability: string) => boolean): boolean {
+  return has(SCREEN_CAPABILITY[screen]) || (SCREEN_ALSO_OPENED_BY[screen] ?? []).some(c => has(c));
+}
 
 export type HubId = 'pathologyWorkspace' | 'qualityCompliance';
 
@@ -68,7 +83,7 @@ export const TILE_SCREENS: Readonly<Record<HomeTileId, readonly ScreenId[]>> = {
   myContributions: ['myContributions'],
   configuration: ['configuration'],
   pathologyWorkspace: ['cytologyWorkspace', 'microtomy', 'embedding', 'slideDistribution', 'molecular', 'batchManagement'],
-  qualityCompliance: ['auditLog', 'qualityAssurance'],
+  qualityCompliance: ['auditLog', 'qualityAssurance', 'registryExceptions'],
 };
 
 /** The screens inside each hub, in the hub's tile order. */
@@ -82,7 +97,7 @@ const screensOf = (id: HomeTileId | ScreenId): readonly ScreenId[] =>
 
 /** Whether the user may open this tile (any of its screens) or screen. `has` answers for a capability. */
 export function canOpenTile(id: HomeTileId | ScreenId, has: (capability: string) => boolean): boolean {
-  return screensOf(id).some(s => has(SCREEN_CAPABILITY[s]));
+  return screensOf(id).some(s => screenGranted(s, has));
 }
 
 /** The tiles to show, in the given order. */
@@ -100,7 +115,7 @@ const VIEW_SCREEN: Readonly<Record<WorklistView, ScreenId>> = {
 
 /** The Worklist views this user may open, cases first. */
 export function worklistViews(has: (capability: string) => boolean): WorklistView[] {
-  return (Object.keys(VIEW_SCREEN) as WorklistView[]).filter(v => has(SCREEN_CAPABILITY[VIEW_SCREEN[v]]));
+  return (Object.keys(VIEW_SCREEN) as WorklistView[]).filter(v => screenGranted(VIEW_SCREEN[v], has));
 }
 
 /** The view to show: the one asked for (e.g. from the address) if allowed, else the first allowed; null if none. */
@@ -110,7 +125,7 @@ export function resolveWorklistView(requested: string | null | undefined, allowe
 }
 
 /** The route check. Each screen's check names its capability literally, so the capabilities guard test sees it. */
-export function createScreenAccessService(deps: { authorization: Pick<IAuthorizationService, 'enforce'> }) {
+export function createScreenAccessService(deps: { authorization: Pick<IAuthorizationService, 'enforce' | 'evaluate'> }) {
   const a = deps.authorization;
   const checks: Record<ScreenId, () => Promise<{ allowed: boolean }>> = {
     accession: () => a.enforce('screen:accession:open'),
@@ -118,7 +133,12 @@ export function createScreenAccessService(deps: { authorization: Pick<IAuthoriza
     search: () => a.enforce('screen:search:open'),
     addOnOrders: () => a.enforce('screen:add-on-orders:open'),
     intraopQueue: () => a.enforce('screen:intraop-queue:open'),
-    cytologyQcQueue: () => a.enforce('screen:cytology-qc-queue:open'),
+    // Batch 432: or the supervisor bypass, which opens the queue for the
+    // override (evaluated, not enforced: opening a screen isn't the action).
+    cytologyQcQueue: async () => {
+      const screen = await a.enforce('screen:cytology-qc-queue:open');
+      return screen.allowed ? screen : a.evaluate('cytology:qc-review:bypass');
+    },
     surgicalQaWorklist: () => a.enforce('screen:surgical-qa-worklist:open'),
     myContributions: () => a.enforce('screen:my-contributions:open'),
     batchManagement: () => a.enforce('screen:batch-management:open'),
@@ -130,6 +150,7 @@ export function createScreenAccessService(deps: { authorization: Pick<IAuthoriza
     molecular: () => a.enforce('screen:molecular:open'),
     auditLog: () => a.enforce('screen:audit-log:open'),
     qualityAssurance: () => a.enforce('screen:quality-assurance:open'),
+    registryExceptions: () => a.enforce('screen:registry-exceptions:open'),
   };
   return {
     /** Whether the signed-in user may open this tile (any of its screens) or screen. */

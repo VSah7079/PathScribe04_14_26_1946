@@ -45,6 +45,10 @@ Pete: "dark text is hard to read; admins should see all macros sorted by type; u
 - **Enterprise only for administrators:** the visibility list offers Enterprise only to them. Anyone else opening an Enterprise macro, or another user's personal macro, sees it read only: a note, no Delete, Save disabled; the save also refuses it.
 - The decisions live in `services/macros/macroAccess.ts`; `__tests__/MacroPanel.test.tsx` gained 4 tests for this.
 
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

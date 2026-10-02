@@ -823,7 +823,7 @@ const BillingDictionarySection: React.FC = () => {
       {errorMsg && <p className="ps-conf-error-text">{errorMsg}</p>}
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('billingDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-config-nav type="text" placeholder={t('billingDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
         <select value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
           <option value="">{t('billingDictionarySection.viewingLabel', { scope: t('billingDictionarySection.enterpriseWideLabel') })}</option>

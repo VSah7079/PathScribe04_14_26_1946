@@ -56,11 +56,17 @@ import {
 import type { BillingAuditLogFilters, BillingAuditLogEntry, BillingAuditLogEventKind } from '@/services/billing/searchBillingAuditLog';
 import { userService, facilityService } from '@/services';
 import { downloadCSV, buildMetaHeader } from '@/utils/csvExport';
+import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
 
 const LS_KEY = 'pathscribe:savedBillingLogQueries';
 interface SavedQuery { id: string; name: string; filters: BillingAuditLogFilters; createdAt: string; }
-const lsLoad = (): SavedQuery[] => { try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : []; } catch { return []; } };
-const lsSave = (s: SavedQuery[]) => { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { /* best-effort */ } };
+// Batch 431: saved searches belong to the person who saved them (they were
+// shared by everyone on the computer). PS-345 moves them to the server.
+const lsLoad = (): SavedQuery[] => {
+  const saved = getPersonalSetting<SavedQuery[]>(LS_KEY, []);
+  return Array.isArray(saved) ? saved : [];
+};
+const lsSave = (s: SavedQuery[]) => setPersonalSetting(LS_KEY, s);
 
 interface StaffStub { id: string; name: string; roles: string; }
 interface FacilityStub { id: string; name: string; }

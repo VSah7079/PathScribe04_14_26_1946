@@ -201,7 +201,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   height: 100vh;
   background-color: #000000;
   color: #ffffff;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1195,7 +1195,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 
 .ps-input:focus { border-color: var(--ps-teal); }
@@ -1209,7 +1209,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   color: #e2e8f0;
   font-size: 13px;
   outline: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: border-color 0.15s;
   /* Real fix, found during a broader sweep prompted by a direct
      report of the same bug on a different, unrelated dropdown ("All
@@ -2144,7 +2144,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border-radius: 6px;
   outline: none;
   box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: border-color 0.15s;
 }
 
@@ -2441,7 +2441,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   min-height: 100vh;
   background-color: var(--ps-navy-base);
   color: var(--ps-text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 
 .ps-tab-bar {
@@ -3142,7 +3142,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   text-align: left;
   width: 100%;
   transition: background 0.1s;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 
 .fm-target-row:hover { background: rgba(255, 255, 255, 0.03); }
@@ -3248,7 +3248,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size: 13px;
   color: #e2e8f0;
   outline: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: border-color 0.15s;
 }
 
@@ -3463,7 +3463,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-weight: 500;
   padding: 7px 16px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: border-color 0.15s, color 0.15s;
 }
 
@@ -3478,7 +3478,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-weight: 700;
   padding: 7px 20px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: background 0.15s;
 }
 
@@ -3495,7 +3495,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-weight: 700;
   padding: 7px 20px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: background 0.15s;
 }
 .fm-btn-apply:hover    { background: #38bdf8; }
@@ -3578,7 +3578,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-weight: 500;
   cursor: pointer;
   text-align: left;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   transition: background 0.1s, border-color 0.1s;
   width: 100%;
 }
@@ -5815,6 +5815,36 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-rack-position--occupied { background: #65A30D30; border-color: #65A30D; color: #65A30D; cursor: default; }
 .ps-rack-position--selected { border: 2px solid #fff; }
 .ps-btn-small--armed { background: #38bdf8; }
+/* Batch 406: Rack Loading — a tube without its sample ID, and placing the rack on an instrument's deck. */
+.ps-rack-position--unmapped { background: #f59e0b26; border-color: #f59e0b; color: #fbbf24; cursor: pointer; }
+.ps-rack-placement-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.ps-rack-placement-grid .ps-input-dark { width: 100%; box-sizing: border-box; }
+.ps-rack-loading-help { margin: 0 0 16px; }
+.ps-rack-placed { margin: 0 0 12px; font-size: 12px; color: #65A30D; }
+.ps-rack-slot--invalid { border-color: #ef4444; }
+.ps-rack-slot-warning {
+  margin-top:    12px;
+  padding:       8px 12px;
+  border:        1px solid #ef4444;
+  border-radius: 8px;
+  background:    color-mix(in srgb, #ef4444 12%, transparent);
+  color:         #fca5a5;
+  font-size:     12px;
+}
+.ps-rack-scan-ok { margin: 12px 0 0; font-size: 12px; color: #65A30D; }
+.ps-rack-status--placed { color: #65A30D; }
+.ps-rack-status--needsSampleIds { color: #fbbf24; }
+/* Batch 406: Control Rules — the deck slots an assay's sample rack may use. */
+.ps-rule-slots { border: 0; padding: 0; margin-left: 0; margin-right: 0; }
+.ps-rule-slot-list { display: flex; flex-wrap: wrap; gap: 12px; }
+.ps-rule-slot { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+/* Batch 406: an analyser's deck layout in the equipment editor. */
+.ps-deck-layout { border: 0; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.ps-deck-slot-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ps-deck-slot-id { width: 120px; }
+.ps-deck-slot-deck { width: 140px; }
+.ps-deck-slot-types { display: flex; flex-wrap: wrap; gap: 10px; }
+.ps-deck-slot-type { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 .ps-mr-8  { margin-right: 8px; }
 .ps-ml-auto { margin-left: auto; }
 .ps-mb-16 { margin-bottom: 16px; }
@@ -6448,7 +6478,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   height: 100vh;
   background-color: var(--ps-navy-base);
   color: var(--ps-text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -6542,7 +6572,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size:     13px;
   color:         var(--ps-conf-text);
   outline:       none;
-  font-family:   'Inter', sans-serif;
+  font-family:   'Inter', 'Pretendard Variable', sans-serif;
   transition:    border-color 0.15s;
 }
 .ps-conf-input:focus       { border-color: var(--ps-conf-teal); }
@@ -6580,7 +6610,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size:     12px;
   color:         var(--ps-conf-text);
   outline:       none;
-  font-family:   'Inter', sans-serif;
+  font-family:   'Inter', 'Pretendard Variable', sans-serif;
   transition:    border-color 0.15s;
 }
 .ps-conf-search:focus       { border-color: var(--ps-conf-teal); }
@@ -6601,7 +6631,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size:     13px;
   color:         var(--ps-conf-text);
   outline:       none;
-  font-family:   'Inter', sans-serif;
+  font-family:   'Inter', 'Pretendard Variable', sans-serif;
   cursor:        pointer;
   cursor:        pointer;
   appearance:    none;
@@ -6885,7 +6915,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size:     12px;
   color:         #d1d5db;
   outline:       none;
-  font-family:   'Inter', sans-serif;
+  font-family:   'Inter', 'Pretendard Variable', sans-serif;
   transition:    border-color 0.15s;
 }
 .ps-part-lib__search:focus { border-color: rgba(8,145,178,0.4); }
@@ -6910,7 +6940,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-weight:   600;
   padding:       3px 10px;
   cursor:        pointer;
-  font-family:   'Inter', sans-serif;
+  font-family:   'Inter', 'Pretendard Variable', sans-serif;
   transition:    all 0.15s;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -7066,7 +7096,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   display:       flex;
   align-items:   center;
   gap:           3px;
-  font-family:   'Inter', sans-serif;
+  font-family:   'Inter', 'Pretendard Variable', sans-serif;
   transition:    color 0.15s;
   opacity:       0;
 }
@@ -7588,7 +7618,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
    ============================================================ */
 
 /* ── Layout ───────────────────────────────────────────────── */
-.ps-search-page        { position:relative; width:100%; flex:1; min-height:0; background:#000; color:#fff; font-family:'Inter',sans-serif; display:flex; flex-direction:column; overflow:hidden; opacity:0; transition:opacity 0.5s ease; height:100%; }
+.ps-search-page        { position:relative; width:100%; flex:1; min-height:0; background:#000; color:#fff; font-family:'Inter', 'Pretendard Variable',sans-serif; display:flex; flex-direction:column; overflow:hidden; opacity:0; transition:opacity 0.5s ease; height:100%; }
 .ps-search-page.loaded { opacity:1; }
 .ps-search-bg          { position:absolute; inset:0; background-size:cover; background-position:center; z-index:0; filter:brightness(0.3) contrast(1.1); }
 .ps-search-gradient    { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(0,0,0,0.4) 0%,#000 100%); z-index:1; }
@@ -7633,7 +7663,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
      .ps-app-root (now the single source of truth) or this app's own
      text-color tokens. Falls through to AppShell's real background/
      color now, matching every other consistent page. */
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   display: flex; flex-direction: column; overflow: hidden;
   transition: opacity 0.5s ease;
   opacity: 0;
@@ -9405,6 +9435,9 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 /* ── Table scroll safety (applies everywhere) ───────────────── */
 .ps-table-scroll-wrap { overflow-x: auto; width: 100%; }
 .ps-table-scroll-wrap--relative { position: relative; }
+/* Batch 416: the Worklist table takes all the height left below the tiles (was a measured height that could stick at 400 px). */
+.ps-table-scroll-wrap--fill { flex: 1 1 0; min-height: 200px; display: flex; flex-direction: column; }
+.ps-table-scroll-wrap--fill > .wl-container { flex: 1 1 0; min-height: 0; }
 .ps-wl-filter-strip    { isolation: isolate; display: flex; gap: 6px; align-items: center; overflow-x: auto; flex-shrink: 1; min-width: 0; padding-bottom: 2px; padding-top: 2px; }
 
 /* ── Home page ───────────────────────────────────────────────── */
@@ -16701,7 +16734,7 @@ h3[data-section-id]:first-child {
 
 /* ── Page shell / topbar ─────────────────────────────────────── */
 .ps-tmpla-root    { display: flex; flex-direction: column; height: 100vh;
-  font-family: 'Inter','Segoe UI',system-ui,sans-serif; overflow: hidden; }
+  font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif; overflow: hidden; }
 .ps-tmpla-topbar  { display: flex; align-items: center; justify-content: space-between;
   padding: 0 24px; height: 56px; background: #0f172a;
   border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; gap: 16px; }
@@ -16940,7 +16973,7 @@ h3[data-section-id]:first-child {
 
 /* ── Page shell / topbar ─────────────────────────────────────── */
 .ps-partb-root    { display: flex; flex-direction: column; height: 100vh;
-  background: #0f172a; font-family: 'Inter','Segoe UI',system-ui,sans-serif;
+  background: #0f172a; font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif;
   color: #cbd5e1; overflow: hidden; }
 .ps-partb-topbar  { display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px; height: 52px; background: #0d1117;
@@ -17012,7 +17045,7 @@ h3[data-section-id]:first-child {
 /* ── New Part type picker ─────────────────────────────────────── */
 .ps-partb-picker-shell { display: flex; flex-direction: column; align-items: center;
   justify-content: center; height: 100vh; background: #f8fafc;
-  font-family: 'Inter','Segoe UI',system-ui,sans-serif; gap: 32px; }
+  font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif; gap: 32px; }
 .ps-partb-picker-intro { text-align: center; }
 .ps-partb-picker-title { font-size: 22px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
 .ps-partb-picker-sub   { font-size: 13px; color: #475569; }
@@ -17045,7 +17078,7 @@ h3[data-section-id]:first-child {
 
 .ps-tinsp-panel   { width: 280px; min-width: 280px; background: #0d1117;
   border-left: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column;
-  overflow: hidden; flex-shrink: 0; font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+  overflow: hidden; flex-shrink: 0; font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif; }
 .ps-tinsp-header  { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.07);
   display: flex; align-items: center; justify-content: space-between; }
 .ps-tinsp-title   { font-size: 11px; font-weight: 700; color: #f1f5f9; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -17159,7 +17192,7 @@ h3[data-section-id]:first-child {
    catalogue and use a different DOM structure entirely.)
    ============================================================ */
 
-.ps-plib { padding: 4px 0; font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+.ps-plib { padding: 4px 0; font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif; }
 
 /* ── Header ───────────────────────────────────────────────────── */
 .ps-plib__header   { display: flex; align-items: flex-start; justify-content: space-between;
@@ -17322,7 +17355,7 @@ h3[data-section-id]:first-child {
 
 .ps-tpal-root   { width: 220px; min-width: 220px; background: #0d1117;
   border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column;
-  overflow: hidden; flex-shrink: 0; font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+  overflow: hidden; flex-shrink: 0; font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif; }
 .ps-tpal-header { padding: 12px 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
 .ps-tpal-header-title { font-size: 11px; font-weight: 700; color: #f1f5f9; letter-spacing: 0.06em; text-transform: uppercase; }
 .ps-tpal-header-sub   { font-size: 10px; color: #94a3b8; margin-top: 2px; }
@@ -17606,7 +17639,7 @@ h3[data-section-id]:first-child {
 
 /* ── Overlay / toolbar / panels (fixed dark chrome) ──────────── */
 .ps-tpp-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column;
-  overflow: hidden; background: #374151; font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+  overflow: hidden; background: #374151; font-family: 'Inter', 'Pretendard Variable','Segoe UI',system-ui,sans-serif; }
 
 .ps-tpp-toolbar { display: flex; align-items: center; gap: 12px; padding: 0 20px; height: 48px;
   background: #1f2937; border-bottom: 1px solid #374151; flex-shrink: 0; }
@@ -20117,6 +20150,8 @@ h3[data-section-id]:first-child {
   font-size: 11px;
   margin-bottom: 6px;
 }
+/* Batch 403: the tracking row's facts, separated in CSS rather than with punctuation in the markup. */
+.ps-addon-meta-item + .ps-addon-meta-item::before { content: ' · '; }
 
 .ps-addon-stage-badge {
   font-size: 9px;
@@ -22644,7 +22679,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 /* Root shell */
 .ps-synrp-root {
   position: relative; width: 100vw; height: var(--app-height, 100vh);
-  background-color: #0f172a; color: #fff; font-family: 'Inter', sans-serif;
+  background-color: #0f172a; color: #fff; font-family: 'Inter', 'Pretendard Variable', sans-serif;
   display: flex; flex-direction: column; overflow: hidden;
   opacity: 0; transition: opacity 0.4s ease;
 }
@@ -23263,7 +23298,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   padding: 9px 12px;
   font-size: 13px;
   color: var(--ps-conf-text);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -23317,7 +23352,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   padding: 6px 9px;
   font-size: 12px;
   color: var(--ps-conf-text);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   outline: none;
 }
 .ps-combobox-search-input:focus { border-color: var(--ps-conf-teal); }
@@ -24214,7 +24249,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   min-height: 100vh;
   background-color: #000;
   color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 .ps-report-bg {
   position: fixed;
@@ -24434,7 +24469,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
      the same drifted-color issue as .ps-search-page-root (see that
      rule's own comment). Falls through to AppShell's real background/
      color now, matching every other consistent page. */
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
   opacity: 0;
   transition: opacity 0.6s ease;
   display: flex;
@@ -24653,7 +24688,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-auditlog-thead--audit,
 .ps-auditlog-row--audit { grid-template-columns: 170px 75px 145px 1fr 155px 80px; }
 .ps-auditlog-thead--error,
-.ps-auditlog-row--error { grid-template-columns: 165px 85px 105px 1fr 145px 75px 85px; }
+.ps-auditlog-row--error { grid-template-columns: 165px 85px 105px 1fr 145px 75px 160px; }
 /* Real feature, per direct confirmation: "a new pill Interfaces."
    Genuinely different column count/shape from --error above (6
    columns, not 7) — reusing --error's grid template left "Reason"
@@ -27063,6 +27098,32 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   width: 460px; max-width: 92vw;
   display: flex; flex-direction: column; border-radius: 14px; overflow: hidden;
 }
+/* Batch 406 (Pete): the New Container form was taller than the screen, so its
+   header and footer scrolled out of view. It is now wider, with its fields in
+   two columns; the body scrolls only as a fallback on a very short screen, and
+   drops to one column on a narrow one. The barcode step keeps the 460px width. */
+.ps-batch-create-modal--wide {
+  --modal-max-w: 820px;
+  width: 820px; max-width: 94vw;
+  max-height: calc(100vh - 32px);
+  padding: 0; gap: 0;   /* header, body and footer pad themselves */
+}
+.ps-batch-create-modal--wide .ps-batch-modal-body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+.ps-batch-modal-body.ps-batch-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 20px;
+  row-gap: 14px;
+  align-items: start;
+}
+.ps-batch-field { display: flex; flex-direction: column; min-width: 0; }
+.ps-batch-field .ps-batch-field-label { margin-top: 0; }
+.ps-batch-field--wide { grid-column: 1 / -1; }
+.ps-batch-create-grid .ps-field-still-required,
+.ps-batch-create-grid .ps-batch-modal-error { margin: 0; }
+@media (max-width: 720px) {
+  .ps-batch-modal-body.ps-batch-create-grid { grid-template-columns: minmax(0, 1fr); }
+}
 .ps-batch-confirm-modal {
   --modal-max-w: 420px;
   width: 420px; max-width: 92vw;
@@ -27399,6 +27460,16 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-accession-checkbox-row--spaced { margin-top: 12px; }
 .ps-accession-validation-message { margin-top: 10px; font-size: 12px; color: #fca5a5; }
 .ps-label--with-badge { display: flex; align-items: center; gap: 6px; }
+/* Batch 417: a national identifier input (NationalIdentifierFields) with its check-digit result on the label. */
+.ps-national-id { margin-top: 8px; }
+.ps-national-id__status { --ps-hue: #94a3b8; color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); font-weight: 600; letter-spacing: 0; }
+.ps-national-id__status--verified { --ps-hue: #10b981; }
+.ps-national-id__status--failedChecksum { --ps-hue: #ef4444; }
+.ps-national-id__status--unchecked { --ps-hue: #f59e0b; }
+/* Batch 418: the registry opt-out checkboxes (RegistryConsentFields). */
+.ps-registry-consent { margin-top: 10px; }
+.ps-registry-consent .ps-registry-check { margin: 4px 0; align-items: flex-start; }
+.ps-registry-consent input[type='checkbox'] { width: auto; flex: 0 0 auto; margin: 2px 0 0; }
 .ps-laterality-suggested-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35); color: #34d399; cursor: default; display: inline-flex; align-items: center; gap: 4px; }
 .ps-laterality-suggested-badge__icon { font-size: 10px; }
 .ps-autopsy-organ-groups { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -27960,7 +28031,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   --toastify-toast-background: var(--ps-surface);
   --toastify-toast-bd-radius:  var(--ps-radius-md);
   --toastify-toast-shadow:     var(--ps-shadow-modal);
-  --toastify-font-family:      'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+  --toastify-font-family:      'Inter', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
 
   --toastify-text-color-light:   var(--ps-text);
   --toastify-text-color-dark:    var(--ps-text);
@@ -28142,7 +28213,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
    (note-type button/badge, visibility button, save-button state) are
    CSS custom properties. */
 .ind-backdrop  { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1199; }
-.ind-drawer    { position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: #0F172A; border-left: 1px solid rgba(255,255,255,0.08); z-index: 1200; display: flex; flex-direction: column; animation: internalNoteSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); font-family: 'Inter', -apple-system, sans-serif; }
+.ind-drawer    { position: fixed; top: 0; right: 0; width: 420px; height: 100vh; background: #0F172A; border-left: 1px solid rgba(255,255,255,0.08); z-index: 1200; display: flex; flex-direction: column; animation: internalNoteSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); font-family: 'Inter', 'Pretendard Variable', -apple-system, sans-serif; }
 
 .ind-header         { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: flex-start; justify-content: space-between; }
 .ind-header-eyebrow { font-size: 11px; font-weight: 700; color: #0891B2; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
@@ -29358,7 +29429,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   background: #0f172a;
   background-image: linear-gradient(to bottom, #0f172a 0%, #020617 100%);
   color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 
 .ps-tmplr-nav {
@@ -29422,7 +29493,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-tmplr-status-screen {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   background: #0f172a; background-image: linear-gradient(to bottom, #0f172a 0%, #020617 100%);
-  color: #94a3b8; font-family: 'Inter', sans-serif; font-size: 14px; text-align: center;
+  color: #94a3b8; font-family: 'Inter', 'Pretendard Variable', sans-serif; font-size: 14px; text-align: center;
   padding: 40px;
 }
 .ps-tmplr-status-icon    { font-size: 32px; margin-bottom: 12px; }
@@ -29781,7 +29852,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-syned-page {
   min-height: 100vh; background: #0f172a;
   background-image: linear-gradient(to bottom, #0f172a 0%, #020617 100%);
-  color: #f1f5f9; font-family: 'Inter', sans-serif;
+  color: #f1f5f9; font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 .ps-syned-nav {
   padding: 12px 40px; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);
@@ -30059,7 +30130,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-pe-page {
   min-height: 100vh; background: #0f172a;
   background-image: linear-gradient(to bottom, #0f172a 0%, #020617 100%);
-  color: #f1f5f9; font-family: 'Inter', sans-serif;
+  color: #f1f5f9; font-family: 'Inter', 'Pretendard Variable', sans-serif;
 }
 .ps-pe-navbar {
   background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);
@@ -31491,6 +31562,16 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 
 .ps-cytoscreen-signedout-banner { padding: 10px 16px; background: #22c55e12; border: 1px solid #22c55e33; border-radius: 10px; margin-bottom: 18px; font-size: 12.5px; color: #22c55e; }
 .ps-cytoscreen-signout-banner--warn { padding: 10px 16px; background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; margin-bottom: 18px; font-size: 12.5px; color: #6b7280; }
+/* Correction and addendum on a signed-out report (Batch 390, PS-340) */
+.ps-cytoscreen-revision { margin: 0 0 18px; }
+.ps-cytoscreen-revision-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ps-cytoscreen-revision-btn { padding: 7px 14px; font-size: 12.5px; font-weight: 600; color: #e5e7eb; background: rgba(255,255,255,0.03); border: 1px solid #374151; border-radius: 8px; cursor: pointer; }
+.ps-cytoscreen-revision-btn:disabled { color: #6b7280; cursor: not-allowed; }
+.ps-cytoscreen-revision-history { margin-top: 10px; font-size: 12px; color: #9ca3af; }
+.ps-cytoscreen-revision-history-title { font-weight: 700; color: #e5e7eb; margin-bottom: 4px; }
+.ps-cytoscreen-revision-history-list { margin: 0; padding-left: 18px; }
+.ps-cytoscreen-revision-panel { margin-bottom: 18px; }
+.ps-cytoscreen-revision-note { font-size: 12.5px; color: #9ca3af; margin: 0 0 10px; }
 .ps-cytoscreen-signout-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(255,255,255,0.03); border: 1px solid #1f2937; border-radius: 10px; margin-bottom: 18px; }
 .ps-cytoscreen-signout-status { font-size: 12.5px; flex: 1; }
 .ps-cytoscreen-signout-status--ready { color: #e5e7eb; }
@@ -31550,6 +31631,10 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-cytoscreen-review-eligibility { font-size: 10px; font-weight: 700; }
 .ps-cytoscreen-review-eligibility--allowed { color: #22c55e; }
 .ps-cytoscreen-review-eligibility--blocked { color: #f59e0b; }
+/* Batch 410: a later review's stored agreement with the initial screen */
+.ps-cytoscreen-review-agreement--exact { color: #22c55e; }
+.ps-cytoscreen-review-agreement--minor_discrepancy { color: #f59e0b; }
+.ps-cytoscreen-review-agreement--major_discrepancy { color: #ef4444; font-weight: 600; }
 .ps-cytoscreen-review-meta { font-size: 10.5px; color: #6b7280; margin-left: auto; }
 .ps-cytoscreen-review-detail-line { font-size: 11.5px; color: #d1d5db; margin-bottom: 3px; }
 .ps-cytoscreen-detail-line-notes { font-size: 11.5px; color: #9ca3af; margin-bottom: 6px; font-style: italic; }
@@ -31837,7 +31922,7 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .pse-loading-wrap { min-height: var(--pse-min-height, 400px); }
 .pse-editor-wrap { border: 1px solid var(--pse-content-border); background: var(--pse-content-bg); }
 .pse-editor-body { min-height: var(--pse-min-height, 400px); }
-.ps-editor-content { padding: 20px 24px; min-height: var(--pse-min-height, 400px); outline: none; font-size: 12pt; line-height: 1.8; color: var(--pse-content-text, #1e293b); font-family: var(--pse-font-family, Arial, sans-serif); }
+.ps-editor-content { padding: 20px 24px; min-height: var(--pse-min-height, 400px); outline: none; font-size: 12pt; line-height: 1.8; color: var(--pse-content-text, #1e293b); font-family: var(--pse-font-family, Arial, 'Pretendard Variable', sans-serif); }
 .ps-editor-content:focus { outline: none; }
 .ps-editor-content p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: var(--pse-btn-text-disabled, #94a3b8); pointer-events: none; height: 0; }
 .ps-editor-content p { margin: 0 0 10px 0; }
@@ -31994,6 +32079,13 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
    belong in real CSS rules instead of an inline style recomputing the
    same fixed value on every render. */
 .ps-batch-tile-label--muted { --tile-label-color: #8899aa; }
+/* Batch 408: the stage tiles take their colours from the stage's own hue
+   (--ps-hue, set per tile); the label is muted until the tile is selected.
+   Before, the page set these colours inline. */
+.ps-batch-stage-tiles .ps-wl-filter-tile__label { --tile-label-color: #8899aa; }
+.ps-batch-stage-tiles .ps-wl-filter-tile--hued-active .ps-wl-filter-tile__label { --tile-label-color: var(--ps-hue); }
+.ps-batch-stage-tiles .ps-wl-filter-tile__count,
+.ps-batch-stage-tiles .ps-wl-filter-tile__sublabel { --tile-count-color: var(--ps-hue); }
 .ps-batch-tile--disposal { --tile-bg: #DC26260d; --tile-border: #DC26262e; --tile-shadow: none; }
 .ps-batch-tile-count--disposal { --tile-count-color: #DC2626; }
 .ps-batch-tile--disposal-report { --tile-bg: #8B5CF60d; --tile-border: #8B5CF62e; --tile-shadow: none; }
@@ -32352,7 +32444,8 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-searchpage-org-hint { margin: 4px 2px 0; font-size: 11px; color: var(--ps-text-muted); }
 
 /* Batch 353: WorklistPage.tsx's page layout (were inline styles). */
-.ps-wl-page { position: relative; width: 100vw; height: var(--app-height, 100vh); font-family: 'Inter', sans-serif; display: flex; flex-direction: column; }
+/* Batch 416: 100% of the area under the nav bar, not the whole window (was var(--app-height, 100vh), so the page's bottom 105 px sat out of sight below the window). */
+.ps-wl-page { position: relative; width: 100%; height: 100%; font-family: 'Inter', 'Pretendard Variable', sans-serif; display: flex; flex-direction: column; }
 .ps-wl-page-content { position: relative; z-index: 10; display: flex; flex-direction: column; height: 100%; }
 .ps-wl-page-main { flex: 1; min-height: 0; padding: clamp(8px,1.5vw,12px) clamp(12px,2vw,20px); display: flex; flex-direction: column; }
 .ps-wl-page-main-inner { width: 100%; display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -32613,6 +32706,12 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-wl-queue-tile--active { --tile-bg: rgba(20,184,166,0.18); --tile-border: #14B8A6; --tile-shadow: 0 0 12px rgba(20,184,166,0.4); }
 .ps-wl-queue-tile__label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.25; color: #8899aa; white-space: normal; }
 .ps-wl-queue-tile--active .ps-wl-queue-tile__label { color: #5eead4; }
+/* Batch 395 (Pete: text not fitting): the label wraps inside the tile instead of
+   running past its edge. The shared __main box sizes to its content without
+   wrapping (flex: 0 0 auto), so in a queue tile it may shrink and wrap; long
+   translations stop at three lines with an ellipsis (full text in the tooltip). */
+.ps-wl-queue-tile .ps-wl-mode-tile__main { flex: 1 1 auto; min-width: 0; }
+.ps-wl-queue-tile__label { overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .ps-wl-queue-view { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .ps-wl-queue-view .ps-qcqueue-page { min-height: 0; background: transparent; padding: 12px 0 24px; }
 
@@ -32649,3 +32748,321 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-grossing-complete-past { font-size: 13px; color: #94a3b8; }
 .ps-grossing-complete-review { margin: 0; font-size: 12px; color: #93c5fd; }
 .ps-batch-modal-body .ps-grossing-complete-review { margin-top: 8px; }
+
+/* Batch 396: the one "no access" screen for a case that can't be opened
+   (components/CaseUnavailable). Same for missing and restricted cases. */
+.ps-case-unavailable { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 120px 16px 0; }
+.ps-case-unavailable__icon { font-size: 44px; }
+.ps-case-unavailable__title { font-size: 22px; font-weight: 700; color: #f1f5f9; margin: 0; }
+.ps-case-unavailable__body { color: #94a3b8; font-size: 14px; margin: 0 0 16px; max-width: 520px; }
+.ps-case-unavailable__id { color: #38bdf8; }
+.ps-case-unavailable__back { margin-top: 4px; }
+/* Batch 396 (Pete): the item count under a peer-review queue tile's label. */
+.ps-wl-queue-tile__count { --tile-count-color: #94a3b8; margin-top: 4px; }
+.ps-wl-queue-tile--active .ps-wl-queue-tile__count { --tile-count-color: #5eead4; }
+.ps-qcqueue-error { margin: 0 0 12px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.1); color: #fca5a5; font-size: 13px; }
+/* Batch 396: QA review actions on a case screen (surgical report page, cytology screening page). */
+.ps-qa-case-bar { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(20,184,166,0.35); background: rgba(20,184,166,0.08); }
+.ps-qa-case-bar__title { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #5eead4; }
+.ps-qa-case-bar__item { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ps-qa-case-bar__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ps-qa-case-bar__note { font-size: 13px; color: #94a3b8; }
+
+/* Batch 399: the structured verbal report on the Intraop page. Large tap
+   targets for a phone at the bench (Pete). */
+.ps-verbal-report { display: flex; flex-direction: column; gap: 8px; }
+.ps-verbal-report__critical-suggestion { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.45); background: rgba(239,68,68,0.12); color: #fecaca; font-size: 13px; }
+.ps-verbal-report__critical-list { margin: 4px 0 0; padding-left: 18px; }
+.ps-verbal-report__roles, .ps-verbal-report__reasons { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ps-verbal-report__big-choice { min-height: 48px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.6); color: #e2e8f0; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.ps-verbal-report__big-choice--selected { border-color: #38bdf8; background: rgba(56,189,248,0.18); color: #f0f9ff; }
+.ps-verbal-report__big-choice--reason.ps-verbal-report__big-choice--selected { border-color: #f59e0b; background: rgba(245,158,11,0.2); color: #fffbeb; }
+.ps-verbal-report__readback { font-weight: 600; }
+.ps-verbal-report__unavailable { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid rgba(245,158,11,0.45); background: rgba(245,158,11,0.08); }
+.ps-verbal-report__unavailable-note { margin: 0; color: #fde68a; font-size: 13px; }
+.ps-verbal-report__unavailable-btn { min-height: 56px; border-radius: 12px; border: none; background: #f59e0b; color: #1c1917; font-size: 17px; font-weight: 800; cursor: pointer; }
+.ps-verbal-report__suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-verbal-report__suggestion { padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); background: transparent; color: #cbd5e1; font-size: 12px; cursor: pointer; text-align: left; }
+.ps-verbal-report__summary { font-size: 13px; color: #cbd5e1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ps-verbal-report__tag { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(52,211,153,0.15); color: #6ee7b7; }
+.ps-verbal-report__tag--critical { background: rgba(239,68,68,0.15); color: #fca5a5; }
+/* Batch 399: the critical intraoperative results dictionary. */
+.ps-icr-row { align-items: flex-start; }
+.ps-icr-row__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ps-icr-row__description, .ps-icr-row__matches { font-size: 12px; color: #94a3b8; }
+/* Batch 400: dictating the verbal report. */
+.ps-verbal-report__dictation { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; border: 1px dashed rgba(56,189,248,0.4); }
+.ps-verbal-report__fill-btn { min-height: 48px; border-radius: 10px; border: none; background: #0ea5e9; color: #f0f9ff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.ps-verbal-report__fill-btn:disabled { opacity: 0.5; cursor: default; }
+.ps-verbal-report__filled-note { margin: 0; font-size: 12px; color: #7dd3fc; }
+.ps-verbal-report__ai-tag { margin-left: 6px; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(56,189,248,0.18); color: #7dd3fc; }
+
+/* ── Batch 411: Cytology Workspace specimen tabs ─────────────────────────── */
+.ps-cyto-specimens { margin-bottom: 16px; }
+.ps-cyto-specimens-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid #374151; padding-bottom: 6px; }
+.ps-cyto-specimen-tab { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #111827; border: 1px solid #374151; border-radius: 8px 8px 0 0; color: #9ca3af; font-size: 12px; cursor: pointer; }
+.ps-cyto-specimen-tab--active { background: #1f2937; border-color: #0891b2; color: #e5e7eb; }
+.ps-cyto-specimen-tab-label { font-weight: 700; }
+.ps-cyto-specimen-tab-desc { color: #6b7280; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-cyto-specimen-status { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; text-transform: uppercase; }
+.ps-cyto-specimen-status--draft { color: #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); }
+.ps-cyto-specimen-status--signedOut { color: #22c55e; background: color-mix(in srgb, #22c55e 12%, transparent); }
+.ps-cyto-specimens-progress { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 12px; color: #9ca3af; }
+.ps-cyto-specimens-finalize-btn { font-size: 11px; padding: 4px 10px; background: #1c1c1c; border: 1px solid #b45309; border-radius: 6px; color: #fbbf24; cursor: pointer; }
+.ps-cyto-specimens-finalize { margin-top: 8px; padding: 10px 12px; border: 1px solid #b45309; border-radius: 8px; background: color-mix(in srgb, #f59e0b 6%, transparent); }
+.ps-cyto-specimens-finalize-label { display: block; font-size: 12px; color: #fbbf24; margin-bottom: 6px; }
+.ps-cyto-specimens-finalize-reason { width: 100%; box-sizing: border-box; background: #0b0f17; border: 1px solid #374151; border-radius: 6px; color: #e5e7eb; font-size: 12px; padding: 6px 8px; }
+.ps-cyto-specimens-finalize-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.ps-cyto-specimens-finalize-cancel { font-size: 11px; padding: 4px 10px; background: transparent; border: 1px solid #374151; border-radius: 6px; color: #9ca3af; cursor: pointer; }
+.ps-cyto-specimens-finalize-confirm { font-size: 11px; padding: 4px 10px; background: #b45309; border: 1px solid #b45309; border-radius: 6px; color: #fff; cursor: pointer; }
+.ps-cyto-specimens-finalize-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+.ps-cyto-specimens-early-notice { margin-top: 8px; font-size: 12px; color: #fbbf24; }
+
+/* ── Batch 412: review notes, versions, revise and sign out ──────────────── */
+.ps-cyto-notes { margin-top: 6px; }
+.ps-cyto-note { border-left: 3px solid #374151; padding: 6px 10px; margin-bottom: 6px; background: #0f141d; border-radius: 0 6px 6px 0; }
+.ps-cyto-note--revision { border-left-color: #f59e0b; }
+.ps-cyto-note--revised, .ps-cyto-note--resolvedByPathologist { opacity: 0.7; border-left-color: #22c55e; }
+.ps-cyto-note-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 10.5px; }
+.ps-cyto-note-section { font-weight: 700; color: #e5e7eb; }
+.ps-cyto-note-flag { color: #f59e0b; font-weight: 700; text-transform: uppercase; }
+.ps-cyto-note-status { padding: 1px 6px; border-radius: 999px; color: #9ca3af; background: color-mix(in srgb, #9ca3af 12%, transparent); }
+.ps-cyto-note-status--open { color: #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); }
+.ps-cyto-note-status--revised, .ps-cyto-note-status--resolvedByPathologist { color: #22c55e; background: color-mix(in srgb, #22c55e 12%, transparent); }
+.ps-cyto-note-meta { margin-left: auto; color: #6b7280; }
+.ps-cyto-note-text { font-size: 11.5px; color: #d1d5db; margin-top: 3px; white-space: pre-wrap; }
+.ps-cyto-note-resolved, .ps-cyto-note-hint { font-size: 10.5px; color: #9ca3af; margin-top: 3px; }
+.ps-cyto-note-ack-btn { margin-top: 4px; font-size: 10.5px; padding: 3px 9px; background: #1c1c1c; border: 1px solid #f59e0b; border-radius: 6px; color: #fbbf24; cursor: pointer; }
+.ps-cyto-notes-actions { display: flex; gap: 6px; }
+.ps-cyto-note-form { display: grid; gap: 6px; margin-top: 6px; padding: 8px 10px; border: 1px solid #374151; border-radius: 8px; }
+.ps-cyto-note-form-label { font-size: 11px; color: #9ca3af; }
+.ps-cyto-note-form-text { background: #0b0f17; border: 1px solid #374151; border-radius: 6px; color: #e5e7eb; font-size: 12px; padding: 6px 8px; }
+.ps-cyto-note-form-check { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #fbbf24; }
+.ps-cyto-note-form-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.ps-cyto-note-form-save { border-color: #0891b2; color: #67e8f9; }
+.ps-cyto-versions { margin-top: 6px; display: grid; gap: 4px; }
+.ps-cyto-version { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #9ca3af; }
+.ps-cyto-version-primary { color: #d1d5db; flex: 1; }
+.ps-cytoscreen-review-action-btn--revise { border-color: #0891b2; color: #67e8f9; }
+.ps-cyto-revise-banner { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 8px 12px; margin-bottom: 10px; border: 1px solid #0891b2; border-radius: 8px; font-size: 12px; color: #67e8f9; background: color-mix(in srgb, #0891b2 8%, transparent); }
+
+/* ── Batch 414: screening registry settings ───────────────────────────────── */
+.ps-registry-facts { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 12px; color: #9ca3af; margin: 8px 0; }
+.ps-registry-badge { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+.ps-registry-badge--verified { color: #22c55e; background: color-mix(in srgb, #22c55e 12%, transparent); }
+.ps-registry-badge--configurable { color: #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); }
+.ps-registry-note { font-size: 12px; color: #9ca3af; margin: 6px 0; }
+.ps-registry-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #d1d5db; margin: 6px 0; }
+/* Batch 419: the registry's test / production choice. */
+.ps-registry-environment { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #d1d5db; margin: 10px 0 4px; }
+.ps-registry-environment .ps-conf-select { width: auto; }
+.ps-registry-readiness { font-size: 12px; margin: 8px 0; }
+.ps-registry-readiness--ready { color: #22c55e; }
+.ps-registry-readiness--held { color: #f59e0b; }
+.ps-registry-table { display: grid; gap: 4px; margin-bottom: 10px; max-height: 420px; overflow-y: auto; }
+.ps-registry-row { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1.5fr; gap: 8px; align-items: center; font-size: 12px; color: #d1d5db; }
+.ps-registry-row--head { font-weight: 700; color: #9ca3af; font-size: 11px; text-transform: uppercase; }
+.ps-registry-system { margin-left: 6px; font-size: 10.5px; color: #6b7280; }
+
+/* ── Batch 415: cytology country-specific rules ──────────────────────────── */
+.ps-compliance-help { font-size: 12px; color: #9ca3af; margin: 0 0 12px 16px; display: grid; gap: 4px; }
+.ps-compliance-selects { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 8px 0; }
+.ps-compliance-select { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #d1d5db; }
+.ps-compliance-adding { display: grid; gap: 8px; }
+
+/* ── Batch 421: Registry Exceptions worklist (pages/RegistryExceptionsPage) ── */
+.ps-regx-page { padding: 24px clamp(12px, 3vw, 32px); max-width: 1400px; margin: 0 auto; color: var(--ps-text, #e2e8f0); }
+.ps-regx-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.ps-regx-filter { --ps-hue: #94a3b8; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer;
+  color: #cbd5e1; background: transparent; border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); }
+.ps-regx-filter--active { color: #f8fafc; background: color-mix(in srgb, var(--ps-hue) 22%, transparent); border-color: var(--ps-hue); }
+.ps-regx-filter-count { font-variant-numeric: tabular-nums; padding: 0 6px; border-radius: 99px; background: color-mix(in srgb, var(--ps-hue) 18%, transparent); }
+.ps-regx-status { --ps-hue: #94a3b8; display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 14%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); }
+.ps-regx-filter--rejectedFatal, .ps-regx-status--rejectedFatal { --ps-hue: #ef4444; }
+.ps-regx-filter--rejectedRecoverable, .ps-regx-status--rejectedRecoverable { --ps-hue: #f97316; }
+.ps-regx-filter--conflict, .ps-regx-status--conflict { --ps-hue: #a855f7; }
+.ps-regx-filter--deliveryFailed, .ps-regx-status--deliveryFailed { --ps-hue: #ef4444; }
+.ps-regx-filter--ackOverdue, .ps-regx-status--ackOverdue { --ps-hue: #f59e0b; }
+.ps-regx-filter--held, .ps-regx-status--held { --ps-hue: #38bdf8; }
+/* Batch 424: held for want of a go-live approval. */
+.ps-regx-filter--attestationRequired, .ps-regx-status--attestationRequired { --ps-hue: #a78bfa; }
+/* Batch 425: a registry revised data it had accepted. */
+.ps-regx-filter--revisedPostAcceptance, .ps-regx-status--revisedPostAcceptance { --ps-hue: #2dd4bf; }
+.ps-regx-table td { vertical-align: top; }
+.ps-regx-table tr { cursor: default; }
+.ps-regx-case { font-weight: 600; white-space: nowrap; }
+.ps-regx-muted { color: #94a3b8; font-size: 12px; }
+.ps-regx-test { margin-left: 6px; padding: 0 6px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #f59e0b; border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent); }
+.ps-regx-problem { max-width: 420px; font-size: 13px; line-height: 1.45; }
+.ps-regx-code { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); color: #e2e8f0; margin-right: 4px; }
+.ps-regx-when { white-space: nowrap; font-size: 12px; color: #cbd5e1; }
+.ps-regx-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.ps-regx-detail-row td { background: rgba(255, 255, 255, 0.02); }
+.ps-regx-findings { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.ps-regx-findings li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.ps-regx-sev { --ps-hue: #94a3b8; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; color: var(--ps-hue); }
+.ps-regx-sev--FATAL { --ps-hue: #ef4444; }
+.ps-regx-sev--CRITICAL_REJECT { --ps-hue: #f97316; }
+.ps-regx-sev--WARNING { --ps-hue: #f59e0b; }
+.ps-regx-raw-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 4px; }
+.ps-regx-raw { margin: 0; padding: 10px 12px; border-radius: 8px; background: #0b1220; border: 1px solid #1f2937; color: #cbd5e1; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 240px; overflow: auto; }
+.ps-regx-empty { padding: 48px 16px; text-align: center; color: #94a3b8; border: 1px dashed #1f2937; border-radius: 12px; }
+
+
+/* ── Batch 423: registry go-live panel (components/Config/RegistryGoLive/) ── */
+.ps-golive { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.ps-golive-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ps-golive-env { --ps-hue: #94a3b8; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 40%, transparent); }
+.ps-golive-env--live { --ps-hue: #22c55e; }
+.ps-golive-env--test { --ps-hue: #f59e0b; }
+.ps-golive-facts { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 12px; color: #9ca3af; margin: 8px 0; }
+.ps-golive-status { --ps-hue: #94a3b8; color: var(--ps-hue); font-weight: 600; }
+.ps-golive-status--live { --ps-hue: #22c55e; }
+.ps-golive-status--test { --ps-hue: #94a3b8; }
+.ps-golive-status--due { --ps-hue: #f59e0b; }
+.ps-golive-status--held { --ps-hue: #ef4444; }
+.ps-golive-block { margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); font-size: 12px; color: #d1d5db; }
+.ps-golive-block > summary { cursor: pointer; }
+.ps-golive-label { font-size: 12px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+.ps-golive-muted { font-size: 12px; color: #9ca3af; margin: 2px 0; }
+.ps-golive-statement { margin: 10px 0; padding: 10px 12px; border-left: 3px solid #22c55e; background: color-mix(in srgb, #22c55e 6%, transparent); font-size: 12px; color: #d1d5db; line-height: 1.5; }
+.ps-golive-statement p { margin: 0; }
+.ps-golive-checks { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 4px; }
+.ps-golive-check { --ps-hue: #94a3b8; display: flex; gap: 8px; align-items: baseline; }
+.ps-golive-check--passed { --ps-hue: #22c55e; }
+.ps-golive-check--failed { --ps-hue: #ef4444; }
+.ps-golive-check--notApplicable { --ps-hue: #64748b; }
+.ps-golive-check-mark { flex: 0 0 auto; min-width: 92px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ps-hue); }
+.ps-golive-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; color: #d1d5db; }
+.ps-golive-field .ps-conf-input { flex: 1 1 260px; }
+.ps-golive-field .ps-conf-select { width: auto; }
+.ps-golive-capacities { border: none; padding: 0; margin: 8px 0; }
+.ps-golive-capacities legend { font-size: 12px; font-weight: 600; color: #e2e8f0; padding: 0; margin-bottom: 2px; }
+.ps-golive-list { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; }
+/* Batch 423: Registry Exceptions — a row already raised for CAPA review. */
+.ps-regx-capa { font-size: 11px; font-weight: 700; color: #22c55e; white-space: nowrap; }
+/* Batch 424: registry go-live panel — instance and connection-state badges, adapter rules. */
+.ps-golive-badges { display: flex; gap: 8px; align-items: center; }
+.ps-golive-state { --ps-hue: #94a3b8; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 40%, transparent); }
+.ps-golive-state--pending { --ps-hue: #ef4444; }
+.ps-golive-state--testing { --ps-hue: #f59e0b; }
+.ps-golive-state--validated { --ps-hue: #38bdf8; }
+.ps-golive-state--live { --ps-hue: #22c55e; }
+.ps-golive-rule { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Batch 424: Registry Exceptions — the "Resend all" bar for held-for-attestation rows. */
+.ps-regx-bulk { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 12px; }
+
+/* ── Batch 425: registry badges, transmission audit, patient details after accessioning ── */
+.ps-regx-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ps-regx-audit-select { width: auto; min-width: 170px; }
+.nb-regx-btn { color: #f59e0b; }
+.ps-home-card-badge { align-self: flex-start; margin-bottom: 8px; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;
+  color: #fff; background: color-mix(in srgb, #FF3B30 85%, transparent); }
+.ps-registry-optout-badge { --ps-hue: #f59e0b; display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 14%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); }
+.ps-registry-optout-badge--both { --ps-hue: #f97316; }
+.ps-patient-registry-modal { max-width: 520px; }
+.ps-patient-registry-fields { margin: 8px 0 12px; }
+.ps-qa-table-actions { display: flex; justify-content: flex-end; padding: 8px 0; }
+
+/* ── Batch 426: "keep or update?" for a re-evaluated synoptic field ── */
+.ps-syn-reeval { --ps-hue: #38bdf8; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 4px 0 6px; padding: 6px 10px; border-radius: 6px;
+  font-size: 12px; color: #e2e8f0; background: color-mix(in srgb, var(--ps-hue) 10%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); }
+.ps-syn-reeval-text { flex: 1 1 220px; }
+.ps-syn-reeval-source { flex: 1 1 100%; color: #94a3b8; font-style: italic; }
+.ps-syn-reeval-actions { display: inline-flex; gap: 6px; }
+.ps-syn-reeval-btn { padding: 2px 10px; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; color: #e2e8f0; background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ps-hue) 45%, transparent); }
+.ps-syn-reeval-btn--accept { color: #0b1220; background: var(--ps-hue); border-color: var(--ps-hue); }
+
+/* ── Batch 427: parts covered by a synoptic workup; the facility's combined-PDF setting ── */
+.ps-syn-parts-btn { font-size: 13px; padding: 2px 6px; color: #94a3b8; }
+.ps-syn-instance-parts { font-size: 11px; color: #7dd3fc; margin-top: 2px; }
+.ps-workup-parts-modal { max-width: 520px; }
+.ps-workup-parts-modes { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 12px; }
+.ps-workup-parts-mode { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: #e2e8f0; }
+.ps-workup-parts-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.ps-workup-parts-part { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #cbd5e1; }
+.ps-workup-parts-part--own { color: #94a3b8; }
+.ps-fem-check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #e2e8f0; margin: 6px 0; }
+
+/* Batch 428: a refused Configuration change (ConfigRefusalBanner) */
+.ps-config-refusal {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 8px 24px; padding: 10px 14px; border-radius: 8px;
+  background: color-mix(in srgb, #f87171 12%, transparent);
+  border: 1px solid color-mix(in srgb, #f87171 45%, transparent);
+  color: #fecaca; font-size: 13px;
+}
+.ps-config-refusal-text { flex: 1; }
+.ps-config-refusal-dismiss {
+  background: transparent; border: 1px solid color-mix(in srgb, #f87171 45%, transparent);
+  color: #fecaca; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px;
+}
+
+/* Batch 429: a Configuration section shown view only (ConfigSectionGate). The
+   button test matches services/screens/configSectionAccess.ts: tabs, close and
+   search buttons, and anything marked data-config-nav, stay usable. */
+.ps-config-viewonly-note {
+  margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 13px;
+  background: color-mix(in srgb, #94a3b8 12%, transparent);
+  border: 1px solid color-mix(in srgb, #94a3b8 35%, transparent);
+  color: #cbd5e1;
+}
+.ps-config-viewonly button:not([class*="tab"]):not([class*="close"]):not([class*="search"]):not([role="tab"]):not([data-config-nav]),
+.ps-config-viewonly input[type="checkbox"],
+.ps-config-viewonly input[type="radio"],
+.ps-config-viewonly label:has(> input[type="checkbox"]) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ps-config-viewonly [data-config-nav] button { opacity: 1; cursor: pointer; }
+
+/* Batch 429: Batch Management → Equipment log tile */
+.ps-batch-tile--equipment-log { --tile-bg: #a3e6350d; --tile-border: #a3e6352e; --tile-shadow: none; }
+/* Batch 430: view-only fields other than search and filters look read only. */
+.ps-config-viewonly select:not([data-config-nav]):not([class*="search"]):not([class*="filter"]),
+.ps-config-viewonly textarea:not([data-config-nav]),
+.ps-config-viewonly input:not([type="checkbox"]):not([type="radio"]):not([type="search"]):not([data-config-nav]):not([class*="search"]):not([class*="filter"]) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Batch 431: Document Style → page size and margins; preview-only hint */
+.ps-docstyle__page-setup { margin-top: var(--ps-space-6, 24px); }
+.ps-docstyle__page-setup-title { font-size: 15px; font-weight: 600; margin: 0; }
+.ps-tpp-margins-hint { font-size: 11px; color: #9ca3af; font-style: italic; }
+
+/* Batch 432: Audit Log error rows: Resolve button beside the status */
+.ps-auditlog-cell-status { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ps-auditlog-resolve-btn { font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #93c5fd; cursor: pointer; }
+.ps-auditlog-resolve-btn:hover { background: #1e293b; }
+.ps-models-row-actions { display: inline-flex; gap: 6px; }
+.ps-models-retire-btn { font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid #7f1d1d; background: transparent; color: #fca5a5; cursor: pointer; }
+.ps-models-retire-btn:hover { background: #3f1d1d; }
+/* Batch 432: ReasonPromptModal */
+.ps-reason-prompt-label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #cbd5e1; margin: 8px 0 4px; }
+.ps-reason-prompt-input { width: 100%; box-sizing: border-box; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 8px; font: inherit; font-size: 13px; resize: vertical; }
+.ps-qcqueue-bypass-btn { border-color: #b45309; color: #fbbf24; }
+/* Batch 432: referral transit status buttons */
+.ps-batch-referral-status-btn { margin-left: 8px; font-size: 12px; padding: 3px 10px; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #93c5fd; cursor: pointer; }
+.ps-batch-referral-status-btn:hover { background: #1e293b; }
+/* Batch 432: surgical peer review risk weights */
+.ps-qa-risk-weights-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+.ps-qa-risk-weights-table th { text-align: left; font-weight: 600; color: var(--ps-conf-text-2, #94a3b8); padding: 4px 6px; border-bottom: 1px solid var(--ps-conf-border, #334155); }
+.ps-qa-risk-weights-table td { padding: 4px 6px; border-bottom: 1px solid var(--ps-conf-border, #1e293b); }
+.ps-qa-risk-weights-input { max-width: 90px; }
+.ps-qa-risk-weights-effective { color: var(--ps-conf-text-2, #94a3b8); }
+.ps-qa-risk-weights-error { color: #fca5a5; font-size: 12px; margin: 4px 0; }
+.ps-qa-inline-error { color: #fca5a5; font-size: 13px; margin: 0 0 8px; }
+/* Batch 432: spelling dictionary word lists (My dictionary, facility Spelling tab) */
+.ps-dictionary-words-add { display: flex; gap: 8px; margin-bottom: 8px; }
+.ps-dictionary-words-error { color: #fca5a5; font-size: 12px; margin-bottom: 6px; }
+.ps-dictionary-words-empty { color: #94a3b8; font-size: 13px; font-style: italic; padding: 8px 0; }
+.ps-dictionary-words-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.ps-dictionary-words-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #1e293b; }
+.ps-dictionary-words-word { font-weight: 600; min-width: 120px; }
+.ps-dictionary-words-meta { flex: 1; font-size: 12px; color: #94a3b8; }
+.ps-dictionary-words-remove { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #fca5a5; cursor: pointer; }
+.ps-modal-dark--profile-list { width: 560px; max-width: calc(100vw - 32px); text-align: left; }

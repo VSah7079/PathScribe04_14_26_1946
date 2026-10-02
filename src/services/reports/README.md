@@ -12,7 +12,7 @@ The amendment/versioning system — Pete's actively-developed current work as of
 
 - **Real, per direct guidance ("we trigger the json packages and the interface engine generates the formatted messages" / "definitely look at results") — the same `mockReportVersionService.create()` choke point is now also the real ORU^R01 outbound hook.** Investigated directly before wiring anything: `useSignOutWorkflow.ts` (3000+ lines, multiple interacting finalization entry points — `finalizeSignOut`, `handleFinalizeConfirm`→`finalizeCase`+`releasePendingAmendmentOrAddendum`) was too large and interconnected to safely scatter new logic across with confidence. Every one of those real paths already funnels through this one, single, narrow `create()` function — hooking there catches all of them, present and future, and comes with `record.mode`/`record.trigger`/`record.pdfBase64` already resolved, no second lookup needed.
   - **Real, confirmed inference** (worked through directly, not guessed): `trigger: 'initial_signout'` → `FINAL`. `trigger: 'amendment'` with a prior `ReportVersionRecord` already existing for the SAME `instanceId` → `CORRECTED` (updating an already-signed result). `trigger: 'amendment'` with no prior record for this `instanceId`, but the case has other real prior versions → `ADDENDUM` (a new result block appended to an already-signed case). `ReportVersionTrigger` only has two real values, not three — this is a real inference layered on top of the existing data model, not a field the model states directly.
-  - **Real, confirmed scope boundaries, both deliberate**: `mode !== 'orchestration'` (i.e. `'assist'`) is never enqueued — an external LIS owns that report, not PathScribe (see `services/patients/README.md`'s own fuller account of this architectural boundary). A record with no `instanceId` — the whole-case PDF snapshot from `finalizeSignOut` — is never enqueued either: a composite summary document isn't a discrete OBR/OBX observation the way one specific synoptic instance's own result is; skipped entirely rather than forced into this per-instance queue.
+  - **Real, confirmed scope boundaries, both deliberate**: `mode !== 'orchestration'` (i.e. `'assist'`) is never enqueued here — an external LIS owns that report. (Batch 426 correction: Assist cases do send their synoptic data to the LIS, the structured result and one PDF per workup, through `dispatchAssistSynopticResult.ts` and the LIS-sync queue, not this one. The pointer that was here to a fuller account in `services/patients/README.md` led nowhere: no such account exists there.) A record with no `instanceId` — the whole-case PDF snapshot from `finalizeSignOut` — is never enqueued either: a composite summary document isn't a discrete OBR/OBX observation the way one specific synoptic instance's own result is; skipped entirely rather than forced into this per-instance queue.
   - Fire-and-forget, same posture as every other real enqueue in this app — resolves the case/patient (for `organisationId`) in a separate, non-blocking async block after `persist()`, and must never block or fail the real sign-out action it's attached to.
   - **5 new real tests** (`mockReportVersionService.test.ts`) — FINAL, CORRECTED, ADDENDUM (using two real, sequential `create()` calls per case to prove the instanceId-presence inference), the assist-mode exclusion, and the no-instanceId exclusion. Real bug caught and fixed in my own test draft, not the implementation: `mockOutboundResultQueueService.enqueue()` has its own internal 80ms `delay()`; my first draft's 20ms wait wasn't long enough to observe the real, already-correct enqueue — caught by the test actually failing, not assumed to work.
   - See `services/patients/README.md`'s own ADT^A08/A40/A47 entry for the sibling architecture (`OutboundResultQueueEntry`/`IOutboundResultQueueService`/`mockOutboundResultQueueService`, `services/reports/buildOruR01Payload.ts`) and `components/Config/System/README.md`'s own `OutboundMessagePreviewSection.tsx` entry for the real, comprehensive tool that previews and exports all four transaction types' real JSON to file.
@@ -126,6 +126,61 @@ Real, per direct correction ("the system shouldn't be constructing anything... t
 `changeDraftType(id, type)` (new on `IAmendmentService`) moves a not-yet-saved draft to the chosen type and renumbers it for that type. It refuses a draft whose fields were already captured. `useAmendmentWorkflow` calls it when the mode changes and again before saving. Tests in `mockAmendmentService.test.ts`.
 
 **Batch 381:** `startDraft` ids now carry a random suffix; two drafts opened in the same millisecond used to get the same id.
+
+## Batch 391: report language (Pete: "the language of the performing lab")
+
+`reportLanguage.ts`: a report is written in the language of the lab that performs it, not of the person at the screen. `resolveReportLanguage(lab)` is the lab's `reportLanguage` setting, else its jurisdiction's default (Netherlands Dutch, Germany German, France French, Korea Korean, Belgium Belgian Dutch, the English-speaking jurisdictions English). `resolveReportDateLocale` takes dates from the lab's jurisdiction (a UK lab writes 02/04/1988 on a 24-hour clock). Both are stored on the report at sign-out; `reportDateLocale(content)` reads them back. The languages are the app's own (a test keeps them equal to `SUPPORTED_LANGUAGES`). Cytology uses it now; surgical pathology is Batch 392.
+
+## Batch 392: the report PDF with every result sent to the interface engine
+
+Before this, only cytology's ORU^R01 carried its PDF (`reportPdfBase64`). Surgical final, correction, addendum, preliminary and autopsy results went without one: `buildOruR01Payload` could take a PDF, but no dispatcher passed one, and the release event's PDF went only to printing.
+
+- **`resolveOruReportPdf.ts`:** which PDF a result carries: the one made at release (kept in `releasedReportPdfStore.ts` for a retry), else the kept one, else the signed PDF saved with the case's report versions (`pickReportVersionPdf`: the same instance's newest, or for a final the newest whole-case one; never for a preliminary). `generateOnce` renders once per release for printing and every result. `savedReportPdf` supplies the saved signed PDF to a surgical release that brings none (final sign-out, release after the hold period).
+- **`prepareOruR01Dispatch.ts`:** the message with its PDF, or `pdf_unavailable` (Pete: hold and retry). `dispatchCaseInstances`, `dispatchAmendedCaseInstance` and `dispatchPreliminaryCaseInstances` take the release's PDF; a held result is queued and marked failed with the reason (`heldMessage`), so it shows in the failed-messages screen, whose retry uses the same preparer.
+- **`publishReportReleasedEvent.ts`:** makes the PDF once and hands it to printing and the dispatchers. A surgical release without its own PDF now uses the saved signed one, so its print job no longer fails with "No PDF generation available".
+- **`resolveReportLocale.ts`** (moved from `cytology/`): the performing lab behind a facility, its report language and date format. **`surgicalReportLabels.ts`:** the surgical renderer's wording (`surgicalReportPdf.*`) and the date of birth in that language.
+- **Not changed:** assist-mode cases, where the hospital's LIS produces the report and PathScribe sends it synoptic data (LIS sync), not a report.
+
+## Batch 393: autopsy reports, and Pretendard in the report renderer
+
+- **`resultInstances.ts`:** which results a release sends. An autopsy report is one document, so an autopsy case sends one case-level result (`AUTOPSY_REPORT_INSTANCE_ID`, the PAD as preliminary, the FAD as final). Before, an autopsy case without a synoptic report sent nothing, and one with several sent the autopsy report once per synoptic report. `buildOruR01Payload` accepts the case-level id when the signed PAD/FAD exists (no diagnosis comment; the autopsy sections carry the report).
+- **`surgicalReportLabels.ts`:** four more renderer labels (placeholders for missing content), and it serves autopsy reports too (same renderer).
+- **The renderer** (`functions/main.py`) prints a Korean report, or any report containing Hangul, in Pretendard (`functions/fonts/`, unmodified from the npm package, with its licence).
+
+## Batch 426 — the structured synoptic result (v1.0.0), Assist dispatch, one PDF per workup
+
+- `synopticResultPayload.ts` (pure) builds one synoptic workup as the v1.0.0 structured result. It carries:
+  - the header: workup id, version, status, PDF id, placer/filler order numbers, template, signer and NPI;
+  - MRN and encounter;
+  - each part's codes, as lists with system and version;
+  - suggested CPT without modifiers (Assist only);
+  - staging, from template fields tagged pT/pN/pM/FIGO;
+  - one observation per answer, with unit, SNOMED, block and whether the pathologist overrode the AI.
+
+  Contract: `docs/architecture/SYNOPTIC_RESULT_API.md`.
+- `dispatchAssistSynopticResult.ts`: an Assist case's workups to the LIS, on the LIS-sync queue as `LIS_SYNC`:
+  - on Finalize (`dispatchAssistCaseRelease`, from `publishReportReleasedEvent`'s FINAL, so the release buffer applies);
+  - on each correction and addendum (`useLisIntegration.sendSynopticReportToLis`).
+
+  Each message carries the structured result, the workup's own PDF and the text block. No PDF means the message is held. `rebuildAssistSynopticMessage` is the dead-letter screen's retry. Real services are in `dispatchAssistSynopticResultDeps.ts`. **Before Batch 426 an Assist Finalize sent nothing, and a correction sent a placeholder sentence.**
+- `workupPdf.ts`: one workup's PDF from the report renderer (`functions/main.py`, `workup`), with "Changed in this version" for a correction.
+- `buildOruR01Payload.ts`: an Orchestration result also carries `synopticResult` (no CPT) and, best effort, `workupPdf`.
+- `assistFinalize.ts`: Finalize marks the Assist workups it releases as `finalized`; excluded ones stay drafts.
+- `heldMessage.ts`: the held-for-PDF text, shared.
+- Batch 426 corrected this folder's statement that an Assist report "is never PathScribe's to send".
+
+## Batch 427 — one combined PDF per case (per testing facility), workups across parts
+
+- **Combined PDF.** A performing lab can be set (`Facility.consolidateOutboundPdfs`, Facility Dictionary → LIS Integration) to send one PDF per case. Pete: the setting belongs to the testing facility.
+  - `dispatchAssistSynopticResult.ts` then sends each workup's structured result without its own PDF, plus one `case_pdf` message with every finalized workup (`prepareAssistCasePdfMessage`, `dispatchAssistCasePdf`). This happens on each release.
+  - Its id is `PSR-{caseId}-CASE-V{n}`, and each workup's header names it.
+  - Orchestration results then carry only the full report PDF.
+  - The lab is resolved like the report language (`labConsolidatesPdfs`).
+- **`workupPdf.buildCombinedRenderPayload`:** every workup in one render request.
+- **`workupParts.ts`** (pure): a draft workup's parts.
+  - Independent, or combined across further parts (`setWorkupParts`).
+  - A part can't be covered twice by the same protocol (`partCoveredBy`).
+  - Used by the report sidebar's "Parts covered", by the AI's template proposals and by the structured result's `specimen_ids`.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

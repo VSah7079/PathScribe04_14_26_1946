@@ -39,13 +39,20 @@
 // cassette workspace with no real queue/next-item navigation to
 // advance (confirmed directly, not assumed); wiring a pedal to a
 // feature that doesn't exist yet would be dishonest.
+//
+// Batch 401 (PS-359): Field Requirements (page "embedding"). The page has its
+// own voice context (EMBEDDING: "confirm count", "add comment"); Confirm, the
+// comment drawer and the reprint dialog (CassetteReprintModal) each star what
+// is required, say what is still missing, and stay off until it is filled; the
+// hook checks the same rules, so the foot pedal is held to them too.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { printSettingsService, printerProfileService } from '@/services';
+import { printSettingsService, printerProfileService, actionRegistryService } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import type { CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
@@ -56,7 +63,7 @@ import { useEmbeddingStation } from './hooks/useEmbeddingStation';
 import EmbeddingCenterPanel from './components/EmbeddingCenterPanel';
 import CassettePrintPanel from './components/CassettePrintPanel';
 import CommentDrawer from './components/CommentDrawer';
-import { CASSETTE_REPRINT_REASONS } from '@/utils/embeddingOperations';
+import CassetteReprintModal from './components/CassetteReprintModal';
 import '../../pathscribe.css';
 
 const EmbeddingStationPage: React.FC = () => {
@@ -66,6 +73,12 @@ const EmbeddingStationPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('embeddingStation.pageTitle'), '/workstations/embedding'); }, [pushCrumb, t]);
 
   const w = useEmbeddingStation();
+
+  // Batch 401: this page has its own voice/keyboard context ("confirm count", "add comment").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.EMBEDDING);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
 
   // Real, per PS-285's own named "hands-free triggers for piece-count
   // confirmation" — Pedal 1, same real hook/binding already working
@@ -85,7 +98,10 @@ const EmbeddingStationPage: React.FC = () => {
       pedal1_pushToTalk: () => {
         const block = w.workItem?.block;
         if (!block || block.pieceCount == null || block.status === 'Embedded') return;
-        w.handleConfirmPieceCount(block.pieceCount);
+        // Batch 401: the hook checks Field Requirements, so a pedal press
+        // can't confirm a block the organisation still needs a mold size or
+        // orientation for; the panel shows what is still required.
+        void w.handleConfirmPieceCount(block.pieceCount);
       },
     },
   });
@@ -153,7 +169,9 @@ const EmbeddingStationPage: React.FC = () => {
     setReprintFeedback(null);
     const result = await w.handleReprintCassette(reason);
     setReprintInFlight(false);
-    if (!result.ok) setReprintFeedback(result.message ?? t('embeddingStation.hardware.reprintFailed'));
+    if (result.ok) return;
+    setReprintFeedback(result.printerMessage
+      ?? (result.message ? t(result.message.key, result.message.values) : t('embeddingStation.hardware.reprintFailed')));
   }, [w, t]);
 
   return (
@@ -174,7 +192,7 @@ const EmbeddingStationPage: React.FC = () => {
             />
             <button type="submit" className="ps-btn-primary">{t('embeddingStation.scanSubmit')}</button>
           </form>
-          {w.scanError && <div className="ps-embedding-scan-error">{w.scanError}</div>}
+          {w.scanError && <div className="ps-embedding-scan-error">{t(w.scanError.key, w.scanError.values)}</div>}
         </div>
       ) : (
         <>
@@ -208,12 +226,14 @@ const EmbeddingStationPage: React.FC = () => {
 
             {/* Center: Piece Count / Mold & Orientation / Discrepancy / Split-Block */}
             <EmbeddingCenterPanel
+              key={w.workItem.block.id}
+              requirements={w.requirements}
               specimen={w.workItem.specimen}
               block={w.workItem.block}
               alertBadges={w.alertBadges}
               splitBlockGroupStatus={w.splitBlockGroupStatus}
               onToggleAlertFlag={handleToggleAlertFlag}
-              onConfirmPieceCount={w.handleConfirmPieceCount}
+              onConfirmPieceCount={(count, orientation) => { void w.handleConfirmPieceCount(count, orientation); }}
               onFlagDiscrepancy={w.handleFlagDiscrepancy}
               onSetMoldAndOrientation={w.handleSetMoldAndOrientation}
               onGroupSplitBlocks={w.handleGroupSplitBlocks}
@@ -238,21 +258,11 @@ const EmbeddingStationPage: React.FC = () => {
       )}
 
       {pendingReprint && (
-        <div className="ps-overlay" onClick={() => setPendingReprint(false)}>
-          <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
-            <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('embeddingStation.reprintReason.title')}</div></div>
-            <div className="ps-batch-modal-body">
-              <p>{t('embeddingStation.reprintReason.body')}</p>
-              <select className="ps-embedding-field-select" defaultValue="" onChange={e => { if (e.target.value) handleConfirmReprint(e.target.value as CassetteReprintReason); }}>
-                <option value="" disabled>{t('embeddingStation.reprintReason.select')}</option>
-                {CASSETTE_REPRINT_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-            <div className="ps-batch-modal-footer">
-              <button className="ps-btn-secondary" onClick={() => setPendingReprint(false)}>{t('common.cancel')}</button>
-            </div>
-          </div>
-        </div>
+        <CassetteReprintModal
+          requirements={w.requirements}
+          onReprint={reason => { void handleConfirmReprint(reason); }}
+          onCancel={() => setPendingReprint(false)}
+        />
       )}
 
       {commentsOpen && w.workItem && (
@@ -260,7 +270,8 @@ const EmbeddingStationPage: React.FC = () => {
           title={t('embeddingStation.context.blockComments')}
           comments={w.workItem.block.comments ?? []}
           onClose={() => setCommentsOpen(false)}
-          onSubmit={text => w.handleAddComment(text)}
+          onSubmit={text => { void w.handleAddComment(text); }}
+          requirements={w.requirements}
         />
       )}
     </div>

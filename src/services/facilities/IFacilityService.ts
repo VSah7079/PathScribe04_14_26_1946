@@ -34,6 +34,7 @@
 // is the actual fix for both problems at once.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ReportLanguage } from '../reports/reportLanguage';
 import { ServiceResult, ID } from '../types';
 import type { Jurisdiction } from '../../types/systemConfig';
 
@@ -399,6 +400,13 @@ export interface Facility {
    *  the real caller that assembles CytologyReportContent — this
    *  renderer never resolves Facility policy itself. */
   forceAddendumOnDedicatedPagePrintPolicy?: boolean;
+  /** Batch 391 (PS-340 follow-up, Pete): the language this lab writes its
+   *  reports in. Undefined means the jurisdiction's default
+   *  (services/reports/reportLanguage.ts). Only meaningful when roles includes
+   *  'performing_lab': a report is in the language of the lab that performs it,
+   *  not of the person signing it, and the language is stored on the report at
+   *  sign-out. */
+  reportLanguage?: ReportLanguage;
   /** Real, per direct guidance — Phase 3 of the Organisation/Site ->
    *  Facility migration (originSiteId step). Migrated here from
    *  Site.billingDosRule (organisation/organisationService.ts) for
@@ -464,6 +472,12 @@ export interface Facility {
    * components/Config/AI/orchestratorModeConfig.ts).
    */
   internalAiOrchestratorEnabled?: boolean | null;
+  /** Batch 427 (Pete: "the setting should be associated to the testing facility"). Only meaningful when
+   *  roles includes 'performing_lab': this lab's LIS takes one PDF per accession. Off (default): one PDF
+   *  per synoptic workup. On: every workup of the case in one combined PDF, resent whole when any
+   *  workup changes; Orchestration results then carry only the full report PDF. Resolved through
+   *  resolvePerformingLabFacility, like the report language. */
+  consolidateOutboundPdfs?: boolean;
   /** Only meaningful when roles includes 'performing_lab'. Deliberately
    *  gated, not freely settable: per direct product decision, this can
    *  only be set to a model this exact facility has a `reported`

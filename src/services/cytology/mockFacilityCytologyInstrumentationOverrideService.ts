@@ -2,6 +2,7 @@
 import type { IFacilityCytologyInstrumentationOverrideService, FacilityCytologyInstrumentationOverride } from './IFacilityCytologyInstrumentationOverrideService';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'facilityCytologyInstrumentationOverrides';
 
@@ -12,7 +13,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockFacilityCytologyInstrumentationOverrideService: IFacilityCytologyInstrumentationOverrideService = {
+const facilityCytologyInstrumentationOverrideServiceUnchecked: IFacilityCytologyInstrumentationOverrideService = {
   async getForFacility(facilityId) {
     await delay();
     const record = load().find(r => r.facilityId === facilityId);
@@ -53,3 +54,8 @@ export const mockFacilityCytologyInstrumentationOverrideService: IFacilityCytolo
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityCytologyInstrumentationOverrideService: IFacilityCytologyInstrumentationOverrideService = guardConfigWrites(facilityCytologyInstrumentationOverrideServiceUnchecked, [
+  ['config:cytology-instrumentation:manage', ['create', 'update', 'remove']],
+]);

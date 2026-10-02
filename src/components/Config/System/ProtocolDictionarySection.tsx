@@ -302,7 +302,7 @@ const StainMultiSelect: React.FC<{
           ))}
         </div>
       )}
-      <input
+      <input data-config-nav
         className="ps-conf-input"
         placeholder={t('protocolDictionarySection.stainSelect.searchPlaceholder')}
         value={query}
@@ -483,7 +483,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, duplicateOf, sta
 
             {mode === 'edit' && entry && (entry.history?.length ?? 0) > 0 && (
               <div className="ps-protocol-history-block">
-                <button className="ps-conf-btn-row" onClick={() => setShowHistory(s => !s)}>
+                <button data-config-nav className="ps-conf-btn-row" onClick={() => setShowHistory(s => !s)}>
                   {t('protocolDictionarySection.modal.history.label', {
                     count: entry.history!.length,
                     toggle: showHistory ? t('protocolDictionarySection.modal.history.toggleHide') : t('protocolDictionarySection.modal.history.toggleView'),
@@ -905,7 +905,7 @@ const ProtocolDictionarySection: React.FC = () => {
           render a pointless single-option dropdown. */}
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('protocolDictionarySection.labFilter.allLabs')}</option>
             <option value="Global">{t('protocolDictionarySection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

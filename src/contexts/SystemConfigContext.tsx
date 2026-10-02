@@ -6,7 +6,7 @@
  * Three layers of config, loaded independently:
  *
  *   1. SystemConfig        — local system settings (LIS toggles, voice, etc.)
- *                            Loaded from localStorage, edited in Config UI.
+ *                            Loaded from the system config store, edited in Config UI.
  *
  *   2. EnterpriseConfig    — top-level org settings (feature flags for the
  *                            whole network). Will be Firestore-backed in prod.
@@ -37,6 +37,8 @@ import React, {
 import { SystemConfig, DEFAULT_SYSTEM_CONFIG } from '../types/systemConfig';
 import type { EnterpriseConfig, EnterpriseFeatures } from '@app-types/config/EnterpriseConfig';
 import type { HospitalConfig } from '@app-types/config/HospitalConfig';
+import { permitSystemConfigPatch, permitEnterpriseConfigPatch } from '../services/systemConfig/systemConfigChangeChecks';
+import { readStoredConfig, saveStoredConfig } from '../services/systemConfig/systemConfigStore';
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -60,43 +62,14 @@ const DEFAULT_HOSPITAL_CONFIG: HospitalConfig = {
 
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 
-// v2: UK accession + NHS Number formats now enabled by default (see
-// DEFAULT_SYSTEM_CONFIG's own comment) — bumped so existing sessions with
-// a persisted v1 config actually pick up the new default instead of the
-// shallow merge below silently keeping their old US-only identifierFormats
-// forever.
-const LS_VERSION = 'v2';
-// Exported so other modules that read the persisted config directly from
-// localStorage (outside React context — e.g. firestoreCodeService.ts,
-// which needs to work from seed scripts too) use the real, current key
-// rather than hardcoding their own copy of it. That's exactly how
-// firestoreCodeService.ts silently broke when LS_VERSION bumped to v2 —
-// it had its own hardcoded 'pathscribe_system_config_v1' string.
-const LS_KEY = `pathscribe_system_config_${LS_VERSION}`;
-const LS_ENT_KEY = `pathscribe_enterprise_config_${LS_VERSION}`;
-const LS_HSP_KEY = `pathscribe_hospital_config_${LS_VERSION}`;
+// Batch 431: kept through services/systemConfig/systemConfigStore.ts (the
+// one place that changes when the API server holds these, PS-345).
 
 function loadSystemConfig(): SystemConfig {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    const merged: SystemConfig = raw
-      ? { ...DEFAULT_SYSTEM_CONFIG, ...JSON.parse(raw) as Partial<SystemConfig> }
-      : { ...DEFAULT_SYSTEM_CONFIG };
-    const envVoice = import.meta.env?.VITE_VOICE_ENABLED;
-    if (envVoice === 'false') merged.voiceEnabled = false;
-    return merged;
-  } catch { return { ...DEFAULT_SYSTEM_CONFIG }; }
-}
-
-function loadJson<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? { ...fallback, ...JSON.parse(raw) as Partial<T> } : { ...fallback };
-  } catch { return { ...fallback }; }
-}
-
-function saveJson<T>(key: string, value: T): void {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  const merged = readStoredConfig('system', DEFAULT_SYSTEM_CONFIG);
+  const envVoice = import.meta.env?.VITE_VOICE_ENABLED;
+  if (envVoice === 'false') merged.voiceEnabled = false;
+  return merged;
 }
 
 // ─── Context shape ────────────────────────────────────────────────────────────
@@ -104,13 +77,14 @@ function saveJson<T>(key: string, value: T): void {
 interface SystemConfigContextValue {
   // ── System config ───────────────────────────────────────────────────────
   config:        SystemConfig;
-  updateConfig:  (patch: Partial<SystemConfig>) => void;
+  /** Batch 428: resolves false (and changes nothing) when the person lacks the field's capability. */
+  updateConfig:  (patch: Partial<SystemConfig>) => Promise<boolean>;
   resetConfig:   () => void;
 
   // ── Enterprise + Hospital config ────────────────────────────────────────
   enterpriseConfig:        EnterpriseConfig;
   hospitalConfig:          HospitalConfig;
-  updateEnterpriseConfig:  (patch: Partial<EnterpriseConfig>) => void;
+  updateEnterpriseConfig:  (patch: Partial<EnterpriseConfig>) => Promise<boolean>;
   updateHospitalConfig:    (patch: Partial<HospitalConfig>)    => void;
 
   /**
@@ -132,24 +106,28 @@ const SystemConfigContext = createContext<SystemConfigContextValue | null>(null)
 export const SystemConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const [config,           setConfig]           = useState<SystemConfig>(loadSystemConfig);
-  const [enterpriseConfig, setEnterpriseConfig] = useState<EnterpriseConfig>(() => loadJson(LS_ENT_KEY, DEFAULT_ENTERPRISE_CONFIG));
-  const [hospitalConfig,   setHospitalConfig]   = useState<HospitalConfig>(()   => loadJson(LS_HSP_KEY, DEFAULT_HOSPITAL_CONFIG));
+  const [enterpriseConfig, setEnterpriseConfig] = useState<EnterpriseConfig>(() => readStoredConfig('enterprise', DEFAULT_ENTERPRISE_CONFIG));
+  const [hospitalConfig,   setHospitalConfig]   = useState<HospitalConfig>(()   => readStoredConfig('hospital', DEFAULT_HOSPITAL_CONFIG));
 
   // Persist all three configs whenever they change
-  useEffect(() => { saveJson(LS_KEY,     config);           }, [config]);
-  useEffect(() => { saveJson(LS_ENT_KEY, enterpriseConfig); }, [enterpriseConfig]);
-  useEffect(() => { saveJson(LS_HSP_KEY, hospitalConfig);   }, [hospitalConfig]);
+  useEffect(() => { saveStoredConfig('system',     config);           }, [config]);
+  useEffect(() => { saveStoredConfig('enterprise', enterpriseConfig); }, [enterpriseConfig]);
+  useEffect(() => { saveStoredConfig('hospital',   hospitalConfig);   }, [hospitalConfig]);
 
-  const updateConfig = useCallback((patch: Partial<SystemConfig>) => {
+  const updateConfig = useCallback(async (patch: Partial<SystemConfig>) => {
+    if (!(await permitSystemConfigPatch(patch as Record<string, unknown>))) return false;
     setConfig(prev => ({ ...prev, ...patch }));
+    return true;
   }, []);
 
   const resetConfig = useCallback(() => {
     setConfig({ ...DEFAULT_SYSTEM_CONFIG });
   }, []);
 
-  const updateEnterpriseConfig = useCallback((patch: Partial<EnterpriseConfig>) => {
+  const updateEnterpriseConfig = useCallback(async (patch: Partial<EnterpriseConfig>) => {
+    if (!(await permitEnterpriseConfigPatch(patch as unknown as { features?: Record<string, unknown> }))) return false;
     setEnterpriseConfig(prev => ({ ...prev, ...patch }));
+    return true;
   }, []);
 
   const updateHospitalConfig = useCallback((patch: Partial<HospitalConfig>) => {

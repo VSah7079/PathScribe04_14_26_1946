@@ -20,6 +20,30 @@ Container/batch chain-of-custody for cassettes and slides moving through downstr
 - `computePendingBatchQueue.ts` follows the same "derive fresh every time, never a separately stored, driftable copy" discipline as `computeActiveRetentionHoldsQueue.ts` and `computeDisposalQueue.ts` in `retentionPolicy/`.
 - **Real, new consumer (PS-288, Sep 2026):** `services/facilityOpsDashboard/` reads active batches across `Processing`/`Decal / Special Processing`/`Checkout`/`Embedding`/`Microtomy / Sectioning`/`Staining`/`Cytology Staining`/`External Referral` for its five real department dashboard views — real `Batch.priority`/`coldChainExcursion` drive that Epic's own high-contrast alerting, and `DecalBatch.ts`'s own `getDecalTimerState` math was generalized (not duplicated) into `computeSlaCountdown.ts` for reuse across every view. Confirmed directly before building: `Batch` has no direct `facilityId` — `services/facilityOpsDashboard/resolveBatchFacilityId.ts` joins through `BatchItem.caseAccession` → `Case.originHospitalId`, falling back to `Batch.stationId` → `ScanStation.facilityId`. Read-only; nothing in this folder's own files changed.
 
+## Batch 404
+
+- `mockBatchService.ts`:
+  - `abort` needs a reason (Pete) and `batch:run:abort`.
+  - `overrideAndComplete` needs `batch:reconciliation:override`.
+  - `acknowledgeColdChainExcursion` needs `batch:cold-chain-excursion:acknowledge`.
+  - A refusal returns `BATCH_NOT_PERMITTED` or `BATCH_REASON_REQUIRED` (constants in `IBatchService.ts`), and the screen shows its own text for them.
+  - Test: `batchCustodyActions.test.ts`.
+- `batchDemoSeeds.ts` (+ test): three demo batches, one per override. They are added to stored batches when missing.
+- `batchFormHelpers.ts` (+ test):
+  - `deriveNodeFromStation`, moved from the New Container dialog.
+  - Locale-key maps for container types and decal solutions.
+
+## Batch 407
+
+- `mockBatchService.ts`: every refusal is a code from `BATCH_ERRORS` (`IBatchService.ts`, with `isBatchErrorCode`) instead of an English sentence. Scan-in refusals carry the item's `displayId` or what was `scanned`, and `reason` stays in English for logs.
+- `computePendingBatchQueue.ts` gains `filterPendingBatchQueue` and `groupPendingByCase`, which moved out of the Pending Batch Load page.
+
+## Batch 408
+
+`batchListView.ts` (new, pure) holds:
+- `openBatches`, `closedBatches` and `openCountByNode`, for the Batch Management list;
+- `reconciliationGate`: missing items, unexpected scans and an unacknowledged cold-chain excursion, in the order the service checks them. `mockBatchService.completeReconciliation` uses it too, so the Complete button and the service can't disagree.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

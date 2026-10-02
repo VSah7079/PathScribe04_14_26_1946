@@ -54,9 +54,12 @@ export interface ErrorLog {
   source:    string;
   caseId:    string | null;
   resolved:  boolean;
+  /** Batch 432: who marked it resolved, and when. */
+  resolvedBy?: string;
+  resolvedAt?: string;
 }
 
-export type NewErrorLog = Omit<ErrorLog, 'id' | 'timestamp' | 'resolved'>;
+export type NewErrorLog = Omit<ErrorLog, 'id' | 'timestamp' | 'resolved' | 'resolvedBy' | 'resolvedAt'>;
 
 // ─── Filter Params ────────────────────────────────────────────────────────────
 
@@ -84,5 +87,6 @@ export interface IAuditService {
   // Error log
   getErrorLogs(filters?: ErrorFilterParams): Promise<ServiceResult<ErrorLog[]>>;
   logError(entry: NewErrorLog):              Promise<ServiceResult<ErrorLog>>;
+  /** Batch 432: needs audit:error:resolve (checked here); records who and when. */
   resolveError(id: ID):                      Promise<ServiceResult<ErrorLog>>;
 }

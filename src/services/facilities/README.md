@@ -419,6 +419,35 @@ Pete: "Link Hospital ID to an Organization so all this can be demo'd appropriate
   - Each international lab owns its own cases.
 - **Side effect:** the ten labs now appear wherever organisations are listed: support access, Case Mask's organisation list, the enterprise roll-up, and the parent choice in the facility editor.
 
+## Batch 391
+
+`Facility.reportLanguage` (performing labs): the language the lab writes its reports in; undefined means the jurisdiction's default (`services/reports/reportLanguage.ts`). Set in the Facility Dictionary editor.
+
+## Batch 403
+
+`referenceLabSeeds.ts`: three fictional demo reference labs (Summit Molecular Reference Laboratory, Pacific Genomics Reference Lab, Great Lakes Cytogenetics), with the `reference_lab` role. `mockFacilityService.ts` adds them to a browser's stored facilities when they're missing (`withMissingSeedRecords`), without replacing anything an administrator changed.
+
+## Batch 414
+
+- `RegistryId` is every registry in `services/screeningRegistry/screeningRegistryDefinitions.ts`: twelve, up from six.
+- **Fixed:** the Cytology Registry settings screen saved to `cytologyRegistrySettings` and `facilityCytologyRegistryOverrides`, but sign-out read `registrySettings` and `facilityRegistryOverrides`. A registry chosen in Configuration therefore never reached sign-out. The screen now saves here. `mockRegistrySettingsService` adopts an old enterprise choice when its own store is empty, and `mockFacilityRegistryOverrideService` keeps old facility overrides for any facility that has none.
+
+## Batch 427
+
+`Facility.consolidateOutboundPdfs` (performing labs): the lab's LIS takes one PDF per accession, so synoptic results go with one combined case PDF instead of one per workup (`services/reports/`).
+
+**Disclosed, not fixed:** saving a facility checks no capability; anyone who can open Configuration can do it. A Configuration-wide permission scan is the next batch.
+
+## Batch 428: Configuration permissions
+
+- `mockFacilityService`: `add`, `update`, `deactivate`, `reactivate`, `verify` need `config:facilities:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 431
+
+Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

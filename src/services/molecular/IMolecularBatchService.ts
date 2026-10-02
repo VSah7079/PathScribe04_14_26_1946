@@ -255,6 +255,12 @@ export interface MolecularBatch {
  * error. The screen shows it translated.
  */
 export const MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE = 'instrumentUnavailable';
+/** Batch 405 (Pete): a patient well that names no specimen (container barcode or accession). */
+export const MOLECULAR_BATCH_WELL_SPECIMEN_MISSING = 'wellSpecimenMissing';
+/** Batch 405: the user lacks molecular:batch:supersede. */
+export const MOLECULAR_BATCH_NOT_PERMITTED = 'notPermitted';
+/** Batch 406: the plate's deck slot isn't one on the instrument's deck that takes an extraction plate. */
+export const MOLECULAR_BATCH_DECK_SLOT_INVALID = 'deckSlotInvalid';
 
 export type NewMolecularBatch = Omit<MolecularBatch, 'id' | 'batchBarcode' | 'batchUuid' | 'plateUuid' | 'plateBarcode' | 'status' | 'createdAt'>;
 

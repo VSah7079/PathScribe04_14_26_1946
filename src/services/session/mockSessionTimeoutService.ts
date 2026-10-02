@@ -11,6 +11,7 @@ import type { ISessionTimeoutService } from './ISessionTimeoutService';
 import type { ServiceResult } from '../types';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const ORG_IDLE_TIMEOUT_KEY = 'pathscribe_idle_timeout_minutes';
 const FALLBACK_DEFAULT_MINUTES = 15; // matches the original spec's suggested default
@@ -30,7 +31,7 @@ function readOrgDefault(): number {
   return FALLBACK_DEFAULT_MINUTES;
 }
 
-export const mockSessionTimeoutService: ISessionTimeoutService = {
+const sessionTimeoutServiceUnchecked: ISessionTimeoutService = {
 
   async getOrgDefault() {
     return ok(readOrgDefault());
@@ -63,3 +64,8 @@ export const mockSessionTimeoutService: ISessionTimeoutService = {
     return ok(labRes.data.idleTimeoutMinutesOverride ?? orgDefault);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSessionTimeoutService: ISessionTimeoutService = guardConfigWrites(sessionTimeoutServiceUnchecked, [
+  ['config:session-security:manage', ['setOrgDefault']],
+]);

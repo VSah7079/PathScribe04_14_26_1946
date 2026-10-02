@@ -103,6 +103,14 @@ import { playScanBeep } from '@/utils/playScanBeep';
 import { buildOrderCreationPayload } from '@/services/interfaceEngine/buildOrderCreationPayload';
 import { applyGrossingRefinement, markGrossingRefinementFailed } from '@/utils/applyGrossingRefinement';
 import { PatientIdStatusDot } from '@/components/Common/PatientIdStatusDot';
+import { prefillPatientRegistryDetails } from '@/services/patients/patientRegistryDetails';
+import { patientRegistryDetailsDeps } from '@/services/patients/patientRegistryDetailsDeps';
+import { NationalIdentifierFields } from '@/components/Common/NationalIdentifierFields';
+import { RegistryConsentFields } from '@/components/Common/RegistryConsentFields';
+import { recordPatientRegistryConsent } from '@/services/registryConsent/recordPatientRegistryConsent';
+import { recordPatientRegistryConsentDeps } from '@/services/registryConsent/recordPatientRegistryConsentDeps';
+import { recordNationalPatientIdentifier } from '@/services/patientIdentifiers/recordNationalPatientIdentifier';
+import { recordNationalPatientIdentifierDeps } from '@/services/patientIdentifiers/recordNationalPatientIdentifierDeps';
 import { dateFormatHint } from '@/utils/formatDate';
 import { specimenDeficiencyService } from '@/services';
 import { priorityService } from '@/services';
@@ -581,6 +589,10 @@ const AccessionPage: React.FC = () => {
   const [persistentContactBleedingAtCollection, setPersistentContactBleedingAtCollection] = useState(false);
   const [reasonForStudy, setReasonForStudy] = useState<'' | 'nhs_programme_invited' | 'private_or_opportunistic'>('');
   const [mrn, setMrn] = useState('');
+  // Batch 417: the patient's national identifiers (NHS number, BSN…), by system id; saved after the case exists.
+  const [nationalIds, setNationalIds] = useState<Record<string, string>>({});
+  // Batch 418: the patient's registry opt-outs; saved after the case exists.
+  const [registryConsent, setRegistryConsent] = useState({ screeningOptOut: false, cancerRegistryOptOut: false });
   const [encounterNumber, setEncounterNumber] = useState('');
   // Real feature, per direct, detailed specification: "Encounter
   // Selector & Auto-Fill." linkedEncounter is the real Encounter this
@@ -1753,6 +1765,12 @@ const AccessionPage: React.FC = () => {
     setMrn(patient.mrn ?? '');
     toast.success(<PhiToastMessage>{t('accessionPage.toast.loadedFromIndex', { patient: `${patient.firstName} ${patient.lastName}` })}</PhiToastMessage>);
     void lookupActiveEncountersForPatient(patient.id, `${patient.firstName} ${patient.lastName}`);
+    // Batch 425: the patient's national identifiers and registry opt-outs, as the MPI holds them
+    // (recorded here before, or received from the hospital's system as JSON).
+    void prefillPatientRegistryDetails(patient.id, patientRegistryDetailsDeps).then(p => {
+      setNationalIds(p.nationalIds);
+      setRegistryConsent(p.consent);
+    });
   }
 
 
@@ -2359,6 +2377,19 @@ const AccessionPage: React.FC = () => {
       };
 
       await caseRouter.createCase(newCase);
+
+      // Batch 417: national identifiers go through their own service (permission
+      // check, check digit, MPI mirror, audit), once the case exists.
+      for (const [system, value] of Object.entries(nationalIds)) {
+        if (!value.trim()) continue;
+        const r = await recordNationalPatientIdentifier({ caseId: newCase.id, system, value }, { id: user?.id ?? '', name: user?.name ?? '' }, recordNationalPatientIdentifierDeps);
+        if (r.outcome === 'notPermitted') toast.warning(t('nationalIdentifiers.notPermitted'));
+      }
+      // Batch 418: the registry opt-outs, the same way.
+      if (registryConsent.screeningOptOut || registryConsent.cancerRegistryOptOut) {
+        const r = await recordPatientRegistryConsent({ caseId: newCase.id, ...registryConsent }, { id: user?.id ?? '', name: user?.name ?? '' }, recordPatientRegistryConsentDeps);
+        if (r.outcome === 'notPermitted') toast.warning(t('registryConsent.notPermitted'));
+      }
 
       // Real, per the uploaded spec's own User Story 5, Acceptance
       // Criteria 2 and 3 — enqueues the real, appropriate outbound
@@ -3171,6 +3202,11 @@ const AccessionPage: React.FC = () => {
                     ? t('accessionPage.patientId.placeholderWithFacility', { standardLabel: t(patientIdStandard.labelKey), example: patientIdStandard.example })
                     : t('accessionPage.patientId.placeholderNoFacility')} />
               </div>
+              {/* Batch 417: the national identifier the registries key on, separate from the MRN. */}
+              <NationalIdentifierFields jurisdiction={selectedFacility?.jurisdiction} values={nationalIds}
+                onChange={(system, value) => setNationalIds(prev => ({ ...prev, [system]: value }))} />
+              {/* Batch 418: registry opt-outs. */}
+              <RegistryConsentFields screeningOptOut={registryConsent.screeningOptOut} cancerRegistryOptOut={registryConsent.cancerRegistryOptOut} onChange={setRegistryConsent} />
               <div>
                 <label className="ps-label" htmlFor="accession-priority">{t('accessionPage.priority.label')}</label>
                 <select id="accession-priority" className="ps-input-dark" value={priority} onChange={e => setPriority(e.target.value as CasePriority)}>

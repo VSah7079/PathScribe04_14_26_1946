@@ -18,6 +18,8 @@
 import type { CytologySignOutRecord } from '@/types/cytology/CytologySignOutRecord';
 import type { CisoeAScore } from '@/types/cytology/CisoeAScore';
 import { generateCytologyReportPdf } from './generateCytologyReportPdf';
+import { cytologyPdfLabelsFor } from './cytologyPdfLabelsFor';
+import type { PrintFont } from '../documentRendering/printFonts';
 
 // Real, per direct guidance: "It might be easier to implant different
 // outbound payload types based on geography." Real, generic,
@@ -99,9 +101,11 @@ export function buildCytologyOruR01Payload(
   signOutRecord: CytologySignOutRecord,
   resultState: 'FINAL' | 'CORRECTED' | 'ADDENDUM' = 'FINAL',
   previouslyReportedAs?: string,
+  /** Batch 391: the font a Korean report needs (loadPrintFont); the caller loads it. */
+  printFont?: PrintFont,
 ): CytologyOruR01Payload {
   const content = signOutRecord.reportContent;
-  const doc = generateCytologyReportPdf(content);
+  const doc = generateCytologyReportPdf(content, undefined, cytologyPdfLabelsFor(content.language), printFont);
   const dataUri = doc.output('datauristring');
   const reportPdfBase64 = dataUri.split(',').pop() ?? '';
 

@@ -26,18 +26,11 @@
 // — restructured around a small per-queue-type config object rather
 // than growing every ternary in the file into a three-way chain.
 //
-// Real, honest scope boundary for lis_sync specifically: its own real
-// payload (embeddedHeader/fullPayloadText) is built from a real,
-// ephemeral parameter (payloadBody) that's never persisted anywhere —
-// unlike the other three types, it genuinely can't be rebuilt later
-// from just this queue entry's own reference fields. Real dispatch for
-// this type happens elsewhere, immediately, at the one real moment the
-// full payload actually exists — see
-// pages/SynopticReportPage/hooks/useLisIntegration.ts's own
-// sendSynopticReportToLis. This dashboard still shows lis_sync entries
-// (for real visibility/CAPA), but Dispatch Now/Retry Dispatch are
-// disabled for them here, with a clear, honest reason shown rather
-// than silently sending an incomplete payload.
+// lis_sync: before Batch 426 its payload was built from a text that was never
+// stored, so it couldn't be rebuilt here and Retry was disabled. Since
+// Batch 426 the message is the workup itself (the structured synoptic
+// result and its PDF), rebuilt from the case like a result's
+// (services/reports/dispatchAssistSynopticResult.ts), so it retries here too.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // File-by-file cleanup sweep: all UI chrome (headers, labels, buttons,
@@ -55,13 +48,15 @@
 // share no queue types or services; this file's own QUEUE_CONFIG
 // abstraction across three queue types is already the established,
 // correct pattern for this kind of per-type variation.
+import { rebuildAssistSynopticMessage } from '@/services/reports/dispatchAssistSynopticResult';
+import { assistSynopticDeps } from '@/services/reports/dispatchAssistSynopticResultDeps';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mockOutboundPatientAdtQueueService } from '@/services/patients/mockOutboundPatientAdtQueueService';
 import { mockOutboundResultQueueService } from '@/services/reports/mockOutboundResultQueueService';
 import { mockOutboundLisSyncQueueService } from '@/services/reports/mockOutboundLisSyncQueueService';
 import { buildAdt08Payload, buildAdt40Payload, buildAdt47Payload } from '@/services/patients/buildPatientAdtPayload';
-import { buildOruR01Payload } from '@/services/reports/buildOruR01Payload';
+import { prepareOruR01Dispatch } from '@/services/reports/prepareOruR01Dispatch';
 import { dispatchInterfaceMessage, type InterfaceTransactionType } from '@/services/interfaceDispatch/dispatchInterfaceMessage';
 import { simulateInterfaceDispatchFailure } from '@/services/hl7/simulateInterfaceDispatchFailure';
 import { specimenDeficiencyService } from '@/services';
@@ -98,7 +93,8 @@ interface QueueConfig {
    *  app's own preview tool already uses — null when this queue type
    *  can't (see this file's own header comment for lis_sync's real,
    *  honest reason). */
-  buildPayload: ((e: AnyEntry) => Promise<object | null>) | null;
+  /** Batch 392: `{ held }` when the message can't be sent yet (a result without its report PDF). */
+  buildPayload: ((e: AnyEntry) => Promise<object | { held: string } | null>) | null;
 }
 
 const QUEUE_CONFIG: Record<QueueType, QueueConfig> = {
@@ -152,13 +148,12 @@ const QUEUE_CONFIG: Record<QueueType, QueueConfig> = {
     markSent: id => mockOutboundResultQueueService.markSent(id),
     buildPayload: async e => {
       const entry = e as OutboundResultQueueEntry;
-      // Real, honest limitation, same as the preview tool: no
-      // generatePdf/generateNarrativeText callback supplied — this
-      // standalone dashboard has no access to
-      // SynopticReportPage.tsx's own React-component closures.
-      // reportPdfBase64/reportNarrativeText genuinely come back
-      // undefined; every other field is real and accurate.
-      return buildOruR01Payload(entry.caseId, entry.instanceId, entry.resultState);
+      // Batch 392: the same message the release sends, with its report PDF (the
+      // one kept from release, else the saved signed PDF), or held without one.
+      // The narrative text is still not supplied from this screen.
+      const prepared = await prepareOruR01Dispatch(entry.caseId, entry.instanceId, entry.resultState);
+      if (prepared.ok === false) return prepared.reason === 'pdf_unavailable' ? { held: prepared.error } : null;
+      return (prepared as { payload: object }).payload;
     },
   },
   lis_sync: {
@@ -178,7 +173,9 @@ const QUEUE_CONFIG: Record<QueueType, QueueConfig> = {
     // own header comment for the real, honest reason. Real dispatch
     // for this type happens immediately, elsewhere, at the one real
     // moment its full payload actually exists.
-    buildPayload: null,
+    // Batch 426: an Assist workup's message is rebuilt like a result's (dispatchAssistSynopticResult.ts),
+    // so a held or undelivered LIS sync can be retried here too.
+    buildPayload: e => rebuildAssistSynopticMessage(e as OutboundLisSyncQueueEntry, assistSynopticDeps),
   },
 };
 
@@ -220,6 +217,12 @@ const OutboundInterfaceDlqSection: React.FC = () => {
       const payload = await config.buildPayload(entry);
       if (!payload) {
         await config.markFailed(entry.id, { errorCode: 'DISPATCH_REJECTED', errorMessage: 'Could not build a real payload for this entry — a referenced patient/case may no longer exist.', maxRetriesExceeded: false });
+        loadAll();
+        return;
+      }
+      if ('held' in payload) {
+        await config.markFailed(entry.id, { errorCode: 'DISPATCH_REJECTED', errorMessage: payload.held, maxRetriesExceeded: false });
+        setDispatchMessages(prev => ({ ...prev, [entry.id]: t('outboundInterfaceDlq.heldNoPdf') }));
         loadAll();
         return;
       }
@@ -295,12 +298,6 @@ const OutboundInterfaceDlqSection: React.FC = () => {
           {(Object.keys(QUEUE_CONFIG) as QueueType[]).map(qt => <option key={qt} value={qt}>{t(QUEUE_CONFIG[qt].labelKey)}</option>)}
         </select>
       </div>
-
-      {!config.buildPayload && (
-        <p className="ps-conf-hint ps-conf-hint--warning">
-          {t('outboundInterfaceDlq.lisSyncWarning')}
-        </p>
-      )}
 
       <div className="ps-conf-table-wrap">
         <div className="ps-conf-table-scroll">

@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router';
 import '@/pathscribe.css';
 import { claimPoolCase, acceptPoolCase, passPoolCase } from '../../services/cases/mockCaseService';
 import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
-import { sendAccessRequestToAdmins } from '@/utils/accessRequests';
+import { sendAccessRequestToAdmins, pendingAccessRequestsFor } from '@/utils/accessRequests';
 
 interface PoolClaimModalProps {
   isOpen:            boolean;
@@ -78,18 +78,20 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   // membership in that pool, so having asked once already covers
   // every other case sitting in the same restricted pool, not just
   // this one.
-  const [accessRequestedPools, setAccessRequestedPools] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem('pathscribe_pool_access_requested');
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch { return new Set(); }
-  });
+  // Batch 431: the "already requested" state comes from this person's own
+  // pending access requests (it was kept per computer in the browser).
+  const [accessRequestedPools, setAccessRequestedPools] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!isOpen || !currentUserId) return;
+    let cancelled = false;
+    pendingAccessRequestsFor(currentUserId).then(pending => {
+      if (cancelled) return;
+      setAccessRequestedPools(new Set(pending.filter(r => r.type === 'pool' && r.poolName).map(r => r.poolName!)));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [isOpen, currentUserId]);
   const markAccessRequested = (pool: string) => {
-    setAccessRequestedPools(prev => {
-      const next = new Set(prev).add(pool);
-      try { localStorage.setItem('pathscribe_pool_access_requested', JSON.stringify([...next])); } catch { /* ignore */ }
-      return next;
-    });
+    setAccessRequestedPools(prev => new Set(prev).add(pool));
   };
   const accessAlreadyRequested = poolName ? accessRequestedPools.has(poolName) : false;
 
@@ -244,6 +246,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
                       `Pool Access Request — ${currentUserName}`,
                       `${currentUserName} needs access to the ${poolName ?? 'restricted'} pool (attempted to claim case ${caseId}).\n\nTo grant access:\n1. Go to Configuration → Synoptic Library → Subspecialties\n2. Open the ${poolName ?? ''} pool\n3. Add ${currentUserName} to its member list\n\nThis was likely an oversight when the pool was originally configured.`,
                       '/configuration?tab=synoptic-library&section=subspecialties',
+                      { type: 'pool', caseId, poolName },
                     );
                   } finally {
                     if (poolName) markAccessRequested(poolName);

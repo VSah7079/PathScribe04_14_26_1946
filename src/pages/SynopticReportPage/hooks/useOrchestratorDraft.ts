@@ -16,16 +16,9 @@
 // and sync-to-diagnostic.
 //
 // Deliberately NOT included: handleConcurrencyForceSave. It's defined
-// very early in the main file (before orchSections is even declared —
-// it only works via closure, since the function isn't actually called
-// until well after mount) and duplicates part of saveDraftInternal's
-// own logic (same isOrchCaseId check, same caseRouter.updateCase +
-// localStorage.setItem pattern) rather than reusing it. That
-// duplication is a real, separate observation worth a dedicated look
-// later — folding it into this extraction now would either require
-// reordering its definition (risky, unclear downstream effects) or
-// accepting a second copy of the same save logic living inside this
-// hook too. Neither is clean, so it stays where it is for now.
+// very early in the main file (before orchSections is even declared), so
+// it stays there; it saves through writeCaseDraft below, the same write
+// path as saveDraftInternal.
 //
 // SECOND HALF OF THIS EXTRACTION — pulled inline JSX closures into
 // named functions:
@@ -105,7 +98,8 @@ export async function writeCaseDraft(
       synopticReports: caseData.synopticReports,
       grossingReports: caseData.grossingReports,
     } as Partial<CaseWithOrchSections>, expectedVersion);
-    localStorage.setItem(`ps_orch_sections_${caseData.id}`, JSON.stringify(orchSections));
+    // Batch 431: no browser copy. The case record (with its version) is the
+    // one copy, so a copy left on another workstation can't override it.
   } else {
     // Real fix found while consolidating the save paths: this previously
     // always wrote orchSections regardless of mode — both save paths were
@@ -190,36 +184,18 @@ export function useOrchestratorDraft({
   }, [caseData, caseId, orchSections, clearDirty, showToast, discardDraft, knownVersionRef, setConcurrencyConflict, t]);
 
   // ── Restore on load ──────────────────────────────────────────────────
-  // Restore orchSections — checks localStorage AND the loaded caseData.
-  // Runs whenever caseId OR caseData changes, so it can't be silently
-  // overwritten by a later caseData load that doesn't carry orchSections.
-  // localStorage (most recent local edits) takes priority over caseData
-  // (server/mock-service state), since the pathologist's last edits are
-  // the most current source of truth.
+  // Batch 431 (Pete: the saved case is the single source of truth): the
+  // sections come from the case record only. They used to be read from a
+  // browser copy first, which let a copy left on one workstation override a
+  // newer save made at another. Runs whenever caseId or caseData changes, so
+  // a later caseData load can't be missed.
   useEffect(() => {
     if (!caseId) return;
 
     let restored: OrchestratorSection[] | null = null;
-
-    // 1. Try localStorage first — most recent local draft
-    try {
-      const stored = localStorage.getItem(`ps_orch_sections_${caseId}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          restored = parsed;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to parse orchSections from localStorage:', e);
-    }
-
-    // 2. Fall back to caseData.orchSections (from mock service / server)
-    if (!restored) {
-      const fromCase = (caseData as CaseWithOrchSections | null)?.orchSections;
-      if (Array.isArray(fromCase) && fromCase.length > 0) {
-        restored = fromCase;
-      }
+    const fromCase = (caseData as CaseWithOrchSections | null)?.orchSections;
+    if (Array.isArray(fromCase) && fromCase.length > 0) {
+      restored = fromCase;
     }
 
     if (restored) {
@@ -244,7 +220,7 @@ export function useOrchestratorDraft({
   // explicitly whenever the user switches onto the Synoptic Reporting tab,
   // as a defensive re-sync at the moment LeftReportPanel actually becomes
   // visible — covers any edge case where the continuous effect hasn't
-  // caught up yet (e.g. orchSections just restored from localStorage on a
+  // caught up yet (e.g. orchSections just restored from the case on a
   // fresh tab switch before that effect's first run lands).
   const syncOrchSectionsToDiagnostic = useCallback(() => {
     if (!isOrchestrationMode || orchSections.length === 0) return;

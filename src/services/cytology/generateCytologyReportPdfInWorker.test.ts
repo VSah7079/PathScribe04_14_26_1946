@@ -51,7 +51,7 @@ describe('generateCytologyReportPdfInWorker — real, per PS-276 §1.1.4 gap-clo
 
     const result = await generateCytologyReportPdfInWorker(content);
     expect(result).toBe(bytes);
-    expect(generateCytologyReportPdfWithAttachments).toHaveBeenCalledWith(content);
+    expect(generateCytologyReportPdfWithAttachments).toHaveBeenCalledWith(content, expect.objectContaining({ title: expect.any(String) }));
   });
 
   it('a real, successful worker round trip resolves with the real bytes and terminates the worker', async () => {
@@ -62,7 +62,7 @@ describe('generateCytologyReportPdfInWorker — real, per PS-276 §1.1.4 gap-clo
     const bytes = new Uint8Array([9, 8, 7]);
     const promise = generateCytologyReportPdfInWorker(content, workerFactory);
 
-    expect(fake.postMessage).toHaveBeenCalledWith({ content });
+    expect(fake.postMessage).toHaveBeenCalledWith({ content, labels: expect.objectContaining({ title: expect.any(String) }) });
     fake.onmessage?.({ data: { ok: true, bytes } } as MessageEvent<CytologyPdfWorkerResponse>);
 
     const result = await promise;

@@ -38,7 +38,9 @@ export type ReasonDictionaryCategory =
   | 'POST_SIGNOUT_BILLING_CHANGE'
   | 'ADDENDUM'
   | 'AMENDMENT'
-  | 'CORRECTION';
+  | 'CORRECTION'
+  /** Batch 399: why a critical intraoperative result didn't go to the operating surgeon. */
+  | 'SURGEON_UNAVAILABLE';
 
 export interface ReasonDictionaryEntry {
   id: string;

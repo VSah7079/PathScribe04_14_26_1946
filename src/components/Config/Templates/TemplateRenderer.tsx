@@ -91,6 +91,7 @@ import { getTemplateGovernanceSettings } from '../../../services/templates/templ
 import { SNOMED_PUBLISH_THRESHOLD } from '../../../services/templates/templatePublishingRules';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSynopticAudit } from '../../../hooks/useSynopticAudit';
+import { getTemplateTrialAnswers, saveTemplateTrialAnswers } from '@/services/templates/templateReviewWork';
 
 type AnswerMap = Record<string, string | string[]>;
 
@@ -323,20 +324,14 @@ export const TemplateRenderer: React.FC = () => {
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
 
-  const ANSWERS_KEY = `ps_answers_${templateId}`;
-  const STATE_KEY   = `ps_state_${templateId}`;
-
-  // ── Load persisted reviewer annotations + lifecycle override ──────────────
+  // ── Load saved reviewer annotations ───────────────────────────────────────
+  // Batch 431: through the template review service (shared with the other
+  // reviewers once the API server holds it, PS-345). The lifecycle state is
+  // no longer kept in the browser: the template service's status is the one
+  // record of it (loaded just below).
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ANSWERS_KEY);
-      if (raw) setAnswers(JSON.parse(raw));
-    } catch {}
-    try {
-      const raw = localStorage.getItem(STATE_KEY);
-      if (raw) setState(raw as TemplateLifecycleState);
-    } catch {}
-  }, [templateId, ANSWERS_KEY, STATE_KEY]);
+    if (templateId) setAnswers(getTemplateTrialAnswers<AnswerMap>(templateId));
+  }, [templateId]);
 
   // ── Load real template content ─────────────────────────────────────────────
   useEffect(() => {
@@ -349,7 +344,7 @@ export const TemplateRenderer: React.FC = () => {
         if (cancelled) return;
         setTemplate(detail);
         // Since Batch 328 every transition waits for the service, so the
-        // registry's status is authoritative and wins over the local copy.
+        // registry's status is authoritative.
         setState(detail.status as TemplateLifecycleState);
         setLoading(false);
       })
@@ -365,13 +360,12 @@ export const TemplateRenderer: React.FC = () => {
   const persistAnswers = (next: AnswerMap) => {
     setAnswers(next);
     setIsDirty(true);
-    localStorage.setItem(ANSWERS_KEY, JSON.stringify(next));
+    if (templateId) saveTemplateTrialAnswers(templateId, next);
   };
 
   const persistState = (next: TemplateLifecycleState) => {
     setState(next);
     setIsDirty(false);  // completed a transition — annotations no longer "unsaved"
-    localStorage.setItem(STATE_KEY, next);
   };
 
   // ── Navigation guard ───────────────────────────────────────────────────────

@@ -86,6 +86,30 @@ Pete's decision on the open question above: flag the device, don't block it.
 - **Where it shows:** the register row (red name and edge) and the molecular batch instrument picker (a warning sign and the state in the option, a red border and a warning under it when chosen).
 - **Still open:** the Molecular Workcenter lists batches by instrument code only, so it shows no red flag.
 
+## Batch 406: deck layouts (instrument profiles)
+
+Pete asked for instrument profiles that define each analyser's slot layout and which rack types each slot takes.
+- `Equipment.deckSlots?: DeckSlot[]`. Each slot has an `id` (letters, digits and `_`, since it goes into `LOC-INST-<code>-<slot>`), an optional `deck` name, and `rackTypes` from `DECK_RACK_TYPES` (`sample_tube_rack`, `extraction_plate`, `reagent_cartridge`).
+- `equipmentRules.ts`:
+  - `normaliseDeckSlotId`.
+  - `deckSlotsValid`: ids unique regardless of case, and at least one rack type per slot.
+  - `validateEquipmentDraft` reports `deckSlotsInvalid`.
+- `mockEquipmentService.ts`:
+  - Seeds the Panthers' decks and backfills them into stored registers.
+  - Tidies slot ids on save.
+- The editor is `components/Config/System/DeckLayoutEditor.tsx`, shown for analysers.
+
+## Batch 428: Configuration permissions
+
+- `mockEquipmentService`: `create`, `update`, `deactivate`, `reactivate` need `config:equipment:manage`.
+- `mockEquipmentLogService`: `add` need `config:equipment:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+Recording a service log entry (`mockEquipmentLogService.add`) needs `equipment:maintenance:record`, its own capability now (Pete), held by Histotechnologist, Cytotechnologist and Molecular Technologist as well as Admin and Lab Director. Adding or changing equipment still needs `config:equipment:manage`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

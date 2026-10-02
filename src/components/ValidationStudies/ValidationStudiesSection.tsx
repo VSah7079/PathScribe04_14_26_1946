@@ -579,7 +579,7 @@ const StudyFormModal: React.FC<{
               </div>
             )}
             {!isEdit && (
-              <button
+              <button data-config-nav
                 type="button"
                 onClick={() => setShowStore(true)}
                 className="ps-vs-store-link"
@@ -739,7 +739,7 @@ const DashboardTab: React.FC<{
   return (
     <div className="ps-vs-dashboard">
       <div className="ps-vs-study-select-wrap">
-        <select className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.dashboard.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+        <select data-config-nav className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.dashboard.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
           {active.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         {study && (
@@ -905,7 +905,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
       ) : (
         <>
           <div className="ps-vs-reports-select-wrap">
-            <select className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.reports.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+            <select data-config-nav className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.reports.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
               {closedStudies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
@@ -1051,7 +1051,7 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
         <div className="ps-vs-advisory-banner">
           🔒 {t('validationStudies.header.advisoryBanner')}
         </div>
-        <button
+        <button data-config-nav
           onClick={() => setHowItWorksOpen(o => !o)}
           className="ps-conf-btn-secondary ps-vs-howitworks-toggle"
         >

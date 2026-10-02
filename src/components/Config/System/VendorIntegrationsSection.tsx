@@ -53,7 +53,7 @@ const VendorIntegrationsSection: React.FC = () => {
     <div className="ps-confsys-shell">
       <div className="ps-confsys-sidebar">
         {CATEGORY_IDS.map(c => (
-          <button
+          <button data-config-nav
             key={c.id}
             onClick={() => setActiveCategory(c.id)}
             className={`ps-confsys-nav-btn${activeCategory === c.id ? ' ps-confsys-nav-btn--active' : ''}`}

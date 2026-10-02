@@ -1,6 +1,7 @@
 import { IDelegationTypeService, DelegationType } from './IDelegationTypeService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
 // Mirrors DEFAULT_DELEGATION_TYPES from constants/delegationTypes.ts.
@@ -71,7 +72,7 @@ const sorted = (list: DelegationType[]) =>
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const mockDelegationTypeService: IDelegationTypeService = {
+const delegationTypeServiceUnchecked: IDelegationTypeService = {
 
   async getAll() {
     await delay();
@@ -120,11 +121,11 @@ export const mockDelegationTypeService: IDelegationTypeService = {
   },
 
   async deactivate(id: ID) {
-    return mockDelegationTypeService.update(id, { active: false });
+    return delegationTypeServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockDelegationTypeService.update(id, { active: true });
+    return delegationTypeServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -138,3 +139,8 @@ export const mockDelegationTypeService: IDelegationTypeService = {
   },
 
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDelegationTypeService: IDelegationTypeService = guardConfigWrites(delegationTypeServiceUnchecked, [
+  ['config:delegation-types:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

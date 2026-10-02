@@ -2,6 +2,7 @@
 import type { IReferralTrackingService, ReferralTracking, ReferralTransitStatus } from './IReferralTrackingService';
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { manualTransitRefusal } from './referralTransitRules';
 
 const KEY = 'referral_tracking_v1';
 
@@ -37,10 +38,16 @@ export const mockReferralTrackingService: IReferralTrackingService = {
   },
 
   async updateTransitStatus(batchId: string, status: ReferralTransitStatus) {
+    // Batch 432: set by hand from the batch screen (referral:transit-status:update),
+    // forward only; "result received" comes only with the result.
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('referral:transit-status:update')).allowed) return err('NOT_PERMITTED');
     await delay();
     const all = load();
     const idx = all.findIndex(t => t.batchId === batchId);
     if (idx === -1) return err(`No referral tracking record found for batch "${batchId}"`);
+    const refusal = manualTransitRefusal(all[idx].transitStatus, status);
+    if (refusal) return err(refusal);
     const updated: ReferralTracking = { ...all[idx], transitStatus: status, lastUpdatedAt: new Date().toISOString() };
     const next = [...all]; next[idx] = updated; persist(next);
     return ok({ ...updated });

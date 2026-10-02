@@ -40,6 +40,24 @@
 
 `components/HardwarePrintPanel.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 388 (PS-359): comment drawer and slide grid
+
+- **Field Requirements** (page `microtomy`, Configuration → System → Field Requirements): the comment drawer needs the comment text (locked); the slide grid's Add needs a stain (locked) and, if the organisation switches it on, a level depth (µm). Reprint reason and the cancel reason for a printed slide are locked and listed. Both components show "Still required: …", star required labels and keep Add off until filled.
+- **Voice/keyboard:** "add comment" (Ctrl+Alt+Shift+A) and "add stain" (Ctrl+Alt+Shift+B), category `MICROTOMY`; the page now sets `VOICE_CONTEXT.MICROTOMY`. Each acts as its Add button, checks included.
+- **Translated:** stain category tabs, reprint and cancel reasons (stored as the English values, shown through `microtomyWorkstation.reasons.*`), the comment label and meta line, level labels, and the scan errors that the hook sets (`microtomyWorkstation.scanErrors.*`). Dates (comment time, prior-slide history, date of birth) follow the user's locale.
+- **Baseline:** `hooks/useMicrotomyWorkstation.ts` came off the mock-import baseline.
+- **Tests:** `components/microtomyRequirements.test.tsx` (comment drawer and slide grid) and `MicrotomyWorkstationPage.i18n.guard.test.ts`.
+- **Still English, on purpose:** print-failure text from the print chain (`printFailureReason`, stored on the slide and shown in the grid and the batch progress modal), and the block status string.
+- **Not part of this pass:** `HardwarePrintPanel`, `CytologyPanel` and `BatchProgressModal` were not re-checked for hard-coded text.
+
+## Batch 389 (PS-359): the rest of the page
+
+- **`HardwarePrintPanel`:** the two label-fit warnings and the label size are words from `microtomyWorkstation.hardware.fit.*` / `.labelSize`; `resolveSlideLabelFitWarnings` now also returns `requiredMm` and `faceMm` (its English `message` stays for logs and tests).
+- **`CytologyPanel`:** the suggested preparations are joined with `formatList`.
+- **Checked and already translated:** `CytologyPanel`, `BatchProgressModal` and the page itself. What remains English is stored data: the print-failure text on a slide, the block status, and the tissue and specimen descriptions.
+- **Not gated:** the decant fields (volume, appearance, yield) save as typed and the print buttons have no required fields, so there is nothing for Field Requirements to hold back there.
+- **Tests:** `components/microtomyPanels.test.tsx`; the guard test now also covers the two components.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

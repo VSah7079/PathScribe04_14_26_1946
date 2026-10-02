@@ -156,3 +156,9 @@ Per direct guidance's own broader architectural strategy:
 24 tests (`ILabelLayoutService.test.ts`, `mockLabelLayoutService.test.ts`), plus
 9 more (`buildLabelLayoutZpl.test.ts`), 33 total.
 Full suite clean: 303/306 files, 2936/2945 tests, 0 failures.
+
+## Batch 428: Configuration permissions
+
+- `mockLabelLayoutService`: `save`, `reset` need `config:label-layouts:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.

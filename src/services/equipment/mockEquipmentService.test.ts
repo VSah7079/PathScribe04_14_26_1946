@@ -1,6 +1,11 @@
 // @vitest-environment happy-dom
 // Batch 358: the demo equipment register.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockEquipmentService } from './mockEquipmentService';
 
 describe('mockEquipmentService', () => {
@@ -43,5 +48,24 @@ describe('mockEquipmentService', () => {
     expect(active.ok && active.data.map(i => i.code)).toEqual(['PANTHER_01', 'PANTHER_02']);
     expect(await mockEquipmentService.update('inst-panther-01', { facilityId: 'c-ent-mpa' })).toEqual({ ok: false, error: 'invalid' });
     expect(await mockEquipmentService.update('nope', { name: 'x' })).toEqual({ ok: false, error: 'notFound' });
+  });
+});
+
+describe('deck layouts (Batch 406)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('Panthers 1 and 2 have four sample-rack slots (A4 also takes the plate) and a reagent bay; Panther 3 has one slot', async () => {
+    const res = await mockEquipmentService.getAll();
+    const deck = (code: string) => (res.ok ? res.data : []).find(e => e.code === code)?.deckSlots;
+    expect(deck('PANTHER_01')?.map(sl => sl.id)).toEqual(['SLOT_A1', 'SLOT_A2', 'SLOT_A3', 'SLOT_A4', 'SLOT_R1']);
+    expect(deck('PANTHER_01')?.find(sl => sl.id === 'SLOT_A4')?.rackTypes).toEqual(['sample_tube_rack', 'extraction_plate']);
+    expect(deck('PANTHER_03')?.map(sl => sl.id)).toEqual(['SLOT_A1']);
+  });
+
+  it('a saved layout is tidied: slot ids upper case, a blank deck name dropped', async () => {
+    const res = await mockEquipmentService.getAll();
+    const p3 = (res.ok ? res.data : []).find(e => e.code === 'PANTHER_03')!;
+    const saved = await mockEquipmentService.update(p3.id, { deckSlots: [{ id: ' slot_b1 ', deck: ' ', rackTypes: ['sample_tube_rack'] }] });
+    expect(saved.ok && saved.data.deckSlots).toEqual([{ id: 'SLOT_B1', deck: undefined, rackTypes: ['sample_tube_rack'] }]);
   });
 });

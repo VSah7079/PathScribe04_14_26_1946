@@ -18,6 +18,10 @@
 // interactive grid for targeting a new ancillary stain order at
 // specific cores/specimens. This is the real, deferred "later pass"
 // this file's own header used to flag for slide/stain editing.
+//
+// Batch 397 (PS-359): the piece count and piece description are marked
+// required when the organisation's Grossing rules require them, with a note
+// when one is missing; Complete grossing now checks matrix blocks too.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
@@ -32,7 +36,9 @@ import { buildSecondaryLabelHtml } from '@/utils/labels/buildLabelHtml';
 import { printLabels } from '@/utils/labels/printLabels';
 import { getLabelSizePreset } from '@/types/labels/LabelSizePreset';
 import { columnsFor, positionToCoreCoordinate } from '../components/BiopsyArrayDiagram';
-import { stainTypeService } from '@/services';
+import { stainTypeService, blockGrossingFieldsMissing, isFieldRequired } from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { GrossingFieldNote, RequiredMark } from '@/components/Grossing/GrossingFieldNote';
 import type { StainType } from '@/services/stains/IStainService';
 import ForeignIdFields from './ForeignIdFields';
 
@@ -74,6 +80,11 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('details');
+  // Batch 397 (PS-359): a matrix block's piece count and description follow
+  // the Grossing page's per-block rules. Edits save as they're made, so they
+  // are marked here and checked at Complete grossing.
+  const grossingRequirements = useFieldRequirements('grossing');
+  const missingGrossing = blockGrossingFieldsMissing(matrixBlock, grossingRequirements);
 
   // Real feature, per direct follow-up: "If the lab receives a block
   // and it has an engraved id, we treat that as a foreign id." Same
@@ -231,7 +242,7 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label" htmlFor="matrix-piece-count">{t('matrixBlockEditorModal.details.piecesGrossedLabel')}</label>
+              <label className="ps-conf-label" htmlFor="matrix-piece-count">{t('matrixBlockEditorModal.details.piecesGrossedLabel')}<RequiredMark required={isFieldRequired(grossingRequirements, 'pieceCount')} /></label>
               <input
                 id="matrix-piece-count" type="number" min={0} className="ps-conf-select"
                 value={matrixBlock.pieceCount ?? ''}
@@ -241,6 +252,7 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
                   onUpdate(matrixBlock.id, { pieceCount: n });
                 }}
               />
+              <GrossingFieldNote missing={missingGrossing.includes('pieceCount')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-matrixblock-checkbox-label">
@@ -256,13 +268,14 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
           </div>
 
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label" htmlFor="matrix-piece-desc">{t('matrixBlockEditorModal.details.pieceDescriptionLabel')}</label>
+            <label className="ps-conf-label" htmlFor="matrix-piece-desc">{t('matrixBlockEditorModal.details.pieceDescriptionLabel')}<RequiredMark required={isFieldRequired(grossingRequirements, 'pieceDescription')} /></label>
             <input
               id="matrix-piece-desc" type="text" className="ps-conf-select"
               value={matrixBlock.pieceDescription ?? ''}
               placeholder={t('matrixBlockEditorModal.details.pieceDescriptionPlaceholder')}
               onChange={e => onUpdate(matrixBlock.id, { pieceDescription: e.target.value || undefined })}
             />
+            <GrossingFieldNote missing={missingGrossing.includes('pieceDescription')} />
           </div>
 
           {/* Real feature, per direct follow-up: "If the lab receives

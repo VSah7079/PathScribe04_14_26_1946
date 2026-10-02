@@ -47,6 +47,7 @@ import { getParticipationTypeLookup } from '../../utils/participationTypeLookup'
 import { isOrchCaseId } from './reportingModeRouting';
 import { mergeDualSourcePages } from './caseFilterUtils';
 import { getEffectiveScanStationId } from '../../utils/effectiveScanStation';
+import { selectLinkableAccessions } from '../messages/linkableCaseAccessions';
 
 // Real dimension-3 (pool/subspecialty) enforcement needs a lookup of every
 // subspecialty by id to check isWorkgroupEnabled/userIds against a case's
@@ -330,6 +331,30 @@ class CaseRouter implements ICaseService {
       { lis: (lisResult as any).meta?.hasMore, orch: (orchResult as any).meta?.hasMore },
     );
     return { ok: true, data: merged.data as any, meta: merged.meta } as ServiceResult<Case[]>;
+  }
+
+  // ── listLinkableAccessions ──────────────────────────────────────────────────
+  // Batch 396 (Pete's privacy model, rule 4): the accession numbers a message
+  // may turn into links for the signed-in reader, only cases the reader can
+  // open. Returns numbers, not cases. Unlike getAll, a superadmin session
+  // gets only its own organisation's cases here, so no support access is
+  // used or recorded just to decorate a message
+  // (services/messages/linkableCaseAccessions.ts).
+  async listLinkableAccessions(): Promise<string[]> {
+    const session = getSessionUser();
+    if (!session) return [];
+    const res = await this.lisService.getAll()
+      .then(r => { this.lisAudit.log({ eventType: 'case.search', userId: session.id, outcome: 'success' }); return r; })
+      .catch((): ServiceResult<Case[]> => { this.lisAudit.log({ eventType: 'case.search', userId: session.id, outcome: 'failure' }); return { ok: false, data: [] } as any; });
+    if (!res.ok) return [];
+    const [subspecialties, enterpriseFacilities, allFacilities] = await Promise.all([
+      getSubspecialtyLookup(),
+      getEnterpriseFacilityLookup(),
+      mockFacilityService.getAll().then(r => (r.ok ? r.data : [])).catch(() => [] as Facility[]),
+    ]);
+    const accessible = filterAccessibleCasesWithPools(session, res.data as any, subspecialties, enterpriseFacilities) as unknown as Case[];
+    const facilitiesById = new Map(allFacilities.map(f => [f.id, f as any]));
+    return selectLinkableAccessions(session, accessible as any, enterpriseFacilities, facilitiesById);
   }
 
   // ── listCasesForUser ─────────────────────────────────────────────────────────

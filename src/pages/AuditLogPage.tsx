@@ -44,6 +44,7 @@ import PrintQueueDashboardSection from './PrintQueueDashboardSection';
 import CriticalAlertAuditSection from './CriticalAlertAuditSection';
 import SupportReferenceChip from '../components/Support/SupportReferenceChip';
 import SupportReferenceLookup from '../components/Support/SupportReferenceLookup';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
 
 type ActiveTab = 'audit' | 'errors' | 'interfaces' | 'quality' | 'financial' | 'criticalAlerts';
 
@@ -286,6 +287,12 @@ const AuditLogPage: React.FC = () => {
   const [isLoaded,        setIsLoaded]        = useState(false);
   const [auditLogs,       setAuditLogs]       = useState<AuditLog[]>([]);
   const [errorLogs,       setErrorLogs]       = useState<ErrorLog[]>([]);
+  // Batch 432: mark an error resolved (the service checks audit:error:resolve
+  // and records who and when).
+  const resolveErrorLog = async (id: string) => {
+    const r = await auditService.resolveError(id);
+    if (r.ok) setErrorLogs(prev => prev.map(e => e.id === id ? r.data : e));
+  };
   /** Real feature, per direct confirmation: "Users should be able to
    *  see interface error log under Audit, a new pill Interfaces." A
    *  genuinely different data shape from ErrorLog — real HL7 interface
@@ -874,7 +881,18 @@ const AuditLogPage: React.FC = () => {
                         <div className="ps-auditlog-cell-detail" data-phi="true">{log.message}</div>
                         <div className="ps-auditlog-cell-user">{log.source}</div>
                         <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => navigate(`/case/${log.caseId}/synoptic`)}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
-                        <div><span className={`ps-auditlog-status-badge ${log.resolved ? 'ps-auditlog-status-badge--resolved' : 'ps-auditlog-status-badge--open'}`}>{log.resolved ? t('auditLog.errorTab.statusResolved') : t('auditLog.errorTab.statusOpen')}</span></div>
+                        <div className="ps-auditlog-cell-status">
+                          <span
+                            className={`ps-auditlog-status-badge ${log.resolved ? 'ps-auditlog-status-badge--resolved' : 'ps-auditlog-status-badge--open'}`}
+                            title={log.resolved && log.resolvedBy ? t('auditLog.errorTab.resolvedByTitle', { name: log.resolvedBy, when: log.resolvedAt ? formatAuditTimestamp(log.resolvedAt) : '' }) : undefined}
+                          >{log.resolved ? t('auditLog.errorTab.statusResolved') : t('auditLog.errorTab.statusOpen')}</span>
+                          {/* Batch 432: resolving needs audit:error:resolve (checked by the service). */}
+                          {!log.resolved && (
+                            <CapabilityButton capability="audit:error:resolve" className="ps-auditlog-resolve-btn" onClick={() => resolveErrorLog(log.id)}>
+                              {t('auditLog.errorTab.resolveButton')}
+                            </CapabilityButton>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

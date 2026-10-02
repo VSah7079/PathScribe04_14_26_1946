@@ -56,7 +56,13 @@ describe('signing screens confirm the signer (Batch 344)', () => {
     expect(hook).toMatch(/signatureGate\.commit\(caseData\.id, 'finalized'\)/);
     expect(hook).toMatch(/signatureGate\.commit\(caseData\.id, 'signed'/);
     expect(hook).toMatch(/signatureGate\.commit\(caseData\.id, 'released_for_countersign'/);
-    expect(read('pages/CytologyWorklistPage/CytologyScreeningPage.tsx')).toMatch(/signatureGate\.accept\(confirmation,/);
+    // Batch 409: cytology sign-out moved to a service; the page hands it the confirmation.
+    const cyto = read('services/cytology/signOutCytologyCase.ts');
+    expect(cyto).toMatch(/signatureGate\.accept\(input\.confirmation,/);
+    expect(cyto).toMatch(/signatureGate\.commit\(caseData\.id, 'signed'/);
+    expect(cyto).toMatch(/signatureGate\.commit\(caseData\.id, 'released_for_countersign'/);
+    expect(read('services/cytology/signOutCytologyCaseDeps.ts')).toMatch(/signatureGate: signatureGate/);
+    expect(read('pages/CytologyWorklistPage/CytologyScreeningPage.tsx')).toMatch(/signOutCytologyCase\(\{[\s\S]*?confirmation,/);
     expect(read('pages/SynopticReportPage/SynopticReportPage.tsx')).toMatch(/signatureGate\.accept\(confirmation,/);
   });
 });

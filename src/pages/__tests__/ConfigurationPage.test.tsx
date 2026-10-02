@@ -61,6 +61,9 @@ vi.mock('../../components/Config/Actions/ActionsTab', () => ({ ActionsTab: () =>
 vi.mock('../../components/Config/System/DemoResetTab', () => ({ default: () => <div>DEMO_TAB</div> }));
 vi.mock('../../components/TemplateBuilder/ReportTemplatesSection', () => ({ default: () => <div>TEMPLATES_TAB</div> }));
 vi.mock('../../components/ValidationStudies/ValidationStudiesSection', () => ({ default: () => <div>VALIDATION_TAB</div> }));
+// Batch 428/429: the refusal banner and the view-only gate are tested on their own; here they pass the tab through.
+vi.mock('../../components/Config/ConfigRefusalBanner', () => ({ default: () => null }));
+vi.mock('../../components/Config/ConfigSectionGate', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
 // The one real, confirmed dirty-state producer inside ConfigurationPage's
 // own tab tree (see MacroPanel.tsx) — stood in here with a button so a test

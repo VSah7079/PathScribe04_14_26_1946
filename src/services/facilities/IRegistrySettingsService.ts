@@ -72,7 +72,10 @@
 
 import type { ServiceResult } from '../types';
 
-export type RegistryId = 'none' | 'kncsp_kccr_korea' | 'csms_uk' | 'cervicalcheck_ireland' | 'palga_netherlands' | 'ncsr_australia' | 'nicsp_northern_ireland';
+import type { ScreeningRegistryId } from '../screeningRegistry/screeningRegistryDefinitions';
+
+/** Batch 414: every registry in services/screeningRegistry/screeningRegistryDefinitions.ts, or none. */
+export type RegistryId = 'none' | ScreeningRegistryId;
 
 export interface RegistrySettingsConfig {
   registryId: RegistryId;

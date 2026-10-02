@@ -25,6 +25,8 @@
 
 import type { ServiceResult, ID } from '../types';
 import type { MolecularMovementRecord } from './IMolecularBatchService';
+import type { DeckRackType } from '../equipment/IEquipmentService';
+import type { ResolvedFieldRequirement } from '../fieldRequirements/fieldRequirementRules';
 
 export interface MolecularRackPosition {
   positionLabel: string; // e.g. '1', '2', ... 'N' — real, linear, per this file's own header
@@ -37,18 +39,56 @@ export interface MolecularRackPosition {
   movementHistory?: MolecularMovementRecord[];
 }
 
+/** Batch 406 (Pete): where a rack was put on an analyser's deck. */
+export interface MolecularRackPlacement {
+  /** Equipment.code of the analyser. */
+  instrumentCode: string;
+  /** StainType.id of the assay, when recorded; it narrows the slots to its rule's. */
+  assayCode?: string;
+  /** DeckSlot.id; required when the instrument has more than one slot for this rack type. */
+  deckSlotId?: string;
+  /** How the slot was chosen: the filtered pick-list, or scanning the deck position's barcode. */
+  via: 'manual' | 'deckScan';
+  placedAt: string;
+  placedByUserId: string;
+  placedByUserName: string;
+}
+
 export interface MolecularExtractionRack {
   id: ID;
-  rackBarcode: string; // RACK-MOLE-XXXXX
+  /** Batch 406: the physical rack's own barcode when it has one (entered or
+   *  scanned at creation), else a generated RACK-MOLE-XXXXX. Unique. */
+  rackBarcode: string;
   rackUuid: string;
   capacity: number;
   positions: MolecularRackPosition[];
   createdAt: string;
   createdByUserId: string;
   createdByUserName: string;
+  /** Batch 406: what kind of rack it is, for deck-slot compatibility. Missing = a sample tube rack. */
+  rackType?: DeckRackType;
+  /** Batch 406: set once the rack is placed on an instrument's deck. */
+  placement?: MolecularRackPlacement;
 }
 
-export type NewMolecularExtractionRack = Pick<MolecularExtractionRack, 'capacity' | 'createdByUserId' | 'createdByUserName'>;
+/** Batch 406: `rackBarcode` is the physical rack's barcode; left blank, one is generated. */
+export type NewMolecularExtractionRack = Pick<MolecularExtractionRack, 'capacity' | 'createdByUserId' | 'createdByUserName'> & { rackBarcode?: string };
+
+/** Batch 406: why a rack change was refused, as codes the Rack Loading page
+ *  translates (`molecularRackLoadingPage.errors.<code>`), plus the deck-slot
+ *  problems from services/molecular/deckSlots.ts. */
+export const MOLECULAR_RACK_ERRORS = {
+  notFound: 'rackNotFound',
+  positionNotFound: 'positionNotFound',
+  positionOccupied: 'positionOccupied',
+  positionEmpty: 'positionEmpty',
+  duplicateBarcode: 'duplicateRackBarcode',
+  invalidBarcode: 'invalidRackBarcode',
+  /** A locked Field Requirement (sample IDs, instrument, deck slot) is missing. */
+  incomplete: 'placementIncomplete',
+  instrumentUnavailable: 'instrumentUnavailable',
+  alreadyPlaced: 'alreadyPlaced',
+} as const;
 
 export interface IMolecularExtractionRackService {
   getAll(): Promise<ServiceResult<MolecularExtractionRack[]>>;
@@ -65,6 +105,19 @@ export interface IMolecularExtractionRackService {
     positionLabel: string,
     specimen: { specimenUuid?: string; accessionNumber?: string; containerBarcode: string },
     movement: MolecularMovementRecord,
+  ): Promise<ServiceResult<MolecularExtractionRack>>;
+  /** Batch 406 (Pete: every occupied position has its sample ID): records the
+   *  accession of a tube already on the rack whose scan didn't match one. */
+  setPositionAccession(rackId: ID, positionLabel: string, accessionNumber: string): Promise<ServiceResult<MolecularExtractionRack>>;
+  /** Batch 406: puts the rack on an analyser's deck. Refused unless every
+   *  occupied position has its sample ID, the instrument is an active
+   *  analyser, and the slot (required when the deck has more than one for this
+   *  rack type) takes this rack type and, with an assay, is one its rule
+   *  allows. The organisation's Field Requirements are passed in. */
+  placeOnDeck(
+    rackId: ID,
+    placement: Omit<MolecularRackPlacement, 'placedAt'>,
+    requirements: readonly ResolvedFieldRequirement[],
   ): Promise<ServiceResult<MolecularExtractionRack>>;
   /** Real, per this file's own header — given a real, already-scanned
    *  container barcode, finds which rack (if any) and which position

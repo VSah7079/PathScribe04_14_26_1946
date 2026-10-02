@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { mockAssistPollingService, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES } from '@/services/assistPolling/mockAssistPollingService';
 import { runAssistPollNow, ingestLisMessageNow, retryFailedLisEventsNow } from '@/services/assistPolling/assistPollingRuntime';
+import { isConfigRefusal } from '@/services/authorization/guardConfigWrites';
 import { assistSettingsChanged, summarizeRun } from '@/services/assistPolling/assistMilestoneRules';
 import { ASSIST_MILESTONES, type AssistMilestone, type AssistPollingSettings, type AssistPollingState, type AssistPollRun } from '@/services/assistPolling/types';
 import { mockLisStagingQueueService } from '@/services/lisIngestion/mockLisStagingQueueService';
@@ -73,7 +74,8 @@ const AssistLisPollingSection: React.FC = () => {
 
   const runAction = async (action: () => Promise<unknown>) => {
     setBusy(true);
-    try { await action(); } finally { setBusy(false); await load(); }
+    // Batch 428: a refusal (no assist:lis-message:ingest) is shown by the Configuration page.
+    try { await action(); } catch (e) { if (!isConfigRefusal(e)) throw e; } finally { setBusy(false); await load(); }
   };
 
   const handleSendMessage = () => runAction(async () => setPushResult(await ingestLisMessageNow(pushKind, pushText)));

@@ -77,6 +77,13 @@ override exists, the form becomes editable again, now writing to that
 facility's own record, with a "Revert to System Default" action that
 deletes it outright (not a soft-disable flag).
 
+## Batch 428: Configuration permissions
+
+- `mockPrintSettingsService`: `update`, `reset` need `config:print-settings:manage`.
+- `mockFacilityPrintSettingsService`: `create`, `update`, `remove` need `config:print-settings:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

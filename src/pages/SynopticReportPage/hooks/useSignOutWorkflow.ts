@@ -58,6 +58,7 @@ import { caseRouter } from '@/services/cases/CaseRouter';
 import { syncPrimaryAssignee } from '@/services/cases/caseAssignmentSync';
 import { mockReportReleaseService } from '@/services/reportRelease/mockReportReleaseService';
 import { publishReportReleasedEvent } from '@/services/reports/publishReportReleasedEvent';
+import { finalizedAssistWorkups } from '@/services/reports/assistFinalize';
 import { mockServiceChargeService } from '@/services/billing/mockServiceChargeService';
 import { mockNcciEditService } from '@/services/billing/mockNcciEditService';
 import { mockBillingDeficiencyService } from '@/services/billing/mockBillingDeficiencyService';
@@ -1457,6 +1458,9 @@ export function useSignOutWorkflow({
           : undefined,
         releaseBufferDurationMinutes: bufferResolution.applies ? bufferResolution.durationMinutes : undefined,
         preReleaseBufferStatus: bufferResolution.applies ? caseData.status : undefined,
+        // Batch 426: an Assist case's finalized workups are what goes to the LIS
+        // (services/reports/assistFinalize.ts). Excluded ones stay drafts.
+        ...(caseData.reportingMode === 'assist' ? { synopticReports: finalizedAssistWorkups(caseData.synopticReports, excludedInstanceIds) } : {}),
       };
 
       await caseRouter.updateCase(caseData.id, patch, knownVersionRef.current);
@@ -1464,6 +1468,15 @@ export function useSignOutWorkflow({
 
       const updated = { ...caseData, ...patch } as typeof caseData;
       setCaseData(updated);
+
+      // Batch 426: no release buffer, so the Assist case is released now: its workups go to the LIS
+      // (publishReportReleasedEvent → dispatchAssistSynopticResult). With a buffer, its expiry does this.
+      if (caseData.reportingMode === 'assist' && !bufferResolution.applies) {
+        publishReportReleasedEvent({
+          caseId: caseData.id, reportType: 'FINAL', releasedAt: finalizedAt,
+          releasedBy: signingUser?.id ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : undefined,
+        }).catch(e => console.error('[useSignOutWorkflow] Non-blocking failure sending the Assist workups to the LIS:', e));
+      }
 
       log('case_finalized', {
         caseId: caseData.id,

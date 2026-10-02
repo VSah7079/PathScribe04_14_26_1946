@@ -7,6 +7,7 @@ import type {
   GrossingRoutingOverrideEntry,
   GrossingRoutingOverrideInput,
 } from './IGrossingRoutingOverrideService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // One real seed example so the admin screen demonstrates a genuinely
 // working case on first view, rather than opening empty with nothing
@@ -35,7 +36,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 100));
 
-export const mockGrossingRoutingOverrideService: IGrossingRoutingOverrideService = {
+const grossingRoutingOverrideServiceUnchecked: IGrossingRoutingOverrideService = {
   async getAll() {
     await delay();
     return ok(load());
@@ -78,3 +79,8 @@ export const mockGrossingRoutingOverrideService: IGrossingRoutingOverrideService
     return ok(undefined as any);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockGrossingRoutingOverrideService: IGrossingRoutingOverrideService = guardConfigWrites(grossingRoutingOverrideServiceUnchecked, [
+  ['config:grossing-routes:manage', ['add', 'update', 'remove']],
+]);

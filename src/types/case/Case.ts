@@ -104,6 +104,11 @@ export interface OrderMetadata {
    */
   requisitionNumber?: string;
   externalOrderId?: string;
+  /** Batch 426: the LIS's placer (ORC-2) and filler (ORC-3) order numbers, as the
+   *  interface engine sent them on an Assist case's inbound updates. Echoed back on
+   *  the structured synoptic result so the engine needs no state table. */
+  placerOrderNumber?: string;
+  fillerOrderNumber?: string;
   labNumber?: string;
   blockId?: string;
   referralNumber?: string | null;
@@ -296,6 +301,9 @@ export interface SynopticReportInstance {
   instanceId: string;
   /** Which specimen this report belongs to */
   specimenId: string;
+  /** Batch 426: further parts this workup covers (one resection protocol spanning
+   *  containers). Sent as the result's specimen_ids; no screen sets it yet. */
+  additionalSpecimenIds?: string[];
   /** The template used (e.g. 'breast_invasive') */
   templateId: string;
   /** Human-readable template name (cached for sidebar display) */
@@ -370,6 +378,18 @@ export interface SynopticReportInstance {
    *  the version history being compared; unchanged fields' provenance
    *  is implicit in the ReportVersionRecord chain. See FieldLineage.ts. */
   fieldLineage?: Record<string, FieldLineageEntry>;
+  /** Batch 426: newer AI suggestions for fields the pathologist had already set
+   *  (typed or confirmed), from a re-evaluation of new or changed narrative. Never
+   *  applied on their own: the synoptic panel asks "keep or update?" per field. */
+  reevaluations?: Record<string, PendingReevaluation>;
+}
+
+/** Batch 426: one re-evaluated field waiting for the pathologist's choice. */
+export interface PendingReevaluation {
+  value: string | string[];
+  confidence: number;
+  source: string;
+  suggestedAt: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -943,6 +963,16 @@ export interface Case {
    *  pathologist's preference, then the ordering facility's default,
    *  applies (services/spellcheck/resolveSpellingLocale.ts). */
   spellingLocaleOverride?: string | null;
+  /** Batch 411: a cytology case finalized before every cytology specimen was
+   *  signed out (cytology:case:finalize): who, when, why, and which specimens
+   *  were left unsigned. Absent when the case finalized normally. */
+  cytologyEarlyFinalization?: {
+    finalizedBy: string;
+    finalizedByName: string;
+    finalizedAt: string;
+    reason: string;
+    unsignedSpecimenIds: string[];
+  };
   /** Real, flat denormalization of participants — the specific staffIds
    *  currently eligible to finalize this case (active Primary/
    *  Attending), maintained automatically by CaseRouter.ts whenever a

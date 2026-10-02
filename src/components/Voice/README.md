@@ -71,6 +71,14 @@ a result — see `VoiceToggleButton.tsx` below.
 
 `VoiceToggleButton.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 429: view-only sections, equipment log for the bench
+
+`VoiceSettings.tsx`: the deployment-wide voice switch is view only without `config:voice:manage`; a person's own accent, pedal and voice macros are unchanged.
+
+## Batch 430: personal settings per person; view-only fields
+
+`SpeechConfigTab.tsx` lists your own voice macros and the shared ones, and what you add or import is yours (`addPersonalMacro`, `importPersonalMacros`). Changing a shared macro needs `config:macros:manage`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

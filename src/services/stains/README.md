@@ -18,6 +18,27 @@ Stain catalog — THREE distinct sub-concepts bundled in one well-reasoned inter
 - **Real, new consumer (PS-287, Sep 2026):** `StainType.category`, `requiresTargetControl`/`allowControlAutoAppend`, and `defaultControlTissueType` are now also read by `utils/addOnOrderOperations.ts` — category drives the spec's own §3 "Automatic Order Splitting" (real routing to Histology Cutting / Special Stains Bench / IHC & Special Histochemistry / Reference-Send-Out queues), and the two control flags drive the real, per-stain default for §1's own Auto-Control Pairing, rather than a blind category-wide assumption. `pages/AddOnOrderPage/`'s own IHC panel presets (`types/case/AddOnOrder.ts`) also reference a small, real set of existing seed `StainType.id`s (Breast/Lynch-MMR/Renal-IF panels) rather than a fabricated catalog. Read-only; nothing in this folder's own files changed.
 - This is the stain CATALOG only — deliberately NOT the same as the Block/Slide model, which is explicitly paused pending a verified Vantage HL7 integration spec (see services/hl7/adapters/vantageAdapter.ts). **Worth flagging, not yet reconciled**: `types/case/Specimen.ts`'s `HistologyBlock` (with a real `stains: StainOrder[]` field) does genuinely exist and is actively used today — this note may be stale relative to that, or referring to a more specific structural detail this pass didn't investigate. Not resolved here given the scope already covered this pass.
 
+## Batch 403: reference labs linked to a test
+
+`StainType.referenceLabFacilityIds` / `defaultReferenceLabFacilityId`, for Molecular tests only. Pete asked for vendors linked to tests so they default in, with the picker limited to the approved labs. These are the reference labs approved to perform the test, and its default lab. They are set in the Stain Dictionary editor.
+
+`referenceLabLink.ts` holds `activeReferenceLabs` and `normalizeReferenceLabLink`. The default is kept only if its lab is ticked, and nothing is stored for a test that isn't Molecular.
+
+Seeded links:
+- **HER2 FISH:** Summit or Pacific, with Summit as the default.
+- **Lymphoma FISH Panel:** Great Lakes only.
+- **NGS Solid Tumor Panel (new):** Summit or Pacific, no default.
+- **MSI by PCR (new):** no link, so every reference lab is offered.
+
+## Batch 428: Configuration permissions
+
+- `mockStainTypeService`: `add`, `update` need `config:stain-dictionary:manage`.
+- `mockSectioningProtocolService`: `add`, `update` need `config:stain-dictionary:manage`.
+- `mockStainOrderMacroService`: `add`, `update` need `config:stain-dictionary:manage`.
+- `mockMolecularTargetService`: `add`, `update` need `config:stain-dictionary:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

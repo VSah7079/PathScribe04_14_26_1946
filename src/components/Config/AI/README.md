@@ -101,6 +101,24 @@ everything else is UI over it.
   the real vendor name), or comments explaining real, documented vendor
   API behavior.
 
+## Batch 428: Configuration permissions
+
+- `AiProviderSettings.tsx`: the lab-wide save goes through `services/aiConfig/saveAiSettings.ts` (`config:ai-provider:manage`); a person's own override is unchanged.
+- `OrchestratorConfigSection.tsx`: the default mode toggle changes only when the save is allowed.
+- AI feature switches and the default model are checked in their services (`config:ai-behavior:manage`, `config:ai-model:manage`).
+
+## Batch 429: view-only sections, equipment log for the bench
+
+The AI tab is view only without any of the three AI capabilities. The Orchestration panel's expand buttons are marked `data-config-nav`.
+
+## Batch 430: personal settings per person; view-only fields
+
+`aiProviderConfig.ts`: the personal provider override is kept per person (`services/userSettings/personalSettings.ts`). Correction: no screen sets it today (the AI tab shows provider settings to administrators only, and they save the lab-wide setting), so Batch 429's note that view-only blocked it was wrong.
+
+## Batch 431
+
+The lab's AI provider settings (`aiProviderConfig.ts`) and the orchestrator default (`orchestratorModeConfig.ts`) are kept in the lab settings store.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

@@ -167,3 +167,21 @@ Batch 328 added `User.staffRoles`, the staff record's role names, to the session
 ## React Router 7 (Batch 341, PS-344)
 
 Every file here that used `react-router-dom` now imports the same hooks and components from `react-router` 7 (`react-router-dom` was removed from the project). Nothing else changed: the app had already opted into version 7's behaviour. See `src/i18n/README.md` → Batch 341.
+
+## Batch 396
+
+`MessagingContext.tsx`: the inbox is cleared as soon as the signed-in user changes (sign-out included), and a reply for an earlier account is dropped. Before, the last person's messages stayed until the next load.
+
+## Batch 428: Configuration permissions
+
+`SystemConfigContext.tsx`: `updateConfig` and `updateEnterpriseConfig` now resolve to whether the change was allowed. The field's capability is checked first (`services/systemConfig/systemConfigChangeChecks.ts`: voice, approved fonts, contribution settings, abnormal-result detection); a refused change isn't applied.
+
+## Batch 430: personal settings per person; view-only fields
+
+- `VoiceProvider.tsx`: the accent and dictation's learned corrections are the signed-in person's (`services/userSettings/personalSettings.ts`), reloaded when someone else signs in.
+- `AuthContext.tsx`: `useAuthOptional()` (new) returns the context or null, for providers that may render outside `AuthProvider`.
+
+## Batch 431
+
+- `SystemConfigContext`: reads and saves through `services/systemConfig/systemConfigStore.ts`.
+- `MessagingContext`, `VoiceProvider`: session flags (`utils/uiPreferences.ts`).

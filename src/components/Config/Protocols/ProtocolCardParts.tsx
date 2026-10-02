@@ -178,7 +178,7 @@ export const SearchBar: React.FC<{ value: string; onChange: (v: string) => void 
   return (
     <div className="ps-activeprotocols-search-wrap">
       <span className="ps-activeprotocols-search-icon">🔍</span>
-      <input
+      <input data-config-nav
         value={value} onChange={e => onChange(e.target.value)}
         placeholder={t('activeProtocolsSection.searchPlaceholder')}
         className="ps-activeprotocols-search-input"

@@ -1,38 +1,21 @@
 // src/components/TemplateBuilder/TemplatePreviewPanel.tsx
 // Word-style paginated preview. Auto-paginates from content height.
-// Page size is sticky across sessions via localStorage.
+// Opens at the lab's page size and margins (Batch 431, Document Style).
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { ReportTemplate as OldTemplate, TemplateNode } from '../../types/template';
 import type { StructuredContext } from '../../orchestrator/contextBuilder';
 import { evalCondition } from '../../pages/ReportPreview/ReportPreviewRenderer';
+import { PAGE_SIZES, PAGE_SIZE_REGION_KEY, getLabPageSetup, type Margins } from '@/services/reportAppearance/pageSetup';
 
 // ── Page sizes ─────────────────────────────────────────────────
 const MM = 96 / 25.4;
 const mm = (v: number) => Math.round(v * MM);
 
-// Paper size names (A4, US Letter, ...) are standardised international
-// nomenclature and stay literal in every locale; only the descriptive
-// "where it's used" region text is translated, via this id-keyed map.
-export interface PageSize { id: string; label: string; widthMm: number; heightMm: number; }
-const PAGE_SIZES: PageSize[] = [
-  { id: 'a4',     label: 'A4',        widthMm: 210, heightMm: 297 },
-  { id: 'letter', label: 'US Letter', widthMm: 216, heightMm: 279 },
-  { id: 'legal',  label: 'US Legal',  widthMm: 216, heightMm: 356 },
-  { id: 'a3',     label: 'A3',        widthMm: 297, heightMm: 420 },
-  { id: 'b5',     label: 'B5',        widthMm: 176, heightMm: 250 },
-];
-const PAGE_SIZE_REGION_KEY: Record<string, string> = {
-  a4: 'templatePreviewPanel.pageSize.region.a4',
-  letter: 'templatePreviewPanel.pageSize.region.letter',
-  legal: 'templatePreviewPanel.pageSize.region.legal',
-  a3: 'templatePreviewPanel.pageSize.region.a3',
-  b5: 'templatePreviewPanel.pageSize.region.b5',
-};
-
-export interface Margins { top: number; right: number; bottom: number; left: number; }
-const DEFAULT_MARGINS: Margins = { top: 25, right: 20, bottom: 25, left: 20 };
+// Batch 431: page sizes and the lab's page setup live in
+// services/reportAppearance/pageSetup.ts (lab-wide, set in Document Style).
+export type { PageSize, Margins } from '@/services/reportAppearance/pageSetup';
 const MARGIN_SIDE_LABEL_KEY: Record<keyof Margins, string> = {
   top: 'templatePreviewPanel.margins.top',
   right: 'templatePreviewPanel.margins.right',
@@ -474,22 +457,11 @@ interface Props { template: OldTemplate; onClose: () => void; }
 
 export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => {
   const { t } = useTranslation();
-  // ── Sticky page size across sessions ──────────────────────────
-  const [pageSizeId, setPageSizeId] = useState(() =>
-    localStorage.getItem('ps_preview_page_size') ?? 'a4'
-  );
-  const handlePageSizeChange = (id: string) => {
-    setPageSizeId(id);
-    localStorage.setItem('ps_preview_page_size', id);
-  };
-
-  const [margins, setMargins] = useState<Margins>(() => {
-    try {
-      const stored = localStorage.getItem('ps_preview_margins');
-      if (stored) return JSON.parse(stored) as Margins;
-    } catch { /* ignore corrupt stored value */ }
-    return DEFAULT_MARGINS;
-  });
+  // Batch 431: opens at the lab's page size and margins (Document Style).
+  // Trying another size or margin here is for this preview only.
+  const [pageSizeId, setPageSizeId] = useState(() => getLabPageSetup().pageSizeId);
+  const handlePageSizeChange = (id: string) => setPageSizeId(id);
+  const [margins, setMargins] = useState<Margins>(() => getLabPageSetup().margins);
   const [showCtx, setShowCtx] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const ctx = MOCK_CTX;
@@ -531,15 +503,12 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
       {settingsOpen && (
         <div className="ps-tpp-margins-panel">
           <span className="ps-tpp-margins-label">{t('templatePreviewPanel.margins.heading')}</span>
+          <span className="ps-tpp-margins-hint">{t('templatePreviewPanel.margins.previewOnlyHint')}</span>
           {(['top','right','bottom','left'] as (keyof Margins)[]).map(side => (
             <label key={side} className="ps-tpp-margin-field">
               {t(MARGIN_SIDE_LABEL_KEY[side])}
               <input type="number" value={margins[side]} min={5} max={50}
-                onChange={e => setMargins(m => {
-                    const next = { ...m, [side]: parseInt(e.target.value) || 20 };
-                    localStorage.setItem('ps_preview_margins', JSON.stringify(next));
-                    return next;
-                  })}
+                onChange={e => setMargins(m => ({ ...m, [side]: parseInt(e.target.value) || 20 }))}
                 className="ps-tpp-margin-input" />
             </label>
           ))}

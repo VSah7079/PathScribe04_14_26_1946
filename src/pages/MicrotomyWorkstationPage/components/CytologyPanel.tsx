@@ -9,6 +9,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Decant } from '@/types/case/Material';
+import { formatList } from '@/utils/formatList';
 import { computeCytologyPrepSuggestions } from '@/services/cytology/computeCytologyPrepSuggestions';
 
 export interface CytologyPanelProps {
@@ -18,7 +19,7 @@ export interface CytologyPanelProps {
 }
 
 const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, onApplySuggestions }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [volumeInput, setVolumeInput] = useState(decant.totalVolumeMl?.toString() ?? '');
 
   const suggestions = useMemo(
@@ -68,7 +69,7 @@ const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, o
         <div className="ps-microtomy-prep-suggestion-box">
           <div>
             {t('microtomyWorkstation.cytology.suggestionIntro')}{' '}
-            {suggestions.map(s => `${s.count}× ${t(`microtomyWorkstation.cytology.prepMethod.${s.preparationMethod.replace(/[^A-Za-z]/g, '')}`)}`).join(', ')}
+            {formatList(suggestions.map(s => `${s.count}× ${t(`microtomyWorkstation.cytology.prepMethod.${s.preparationMethod.replace(/[^A-Za-z]/g, '')}`)}`), i18n.language)}
           </div>
           <button type="button" className="ps-btn-secondary ps-mt-8" onClick={() => onApplySuggestions(suggestions)}>
             {t('microtomyWorkstation.cytology.acceptSuggestion')}

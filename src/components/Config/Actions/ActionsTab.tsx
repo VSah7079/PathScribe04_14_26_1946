@@ -254,11 +254,11 @@ export const ActionsTab: React.FC = () => {
         </div>
       </div>
 
-      <input type="text" placeholder={t('actionsTab.search.placeholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="registry-search-input" />
+      <input data-config-nav type="text" placeholder={t('actionsTab.search.placeholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="registry-search-input" />
 
       <div className="ps-actionstab-filter-row">
         {filterOptions.map(cat => (
-          <button key={cat} onClick={() => setSelectedCategory(cat)} className={`ps-conf-category-btn${selectedCategory === cat ? ' active' : ''}`}>{cat === 'All' ? t('actionsTab.filters.all') : toTitleCase(cat)}</button>
+          <button data-config-nav key={cat} onClick={() => setSelectedCategory(cat)} className={`ps-conf-category-btn${selectedCategory === cat ? ' active' : ''}`}>{cat === 'All' ? t('actionsTab.filters.all') : toTitleCase(cat)}</button>
         ))}
       </div>
 

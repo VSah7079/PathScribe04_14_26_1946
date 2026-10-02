@@ -2,6 +2,7 @@
 import type { IMigrationFieldMappingService, MigrationFieldMapping, NewMigrationFieldMapping } from './IMigrationFieldMappingService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'migrationFieldMappings';
 
@@ -12,7 +13,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = (message: string): ServiceResult<never> => ({ ok: false, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-export const mockMigrationFieldMappingService: IMigrationFieldMappingService = {
+const migrationFieldMappingServiceUnchecked: IMigrationFieldMappingService = {
   async getAll() {
     await delay();
     return ok(load());
@@ -52,3 +53,8 @@ export const mockMigrationFieldMappingService: IMigrationFieldMappingService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockMigrationFieldMappingService: IMigrationFieldMappingService = guardConfigWrites(migrationFieldMappingServiceUnchecked, [
+  ['config:migration-mappings:manage', ['add', 'update', 'remove']],
+]);

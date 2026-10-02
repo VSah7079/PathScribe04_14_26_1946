@@ -1591,6 +1591,181 @@ test files, 4714/4714 tests passing.
 
 Comments in `ICytologySignOutRecordService.ts` and `types/cytology/CytologySignOutRecord.ts` no longer point to the removed `ReportSnapshot` type.
 
+## Batch 386: `cisoeADraft.ts`
+
+The CISOE-A form's in-progress draft (`CisoeADraft`, `EMPTY_CISOEA_DRAFT`) and its pure conversions (`resolveCisoeAScoreFromDraft`, `resolveCisoeAPartialFromDraft`, `cisoeADraftFromScore`) moved here from `CytologyScreeningPage.tsx`, with `cisoeADraft.test.ts`. Inputs stay strings so an empty field can be shown; they are parsed at save time.
+
+## Batch 390 (PS-340): correction and addendum
+
+- **`releaseCytologyCorrection.ts`, `releaseCytologyAddendum.ts`:** each now takes a mandatory `reason` (after the user), and checks its own permission first (`cytology:report:correct`, `cytology:report:addend`); a refusal returns `notPermitted` and writes nothing. An empty reason (or, for an addendum, empty text) returns `reasonMissing` / `textMissing` before any write. The trimmed reason is stored on the new `CytologySignOutRecord.revisionReason` and put in the report content as `revision` (kind, reason, and for a correction what was reported before), which `generateCytologyReportPdf.ts` prints as a "CORRECTED REPORT" or "ADDENDUM" banner. When the caller passes no `generatePdf`, the released-report event builds the new record's own PDF with `generateCytologyReportPdfSnapshot` (before, nothing did). A correction also returns its new `review`.
+- **`resolveCytologyRevisionInputs.ts`:** `latestCytologySignOut`, `correctionDraftFromReview`, `buildCorrectedFindings` (including the pathologist-review flag from the categories) and `resolveCytologyReleaseContext` (patient, order and specimen for the report content), all pure, with tests. Before this batch neither release service had a caller besides its own tests.
+
+## Batch 391: the report in the performing lab's language
+
+- **Stored at sign-out:** `CytologyReportContent.language` and `.locale`, from the performing lab (`resolveCytologyReportLanguage.ts`: `resolvePerformingLabFacility`, `resolveCytologyReportLocale`, `reportLocaleOf`). The screening page's sign-out and draft preview pass them to `resolveCytologyReportContent`. A correction or addendum keeps the original's (the addendum now finds the performing lab through the same helper).
+- **The PDF's wording** (`cytologyPdfLabels.ts`, `cytologyPdfLabelsFor.ts`): title, section headers, labels, sign-off line, correction/addendum banner, continuation line and metadata title come from `cytologyPdf.*` in the report's language, resolved on the main thread and handed to the worker as data. Dates and times follow the report's locale. `generateCytologyReportPdf(content, layoutOut?, labels?, printFont?)`; with no labels it is the English wording as before.
+- **Korean** is printed in Pretendard: `generateCytologyReportPdfWithAttachments`, the page's prints and the ORU builders load it (`loadPrintFont`). If it can't be loaded when sending, the ORU message is marked failed to retry rather than sent with an unreadable PDF.
+- The report's own content (dictionary wording, reason, addendum text, HPV result text, names) prints as stored.
+
+## Batch 392
+
+`resolveCytologyReportLanguage.ts` now re-exports the shared lookup in `services/reports/resolveReportLocale.ts` (surgical pathology uses it too); no behaviour change.
+
+## Batch 406
+
+`molecularQcRunLinks.ts` holds the molecular QC Batch Management page's sorting and its lookup of which specimens each run holds, moved out of the page. `mockMolecularQcRunRecordService` is exported from `services/index.ts` as `molecularQcRunRecordService`.
+
+## Batch 409
+
+- `signOutCytologyCase.ts` (new): cytology sign-out, moved from the Cytology Workspace page.
+  - It checks `cytology:report:sign-out` first, then runs the unchanged sequence (see its header) with every dependency passed in.
+  - It returns `notPermitted`, `gateBlocked`, `signatureRefused`, `releasedForCountersign`, `authorityRefused`, `signedOut` (with how many earlier specimens the 5-year lookback flagged) or `failed`.
+  - Tested in `signOutCytologyCase.test.ts`: the permission, signature refusal, order of writes, countersign release and email, authority refusal, lookback, and registry success and failure.
+- `signOutCytologyCaseDeps.ts` (new): the real services it uses, wired once.
+- The Cytology Workspace's services are exported from `services/index.ts`.
+
+## Batch 410: the Cytology Workspace's services
+
+Moved out of `pages/CytologyWorklistPage/CytologyScreeningPage.tsx` (see that folder's README for the full list). Every dependency is passed in: `cytologyWorkspacePorts.ts` is the interface, and `cytologyWorkspaceDeps.ts` wires the real services.
+
+- `loadCytologyWorkspace.ts`: everything the workspace shows for a case, with the page's fallbacks: jurisdiction `US` (grants no advanced-CT exception) and modality `wsi`.
+- `saveCytologyReview.ts` saves a review:
+  - It checks `cytology:review:record`, then CISOE-A validation, then the CLIA workload. Over the cap it reassigns the reviewer's pending cases; a new review is refused, and an escalation of a saved one is let through.
+  - It then creates or updates the review. A new initial screen gets high-risk QC first, else random QC; a QC or secondary review gets the secondary-screening QA record. The ledger entry comes last.
+- `cytologyCaseActions.ts`:
+  - Permissioned actions: final diagnosis (`cytology:final-diagnosis:select` plus the sign-out gate), QC flag removal (`cytology:qc-flag:remove`, audited), the 5-year lookback outcome (`cytology:retrospective-review:record`), and correlation recording and dismissal (`cytology:histology-correlation:record`).
+  - Also: the manual QC flag, the automatic correlation lookup, decants, stains, ROSE, Code Manager changes (audited), LMP and the print document. `patchCytologyScreening` merges into one specimen's screening record.
+- `cytologyWorkspaceView.ts`: pure display decisions, with no screen text.
+- `cytologyReviewDraft.ts`: the Bethesda-style draft (moved from the page folder) and its conversions.
+- `resolveCytologyReviewAgreement.ts` (Pete: "each subsequent review should explicitly store its level of agreement when saved"):
+  - A later review compared with the specimen's latest initial screen. The level uses the QA taxonomy (`classifyCytologyAgreement`), with adequacy as its own flag.
+  - It also records the interpretations and recommendations added or missed, the initial screen's id, owner and version, and the assessor and time.
+  - `saveCytologyReview` stores it as `CytologyReviewRecord.agreementWithInitial`. An edit re-assesses and appends the old one to `priorAgreements`.
+  - The secondary-screening QA record now carries `agreementLevel` and `majorSubtype`.
+  - `resolveCytologyQaAggregateReport` uses the stored level when it was assessed against the paired initial screen, and works it out as before for reviews saved earlier.
+- Tests: `resolveCytologyReviewAgreement.test.ts` (4), `saveCytologyReview.test.ts` (13), `cytologyCaseActions.test.ts` (15), `cytologyWorkspaceView.test.ts` (17), `loadCytologyWorkspace.test.ts` (2). The fake dependencies are in `cytologyWorkspaceTestDeps.ts`.
+
+## Batch 411: specimen by specimen
+
+- `loadCytologyWorkspace.ts`:
+  - Returns `cytologySpecimens` (every Cytology or FNA specimen on the case, Draft or Signed out, from the case's sign-out records).
+  - Opens the specimen asked for, else the first not yet signed out, else the first.
+- `signOutCytologyCase.ts`:
+  - Takes `cytologySpecimenIds`. It finalizes the case only when every one of them has a sign-out record, and returns `caseFinalized` and `specimensRemaining`.
+  - The report, registry dispatch and QA side effects stay per specimen, as before.
+  - Its dependencies gain `getCaseSignOutRecords`.
+- `cytologyCaseFinalization.ts` (new):
+  - `resolveCytologyCaseFinalization` works out which specimens are still to sign out.
+  - `finalizeCytologyCaseEarly` checks `cytology:case:finalize`. It needs a reason, a case part-way through (at least one specimen signed out, at least one not), and stores `Case.cytologyEarlyFinalization` (who, when, why, the unsigned specimens), with an audit entry.
+- `cytologyWorkspaceView.ts`: `cytologyCaseProgress` gives the tab bar's counts and when to offer early finalization.
+- Tests:
+  - `cytologyCaseFinalization.test.ts` (6);
+  - 2 more in `signOutCytologyCase.test.ts` (a case stays open until its last specimen; the last one finalizes it);
+  - 1 more in `loadCytologyWorkspace.test.ts`.
+
+## Batch 412: review notes, versions, revise and sign out
+
+- `cytologyReviewNotes.ts` (new). Notes are stored on the specimen (`cytologyScreening.reviewNotes`).
+  - `addCytologyReviewNote`: not on your own review. A "Requires revision" note needs `cytology:revision:request` and is audited.
+  - `acknowledgeCytologyReviewNote`: the review's author only.
+  - `reviewNotesAfterSave`: the author's save turns acknowledged notes into revised ones. A pathologist's save resolves every open revision request.
+  - `hasPendingAuthorRevision`.
+- `resolveCytologySignOutGate`: a new `pendingAuthorRevision` argument gives the block reason `pending_author_revision`. The gate is the cytotechnologist's, so a pathologist is never stopped (Pete: "Blocks CT only").
+- `saveCytologyReview.ts`:
+  - An edit keeps `priorVersions` (the review as it stood).
+  - It settles the specimen's notes.
+  - The QC flag and the notes go to the specimen in one write, so neither can overwrite the other.
+- `reviseCytologyReviewForSignOut.ts` (new): a pathologist's review, copied from another reviewer's, is saved, made the final diagnosis (its own permission and gate), and audited when it changes the diagnosis.
+- `loadCytologyWorkspace.ts`: specimen status `pendingRevision`.
+- `cytologyWorkspaceView.ts`: `cytologyReviewActions` (author, can add a note, can revise and sign out); the gate context carries `pendingAuthorRevision`.
+- `signOutCytologyCase.ts`: `gateInputs.pendingAuthorRevision`.
+- Tests: `cytologyReviewNotes.test.ts` (9), `reviseCytologyReviewForSignOut.test.ts` (3), 2 more in `saveCytologyReview.test.ts`.
+
+## Batch 413: country check of Batches 409–412
+
+Pete asked whether Batches 409–412 hurt GYN or Non-GYN regulated workflow in the UK (England and Wales, Scotland, Northern Ireland), Ireland, Canada, the Netherlands, Germany, France, Belgium, New Zealand, Australia and South Korea. Checked against the code, two issues were found and fixed in `signOutCytologyCase.ts`:
+- **Screening registries: GYN only.** CSMS, CervicalCheck, PALGA/BVO, NCSR and KNCSP are cervical screening programmes. Sign-out sent any specimen to the facility's registry. That was already true for a Non-GYN case, and since Batch 411 it would also have sent a case's Non-GYN or FNA specimen signed out on its own. A Non-GYN specimen is now never sent.
+- **CSMS eligibility flag once per case.** With per-specimen sign-out (Batch 411), each specimen would have added another "no reason for study" flag. It's now added only if the case doesn't already have one.
+
+Tests: 2 more in `signOutCytologyCase.test.ts`.
+
+## Batch 414
+
+`signOutCytologyCase.ts`: the registry step goes through the screening registry engine (`services/screeningRegistry/`).
+- A result that isn't ready is held with the reason, never sent half-coded.
+- A registry's eligibility flag (CSMS: no reason for study) comes from its definition.
+- Its dependencies gain `getRegistryConfig`.
+
+`ICytologyRegistrySettingsService.CytologyRegistryId` is now the same set as `RegistryId`. `mockCytologyRegistrySettingsService` and `mockFacilityCytologyRegistryOverrideService` are legacy: nothing reads them any more, and their saved values are adopted by the facilities stores.
+
+## Batch 415: country-specific rules (Pete)
+
+- **US rules as features** (`cytologyComplianceFeatures.ts`). The CLIA daily workload cap (`saveCytologyReview`) and the CAP 5-year lookback (sign-out, and the workspace's on-screen card) are each On, Off or Automatic.
+  - Automatic, the default, means on for a US lab and off elsewhere. US labs behave as before; other countries no longer get US rules unless they switch them on.
+  - Each is set for the enterprise with an optional facility override (`mockCytologyComplianceFeaturesService`), through `saveCytologyComplianceFeatures` (`config:cytology-compliance:manage`, audited).
+  - With the cap off, workload is still recorded in the ledger. It just doesn't block or reassign.
+  - `loadCytologyWorkspace` returns `complianceFeatures`, and `CytologyWorkspaceDeps` / `CytologySignOutDeps` gain `getComplianceSettings`.
+- **Cytotechnologist sign-out needs its own permission.** When a cytotechnologist signs out (negative GYN, or the advanced-CT exception), `signOutCytologyCase` also checks `cytology:ct-report:sign-out` and returns `ctNotPermitted` without it (Pete: "Control via permissions").
+- Tests: `cytologyComplianceFeatures.test.ts` (4), 2 more in `signOutCytologyCase.test.ts`, 1 more in `saveCytologyReview.test.ts`.
+
+## Batch 418: consent before the registry
+
+`dispatchToRegistry` evaluates the patient's screening opt-out first (`services/registryConsent/`). An opted-out patient's result is never built: the audit log gets "Registry submission excluded by consent" and the registry queue an entry marked failed `EXCLUDED_BY_CONSENT`, `maxRetriesExceeded: true`. The sign-out itself stands. `CytologyRegistryOutboundQueueEntry.errorCode` now names `REGISTRY_NOT_READY` and `EXCLUDED_BY_CONSENT` (the former was used since Batch 414 without being in the type).
+
+## Batch 419
+
+`signOutCytologyCase`'s registry step now calls `screeningRegistry/submitScreeningRegistryResult.ts` (same behaviour, plus the payload header); its `registryQueue` dep gains `getByCaseId`. The queue's `retryDispatch` keeps an entry's header and marks it `isDuplicateRetry` (`cytologyRegistryQueueRetry.test.ts`).
+
+## Batch 420
+
+The registry queue gains `setRegistryStatus`; `markSent` sets `registryStatus: 'awaitingAck'` and `sentAt`; a resend clears the status. Its "sent" audit text no longer claims the registry accepted the report.
+
+## Batch 417
+
+`signOutCytologyCase` passes the case's whole patient (not just the MRN) to the registry decision, so the screening registry can use the patient's verified national identifier.
+
+## Batch 421
+
+`signOutCytologyCase`'s `registryQueue.enqueue` dependency carries `contentHash` (the payload fingerprint the Registry Exceptions resend compares against).
+
+## Batch 423
+
+`CytologySignOutDeps` gains `liveHold`, wired to `registryLiveHoldCheck('screening', …)` in `signOutCytologyCaseDeps.ts`. The screening registry submission uses it to hold results to a live register without a current go-live approval.
+
+## Batch 424
+
+`CytologySignOutDeps.liveHold` became `sendGate`, wired to `registrySendGateCheck('screening', …)`.
+
+## Batch 425
+
+`resolveCytologyRegistryTransmissionAuditReport` rows now carry:
+- the registry's status (`registryStatus`);
+- its response code;
+- the sent time.
+
+`cytologyTransmissionAuditCsvRows` builds the download: no MRN, and the same registry columns as the cancer audit (`services/registrySubmission/registryTransmissionAudit.ts`). The download checks `qa:registry-transmission-audit:export`.
+
+## Batch 428: Configuration permissions
+
+- `mockCytologyCategoryService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:cytology-categories:manage`.
+- `mockNonGynCytologyCategoryService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:cytology-categories:manage`.
+- `mockCytologyNomenclatureSettingsService`: `update`, `reset` need `config:cytology-nomenclature:manage`.
+- `mockFacilityCytologyNomenclatureOverrideService`: `create`, `update`, `remove` need `config:cytology-nomenclature:manage`.
+- `mockCytologyRoutingSettingsService`: `update`, `reset` need `config:cytology-routing:manage`.
+- `mockFacilityCytologyRoutingOverrideService`: `create`, `update`, `remove` need `config:cytology-routing:manage`.
+- `mockCytologyScreeningStrategyService`: `update`, `reset` need `config:cytology-screening-strategy:manage`.
+- `mockFacilityCytologyScreeningStrategyOverrideService`: `create`, `update`, `remove` need `config:cytology-screening-strategy:manage`.
+- `mockCytologyInstrumentationService`: `update`, `reset` need `config:cytology-instrumentation:manage`.
+- `mockFacilityCytologyInstrumentationOverrideService`: `create`, `update`, `remove` need `config:cytology-instrumentation:manage`.
+- `mockCytologyQcSettingsService`: `update`, `reset` need `config:cytology-qc-rates:manage`.
+- `mockFacilityCytologyQcOverrideService`: `create`, `update`, `remove` need `config:cytology-qc-rates:manage`.
+- `mockStaffCytologyQcOverrideService`: `create`, `update`, `remove` need `config:cytology-qc-rates:manage`.
+- `mockCytologyWorkloadCapSettingsService`: `update`, `reset` need `config:cytology-workload-cap:manage`.
+- `mockFacilityCytologyWorkloadCapOverrideService`: `create`, `update`, `remove` need `config:cytology-workload-cap:manage`.
+- `mockSnomedCervicalHistologySeverityMappingService`: `add`, `update`, `remove` need `config:cytology-severity-mapping:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

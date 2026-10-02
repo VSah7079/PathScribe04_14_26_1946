@@ -117,3 +117,27 @@ export async function computePendingBatchQueue(facilityId: string | undefined): 
   }
   return queue;
 }
+
+/**
+ * Batch 407: the Pending Batch Load page's search, moved out of the page. A
+ * case-insensitive match on the item id (what a barcode encodes), the case
+ * accession or the specimen label; blank shows everything.
+ */
+export function filterPendingBatchQueue(queue: readonly PendingBatchQueueItem[], query: string): PendingBatchQueueItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...queue];
+  return queue.filter(item =>
+    item.displayId.toLowerCase().includes(q)
+    || item.caseAccession.toLowerCase().includes(q)
+    || item.specimenLabel.toLowerCase().includes(q));
+}
+
+/** Batch 407: the items grouped by case accession, in the order the cases first appear. */
+export function groupPendingByCase(items: readonly PendingBatchQueueItem[]): [string, PendingBatchQueueItem[]][] {
+  const byCase = new Map<string, PendingBatchQueueItem[]>();
+  for (const item of items) {
+    if (!byCase.has(item.caseAccession)) byCase.set(item.caseAccession, []);
+    byCase.get(item.caseAccession)!.push(item);
+  }
+  return [...byCase.entries()];
+}

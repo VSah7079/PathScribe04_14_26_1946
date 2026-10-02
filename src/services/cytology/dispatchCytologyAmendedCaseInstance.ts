@@ -13,6 +13,7 @@
 // builder, never buildOruR01Payload/mockOutboundResultQueueService.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { loadPrintFont, printFontLanguageFor, type PrintFont } from '../documentRendering/printFonts';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
@@ -50,13 +51,25 @@ export async function dispatchCytologyAmendedCaseInstance(
   const record = recordsRes.data.find(r => r.id === signOutRecordId);
   if (!record) return;
 
-  const payload = buildCytologyOruR01Payload(record, resultState, previouslyReportedAs);
+  // Batch 391: a Korean report needs its font before the PDF can be built.
+  let printFont: PrintFont | undefined;
+  let fontFailed = false;
+  try { printFont = await loadPrintFont(printFontLanguageFor(record.reportContent)); } catch { fontFailed = true; }
+  const payload = fontFailed ? undefined : buildCytologyOruR01Payload(record, resultState, previouslyReportedAs, printFont);
 
   const enqueueRes = await mockCytologyOutboundResultQueueService.enqueue({
     caseId, signOutRecordId: record.id, resultState,
     organisationId: (patientRecord as any).organisationId,
   });
   if (!enqueueRes.ok) return;
+  if (!payload) {
+    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+      errorCode: 'DISPATCH_REJECTED', // not sent: the PDF could not be built
+      errorMessage: 'The font this report\'s language needs could not be loaded; the report PDF was not built.',
+      maxRetriesExceeded: false,
+    });
+    return;
+  }
 
   const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', payload as any);
   if (result.ok) {

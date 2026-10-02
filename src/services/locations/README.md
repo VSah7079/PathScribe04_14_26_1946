@@ -120,6 +120,16 @@ for Intraop"). Same facility-scoped dropdown pattern, captured once
 per session (alongside OR/surgeon) rather than per specimen — see
 `services/intraop/README.md`.
 
+## Batch 397
+
+`formatLocationDisplay.ts`: point of care / room / bed, as shown in pickers and summaries (used by the Intraop page; Accession and the Facility editor still build it inline).
+
+## Batch 428: Configuration permissions
+
+- `mockLocationService`: `create`, `update`, `deactivate`, `reactivate`, `verify` need `config:facilities:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

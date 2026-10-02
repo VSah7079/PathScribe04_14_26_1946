@@ -57,32 +57,32 @@ describe('publishReportReleasedEvent', () => {
 
   it("a real FINAL event delegates to the real, existing dispatchCaseInstances when the resolved action calls for electronic dispatch", async () => {
     const result = await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
-    expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1');
+    expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1', expect.any(Function));
     expect(dispatchPreliminaryCaseInstances).not.toHaveBeenCalled();
     expect(result.dispatchedCount).toBeUndefined();
   });
 
   it("a real PRELIMINARY event delegates to the real, extracted dispatchPreliminaryCaseInstances and returns its real count", async () => {
     const result = await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'PRELIMINARY', releasedAt: '2026-09-16T00:00:00.000Z' });
-    expect(dispatchPreliminaryCaseInstances).toHaveBeenCalledWith('CASE-1');
+    expect(dispatchPreliminaryCaseInstances).toHaveBeenCalledWith('CASE-1', undefined);
     expect(dispatchCaseInstances).not.toHaveBeenCalled();
     expect(result.dispatchedCount).toBe(2);
   });
 
   it('a real CORRECTED event with a real instanceId dispatches through the new, dedicated dispatchAmendedCaseInstance \u2014 never dispatchCaseInstances, which is genuinely FINAL-only', async () => {
     await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'CORRECTED', releasedAt: '2026-09-16T00:00:00.000Z', instanceId: 'INST-1' });
-    expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', undefined);
+    expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', undefined, expect.any(Function));
     expect(dispatchCaseInstances).not.toHaveBeenCalled();
   });
 
   it('a real ADDENDUM event with a real instanceId dispatches through the same, dedicated function, with the correct resultState', async () => {
     await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'ADDENDUM', releasedAt: '2026-09-16T00:00:00.000Z', instanceId: 'INST-1' });
-    expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'ADDENDUM', undefined);
+    expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'ADDENDUM', undefined, expect.any(Function));
   });
 
   it('a real, verbatim previouslyReportedAs value is forwarded through, untouched, to the new dispatch function', async () => {
     await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'CORRECTED', releasedAt: '2026-09-16T00:00:00.000Z', instanceId: 'INST-1', previouslyReportedAs: 'Benign fibroadenoma.' });
-    expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', 'Benign fibroadenoma.');
+    expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', 'Benign fibroadenoma.', expect.any(Function));
   });
 
   it('a real CORRECTED/ADDENDUM event with no instanceId at all is a real, honest, silent no-op \u2014 never a guess at which instance the caller meant', async () => {
@@ -97,12 +97,12 @@ describe('publishReportReleasedEvent', () => {
       caseId: 'CASE-1', reportType: 'PRELIMINARY', releasedAt: '2026-09-16T00:00:00.000Z',
       performingFacilityId: 'FAC-A', generatePdf, priority: 'Urgent',
     });
-    expect(dispatchPrintJob).toHaveBeenCalledWith('CASE-1', 'FAC-A', 'PRELIMINARY', 'Urgent', generatePdf, { source: undefined, userId: undefined, workstationId: undefined });
+    expect(dispatchPrintJob).toHaveBeenCalledWith('CASE-1', 'FAC-A', 'PRELIMINARY', 'Urgent', expect.any(Function), { source: undefined, userId: undefined, workstationId: undefined });
   });
 
   it('defaults priority to Routine when the event omits it', async () => {
     await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
-    expect(dispatchPrintJob).toHaveBeenCalledWith('CASE-1', undefined, 'FINAL', 'Routine', undefined, { source: undefined, userId: undefined, workstationId: undefined });
+    expect(dispatchPrintJob).toHaveBeenCalledWith('CASE-1', undefined, 'FINAL', 'Routine', expect.any(Function), { source: undefined, userId: undefined, workstationId: undefined });
   });
 
   it('forwards the real, existing event.source straight through to dispatchPrintJob, per PS-278 — the real Cytology/Surg Path signal it already carries, reused for print routing’s own Specimen/Case Type criterion', async () => {
@@ -118,7 +118,7 @@ describe('publishReportReleasedEvent', () => {
       releasedBy: { id: 'USER-42', name: 'Dr. Test' },
     });
     expect(dispatchPrintJob).toHaveBeenCalledWith(
-      'CASE-1', 'FAC-A', 'FINAL', 'Routine', undefined,
+      'CASE-1', 'FAC-A', 'FINAL', 'Routine', expect.any(Function),
       expect.objectContaining({ userId: 'USER-42' }),
     );
   });
@@ -126,7 +126,7 @@ describe('publishReportReleasedEvent', () => {
   it('PS-278/279 gap-closing: a real, non-human release path (no releasedBy at all) honestly forwards undefined for userId — never invents an actor', async () => {
     await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z', performingFacilityId: 'FAC-A' });
     expect(dispatchPrintJob).toHaveBeenCalledWith(
-      'CASE-1', 'FAC-A', 'FINAL', 'Routine', undefined,
+      'CASE-1', 'FAC-A', 'FINAL', 'Routine', expect.any(Function),
       expect.objectContaining({ userId: undefined }),
     );
   });
@@ -141,14 +141,14 @@ describe('publishReportReleasedEvent', () => {
     vi.mocked(dispatchPrintJob).mockRejectedValue(new Error('boom'));
     const result = await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
     expect(result.printOutcome).toBe('failed');
-    expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1');
+    expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1', expect.any(Function));
   });
 
   describe('Component C \u2014 the real Delivery Configuration Rules Engine gate', () => {
     it('ELECTRONIC_ONLY runs electronic dispatch but never calls the print subscriber at all', async () => {
       vi.mocked(resolveRealDeliveryDecision).mockResolvedValue({ action: 'ELECTRONIC_ONLY' });
       const result = await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
-      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1');
+      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1', expect.any(Function));
       expect(dispatchPrintJob).not.toHaveBeenCalled();
       expect(result.printOutcome).toBeUndefined();
       expect(result.deliveryAction).toBe('ELECTRONIC_ONLY');
@@ -188,7 +188,7 @@ describe('publishReportReleasedEvent', () => {
     it('a real, thrown failure resolving the delivery decision itself (a transient Case/Location service hiccup) degrades to ELECTRONIC_ONLY rather than aborting the whole publish call \u2014 a genuine release must never silently reach neither subscriber', async () => {
       vi.mocked(resolveRealDeliveryDecision).mockRejectedValue(new Error('Location service unreachable'));
       const result = await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
-      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1');
+      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1', expect.any(Function));
       expect(dispatchPrintJob).not.toHaveBeenCalled();
       expect(result.deliveryAction).toBe('ELECTRONIC_ONLY');
     });
@@ -203,13 +203,13 @@ describe('publishReportReleasedEvent', () => {
 
     it('an omitted source defaults to Surg Path\u2019s own real dispatch \u2014 every real caller before this field existed keeps its exact, existing behavior unchanged', async () => {
       await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
-      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1');
+      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1', expect.any(Function));
       expect(dispatchCytologyCaseInstances).not.toHaveBeenCalled();
     });
 
     it('an explicit source: SURGPATH also routes to the real Surg Path dispatch, same as the default', async () => {
       await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z', source: 'SURGPATH' });
-      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1');
+      expect(dispatchCaseInstances).toHaveBeenCalledWith('CASE-1', expect.any(Function));
       expect(dispatchCytologyCaseInstances).not.toHaveBeenCalled();
     });
 
@@ -232,7 +232,7 @@ describe('publishReportReleasedEvent', () => {
 
     it('a real CORRECTED event with an omitted (Surg Path) source still routes to the real, existing dispatchAmendedCaseInstance \u2014 confirms the fallthrough behaves correctly, never regressing the already-working Surg Path path', async () => {
       await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'CORRECTED', releasedAt: '2026-09-16T00:00:00.000Z', instanceId: 'INST-1' });
-      expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', undefined);
+      expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', undefined, expect.any(Function));
       expect(dispatchCytologyAmendedCaseInstance).not.toHaveBeenCalled();
     });
 
@@ -244,8 +244,27 @@ describe('publishReportReleasedEvent', () => {
 
     it('an omitted (Surg Path) source for a real ADDENDUM event still routes to the existing dispatchAmendedCaseInstance, unaffected by the Cytology branch above', async () => {
       await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'ADDENDUM', releasedAt: '2026-09-16T00:00:00.000Z', instanceId: 'INST-1' });
-      expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'ADDENDUM', undefined);
+      expect(dispatchAmendedCaseInstance).toHaveBeenCalledWith('CASE-1', 'INST-1', 'ADDENDUM', undefined, expect.any(Function));
       expect(dispatchCytologyAmendedCaseInstance).not.toHaveBeenCalled();
     });
   });
+
+describe('Batch 392: the release PDF goes to printing and the results', () => {
+  it('a PDF the caller brings is made once and shared by printing and the electronic results', async () => {
+    const generatePdf = vi.fn().mockResolvedValue({ pdfBase64: 'PDF' });
+    vi.mocked(resolveRealDeliveryDecision).mockResolvedValue({ action: 'DUAL', matchedRuleId: undefined } as any);
+    await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'PRELIMINARY', releasedAt: '2026-09-16T00:00:00.000Z', generatePdf });
+    const electronic = vi.mocked(dispatchPreliminaryCaseInstances).mock.calls[0][1]!;
+    const print = vi.mocked(dispatchPrintJob).mock.calls[0][4]!;
+    await Promise.all([electronic(), print(), electronic()]);
+    expect(generatePdf).toHaveBeenCalledTimes(1);
+  });
+  it('a surgical release without its own PDF uses the saved signed PDF; cytology and a preliminary get none', async () => {
+    await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z' });
+    expect(vi.mocked(dispatchCaseInstances).mock.calls[0][1]).toEqual(expect.any(Function));
+    vi.mocked(dispatchCytologyCaseInstances).mockClear();
+    await publishReportReleasedEvent({ caseId: 'CASE-1', reportType: 'FINAL', releasedAt: '2026-09-16T00:00:00.000Z', source: 'CYTOLOGY' });
+    expect(dispatchCytologyCaseInstances).toHaveBeenCalledWith('CASE-1');
+  });
+});
 });

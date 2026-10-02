@@ -7,6 +7,7 @@ export { mockRoleService          as roleService          } from './roles/mockRo
 export { mockParticipationTypeService as participationTypeService } from './participationTypes/mockParticipationTypeService';
 export { mockPhysicianService     as physicianService     } from './physicians/mockPhysicianService';
 export { mockFlagService          as flagService          } from './flags/mockFlagService';
+export { resolveLisFlagDefinitionId } from './flags/resolveLisFlagDefinition';
 export { mockContainerTypeService as containerTypeService } from './containerTypes/mockContainerTypeService';
 export { mockIntraoperativeService as intraoperativeService } from './intraop/mockIntraoperativeService';
 export { liveUpdateService } from './liveUpdates/liveUpdateService';
@@ -102,6 +103,8 @@ export { mockSavedSearchService   as savedSearchService   } from './savedSearche
 // Batch 350: server-side case search (filter, sort, count, one page) and CSV export rows.
 export { mockCaseSearchService    as caseSearchService    } from './caseSearch/mockCaseSearchService';
 export { mockActionRegistryService as actionRegistryService } from './actionRegistry/mockActionRegistryService';
+// Batch 396: for the Cytology QC Peer Review Queue (was imported directly from the mock).
+export { mockCytologyQcCaseAssignmentService as cytologyQcCaseAssignmentService } from './cytologyQc/mockCytologyQcCaseAssignmentService';
 // Batch 353: TAT targets and case delegations, each behind its own service
 // (they were kept by the TAT settings screen and the demo case service).
 // Batch 358: the equipment register (analysers molecular batches target, and more).
@@ -112,7 +115,7 @@ export type { GrossingHardwareProfile, GrossingHardwareKind, GrossingHardwareBri
 export { mockScanStationService   as scanStationService   } from './scanStations/mockScanStationService';
 export type { ScanStation } from './scanStations/IScanStationService';
 export type { IEquipmentService, Equipment, EquipmentDraft, EquipmentError, EquipmentKind } from './equipment/IEquipmentService';
-export { EQUIPMENT_KINDS, EQUIPMENT_LINK_INVALID } from './equipment/IEquipmentService';
+export { EQUIPMENT_KINDS, EQUIPMENT_LINK_INVALID, DECK_RACK_TYPES, type DeckSlot, type DeckRackType } from './equipment/IEquipmentService';
 // Batch 360: each device's maintenance, calibration and service history (append-only).
 export { mockEquipmentLogService  as equipmentLogService  } from './equipment/mockEquipmentLogService';
 export type { EquipmentLogEntry, NewEquipmentLogEntry, EquipmentLogType, EquipmentLogOutcome, IEquipmentLogService } from './equipment/IEquipmentLogService';
@@ -197,6 +200,9 @@ export type { AuditLog, ErrorLog, AuditLogType, ErrorSeverity } from './auditlog
 export type { PathologyCase, CaseStatus, CasePriority, AIStatus, CaseGender, FlagColor, CaseFilterParams } from './cases/ICaseService';
 export type { ClinicalCode, CodeSystem, CodeSearchParams, IcdOSubtype } from './codes/ICodeService';
 export type { Message }           from './messages/IMessageService';
+export { MESSAGE_NOT_PERMITTED } from './messages/IMessageService';
+export type { MessageRecipient, SecureEmailInput } from './messages/IMessageService';
+export { DEMO_MESSAGE_RECIPIENTS, searchRecipients, findRecipientByName } from './messages/messageRecipients';
 export type { InternalNote, InternalNoteType, InternalNoteVisibility } from './internalNotes/IInternalNoteService';
 export type { ServiceResult }     from './types';
 // ComputationalResult re-export removed — the type itself was removed
@@ -209,11 +215,30 @@ export type { TemplateRoutingInput, TemplateRoutingResult } from './reportTempla
 export { mockCytologyCategoryService as cytologyCategoryService } from './cytology/mockCytologyCategoryService';
 export { mockPlaceOfServiceCodeService as placeOfServiceCodeService } from './billing/mockPlaceOfServiceCodeService';
 export { mockCytologyQaReportService as cytologyQaReportService } from './cytology/mockCytologyQaReportService';
+// Batch 406: molecular QC runs and the specimens on each (for Batch Management's QC view).
+export { mockMolecularQcRunRecordService as molecularQcRunRecordService } from './cytology/mockMolecularQcRunRecordService';
+export { qcRunsNewestFirst, specimensByMolecularRun, type QcRunSpecimenLink } from './cytology/molecularQcRunLinks';
 export { mockReferralTrackingService as referralTrackingService } from './referral/mockReferralTrackingService';
 export { mockCassetteColorService as cassetteColorService } from './cassetteColors/mockCassetteColorService';
 // Batch 381: the block/stain editor used it by its mock file path.
 export { mockMolecularTargetService as molecularTargetService } from './stains/mockMolecularTargetService';
+// Batch 403: which reference labs perform a molecular/send-out test.
+export { activeReferenceLabs, normalizeReferenceLabLink } from './stains/referenceLabLink';
 export { mockMolecularBatchService as molecularBatchService } from './molecular/mockMolecularBatchService';
+// Batch 405: so the plate builder doesn't import the mocks directly.
+export { mockMolecularAssayControlRuleService as molecularAssayControlRuleService } from './molecular/mockMolecularAssayControlRuleService';
+export { mockMolecularExtractionRackService as molecularExtractionRackService } from './molecular/mockMolecularExtractionRackService';
+// Batch 406: rack placement on an instrument's deck, and the control rules' refusals.
+export { MOLECULAR_RACK_ERRORS, type MolecularExtractionRack, type MolecularRackPosition, type MolecularRackPlacement } from './molecular/IMolecularExtractionRackService';
+export { resolveMolecularMovementRecord, molecularActor, UNKNOWN_STATION_NAME } from './molecular/resolveMolecularMovementRecord';
+export { molecularAssayTypes } from './molecular/molecularAssays';
+export { controlRuleDraftProblem, sampleRackSlotChoices, withControlPatch, type ControlRuleDraftProblem } from './molecular/controlRuleDraft';
+export { rackWorklistRows, type RackWorklistRow, type RackWorklistStatus } from './molecular/rackWorklist';
+export { slotsForRack, deckSlotRequired, checkDeckSlot, parseDeckLocationBarcode, resolveDeckScan, type DeckSlotProblem, type DeckScanResult } from './molecular/deckSlots';
+export {
+  MOLECULAR_CONTROL_RULE_NOT_PERMITTED, MOLECULAR_CONTROL_RULE_DUPLICATE, MOLECULAR_CONTROL_RULE_NOT_FOUND,
+  type MolecularAssayControlRule, type MolecularRequiredControl,
+} from './molecular/IMolecularAssayControlRuleService';
 export { mockReportPartService as reportPartService, onReportPartsChanged } from './reportParts/mockReportPartService';
 export { mockLabelLayoutService as labelLayoutService } from './labelDesigner/mockLabelLayoutService';
 export { getAiFeedbackLog, type AiFeedbackEntry } from './cases/mockCaseService';
@@ -269,7 +294,7 @@ export type { LisSyncState, LisSyncPendingFlag } from './lisSync/mockLisSyncServ
 export { fieldRequirementService } from './fieldRequirements/defaultFieldRequirementService';
 export type { IFieldRequirementService } from './fieldRequirements/fieldRequirementService';
 export {
-  FIELD_REQUIREMENT_PAGES, FIELD_REQUIREMENT_PAGE_IDS, resolveFieldRequirements, missingRequiredFields,
+  FIELD_REQUIREMENT_PAGES, FIELD_REQUIREMENT_PAGE_IDS, FIELD_GROUP_ORDER, resolveFieldRequirements, missingRequiredFields, isFieldRequired,
   type FieldRequirementPageId, type FieldGroup, type ResolvedFieldRequirement,
 } from './fieldRequirements/fieldRequirementRules';
 // Batch 380: the case report page's modals.
@@ -279,8 +304,71 @@ export {
   holdMissing, commentMissing, delegationMissing, delegationNoteShown, biopsyArrayMissing,
   chosenReason, blockCancelMissing, restainMissing,
   discordanceStage, discordanceMissing, billingChangeMissing, correctedCodeCheck,
+  autopsyAuthorizationMissing, autopsyReleaseMissing, addOrdersBlockMissing, addOrdersBlockSentence,
   type RevisionMode, type HoldKind, type HoldStep, type DiscordanceForm, type DiscordanceStage,
 } from './fieldRequirements/reportPageChecks';
+// Batch 399: the Intraop verbal report and the critical intraoperative results dictionary.
+export { mockIntraopCriticalResultService as intraopCriticalResultService, INTRAOP_CRITICAL_RESULTS_NOT_PERMITTED } from './intraop/mockIntraopCriticalResultService';
+export { matchIntraopCriticalResults, mentionsUnnegated, parseMatchTerms, type CriticalResultMatch } from './intraop/matchIntraopCriticalResults';
+export {
+  SURGEON_UNAVAILABLE_OTHER, OTHER_NOTE_SUGGESTION_KEYS, surgeonUnavailableNeeded, verbalReportProblems,
+  otherNoteAcceptable, recipientSuggestions, receivedByForRole,
+} from './intraop/verbalReport';
+// Batch 400: dictating the verbal report.
+export { parseVerbalReportDictationDefault } from './intraop/defaultVerbalReportDictation';
+export { applyDictationProposal, type VerbalReportDictationProposal } from './intraop/parseVerbalReportDictation';
+// Batch 397: the Intraop page's checks.
+export {
+  INTRAOP_DEFAULT_REQUIREMENTS, intraopFieldRequired, intraopSessionMissing, intraopSpecimenMissing,
+  intraopQuickGrossMissing, intraopTouchPrepSkipMissing, intraopVerbalReportMissing, intraopMergeMissing,
+  type IntraopSessionForm, type IntraopSpecimenForm,
+} from './fieldRequirements/intraopChecks';
+// Batch 384: the message drawer's checks.
+export { messagingFieldRequired, newMessageMissing, secureEmailMissing, replyMissing } from './fieldRequirements/messagingChecks';
+export { cytologyFieldRequired, cytologyReviewMissing, cisoeaMissing, retrospectiveMissing, histologyCorrelationMissing, cytologyCorrectionMissing, cytologyAddendumMissing, RETROSPECTIVE_NO_ACTION_OUTCOME } from './fieldRequirements/cytologyChecks';
+export type { CytologyReviewValues, CisoeAValues } from './fieldRequirements/cytologyChecks';
+export { microtomyFieldRequired, microtomyCommentMissing, microtomyAddStainMissing, microtomyReprintMissing, microtomyCancelMissing } from './fieldRequirements/microtomyChecks';
+// Batch 401: the Embedding station's checks.
+export {
+  EMBEDDING_DEFAULT_REQUIREMENTS, embeddingFieldRequired, parseObservedPieceCount,
+  embeddingCommentMissing, embeddingConfirmMissing, embeddingReprintMissing, type EmbeddingConfirmValues,
+} from './fieldRequirements/embeddingChecks';
+// Batch 402: the Slide distribution station's checks.
+export {
+  SLIDE_DISTRIBUTION_DEFAULT_REQUIREMENTS, CHECKOUT_TARGET_MISSING, slideDistributionFieldRequired,
+  slideCheckoutMissing, scannerLoadMissing, slideExceptionMissing, slideReprintMissing,
+  type SlideCheckoutValues, type ScannerLoadValues,
+} from './fieldRequirements/slideDistributionChecks';
+// Batch 403: the Add-On Orders page's checks.
+export {
+  ADD_ON_ORDER_DEFAULT_REQUIREMENTS, addOnOrderFieldRequired, validLevelDepth,
+  addOnLineMissing, addOnSubmitMissing, addOnExceptionMissing, addOnResponseMissing,
+  type AddOnLineValues, type AddOnSubmitValues,
+} from './fieldRequirements/addOnOrderChecks';
+// Batch 404: Batch Management's checks.
+export {
+  BATCH_DEFAULT_REQUIREMENTS, batchFieldRequired, batchCreateMissing, batchAbortMissing, batchOverrideMissing, coldChainAckMissing,
+  type BatchCreateValues,
+} from './fieldRequirements/batchChecks';
+// Batch 405: the molecular plate builder's checks.
+export {
+  MOLECULAR_BATCH_DEFAULT_REQUIREMENTS, molecularFieldRequired, molecularCreateMissing, molecularWellsMissingSpecimen,
+  molecularSupersedeMissing, wellHasSpecimen, type MolecularCreateValues,
+} from './fieldRequirements/molecularBatchChecks';
+// Batch 406: what a molecular rack needs before it goes on an instrument.
+export {
+  MOLECULAR_RACK_DEFAULT_REQUIREMENTS, molecularRackFieldRequired, molecularRackPlacementMissing,
+  rackPositionsMissingSampleId, rackDeckSlotNeeded, rackTypeOf, type MolecularRackPlacementValues,
+} from './fieldRequirements/molecularRackChecks';
+// Batch 383: the two sign-out gates' decisions (fixation time, pre-analytic dates).
+export {
+  fixativeGateMissing, buildFixativeResolutions,
+  type FixativeGateSpecimen, type FixativeResolution, type FixativeRowState,
+} from './signoutGates/fixativeGate';
+export {
+  preAnalyticGateMissing, buildPreAnalyticResolutions, emptyPreAnalyticRow, preAnalyticRowUsesOverride,
+  type PreAnalyticDateGateSpecimen, type PreAnalyticDateResolution, type PreAnalyticFieldState, type PreAnalyticRowState,
+} from './signoutGates/preAnalyticGate';
 // Batch 382: the discordance record the reconciliation modal saves.
 export { buildDiscordanceRecord, type DiscordanceRecordContext } from './quality/discordanceRecord';
 
@@ -291,6 +379,7 @@ export { generateAiSuggestionsForReport, generateGrossingFieldSuggestionsFromDic
 export { mockClinicalHistoryDictionaryService as clinicalHistoryDictionaryService } from './clinicalHistory/mockClinicalHistoryDictionaryService';
 export { mockAccessionOutboundQueueService as accessionOutboundQueueService } from './accessioning/mockAccessionOutboundQueueService';
 export { mockMolecularOrderOutboundQueueService as molecularOrderOutboundQueueService } from './molecularOrders/mockMolecularOrderOutboundQueueService';
+export { queueEntriesNewestFirst, isMolecularOrderPayload } from './molecularOrders/orderQueueView';
 export { mockInterfaceEngineService as interfaceEngineService } from './interfaceEngine/mockInterfaceEngineService';
 export { mockEncounterService as encounterService } from './encounters/mockEncounterService';
 export { mockCaseMaskService as caseMaskService } from './caseRegistry/mockCaseMaskService';
@@ -299,7 +388,61 @@ export { mockJurisdictionPaymentMappingService as jurisdictionPaymentMappingServ
 
 // Batch 378: completing grossing, checked against the Grossing field requirements.
 export {
-  completeGrossing, missingGrossingItems, canCompleteGrossingFrom,
+  completeGrossing, missingGrossingItems, canCompleteGrossingFrom, blockGrossingFieldsMissing,
   type MissingGrossingItem, type CompleteGrossingResult,
 } from './grossing/grossingCompletion';
 
+
+// Batch 409: the Cytology Workspace's services, so its pages use @/services (deployment-neutral UI).
+export { mockCytologyInstrumentationService as cytologyInstrumentationService } from './cytology/mockCytologyInstrumentationService';
+export { mockCytologyNomenclatureSettingsService as cytologyNomenclatureSettingsService } from './cytology/mockCytologyNomenclatureSettingsService';
+export { mockCytologyQcSettingsService as cytologyQcSettingsService } from './cytology/mockCytologyQcSettingsService';
+export { mockCytologyRegistryOutboundQueueService as cytologyRegistryOutboundQueueService } from './cytology/mockCytologyRegistryOutboundQueueService';
+export { mockCytologyReviewRecordService as cytologyReviewRecordService } from './cytology/mockCytologyReviewRecordService';
+export { mockCytologyRoutingSettingsService as cytologyRoutingSettingsService } from './cytology/mockCytologyRoutingSettingsService';
+export { mockCytologyScreeningStrategyService as cytologyScreeningStrategyService } from './cytology/mockCytologyScreeningStrategyService';
+export { mockCytologySignOutRecordService as cytologySignOutRecordService } from './cytology/mockCytologySignOutRecordService';
+export { mockCytologyWorkloadCapSettingsService as cytologyWorkloadCapSettingsService } from './cytology/mockCytologyWorkloadCapSettingsService';
+export { mockCytologyWorkloadLedgerService as cytologyWorkloadLedgerService } from './cytology/mockCytologyWorkloadLedgerService';
+export { mockFacilityCytologyInstrumentationOverrideService as facilityCytologyInstrumentationOverrideService } from './cytology/mockFacilityCytologyInstrumentationOverrideService';
+export { mockFacilityCytologyNomenclatureOverrideService as facilityCytologyNomenclatureOverrideService } from './cytology/mockFacilityCytologyNomenclatureOverrideService';
+export { mockFacilityCytologyQcOverrideService as facilityCytologyQcOverrideService } from './cytology/mockFacilityCytologyQcOverrideService';
+export { mockFacilityCytologyRoutingOverrideService as facilityCytologyRoutingOverrideService } from './cytology/mockFacilityCytologyRoutingOverrideService';
+export { mockFacilityCytologyScreeningStrategyOverrideService as facilityCytologyScreeningStrategyOverrideService } from './cytology/mockFacilityCytologyScreeningStrategyOverrideService';
+export { mockFacilityCytologyWorkloadCapOverrideService as facilityCytologyWorkloadCapOverrideService } from './cytology/mockFacilityCytologyWorkloadCapOverrideService';
+export { mockFacilityRegistryOverrideService as facilityRegistryOverrideService } from './facilities/mockFacilityRegistryOverrideService';
+export { mockPathologyLexiconService as pathologyLexiconService } from './cytology/mockPathologyLexiconService';
+export { mockRegistrySettingsService as registrySettingsService } from './facilities/mockRegistrySettingsService';
+// Batch 414: the screening registry engine's per-registry configuration and its permissioned saves.
+export { mockScreeningRegistryConfigService as screeningRegistryConfigService } from './screeningRegistry/mockScreeningRegistryConfigService';
+export { saveEnterpriseScreeningRegistry, saveFacilityScreeningRegistry, saveScreeningRegistryConfig } from './screeningRegistry/saveScreeningRegistrySettings';
+export { screeningRegistrySettingsDeps } from './screeningRegistry/screeningRegistrySettingsDeps';
+// Batch 415: the CLIA workload cap and CAP 5-year lookback as switchable features.
+export { mockCytologyComplianceFeaturesService as cytologyComplianceFeaturesService } from './cytology/mockCytologyComplianceFeaturesService';
+export { saveCytologyComplianceFeatures } from './cytology/saveCytologyComplianceFeatures';
+export { cytologyComplianceSaveDeps } from './cytology/cytologyComplianceSaveDeps';
+// Batch 422: cancer registry settings, read and saved with config:cancer-registry:manage.
+export { mockCancerRegistrySettingsService as cancerRegistrySettingsService } from './cancerRegistry/mockCancerRegistrySettingsService';
+export { mockFacilityCancerRegistryOverrideService as facilityCancerRegistryOverrideService } from './cancerRegistry/mockFacilityCancerRegistryOverrideService';
+export { saveEnterpriseCancerRegistry, saveFacilityCancerRegistry } from './cancerRegistry/saveCancerRegistrySettings';
+export { cancerRegistrySettingsDeps } from './cancerRegistry/cancerRegistrySettingsDeps';
+// Batch 423: registry go-live (test system → live register): request, approve with re-confirmed credentials, return to test.
+// Batch 424: validation vs production instances, the data-sharing agreement, the synthetic test suite,
+// validation records, the local overlay (adapter rules, confirming local changes), stop live reporting.
+export {
+  addRegistryAdapterRule, approveRegistryGoLive, confirmRegistryLocalChanges, exportRegistryValidation, importRegistryValidation,
+  loadRegistryGoLive, previewRegistryGoLivePrechecks, recordRegistryAgreement, removeRegistryAdapterRule, requestRegistryGoLive,
+  runRegistryTestSuite, saveRegistryGoLiveGovernance, stopRegistryLiveReporting, withdrawRegistryGoLive,
+} from './registryGoLive/registryGoLive';
+export { registryGoLiveDeps } from './registryGoLive/registryGoLiveDeps';
+export { mockSnomedCervicalHistologySeverityMappingService as snomedCervicalHistologySeverityMappingService } from './cytology/mockSnomedCervicalHistologySeverityMappingService';
+export { mockStaffCytologyQcOverrideService as staffCytologyQcOverrideService } from './cytology/mockStaffCytologyQcOverrideService';
+export { mockStaffCytologyWorkloadCapOverrideService as staffCytologyWorkloadCapOverrideService } from './cytology/mockStaffCytologyWorkloadCapOverrideService';
+export { claimPoolCase, acceptPoolCase, passPoolCase } from './cases/mockCaseService';
+export { signOutCytologyCase, type CytologySignOutOutcome, type CytologySignOutInput } from './cytology/signOutCytologyCase';
+export { signOutCytologyCaseDeps } from './cytology/signOutCytologyCaseDeps';
+export { CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID } from './quality/mockQaActivityTypeService';
+// Batch 428: the retention policy, saved with config:retention-policy:manage.
+export { loadRetentionPolicy, saveRetentionPolicy, DEFAULT_RETENTION_POLICY, type RetentionPolicy } from './retention/retentionPolicyService';
+// Batch 432: per-subspecialty risk weights for surgical peer review sampling.
+export { mockSurgicalPeerReviewRiskWeightService as surgicalPeerReviewRiskWeightService } from './quality/mockSurgicalPeerReviewRiskWeightService';

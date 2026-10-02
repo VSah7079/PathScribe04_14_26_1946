@@ -133,6 +133,14 @@ Five more demo sign-ins, all with the same password as `demo@pathscribe.ai`, so 
 
 They sign in with the app role `pathologist`, the same coarse role an SSO sign-in with case access gets. What they can open comes from their roles' capabilities.
 
+## Batch 423
+
+The new signing action `registry-go-live` (audit text "registry live register approval") is the credential re-confirmation for approving a registry's switch to its live register. It is checked through `signatureGate.accept` in `services/registryGoLive/registryGoLiveDeps.ts`, with the same one-time use, freshness and lockout as report sign-out.
+
+## Batch 428: Configuration permissions
+
+Unlinking a sign-in account (`linkedAccounts.ts`) needs `config:staff-access:assign`, like the rest of a staff member's access (it used to skip the staff check).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

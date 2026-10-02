@@ -1008,3 +1008,19 @@ built speculatively here.
 ## Batch 377
 
 A required Patient ID left blank is generated at submit, as before, and isn't listed as missing. If none can be generated, submit stops with an alert (`accessionPage.toast.patientIdNotGenerated`). The generation rule moved out of the page into `services/accessioning/patientIdGeneration.ts`.
+
+## Batch 417: national identifier
+
+Under the MRN, the facility's jurisdiction decides which national identifier inputs appear (`NationalIdentifierFields`: NHS number for an English trust, BSN for a Dutch lab, PPSN and IHI for Ireland, none for a US lab). The check digit shows as the person types. Once the case is created, each value is saved through `recordNationalPatientIdentifier` (permission, check digit, MPI mirror, audit); a refusal shows a toast and the case stands. Not done yet: prefilling from an existing MPI patient's national identifiers, and editing them after accession.
+
+## Batch 418: registry opt-outs
+
+Under the national identifier, two checkboxes: opted out of cervical screening programme reporting; opted out of cancer registry reporting (honoured only where Configuration says the jurisdiction allows it). Saved through `recordPatientRegistryConsent` after the case is created, like the national identifier.
+
+## Batch 425
+
+Picking a known patient from the index fills in their national identifiers and registry opt-outs as the MPI holds them (`services/patients/patientRegistryDetails.ts`, `prefillPatientRegistryDetails`). The hospital's system can now send these as JSON too.
+
+## Batch 430: personal settings per person; view-only fields
+
+Test only: the end-to-end test's auth mock also provides `useAuthOptional` (the voice provider reads who is signed in).

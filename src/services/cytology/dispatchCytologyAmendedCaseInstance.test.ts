@@ -65,7 +65,7 @@ describe('dispatchCytologyAmendedCaseInstance', () => {
 
   it('dispatches the real, specific record named \u2014 never the wrong one, even when multiple records exist for the case', async () => {
     await dispatchCytologyAmendedCaseInstance('CASE-1', 'REC-2', 'CORRECTED');
-    expect(buildCytologyOruR01Payload).toHaveBeenCalledWith({ id: 'REC-2' }, 'CORRECTED', undefined);
+    expect(buildCytologyOruR01Payload).toHaveBeenCalledWith({ id: 'REC-2' }, 'CORRECTED', undefined, undefined);
     expect(mockCytologyOutboundResultQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ signOutRecordId: 'REC-2', resultState: 'CORRECTED' }));
     expect(dispatchInterfaceMessage).toHaveBeenCalledWith('q-1', 'ORU_R01', expect.objectContaining({ messageId: 'msg-1' }));
     expect(mockCytologyOutboundResultQueueService.markSent).toHaveBeenCalledWith('q-1');
@@ -73,12 +73,12 @@ describe('dispatchCytologyAmendedCaseInstance', () => {
 
   it('a real, verbatim previouslyReportedAs value is forwarded through, untouched, to the real payload builder', async () => {
     await dispatchCytologyAmendedCaseInstance('CASE-1', 'REC-1', 'CORRECTED', 'NILM.');
-    expect(buildCytologyOruR01Payload).toHaveBeenCalledWith({ id: 'REC-1' }, 'CORRECTED', 'NILM.');
+    expect(buildCytologyOruR01Payload).toHaveBeenCalledWith({ id: 'REC-1' }, 'CORRECTED', 'NILM.', undefined);
   });
 
   it('a real ADDENDUM dispatch, per direct correction ("Cytology cases can have addendums") \u2014 resultState forwarded correctly, never hardcoded to CORRECTED', async () => {
     await dispatchCytologyAmendedCaseInstance('CASE-1', 'REC-1', 'ADDENDUM');
-    expect(buildCytologyOruR01Payload).toHaveBeenCalledWith({ id: 'REC-1' }, 'ADDENDUM', undefined);
+    expect(buildCytologyOruR01Payload).toHaveBeenCalledWith({ id: 'REC-1' }, 'ADDENDUM', undefined, undefined);
     expect(mockCytologyOutboundResultQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ resultState: 'ADDENDUM' }));
   });
 

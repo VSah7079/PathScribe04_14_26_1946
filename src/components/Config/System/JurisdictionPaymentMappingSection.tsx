@@ -95,7 +95,7 @@ const JurisdictionPaymentMappingSection: React.FC = () => {
 
       <div className="ps-jpm__toolbar">
         <div className="ps-jpm__toolbar-left">
-          <select className="ps-conf-select" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
+          <select data-config-nav className="ps-conf-select" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
             <option value="">{t('jurisdictionPaymentMappingSection.filters.allCountries')}</option>
             {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>

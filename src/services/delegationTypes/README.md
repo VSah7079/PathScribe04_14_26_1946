@@ -33,6 +33,12 @@ Case delegation type dictionary (Peer Review, Second Opinion, Subspecialty Refer
   the same lab's own scope, per direct confirmation, matching
   `ContainerTypesSection.tsx`'s own established convention exactly.
 
+## Batch 428: Configuration permissions
+
+- `mockDelegationTypeService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:delegation-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

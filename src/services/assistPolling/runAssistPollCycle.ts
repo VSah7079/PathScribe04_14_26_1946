@@ -28,6 +28,7 @@ import type { Case, ProtocolChange, AiFieldSuggestion } from '@/types/case/Case'
 import type { SynopticEvaluationInput } from '@/services/aiIntegration/IAIIntegrationService';
 import type { NewAuditLog } from '@/services/auditlog/IAuditService';
 import type { LisPollAdapter, LisPushAdapter, StagedLisEvent } from '../lisIngestion/types';
+import { workupParts } from '../reports/workupParts';
 import { stageUpdates, workableEvents, recordAttempt, retryFailed, trimQueue } from '../lisIngestion/stagingRules';
 import type { AssistPollingState, AssistPollRun, AssistPollItemResult, AssistMilestone, AssistCaseRecords } from './types';
 import {
@@ -48,7 +49,8 @@ export interface AssistPollDeps {
   listDiagnosticTemplates: () => Promise<TemplateSummary[]>;
   getTemplateFields: (templateId: string) => Promise<TemplateFieldSpec[]>;
   evaluateSynopticAssignment: (input: SynopticEvaluationInput) => Promise<{ changes: ProtocolChange[]; warnings: string[] }>;
-  generateSuggestions: (caseData: Case, templateId: string, fields: TemplateFieldSpec[]) => Promise<Record<string, AiFieldSuggestion>>;
+  /** Batch 427: `scope.specimenIds` are the parts the workup covers; evaluate them together when there are several. */
+  generateSuggestions: (caseData: Case, templateId: string, fields: TemplateFieldSpec[], scope?: { specimenIds: string[] }) => Promise<Record<string, AiFieldSuggestion>>;
   /** The Config → AI Behavior toggles. */
   getAiEnabled: () => Promise<{ gross: boolean; microscopic: boolean }>;
   loadState: () => Promise<AssistPollingState>;
@@ -87,7 +89,8 @@ async function draftCase(
       specimenLabel: sp.label,
       specimenDesc: sp.description,
       currentSynoptics: (caseData.synopticReports ?? [])
-        .filter(r => r.specimenId === sp.id)
+        // Batch 427: a combined workup is listed under every part it covers, so the AI sees the part is reported.
+        .filter(r => workupParts(r).includes(sp.id))
         .map(r => ({ instanceId: r.instanceId, templateId: r.templateId, templateName: r.templateName })),
     })),
     availableTemplates: templates,
@@ -101,7 +104,8 @@ async function draftCase(
   for (const inst of applied.synopticReports) {
     if (!isFillable(inst)) { reports.push(inst); continue; }
     const fields = await deps.getTemplateFields(inst.templateId);
-    const suggestions = await deps.generateSuggestions(aiCase, inst.templateId, fields);
+    // Batch 427: the AI is told which parts this workup covers (one part, or several combined).
+    const suggestions = await deps.generateSuggestions(aiCase, inst.templateId, fields, { specimenIds: workupParts(inst) });
     const merged = mergeSuggestionsIntoInstance(inst, suggestions, now);
     fieldsSuggested += merged.fieldsSuggested;
     reports.push(inst.aiDraftSource ? { ...merged.instance, aiDraftSource: { ...inst.aiDraftSource, milestone, generatedAt: now } } : merged.instance);

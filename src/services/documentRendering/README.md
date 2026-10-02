@@ -288,6 +288,20 @@ The §1.1.4 Web Worker offload itself lives in `services/cytology/`
 `generateCytologyReportPdfInWorker.ts`), not this folder — see
 [services/cytology/README.md](../cytology/README.md).
 
+## Batch 391: Pretendard for Korean reports
+
+- **`printFonts.ts`:** `loadPrintFont(language)` returns the font a language needs beyond Liberation Sans (Korean: Pretendard, SIL OFL 1.1; the files ship in `public/fonts/pretendard/` since Batch 394), fetched from the app's own origin only when needed and cached; `registerPrintFont(doc, font)` embeds it with Identity-H, so jsPDF subsets it to the glyphs used (about 300 KB per weight in the PDF). The files are the package's own, unmodified (the licence reserves the name for the original); provenance and obligations in `embeddedFonts/LICENSE_NOTICE.md`. `fetchBytes` is injectable (tests read from disk with `readFontFromDisk.testSupport.ts`).
+- **`validatePrintLayoutGovernance.ts`:** `Pretendard` added to the allowed print fonts.
+- **`applyContinuationPageHeaders.ts`:** takes the line's wording (MRN, accession, "Page X of Y") and the font family, so continuation pages match the report's language; defaults are the previous English wording and Liberation Sans.
+
+## Batch 393
+
+`printFontLanguageFor(content)`: a report needs Pretendard when it is Korean or contains Hangul anywhere (a Korean patient's name in a US lab). The cytology PDF paths use it; the surgical/autopsy renderer applies the same rule. The notice in `embeddedFonts/LICENSE_NOTICE.md` now also covers `functions/fonts/`.
+
+## Batch 394 (fix)
+
+`printFonts.ts` no longer imports the font through the `pretendard` npm package (`...ttf?url`). On a machine without the package that import failed, and because `services/index.ts` reaches it, 44 unrelated test files failed with it (Pete's run). The font files now ship in `public/fonts/pretendard/` and load from `/fonts/pretendard/...`; the package is no longer a dependency. A test fails if anything in `src/` imports the package again.
+
 ---
 *See [services/cytology/README.md](../cytology/README.md) for how the
 cytology PDF pipeline this folder extends actually works end to end.*

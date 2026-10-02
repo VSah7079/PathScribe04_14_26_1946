@@ -4,6 +4,9 @@ const { getCase, updateCase } = vi.hoisted(() => ({
   getCase: vi.fn(), updateCase: vi.fn(),
 }));
 vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getCase, updateCase } }));
+// Batch 383: releasing a body needs autopsy:body:release; the default is "allowed" here.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn() }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce } }));
 
 import { releaseAutopsyBody } from './releaseAutopsyBody';
 import type { Case } from '@/types/case/Case';
@@ -38,9 +41,20 @@ function baseCase(overrides: Partial<Case>): Case {
 beforeEach(() => {
   getCase.mockReset();
   updateCase.mockReset();
+  enforce.mockReset();
+  enforce.mockResolvedValue({ allowed: true });
 });
 
 describe('releaseAutopsyBody', () => {
+  it('a person without autopsy:body:release cannot release the body, and nothing is fetched or saved (Batch 383)', async () => {
+    enforce.mockResolvedValue({ allowed: false });
+    const result = await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
+    expect(result).toMatchObject({ ok: false, notPermitted: true });
+    expect(enforce).toHaveBeenCalledWith('autopsy:body:release', { caseId: 'case-1' });
+    expect(getCase).not.toHaveBeenCalled();
+    expect(updateCase).not.toHaveBeenCalled();
+  });
+
   it('a real case that fails the real gate is never persisted \u2014 updateCase is never called', async () => {
     getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: true } } as any }));
     const result = await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });

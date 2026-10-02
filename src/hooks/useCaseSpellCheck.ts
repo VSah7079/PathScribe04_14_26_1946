@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { customDictionaryService, facilityService, userService } from '@/services';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { resolveCasePerformingLabScope } from '@/services/facilities/resolveCasePerformingLabScope';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { resolveAuditActor } from '@/services/participationTypes/saveParticipationType';
@@ -105,12 +106,16 @@ export function useCaseSpellCheck(input: CaseSpellCheckInput): SpellCheckContext
     await saveRef.current?.(locale);
   }, []);
 
+  // Batch 432: the facility dictionary needs config:facilities:manage (was a role-name check).
+  const { has } = useCapabilities();
+  const canManageFacility = has('config:facilities:manage');
+
   return useMemo(() => (ctx ? {
     locale: ctx.locale,
     source: ctx.source,
     ...(ctx.unavailableChoice ? { unavailableChoice: ctx.unavailableChoice } : {}),
     ...(ctx.facilityDictionaryId ? { facilityDictionaryId: ctx.facilityDictionaryId, facilityDictionaryLabel: ctx.facilityDictionaryLabel } : {}),
-    role: session?.role,
+    canManageFacility,
     client,
     revision,
     ready,
@@ -118,5 +123,5 @@ export function useCaseSpellCheck(input: CaseSpellCheckInput): SpellCheckContext
     addToFacility,
     ignore,
     ...(saveCaseOverride ? { setCaseLocale } : {}),
-  } : null), [ctx, session?.role, client, revision, ready, addToPersonal, addToFacility, ignore, saveCaseOverride, setCaseLocale]);
+  } : null), [ctx, canManageFacility, client, revision, ready, addToPersonal, addToFacility, ignore, saveCaseOverride, setCaseLocale]);
 }

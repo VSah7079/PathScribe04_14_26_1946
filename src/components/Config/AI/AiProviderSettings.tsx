@@ -17,7 +17,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   resolveAiConfig,
-  setOrgAiConfig,
   setUserAiConfig,
   clearUserAiConfig,
   isDevMode,
@@ -25,6 +24,7 @@ import {
   type AiProviderId,
   type AiProviderConfig,
 } from '@/components/Config/AI/aiProviderConfig';
+import { saveOrgAiProvider } from '@/services/aiConfig/saveAiSettings';
 
 // Real, per this file's own header — these vendor/model labels and their
 // notes deliberately show real, literal vendor and product names (proper
@@ -90,7 +90,7 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     if (models?.length) setModelId(models[0].id);
   }, [providerId]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const config = {
       providerId,
       modelId,
@@ -101,7 +101,8 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     };
 
     if (isAdmin) {
-      setOrgAiConfig(config);
+      // Batch 428: the service checks config:ai-provider:manage; a refusal saves nothing.
+      if (!(await saveOrgAiProvider(config))) return;
     } else {
       // Dev override — include API key if provided
       const devConfig: Partial<AiProviderConfig> = { ...config };

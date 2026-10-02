@@ -8,6 +8,10 @@ Admin-configurable AI behavior settings — confidence thresholds, auto-insert t
 
 - MINOR: IAIBehaviorService.ts's own header comment has a stale path (says services/aiIntegration/, should say services/aiBehavior/) — cosmetic, worth fixing.
 
+## Batch 428: Configuration permissions
+
+Switching AI features on or off for everyone (`aiBehaviorService.update` / `reset`) needs `config:ai-behavior:manage`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

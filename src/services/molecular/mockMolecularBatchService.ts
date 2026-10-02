@@ -13,9 +13,11 @@ import { resolveMolecularControlRequirementValidation } from './resolveMolecular
 import { mockMolecularAssayControlRuleService } from './mockMolecularAssayControlRuleService';
 import { generateMolecularBatchBarcode, generateMolecularPlateBarcode } from './resolveMolecularBarcodes';
 import type { IMolecularBatchService, MolecularBatch, NewMolecularBatch, MolecularWell } from './IMolecularBatchService';
-import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE } from './IMolecularBatchService';
+import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_NOT_PERMITTED, MOLECULAR_BATCH_DECK_SLOT_INVALID } from './IMolecularBatchService';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockEquipmentService } from '../equipment/mockEquipmentService';
-import { checkBatchInstrument } from '../equipment/equipmentRules';
+import { checkBatchInstrument, normaliseDeckSlotId } from '../equipment/equipmentRules';
+import { checkDeckSlot } from './deckSlots';
 
 const STORE_KEY = 'molecular_batches';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -41,7 +43,8 @@ const SEED: MolecularBatch[] = [
     assayCode: 'st-hpv-highrisk-screen',
     assayName: 'High-Risk HPV Real-Time PCR',
     targetInstrumentId: 'PANTHER_02',
-    deckSlot: 'SLOT_A1',
+    // Batch 406: the Panther deck's plate slot (was SLOT_A1, which now takes sample racks).
+    deckSlot: 'SLOT_A4',
     plateUuid: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     plateBarcode: 'PLT-HPV-20260906-012',
     plateLayout: '96_well',
@@ -85,6 +88,18 @@ export const mockMolecularBatchService: IMolecularBatchService = {
     const instrumentCheck = checkBatchInstrument(batch.targetInstrumentId, equipmentRes.ok ? equipmentRes.data : []);
     if (!instrumentCheck.ok) return err(MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE);
     batch = { ...batch, targetInstrumentId: instrumentCheck.equipment.code };
+    // Batch 406: an instrument with a deck layout takes the plate only in a
+    // slot that holds an extraction plate (services/molecular/deckSlots.ts).
+    if (batch.deckSlot?.trim() && instrumentCheck.equipment.deckSlots?.length) {
+      const slot = normaliseDeckSlotId(batch.deckSlot);
+      if (checkDeckSlot(instrumentCheck.equipment, slot, 'extraction_plate')) return err(MOLECULAR_BATCH_DECK_SLOT_INVALID);
+      batch = { ...batch, deckSlot: slot };
+    }
+    // Batch 405 (Pete): every patient well names its specimen, so the result
+    // can be traced back to it (Field Requirements "patientSpecimen", locked).
+    if (batch.wells.some(w => w.sampleType === 'PATIENT_SPECIMEN' && !((w.containerBarcode ?? '').trim() || (w.accessionNumber ?? '').trim()))) {
+      return err(MOLECULAR_BATCH_WELL_SPECIMEN_MISSING);
+    }
     const gating = resolveMolecularReagentLotGating(batch.reagentLots, batch.wells);
     if (!gating.allowed) {
       const summary = gating.failures.map(f => `${f.componentType} (${f.lotNumber}): ${f.reason.replace(/_/g, ' ')}`).join('; ');
@@ -139,6 +154,8 @@ export const mockMolecularBatchService: IMolecularBatchService = {
   async cloneAndSupersede(originalBatchId, reason, byUserId, byUserName) {
     await delay();
     if (!reason.trim()) return err('A real reason is required to supersede a batch — never an unexplained status flip.');
+    // Batch 405 (Pete: "Permission, keep users").
+    if (!(await authorizationService.enforce('molecular:batch:supersede')).allowed) return err(MOLECULAR_BATCH_NOT_PERMITTED);
     const all = load();
     const original = all.find(b => b.id === originalBatchId);
     if (!original) return err(`No molecular batch found with id "${originalBatchId}".`);
@@ -158,11 +175,17 @@ export const mockMolecularBatchService: IMolecularBatchService = {
       };
     });
 
+    // Batch 406: a slot the instrument's deck no longer takes a plate in (its
+    // layout was set after this run) is left for the tech to choose again.
+    const decks = await mockEquipmentService.getAll();
+    const instrument = decks.ok ? decks.data.find(e => e.code === original.targetInstrumentId) : undefined;
+    const keepSlot = !original.deckSlot || !instrument?.deckSlots?.length || !checkDeckSlot(instrument, original.deckSlot, 'extraction_plate');
+
     const cloneResult = await mockMolecularBatchService.create({
       assayCode: original.assayCode,
       assayName: original.assayName,
       targetInstrumentId: original.targetInstrumentId,
-      deckSlot: original.deckSlot,
+      deckSlot: keepSlot ? original.deckSlot : undefined,
       plateLayout: original.plateLayout,
       reagentLots: original.reagentLots,
       wells: clonedWells,

@@ -1,1 +1,9 @@
-src/types/case/ReportSnapshot.ts
+Batch 428: delete these files by hand when applying the zip (a zip can't express deletions).
+None of them was imported anywhere; each was an unused copy of a live screen.
+
+src/components/Config/Integrations/CrosswalkSection.tsx
+src/components/Config/Integrations/CrosswalkSection.tsx.DELETED.txt
+src/components/Config/Templates/AdminTemplateList.tsx
+src/pages/system/ClientDictionaryPage.tsx
+src/components/Config/System/SpecimenCategoriesSection.tsx
+src/components/Config/System/PatientMatchReviewSection.tsx

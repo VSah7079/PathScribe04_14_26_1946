@@ -9,3 +9,5 @@
 — not linked from Config, the home page, or any real navigation. A real
 admin or clinical user should never stumble onto a developer tool that fakes
 a backend response.
+
+**Batch 427:** the route also needs Configuration access (`ScreenGate screen="configuration"`), so someone without it can't open the tool by typing its address.

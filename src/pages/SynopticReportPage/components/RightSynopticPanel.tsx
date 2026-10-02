@@ -4,7 +4,8 @@
 import React, { useImperativeHandle, forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import type { Case } from '@/types/case/Case';
+import type { Case, PendingReevaluation, SynopticReportInstance } from '@/types/case/Case';
+import { resolveReevaluation } from '@/services/assistPolling/assistMilestoneRules';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   isVisible,
@@ -61,6 +62,10 @@ export interface AiSuggestion {
 }
 
 // ─── FieldRow ─────────────────────────────────────────────────────────────────
+/** An answer as the pathologist sees it: choice ids as their labels. */
+const displayAnswer = (field: EditorField, value: string | string[]) =>
+  (Array.isArray(value) ? value : [value]).map(v => field.options?.find((o: FieldOption) => o.id === v)?.label ?? v).join(', ');
+
 interface FieldRowProps {
   field: EditorField;
   value: string | string[];
@@ -81,13 +86,16 @@ interface FieldRowProps {
    *  report — an honest signal instead of the highlight silently
    *  doing nothing. */
   sourceNotFound?: boolean;
+  /** Batch 426: a newer AI suggestion for a field the pathologist had set, waiting for "keep or update?". */
+  reevaluation?: PendingReevaluation;
+  onReevaluation?: (fieldId: string, choice: 'keep' | 'accept') => void;
 }
 
 const FieldRow: React.FC<FieldRowProps> = ({
   field, value, onChange, aiSuggestion, onVerify, onLabelClick,
   isActive = false, aiAttempted = false,
   belowThreshold = false, belowThresholdConf, belowThresholdSource,
-  isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false,
+  isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false, reevaluation, onReevaluation,
 }) => {
   const { t } = useTranslation();
   const strVal = (value ?? '') as string;
@@ -207,6 +215,21 @@ const FieldRow: React.FC<FieldRowProps> = ({
           </>
         )}
       </div>
+
+      {/* Batch 426: the narrative changed and the AI now suggests something else for a field the
+          pathologist set. Never applied on its own: keep theirs, or take the new value. */}
+      {reevaluation && (
+        <div className="ps-syn-reeval" role="note">
+          <span className="ps-syn-reeval-text">
+            {t('rightSynopticPanel.reevaluation.suggests', { value: displayAnswer(field, reevaluation.value), confidence: reevaluation.confidence })}
+          </span>
+          {reevaluation.source && <span className="ps-syn-reeval-source" data-phi="true">{reevaluation.source}</span>}
+          <span className="ps-syn-reeval-actions">
+            <button type="button" className="ps-syn-reeval-btn" onClick={() => onReevaluation?.(field.id, 'keep')}>{t('rightSynopticPanel.reevaluation.keep')}</button>
+            <button type="button" className="ps-syn-reeval-btn ps-syn-reeval-btn--accept" onClick={() => onReevaluation?.(field.id, 'accept')}>{t('rightSynopticPanel.reevaluation.accept')}</button>
+          </span>
+        </div>
+      )}
 
       {/* Input controls */}
       {field.type === 'text' && (
@@ -1190,6 +1213,21 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     });
   }, [caseData, activeReportInstanceId, templateDetail, answers, user, activeSpecimenId, onCaseUpdate]);
 
+  // Batch 426: "keep or update?" for a re-evaluated field (services/assistPolling/assistMilestoneRules.ts).
+  const activeInstance = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as SynopticReportInstance | undefined;
+  const activeReevaluations: Record<string, PendingReevaluation> = activeInstance?.reevaluations ?? {};
+  const handleReevaluation = useCallback((fieldId: string, choice: 'keep' | 'accept') => {
+    if (!caseData || !activeInstance) return;
+    const next = resolveReevaluation({ ...activeInstance, answers }, fieldId, choice);
+    if (choice === 'accept') {
+      setAnswers(next.answers);
+      setAiSuggestions(next.aiSuggestions ?? {});
+      saveReportSuggestions(caseData.id, activeInstance.instanceId, next.aiSuggestions ?? {});
+    }
+    const reports = getActiveReports(caseData).map(r => (r.instanceId === activeInstance.instanceId ? { ...next, updatedAt: new Date().toISOString() } : r));
+    onCaseUpdate?.({ ...caseData, [activeReportsKey]: reports, updatedAt: new Date().toISOString() } as any);
+  }, [caseData, activeInstance, answers, getActiveReports, onCaseUpdate, activeReportsKey]);
+
   // ── Early returns ─────────────────────────────────────────────────────────
   if (loading) return (
     <div className="ps-syn-loading">
@@ -1318,6 +1356,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               isActive={activeFieldId === f.id}
               sourceNotFound={activeFieldId === f.id && !!highlightNotFound}
               isPulsing={pulsingFieldId === f.id}
+              reevaluation={activeReevaluations[f.id]}
+              onReevaluation={handleReevaluation}
               fieldRef={el => { fieldRefs.current[f.id] = el; }}
               // Real fix, per direct report: "AI badges on an empty
               // Grossing Template doesn't make sense, only when we

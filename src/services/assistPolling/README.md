@@ -55,5 +55,22 @@ The admin screen is `components/Config/System/AssistLisPollingSection.tsx` (Conf
 - **No draft marker in the editor.** `aiDraftSource` (on `SynopticReportInstance`) records which milestone produced a draft, but the report editor doesn't show it yet.
 - **Diagnosis text.** The LIS diagnosis is written to `diagnostic.primaryDiagnosis`, the case's existing diagnosis field.
 
+## Batch 426 — "keep or update?" and order numbers
+
+- `mergeSuggestionsIntoInstance` no longer touches a field the pathologist typed or confirmed. If the new suggestion differs, it goes into the workup's `reevaluations`, and the synoptic panel asks "keep or update?" (`resolveReevaluation`). **Fixes a real gap:** before, the new suggestion replaced the confirmed one's record (back to "unverified"), so a later run could overwrite a confirmed field.
+- `lisTextPatch` keeps the LIS's placer and filler order numbers on the case's order, for the synoptic result to echo.
+
+## Batch 427
+
+- `applyTemplateProposals` doesn't add a workup of a protocol for a part that a combined workup of that protocol already covers.
+- The AI's assignment input lists a combined workup under every part it covers.
+- `generateSuggestions` is told the parts the workup covers (`scope.specimenIds`). The demo service ignores it.
+
+## Batch 428: Configuration permissions
+
+- `mockAssistPollingService`: `saveSettings` need `config:assist-polling:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

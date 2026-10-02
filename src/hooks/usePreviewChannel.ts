@@ -16,6 +16,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
+import { getUiPreference, setUiPreference, getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 
 export interface PreviewMessage {
   type:        'SECTIONS_UPDATE' | 'PING' | 'PONG' | 'CLOSE' | 'GEOMETRY';
@@ -42,7 +43,8 @@ interface ReceiverResult {
 }
 
 // ── Window geometry helpers ──────────────────────────────────────────────────
-const GEOMETRY_KEY = 'ps_preview_window_geometry';
+// Batch 431: kept with the workstation's display preferences (uiPreferences).
+const GEOMETRY_KEY = 'previewWindowGeometry';
 
 interface WindowGeometry {
   width: number;
@@ -54,7 +56,7 @@ interface WindowGeometry {
 function saveGeometry(g: WindowGeometry) {
   // Validate before saving — ignore zero/invalid values
   if (g.width < 200 || g.height < 200) return;
-  try { localStorage.setItem(GEOMETRY_KEY, JSON.stringify(g)); } catch { /* ignore */ }
+  setUiPreference(GEOMETRY_KEY, g);
 }
 
 // Called by sender to snapshot window geometry directly
@@ -72,9 +74,8 @@ function snapshotWindowGeometry(win: Window): WindowGeometry | null {
 function loadGeometry(): WindowGeometry {
   const defaults: WindowGeometry = { width: 960, height: 1100, left: 100, top: 60 };
   try {
-    const stored = localStorage.getItem(GEOMETRY_KEY);
-    if (!stored) return defaults;
-    const g = JSON.parse(stored) as WindowGeometry;
+    const g = getUiPreference<WindowGeometry | null>(GEOMETRY_KEY, null);
+    if (!g) return defaults;
 
     // Clamp to visible screen — handles second-monitor-at-home scenario.
     // If stored position would be off-screen, reset to safe defaults.
@@ -101,15 +102,15 @@ function buildWindowFlags(g: WindowGeometry): string {
 const PREVIEW_WINDOW_NAME = 'ps_report_preview';
 
 // Session-level flag — if popups are blocked once, don't keep trying.
-// Resets on full page reload. Stored in sessionStorage so it persists
+// Resets on full page reload. Kept as a session flag so it persists
 // across case navigation without persisting across browser sessions.
 const POPUP_BLOCKED_KEY = 'ps_preview_popup_blocked';
 
 function isPopupBlocked(): boolean {
-  return sessionStorage.getItem(POPUP_BLOCKED_KEY) === 'true';
+  return getSessionFlag(POPUP_BLOCKED_KEY) === 'true';
 }
 function markPopupBlocked(): void {
-  sessionStorage.setItem(POPUP_BLOCKED_KEY, 'true');
+  setSessionFlag(POPUP_BLOCKED_KEY, 'true');
 }
 
 // ── Sender hook (draft editor) ────────────────────────────────────────────────

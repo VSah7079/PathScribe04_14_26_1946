@@ -3,6 +3,7 @@
 import type { IDisplayProfileService, DisplayProfile, NewDisplayProfile } from './IDisplayProfileService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'displayProfiles';
 
@@ -31,7 +32,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = (message: string): ServiceResult<never> => ({ ok: false, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-export const mockDisplayProfileService: IDisplayProfileService = {
+const displayProfileServiceUnchecked: IDisplayProfileService = {
   async getAll() {
     await delay();
     return ok([..._cache]);
@@ -71,6 +72,11 @@ export const mockDisplayProfileService: IDisplayProfileService = {
   },
 
   async deactivate(id: ID) {
-    return mockDisplayProfileService.update(id, { status: 'Inactive' });
+    return displayProfileServiceUnchecked.update(id, { status: 'Inactive' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDisplayProfileService: IDisplayProfileService = guardConfigWrites(displayProfileServiceUnchecked, [
+  ['config:display-profiles:manage', ['add', 'update', 'deactivate']],
+]);

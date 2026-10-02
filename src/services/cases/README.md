@@ -130,6 +130,30 @@ Support reaching another organisation's cases now also passes that organisation'
 
 It returns the case's new version. **Fixed:** before, placing or releasing a hold moved the case's version on without the report page knowing, so the page's next save (a comment, a draft) was refused as someone else's change.
 
+## Batch 395
+
+`MOCK_VERSION` 46: S26-4405, S26-4412 and S26-4492 carry a `surgicalPeerReview.postSignOutPeerReviewFlag`, so the Surgical Post-Sign-Out QA queue has demo work for Pete Nimmo.
+
+## Batch 396: one answer for a case you can't open
+
+**Batch 396 (Pete's case privacy model, see `docs/architecture/CASE_PRIVACY_MODEL.md`).**
+- `openCaseForView.ts` (+ `defaultOpenCaseForView.ts`) is the one decision for `/report/:caseId` and `/synoptic/:caseId`. A missing case, another organisation's case, a pool restriction, an Orchestration or pediatric restriction, and an error all return `{ caseData: null }`. The screen shows `components/CaseUnavailable`, and the reason is logged for support only. The old `?accessDenied=` redirect to the Worklist, and its toast naming the restriction, are gone.
+- `CaseRouter.listLinkableAccessions()`: the accession numbers a message may link for the signed-in reader, only cases they can open. A superadmin gets only their own organisation's cases, so no support access is used or recorded to decorate a message.
+
+**Batch 403.** `addOnOrderDemo.ts` adds demo add-on orders to S26-4401-BX-001 (Pete Nimmo's case), one at each stage: Requested, Block retrieved (a HER2 FISH send-out to Summit Molecular), Cut / pending stain, and an Exception waiting for the pathologist. `MOCK_VERSION` is now 47.
+
+## Batch 417
+
+The nine demo UK patients' `nhsNumber` fields became `nationalIdentifiers: [{ system: 'mrn_nhs', … verified }]` with correct check digits (the old values didn't pass mod 11).
+
+## Batch 428: Configuration permissions
+
+- `mockFppeAssignmentService`: `create`, `graduate` need `config:fppe:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+`casePoolAssignmentService.ts`: saving the routing rules and settings needs `config:case-routing:manage`; "Run now" (`routeUnassignedCases`) needs `case:routing:run` and reports `refused` when it isn't held. FPPE assignments: `config:fppe:manage`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

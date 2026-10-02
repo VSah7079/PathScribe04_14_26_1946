@@ -3,6 +3,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IDeliveryRuleService } from './IDeliveryRuleService';
 import type { DeliveryRule } from '@/types/delivery/DeliveryRule';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const KEY = 'delivery_rules_v1';
 
@@ -12,7 +13,7 @@ const persist = (data: DeliveryRule[]) => storageSet(KEY, data);
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockDeliveryRuleService: IDeliveryRuleService = {
+const deliveryRuleServiceUnchecked: IDeliveryRuleService = {
   async getAll() {
     return ok(load());
   },
@@ -44,3 +45,8 @@ export const mockDeliveryRuleService: IDeliveryRuleService = {
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDeliveryRuleService: IDeliveryRuleService = guardConfigWrites(deliveryRuleServiceUnchecked, [
+  ['config:delivery-rules:manage', ['create', 'update', 'remove']],
+]);

@@ -21,6 +21,11 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory, MergeResolutionContext, PreparationType, PreparationOutput } from '@/types/intraop/IntraoperativeEntry';
 import type { DigitalAsset } from '@/types/case/Material';
 import type { IIntraoperativeService } from './IIntraoperativeService';
+import type { VerbalReportInput } from '@/types/intraop/IntraoperativeEntry';
+import { buildVerbalReportLog, verbalReportAuditDetail, verbalReportProblems } from './verbalReport';
+
+/** Batch 399: a verbal report missing who received it, their role, the read-back or a required reason. */
+export const VERBAL_REPORT_INCOMPLETE = 'VERBAL_REPORT_INCOMPLETE';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockCriticalResultNotificationService } from '../clinical/mockCriticalResultNotificationService';
@@ -813,27 +818,41 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     // one. Best-effort, same real "never block the merge itself"
     // posture as the audit log call above.
     if (entries[idx].verbalReportLog) {
+      // Batch 399: the person who actually received the report, their role,
+      // the read-back and any "Surgeon unavailable" reason go with it. Before,
+      // the session's surgeon was recorded as the recipient whoever took the call.
+      const v = entries[idx].verbalReportLog!;
       await mockCriticalResultNotificationService.migrateIntraopVerbalReport({
         caseId,
         surgeon: entries[idx].surgeon,
-        note: entries[idx].verbalReportLog.note,
-        notifiedAt: entries[idx].verbalReportLog.timestamp,
-        notifiedBy: entries[idx].performedBy,
+        note: v.note,
+        notifiedAt: v.timestamp,
+        notifiedBy: v.reportedBy ?? entries[idx].performedBy,
+        receivedBy: v.receivedBy,
+        recipientRole: v.recipientRole,
+        readBackConfirmed: v.readBackConfirmed,
+        criticalResult: v.critical?.flagged,
+        surgeonUnavailable: v.surgeonUnavailable,
       }).catch(() => {});
     }
 
     return ok({ ...entries[idx] });
   },
 
-  async recordVerbalReport(sessionId: string, note?: string): Promise<ServiceResult<IntraoperativeEntry>> {
+  async recordVerbalReport(sessionId: string, input: VerbalReportInput): Promise<ServiceResult<IntraoperativeEntry>> {
     const entries = load();
     const idx = entries.findIndex(e => e.id === sessionId);
     if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
-    entries[idx] = {
-      ...entries[idx],
-      verbalReportLog: { timestamp: new Date().toISOString(), note: note?.trim() || '(no note recorded)' },
-    };
+    // Batch 399: the rules every verbal report meets (who, role, read-back,
+    // and a reason when a critical result didn't go to the operating surgeon).
+    if (verbalReportProblems(input).length > 0) return err(VERBAL_REPORT_INCOMPLETE);
+    const log = buildVerbalReportLog(input, new Date().toISOString());
+    entries[idx] = { ...entries[idx], verbalReportLog: log };
     persist(entries);
+    await mockAuditService.logEvent({
+      type: 'user', event: 'Intraop verbal report logged', detail: verbalReportAuditDetail(log),
+      user: input.reportedBy?.userName ?? 'unknown', caseId: null, confidence: null,
+    }).catch(() => {});
     announceIntraopChange('verbal.reported', entries[idx]);
     return ok({ ...entries[idx] });
   },

@@ -155,5 +155,11 @@ Non-English medical tiers are built only from validated sources, through the Bat
 - **Inflections in other languages:** SNOMED CT and LOINC mostly give singular forms. English gets plurals from the SPECIALIST Lexicon; German, French and Dutch plurals are only accepted where the base dictionary or the terms themselves have them. French and Dutch base dictionaries accept the core terms tested (carcinome, adénocarcinome, carcinoom).
 - **`@farscrl/hunspell-wasm`** declares Node ≥ 24. Since Batch 341 the project is on Node 24 too, so npm no longer warns; the full suite passes on 24.
 
+## Batch 432
+
+- The facility dictionary needs `config:facilities:manage` (was a role-name check, `canManageFacilityDictionary`, removed). The spell menu's "Add to facility dictionary" uses the same capability.
+- A personal word can be removed only by its owner.
+- New screens: profile menu → "My dictionary"; Facility configuration → Spelling (performing labs).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

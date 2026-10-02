@@ -69,7 +69,9 @@ export type CytologySignOutBlockReason =
   | 'requires_pathologist_review'
   | 'unsatisfactory_adequacy'
   | 'flagged_for_qc'
-  | 'unvalidated_synoptic_translation';
+  | 'unvalidated_synoptic_translation'
+  // Batch 412 (Pete): a reviewer asked the author to revise; a cytotechnologist waits, a pathologist doesn't.
+  | 'pending_author_revision';
 
 export interface CytologySignOutGateResult {
   allowed: boolean;
@@ -112,6 +114,8 @@ export function resolveCytologySignOutGate(
    *  resolveSynopticTranslationValidation.ts before calling this gate,
    *  never derived here. */
   synopticTranslationCheck?: { hasUnvalidatedTerms: boolean; hasCurrentAcknowledgment: boolean },
+  /** Batch 412: an open "Requires revision" note on the specimen (cytologyReviewNotes.ts). */
+  pendingAuthorRevision = false,
 ): CytologySignOutGateResult {
   const blockedReasons: CytologySignOutBlockReason[] = [];
 
@@ -164,6 +168,11 @@ export function resolveCytologySignOutGate(
   if (synopticTranslationCheck?.hasUnvalidatedTerms && !synopticTranslationCheck.hasCurrentAcknowledgment) {
     blockedReasons.push('unvalidated_synoptic_translation');
   }
+
+  // 6. Batch 412 (Pete: "Blocks CT only"): a revision request still open. This
+  //    gate is the CT's; a pathologist signs out regardless (resolveCanSignOutCytology)
+  //    and resolves the request by recording their own review.
+  if (pendingAuthorRevision) blockedReasons.push('pending_author_revision');
 
   return { allowed: blockedReasons.length === 0, blockedReasons };
 }

@@ -124,6 +124,10 @@ export interface TemplateActor {
   appRole?: string;
   /** Ids of the staff record's roles (roleIdsForNames). */
   roleIds?: string[];
+  /** Batch 428: the capabilities the person holds. When given, they decide
+   *  (config:protocol:draft / approve / publish); the built-in roles only
+   *  decide for an actor built without them (older callers and tests). */
+  capabilities?: readonly string[];
 }
 
 const hasAnyRole = (actor: TemplateActor | null | undefined, ids: readonly string[]): boolean => {
@@ -132,13 +136,23 @@ const hasAnyRole = (actor: TemplateActor | null | undefined, ids: readonly strin
   return (actor.roleIds ?? []).some(id => ids.includes(id));
 };
 
+const holds = (actor: TemplateActor | null | undefined, capability: string, roleIds: readonly string[]): boolean => {
+  if (!actor) return false;
+  return actor.capabilities ? actor.capabilities.includes(capability) : hasAnyRole(actor, roleIds);
+};
+
 export function isTemplateApprover(actor: TemplateActor | null | undefined): boolean {
-  return hasAnyRole(actor, TEMPLATE_APPROVER_ROLE_IDS);
+  return holds(actor, 'config:protocol:approve', TEMPLATE_APPROVER_ROLE_IDS);
+}
+
+/** Batch 428: publishing is its own capability (seeded to the same roles as approving). */
+export function canPublishTemplates(actor: TemplateActor | null | undefined): boolean {
+  return holds(actor, 'config:protocol:publish', TEMPLATE_APPROVER_ROLE_IDS);
 }
 
 /** Drafting (Pete's matrix): Template Author; Admin inherits it. */
 export function canDraftTemplates(actor: TemplateActor | null | undefined): boolean {
-  return hasAnyRole(actor, TEMPLATE_AUTHOR_ROLE_IDS);
+  return holds(actor, 'config:protocol:draft', TEMPLATE_AUTHOR_ROLE_IDS);
 }
 
 // ── Approvals ────────────────────────────────────────────────────────────────
@@ -234,7 +248,7 @@ export function decidePublish(
   settings: TemplateGovernanceSettings,
   snomedCoverage: number,
 ): PublishDecision {
-  if (!actor || !isTemplateApprover(actor)) return { ok: false, code: 'NOT_APPROVER' };
+  if (!actor || !canPublishTemplates(actor)) return { ok: false, code: 'NOT_APPROVER' };
   if (selfAndBlocked(template, actor, settings)) return { ok: false, code: 'SELF_APPROVAL' };
   const approvalCount = countingApprovals(template, settings);
   if (approvalCount < settings.requiredReviewers) return { ok: false, code: 'NOT_ENOUGH_APPROVALS', approvalCount };

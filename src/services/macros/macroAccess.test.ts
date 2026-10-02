@@ -1,7 +1,7 @@
 // src/services/macros/macroAccess.test.ts — Batch 349 (PS-126)
 import { describe, it, expect } from 'vitest';
 import type { Macro } from './IMacroService';
-import { canEditMacro, canManageAllMacros, groupAllMacros, macroTiersFor } from './macroAccess';
+import { canEditMacro, canManageAllMacros, groupAllMacros, macroChangeNeedsCapability, macroTiersFor } from './macroAccess';
 
 const m = (id: string, name: string, over: Partial<Macro> = {}): Macro =>
   ({ id, name, shortcut: `;${id}`, content: '', category: 'Custom', subspecialtyIds: [], snomedCodes: [], icdCodes: [], createdBy: 'x', status: 'Active', ...over } as Macro);
@@ -42,5 +42,24 @@ describe('macro access', () => {
       ['personal', 'Adams, Kim', ['Delta']],
       ['personal', 'Brown, Lee', ['Alpha2', 'Zeta']],
     ]);
+  });
+});
+
+// Batch 428: a person's own macro is theirs; shared or someone else's needs config:macros:manage.
+describe('macroChangeNeedsCapability (Batch 428)', () => {
+  const mine = { ownerUserId: 'u1' };
+  const theirs = { ownerUserId: 'u2' };
+  const facility = { performingLabFacilityId: 'f1' };
+  const enterprise = {};
+  it('own personal macros need nothing', () => {
+    expect(macroChangeNeedsCapability(undefined, mine, 'u1')).toBe(false);
+    expect(macroChangeNeedsCapability(mine, mine, 'u1')).toBe(false);
+  });
+  it('shared macros, someone else\'s, or moving one to shared need the capability', () => {
+    expect(macroChangeNeedsCapability(undefined, facility, 'u1')).toBe(true);
+    expect(macroChangeNeedsCapability(enterprise, enterprise, 'u1')).toBe(true);
+    expect(macroChangeNeedsCapability(theirs, theirs, 'u1')).toBe(true);
+    expect(macroChangeNeedsCapability(mine, facility, 'u1')).toBe(true);
+    expect(macroChangeNeedsCapability(mine, mine, undefined)).toBe(true);
   });
 });

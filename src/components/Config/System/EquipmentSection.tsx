@@ -13,6 +13,8 @@
 //
 // Batch 360 added the Service column and log; Batch 361 shows a device in red
 // when it has an open malfunction or is past due.
+// Batch 406: an analyser's deck layout (DeckLayoutEditor), its instrument
+// profile for Rack Loading's deck-slot checks, is edited and saved here.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +27,7 @@ import { getFacilityIsoDate } from '../../../utils/facilityTime';
 import { formatCalendarDate } from '../../../utils/search/caseSearchCsv';
 import { earliestDue, equipmentServiceState, groupLogByEquipment, isServiceAlert } from '../../../services/equipment/equipmentLogRules';
 import EquipmentLogModal from './EquipmentLogModal';
+import DeckLayoutEditor from './DeckLayoutEditor';
 import type { Equipment, EquipmentDraft, EquipmentKind, Facility, GrossingHardwareProfile, PrinterProfile, ScanStation } from '../../../services';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import {
@@ -56,6 +59,7 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
           code: item.code, name: item.name, kind: item.kind, make: item.make ?? '', model: item.model ?? '', serialNumber: item.serialNumber ?? '',
           facilityId: item.facilityId, scanStationId: item.scanStationId ?? '', active: item.status === 'Active',
           maintenanceIntervalDays: item.maintenanceIntervalDays, calibrationIntervalDays: item.calibrationIntervalDays,
+          deckSlots: item.deckSlots?.map(sl => ({ ...sl, rackTypes: [...sl.rackTypes] })),
         }
       : { ...emptyDraft, facilityId: defaultFacilityId ?? '' },
   );
@@ -160,6 +164,11 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
           </div>
           <span className="ps-conf-field-hint">{t('equipmentSection.modal.intervalHint')}</span>
 
+          {draft.kind === 'analyser' && (
+            <DeckLayoutEditor slots={draft.deckSlots ?? []} onChange={slots => set('deckSlots', slots)}
+              error={errors.deckSlots ? t(`equipmentSection.errors.${errors.deckSlots}`) : null} />
+          )}
+
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('equipmentSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
@@ -233,8 +242,10 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
           name: rest.name, kind: rest.kind, make: rest.make, model: rest.model, serialNumber: rest.serialNumber,
           facilityId: rest.facilityId, scanStationId: rest.scanStationId, status,
           maintenanceIntervalDays: rest.maintenanceIntervalDays, calibrationIntervalDays: rest.calibrationIntervalDays,
+          // Batch 406: the deck layout, for analysers only.
+          deckSlots: rest.kind === 'analyser' ? rest.deckSlots : undefined,
         })
-      : await equipmentService.create({ ...rest, status });
+      : await equipmentService.create({ ...rest, deckSlots: rest.kind === 'analyser' ? rest.deckSlots : undefined, status });
     if (!res.ok) return false;
     await reload();
     setModal(null);
@@ -259,12 +270,12 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
       </div>
 
       <div className="ps-conf-form-row--3">
-        <input type="text" className="ps-conf-search" placeholder={t('equipmentSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
-        <select className="ps-conf-select" aria-label={t('equipmentSection.kindFilterLabel')} value={kindFilter} onChange={e => setKindFilter(e.target.value as 'All' | EquipmentKind)}>
+        <input data-config-nav type="text" className="ps-conf-search" placeholder={t('equipmentSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
+        <select data-config-nav className="ps-conf-select" aria-label={t('equipmentSection.kindFilterLabel')} value={kindFilter} onChange={e => setKindFilter(e.target.value as 'All' | EquipmentKind)}>
           <option value="All">{t('equipmentSection.kindFilterAll')}</option>
           {EQUIPMENT_KINDS.map(k => <option key={k} value={k}>{t(`equipmentKinds.${k}`)}</option>)}
         </select>
-        <select className="ps-conf-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'All' | Equipment['status'])}>
+        <select data-config-nav className="ps-conf-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'All' | Equipment['status'])}>
           <option value="All">{t('equipmentSection.statusFilterAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

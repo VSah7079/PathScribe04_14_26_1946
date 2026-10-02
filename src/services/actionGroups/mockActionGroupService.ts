@@ -2,6 +2,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ActionGroup, IActionGroupService } from './IActionGroupService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'action_groups';
 
@@ -28,7 +29,7 @@ const SEED_ACTION_GROUPS: ActionGroup[] = [];
 const load    = (): ActionGroup[] => storageGet<ActionGroup[]>(STORAGE_KEY, SEED_ACTION_GROUPS);
 const persist = (data: ActionGroup[]) => storageSet(STORAGE_KEY, data);
 
-export const mockActionGroupService: IActionGroupService = {
+const actionGroupServiceUnchecked: IActionGroupService = {
   async getAll(): Promise<ServiceResult<ActionGroup[]>> {
     return { ok: true, data: load() };
   },
@@ -58,10 +59,15 @@ export const mockActionGroupService: IActionGroupService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<ActionGroup>> {
-    return mockActionGroupService.update(id, { status: 'Inactive' });
+    return actionGroupServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<ActionGroup>> {
-    return mockActionGroupService.update(id, { status: 'Active' });
+    return actionGroupServiceUnchecked.update(id, { status: 'Active' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockActionGroupService: IActionGroupService = guardConfigWrites(actionGroupServiceUnchecked, [
+  ['config:action-groups:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

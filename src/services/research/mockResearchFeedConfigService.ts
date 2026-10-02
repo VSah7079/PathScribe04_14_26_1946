@@ -25,6 +25,7 @@ import type {
   ResearchFeedConfig,
   ResearchFeedHealth,
 } from './IResearchFeedConfigService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const CONFIG_KEY = 'pathscribe_research_feed_config';
 const HEALTH_KEY = 'pathscribe_research_feed_health';
@@ -106,7 +107,7 @@ const EMPTY_HEALTH: ResearchFeedHealth = {
 
 /* ---------------------------------------------------------------- service */
 
-export const mockResearchFeedConfigService: IResearchFeedConfigService = {
+const researchFeedConfigServiceUnchecked: IResearchFeedConfigService = {
   async getConfig(): Promise<ResearchFeedConfig> {
     try {
       const raw = localStorage.getItem(CONFIG_KEY);
@@ -155,5 +156,11 @@ export const mockResearchFeedConfigService: IResearchFeedConfigService = {
     }
   },
 };
+
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockResearchFeedConfigService: IResearchFeedConfigService = guardConfigWrites(researchFeedConfigServiceUnchecked, [
+  ['config:research-feed:manage', ['saveConfig']],
+], { refuse: 'throw' });
 
 export default mockResearchFeedConfigService;

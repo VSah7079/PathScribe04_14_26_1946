@@ -56,7 +56,7 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
   async getByRackId(rackId: string): Promise<ServiceResult<HardwareContainer>> {
     const normalized = rackId.trim().toUpperCase();
     const container = loadContainers().find(c => c.rackId.toUpperCase() === normalized);
-    if (!container) return { ok: false, error: `No registered hardware container for rack ID "${rackId}".` };
+    if (!container) return { ok: false, error: 'rackNotRegistered' };
     return { ok: true, data: container };
   },
 
@@ -90,14 +90,14 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
     const containers = loadContainers();
     const normalized = rackId.trim().toUpperCase();
     const container = containers.find(c => c.rackId.toUpperCase() === normalized);
-    if (!container) return { ok: false, error: `No registered hardware container for rack ID "${rackId}".` };
+    if (!container) return { ok: false, error: 'rackNotRegistered' };
     // Real, honest conflict check — the spec's own "preventing
     // duplicate batch conflicts on subsequent runs." A rack already
     // checked out to a DIFFERENT batch is a genuine conflict; checking
     // it out again to the SAME batch (e.g. a page refresh re-running
     // the same real flow) is a harmless, idempotent no-op.
     if (container.status === 'InUse' && container.currentBatchId !== batchId) {
-      return { ok: false, error: `Rack "${rackId}" is already checked out to another active batch. Release it there first, or choose a different rack.` };
+      return { ok: false, error: 'rackCheckedOut' };
     }
     const updated: HardwareContainer = { ...container, status: 'InUse', currentBatchId: batchId, updatedAt: new Date().toISOString() };
     saveContainers(containers.map(c => c.id === container.id ? updated : c));
@@ -113,7 +113,7 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
     const containers = loadContainers();
     const normalized = rackId.trim().toUpperCase();
     const container = containers.find(c => c.rackId.toUpperCase() === normalized);
-    if (!container) return { ok: false, error: `No registered hardware container for rack ID "${rackId}".` };
+    if (!container) return { ok: false, error: 'rackNotRegistered' };
     if (container.status === 'Available') return { ok: true, data: container }; // real, honest idempotent no-op
     const updated: HardwareContainer = { ...container, status: 'Available', currentBatchId: undefined, updatedAt: new Date().toISOString() };
     saveContainers(containers.map(c => c.id === container.id ? updated : c));

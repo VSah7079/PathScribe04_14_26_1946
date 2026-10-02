@@ -40,6 +40,7 @@ The Accession page greys out Next and Submit until the required fields are fille
 | `defaultFieldRequirementService.ts` | The mock wiring. Stored under `pathscribe_field_requirements`; a Full Reset clears it back to the defaults. |
 | `fieldRequirements.test.ts` | Rules and service. |
 | `reportPageChecks.ts` | Batch 380: what the case report page's modals need before saving (+ `reportPageChecks.test.ts`). |
+| `messagingChecks.ts` | Batch 384: what the message drawer, reply box and Secure email window need before sending (+ `messagingChecks.test.ts`). |
 
 ## Batch 377: fields filled in automatically
 
@@ -88,7 +89,7 @@ Pete: "move on to the Synoptic Report page and its related modals". New page **C
 - `specimenEditProblems`, `revisionMissingFields`, `revisionNotificationShown` and `criticalNotificationMissing` return what's missing in catalog order. The modals show it as "Still required: …" and mark required labels.
 - `hooks/useFieldRequirements(page)` loads a page's requirements for the signed-in user's organisation, starting from the defaults.
 - A synoptic template's own required answers stay with the template (`RightSynopticPanel.validateRequired` at finalize). They aren't duplicated here.
-- Group 2 (holds, comments, Delegate, biopsy arrays, block cancel/restain) came in Batch 381; group 3 began in Batch 382 (discordance and billing changes) and continues with the autopsy forms and the date and fixative gates.
+- Group 2 (holds, comments, Delegate, biopsy arrays, block cancel/restain) came in Batch 381; group 3 came in Batches 382 (discordance and billing changes) and 383 (the autopsy forms and the date and fixative gates).
 
 ## Batch 381: the case report page, group 2
 
@@ -118,3 +119,176 @@ Pete's group 2 choice again: every fixed field is listed as locked.
 | | Corrected billing code | locked; must also differ from the code being corrected |
 
 New checks in `reportPageChecks.ts`: `discordanceStage` (none chosen / concordant / discordant), `discordanceMissing`, `billingChangeMissing`, `correctedCodeCheck`. The record the reconciliation modal saves is built in `services/quality/discordanceRecord.ts`, from the same checks.
+
+## Batch 383: the case report page, group 3 (part 2)
+
+| Group | Fields | Default |
+|---|---|---|
+| Autopsy forms | Written order reference and date (medicolegal cases) | locked (the gross-examination gate needs them) |
+| | Consent time (hospital-consented cases) | locked |
+| | Consent scope | optional, switchable on |
+| | Body released to, released by | locked (chain of custody) |
+| Sign-out gates | Fixation time (or confirming none is possible) | locked (CAP/ASCO) |
+| | Reason no fixation time is possible | optional, switchable on |
+| | Collection and receipt date/time (or the administrative override) | locked (ISO 15189, CAP/CLIA and equivalents) |
+| | Override justification | locked |
+
+New checks in `reportPageChecks.ts`: `autopsyAuthorizationMissing` (by case authority) and `autopsyReleaseMissing`. The gates' checks are in `services/signoutGates/`. This completes group 3.
+
+## Batch 384: the Messaging page
+
+| Group | Fields | Default |
+|---|---|---|
+| New message | Recipient(s) | locked (a message must be routed) |
+| | Subject | required, switchable off |
+| | Message text | locked |
+| Secure email | To (an external address) | locked |
+| | Subject | required, switchable off |
+| | Message text | locked |
+| Reply | Reply text | locked |
+
+`messagingChecks.ts`: `newMessageMissing`, `secureEmailMissing` (the address must contain `@`, as before) and `replyMissing`. A fourth page in the catalog; the AppShell drawer, reply box and Secure email window use it.
+
+## Batch 386: Cytology screening (fifth page)
+
+Page `cytology`, four groups, 20 fields (`cytologyChecks.ts`):
+
+| Group | Field | Default |
+|---|---|---|
+| Cytology review (Bethesda) | Primary interpretation | locked |
+| | General categorization, specimen adequacy, primary comment, additional interpretations, recommendations, notes | optional |
+| | Last menstrual period | optional, gynaecologic specimens only |
+| CISOE-A review | C, I, S, O, E components and A adequacy | locked |
+| | Comment on every axis, notes | optional |
+| 5-year retrospective review | Outcome | locked |
+| | Corrective action | optional, asked for only when the outcome isn't Confirmed Negative |
+| Cyto-histologic correlation | Histology diagnosis, outcome (manual entry) | locked |
+
+`cytologyReviewMissing`, `cisoeaMissing`, `retrospectiveMissing`, `histologyCorrelationMissing` and `cytologyFieldRequired` (drives the "*"). Used by the four components in `pages/CytologyWorklistPage/components/`.
+
+## Batch 388: Microtomy workstation (sixth page)
+
+Page `microtomy`, two groups, five fields (`microtomyChecks.ts`):
+
+| Group | Field | Default |
+|---|---|---|
+| Comments | Comment text | locked |
+| Slide orders | Stain | locked |
+| | Level depth (µm) | optional |
+| | Reprint reason | locked |
+| | Cancel reason (printed slide) | locked |
+
+`microtomyCommentMissing`, `microtomyAddStainMissing`, `microtomyReprintMissing`, `microtomyCancelMissing` and `microtomyFieldRequired` (drives the "*"). Used by `CommentDrawer`, `SlideGridPanel` and the cancel-reason prompt on the Microtomy page. The two reason fields are locked because `utils/microtomyOperations.ts` already requires them; the workstation's lists give no way to act without choosing one.
+
+## Batch 390: Cytology correction and addendum
+
+The `cytology` page gains one group, **Correction / addendum**: the reason (`revisionReason`) and the addendum text (`revisionAddendumText`), both locked ("Laboratory standards require every change to a signed-out report to record what changed and why"). `cytologyCorrectionMissing` (a corrected review follows the review switches, except notes and the last menstrual period; plus the reason) and `cytologyAddendumMissing` are in `cytologyChecks.ts` and exported from `services/index.ts`. Used by `CytologyRevisionPanel`.
+
+## Batch 397: Add Orders, matrix blocks, and the Intraop page
+
+- **New page `intraop`** (15 fields, five groups): New session (patient name, MRN and the identity confirmation locked; OR number required but switchable; surgeon locked (the operating surgeon; corrected in Batch 398, see there); date of birth, facility and location optional), Specimens (label and Quick Gross locked, since the service refuses touch prep or a frozen cut before Quick Gross; frozen diagnosis and its category optional), Touch prep (the "Other" skip note, optional), Verbal report to the surgeon (the note, optional), Merge into a case (the case, locked). The defaults reproduce what the page required before. Checks: `intraopChecks.ts`.
+- Conditional fields count as supplied where they don't apply: the date of birth when the patient came from ADT, the location for a facility with no rooms, the category without a frozen diagnosis, the skip note for any reason but "Other".
+- **Report page:** group **Add Orders** (`addOrdersSpecimen`, `addOrdersCassetteLabel`, locked for material traceability). `reportPageChecks.addOrdersBlockMissing`; the appended gross sentence moved here too (`addOrdersBlockSentence`).
+- **Grossing:** new `pieceDescription` rule (per block, optional). Both per-block rules now include matrix blocks (`services/grossing/grossingCompletion.ts`).
+- `FIELD_GROUP_ORDER` (the settings screen's group order) moved here from `FieldRequirementsSection.tsx`; a test fails if a catalog group is missing from it. `isFieldRequired` is the generic "*" helper.
+
+## Batch 398
+
+The Grossing page's rules now also apply to the case report page's Gross Complete (see `services/grossing/README.md`). Correction to Batch 397: the Intraop surgeon's lock reason said the frozen result is reported to a named surgeon (CAP). That overstated it (Pete): the result may go to the surgeon or an authorized member of the surgical team. The reason now says the session records the operating surgeon, and who received the result is recorded with the report.
+
+## Batch 399
+
+The Intraop page's **Verbal report** group gains five locked rules: who received it, their role, the read-back, and, for a critical result given to anyone but the operating surgeon, the "Surgeon unavailable" reason and (for "Other") its note. The note on the report stays an optional switch. `intraopVerbalReportMissing` now takes the structured report.
+
+## Batch 401: Embedding station (eighth page)
+
+Page `embedding`, three groups, five fields (`embeddingChecks.ts`):
+
+| Group | Field | Default |
+|---|---|---|
+| Comments | Comment text | locked |
+| Confirm embedding | Observed piece count | locked (compared with grossing's count; a mismatch raises a Tissue Discrepancy) |
+| | Base mold size | optional |
+| | Orientation instructions | optional |
+| Cassette label reprint | Reprint reason | locked (duplicate-label and traceability records) |
+
+`embeddingCommentMissing`, `embeddingConfirmMissing` (an observed count that isn't a whole number of 0 or more counts as missing: `parseObservedPieceCount`), `embeddingReprintMissing`, `embeddingFieldRequired` and `EMBEDDING_DEFAULT_REQUIREMENTS`, exported from `services/index.ts`. Used by the Embedding station's panel, comment drawer and reprint dialog, and by `useEmbeddingStation.ts` (so the foot pedal is checked too). New groups `embeddingConfirm` and `cassetteReprint` are in `FIELD_GROUP_ORDER`; new lock reasons `pieceCountVerification` and `cassetteReprintReason`.
+
+## Batch 402: Slide distribution station (ninth page)
+
+Page `slideDistribution`, four groups, nine fields (`slideDistributionChecks.ts`):
+
+| Group | Field | Default |
+|---|---|---|
+| Physical checkout | Pathologist or pool, slide folder ID, tray number, courier transit bag | optional |
+| Digital scanner routing | Scanner instrument | locked (so the scan can be matched back to the slide) |
+| | Rack ID, slot position | optional |
+| Slide exceptions | Exception note | optional |
+| Slide label reprint | Reprint reason | locked (`slideChangeReason`; new in this batch, Pete) |
+
+`slideCheckoutMissing` also reports `checkoutTarget` when nothing says where the slide goes (not a switch: `assignPhysicalSlide` refuses that anyway). `scannerLoadMissing`, `slideExceptionMissing`, `slideReprintMissing`, `slideDistributionFieldRequired`, `SLIDE_DISTRIBUTION_DEFAULT_REQUIREMENTS`, exported from `services/index.ts`. New lock reason `scannerInstrument`.
+
+## Batch 403: Add-On Orders (tenth page)
+
+Page `addOnOrder` has three groups and seven fields (`addOnOrderChecks.ts`):
+
+| Group | Field | Default |
+|---|---|---|
+| Placing an add-on order | Blocks, order lines | locked (`addOnOrderContent`) |
+| | Level depth (µm), recut lines only | optional |
+| | Microtome bench instructions | optional |
+| | Reference / send-out lab, molecular/send-out lines only | locked (`sendOutRouting`, Pete) |
+| Flagging a block exception | Exception note | optional |
+| Pathologist's response | Response note | optional |
+
+The exported checks are `addOnLineMissing`, `addOnSubmitMissing`, `addOnExceptionMissing`, `addOnResponseMissing`, `validLevelDepth`, `addOnOrderFieldRequired` and `ADD_ON_ORDER_DEFAULT_REQUIREMENTS`. A rule that doesn't apply to the order (no recut line, no send-out line) never counts as missing. The new hints are `recutLinesOnly` and `sendOutLinesOnly`.
+
+## Batch 404: Batch Management (eleventh page)
+
+Page `batchManagement` has two groups and ten fields (`batchChecks.ts`).
+
+**New container:**
+- Locked: protocol (`batchProtocol`); rack ID, reusable racks only (`rackTraceability`); target duration, decal only (`decalTiming`); reference lab destination, referral only (`sendOutRouting`); stain, cytology staining only (`batchStain`).
+- Switches, off by default: the test requested (referral only) and the reagent/solution lots (staining only).
+
+**Closing a batch out** (all locked):
+- Abort reason (`batchCustodyChange`). This is new: Pete chose to require it.
+- Override reason (`batchCustodyChange`).
+- Cold-chain note (`coldChainRecord`).
+
+A field that belongs to another processing node, or to a reusable rack, never counts as missing. The locked reasons are also enforced in the batch service.
+
+## Batch 405: Molecular plate builder (twelfth page)
+
+Page `molecularBatch` has three groups and nine fields (`molecularBatchChecks.ts`):
+
+| Group | Field | Default |
+|---|---|---|
+| The run | Assay, assay name, target instrument | locked (`molecularRunRecord`) |
+| | Deck slot, reagent lots | optional |
+| Wells | Patient well specimen (barcode or accession) | locked (`wellTraceability`, new, Pete) |
+| | Aliquot volume (patient wells) | optional |
+| | Control lot and expiry (control wells) | locked (`controlTraceability`) |
+| Clone & Supersede | Reason | locked (`supersedeRecord`) |
+
+`molecularWellsMissingSpecimen` lists the patient wells that name no specimen.
+
+## Batch 406: Molecular rack loading (thirteenth page)
+
+Page `molecularRack` has two groups and five fields (`molecularRackChecks.ts`). This is Pete's list for Rack Loading:
+
+| Group | Field | Default |
+|---|---|---|
+| The rack and its tubes | Rack identifier / barcode | locked (`rackIdentity`, new); generated when blank |
+| | Sample ID for every occupied position | locked (`sampleMapping`, new). Every tube names its accession, and the rack needs at least one tube. |
+| Placing the rack | Instrument | locked (`deckPlacement`, new) |
+| | Deck slot | locked (`deckPlacement`), but only asked for when the instrument has more than one slot for a sample rack |
+| | Assay | optional. When given, it narrows the slots to the ones its control rule allows. |
+
+Main functions:
+- `molecularRackPlacementMissing` returns the missing field ids.
+- `rackPositionsMissingSampleId` lists the tubes without an accession.
+- `rackDeckSlotNeeded` says whether a slot is required.
+- `rackTypeOf`: racks stored before the rack type existed count as sample tube racks.
+
+The rack service enforces the same rules again in `placeOnDeck`.

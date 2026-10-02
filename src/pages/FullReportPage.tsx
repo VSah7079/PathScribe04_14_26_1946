@@ -37,15 +37,17 @@ import '../pathscribe.css';
 import { useParams, useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Case } from "@/types/case/Case";
-import { caseRouter } from "@/services/cases/CaseRouter";
-import { resolveCaseAccessGate } from "@/services/auth/resolveCaseAccessGate";
+import { openCaseForViewDefault } from "@/services/cases/defaultOpenCaseForView";
+import { CaseUnavailable } from "../components/CaseUnavailable/CaseUnavailable";
+import { safeInternalPath } from "@/utils/safeInternalPath";
+import { SurgicalQaCaseBar } from "../components/QualityAssurance/SurgicalQaCaseBar";
 import { useAuth } from "../contexts/AuthContext";
 import { useMessaging } from "../contexts/MessagingContext";
 import { PoolClaimModal } from "../components/Worklist/PoolClaimModal";
 import LeftReportPanel from "../pages/SynopticReportPage/components/LeftReportPanel";
 import { VoiceCommandOverlay } from "../components/Voice/VoiceCommandOverlay";
 import { VoiceMissPrompt }     from "../components/Voice/VoiceMissPrompt";
-import { mockActionRegistryService } from "../services/actionRegistry/mockActionRegistryService";
+import { actionRegistryService } from "@/services";
 import { VOICE_CONTEXT } from "../constants/systemActions";
 
 // react-router's useLocation() always returns Location<any> — there's no
@@ -63,6 +65,8 @@ interface FullReportLocationState {
    *  contexts where the whole point of being here is to publish a
    *  review, so the notes drawer should already be open. */
   openInternalNotes?: boolean;
+  /** Batch 396: where Back returns to, set by the QA queues. */
+  returnTo?: string;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -79,8 +83,13 @@ export default function FullReportPage() {
   const fromMessages = locationState?.fromMessages;
   const { setPortalOpen } = useMessaging();
 
+  // Batch 396: a QA queue that opens this report for review passes where
+  // Back returns to (only a same-site path is followed).
+  const returnTo = safeInternalPath(locationState?.returnTo);
   const handleBack = () => {
-    if (fromFilter) {
+    if (returnTo) {
+      navigate(returnTo);
+    } else if (fromFilter) {
       navigate('/worklist', { state: { restoreFilter: fromFilter } });
     } else if (fromMessages) {
       setPortalOpen(true);
@@ -95,40 +104,31 @@ export default function FullReportPage() {
   const [loading, setLoading] = useState(true);
   const [claimOpen, setClaimOpen] = useState(false);
 
+  // Batch 396 (Pete's privacy model): services/cases/openCaseForView.ts
+  // decides. A case that is missing, in another organisation or restricted
+  // (pool, Orchestration, pediatric) comes back as null, and this page shows
+  // the same neutral message for all of them. The reason is logged there,
+  // never shown. Before this, a restricted case redirected to the Worklist
+  // with a toast naming the restriction, which confirmed the case existed.
   useEffect(() => {
     if (!cleanedCaseId) { setLoading(false); return; }
+    let cancelled = false;
     setLoading(true);
-    caseRouter.getCase(cleanedCaseId)
-      .then(async c => {
-        if (!c) { setCaseData(null); return; }
-
-        // Real, per direct investigation: this page previously loaded and
-        // rendered any case unconditionally — same pre-existing gap
-        // synopticLoader.ts had. See resolveCaseAccessGate.ts's own header
-        // for the full reasoning; this is the second of the two real
-        // case-view entry points that needed the same real enforcement,
-        // and now genuinely shares its implementation with the first.
-        const gate = await resolveCaseAccessGate(user as any, c as any);
-        if (!gate.granted) {
-          console.warn(`${gate.reason === 'orchestration' ? 'Orchestration' : 'Pediatric'} access denied for case ${cleanedCaseId}: ${gate.detail}`);
-          setCaseData(null);
-          navigate(`/worklist?accessDenied=${gate.reason}&caseId=${cleanedCaseId}`, { replace: true });
-          return;
-        }
-
-        setCaseData(c);
-      })
-      .catch(() => setCaseData(null))
-      .finally(() => setLoading(false));
-  }, [cleanedCaseId, user, navigate]);
+    void openCaseForViewDefault(cleanedCaseId).then(({ caseData: c }) => {
+      if (cancelled) return;
+      setCaseData(c);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [cleanedCaseId, user?.id]);
 
   const isPool = caseData?.status === 'pool';
 
   // ── Voice: set CASE_VIEW context — this page is outside AppShell so
   //    it needs its own context setting and voice overlay components.
   useEffect(() => {
-    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.CASE_VIEW);
-    return () => mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.CASE_VIEW);
+    return () => actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
   }, []);
 
   // ── Voice: case navigation and go back/forward ─────────────────────────────
@@ -168,17 +168,8 @@ export default function FullReportPage() {
       <div className="ps-report-page">
         <div className="ps-report-bg" />
         <div className="ps-report-bg-grad" />
-        <div className="ps-report-content ps-report-notfound">
-          <div className="ps-report-notfound-icon">🔍</div>
-          <h1 className="ps-report-notfound-title">
-            {t('fullReport.notFoundTitle')}
-          </h1>
-          <p className="ps-report-notfound-sub">
-            {t('fullReport.notFoundCasePrefix')} <code className="ps-report-notfound-code" data-phi="accession">{cleanedCaseId || "—"}</code> {t('fullReport.notFoundCaseSuffix')}
-          </p>
-          <button onClick={handleBack} className="ps-report-notfound-btn">
-            {t('fullReport.goBackBtn')}
-          </button>
+        <div className="ps-report-content">
+          <CaseUnavailable caseId={cleanedCaseId} onBack={handleBack} />
         </div>
         <VoiceCommandOverlay showSuccess={import.meta.env.DEV} />
         <VoiceMissPrompt />
@@ -233,6 +224,10 @@ export default function FullReportPage() {
             </div>
           </div>
         </div>
+
+        {/* Batch 396 (Pete): record the Surgical Post-Sign-Out QA review here,
+            where the report is read. Back to the queue once nothing is left. */}
+        <SurgicalQaCaseBar caseId={caseData.id} onAllDone={returnTo ? handleBack : undefined} />
 
         <LeftReportPanel caseData={caseData} autoOpenNotes={!!locationState?.openInternalNotes} />
       </div>

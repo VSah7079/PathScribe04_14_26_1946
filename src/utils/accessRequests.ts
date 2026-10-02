@@ -32,16 +32,51 @@
 // it was before. messageService.send() takes one recipient at a time, so a
 // real admin pool sends one message per real admin, not just the first one
 // found.
+//
+// Batch 431: every request is also saved as an access request record
+// (accessRequestService), before the messages go out. Until now nothing
+// created those records, so the "access requested" badges and the QA
+// Access Request Response tab had nothing to read; the pool badge was kept
+// per computer in the browser instead. A second request for the same thing
+// while the first is still pending reuses the pending record.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { messageService, userService } from '@/services';
+import { accessRequestService, messageService, userService } from '@/services';
+import type { AccessRequest, NewAccessRequest } from '@/types/access/AccessRequest';
+
+/** What the request is for (the requester is passed separately). */
+export type AccessRequestSubject = Pick<NewAccessRequest, 'type' | 'caseId' | 'facilityId' | 'facilityName' | 'poolId' | 'poolName'>;
+
+/** Whether a pending request already covers this subject (pure; tested).
+ *  Pool requests match on the pool, the others on the case. */
+export function isSameAccessRequest(r: AccessRequest, subject: AccessRequestSubject): boolean {
+  if (r.status !== 'pending' || r.type !== subject.type) return false;
+  if (subject.type === 'pool') return (r.poolId ?? r.poolName) === (subject.poolId ?? subject.poolName);
+  return r.caseId === subject.caseId;
+}
+
+/** The signed-in person's pending requests (for the "access requested" badges). */
+export async function pendingAccessRequestsFor(userId: string): Promise<AccessRequest[]> {
+  const res = await accessRequestService.getAllForUser(userId);
+  return res.ok ? res.data.filter(r => r.status === 'pending') : [];
+}
 
 export async function sendAccessRequestToAdmins(
   requestingUser: { id: string; name: string; organisationId?: string },
   subject: string,
   body: string,
   configLink: string,
+  request: AccessRequestSubject,
 ): Promise<void> {
+  const pending = await pendingAccessRequestsFor(requestingUser.id);
+  if (!pending.some(r => isSameAccessRequest(r, request))) {
+    await accessRequestService.create({
+      ...request,
+      requestingUserId: requestingUser.id,
+      requestingUserName: requestingUser.name,
+      organisationId: requestingUser.organisationId,
+    });
+  }
   const usersRes = await userService.getAll();
   if (!usersRes.ok) return;
   const allAdmins = usersRes.data.filter(u =>

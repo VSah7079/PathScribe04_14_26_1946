@@ -9,6 +9,7 @@
 
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { withMissingSeedRecords } from '../mockSeedMerge';
 import type { ReasonDictionaryEntry, IReasonDictionaryService } from '@/types/reasons/ReasonDictionaryEntry';
 
 // Real, per direct guidance's own detailed billing context this
@@ -112,10 +113,40 @@ const SEED_REASONS: ReasonDictionaryEntry[] = [
     name: 'Specimen Labeling Correction',
     description: 'Brief explanation of correction, e.g. corrected tissue source or specimen label.',
   },
+
+  // Batch 399 (Pete): why a critical intraoperative result went to a member of
+  // the surgical team rather than the operating surgeon ("Surgeon
+  // unavailable" on the Intraop page). "Other" needs a note.
+  {
+    id: 'SU_SCRUBBED', category: 'SURGEON_UNAVAILABLE', status: 'Active',
+    name: 'Surgeon scrubbed in a critical step',
+    description: 'The operating surgeon could not break from a critical step of the procedure; the result was given to the surgical team.',
+  },
+  {
+    id: 'SU_DELEGATED', category: 'SURGEON_UNAVAILABLE', status: 'Active',
+    name: 'Surgeon delegated communication',
+    description: 'The operating surgeon asked that results go to a named member of the surgical team.',
+  },
+  {
+    id: 'SU_EMERGENCY', category: 'SURGEON_UNAVAILABLE', status: 'Active',
+    name: 'Intraoperative emergency',
+    description: 'An emergency in the operating room prevented speaking to the surgeon directly.',
+  },
+  {
+    id: 'SU_NOT_IN_ROOM', category: 'SURGEON_UNAVAILABLE', status: 'Active',
+    name: 'Surgeon not in the operating room',
+    description: 'The operating surgeon had stepped out; the result was given to the team in the room.',
+  },
+  {
+    id: 'SU_OTHER', category: 'SURGEON_UNAVAILABLE', status: 'Active',
+    name: 'Other',
+    description: 'Any other reason. A note is required.',
+  },
 ];
 
 const STORAGE_KEY = 'reason_dictionary_entries_v1';
-const load    = (): ReasonDictionaryEntry[] => storageGet<ReasonDictionaryEntry[]>(STORAGE_KEY, SEED_REASONS);
+// Batch 399: reasons added to the seed after a browser stored its list are merged in.
+const load    = (): ReasonDictionaryEntry[] => withMissingSeedRecords(storageGet<ReasonDictionaryEntry[] | null>(STORAGE_KEY, null), SEED_REASONS).records;
 const persist = (data: ReasonDictionaryEntry[]) => storageSet(STORAGE_KEY, data);
 
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });

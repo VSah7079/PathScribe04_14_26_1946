@@ -79,6 +79,22 @@ Presentational and semi-presentational pieces specific to the case report page �
 - **`HeaderBar.tsx`:** optional `changeCount` / `onOpenChangeHistory` add the Change history chip beside the version chip.
 - **`BottomActionBar.tsx`:** reads the release settings through `reportReleaseService` from `@/services`, and is off the deployment baseline.
 
+## Batch 425
+
+`HeaderBar` shows the registry opt-out badge under the patient's name when the patient has opted out.
+
+## Batch 426
+
+`RightSynopticPanel`'s field rows show "The updated narrative suggests X — Keep mine / Accept new value" for a re-evaluated field.
+
+## Batch 427
+
+The `Sidebar` has a "Parts covered" button (⧉) on each draft synoptic workup, and shows "Parts A + B" on a combined one.
+
+## Batch 428: Configuration permissions
+
+`HeaderBar.tsx`: resolving (and, when new, adding) the flag a LIS-reported code stands for is `services/flags/resolveLisFlagDefinition.ts` now, not the component. Adding to the flag catalog is a Configuration change; this one is the LIS sync's, so it isn't checked against the person.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

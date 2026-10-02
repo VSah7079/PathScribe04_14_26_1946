@@ -77,10 +77,9 @@ i18n
     fallbackLng: { 'fr-BE': ['fr', 'en'], 'nl-BE': ['nl', 'en'], default: ['en'] },
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     detection: {
-      // Real, per this app's own established preference-persistence
-      // convention elsewhere (localStorage-backed settings) — checks
-      // a real, explicit prior choice first, then falls back to the
-      // browser's own real Accept-Language/navigator.language signal.
+      // The workstation's last language (for the sign-in page), then the
+      // browser's own language. Once someone signs in, their own saved
+      // language applies (Batch 431, hooks/usePersonalLanguage.ts).
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: STORAGE_KEY,
       caches: ['localStorage'],

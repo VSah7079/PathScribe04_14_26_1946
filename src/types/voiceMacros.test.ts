@@ -59,9 +59,12 @@ describe('applyVoiceMacroSubstitutions — real, per direct guidance (voice-trig
     (globalThis as any).localStorage = {
       getItem: (k: string) => store[k] ?? null,
       setItem: (k: string, v: string) => { store[k] = v; },
+      removeItem: (k: string) => { delete store[k]; },
     };
     const svc = new MockVoiceMacroService();
-    await svc.addMacro({ spoken: 'normal colon', written: 'Sections show colonic mucosa.', isActive: true });
+    // Batch 430: a shared macro needs config:macros:manage, so this one is the signed-in person's own.
+    store['pathscribe-user'] = JSON.stringify({ id: 'u1', role: 'pathologist' });
+    await svc.addPersonalMacro({ spoken: 'normal colon', written: 'Sections show colonic mucosa.', isActive: true });
     const result = await svc.refineTranscript('The finding is normal colon today.');
     expect(result).toEqual({ ok: true, data: 'The finding is Sections show colonic mucosa. today.' }); // PS-67: the { ok, data } shape
   });

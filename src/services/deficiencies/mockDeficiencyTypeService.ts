@@ -3,6 +3,7 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { DeficiencyType, IDeficiencyTypeService } from './IDeficiencyService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // Real, per direct guidance's own established re-seed convention (see
 // mockContainerTypeService.ts's own header for the full reasoning) —
@@ -20,7 +21,7 @@ import type { DeficiencyType, IDeficiencyTypeService } from './IDeficiencyServic
 // accepted everywhere else this pattern is used in a mock/demo data
 // layer: the alternative (a genuinely missing new type, silently and
 // permanently, for anyone with existing localStorage data) is worse.
-const DEFICIENCY_TYPE_VERSION = '4'; // bumped: added def-peer-review-discordance
+const DEFICIENCY_TYPE_VERSION = '5'; // bumped: added def-registry-revised-post-acceptance (Batch 425)
 const DEFICIENCY_TYPE_VERSION_KEY = 'pathscribe_deficiency_types_version';
 if (typeof localStorage !== 'undefined') {
   try {
@@ -74,6 +75,13 @@ const SEED_DEFICIENCY_TYPES: DeficiencyType[] = [
   // interface message domain" grouping OutboundMessagePreviewSection.tsx
   // already established for all four transaction types together.
   { id: 'def-outbound-interface-dispatch-failure', name: 'Outbound Interface Dispatch Failure', description: 'A patient-identity (ADT^A08/A40/A47) or pathology-result (ORU^R01) dispatch to the external interface engine failed and was judged worth systemic CAPA review, not just a one-off retry.', status: 'Active', level: 'case' },
+  // Batch 423 (Pete: "ability to, if needed, to create a CAPA"): a registry submission on the
+  // Registry Exceptions worklist (rejected, undelivered, unanswered, held) raised for CAPA review.
+  // Its own type: a registry rejection is neither a billing nor an interface-engine failure.
+  { id: 'def-registry-submission-failure', name: 'Registry Submission Failure', description: 'A screening or cancer registry submission was rejected, could not be delivered, went unanswered, or was held, and was judged worth systemic CAPA review, not just a resend.', status: 'Active', level: 'case' },
+  // Batch 425 (Pete and his developer: "auto-raise a CAPA deficiency"): a registry revised data it had
+  // already accepted. Raised automatically by registrySubmission/recordRegistryRevision.ts.
+  { id: 'def-registry-revised-post-acceptance', name: 'Registry Revised After Acceptance', description: 'A screening or cancer registry changed data it had already accepted (a stage, a site code). Raised automatically for CAPA review of why the submitted data differed.', status: 'Active', level: 'case' },
   // Real feature, per direct follow-up: "an immediate Tissue
   // Discrepancy QA Flag is raised before sectioning... Is the
   // discrepancy being tracked in the Quality Assurance Module?"
@@ -232,7 +240,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockDeficiencyTypeService: IDeficiencyTypeService = {
+const deficiencyTypeServiceUnchecked: IDeficiencyTypeService = {
   async getAll() { await delay(); return ok([...TYPES]); },
 
   async add(type) {
@@ -251,6 +259,11 @@ export const mockDeficiencyTypeService: IDeficiencyTypeService = {
     return ok({ ...TYPES[idx], ...changes });
   },
 
-  async deactivate(id) { return mockDeficiencyTypeService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockDeficiencyTypeService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return deficiencyTypeServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return deficiencyTypeServiceUnchecked.update(id, { status: 'Active' }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDeficiencyTypeService: IDeficiencyTypeService = guardConfigWrites(deficiencyTypeServiceUnchecked, [
+  ['config:deficiency-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

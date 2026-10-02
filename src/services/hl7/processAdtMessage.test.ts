@@ -602,3 +602,28 @@ describe('processAdtMessage — real feature, per direct confirmation: working t
     expect(record?.address?.city).toBe('Chicago');
   });
 });
+
+describe('Batch 417: national identifiers in PID-3', () => {
+  it('records an NHS number named by its assigning authority, with its check digit run, and leaves the MRN as the crosswalk', async () => {
+    const msg = [
+      'MSH|^~\\&|EPIC|EPICADT|SMS|SMSADT|202601150800|CHARRIS|ADT^A01|MSG417|P|2.5',
+      'EVN||202601150800',
+      'PID|1||MRN417001^^^EPIC^MR~943 476 5919^^^NHS^NH||OKAFOR^ADAEZE^L||19901105|F',
+      'PV1|1|I|ICU^301^A^MAIN_CAMPUS||||9876543^WILLIAMS^CAROL^L^^^MD||||||||||||ENC417001|||||||||||||||||||||||||202601150730',
+    ].join('\r');
+    const result = await processAdtMessage(msg, 'ORG-1', 'FAC-UNKNOWN');
+    const national = await mockPatientIndexService.listNationalIdentifiers(result.patientId);
+    expect(national).toEqual([expect.objectContaining({ system: 'mrn_nhs', value: '9434765919', verificationStatus: 'verified', source: 'hl7' })]);
+    expect(await mockPatientIndexService.resolveByIdentifier('mrn_nhs', '9434765919')).toBe(result.patientId);
+  });
+  it('a bad check digit is kept as failedChecksum, never silently verified', async () => {
+    const msg = [
+      'MSH|^~\\&|EPIC|EPICADT|SMS|SMSADT|202601150800|CHARRIS|ADT^A01|MSG418|P|2.5',
+      'EVN||202601150800',
+      'PID|1||MRN417002^^^EPIC^MR~9434765918^^^NHS^NH||ADEBAYO^FUNKE^L||19881105|F',
+      'PV1|1|I|ICU^301^A^MAIN_CAMPUS||||9876543^WILLIAMS^CAROL^L^^^MD||||||||||||ENC417002|||||||||||||||||||||||||202601150730',
+    ].join('\r');
+    const result = await processAdtMessage(msg, 'ORG-1', 'FAC-UNKNOWN');
+    expect((await mockPatientIndexService.listNationalIdentifiers(result.patientId))[0].verificationStatus).toBe('failedChecksum');
+  });
+});

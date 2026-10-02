@@ -29,6 +29,21 @@ export const EQUIPMENT_KINDS = [
 ] as const;
 export type EquipmentKind = typeof EQUIPMENT_KINDS[number];
 
+/** Batch 406 (Pete): what physically fits in a deck slot. */
+export const DECK_RACK_TYPES = ['sample_tube_rack', 'extraction_plate', 'reagent_cartridge'] as const;
+export type DeckRackType = typeof DECK_RACK_TYPES[number];
+
+/** Batch 406 (Pete): one position on an analyser's deck, from its instrument
+ *  profile. The id goes into the deck-location barcode
+ *  (LOC-INST-<code>-<id>), so it is letters, digits and "_" (e.g. SLOT_A1). */
+export interface DeckSlot {
+  id: string;
+  /** Which deck or bay it is on (e.g. "Deck 1"). */
+  deck?: string;
+  /** The rack or plate types permitted here. */
+  rackTypes: DeckRackType[];
+}
+
 export interface Equipment {
   id: ID;
   /** Stable code, e.g. "PANTHER_02". Unique (case-insensitive), fixed once created. */
@@ -48,6 +63,10 @@ export interface Equipment {
   /** Batch 360: how often it needs calibration, in days. Unset = not scheduled. */
   calibrationIntervalDays?: number;
   status: 'Active' | 'Inactive';
+  /** Batch 406: an analyser's deck layout (its instrument profile). Racks
+   *  loaded for it are placed in one of these slots; see
+   *  services/molecular/deckSlots.ts. */
+  deckSlots?: DeckSlot[];
 }
 
 export type EquipmentDraft = Omit<Equipment, 'id'>;

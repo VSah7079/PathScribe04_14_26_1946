@@ -144,3 +144,15 @@ you hit them yourself:
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `useSignOutWorkflow.test.ts` and `useSpecimenBlockManagement.test.ts` expect `showToast(message, 'info', { containsPhi: true })` for toasts that name the case.
+
+## Batch 426
+
+`useLisIntegration.test.ts`: the LIS-send tests now check what the hook hands `dispatchAssistSynopticResult` (mocked) and what it does with the outcome. The queue and payload behaviour is tested in `services/reports/dispatchAssistSynopticResult.test.ts`.
+
+## Batch 428: Configuration permissions
+
+`useSpecimenBlockManagement.test.ts` allows Configuration changes in a mocked authorization service: the specimen dictionary the hook writes to is checked now (`config:specimen-dictionary:manage`).
+
+## Batch 431
+
+`useOrchestratorDraft.test.ts`: saving writes no browser copy, and opening a case ignores an old browser copy and uses the case's sections.

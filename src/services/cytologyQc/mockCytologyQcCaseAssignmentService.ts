@@ -16,10 +16,25 @@ import { resolveQcReviewerEligibility } from './resolveQcReviewerEligibility';
 import { sortQcQueueByPriority } from './sortQcQueueByPriority';
 import { resolveQcSlaStatus } from './resolveQcSlaStatus';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { demoCytologyQcAssignments } from './demoCytologyQcAssignments';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { getSessionUser } from '../auth/caseAccessControl';
+
+/** Batch 432: the signed-in person's name for the audit trail. */
+function actorName(fallback = 'Unknown'): string {
+  const me = getSessionUser();
+  return me ? ([me.firstName, me.lastName].filter(Boolean).join(' ') || me.id) : fallback;
+}
+
+import { QC_REVIEW_NOT_PERMITTED } from './qcReviewErrors';
+
+// Batch 396: taking a QC review and recording its verdict needs
+// cytology:qc-review:record (Pathologist and Fellow, who had the queue).
 
 const STORAGE_KEY = 'cytologyQcCaseAssignments';
 
-const load = (): CytologyQcCaseAssignment[] => storageGet(STORAGE_KEY, []);
+// Batch 395: a store that has never been written starts with the demo assignments.
+const load = (): CytologyQcCaseAssignment[] => storageGet<CytologyQcCaseAssignment[] | null>(STORAGE_KEY, null) ?? demoCytologyQcAssignments();
 const persist = (data: CytologyQcCaseAssignment[]) => storageSet(STORAGE_KEY, data);
 let _cache: CytologyQcCaseAssignment[] = load();
 
@@ -59,6 +74,8 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
   },
 
   async assignReviewer(id: ID, reviewerId: string) {
+    const decision = await authorizationService.enforce('cytology:qc-review:record', { caseId: _cache.find(a => a.id === id)?.caseId ?? null });
+    if (!decision.allowed) return err(QC_REVIEW_NOT_PERMITTED);
     await delay();
     const idx = _cache.findIndex(a => a.id === id);
     if (idx === -1) return err(`CytologyQcCaseAssignment ${id} not found`);
@@ -76,6 +93,8 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
   },
 
   async recordConcurrence(id: ID, reviewerCommentary?: string) {
+    const decision = await authorizationService.enforce('cytology:qc-review:record', { caseId: _cache.find(a => a.id === id)?.caseId ?? null });
+    if (!decision.allowed) return err(QC_REVIEW_NOT_PERMITTED);
     await delay();
     const idx = _cache.findIndex(a => a.id === id);
     if (idx === -1) return err(`CytologyQcCaseAssignment ${id} not found`);
@@ -95,6 +114,8 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
   },
 
   async recordDiscrepancy(id: ID, discrepancy) {
+    const decision = await authorizationService.enforce('cytology:qc-review:record', { caseId: _cache.find(a => a.id === id)?.caseId ?? null });
+    if (!decision.allowed) return err(QC_REVIEW_NOT_PERMITTED);
     await delay();
     const idx = _cache.findIndex(a => a.id === id);
     if (idx === -1) return err(`CytologyQcCaseAssignment ${id} not found`);
@@ -114,6 +135,10 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
   },
 
   async escalateForSlaBreach(id: ID, now: string, reason: string) {
+    // Batch 432: a reviewer escalates from the queue (cytology:qc-review:record).
+    const decision = await authorizationService.enforce('cytology:qc-review:record', { caseId: _cache.find(a => a.id === id)?.caseId ?? null });
+    if (!decision.allowed) return err(QC_REVIEW_NOT_PERMITTED);
+    if (!reason.trim()) return err('A reason is required to escalate.');
     await delay();
     const idx = _cache.findIndex(a => a.id === id);
     if (idx === -1) return err(`CytologyQcCaseAssignment ${id} not found`);
@@ -134,13 +159,17 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
     _cache = [..._cache.slice(0, idx), updated, ..._cache.slice(idx + 1)];
     persist(_cache);
     await mockAuditService.logEvent({
-      type: 'system', event: 'Cytology QC SLA Breach — Case Escalated', caseId: current.caseId, user: 'system', confidence: null,
+      type: 'user', event: 'Cytology QC SLA Breach — Case Escalated', caseId: current.caseId, user: actorName(), confidence: null,
       detail: `Assignment ${id} released back to the unified queue after breaching its own SLA deadline (${current.slaDeadline}). Reason: ${reason}.`,
     }).catch(() => {});
     return ok({ ...updated });
   },
 
   async supervisorBypass(id: ID, supervisorId: string, justification: string) {
+    // Batch 432 (Pete): cytology:qc-review:bypass, assigned by an administrator.
+    const decision = await authorizationService.enforce('cytology:qc-review:bypass', { caseId: _cache.find(a => a.id === id)?.caseId ?? null });
+    if (!decision.allowed) return err(QC_REVIEW_NOT_PERMITTED);
+    if (!justification.trim()) return err('A justification is required to bypass.');
     await delay();
     const idx = _cache.findIndex(a => a.id === id);
     if (idx === -1) return err(`CytologyQcCaseAssignment ${id} not found`);
@@ -157,8 +186,8 @@ export const mockCytologyQcCaseAssignmentService: ICytologyQcCaseAssignmentServi
     _cache = [..._cache.slice(0, idx), updated, ..._cache.slice(idx + 1)];
     persist(_cache);
     await mockAuditService.logEvent({
-      type: 'user', event: 'Cytology QC Supervisor Bypass', caseId: current.caseId, user: supervisorId, confidence: null,
-      detail: `Assignment ${id} force-approved by supervisor ${supervisorId} to prevent clinical delay. Justification: ${justification}.`,
+      type: 'user', event: 'Cytology QC Supervisor Bypass', caseId: current.caseId, user: actorName(supervisorId), confidence: null,
+      detail: `Assignment ${id} force-approved by supervisor ${actorName(supervisorId)} to prevent clinical delay. Justification: ${justification}.`,
     }).catch(() => {});
     return ok({ ...updated });
   },

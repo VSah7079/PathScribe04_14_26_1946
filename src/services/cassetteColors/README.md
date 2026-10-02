@@ -14,6 +14,12 @@ The real color dictionary — White, Blue, Red, Pink, Green/Mesh, Yellow, and an
 - Fallback policy lives on the color itself, not on each rule that references it — "what to substitute for Blue" is a real property of Blue, not something every individual rule should decide separately.
 - `color-pink`/`COLOR_RUSH` is seeded but, as of this writing, has zero real routing rules pointing at it — it exists as an available option, not because any current rule uses it. Confirmed directly before adding the separate `COLOR_SMALL_BIOPSY` (Yellow) rather than repurposing Pink, which would have been misleadingly labeled.
 
+## Batch 428: Configuration permissions
+
+- `mockCassetteColorService`: `create`, `update`, `deactivate`, `reactivate` need `config:cassette-colors:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

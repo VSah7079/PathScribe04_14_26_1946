@@ -109,3 +109,21 @@ describe('schedules (Batch 360)', () => {
     expect(validateEquipmentDraft({ ...base, calibrationIntervalDays: 4000 }, ctx).calibrationIntervalDays).toBe('intervalInvalid');
   });
 });
+
+import { deckSlotsValid, normaliseDeckSlotId } from './equipmentRules';
+
+describe('deck layout (Batch 406)', () => {
+  it('slot ids are letters, digits and "_", unique regardless of case, and each slot takes a rack type', () => {
+    expect(normaliseDeckSlotId(' slot_a1 ')).toBe('SLOT_A1');
+    expect(deckSlotsValid([{ id: 'SLOT_A1', rackTypes: ['sample_tube_rack'] }, { id: 'SLOT_R1', rackTypes: ['reagent_cartridge'] }])).toBe(true);
+    expect(deckSlotsValid([{ id: 'SLOT_A1', rackTypes: ['sample_tube_rack'] }, { id: 'slot_a1', rackTypes: ['sample_tube_rack'] }])).toBe(false);
+    expect(deckSlotsValid([{ id: 'SLOT-A1', rackTypes: ['sample_tube_rack'] }])).toBe(false);
+    expect(deckSlotsValid([{ id: '', rackTypes: ['sample_tube_rack'] }])).toBe(false);
+    expect(deckSlotsValid([{ id: 'SLOT_A1', rackTypes: [] }])).toBe(false);
+  });
+
+  it('validateEquipmentDraft flags a bad deck layout on the deckSlots field', () => {
+    const draft = { name: 'P', code: 'P9', kind: 'analyser' as const, facilityId: 'f', deckSlots: [{ id: 'A', rackTypes: [] }] };
+    expect(validateEquipmentDraft(draft, { existing: [], stations: [] }).deckSlots).toBe('deckSlotsInvalid');
+  });
+});

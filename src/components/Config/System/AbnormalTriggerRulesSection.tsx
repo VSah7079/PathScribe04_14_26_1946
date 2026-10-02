@@ -149,7 +149,7 @@ const AbnormalTriggerRulesSection: React.FC = () => {
 
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="Global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

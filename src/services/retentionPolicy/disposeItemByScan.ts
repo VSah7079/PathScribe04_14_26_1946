@@ -20,11 +20,17 @@
 // resolveRetentionEligibility.ts's own resolveMostConservativeEligibleDate,
 // the MOST conservative (latest) real eligible date across every real
 // participant's own, individual retention clock.
+//
+// Batch 407: disposing needs retention:material:dispose (Pete: keep today's
+// users), checked first, with the station's facility. Each refusal carries a
+// `code` and `values` the Disposal Queue page translates
+// (disposalQueue.refusals.<code>); `reason` stays as English text for logs.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { authorizationService } from '@/services/authorization/defaultAuthorizationService';
 import { getCurrentJurisdiction } from './RetentionPolicy';
 import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } from './resolveRetentionEligibility';
 import type { HistologyBlock, StainOrder, Specimen } from '@/types/case/Specimen';
@@ -32,9 +38,23 @@ import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import type { Case } from '@/types/case/Case';
 import type { MaterialLocation, Decant } from '@/types/case/Material';
 
+/** Why a scan didn't dispose anything (Batch 407). */
+export type DisposalRefusal =
+  | 'notPermitted' | 'noMatch' | 'notFound' | 'alreadyDisposed' | 'notSignedOut' | 'onHold' | 'notEligible' | 'wrongFacility';
+
 export type DisposeItemOutcome =
   | { outcome: 'disposed'; displayId: string }
-  | { outcome: 'rejected'; reason: string };
+  | {
+      outcome: 'rejected';
+      code: DisposalRefusal;
+      /** For the screen: the item's id, a date (ISO) and the hold's note, when the refusal names them. */
+      values: { displayId?: string; date?: string; note?: string };
+      /** English, for logs. */
+      reason: string;
+    };
+
+const refuse = (code: DisposalRefusal, reason: string, values: { displayId?: string; date?: string; note?: string } = {}): DisposeItemOutcome =>
+  ({ outcome: 'rejected', code, values, reason });
 
 interface ResolvedTargetRecord {
   disposedAt: string | undefined;
@@ -64,9 +84,13 @@ function resolveMatrixParticipants(caseData: Case, matrixBlock: MatrixBlock): { 
  *  queue. `facilityId` — undefined means "no location restriction,"
  *  same real meaning as computeDisposalQueue's own parameter. */
 export async function disposeItemByScan(scannedValue: string, facilityId: string | undefined, byUserId: string, byUserName: string): Promise<DisposeItemOutcome> {
+  // Batch 407: the irreversible step needs its own permission, at this station's facility.
+  const decision = await authorizationService.enforce('retention:material:dispose', facilityId ? { facilityId } : {});
+  if (!decision.allowed) return refuse('notPermitted', 'Not permitted to dispose of retained material.');
+
   const resolved = await resolveMaterialFromScan(scannedValue);
   if (!resolved) {
-    return { outcome: 'rejected', reason: `"${scannedValue}" doesn't match any real cassette or slide on any case.` };
+    return refuse('noMatch', `"${scannedValue}" doesn't match any real cassette or slide on any case.`);
   }
   const { caseData, specimenLetter, target, displayId, fullAccession } = resolved;
 
@@ -85,7 +109,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
   if (target.level === 'specimen') {
     specimen = caseData.specimens?.find(s => s.label === specimenLetter);
     if (!specimen) {
-      return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+      return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
     materialType = 'wet_tissue';
     record = {
@@ -104,11 +128,11 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     specimen = caseData.specimens?.find(s => s.label === specimenLetter);
     decant = specimen?.decants?.find(d => d.label === target.decantLabel);
     if (!specimen || !decant) {
-      return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+      return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
     const decantSlide = target.level === 'decant_slide' ? decant.stains?.find((_, i) => `L${i + 1}` === target.slideLevel) : undefined;
     if (target.level === 'decant_slide' && !decantSlide) {
-      return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+      return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
     materialType = target.level === 'decant' ? 'wet_tissue' : 'slide';
     record = {
@@ -121,11 +145,11 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     specimen = caseData.specimens?.find(s => s.label === specimenLetter);
     block = specimen?.blocks?.find(b => b.label === target.blockNumber);
     if (!specimen || !block) {
-      return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+      return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
     const slide = target.level === 'slide' ? block.stains?.find((_, i) => `L${i + 1}` === target.slideLevel) : undefined;
     if (target.level === 'slide' && !slide) {
-      return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+      return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
     materialType = target.level === 'block' ? 'block' : 'slide';
     record = {
@@ -138,7 +162,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     // target.level is 'matrix_block' or 'matrix_slide'
     matrixBlock = caseData.matrixBlocks?.find(m => m.id === target.matrixBlockId);
     if (!matrixBlock) {
-      return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+      return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
     const { labels, dictionaryEntryIds } = resolveMatrixParticipants(caseData, matrixBlock);
     if (target.level === 'matrix_block') {
@@ -154,7 +178,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
       matrixSlideIndex = Number(target.slideLevel.replace(/^L/i, '')) - 1;
       const matrixSlide = (matrixBlock.slides ?? [])[matrixSlideIndex];
       if (!matrixSlide) {
-        return { outcome: 'rejected', reason: `${displayId} couldn't be located in its own case record.` };
+        return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
       }
       record = {
         disposedAt: matrixSlide.disposedAt,
@@ -166,28 +190,28 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
   }
 
   if (record.disposedAt) {
-    return { outcome: 'rejected', reason: `${displayId} was already disposed on ${new Date(record.disposedAt).toLocaleDateString()}.` };
+    return refuse('alreadyDisposed', `${displayId} was already disposed on ${record.disposedAt.slice(0, 10)}.`, { displayId, date: record.disposedAt });
   }
 
   if (!caseData.finalizedAt) {
-    return { outcome: 'rejected', reason: `${displayId}'s case hasn't been signed out yet — no real retention clock has started.` };
+    return refuse('notSignedOut', `${displayId}'s case hasn't been signed out yet — no real retention clock has started.`, { displayId });
   }
   const activeHold = (caseData.retentionHolds ?? []).find(h => h.active);
   if (activeHold) {
-    return { outcome: 'rejected', reason: `${displayId} cannot be disposed — this case has an active retention hold: ${activeHold.note}` };
+    return refuse('onHold', `${displayId} cannot be disposed — this case has an active retention hold: ${activeHold.note}`, { displayId, note: activeHold.note });
   }
 
   const jurisdiction = getCurrentJurisdiction();
   const eligibleDate = await resolveMostConservativeEligibleDate(materialType, jurisdiction, caseData.finalizedAt, record.specimenDictionaryEntryIds);
   if (!eligibleDate || eligibleDate.getTime() > Date.now()) {
-    return { outcome: 'rejected', reason: `${displayId} isn't retention-eligible for disposal until ${eligibleDate?.toLocaleDateString() ?? 'an unknown date'}.` };
+    return refuse('notEligible', `${displayId} isn't retention-eligible for disposal until ${eligibleDate ? eligibleDate.toISOString().slice(0, 10) : 'an unknown date'}.`, { displayId, date: eligibleDate?.toISOString() });
   }
 
   if (facilityId) {
     const lastLocation = record.locationHistory && record.locationHistory.length > 0 ? record.locationHistory[record.locationHistory.length - 1] : undefined;
     const itemFacilityId = await resolveFacilityIdForLocation(lastLocation?.location);
     if (itemFacilityId !== facilityId) {
-      return { outcome: 'rejected', reason: `${displayId}'s last known location isn't at this facility — expected here, not scanned here before.` };
+      return refuse('wrongFacility', `${displayId}'s last known location isn't at this facility — expected here, not scanned here before.`, { displayId });
     }
   }
 
@@ -262,7 +286,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
 
   mockAuditService.logEvent({
     type: 'system', event: 'Specimen Material Disposed',
-    detail: `${displayId} disposed — retention-eligible since ${eligibleDate.toLocaleDateString()}, no active hold, verified at scan.`,
+    detail: `${displayId} disposed — retention-eligible since ${eligibleDate.toISOString().slice(0, 10)}, no active hold, verified at scan.`,
     user: byUserName, caseId: fullAccession, confidence: null,
   }).catch(() => {});
 

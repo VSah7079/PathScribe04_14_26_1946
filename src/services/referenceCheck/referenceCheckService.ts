@@ -76,7 +76,7 @@ export async function checkDepartmentReferences(departmentId: string): Promise<R
 
 /** Real, per this file's own header — "Client" is the Client Dictionary
  *  UI's own name for a Facility record, not a separate entity
- *  (ClientDictionaryPage.tsx: `import type { Facility as Client }`,
+ *  (the former ClientDictionaryPage.tsx, removed in Batch 428: `import type { Facility as Client }`,
  *  reconciled June 2026 to share the exact same facilityService
  *  every other real screen already uses). Deliberately identical
  *  logic to checkFacilityReferences — a real Client and a real

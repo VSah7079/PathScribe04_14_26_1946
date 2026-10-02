@@ -10,7 +10,7 @@
 // functions with the right data and genuinely redirects on denial, rather
 // than assuming the wiring is correct just because the underlying
 // functions are individually correct.
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { synopticLoader } from './synopticLoader';
 
 vi.mock('../services/cases/CaseRouter', () => ({
@@ -56,68 +56,70 @@ const PED_CASE = { id: 'S26-2', order: { facilityId: 'fac-1' }, patient: { dateO
 const NO_FACILITY_CASE = { id: 'S26-3', order: {}, patient: { dateOfBirth: dobForAge(10) }, reportingMode: 'assist' };
 
 describe('synopticLoader — real enforcement at the actual case-loading path', () => {
+  beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}); });
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
   it('redirects to /worklist when caseId param is missing', async () => {
-    const result = await synopticLoader({ params: {} } as any);
+    const result: any = await synopticLoader({ params: {} } as any);
     expect(result.status).toBe(302);
     expect(result.headers.get('Location')).toBe('/worklist');
   });
 
-  it('redirects to /worklist when the case is not found in any service', async () => {
+  it('Batch 396: a case that is not found goes to the neutral no-access screen on /report/:caseId', async () => {
     setSession();
     vi.mocked(caseRouter.getCase).mockResolvedValue(undefined as any);
-    const result = await synopticLoader({ params: { caseId: 'missing' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'missing' } } as any);
     expect(result.status).toBe(302);
-    expect(result.headers.get('Location')).toBe('/worklist');
+    expect(result.headers.get('Location')).toBe('/report/missing');
   });
 
   it('returns the real case data for an ordinary, unrestricted LIS case', async () => {
     setSession();
     vi.mocked(caseRouter.getCase).mockResolvedValue(LIS_CASE as any);
-    const result = await synopticLoader({ params: { caseId: 'S26-1' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'S26-1' } } as any);
     expect(result).toBe(LIS_CASE);
   });
 
-  it('the real gap this closes: redirects with accessDenied=orchestration when the user lacks canViewOrchestration', async () => {
+  it('the real gap this closes: an Orchestration case without canViewOrchestration goes to the same neutral screen as a missing case (Batch 396)', async () => {
     setSession({ canViewOrchestration: false });
     vi.mocked(caseRouter.getCase).mockResolvedValue(ORCH_CASE as any);
-    const result = await synopticLoader({ params: { caseId: 'O26-1' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'O26-1' } } as any);
     expect(result.status).toBe(302);
-    expect(result.headers.get('Location')).toBe('/worklist?accessDenied=orchestration&caseId=O26-1');
+    expect(result.headers.get('Location')).toBe('/report/O26-1');
   });
 
   it('returns the real case data for an Orchestration case when the user genuinely has canViewOrchestration', async () => {
     setSession({ canViewOrchestration: true });
     vi.mocked(caseRouter.getCase).mockResolvedValue(ORCH_CASE as any);
-    const result = await synopticLoader({ params: { caseId: 'O26-1' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'O26-1' } } as any);
     expect(result).toBe(ORCH_CASE);
   });
 
-  it('the real gap this closes: redirects with accessDenied=pediatric when the pediatric gate denies', async () => {
+  it('the real gap this closes: a pediatric-restricted case goes to the same neutral screen as a missing case (Batch 396)', async () => {
     setSession({ canViewPediatric: false });
     vi.mocked(caseRouter.getCase).mockResolvedValue(PED_CASE as any);
     vi.mocked(facilityService.getById).mockResolvedValue({ ok: true, data: { id: 'fac-1', pediatricAgeThreshold: 18, authorizedPediatricPathologistIds: [] } } as any);
-    const result = await synopticLoader({ params: { caseId: 'S26-2' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'S26-2' } } as any);
     expect(result.status).toBe(302);
-    expect(result.headers.get('Location')).toBe('/worklist?accessDenied=pediatric&caseId=S26-2');
+    expect(result.headers.get('Location')).toBe('/report/S26-2');
   });
 
   it('returns the real case data when the pediatric gate correctly, genuinely grants access (both conditions met)', async () => {
     setSession({ id: 'authorized-1', canViewPediatric: true });
     vi.mocked(caseRouter.getCase).mockResolvedValue(PED_CASE as any);
     vi.mocked(facilityService.getById).mockResolvedValue({ ok: true, data: { id: 'fac-1', pediatricAgeThreshold: 18, authorizedPediatricPathologistIds: ['authorized-1'] } } as any);
-    const result = await synopticLoader({ params: { caseId: 'S26-2' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'S26-2' } } as any);
     expect(result).toBe(PED_CASE);
   });
 
   it('does not fetch a facility at all when the case has no order.facilityId — matches the pre-existing "no restriction" behavior, not a new gap', async () => {
     setSession();
     vi.mocked(caseRouter.getCase).mockResolvedValue(NO_FACILITY_CASE as any);
-    const result = await synopticLoader({ params: { caseId: 'S26-3' } } as any);
+    const result: any = await synopticLoader({ params: { caseId: 'S26-3' } } as any);
     expect(result).toBe(NO_FACILITY_CASE);
     expect(facilityService.getById).not.toHaveBeenCalled();
   });
@@ -126,8 +128,8 @@ describe('synopticLoader — real enforcement at the actual case-loading path', 
     setSession({ canViewOrchestration: false });
     const orchAndPedCase = { id: 'O26-2', order: { facilityId: 'fac-1' }, patient: { dateOfBirth: dobForAge(10) }, reportingMode: 'orchestrator' };
     vi.mocked(caseRouter.getCase).mockResolvedValue(orchAndPedCase as any);
-    const result = await synopticLoader({ params: { caseId: 'O26-2' } } as any);
-    expect(result.headers.get('Location')).toBe('/worklist?accessDenied=orchestration&caseId=O26-2');
+    const result: any = await synopticLoader({ params: { caseId: 'O26-2' } } as any);
+    expect(result.headers.get('Location')).toBe('/report/O26-2');
     expect(facilityService.getById).not.toHaveBeenCalled();
   });
 });

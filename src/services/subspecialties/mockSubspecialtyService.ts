@@ -2,6 +2,7 @@
 import { ISubspecialtyService, Subspecialty } from './ISubspecialtyService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_SUBSPECIALTIES: Subspecialty[] = [
   {
@@ -154,7 +155,7 @@ const findAndUpdate = (id: ID, fn: (s: Subspecialty) => Subspecialty): ServiceRe
   return ok({ ...updated });
 };
 
-export const mockSubspecialtyService: ISubspecialtyService = {
+export const subspecialtyServiceUnchecked: ISubspecialtyService = {
   async getAll() { await delay(); return ok([...MOCK_SUBSPECIALTIES]); },
 
   async getById(id) {
@@ -180,7 +181,12 @@ export const mockSubspecialtyService: ISubspecialtyService = {
 
   async update(id, changes) {
     await delay();
-    return findAndUpdate(id, s => ({ ...s, ...changes }));
+    const res = await findAndUpdate(id, s => ({ ...s, ...changes }));
+    // Batch 431: adding members closes their open pool access requests.
+    if (res.ok && 'userIds' in changes) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
+    return res;
   },
 
   async deactivate(id) {
@@ -195,9 +201,14 @@ export const mockSubspecialtyService: ISubspecialtyService = {
 
   async assignUser(subspecialtyId, userId) {
     await delay();
-    return findAndUpdate(subspecialtyId, s => ({
+    const res = await findAndUpdate(subspecialtyId, s => ({
       ...s, userIds: s.userIds.includes(userId) ? s.userIds : [...s.userIds, userId],
     }));
+    // Batch 431: closes the person's open access request for this pool.
+    if (res.ok) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
+    return res;
   },
 
   async removeUser(subspecialtyId, userId) {
@@ -217,3 +228,10 @@ export const mockSubspecialtyService: ISubspecialtyService = {
     return findAndUpdate(subspecialtyId, s => ({ ...s, specimenIds: s.specimenIds.filter(id => id !== specimenId) }));
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSubspecialtyService: ISubspecialtyService = guardConfigWrites(subspecialtyServiceUnchecked, [
+  ['config:subspecialties:manage', ['add', 'update', 'deactivate', 'reactivate']],
+  // Who belongs to a subspecialty is part of the staff record (Staff → Edit).
+  ['config:staff:edit', ['assignUser', 'removeUser']],
+]);

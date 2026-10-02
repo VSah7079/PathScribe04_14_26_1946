@@ -73,6 +73,8 @@ export type AdtEventType =
 export interface ParsedPatientIdentifier {
   identifierValue: string;
   assigningAuthority: string;
+  /** Batch 417: CX.5, e.g. 'MR' (medical record number), 'NH' (national health identifier), 'NI'. */
+  identifierTypeCode?: string;
 }
 
 export interface ParsedAdtMessage {
@@ -219,6 +221,7 @@ function parsePID(pid: ParsedHL7Segment | null): ParsedAdtMessage['patient'] {
     .map(raw => ({
       identifierValue: getComponent(raw, 0),
       assigningAuthority: getComponent(raw, 3),
+      ...(getComponent(raw, 4) ? { identifierTypeCode: getComponent(raw, 4) } : {}),
     }))
     .filter(id => id.identifierValue); // never a real identifier row for a genuinely empty repetition
 

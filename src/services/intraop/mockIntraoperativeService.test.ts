@@ -301,3 +301,35 @@ describe('merge() — real, per direct guidance\u2019s own follow-up: closes the
     expect(res.ok).toBe(true);
   });
 });
+
+// Batch 399 (Pete): the verbal report is a structured record.
+describe('recordVerbalReport — who, role, read-back, and why the surgeon was unavailable (Batch 399)', () => {
+  const full = (over: Record<string, unknown> = {}) => ({
+    receivedBy: 'Dr. Patel', recipientRole: 'surgical_resident', readBackConfirmed: true, critical: false,
+    suggestedCriticalIds: [], suggestedCriticalNames: [], note: 'Margins clear', reportedBy: { userId: 'PATH-001', userName: 'Pete Nimmo' }, ...over,
+  }) as any;
+
+  it('refuses a report without the read-back, or a critical one to a resident without a reason', async () => {
+    const { VERBAL_REPORT_INCOMPLETE } = await import('./mockIntraoperativeService');
+    expect(await mockIntraoperativeService.recordVerbalReport('intraop-003', full({ readBackConfirmed: false }))).toEqual({ ok: false, error: VERBAL_REPORT_INCOMPLETE });
+    expect(await mockIntraoperativeService.recordVerbalReport('intraop-003', full({ critical: true }))).toEqual({ ok: false, error: VERBAL_REPORT_INCOMPLETE });
+  });
+
+  it('records it, and the merge carries who actually received it into the case record', async () => {
+    const res = await mockIntraoperativeService.recordVerbalReport('intraop-003', full({
+      critical: true, suggestedCriticalIds: ['icr-positive-margin'], suggestedCriticalNames: ['Positive or close margin'],
+      surgeonUnavailable: { reasonId: 'SU_SCRUBBED', reasonName: 'Surgeon scrubbed in a critical step' },
+    }));
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.verbalReportLog).toMatchObject({ receivedBy: 'Dr. Patel', recipientRole: 'surgical_resident', readBackConfirmed: true, critical: { flagged: true } });
+
+    const { mockCriticalResultNotificationService } = await import('../clinical/mockCriticalResultNotificationService');
+    await mockIntraoperativeService.merge('intraop-003', 'CASE-MERGE-TEST-399', { matchType: 'manual', confidence: null, wasManualOverride: false, performedBy: 'clerk-1' });
+    const notif = await mockCriticalResultNotificationService.getByCaseId('CASE-MERGE-TEST-399');
+    if (!notif.ok) throw new Error('lookup failed');
+    expect(notif.data[0]).toMatchObject({
+      clinicianName: 'Dr. Patel', recipientRole: 'surgical_resident', readBackConfirmed: true, criticalResult: true,
+      surgeonUnavailable: { reasonId: 'SU_SCRUBBED' }, notifiedBy: { userId: 'PATH-001', userName: 'Pete Nimmo' },
+    });
+  });
+});

@@ -144,6 +144,12 @@ into the System config tab under `print_routing_rules`. See that
 component's own header comment and
 `components/Config/System/README.md` for the UI-layer account.
 
+## Batch 428: Configuration permissions
+
+- `mockPrintRoutingRuleService`: `create`, `update`, `remove` need `config:print-routing:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the
 whole services/ layer.*

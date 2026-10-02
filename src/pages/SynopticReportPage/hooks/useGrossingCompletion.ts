@@ -40,7 +40,12 @@ import { useState, useCallback, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { routeCase, routeStatCase } from '@/services/cases/casePoolAssignmentService';
-import { aiBehaviorService } from '@/services';
+import { aiBehaviorService, authorizationService, auditService, specimenDeficiencyService } from '@/services';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
+import { checkReportGrossComplete, specimensWithoutGrossEntry } from '@/services/grossing/reportGrossComplete';
+import { raiseGrossedWithoutProtocol, type MissingGrossingItem } from '@/services/grossing/grossingCompletion';
 import type { Case, ProtocolChange } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { SetConcurrencyConflict } from './sharedHookTypes';
@@ -87,10 +92,22 @@ export function useGrossingCompletion({
   handleGrossingProtocolChangesDetected,
   orchSections,
 }: UseGrossingCompletionParams) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [isEvaluatingSynopticFit, setIsEvaluatingSynopticFit] = useState(false);
+  // Batch 398 (PS-359): the organisation's Grossing field requirements, the
+  // same ones Complete grossing applies on the Grossing screen.
+  const grossingRequirements = useFieldRequirements('grossing');
+  // Specimens with neither a protocol nor a Grossing template, waiting for the
+  // user to confirm completing them (the protocol rule switched off).
+  const [pendingProtocolConfirmation, setPendingProtocolConfirmation] = useState<string[] | null>(null);
+  const missingText = useCallback((missing: MissingGrossingItem[]) => t('fieldRequirements.stillRequired', {
+    fields: formatList(missing.map(m => m.where.length
+      ? t('grossingScreen.complete.missingAt', { field: t(`fieldRequirements.fields.grossing.${m.fieldId}`), where: formatList(m.where, i18n.language) })
+      : t(`fieldRequirements.fields.grossing.${m.fieldId}`)), i18n.language),
+  }), [t, i18n.language]);
 
-  const handleGrossComplete = useCallback(async () => {
+  const handleGrossComplete = useCallback(async (confirmedWithoutProtocol = false) => {
     if (!caseData) return;
 
     const draftGrossing = (caseData.grossingReports ?? []).filter(g => g.status === 'draft');
@@ -119,28 +136,28 @@ export function useGrossingCompletion({
     // always did, since that path genuinely does cover every specimen
     // together in one narrative (mockReportPartService.ts's
     // grossPart — a single repeat-group over all specimens).
+    // Batch 398: the rule itself moved to services/grossing/reportGrossComplete.ts.
     const grossSections = orchSections.filter(s => s.sourcePartId === 'std_body_gross');
     const caseWideGrossSection = grossSections.find(s => !s.specimenId);
     const hasDictatedGrossText = !!caseWideGrossSection?.text?.trim();
-
-    const hasDictatedTextForSpecimen = (specimenId: string) =>
-      grossSections.some(s => s.specimenId === specimenId && s.text?.trim());
-
-    const specimensWithoutAnswers = hasDictatedGrossText ? [] : (caseData.specimens ?? []).filter(sp => {
-      if (hasDictatedTextForSpecimen(sp.id)) return false;
-      const spGrossing = (caseData.grossingReports ?? []).filter(g => g.specimenId === sp.id);
-      if (spGrossing.length === 0) return true; // no grossing report at all for this specimen
-      return !spGrossing.some(g =>
-        Object.values(g.answers ?? {}).some(v => v !== '' && !(Array.isArray(v) && !v.length))
-      );
-    });
-    if (specimensWithoutAnswers.length > 0) {
-      const labels = specimensWithoutAnswers.map(sp => sp.label).join(', ');
-      showToast(t('useGrossingCompletion.toast.specimensMissingGrossing', { count: specimensWithoutAnswers.length, labels }), 'warning');
+    const withoutEntry = specimensWithoutGrossEntry(caseData, orchSections);
+    if (withoutEntry.length > 0) {
+      showToast(t('useGrossingCompletion.toast.specimensMissingGrossing', { count: withoutEntry.length, labels: withoutEntry.join(', ') }), 'warning');
       return;
     }
 
     const isUpdate = draftGrossing.some(g => g.previouslyFinalized);
+
+    // Batch 398 (PS-359): the organisation's Grossing field requirements and
+    // the case:grossing:complete permission, as on the Grossing screen. A
+    // Grossing template counts as the specimen's protocol here (Pete).
+    const check = await checkReportGrossComplete(caseData, grossingRequirements, { isUpdate, confirmedWithoutProtocol }, { authorization: authorizationService });
+    if (!check.ok) {
+      if (check.reason === 'needsConfirmation') { setPendingProtocolConfirmation(check.withoutProtocol ?? []); return; }
+      if (check.reason === 'missing') { showToast(missingText(check.missing ?? []), 'warning'); return; }
+      showToast(t('grossingScreen.complete.refusals.notPermitted'), 'warning');
+      return;
+    }
 
     let reason = '';
     if (isUpdate) {
@@ -277,6 +294,24 @@ export function useGrossingCompletion({
       await caseRouter.updateCase(caseData.id, patch, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData({ ...caseData, ...patch } as typeof caseData);
+
+      // Batch 398: specimens completed without a protocol or Grossing template
+      // (the protocol rule switched off, and confirmed) go for secondary
+      // review, as on the Grossing screen. Never a reason to undo the save.
+      if (check.forReview.length) {
+        const actorName = user?.name ?? user?.id ?? 'unknown';
+        const review = await raiseGrossedWithoutProtocol(caseData, check.forReview, {
+          raiseDeficiency: input => specimenDeficiencyService.raise(input),
+          audit: entry => auditService.logEvent(entry),
+          actorName, actorId: user?.id ?? 'unknown',
+        });
+        if (review.routedForReview.length) {
+          showToast(t('grossingScreen.complete.routedForReview', { count: review.routedForReview.length, specimens: formatList(review.routedForReview, i18n.language) }));
+        }
+        if (review.reviewNotRaised.length) {
+          showToast(t('grossingScreen.complete.reviewNotRaised', { count: review.reviewNotRaised.length, specimens: formatList(review.reviewNotRaised, i18n.language) }), 'warning');
+        }
+      }
 
       // Real, per Epic: PathScribe Outbound Billing & Charge Event
       // Engine, User Story 2 - "emit TC codes immediately upon
@@ -554,10 +589,19 @@ export function useGrossingCompletion({
       console.error('[Gross Complete] Failed:', err);
       showToast(t(isUpdate ? 'useGrossingCompletion.toast.updateGrossFailed' : 'useGrossingCompletion.toast.grossCompleteFailed'), 'warning');
     }
-  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t]);
+  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t, i18n.language, grossingRequirements, missingText, user]);
+
+  const confirmGrossCompleteWithoutProtocol = useCallback(async () => {
+    setPendingProtocolConfirmation(null);
+    await handleGrossComplete(true);
+  }, [handleGrossComplete]);
+  const cancelGrossCompleteWithoutProtocol = useCallback(() => setPendingProtocolConfirmation(null), []);
 
   return {
     isEvaluatingSynopticFit,
     handleGrossComplete,
+    pendingProtocolConfirmation,
+    confirmGrossCompleteWithoutProtocol,
+    cancelGrossCompleteWithoutProtocol,
   };
 }

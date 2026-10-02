@@ -200,6 +200,26 @@ Real, per direct guidance ("Step 1 should be under System / Financial"): registe
 
 - **`correctServiceCharge.ts`:** correcting an applied billing code needs `billing:applied-code:correct` for the case. `enforceAppliedCodeCorrection(caseId)` is the check; the report page asks it before changing the visible code (assist mode makes no charge but is still a billing change), and `correctServiceCharge` asks it again for every caller, the QA resolution included. A refusal returns `{ ok: false, notPermitted: true }` and leaves the ledger alone.
 
+## Batch 428: Configuration permissions
+
+- `mockBillingRuleService`: `createVersion`, `submitForApproval`, `retireVersion` need `config:billing-rules:manage`.
+- `mockBillingRuleService`: `approveVersion`, `rejectVersion` need `config:billing-tables:approve`.
+- `mockModifierDictionaryService`: `approveVersion`, `rejectVersion`, `activateVersion` need `config:billing-tables:approve`.
+- `mockRvuCodeMapService`: `approveVersion`, `rejectVersion`, `activateVersion` need `config:billing-tables:approve`.
+- `mockNcciEditService`: `approveImport`, `rejectImport` need `config:billing-tables:approve`.
+- `mockCodeImportService`: `approveJob`, `rejectJob` need `config:billing-tables:approve`.
+- `mockCodeImportService`: `importRows`, `rollbackJob` need `config:billing-code-import:run`.
+- `mockModifierDictionaryService`: `createVersion` need `config:billing-modifiers:manage`.
+- `mockRvuCodeMapService`: `createVersion` need `config:billing-rvu:manage`.
+- `mockNcciEditService`: `importQuarter` need `config:billing-ncci:manage`.
+- `mockBillingTypeTriggerConfigService`: `setTriggerOverride`, `resetToDefault` need `config:billing-triggers:manage`.
+- `mockMasterPaymentTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:payment-types:manage`.
+- `mockJurisdictionPaymentMappingService`: `add`, `update`, `deactivate`, `reactivate` need `config:payment-mappings:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+New billing rule versions always start as drafts: `createVersion` no longer accepts a status, which let a caller skip approval. Approving any billing table (rules, modifiers, RVU, NCCI, code imports) is `config:billing-tables:approve`; the approver-isn't-uploader rule stays.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -1,5 +1,10 @@
 // src/services/participationTypes/countryProfileEditor.test.ts — PS-341 (Batch 335).
 import { describe, it, expect, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import type { ParticipationTypeRecord } from './IParticipationTypeService';
 import { JURISDICTION_LABELS } from '../../types/systemConfig';
 import { resolveParticipationTypeAuthority, resolveParticipationTypeLabel, isParticipationTypeOfferedIn } from './IParticipationTypeService';

@@ -6,6 +6,7 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { AbnormalTriggerRule, IAbnormalTriggerRuleService } from './IAbnormalTriggerRuleService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // Real, per direct spec (PS-105's own named examples) — a genuinely
 // useful starting dictionary, not placeholder data. An admin can add,
@@ -41,7 +42,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockAbnormalTriggerRuleService: IAbnormalTriggerRuleService = {
+const abnormalTriggerRuleServiceUnchecked: IAbnormalTriggerRuleService = {
   async getAll() { await delay(); return ok([...RULES]); },
 
   async add(rule) {
@@ -61,6 +62,11 @@ export const mockAbnormalTriggerRuleService: IAbnormalTriggerRuleService = {
     return ok({ ...RULES[idx], ...changes });
   },
 
-  async deactivate(id) { return mockAbnormalTriggerRuleService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockAbnormalTriggerRuleService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return abnormalTriggerRuleServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return abnormalTriggerRuleServiceUnchecked.update(id, { status: 'Active' }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockAbnormalTriggerRuleService: IAbnormalTriggerRuleService = guardConfigWrites(abnormalTriggerRuleServiceUnchecked, [
+  ['config:abnormal-triggers:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

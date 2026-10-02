@@ -18,6 +18,7 @@ import { MODEL_VENDOR_LABEL_KEY } from '../../../services/models/modelLabels';
 import { facilitiesPinnedToModel } from '../../../services/models/modelAdoption';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { canBecomeDefault } from '../AI/resolveVoiceAiModel';
+import ConfirmModal from '../../Common/ConfirmModal';
 
 const STATUS_LABEL_KEY: Record<ModelStatus, string> = {
   Active:  'common.active',
@@ -49,6 +50,21 @@ const ModelsTab: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+
+  // Batch 432: retire a model (config:ai-model:manage, checked by the service;
+  // the default model can't be retired). Confirmed first, naming any
+  // facilities pinned to it.
+  const [retireTarget, setRetireTarget] = useState<AIModel | null>(null);
+  const confirmRetire = async () => {
+    const target = retireTarget;
+    setRetireTarget(null);
+    if (!target) return;
+    const res = await modelService.retire(target.id);
+    if (res.ok) { await load(); return; }
+    setBlockedMessage(('error' in res ? res.error : '') === 'CANNOT_RETIRE_DEFAULT'
+      ? t('modelsTab.retire.cannotRetireDefault')
+      : t('modelsTab.retire.failed'));
+  };
 
   const handleSetDefault = async (id: string) => {
     setBlockedMessage(null);
@@ -127,10 +143,16 @@ const ModelsTab: React.FC = () => {
                   {m.isDefault ? (
                     <span className="ps-models-default-badge">✓ {t('modelsTab.tableHeaders.default')}</span>
                   ) : m.status !== 'Retired' ? (
-                    <button
-                      onClick={() => handleSetDefault(m.id)}
-                      className="ps-models-set-default-btn"
-                    >{t('modelsTab.setDefaultButton')}</button>
+                    <span className="ps-models-row-actions">
+                      <button
+                        onClick={() => handleSetDefault(m.id)}
+                        className="ps-models-set-default-btn"
+                      >{t('modelsTab.setDefaultButton')}</button>
+                      <button
+                        onClick={() => setRetireTarget(m)}
+                        className="ps-models-retire-btn"
+                      >{t('modelsTab.retire.button')}</button>
+                    </span>
                   ) : null}
                 </td>
               </tr>
@@ -139,6 +161,20 @@ const ModelsTab: React.FC = () => {
           </tbody>
         </table>
       </div>
+      <ConfirmModal
+        show={!!retireTarget}
+        title={t('modelsTab.retire.confirmTitle')}
+        message={retireTarget ? (() => {
+          const pinned = facilitiesPinnedToModel(facilities, retireTarget.id);
+          const name = `${retireTarget.name} ${retireTarget.version}`;
+          return pinned.length > 0
+            ? t('modelsTab.retire.confirmMessagePinned', { name, facilities: pinned.map(f => f.name).join(', ') })
+            : t('modelsTab.retire.confirmMessage', { name });
+        })() : ''}
+        confirmLabel={t('modelsTab.retire.button')}
+        onConfirm={confirmRetire}
+        onCancel={() => setRetireTarget(null)}
+      />
     </div>
   );
 };

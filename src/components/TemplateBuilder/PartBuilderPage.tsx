@@ -17,6 +17,7 @@ import { TemplateInspector } from './TemplateInspector';
 import { mockReportPartService } from '../../services/reportParts/mockReportPartService';
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
+import ConfigRefusalBanner from '../Config/ConfigRefusalBanner';
 
 const svc = mockReportPartService;
 
@@ -147,6 +148,8 @@ const PartBuilderPage: React.FC = () => {
 
   return (
     <div className="ps-partb-root">
+      {/* Batch 428: a refused change names the missing permission. */}
+      <ConfigRefusalBanner />
       {/* ── Topbar ── */}
       <header className="ps-partb-topbar">
         <div className="ps-partb-top-left">

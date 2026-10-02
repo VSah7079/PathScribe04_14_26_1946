@@ -9,14 +9,28 @@
 // itself (by the authenticated pathologist) is what's recorded as the
 // real, attributable order-placing act, same posture every other real
 // "ordered by"/"assigned by" field in this app already takes.
+//
+// Batch 403 (PS-359, Pete): each molecular/send-out line carries its own
+// reference lab, filled in from the test's default and offering only the labs
+// approved for that test (Stain Dictionary); with none approved, every active
+// reference lab. The lab is always required at submission (Field Requirements
+// "sendOutLab", locked: an unrouted send-out leaves blind spots in the courier
+// and tracking logs). Required fields are starred, "Still required: …" says
+// what is missing, Submit stays off until it is complete and is greyed without
+// add-on:order:place, and "submit order" by voice (ADD_ON_SUBMIT_ORDER) does
+// what the button does. Routing queues and panel names are translated.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { ADD_ON_ORDER_PRIORITIES, SLIDE_MEDIA_TYPES, type AddOnOrderPriority, type SlideMediaType } from '@/types/case/AddOnOrder';
-import type { AddOnOrderLineInput, AddOnOrderSubmissionInput } from '@/utils/addOnOrderOperations';
+import { resolveSendOutLabChoices, type AddOnOrderLineInput, type AddOnOrderSubmissionInput } from '@/utils/addOnOrderOperations';
+import { actionRegistryService, addOnSubmitMissing, addOnOrderFieldRequired } from '@/services';
+import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatList } from '@/utils/formatList';
 
 export interface CartLine extends AddOnOrderLineInput {
   cartId: string;
@@ -25,7 +39,7 @@ export interface CartLine extends AddOnOrderLineInput {
 export interface OrderSummaryRoutingPanelProps {
   cart: CartLine[];
   onRemoveLine: (cartId: string) => void;
-  selectedBlockCount: number;
+  selectedBlockIds: string[];
   priority: AddOnOrderPriority;
   onPriorityChange: (p: AddOnOrderPriority) => void;
   slideMediaType: SlideMediaType;
@@ -33,35 +47,39 @@ export interface OrderSummaryRoutingPanelProps {
   cuttingInstructions: string;
   onCuttingInstructionsChange: (v: string) => void;
   referenceLabs: Facility[];
-  sendOutFacilityId: string;
-  onSendOutFacilityChange: (id: string, name: string) => void;
+  /** Batch 403: the reference lab for one molecular/send-out line. */
+  onLineLabChange: (cartId: string, labId: string, labName: string) => void;
   stationsForLine: (line: AddOnOrderLineInput) => ScanStation[];
   performingLabResolved: boolean;
   onSubmit: (submission: AddOnOrderSubmissionInput) => void;
-  submitDisabled: boolean;
+  requirements: readonly ResolvedFieldRequirement[];
+  caseId: string;
 }
 
 const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
-  cart, onRemoveLine, selectedBlockCount, priority, onPriorityChange, slideMediaType, onSlideMediaTypeChange,
-  cuttingInstructions, onCuttingInstructionsChange, referenceLabs, sendOutFacilityId, onSendOutFacilityChange,
-  stationsForLine, performingLabResolved, onSubmit, submitDisabled,
+  cart, onRemoveLine, selectedBlockIds, priority, onPriorityChange, slideMediaType, onSlideMediaTypeChange,
+  cuttingInstructions, onCuttingInstructionsChange, referenceLabs, onLineLabChange,
+  stationsForLine, performingLabResolved, onSubmit, requirements, caseId,
 }) => {
-  const { t } = useTranslation();
-  const hasSendOut = cart.some(l => l.orderKind === 'molecular');
+  const { t, i18n } = useTranslation();
+  const missing = addOnSubmitMissing({ blockIds: selectedBlockIds, lines: cart, cuttingInstructions }, requirements);
+  const star = (fieldId: string) => addOnOrderFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>;
 
   const handleSubmit = () => {
-    const lab = referenceLabs.find(f => f.id === sendOutFacilityId);
-    onSubmit({
-      priority, slideMediaType, cuttingInstructions: cuttingInstructions || undefined,
-      sendOutReferenceLabFacilityId: lab?.id, sendOutReferenceLabName: lab?.name,
-    });
+    if (missing.length > 0) return;
+    onSubmit({ priority, slideMediaType, cuttingInstructions: cuttingInstructions.trim() || undefined });
   };
+  const submitRef = useRef(handleSubmit);
+  submitRef.current = handleSubmit;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'ADD_ON_SUBMIT_ORDER') submitRef.current();
+  }), []);
 
   return (
     <div className="ps-addon-panel">
       <p className="ps-addon-panel-title">{t('addOnOrder.summary.title')}</p>
 
-      <div className="ps-addon-cart-meta">{t('addOnOrder.summary.blocksSelected', { count: selectedBlockCount })}</div>
+      <div className="ps-addon-cart-meta">{t('addOnOrder.summary.blocksSelected', { count: selectedBlockIds.length })}</div>
 
       {cart.length === 0 ? (
         <div className="ps-addon-empty">{t('addOnOrder.summary.emptyCart')}</div>
@@ -71,14 +89,31 @@ const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
             <li key={line.cartId} className="ps-addon-cart-row">
               <div>
                 <strong>{line.stainType.name}</strong>
-                {line.panelName && <span className="ps-addon-cart-panel-badge"> · {line.panelName}</span>}
+                {line.panelId && <span className="ps-addon-cart-panel-badge">{t('addOnOrder.summary.panelBadge', { panel: t(`addOnOrder.panels.${line.panelId}`) })}</span>}
                 {line.levelDepthMicrons !== undefined && <div className="ps-addon-cart-row-meta">{t('addOnOrder.summary.microns', { count: line.levelDepthMicrons })}</div>}
                 {line.controlMode && line.controlMode !== 'none' && <div className="ps-addon-cart-row-meta">{t(`addOnOrder.builder.controlMode.${line.controlMode}`)}</div>}
-                <div className="ps-addon-cart-row-meta">
-                  {stationsForLine(line).length > 0
-                    ? t('addOnOrder.summary.routesTo', { stations: stationsForLine(line).map(s => s.name).join(', ') })
-                    : t('addOnOrder.summary.routesToQueueOnly')}
-                </div>
+                {line.orderKind !== 'molecular' && (
+                  <div className="ps-addon-cart-row-meta">
+                    {stationsForLine(line).length > 0
+                      ? t('addOnOrder.summary.routesTo', { stations: formatList(stationsForLine(line).map(s => s.name), i18n.language) })
+                      : t('addOnOrder.summary.routesToQueueOnly')}
+                  </div>
+                )}
+                {line.orderKind === 'molecular' && (() => {
+                  const { choices, limited } = resolveSendOutLabChoices(line.stainType, referenceLabs);
+                  const id = `addon-lab-${line.cartId}`;
+                  return (
+                    <div className="ps-addon-cart-row-meta">
+                      <label className="ps-addon-field-label" htmlFor={id}>{t('addOnOrder.summary.sendOutLab')}{star('sendOutLab')}</label>
+                      <select id={id} className="ps-addon-field-input" value={line.sendOutReferenceLabFacilityId ?? ''}
+                        onChange={e => { const f = choices.find(c => c.id === e.target.value); onLineLabChange(line.cartId, e.target.value, f?.name ?? ''); }}>
+                        <option value="">{t('addOnOrder.summary.selectLab')}</option>
+                        {choices.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                      <div>{t(limited ? 'addOnOrder.summary.labsApprovedForTest' : 'addOnOrder.summary.labsAll')}</div>
+                    </div>
+                  );
+                })()}
               </div>
               <button type="button" className="ps-addon-row-btn" onClick={() => onRemoveLine(line.cartId)}>{t('addOnOrder.summary.remove')}</button>
             </li>
@@ -108,22 +143,17 @@ const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
         ))}
       </div>
 
-      <label className="ps-addon-field-label">{t('addOnOrder.summary.cuttingInstructions')}</label>
-      <textarea className="ps-addon-field-textarea" rows={3} value={cuttingInstructions} onChange={e => onCuttingInstructionsChange(e.target.value)} />
+      <label className="ps-addon-field-label" htmlFor="addon-cutting-instructions">{t('addOnOrder.summary.cuttingInstructions')}{star('cuttingInstructions')}</label>
+      <textarea id="addon-cutting-instructions" className="ps-addon-field-textarea" rows={3} value={cuttingInstructions} onChange={e => onCuttingInstructionsChange(e.target.value)} />
 
-      {hasSendOut && (
-        <>
-          <label className="ps-addon-field-label">{t('addOnOrder.summary.sendOutLab')}</label>
-          <select className="ps-addon-field-input" value={sendOutFacilityId} onChange={e => { const f = referenceLabs.find(rl => rl.id === e.target.value); onSendOutFacilityChange(e.target.value, f?.name ?? ''); }}>
-            <option value="">{t('addOnOrder.summary.selectLab')}</option>
-            {referenceLabs.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </>
+      {missing.length > 0 && (
+        <p className="ps-field-still-required" role="status">
+          {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.addOnOrder.${id}`)), i18n.language) })}
+        </p>
       )}
-
-      <button type="button" className="ps-btn-primary ps-addon-submit-btn" disabled={submitDisabled} onClick={handleSubmit}>
+      <CapabilityButton capability="add-on:order:place" context={{ caseId }} className="ps-btn-primary ps-addon-submit-btn" disabled={missing.length > 0} onClick={handleSubmit}>
         {t('addOnOrder.summary.submit')}
-      </button>
+      </CapabilityButton>
     </div>
   );
 };

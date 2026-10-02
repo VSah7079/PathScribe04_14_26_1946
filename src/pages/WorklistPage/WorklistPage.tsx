@@ -1,5 +1,6 @@
 // src/pages/WorklistPage/WorklistPage.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useReviewQueueCounts } from '@/hooks/useReviewQueueCounts';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { externalResourceService, facilityService, actionRegistryService, wsiScanBatchService, aiScreeningResultService, specimenDictionaryService } from '@/services';
@@ -7,7 +8,6 @@ import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityS
 import { getSessionUser, resolvePediatricAccess, resolveOrchestrationAccess } from '@/services/auth/caseAccessControl';
 import type { Case } from '@/types/case/Case';
 import { useNavigate, useLocation } from 'react-router';
-import { toast } from 'react-toastify';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable      from '../../components/Worklist/WorklistTable';
 import ResourcesModal     from './ResourcesModal';
@@ -37,6 +37,7 @@ import { caseViewTrackingService } from '@/services';
 import { SlideDetailDrawer } from '@/components/Worklist/SlideDetailDrawer';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
 import { Flag }           from '@/services/flags/IFlagService';
+import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 
 // Single source of truth for both the page title above the table and
 // every filter tile's own label — previously two separate hardcoded
@@ -121,25 +122,9 @@ const WorklistPage: React.FC = () => {
   const navigate = useNavigate();
   const location  = useLocation();
 
-  // Real, per direct investigation: synopticLoader.ts and FullReportPage.tsx
-  // both now redirect here with these two params when a direct case-URL
-  // navigation is blocked by a real pediatric/orchestration restriction —
-  // see caseAccessControl.ts's resolvePediatricAccess/
-  // resolveOrchestrationAccess for the enforcement itself. This just
-  // surfaces why the user landed back on the Worklist instead of the
-  // case they tried to open, then cleans the URL so a refresh doesn't
-  // re-show the same toast.
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const denied = params.get('accessDenied');
-    if (!denied) return;
-    if (denied === 'pediatric') {
-      toast.error(t('worklistPage.toast.pediatricRestricted'));
-    } else if (denied === 'orchestration') {
-      toast.error(t('worklistPage.toast.orchestrationRestricted'));
-    }
-    navigate('/worklist', { replace: true });
-  }, [location.search, navigate, t]);
+  // Batch 396: synopticLoader.ts and FullReportPage.tsx no longer redirect
+  // here with the restriction in the address; a case the reader can't open shows the neutral
+  // "no access" screen instead (components/CaseUnavailable).
 
   // Batch 375 (Pete): the Cytology QC Peer Review Queue and Surgical
   // Post-Sign-Out QA live here as views beside the case list, shown to whoever
@@ -152,36 +137,39 @@ const WorklistPage: React.FC = () => {
   const view: WorklistView | null = capabilities.loading
     ? null
     : resolveWorklistView(viewChoice ?? new URLSearchParams(location.search).get('view'), allowedViews);
+  const queueCounts = useReviewQueueCounts(
+    { cytologyQc: allowedViews.includes('cytologyQc'), surgicalQa: allowedViews.includes('surgicalQa') },
+    view,
+  );
 
   // contextFilter: which data source (LIS or Outreach) — the "home" context
-  // Sticky for the session — restored from sessionStorage on mount
+  // Sticky for the session — restored from the session flags on mount
   const [contextFilter, setContextFilter] = useState<'lis' | 'outreach'>(
-    () => (sessionStorage.getItem('ps_worklist_context') as 'lis' | 'outreach') ?? 'lis'
+    () => (getSessionFlag('ps_worklist_context') as 'lis' | 'outreach' | null) ?? 'lis'
   );
   // Persist whenever it changes
   React.useEffect(() => {
-    sessionStorage.setItem('ps_worklist_context', contextFilter);
+    setSessionFlag('ps_worklist_context', contextFilter);
   }, [contextFilter]);
 
   // Real, per direct follow-up ("Surg Path, Cytology and Autopsy...
   // almost belong together" — three real, established discipline
   // branches this app's own work already files under). Same real
-  // sessionStorage persistence pattern as contextFilter right above.
+  // per-session persistence as contextFilter right above.
   // 'all' is the real, unchanged default — "the worklist automatically
   // opens and had everything" stays true; branch narrowing is
   // something a real user opts into, not the default.
   const [branchFilter, setBranchFilter] = useState<'all' | 'surgpath' | 'cytology' | 'autopsy'>(
-    () => (sessionStorage.getItem('ps_worklist_branch') as any) ?? 'all'
+    () => (getSessionFlag('ps_worklist_branch') as 'all' | 'surgpath' | 'cytology' | 'autopsy' | null) ?? 'all'
   );
   React.useEffect(() => {
-    sessionStorage.setItem('ps_worklist_branch', branchFilter);
+    setSessionFlag('ps_worklist_branch', branchFilter);
   }, [branchFilter]);
 
   // activeFilter:  which sub-filter within that context
   const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
 
-  // Note: orchestrator mode flag read via localStorage when needed at case open
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
   const [delegatedCaseIds, setDelegatedCaseIds]     = useState<string[]>([]);
   // Amendment & Addenda — live open drafts + pending LIS notices, not a
@@ -232,23 +220,14 @@ const WorklistPage: React.FC = () => {
   const CURRENT_USER_ID   = user?.id   ?? 'PATH-001';
   const CURRENT_USER_NAME = user?.name ?? 'Dr. Sarah Johnson';
 
-  // Measure available height for the table container.
-  // We get the wrapper's top offset from the viewport and subtract from var(--app-height, 100vh).
-  // This is immune to any parent overflow/flex chain issues.
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const [tableHeight, setTableHeight] = useState<number>(400);
-  useEffect(() => {
-    const measure = () => {
-      if (!wrapperRef.current) return;
-      const top = wrapperRef.current.getBoundingClientRect().top;
-      const available = window.innerHeight - top - 16; // 16px bottom breathing room
-      setTableHeight(Math.max(200, available));
-    };
-    // Small delay so the tiles/header have rendered and settled
-    const t = setTimeout(measure, 50);
-    window.addEventListener('resize', measure);
-    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
-  }, []);
+  // Height for the table container: from its top edge to the bottom of the window.
+  // Batch 395: re-measured whenever the window or anything above the table
+  // changes size, so the table always reaches the bottom of the window.
+  // Batch 416 (Pete: "too much dead space in the worklist"): the table fills
+  // the space left below the tiles with CSS (.ps-table-scroll-wrap--fill), not a
+  // measured height. This page is exactly window-height, so the measurement
+  // never heard that the tiles above had changed and stuck at its 400 px start.
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Pool claim modal state
   const [claimModal, setClaimModal] = useState<{ caseId: string; summary: string; poolName: string } | null>(null);
@@ -415,48 +394,9 @@ const WorklistPage: React.FC = () => {
       .catch(() => {});
   }, [delegatedCaseIds, amendmentAddendaCaseIds, informalReviewCaseIds, realCases, user?.id]);
 
-  // Auto-clear the "Access requested" badge for any case that is no longer restricted
-  useEffect(() => {
-    if (!thresholdsLoaded || realCases.length === 0) return;
-    try {
-      const stored = localStorage.getItem('pathscribe_ped_requested');
-      if (!stored) return;
-      const requested: string[] = JSON.parse(stored);
-      const stillRestricted = requested.filter(caseId => {
-        const c = realCases.find((rc: any) => rc.id === caseId);
-        if (!c) return false; // case gone — clear it
-        return !canViewCase(c); // keep only if still restricted
-      });
-      if (stillRestricted.length !== requested.length) {
-        localStorage.setItem('pathscribe_ped_requested', JSON.stringify(stillRestricted));
-      }
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real, honest justification: canViewCase is genuinely called inside this effect, but its definition (a plain function, not memoized) sits later in this file - adding it here is a real TypeScript TS2448 compile error (block-scoped variable used before its declaration), same real constraint as SynopticReportPage.tsx's openAmendmentDraft case. The safe fix is moving canViewCase's definition earlier, but that's a real reordering operation deserving its own careful pass, not bundled into this lint sweep.
-  }, [thresholdsLoaded, realCases]);
-
-  // Mirrors the pediatric auto-clear effect above, for the separate
-  // Orchestration request key (pathscribe_orch_requested — see
-  // WorklistTable.tsx). Kept as its own effect rather than merged into one
-  // generic "restricted requests" effect for the same reason the two
-  // localStorage keys were kept separate: different grant path, no shared
-  // data shape worth unifying yet.
-  useEffect(() => {
-    if (!thresholdsLoaded || realCases.length === 0) return;
-    try {
-      const stored = localStorage.getItem('pathscribe_orch_requested');
-      if (!stored) return;
-      const requested: string[] = JSON.parse(stored);
-      const stillRestricted = requested.filter(caseId => {
-        const c = realCases.find((rc: any) => rc.id === caseId);
-        if (!c) return false; // case gone — clear it
-        return !canViewCase(c); // keep only if still restricted
-      });
-      if (stillRestricted.length !== requested.length) {
-        localStorage.setItem('pathscribe_orch_requested', JSON.stringify(stillRestricted));
-      }
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Same real TDZ justification as the pediatric auto-clear effect above.
-  }, [thresholdsLoaded, realCases]);
+  // Batch 431: the "access requested" badges come from the person's own
+  // pending access requests (WorklistTable.tsx), so the browser markers this
+  // page used to tidy up are gone.
 
   // Quick Links Data — real admin-managed resources, resolved for this
   // viewer's own organisation (Config -> System -> External Resources).
@@ -1259,9 +1199,14 @@ const WorklistPage: React.FC = () => {
                       className={`ps-wl-mode-tile ps-wl-queue-tile${view === v ? ' ps-wl-queue-tile--active' : ''}`}
                       aria-pressed={view === v}
                       onClick={() => { setViewChoice(v); setSelectedIndex(-1); setSelectedCaseId(null); }}
+                      title={t(`worklistPage.queues.${v}`)}
                     >
                       <div className="ps-wl-mode-tile__main">
                         <div className="ps-wl-queue-tile__label">{t(`worklistPage.queues.${v}`)}</div>
+                        {/* Batch 396 (Pete): how many items wait in this queue. */}
+                        {queueCounts[v as 'cytologyQc' | 'surgicalQa'] !== null && (
+                          <div className="ps-wl-mode-tile__count ps-wl-queue-tile__count">{queueCounts[v as 'cytologyQc' | 'surgicalQa']}</div>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -1490,13 +1435,13 @@ const WorklistPage: React.FC = () => {
               </div>
             )}
 
-            {/* Worklist table — height measured from viewport top offset */}
+            {/* Worklist table: fills the rest of the page (CSS flex, Batch 416) */}
             <AmendedAddendaTriageTile pathologistId={user?.id ?? ''} />
             <PendingGrossingTriageTile cases={realCases} />
             <div
               ref={wrapperRef}
               data-capture-hide="true"
-              className="ps-table-scroll-wrap ps-table-scroll-wrap--relative"
+              className="ps-table-scroll-wrap ps-table-scroll-wrap--relative ps-table-scroll-wrap--fill"
               tabIndex={0}
               role="region"
               aria-label={t('worklistPage.tableRegionLabel')}
@@ -1511,7 +1456,6 @@ const WorklistPage: React.FC = () => {
                 dpResultByCaseId={dpResultByCaseId}
                 onOpenDpDrawer={setDpDrawerCaseId}
                 branchFilter={branchFilter}
-                tableHeight={tableHeight}
                 delegatedCaseIds={delegatedCaseIds}
                 onPoolCaseClick={(caseId, summary) => {
                   const c = realCases.find(c => c.id === caseId);

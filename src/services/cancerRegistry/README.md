@@ -112,6 +112,61 @@ deliberately not attempted here given the real risk of modifying that
 file further without a focused, dedicated pass — flagged as real,
 separate, future work.
 
+## Batch 417
+
+The payload's `patient` carries `nationalIdentifiers` (system, value, verification status) when the patient has any; the interface engine picks the one the registry keys on and must not send a `failedChecksum` one. There is still no per-registry identifier choice on this side (the screening definitions have one); that comes with the cancer JCPs.
+
+## Batch 418
+
+`CancerRegistrySettingsConfig.honoursPatientOptOut` (default false: statutory). `dispatchCancerRegistryReportIfApplicable` evaluates the patient's cancer registry opt-out: excluded with an audit entry where honoured; otherwise sent with "Registry opt-out overridden by statute" on the audit log. No Configuration switch for it yet (the settings screen is on the deployment baseline).
+
+## Batch 419
+
+Each cancer registry submission carries the payload header (`services/registrySubmission/`), case-level (`specimenId: 'case'`). A second dispatch for the same case is `CORRECTION`, version 2, same master id. `CancerRegistrySettingsConfig.environment` (default `test`); no Configuration control yet (the settings screen is on the deployment baseline). The queue's `retryDispatch` marks a duplicate retry. `CancerRegistryOutboundQueueEntry.errorCode` includes `EXCLUDED_BY_CONSENT`.
+
+## Batch 420: reports are now sent
+
+Before this batch `dispatchCancerRegistryReportIfApplicable` queued the report and stopped: nothing ever sent it, so no cancer registry report left PathScribe. It now dispatches (`CANCER_REGISTRY_REPORT`) and marks the entry sent (→ `awaitingAck`) or failed. The dispatch is a dependency (`CancerRegistryDispatchDeps`) so tests use a fake. The queue gains `setRegistryStatus`; entries carry `registryStatus`, `sentAt`, `acknowledgements`. The "sent" audit text no longer claims the report was "accepted": it says delivered to the interface engine, awaiting the registry.
+
+## Batch 421
+
+`prepareCancerRegistrySubmission` (settings, reportability, consent, payload body, content fingerprint) split out of `dispatchCancerRegistryReportIfApplicable`, which now commits what it prepares. Used by the worklist's resend.
+
+## Batch 422: thirteen registries as definitions (SRS step 6)
+
+`cancerRegistryDefinitions.ts`: every population cancer registry as data, the way the screening programmes have been since Batch 414: jurisdictions, the national identifier it keys on, the wire format, and specification status. Five added: **NCRI** (Ireland, IHI), **Public Health Scotland** (CHI), **NICR** (Northern Ireland, H&C number), **NKR / IKNL** (Netherlands, BSN, via the PALGA protocol), **Belgian Cancer Registry** (national register number, HD-S4S on healthdata.be). `CancerRegistryId` derives from the list. All are `configurable`: identifiers and formats are from public descriptions and must be confirmed by each JCP's sign-off lead. NAACCR matches on demographics; KCCR isn't keyed on the RRN (PIPA).
+
+The payload carries `wireFormat` and `patientIdentifier` (the verified national identifier first, the MRN as a format-checked fallback; cancer reporting is statutory, so a missing or failed one doesn't hold the report, it's flagged in `verification`).
+
+`saveCancerRegistrySettings.ts` (`config:cancer-registry:manage`, audited): the enterprise registry with its environment and opt-out rule, and facility overrides. Before Batch 422 the Configuration screen saved straight to the stores with no permission or audit. `cancerRegistrySettingsDeps.ts` wires it; `@/services` exports the stores and saves for the UI.
+
+## Batch 423: go-live gate
+
+- `dispatchCancerRegistryReportIfApplicable` asks `liveHold` (a `CancerRegistryDispatchDeps` member) before sending. A live register without a current go-live approval holds the report.
+- `saveEnterpriseCancerRegistry` no longer sets the environment (Batch 422 did); go-live is approved through `services/registryGoLive/`.
+- `cancerRegistriesInUse` (in `resolveEffectiveCancerRegistrySettings.ts`) lists the enterprise registry and the facility overrides' registries, each of which needs its own approval.
+
+## Batch 424
+
+- **Send gate.** `dispatchCancerRegistryReportIfApplicable` asks `sendGate` (a `CancerRegistryDispatchDeps` member that replaces `liveHold`):
+  - on a validation instance a real case is not sent;
+  - on production the case is held until go-live is approved.
+- **Per-registry environment.** `CancerRegistrySettingsConfig.environment` is no longer read. Each cancer registry's go-live is its own record, so approving or stopping one no longer switches the others (the Batch 423 shared-setting gap).
+- **Correction.** `cancerRegistryDefinitions.ts` said "the hospital's interface engine". The engine is ForMedrixAI's, shipped with PathScribe.
+
+## Batch 425 — the mandatory-data hold
+
+Each registry definition lists its `mandatoryFields`:
+- every registry: date of birth, diagnosis date, primary diagnosis and an ICD-O code;
+- a registry keyed on a national identifier: that identifier too, verified or at least the right format.
+
+`cancerRegistryMandatoryData.ts` checks the payload before anything is emitted. A report missing any of it is queued and held:
+- `FAILED`, `HOLD_MISSING_MANDATORY_DATA`, with the missing items in the message;
+- never sent;
+- shown on the Registry Exceptions worklist as held, and re-checked on resend (`rebuildRegistrySubmission`).
+
+The case's sign-out is never held (Pete's answer). This replaces Batch 422's rule that an unusable identifier didn't hold a cancer report. The check runs after the send gate, so a validation instance still never queues a real case. The synthetic test suite's cancer cases meet every registry's list (tested). The lists are to be confirmed against each registry's specification at sign-off, like the identifiers.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

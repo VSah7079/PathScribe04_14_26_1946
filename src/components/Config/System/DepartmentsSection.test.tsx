@@ -20,18 +20,14 @@ vi.mock('react-i18next', () => ({
 }));
 
 const departmentService = vi.hoisted(() => ({ getAll: vi.fn(), add: vi.fn(), update: vi.fn(), verify: vi.fn() }));
-vi.mock('../../../services', () => ({ departmentService }));
+// Batch 428: the screen also reads case masks and writes its audit entry through the barrel.
+const auditService = vi.hoisted(() => ({ logEvent: vi.fn().mockResolvedValue({ ok: true, data: {} }) }));
+const caseMaskService = vi.hoisted(() => ({ getAllMasks: vi.fn().mockResolvedValue({ ok: true, data: [] }) }));
+vi.mock('../../../services', () => ({ departmentService, auditService, caseMaskService }));
+vi.mock('../../../services/departments/auditRetentionOverride', () => ({ auditRetentionOverrideBelowFloor: vi.fn().mockResolvedValue(undefined) }));
 
 vi.mock('../../../services/referenceCheck/referenceCheckService', () => ({
   checkDepartmentReferences: vi.fn().mockResolvedValue({ hasReferences: false, sources: [] }),
-}));
-
-vi.mock('../../../services/auditlog/mockAuditService', () => ({
-  mockAuditService: { logEvent: vi.fn().mockResolvedValue({ ok: true, data: {} }) },
-}));
-
-vi.mock('../../../services/caseRegistry/mockCaseMaskService', () => ({
-  mockCaseMaskService: { getAllMasks: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
 }));
 
 vi.mock('../../../services/retentionPolicy/resolveRetentionEligibility', () => ({

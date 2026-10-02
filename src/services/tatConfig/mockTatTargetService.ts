@@ -9,6 +9,7 @@ import type { ServiceResult } from '../types';
 import type { TATEntry } from '@/types/quality/TatConfigEntry';
 import type { ITatTargetService, TatTargetError } from './ITatTargetService';
 import { SYSTEM_DEFAULT_TAT_ENTRIES, isSystemDefaultTatEntryId } from './systemDefaultTatEntries';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export const TAT_TARGET_STORAGE_KEY = 'pathscribe_tat_entries_v2';
 
@@ -27,7 +28,7 @@ function save(entries: TATEntry[]): void {
 
 const fail = (error: TatTargetError) => ({ ok: false as const, error });
 
-export const mockTatTargetService: ITatTargetService = {
+const tatTargetServiceUnchecked: ITatTargetService = {
   async getAll(): Promise<ServiceResult<TATEntry[]>> {
     return { ok: true, data: load() };
   },
@@ -57,3 +58,8 @@ export const mockTatTargetService: ITatTargetService = {
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockTatTargetService: ITatTargetService = guardConfigWrites(tatTargetServiceUnchecked, [
+  ['config:tat-targets:manage', ['add', 'update', 'remove']],
+]);

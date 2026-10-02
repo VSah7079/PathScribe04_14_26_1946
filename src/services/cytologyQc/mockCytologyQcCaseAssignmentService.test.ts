@@ -1,6 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Batch 396: taking a review and recording its verdict check cytology:qc-review:record.
+const enforce = vi.fn();
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (...a: unknown[]) => enforce(...a) } }));
 
 beforeEach(() => {
+  enforce.mockReset();
+  enforce.mockResolvedValue({ allowed: true });
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
     getItem: (k: string) => store[k] ?? null,
@@ -135,4 +141,35 @@ describe('mockCytologyQcCaseAssignmentService', () => {
     const result = await mockCytologyQcCaseAssignmentService.supervisorBypass(created.data.id, 'supervisor-1', 'Second attempt.');
     expect(result.ok).toBe(false);
   });
+
+  it('Batch 396: without cytology:qc-review:record, taking a review and recording a verdict are refused and nothing changes', async () => {
+    const { mockCytologyQcCaseAssignmentService } = await import('./mockCytologyQcCaseAssignmentService');
+    const { QC_REVIEW_NOT_PERMITTED } = await import('./qcReviewErrors');
+    const created = await mockCytologyQcCaseAssignmentService.create(newAssignment());
+    if (!created.ok) return;
+    enforce.mockResolvedValue({ allowed: false });
+    const assign = await mockCytologyQcCaseAssignmentService.assignReviewer(created.data.id, 'prov-2');
+    expect(assign).toEqual({ ok: false, error: QC_REVIEW_NOT_PERMITTED });
+    expect(enforce).toHaveBeenCalledWith('cytology:qc-review:record', { caseId: 'case-1' });
+    const concur = await mockCytologyQcCaseAssignmentService.recordConcurrence(created.data.id);
+    expect(concur.ok).toBe(false);
+    const after = await mockCytologyQcCaseAssignmentService.getById(created.data.id);
+    if (after.ok) expect(after.data.state).toBe('QC_PENDING');
+  });
+
+  it('Batch 432: escalating checks cytology:qc-review:record and needs a reason; the bypass checks cytology:qc-review:bypass and needs a justification', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) throw new Error('setup failed');
+    enforce.mockImplementation(async (c: string) => ({ allowed: c !== 'cytology:qc-review:bypass' }));
+    expect(await svc.supervisorBypass(created.data.id, 'supervisor-1', 'Needed today.')).toMatchObject({ ok: false });
+    expect(enforce).toHaveBeenCalledWith('cytology:qc-review:bypass', expect.anything());
+    enforce.mockResolvedValue({ allowed: true });
+    expect((await svc.supervisorBypass(created.data.id, 'supervisor-1', '   ')).ok).toBe(false);
+    expect(await svc.escalateForSlaBreach(created.data.id, new Date().toISOString(), ' ')).toMatchObject({ ok: false });
+    enforce.mockResolvedValue({ allowed: false });
+    expect(await svc.escalateForSlaBreach(created.data.id, new Date().toISOString(), 'Overdue')).toMatchObject({ ok: false });
+    expect(enforce).toHaveBeenCalledWith('cytology:qc-review:record', expect.anything());
+  });
 });
+

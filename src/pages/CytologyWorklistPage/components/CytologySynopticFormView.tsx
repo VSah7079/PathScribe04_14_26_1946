@@ -12,6 +12,7 @@
 // that one, shared resolver file, never this renderer.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { pathologyLexiconService } from '@/services';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CYTOLOGY_SYNOPTIC_TEMPLATES, resolveCytologySynopticTemplateById } from '@/services/cytology/cytologySynopticTemplateRegistry';
@@ -19,7 +20,6 @@ import { resolveSynopticFieldLabel, resolveSynopticOptionLabel, resolveSynopticS
 import { resolveSynopticAnswersValidation } from '@/services/cytology/resolveSynopticAnswersValidation';
 import { resolveUnvalidatedTermKeysInAnswers, resolveTranslationAcknowledgmentIsCurrent } from '@/services/cytology/resolveSynopticTranslationValidation';
 import { compileCytologySynopticNarrative } from '@/services/cytology/compileCytologySynopticNarrative';
-import { mockPathologyLexiconService } from '@/services/cytology/mockPathologyLexiconService';
 import type { SynopticField } from '@/types/cytology/SynopticTemplate';
 import type { PathologyLexiconEntry, PathologyLexiconLocale } from '@/types/cytology/PathologyLexicon';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
@@ -64,7 +64,7 @@ const CytologySynopticFormView: React.FC<CytologySynopticFormViewProps> = ({ ini
   const [expandedSegmentIndex, setExpandedSegmentIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    mockPathologyLexiconService.getAll().then(res => { if (res.ok) setLexicon(res.data); });
+    pathologyLexiconService.getAll().then(res => { if (res.ok) setLexicon(res.data); });
   }, []);
 
   const template = templateId ? resolveCytologySynopticTemplateById(templateId) : undefined;

@@ -10,8 +10,8 @@ import { storageGet, storageSet } from '@/services/mockStorage';
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystemConfig } from "@/contexts/SystemConfigContext";
 import { getFacilityDateParts } from '@/utils/facilityTime';
-import { facilityService, auditService, specimenDeficiencyService, subspecialtyService, accessRequestService } from "@/services";
-import { sendAccessRequestToAdmins } from "@/utils/accessRequests";
+import { facilityService, auditService, specimenDeficiencyService, subspecialtyService } from "@/services";
+import { sendAccessRequestToAdmins, pendingAccessRequestsFor } from "@/utils/accessRequests";
 import { resolvePediatricAccess, resolveOrchestrationAccess } from "@/services/auth/caseAccessControl";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
@@ -31,6 +31,7 @@ import { getParticipationTypeLookup } from '@/utils/participationTypeLookup';
 import type { ParticipationTypeRecord } from '@/services/participationTypes/IParticipationTypeService';
 import { openComposeTo } from '@/utils/openComposeTo';
 import { setCaseOpenedFrom } from '@/utils/search/searchSession';
+import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -585,7 +586,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
   // Real feature, per direct follow-up: "Do we Track the request to
   // gain access?... Do we generate a ticket system that has its own
-  // status." Replaces the old, bare per-browser localStorage sets
+  // status." Replaces the old, bare per-browser storage sets
   // (pathscribe_ped_requested / pathscribe_orch_requested) — not real,
   // status-bearing records, and not genuinely user-specific across
   // sessions. Both derived from one real fetch against the tracked
@@ -596,9 +597,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // persistence shape — but kept as its own state rather than unified into
   // one generic "restricted access" type, since the two restrictions carry
   // genuinely different data (age/clientId vs. nothing) and different grant
-  // paths (per-client authorized-pathologist list vs. a Role flag). A
-  // separate, clearly-named localStorage key avoids any collision or
-  // migration risk with existing pediatric request state.
+  // paths (per-client authorized-pathologist list vs. a Role flag). Both
+  // badges come from the person's own pending access requests (Batch 431).
   const [orchBlockedCase, setOrchBlockedCase] = React.useState<{id:string}|null>(null);
 
   const [pedRequestedIds, setPedRequestedIds] = React.useState<Set<string>>(new Set());
@@ -607,9 +607,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   const refreshAccessRequestState = React.useCallback(() => {
     const userId = (user as any)?.id;
     if (!userId) return;
-    accessRequestService.getAllForUser(userId).then(res => {
-      if (!res.ok) return;
-      const pending = res.data.filter(r => r.status === 'pending');
+    pendingAccessRequestsFor(userId).then(pending => {
       setPedRequestedIds(new Set(pending.filter(r => r.type === 'pediatric' && r.caseId).map(r => r.caseId!)));
       setOrchRequestedIds(new Set(pending.filter(r => r.type === 'orchestration' && r.caseId).map(r => r.caseId!)));
     }).catch(() => {});
@@ -882,29 +880,15 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
    * multi-sort stack: 
    * The first element is the primary sort, second is secondary, etc.
    */
+  // Batch 431: the sort order is the signed-in person's own setting (it was
+  // shared by everyone on the computer). PS-345 moves it to the server.
   const [sortStack, setSortStack] = useState<SortEntry[]>(() => {
-    try {
-      const raw = localStorage.getItem(SORT_KEY);
-      if (!raw) return [{ key: 'id', dir: 'asc' }];
-      
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed as SortEntry[];
-      }
-      return [{ key: 'id', dir: 'asc' }];
-    } catch (e) {
-      console.warn("Failed to parse sort state from localStorage", e);
-      return [{ key: 'id', dir: 'asc' }];
-    }
+    const saved = getPersonalSetting<SortEntry[] | null>(SORT_KEY, null);
+    return Array.isArray(saved) && saved.length > 0 ? saved : [{ key: 'id', dir: 'asc' }];
   });
 
-  // Persist sort preferences to local storage whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem(SORT_KEY, JSON.stringify(sortStack));
-    } catch (e) {
-      console.error("Failed to save sort state", e);
-    }
+    setPersonalSetting(SORT_KEY, sortStack);
   }, [sortStack]);
 // ─────────────────────────────────────────────────────────────────────────────
   // SORT INTERACTION HANDLERS
@@ -2146,6 +2130,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       pedBlockedCase.facilityId
                         ? `/configuration?tab=system&section=clients&client=${pedBlockedCase.facilityId}`
                         : '/configuration?tab=system&section=clients',
+                      { type: 'pediatric', caseId: pedBlockedCase.id, facilityId: pedBlockedCase.facilityId },
                     );
                     markPedRequested(pedBlockedCase.id);
                     reloadInbox();
@@ -2226,6 +2211,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       `Orchestration Access Request — ${(user as any).name}`,
                       `${(user as any).name} needs Orchestration access for case ${orchBlockedCase.id}.\n\nTo grant access:\n1. Go to Configuration → Staff\n2. Open ${(user as any).name}'s staff record\n3. Enable the "canViewOrchestration" flag\n\nNote: this grants visibility into ALL Orchestration/Outreach cases for this user, not just this one case — confirm that's the intended scope before granting. (Same flag location/pattern as Pediatric Access, on the staff record rather than a per-facility list.)`,
                       '/configuration?tab=system&section=staff',
+                      { type: 'orchestration', caseId: orchBlockedCase.id },
                     );
                     markOrchRequested(orchBlockedCase.id);
                     reloadInbox();

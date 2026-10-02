@@ -3,6 +3,7 @@
  * src/services/aiIntegration/IAIBehaviorService.ts
  */
 import type { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export interface AIBehaviorConfig {
   confidenceThreshold:    number;
@@ -48,7 +49,7 @@ const save = (config: AIBehaviorConfig) => {
   try { localStorage.setItem(LS_KEY, JSON.stringify(config)); } catch {}
 };
 
-export const aiBehaviorService: IAIBehaviorService = {
+const aiBehaviorServiceUnchecked: IAIBehaviorService = {
   async get() {
     return { ok: true, data: load() };
   },
@@ -62,3 +63,8 @@ export const aiBehaviorService: IAIBehaviorService = {
     return { ok: true, data: { ...DEFAULT_AI_BEHAVIOR_CONFIG } };
   },
 };
+
+/** Batch 428: switching AI features on or off for everyone needs config:ai-behavior:manage. */
+export const aiBehaviorService: IAIBehaviorService = guardConfigWrites(aiBehaviorServiceUnchecked, [
+  ['config:ai-behavior:manage', ['update', 'reset']],
+]);

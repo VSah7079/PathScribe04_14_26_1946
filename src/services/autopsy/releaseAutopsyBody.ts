@@ -15,11 +15,14 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { resolveAutopsyBodyReleaseGate } from './resolveAutopsyBodyReleaseGate';
 import { buildAutopsyBodyReleaseLocationEvent, type AutopsyBodyReleaseDetails } from './buildAutopsyBodyReleaseLocationEvent';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 
 export interface ReleaseAutopsyBodyResult {
   ok: boolean;
   blockedReasons?: string[];
   error?: string;
+  /** The person lacks autopsy:body:release (Batch 383). */
+  notPermitted?: boolean;
 }
 
 export async function releaseAutopsyBody(
@@ -27,6 +30,9 @@ export async function releaseAutopsyBody(
   specimenId: string,
   releaseDetails: AutopsyBodyReleaseDetails,
 ): Promise<ReleaseAutopsyBodyResult> {
+  // Batch 383: releasing a body needs autopsy:body:release for the case's facility.
+  const decision = await authorizationService.enforce('autopsy:body:release', { caseId });
+  if (!decision.allowed) return { ok: false, error: 'Releasing an autopsy body needs the autopsy:body:release permission', notPermitted: true };
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return { ok: false, error: 'Case not found.' };
   if (!caseData.autopsy) return { ok: false, error: 'Case has no autopsy record.' };

@@ -54,6 +54,12 @@ const REAL_LIVE_CONTEXTS = new Set([
   'MESSAGES', // set by the messages drawer, not a page — confirmed separately
   'CYTOLOGY', // set by CytologyScreeningPage.tsx's own useEffect — confirmed directly, same pattern as SynopticReportPage.tsx's own SYNOPTIC context
   'GROSSING', // Batch 378: set by GrossingScreenPage.tsx's own useEffect (Complete grossing)
+  'MICROTOMY', // Batch 388: set by MicrotomyWorkstationPage.tsx's own useEffect (add comment, add stain)
+  'EMBEDDING', // Batch 401: set by EmbeddingStationPage.tsx's own useEffect (confirm embedding, add comment)
+  'SLIDE_DISTRIBUTION', // Batch 402: set by SlideDistributionStationPage.tsx's own useEffect (confirm checkout, confirm scanner)
+  'ADD_ON_ORDER', // Batch 403: set by AddOnOrderPage.tsx's own useEffect (add to order, submit order)
+  'BATCH_MANAGEMENT', // Batch 404: set by BatchManagementPage.tsx's own useEffect (create container)
+  'MOLECULAR', // Batch 405: set by MolecularPlateBuilderPage.tsx's own useEffect (create plate)
 ]);
 
 describe('mockActionRegistryService — real regression guard against orphaned/colliding actions', () => {

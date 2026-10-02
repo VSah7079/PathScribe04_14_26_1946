@@ -60,6 +60,21 @@ genuinely new work, not a gap).
   both real conditions are independently confirmed true — never assumed
   from either half alone.
 
+## Batch 431: requests are recorded and closed
+
+- **Recorded.** `utils/accessRequests.ts` `sendAccessRequestToAdmins` now saves an access request record (pool, pediatric or Orchestration) before messaging the admins. Before, nothing created records, so the badges and the QA Access Request Response tab had nothing to read. A second request for the same thing while one is pending reuses it. Pool requests match on the pool, the others on the case.
+- **Closed when access is given.** `closeGrantedAccessRequests.ts` (new) closes a pending request as granted, with the admin and time, once the access exists. It runs after the saves that give access:
+  - a pool member added (subspecialty `assignUser`/`update`);
+  - a person's Pediatric or Orchestration flag (user `update`);
+  - a facility's authorized pediatric pathologists (facility `update`).
+  Pediatric needs both the flag and the facility list. The decision is pure (`isAccessGiven`, `requestsNowGranted`) and tested.
+- **Badges.** The pool, pediatric and Orchestration "access requested" badges come from the person's own pending requests (`pendingAccessRequestsFor`).
+- **Open:** nothing can deny a request yet (no admin action); it stays pending until access is given.
+
+## Batch 432
+
+`deny(id, by, name, reason)`: needs the permission that gives that access (`accessRequestDecision.ts`: pool `config:staff:edit`; pediatric and Orchestration `config:staff-access:assign`) and a reason; the requester is messaged. Already-resolved requests can't be denied.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

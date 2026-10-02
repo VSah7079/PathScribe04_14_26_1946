@@ -31,9 +31,8 @@ import { useTranslation } from 'react-i18next';
 import type { CopilotReportInstance } from '../modals/CopilotReportViewModal';
 import { amendmentService, reportVersionService } from '@/services';
 import { lisAmendmentNoticeService, messageService } from '@/services';
-import { mockOutboundLisSyncQueueService } from '@/services/reports/mockOutboundLisSyncQueueService';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
-import { dispatchInterfaceMessage } from '@/services/interfaceDispatch/dispatchInterfaceMessage';
+import { dispatchAssistSynopticResult } from '@/services/reports/dispatchAssistSynopticResult';
+import { assistSynopticDeps } from '@/services/reports/dispatchAssistSynopticResultDeps';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { processBlockExceptionEvent } from '@/services/hl7/processBlockExceptionEvent';
 import { processMaterialLocationEvent } from '@/services/hl7/processMaterialLocationEvent';
@@ -105,19 +104,9 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
   // payload — per the spec, this has to survive even if the LIS has a
   // rigid layout engine, so it's part of the text itself, not just a
   // flag the LIS might render correctly.
-  const buildEmbeddedHeader = (kind: 'corrected' | 'new_instance' | 'corrected_with_addition', timestamp: string, sequenceNumber?: number, title?: string): string => {
-    const formatted = new Date(timestamp).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '');
-    if (kind === 'new_instance') {
-      const label = title ? `ADDENDUM ${sequenceNumber ?? 1}: ${title.toUpperCase()}` : `ADDITIONAL SYNOPTIC REPORT ADDED`;
-      return `--- ${label} (Transmitted: ${formatted}) ---`;
-    }
-    if (kind === 'corrected_with_addition') {
-      const label = title ? ` — ${title.toUpperCase()}` : '';
-      return `[CORRECTED RESULT WITH ADDITIONAL INFORMATION${label} (Transmitted: ${formatted})]`;
-    }
-    return `[AMENDED REPORT — CORRECTED: ${formatted}]`;
-  };
-
+  // Batch 426: what goes to the LIS is built and sent by services/reports/dispatchAssistSynopticResult.ts:
+  // the v1.0.0 structured synoptic result, the workup's own PDF and the text block, on the LIS-sync queue.
+  // Before, this sent a header and a one-line placeholder (payloadBody), and no synoptic data.
   const sendSynopticReportToLis = useCallback(async (payload: {
     kind: 'corrected' | 'new_instance' | 'corrected_with_addition';
     caseId: string;
@@ -125,76 +114,20 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
     reasonForChange?: string; // only meaningful for 'corrected'
     sequenceNumber?: number; // addendum numbering, for the header label
     addendumTitle?: string;
-    /** The actual discrete text block being handed to the LIS — the
-     *  embedded header gets prepended to this, not just attached as
-     *  separate metadata. */
+    /** No longer sent (Batch 426): the message carries the workup itself. Kept so callers don't change. */
     payloadBody: string;
   }): Promise<{ ok: boolean }> => {
-    const timestamp = new Date().toISOString();
-    // HL7 OBR-25 / FHIR DiagnosticReport.status equivalent — this is
-    // what tells the LIS to stamp its own "Amended/Supplemented" page
-    // header. 'A' = Amended, 'P' = Append/Supplemental. The hybrid case
-    // gets 'A' too — per spec, the overall envelope must be flagged as
-    // a correction so the EMR scans the whole file for modified
-    // fields, even though the payload also carries new content.
-    const transactionStatusFlag: 'A' | 'P' = payload.kind === 'new_instance' ? 'P' : 'A';
-    const embeddedHeader = buildEmbeddedHeader(payload.kind, timestamp, payload.sequenceNumber, payload.addendumTitle);
-    const fullPayloadText = `${embeddedHeader}\n\n${payload.payloadBody}`;
-
-    await new Promise(resolve => setTimeout(resolve, 400)); // simulated round-trip
-
-    // Real, per direct guidance (gap #7 — "never brought up to the
-    // same honest 'real queue' standard as A08/A40/A47/ORU"): the
-    // payload-building logic above was always real and correct; only
-    // what happened next was fake — a setTimeout with no trace,
-    // returning {ok: true} unconditionally with nothing persisted
-    // anywhere. Now enqueues a real, queryable record of this real
-    // attempt (services/reports/mockOutboundLisSyncQueueService.ts),
-    // visible via the same real DLQ dashboard as every other outbound
-    // queue in this app (pages/OutboundInterfaceDlqSection.tsx).
-    // organisationId resolved from the real, already-known patient —
-    // same pattern already established for every other real
-    // outbound-queue enqueue in this app.
-    //
-    // Real, per direct follow-up ("do we implement... actual outbound
-    // HTTP dispatch transport"): real, immediate dispatch right here,
-    // not deferred to the DLQ's own Retry Dispatch/Dispatch Now — this
-    // is the one real moment fullPayloadText/embeddedHeader actually
-    // exist. payloadBody is a real, ephemeral parameter, never
-    // persisted anywhere; once this function returns, the real,
-    // complete payload is genuinely gone, and the DLQ's own
-    // buildPayload is deliberately null for this queue type precisely
-    // because of that (see OutboundInterfaceDlqSection.tsx's own
-    // header comment). Real, deliberate fire-and-forget — same real
-    // reasoning as the enqueue immediately below: a real, external
-    // network call must never gate or block a real, time-sensitive
-    // clinical action (sign-out/amendment release).
-    const patientRecord = caseData?.patient?.id ? await mockPatientIndexService.getById(caseData.patient.id) : null;
-    if (patientRecord) {
-      mockOutboundLisSyncQueueService.enqueue({
-        caseId: payload.caseId,
-        instanceId: payload.instanceId,
-        kind: payload.kind,
-        organisationId: patientRecord.organisationId,
-      }).then(async enqueueResult => {
-        if (!enqueueResult.ok) return;
-        const entry = enqueueResult.data;
-        const result = await dispatchInterfaceMessage(entry.id, 'LIS_SYNC', {
-          ...payload, transactionStatusFlag, embeddedHeader, fullPayloadText, timestamp,
-        });
-        if (result.ok) {
-          await mockOutboundLisSyncQueueService.markSent(entry.id);
-        } else {
-          await mockOutboundLisSyncQueueService.markFailed(entry.id, { errorCode: result.errorCode ?? 'DISPATCH_REJECTED', errorMessage: result.error ?? 'Unknown dispatch failure.', maxRetriesExceeded: false });
-        }
-      }).catch(e => console.error('[useLisIntegration] Real, non-blocking failure enqueueing/dispatching LIS sync record:', e));
+    const r = await dispatchAssistSynopticResult(
+      { caseId: payload.caseId, instanceId: payload.instanceId, kind: payload.kind, sequenceNumber: payload.sequenceNumber, signer: { id: signingUser?.id ?? '', name: signingUser?.name ?? '' } },
+      assistSynopticDeps,
+    );
+    // Queued is enough to release: a held or undelivered message waits on the outbound dead-letter screen.
+    const ok = r.outcome === 'sent' || r.outcome === 'held' || (r.outcome === 'failed' && !!r.queueEntryId);
+    if (ok && (payload.kind === 'corrected' || payload.kind === 'corrected_with_addition')) {
+      window.dispatchEvent(new CustomEvent('PATHSCRIBE_LIS_SYNC_REQUIRED', { detail: { ...payload, queueEntryId: r.queueEntryId, workupVersion: r.version } }));
     }
-
-    if (payload.kind === 'corrected' || payload.kind === 'corrected_with_addition') {
-      window.dispatchEvent(new CustomEvent('PATHSCRIBE_LIS_SYNC_REQUIRED', { detail: { ...payload, transactionStatusFlag, embeddedHeader, fullPayloadText, timestamp } }));
-    }
-    return { ok: true };
-  }, []);
+    return { ok };
+  }, [signingUser]);
 
   const [showCopilotReportView, setShowCopilotReportView] = useState(false);
   const [pendingLisNotice, setPendingLisNotice] = useState<{ id: string; lisAmendmentSummary: string; receivedAt: string } | null>(null);

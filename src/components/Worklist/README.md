@@ -315,6 +315,11 @@ patient data, not stuck showing "Restricted Pooled Case."
 
 `WorklistTable.tsx`: `getFlagPalette` returns only the flag's hue; the rgba tints it built were never used.
 
+## Batch 431
+
+- The "access requested" badges (pool, pediatric, Orchestration) come from the person's own pending access requests; each request is saved as a record.
+- The worklist sort order is the person's own setting.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

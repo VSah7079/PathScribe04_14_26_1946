@@ -40,6 +40,8 @@ export interface CommitteeApproval {
   irbReference:           string;   // required — blocks activation if missing
   committeeMinutesRef?:   string;
   conditions?:            string;
+  /** Batch 428: the signed-in person who recorded the approval (set by the service). */
+  recordedBy?:            string;
 }
 
 export interface ValidationStudy {

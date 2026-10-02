@@ -181,7 +181,7 @@ const AllProtocolsSection: React.FC = () => {
           const active = statusFilter === f;
           const count  = allProtocols.filter(p => matchesStatusFilter(p, f)).length;
           return (
-            <button
+            <button data-config-nav
               key={f}
               onClick={() => setStatusFilter(f)}
               className={`ps-activeprotocols-status-filter-btn ${lifecycleHueClass(f)}${active ? ' ps-activeprotocols-status-filter-btn--active' : ''}`}

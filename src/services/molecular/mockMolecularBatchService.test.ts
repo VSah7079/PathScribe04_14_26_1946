@@ -1,5 +1,9 @@
 // src/services/molecular/mockMolecularBatchService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach , vi } from 'vitest';
+
+// Batch 405: cloneAndSupersede checks molecular:batch:supersede; these tests are about the clone itself.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn(async (_key: string) => ({ allowed: true })) }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (k: string) => enforce(k) } }));
 import { storageSet, storageGet } from '../mockStorage';
 import type { MolecularBatch } from './IMolecularBatchService';
 
@@ -240,5 +244,58 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     expect(cloneAttempt.ok).toBe(false);
     const originalAfter = await mockMolecularBatchService.getById(created.data.id);
     if (originalAfter.ok) expect(originalAfter.data.status).toBe('draft'); // real, genuinely untouched, not superseded
+  });
+});
+
+describe('Batch 405: supersede permission and patient-well specimens', () => {
+  it('superseding checks molecular:batch:supersede and stops on a refusal', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    enforce.mockImplementationOnce(async () => ({ allowed: false }));
+    const res = await mockMolecularBatchService.cloneAndSupersede('mb-001', 'Mis-scanned specimen', 'u2', 'Second Tech');
+    expect(enforce).toHaveBeenCalledWith('molecular:batch:supersede');
+    expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('notPermitted');
+  });
+});
+
+describe('Batch 405: create refuses a patient well with no specimen', () => {
+  it('returns wellSpecimenMissing before anything is saved', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const res = await mockMolecularBatchService.create({
+      assayCode: 'st-hpv-highrisk-screen', assayName: 'HPV', targetInstrumentId: 'PANTHER_01', plateLayout: '96_well', reagentLots: [],
+      wells: [{ wellPosition: 'A03', sampleType: 'PATIENT_SPECIMEN' }], createdByUserId: 'u1', createdByUserName: 'Tech',
+    } as never);
+    expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('wellSpecimenMissing');
+    const all = await mockMolecularBatchService.getAll();
+    expect(all.ok && all.data).toHaveLength(1);
+  });
+});
+
+
+describe('Batch 406: the plate goes in a deck slot that takes an extraction plate', () => {
+  const base = {
+    assayCode: 'RESP_PCR', assayName: 'Respiratory PCR Panel', targetInstrumentId: 'PANTHER_01', plateLayout: '96_well' as const,
+    reagentLots: [{ componentType: 'MASTER_MIX' as const, lotNumber: 'MM-NEW', expirationDate: '2027-01-01T00:00:00.000Z', qcStatus: 'signed_off' as const }],
+    wells: [], createdByUserId: 'u1', createdByUserName: 'Test User',
+  };
+
+  it('refuses a sample-rack slot or a slot the deck lacks, and accepts the plate slot (stored in upper case)', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    for (const deckSlot of ['SLOT_A1', 'SLOT_Z9']) {
+      expect(await mockMolecularBatchService.create({ ...base, deckSlot })).toEqual({ ok: false, error: 'deckSlotInvalid' });
+    }
+    const res = await mockMolecularBatchService.create({ ...base, deckSlot: 'slot_a4' });
+    expect(res.ok && res.data.deckSlot).toBe('SLOT_A4');
+  });
+
+  it('superseding a run whose slot the deck no longer takes a plate in leaves the slot for the tech', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const created = await mockMolecularBatchService.create({ ...base, deckSlot: 'SLOT_A4' });
+    if (!created.ok) throw new Error('create failed');
+    await mockMolecularBatchService.updateByUuid(created.data.batchUuid, { deckSlot: 'SLOT_A1' });
+    const res = await mockMolecularBatchService.cloneAndSupersede(created.data.id, 'Instrument fault', 'u1', 'Test User');
+    expect(res.ok).toBe(true);
+    expect(res.ok && res.data.deckSlot).toBeUndefined();
   });
 });

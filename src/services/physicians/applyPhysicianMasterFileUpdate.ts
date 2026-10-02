@@ -25,7 +25,9 @@
 
 import type { ServiceResult } from '../types';
 import type { Physician } from './IPhysicianService';
-import { mockPhysicianService, generateAutoPhysicianCode } from './mockPhysicianService';
+// Batch 428: an interface feed (the master file from the LIS), not a person's
+// Configuration change, so it uses the physician list unchecked.
+import { physicianServiceUnchecked as mockPhysicianService, generateAutoPhysicianCode } from './mockPhysicianService';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import type { PhysicianMasterFileRecord } from './PhysicianMasterFileRecord';
 

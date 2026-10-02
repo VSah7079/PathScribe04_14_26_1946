@@ -21,7 +21,8 @@ import React, { useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
 import { narrativeTemplateConfig } from '../../Config/NarrativeTemplates/narrativeTemplateConfig';
-import { getOrgOrchestratorDefault, setOrgOrchestratorDefault } from './orchestratorModeConfig';
+import { getOrgOrchestratorDefault } from './orchestratorModeConfig';
+import { saveOrgOrchestratorDefault } from '@/services/aiConfig/saveAiSettings';
 
 // ── Step card ─────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, isAdmin }) => {
   return (
     <div className="ps-orchcfg-step-card">
       {/* Header row */}
-      <button
+      <button data-config-nav
         onClick={() => setExpanded(e => !e)}
         className="ps-orchcfg-step-header"
       >
@@ -125,10 +126,10 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
   // why, and for the per-lab override this org value now falls back from.
   const [orchestratorOn, setOrchestratorOn] = useState<boolean>(getOrgOrchestratorDefault);
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
     const next = !orchestratorOn;
-    setOrchestratorOn(next);
-    setOrgOrchestratorDefault(next);
+    // Batch 428: the service checks config:ai-provider:manage; a refusal changes nothing.
+    if (await saveOrgOrchestratorDefault(next)) setOrchestratorOn(next);
   };
 
   const enabledCount = cfg.sections.filter(s => s.enabled).length;
@@ -137,7 +138,7 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
     <div className="ps-orchcfg-section">
 
       {/* Section header — collapsible */}
-      <button
+      <button data-config-nav
         onClick={() => setOpen(o => !o)}
         className="ps-orchcfg-header-btn"
       >

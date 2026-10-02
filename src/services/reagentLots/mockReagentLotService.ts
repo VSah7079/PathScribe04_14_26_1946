@@ -2,6 +2,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReagentLot, IReagentLotService } from './IReagentLotService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'reagent_lots';
 
@@ -47,7 +48,7 @@ const SEED_REAGENT_LOTS: ReagentLot[] = [
 const load    = (): ReagentLot[] => storageGet<ReagentLot[]>(STORAGE_KEY, SEED_REAGENT_LOTS);
 const persist = (data: ReagentLot[]) => storageSet(STORAGE_KEY, data);
 
-export const mockReagentLotService: IReagentLotService = {
+const reagentLotServiceUnchecked: IReagentLotService = {
   async getAll(): Promise<ServiceResult<ReagentLot[]>> {
     return { ok: true, data: load() };
   },
@@ -90,10 +91,15 @@ export const mockReagentLotService: IReagentLotService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<ReagentLot>> {
-    return mockReagentLotService.update(id, { status: 'Inactive' });
+    return reagentLotServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<ReagentLot>> {
-    return mockReagentLotService.update(id, { status: 'Active' });
+    return reagentLotServiceUnchecked.update(id, { status: 'Active' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReagentLotService: IReagentLotService = guardConfigWrites(reagentLotServiceUnchecked, [
+  ['config:reagent-lots:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

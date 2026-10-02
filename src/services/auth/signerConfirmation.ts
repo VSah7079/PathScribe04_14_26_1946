@@ -40,6 +40,8 @@ import { SSO_PROVIDER_AUDIT_NAMES } from './sso/resolveSsoProfile';
 export const SIGNING_ACTIONS = [
   'case-sign-out', 'countersign', 'synoptic-finalize', 'report-finalize',
   'autopsy-pad', 'autopsy-fad', 'cytology-sign-out',
+  // Batch 423: approving a registry's switch to its live register (services/registryGoLive/).
+  'registry-go-live',
 ] as const;
 export type SigningAction = typeof SIGNING_ACTIONS[number];
 
@@ -52,6 +54,7 @@ export const SIGNING_ACTION_AUDIT_TEXT: Record<SigningAction, string> = {
   'autopsy-pad': 'autopsy PAD signature',
   'autopsy-fad': 'autopsy FAD signature',
   'cytology-sign-out': 'cytology sign-out',
+  'registry-go-live': 'registry live register approval',
 };
 
 export type SignerMethod = 'password' | 'sso' | 'unavailable';

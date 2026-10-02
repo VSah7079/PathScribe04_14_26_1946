@@ -29,6 +29,7 @@ import { fetchEngraverDevices } from '@/services/engravers/fetchEngraverDevices'
 import type { EngraverDevice } from '@/services/engravers/fetchEngraverDevices';
 import type { EngraverStatus, SupplyWarning, SupplyWarningCode } from '@/types/events/EngraverStatusEventPayload';
 import { cassetteColorService } from '@/services';
+import { formatDateTime } from '@/utils/formatDate';
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -58,20 +59,16 @@ const SUPPLY_WARNING_LABEL_KEY: Record<SupplyWarningCode, string> = {
 // pattern established for buildSummary()/resolveSynopticFieldLabel.ts
 // elsewhere in this sweep, since it's called from a .map() outside any
 // component's own render scope.
-function formatSupplyWarning(t: (key: string) => string, warning: SupplyWarning, colorNames: Record<string, string>): string {
+// Batch 407: the colour and warning go through a template, so each language
+// orders them its own way.
+function formatSupplyWarning(t: (key: string, opts?: Record<string, unknown>) => string, warning: SupplyWarning, colorNames: Record<string, string>): string {
   const stateLabel = t(SUPPLY_WARNING_LABEL_KEY[warning.code]);
   if (!warning.colorKey) return stateLabel;
-  const colorName = colorNames[warning.colorKey] ?? warning.colorKey;
-  return `${colorName} ${stateLabel}`;
-}
-
-function formatTimestamp(iso: string): string {
-  try { return new Date(iso).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit' }); }
-  catch { return iso; }
+  return t('engraverMonitor.supplyWarningForColor', { color: colorNames[warning.colorKey] ?? warning.colorKey, state: stateLabel });
 }
 
 const EngraverMonitorPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('engraverMonitor.pageTitle'), '/batch-management/engraver-monitor'); }, [pushCrumb, t]);
 
@@ -161,7 +158,7 @@ const EngraverMonitorPage: React.FC = () => {
                   )}
 
                   <div className="ps-engraver-device-footer">
-                    <span className="ps-engraver-device-reported">{t('engraverMonitor.reportedAt', { time: formatTimestamp(device.lastReportedAt) })}</span>
+                    <span className="ps-engraver-device-reported">{t('engraverMonitor.reportedAt', { time: formatDateTime(device.lastReportedAt, i18n.language) })}</span>
                     {device.diagnosticsUrl && (
                       <a href={device.diagnosticsUrl} target="_blank" rel="noopener noreferrer" className="ps-btn-secondary ps-engraver-diagnostics-link">
                         {t('engraverMonitor.launchDiagnostics')} ↗

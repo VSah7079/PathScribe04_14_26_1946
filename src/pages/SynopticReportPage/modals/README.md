@@ -125,6 +125,28 @@ The free-text boxes in `AmendmentModal`, `CaseSignOutModal` (countersign feedbac
 - **`components/Billing/CorrectAppliedCodeModal`:** Correct checks `correctedCodeCheck` (a code that differs from the original) and needs `billing:applied-code:correct` (`CapabilityButton`). Voice: "correct billing code". Off the mock-import baseline.
 - New tests: `DiscordanceReconciliationModal.test.tsx` (3), `PostSignoutBillingChangeModal.test.tsx` (2), `CorrectAppliedCodeModal.test.tsx` (3).
 
+## Batch 383 (PS-359): Field Requirements, group 3 (part 2)
+
+- **`FixativeTimeGateModal`:**
+  - A specimen is resolved by a time (documented or estimated) or by confirming that none is possible; `fixativeGateMissing` decides and the modal shows "Still required: …". `buildFixativeResolutions` builds what sign-out saves. Both are in `services/signoutGates/fixativeGate.ts`, no longer in the component.
+  - The "no time possible" path now has a reason field. The resolution already had a place for it, but the modal never offered one (the old code read a comment nothing could set). An organisation can require it.
+  - Voice: "continue fixation gate".
+- **`PreAnalyticDateGateModal`:**
+  - Only the dates a specimen is missing are asked for; each takes the date/time or the jurisdiction's administrative override, and an override needs its justification. `preAnalyticGateMissing` and `buildPreAnalyticResolutions` (`services/signoutGates/preAnalyticGate.ts`) decide. Voice: "continue date gate".
+- Both modals still export their specimen and resolution types, now re-exported from the services, so `useSignOutWorkflow` is unchanged.
+- **Autopsy forms** (`components/Autopsy/`) are mounted from this page; see that folder's README.
+- New tests: `FixativeTimeGateModal.test.tsx` (3), `PreAnalyticDateGateModal.test.tsx` (3).
+
+## Batch 397 (PS-359)
+
+- `AddOrdersModal.tsx`: Add Block needs the specimen and cassette label (Field Requirements, locked); shows "Still required: …", marks both labels, and "confirm block order" does what the button does. The appended sentence comes from `reportPageChecks.addOrdersBlockSentence`; its "Will append" preview is one translated template.
+- `MatrixBlockEditorModal.tsx` and `BlockStainEditorModal.tsx`: the piece count and piece description are marked required when the organisation's Grossing rules require them, with a note when missing (`components/Grossing/GrossingFieldNote`). They save as you type; Complete grossing checks them.
+- Still open: Add Orders' tab order (by case status) is decided in the component.
+
+## Batch 427
+
+`WorkupPartsModal`: Independent or Combined, with the parts to combine. It reports why a choice isn't allowed (a released workup, or a part already covered by this protocol). The rules are in `services/reports/workupParts.ts`.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

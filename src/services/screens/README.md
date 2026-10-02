@@ -37,3 +37,30 @@ Pete moved three things off the Home page:
 - **Batch Management** is inside the Pathology Workspace hub.
 
 `TILE_SCREENS` maps each Home tile to the screens that open it. A tile shows, and its route opens, when the user may open any of them.
+
+## Batch 421
+
+Screen `registryExceptions` (`screen:registry-exceptions:open`), in the Quality & Compliance hub beside Audit and Quality Assurance.
+
+## Batch 427: no way round the Configuration gate
+
+Pete: "If you don't have permission to access configuration, you should [not] be able to backdoor in and see individual config pages." The pages opened from Configuration had their own addresses with no gate, so typing one opened it. Each now carries `ScreenGate screen="configuration"`:
+- the template editor and template review (`/template-editor/…`, `/template-review/:templateId`);
+- the Part Builder and Template Assembly pages (`/admin/parts/…`, `/admin/templates/…`);
+- Migration Jobs, the Molecular Order Queue (Demo Reset) and the mock interface engine (a dev tool).
+
+Template Authors and Approvers already hold `screen:configuration:open`, so nobody who uses these loses them.
+
+`routeGating.guard.test.ts` reads App.tsx: every route must be gated or listed as open on purpose, with the reason (sign-in, Home, token links, the wall-screen dashboards, redirects, case pages with their own per-case check, and the EMR and slide-viewer stand-ins). A new ungated route fails the build.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+`configSectionAccess.ts` (new): which capabilities make each Configuration section editable (any one of them), and which controls stay usable in a view-only section. Tested in `configSectionAccess.test.ts`. `routeGating.guard.test.ts` covers the new `/batch-management/equipment-log` route (Batch Management gate).
+
+## Batch 430: personal settings per person; view-only fields
+
+`configSectionAccess.ts`: in a view-only section only search and filter fields take changes (marked `data-config-nav`, type search, or a class naming search or filter); every other field keeps its value, so a dropdown that saves as soon as it changes can't fire.
+
+## Batch 432
+
+`SCREEN_ALSO_OPENED_BY`: an action capability that also opens a screen. Holding `cytology:qc-review:bypass` opens the Cytology QC queue (and the Worklist tile) for the override. The route check evaluates it without auditing (opening a screen isn't the action); `screenGranted` is the pure rule.

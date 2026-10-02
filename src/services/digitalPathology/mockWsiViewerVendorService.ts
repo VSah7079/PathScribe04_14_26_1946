@@ -34,6 +34,7 @@
 import type { IWsiViewerVendorService, WsiViewerVendorEntry, NewWsiViewerVendorEntry } from './IWsiViewerVendorService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'wsiViewerVendorDictionary';
 
@@ -80,7 +81,7 @@ const err = (message: string): ServiceResult<never> => ({ ok: false, error: mess
 const delay = () => new Promise(res => setTimeout(res, 30));
 const sorted = (entries: WsiViewerVendorEntry[]) => [...entries].sort((a, b) => a.sortOrder - b.sortOrder);
 
-export const mockWsiViewerVendorService: IWsiViewerVendorService = {
+const wsiViewerVendorServiceUnchecked: IWsiViewerVendorService = {
   async getAll() {
     await delay();
     return ok(sorted(_cache));
@@ -117,11 +118,11 @@ export const mockWsiViewerVendorService: IWsiViewerVendorService = {
   },
 
   async deactivate(id: ID) {
-    return mockWsiViewerVendorService.update(id, { active: false });
+    return wsiViewerVendorServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockWsiViewerVendorService.update(id, { active: true });
+    return wsiViewerVendorServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -134,3 +135,8 @@ export const mockWsiViewerVendorService: IWsiViewerVendorService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockWsiViewerVendorService: IWsiViewerVendorService = guardConfigWrites(wsiViewerVendorServiceUnchecked, [
+  ['config:vendor-integrations:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

@@ -28,6 +28,9 @@ import type { AccessRequest } from '@/types/access/AccessRequest';
 import { QaScopeSwitcher } from './QaScopeSwitcher';
 import { exportQaReportRows, scopeLabel, QaScope, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import ReasonPromptModal from '@/components/Common/ReasonPromptModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { ACCESS_REQUEST_DECISION_CAPABILITY } from '@/services/access/accessRequestDecision';
 
 const hoursBetween = (a: string, b: string) => (new Date(b).getTime() - new Date(a).getTime()) / 3600000;
 
@@ -68,13 +71,25 @@ export const AccessRequestResponseTab: React.FC = () => {
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  // Batch 432: denying a request (the service checks the permission and messages the requester).
+  const [denyTarget, setDenyTarget] = useState<AccessRequest | null>(null);
+  const [denyError, setDenyError] = useState<string | null>(null);
 
-  useEffect(() => {
-    accessRequestService.getAll().then(res => {
-      if (res.ok) setRequests(res.data);
-      setLoading(false);
-    });
-  }, []);
+  const load = () => accessRequestService.getAll().then(res => {
+    if (res.ok) setRequests(res.data);
+    setLoading(false);
+  });
+  useEffect(() => { void load(); }, []);
+
+  const confirmDeny = async (reason: string) => {
+    const target = denyTarget;
+    setDenyTarget(null);
+    if (!target || !user) return;
+    const res = await accessRequestService.deny(target.id, user.id, user.name ?? user.id, reason);
+    setDenyError(res.ok ? null : t('accessRequestResponseTab.deny.failed'));
+    await load();
+  };
 
   const scoped = useMemo(
     () => requests.filter(r => accessRequestMatchesScope(r, scope)),
@@ -184,6 +199,16 @@ export const AccessRequestResponseTab: React.FC = () => {
       <div className="ps-defic-review-banner ps-mt-20 ps-mb-8">
         <span className="ps-defic-review-banner-label">{t('countersignTurnaroundTab.pendingBanner', { count: pending.length })}</span>
       </div>
+      {denyError && <div className="ps-qa-inline-error" role="alert">{denyError}</div>}
+      <ReasonPromptModal
+        show={!!denyTarget}
+        title={t('accessRequestResponseTab.deny.title')}
+        message={denyTarget ? t('accessRequestResponseTab.deny.message', { name: denyTarget.requestingUserName }) : ''}
+        reasonLabel={t('accessRequestResponseTab.deny.reasonLabel')}
+        confirmLabel={t('accessRequestResponseTab.deny.button')}
+        onConfirm={reason => void confirmDeny(reason)}
+        onCancel={() => setDenyTarget(null)}
+      />
       <div className="ps-conf-table-wrap">
         <table className="ps-conf-table">
           <thead><tr>
@@ -192,9 +217,10 @@ export const AccessRequestResponseTab: React.FC = () => {
             <th className="ps-conf-th">{t('qualityAssurance.common.case')}</th>
             <th className="ps-conf-th">{t('accessRequestResponseTab.headers.requestedAt')}</th>
             <th className="ps-conf-th">{t('countersignTurnaroundTab.headers.waiting')}</th>
+            <th className="ps-conf-th">{t('accessRequestResponseTab.headers.actions')}</th>
           </tr></thead>
           <tbody>
-            {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('accessRequestResponseTab.noPendingMessage')}</td></tr>}
+            {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{t('accessRequestResponseTab.noPendingMessage')}</td></tr>}
             {pending.map(r => (
               <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => navigate(`/case/${r.caseId}/synoptic`) : undefined}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
@@ -202,6 +228,13 @@ export const AccessRequestResponseTab: React.FC = () => {
                 <td className="ps-conf-td" data-phi="accession">{r.caseId ?? <span className="ps-conf-td--muted-italic">—</span>}</td>
                 <td className="ps-conf-td">{new Date(r.requestedAt).toLocaleString()}</td>
                 <td className="ps-conf-td">{hoursBetween(r.requestedAt, new Date().toISOString()).toFixed(1)}h</td>
+                {/* Batch 432: deny, with a reason. Granting happens where the
+                    access lives (the request then closes itself). */}
+                <td className="ps-conf-td" onClick={e => e.stopPropagation()}>
+                  <CapabilityButton capability={ACCESS_REQUEST_DECISION_CAPABILITY[r.type]} className="ps-conf-btn-secondary" onClick={() => setDenyTarget(r)}>
+                    {t('accessRequestResponseTab.deny.button')}
+                  </CapabilityButton>
+                </td>
               </tr>
             ))}
           </tbody>

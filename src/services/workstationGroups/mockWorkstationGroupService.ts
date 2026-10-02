@@ -3,6 +3,7 @@ import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { WorkstationGroup, IWorkstationGroupService } from './IWorkstationGroupService';
 import { FUNCTIONAL_AREAS_BY_DISCIPLINE } from './IWorkstationGroupService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'workstation_groups';
 
@@ -47,7 +48,7 @@ function validateFunctionalArea(group: Pick<WorkstationGroup, 'discipline' | 'fu
   return null;
 }
 
-export const mockWorkstationGroupService: IWorkstationGroupService = {
+const workstationGroupServiceUnchecked: IWorkstationGroupService = {
   async getAll(): Promise<ServiceResult<WorkstationGroup[]>> {
     return { ok: true, data: load() };
   },
@@ -85,10 +86,15 @@ export const mockWorkstationGroupService: IWorkstationGroupService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<WorkstationGroup>> {
-    return mockWorkstationGroupService.update(id, { status: 'Inactive' });
+    return workstationGroupServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<WorkstationGroup>> {
-    return mockWorkstationGroupService.update(id, { status: 'Active' });
+    return workstationGroupServiceUnchecked.update(id, { status: 'Active' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockWorkstationGroupService: IWorkstationGroupService = guardConfigWrites(workstationGroupServiceUnchecked, [
+  ['config:workstation-groups:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

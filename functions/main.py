@@ -43,6 +43,22 @@
 #     "renderScope": { ...buildRenderScope() output... },
 #     "synopticAnswers": [ {"fieldId","fieldLabel","displayValue"} ],
 #     "outputFormat": "pdf" | "text",  # optional, defaults to "pdf" — see below
+#     "language": str,  # Batch 392, optional: the report's language (the performing lab's)
+#     "labels": {"patient","mrn","dob","referring","clinician","reportTemplate","resolvedBy","confidential", ...},
+#     "workup": {"parts": [str], "protocol": str, "protocolVersion": str, "status": "FINAL"|"CORRECTED"|"ADDENDUM",
+#                "version": int, "signedBy": str, "signedAt": str, "documentId": str,
+#                "changes": [{"label","from","to"}]},
+#                       # Batch 426, optional: ONE synoptic workup as its own PDF (Pete: one PDF
+#                       # per synoptic workup). With it, the body is that workup's identity block,
+#                       # its synopticAnswers table and, for a correction, what changed; no
+#                       # bodyAssembly is needed (an Assist case has no report layout).
+#     "workups": [ {...the workup block above..., "synopticAnswers": [...]} ],
+#                       # Batch 427, optional: every workup of a case in ONE PDF (a site whose
+#                       # LIS takes one PDF per accession). Each is drawn as above, one after
+#                       # another, so the pages run on in one document.
+#                       # Batch 392, optional: the wording around the report in that language;
+#                       # any label missing is English (DEFAULT_LABELS). caseHeader.dob arrives
+#                       # already written in the report's locale.
 #   }
 #
 # Response:
@@ -60,7 +76,9 @@
 #   independently-reconstructed approximation of it.
 # ─────────────────────────────────────────────────────────────────────────────
 
+import contextvars
 import json
+import os
 import re
 from io import BytesIO
 
@@ -82,6 +100,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 
 # For cost control — caps concurrent instances so a traffic spike degrades
 # performance rather than runs up a surprise bill. Per-function override
@@ -157,11 +178,70 @@ def eval_condition(cond: dict | None, scope: dict) -> bool:
 
 # ── Styles ───────────────────────────────────────────────────────────────────
 
-_styles = getSampleStyleSheet()
-_styles.add(ParagraphStyle(name='RPLabel', fontSize=9, textColor=colors.HexColor('#475569'), alignment=TA_LEFT))
-_styles.add(ParagraphStyle(name='RPValue', fontSize=11, leading=15, alignment=TA_LEFT))
-_styles.add(ParagraphStyle(name='RPHeading', fontSize=12, fontName='Helvetica-Bold', spaceAfter=6, spaceBefore=10))
-_styles.add(ParagraphStyle(name='RPCaption', fontSize=8, textColor=colors.HexColor('#666666')))
+# Batch 393 (Pete: Korean reports in Pretendard). The report is drawn in
+# Helvetica, or, when it is in Korean or contains Hangul (a Korean patient name
+# in any lab), in Pretendard (fonts/, the npm package's own unmodified files,
+# SIL OFL 1.1: see fonts/Pretendard-LICENSE.txt). ReportLab embeds only the
+# glyphs used. The font pair for the report being built is held in a context
+# variable, so the helpers below need no extra argument; `_styles[...]` and
+# `_font()` read it.
+_FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
+LATIN_FONTS = ('Helvetica', 'Helvetica-Bold')
+PRETENDARD_FONTS = ('Pretendard', 'Pretendard-Bold')
+_HANGUL = re.compile('[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3]')
+_current_fonts = contextvars.ContextVar('report_fonts', default=LATIN_FONTS)
+
+
+def _register_pretendard() -> None:
+    if 'Pretendard' in pdfmetrics.getRegisteredFontNames():
+        return
+    pdfmetrics.registerFont(TTFont('Pretendard', os.path.join(_FONT_DIR, 'Pretendard-Regular.ttf')))
+    pdfmetrics.registerFont(TTFont('Pretendard-Bold', os.path.join(_FONT_DIR, 'Pretendard-Bold.ttf')))
+    # So <b> inside a paragraph picks the bold weight.
+    addMapping('Pretendard', 0, 0, 'Pretendard')
+    addMapping('Pretendard', 1, 0, 'Pretendard-Bold')
+    addMapping('Pretendard', 0, 1, 'Pretendard')
+    addMapping('Pretendard', 1, 1, 'Pretendard-Bold')
+
+
+def fonts_for(payload: dict) -> tuple:
+    """Pretendard for a Korean report or one containing Hangul; Helvetica otherwise."""
+    if payload.get('language') == 'ko' or _HANGUL.search(json.dumps(payload, ensure_ascii=False)):
+        _register_pretendard()
+        return PRETENDARD_FONTS
+    return LATIN_FONTS
+
+
+def _font(bold: bool = False) -> str:
+    return _current_fonts.get()[1 if bold else 0]
+
+
+def _build_styles(fonts: tuple):
+    regular, bold = fonts
+    sheet = getSampleStyleSheet()
+    for name in ('Normal', 'BodyText', 'Heading1', 'Heading2', 'Heading3', 'Title'):
+        if name in sheet:
+            sheet[name].fontName = bold if name.startswith(('Heading', 'Title')) else regular
+    sheet.add(ParagraphStyle(name='RPLabel', fontName=regular, fontSize=9, textColor=colors.HexColor('#475569'), alignment=TA_LEFT))
+    sheet.add(ParagraphStyle(name='RPValue', fontName=regular, fontSize=11, leading=15, alignment=TA_LEFT))
+    sheet.add(ParagraphStyle(name='RPHeading', fontSize=12, fontName=bold, spaceAfter=6, spaceBefore=10))
+    sheet.add(ParagraphStyle(name='RPCaption', fontName=regular, fontSize=8, textColor=colors.HexColor('#666666')))
+    return sheet
+
+
+class _Styles:
+    """The style sheet for the fonts of the report being built."""
+    def __init__(self):
+        self._sheets = {}
+
+    def __getitem__(self, name):
+        fonts = _current_fonts.get()
+        if fonts not in self._sheets:
+            self._sheets[fonts] = _build_styles(fonts)
+        return self._sheets[fonts][name]
+
+
+_styles = _Styles()
 
 
 def _apply_text_transform(text: str, label_config: dict | None) -> str:
@@ -184,7 +264,7 @@ def _label_style(label_config: dict | None) -> ParagraphStyle:
     kwargs = {}
     if label_config:
         if label_config.get('weight') == 'bold':
-            kwargs['fontName'] = 'Helvetica-Bold'
+            kwargs['fontName'] = _font(True)
         if label_config.get('fontSize'):
             kwargs['fontSize'] = label_config['fontSize']
     return ParagraphStyle('dyn-label', parent=_styles['RPLabel'], **kwargs)
@@ -208,6 +288,7 @@ def field_row(label: str, value: str, label_config: dict | None, default_positio
     # as the TS renderer's flex row.
     t = Table([[label_para, value_para]], colWidths=[38 * mm, None])
     t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), _font(False)),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
@@ -245,7 +326,7 @@ def render_ai_section(node: dict, sections_by_id: dict):
     section = sections_by_id.get(node['id'])
     label = node.get('printHeading') or node.get('label', '')
     if not section:
-        return [Paragraph(label, _styles['RPHeading']), Paragraph('Not yet generated', _styles['RPCaption'])]
+        return [Paragraph(label, _styles['RPHeading']), Paragraph(_label('notYetGenerated'), _styles['RPCaption'])]
 
     flows = [Paragraph(label, _styles['RPHeading'])]
     text = section.get('text') or ''
@@ -255,7 +336,7 @@ def render_ai_section(node: dict, sections_by_id: dict):
         # already supports directly.
         flows.append(Paragraph(text, _styles['RPValue']))
     else:
-        msg = '⚠ Required — not yet completed' if node.get('required') else 'No content'
+        msg = _label('requiredNotCompleted') if node.get('required') else _label('noContent')
         flows.append(Paragraph(msg, _styles['RPCaption']))
     return flows
 
@@ -273,10 +354,11 @@ def render_node(node: dict, scope: dict, sections_by_id: dict) -> list:
     if node_type == 'synoptic-block':
         answers = scope.get('__synopticAnswers__') or []
         if not answers:
-            return [Paragraph('No synoptic data recorded.', _styles['RPCaption'])]
+            return [Paragraph(_label('noSynopticData'), _styles['RPCaption'])]
         rows = [[a.get('fieldLabel', ''), a.get('displayValue', '')] for a in answers]
         t = Table(rows, colWidths=[70 * mm, None])
         t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), _font(False)),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LINEBELOW', (0, 0), (-1, -2), 0.25, colors.HexColor('#e2e8f0')),
@@ -295,7 +377,7 @@ def render_node(node: dict, scope: dict, sections_by_id: dict) -> list:
         variant_size = {'h1': 18, 'h2': 15, 'h3': 13, 'caption': 8}.get(node.get('variant'), 11)
         style = ParagraphStyle(
             'dyn-static', parent=_styles['Normal'], fontSize=variant_size,
-            fontName='Helvetica-Bold' if node.get('bold') else 'Helvetica',
+            fontName=_font(True) if node.get('bold') else _font(False),
         )
         text = f"<i>{node['text']}</i>" if node.get('italic') else node['text']
         return [Paragraph(text, style)]
@@ -339,6 +421,7 @@ def render_node(node: dict, scope: dict, sections_by_id: dict) -> list:
             return []
         t = Table(rows, colWidths=[None] * n)
         t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), _font(False)),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 4),
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
@@ -455,7 +538,7 @@ def render_ai_section_as_text(node: dict, sections_by_id: dict) -> list[str]:
     section = sections_by_id.get(node['id'])
     label = node.get('printHeading') or node.get('label', '')
     if not section:
-        return [label, 'Not yet generated']
+        return [label, _label('notYetGenerated')]
 
     lines = [label]
     text = section.get('text') or ''
@@ -466,7 +549,7 @@ def render_ai_section_as_text(node: dict, sections_by_id: dict) -> list[str]:
         # plain-text field.
         lines.append(strip_html_to_text(text))
     else:
-        lines.append('⚠ Required — not yet completed' if node.get('required') else 'No content')
+        lines.append(_label('requiredNotCompleted') if node.get('required') else _label('noContent'))
     return lines
 
 
@@ -480,7 +563,7 @@ def render_node_as_text(node: dict, scope: dict, sections_by_id: dict) -> list[s
     if node_type == 'synoptic-block':
         answers = scope.get('__synopticAnswers__') or []
         if not answers:
-            return ['No synoptic data recorded.']
+            return [_label('noSynopticData')]
         return [f"{a.get('fieldLabel', '')}: {a.get('displayValue', '')}" for a in answers]
 
     if node_type == 'expression-value':
@@ -567,7 +650,126 @@ def render_children_as_text(nodes: list, scope: dict, sections_by_id: dict) -> l
 
 # ── Document assembly ────────────────────────────────────────────────────────
 
+# Batch 392 (Pete: a report is written in the performing lab's language). The
+# frontend sends the wording around the report as `labels`, in the lab's
+# language (surgicalReportPdf.* in the app's locale files), and dates already
+# formatted in it. A request without labels gets the English wording used
+# before. Placeholders: {{name}}. Korean needs a Hangul font this renderer
+# doesn't register yet (open; the cytology PDF has Pretendard).
+DEFAULT_LABELS = {
+    'patient': 'Patient',
+    'mrn': 'MRN',
+    'dob': 'Date of Birth',
+    'referring': 'Referring',
+    'clinician': 'Clinician',
+    'reportTemplate': 'Report Template: {{name}}',
+    'resolvedBy': ' (resolved by {{name}})',
+    'confidential': 'CONFIDENTIAL — PATHOLOGY REPORT',
+    'notYetGenerated': 'Not yet generated',
+    'requiredNotCompleted': '⚠ Required — not yet completed',
+    'noContent': 'No content',
+    'noSynopticData': 'No synoptic data recorded.',
+    'workupParts': 'Part(s)',
+    'workupProtocol': 'Protocol',
+    'workupVersion': 'Version',
+    'workupStatus': 'Status',
+    'workupSigned': 'Signed',
+    'workupDocument': 'Document',
+    'workupChanges': 'Changed in this version',
+    'workupFinal': 'Final',
+    'workupCorrected': 'Corrected',
+    'workupAddendum': 'Addendum',
+}
+_current_labels = contextvars.ContextVar('report_labels', default=DEFAULT_LABELS)
+
+
+def _label(key: str) -> str:
+    return _current_labels.get()[key]
+
+
+def report_labels(payload: dict) -> dict:
+    given = payload.get('labels') or {}
+    return {k: (given.get(k) if isinstance(given.get(k), str) and given.get(k) else v) for k, v in DEFAULT_LABELS.items()}
+
+
+def fill_label(template: str, name: str) -> str:
+    return template.replace('{{name}}', name)
+
+
+def case_header_rows(header: dict, labels: dict) -> list:
+    return [
+        (labels['patient'], header.get('patient')),
+        (labels['mrn'], header.get('mrn')),
+        (labels['dob'], header.get('dob')),
+        (labels['referring'], header.get('referring')),
+        (labels['clinician'], header.get('clinician')),
+    ]
+
+
+def template_caption(payload: dict, labels: dict):
+    template_name = payload.get('templateName')
+    if not template_name:
+        return None
+    resolved_by = (payload.get('resolvedBy') or '').replace('-', ' ')
+    suffix = fill_label(labels['resolvedBy'], resolved_by) if resolved_by else ''
+    return fill_label(labels['reportTemplate'], template_name) + suffix
+
+
+_WORKUP_STATUS_LABEL = {'FINAL': 'workupFinal', 'CORRECTED': 'workupCorrected', 'ADDENDUM': 'workupAddendum'}
+
+
+def workup_rows(workup: dict, labels: dict) -> list:
+    """Batch 426: the identity rows of one synoptic workup's own PDF."""
+    status_key = _WORKUP_STATUS_LABEL.get(workup.get('status') or '')
+    protocol = ' '.join(x for x in [workup.get('protocol') or '', workup.get('protocolVersion') or ''] if x)
+    signed = ' '.join(x for x in [workup.get('signedBy') or '', workup.get('signedAt') or ''] if x)
+    rows = [
+        (labels['workupParts'], ', '.join(workup.get('parts') or [])),
+        (labels['workupProtocol'], protocol),
+        (labels['workupStatus'], labels[status_key] if status_key else ''),
+        (labels['workupVersion'], str(workup['version']) if workup.get('version') is not None else ''),
+        (labels['workupSigned'], signed),
+        (labels['workupDocument'], workup.get('documentId') or ''),
+    ]
+    return [(k, v) for k, v in rows if v]
+
+
+def workup_change_lines(workup: dict) -> list[str]:
+    return [f"{c.get('label', '')}: {c.get('from', '') or '—'} → {c.get('to', '') or '—'}" for c in (workup.get('changes') or [])]
+
+
+def _workup_flows(workup: dict, labels: dict, scope: dict, sections_by_id: dict) -> list:
+    """Batch 427: one workup (heading, identity rows, answers, changes) for a combined PDF."""
+    flows = [Paragraph(workup.get('protocol') or '', _styles['RPHeading'])]
+    rows = [[k, v] for k, v in workup_rows(workup, labels)]
+    if rows:
+        t = Table(rows, colWidths=[35 * mm, None])
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), _font(False)),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ]))
+        flows += [t, Spacer(1, 8)]
+    flows += render_node({'type': 'synoptic-block'}, scope, sections_by_id)
+    changes = workup_change_lines(workup)
+    if changes:
+        flows += [Spacer(1, 8), Paragraph(labels['workupChanges'], _styles['RPCaption'])]
+        flows += [Paragraph(line, _styles['RPCaption']) for line in changes]
+    return flows
+
+
 def build_report_pdf(payload: dict) -> bytes:
+    token = _current_fonts.set(fonts_for(payload))
+    labels_token = _current_labels.set(report_labels(payload))
+    try:
+        return _build_report_pdf(payload)
+    finally:
+        _current_labels.reset(labels_token)
+        _current_fonts.reset(token)
+
+
+def _build_report_pdf(payload: dict) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
@@ -590,34 +792,52 @@ def build_report_pdf(payload: dict) -> bytes:
     if header.get('accession'):
         flows.append(Paragraph(header['accession'], _styles['RPHeading']))
 
-    case_rows = [
-        [k, v] for k, v in [
-            ('Patient', header.get('patient')),
-            ('MRN', header.get('mrn')),
-            ('Date of Birth', header.get('dob')),
-            ('Referring', header.get('referring')),
-            ('Clinician', header.get('clinician')),
-        ] if v
-    ]
+    labels = report_labels(payload)
+    case_rows = [[k, v] for k, v in case_header_rows(header, labels) if v]
     if case_rows:
         t = Table(case_rows, colWidths=[35 * mm, None])
         t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), _font(False)),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('TOPPADDING', (0, 0), (-1, -1), 1),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
         ]))
         flows.append(t)
 
-    template_name = payload.get('templateName')
-    if template_name:
-        resolved_by = (payload.get('resolvedBy') or '').replace('-', ' ')
-        suffix = f' (resolved by {resolved_by})' if resolved_by else ''
+    caption = template_caption(payload, labels)
+    if caption:
         flows.append(Spacer(1, 4))
-        flows.append(Paragraph(f'Report Template: {template_name}{suffix}', _styles['RPCaption']))
+        flows.append(Paragraph(caption, _styles['RPCaption']))
 
     flows.append(Spacer(1, 12))
 
     scope, sections_by_id = resolve_scope_and_sections(payload)
+
+    workup = payload.get('workup')
+    for combined in payload.get('workups') or []:
+        # Batch 427: every workup of the case in one PDF.
+        flows += _workup_flows(combined, labels, {**scope, '__synopticAnswers__': combined.get('synopticAnswers') or []}, sections_by_id)
+        flows.append(Spacer(1, 14))
+    if workup:
+        # Batch 426: one synoptic workup's own PDF.
+        rows = [[k, v] for k, v in workup_rows(workup, labels)]
+        if rows:
+            t = Table(rows, colWidths=[35 * mm, None])
+            t.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), _font(False)),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ]))
+            flows.append(t)
+            flows.append(Spacer(1, 10))
+        flows += render_node({'type': 'synoptic-block'}, scope, sections_by_id)
+        changes = workup_change_lines(workup)
+        if changes:
+            flows.append(Spacer(1, 10))
+            flows.append(Paragraph(labels['workupChanges'], _styles['RPCaption']))
+            for line in changes:
+                flows.append(Paragraph(line, _styles['RPCaption']))
 
     body_assembly = sorted(payload.get('bodyAssembly') or [], key=lambda p: p.get('order', 0))
     for part in body_assembly:
@@ -626,7 +846,7 @@ def build_report_pdf(payload: dict) -> bytes:
         flows.append(Spacer(1, 10))
 
     flows.append(Spacer(1, 16))
-    flows.append(Paragraph('CONFIDENTIAL — PATHOLOGY REPORT', _styles['RPCaption']))
+    flows.append(Paragraph(labels['confidential'], _styles['RPCaption']))
 
     doc.build(flows)
     return buf.getvalue()
@@ -641,6 +861,14 @@ def build_report_text(payload: dict) -> str:
     comment for why this walks the real node tree a second time rather
     than reusing build_report_pdf()'s own already-built ReportLab
     flowables."""
+    labels_token = _current_labels.set(report_labels(payload))
+    try:
+        return _build_report_text(payload)
+    finally:
+        _current_labels.reset(labels_token)
+
+
+def _build_report_text(payload: dict) -> str:
     lines: list[str] = []
     inst = payload.get('institution') or {}
     header = payload.get('caseHeader') or {}
@@ -656,26 +884,44 @@ def build_report_text(payload: dict) -> str:
     if header.get('accession'):
         lines.append(header['accession'])
 
-    for label, value in [
-        ('Patient', header.get('patient')),
-        ('MRN', header.get('mrn')),
-        ('Date of Birth', header.get('dob')),
-        ('Referring', header.get('referring')),
-        ('Clinician', header.get('clinician')),
-    ]:
+    labels = report_labels(payload)
+    for label, value in case_header_rows(header, labels):
         if value:
             lines.append(f'{label}: {value}')
 
-    template_name = payload.get('templateName')
-    if template_name:
-        resolved_by = (payload.get('resolvedBy') or '').replace('-', ' ')
-        suffix = f' (resolved by {resolved_by})' if resolved_by else ''
+    caption = template_caption(payload, labels)
+    if caption:
         lines.append('')
-        lines.append(f'Report Template: {template_name}{suffix}')
+        lines.append(caption)
 
     lines.append('')
 
     scope, sections_by_id = resolve_scope_and_sections(payload)
+
+    workup = payload.get('workup')
+    for combined in payload.get('workups') or []:
+        # Batch 427: every workup of the case, as text.
+        lines.append(combined.get('protocol') or '')
+        for label, value in workup_rows(combined, labels):
+            lines.append(f'{label}: {value}')
+        lines.append('')
+        lines += render_node_as_text({'type': 'synoptic-block'}, {**scope, '__synopticAnswers__': combined.get('synopticAnswers') or []}, sections_by_id)
+        changes = workup_change_lines(combined)
+        if changes:
+            lines += ['', labels['workupChanges']] + changes
+        lines.append('')
+    if workup:
+        # Batch 426: one synoptic workup, as text.
+        for label, value in workup_rows(workup, labels):
+            lines.append(f'{label}: {value}')
+        lines.append('')
+        lines += render_node_as_text({'type': 'synoptic-block'}, scope, sections_by_id)
+        changes = workup_change_lines(workup)
+        if changes:
+            lines.append('')
+            lines.append(labels['workupChanges'])
+            lines += changes
+        lines.append('')
 
     body_assembly = sorted(payload.get('bodyAssembly') or [], key=lambda p: p.get('order', 0))
     for part in body_assembly:
@@ -684,7 +930,7 @@ def build_report_text(payload: dict) -> str:
         lines.append('')
 
     lines.append('')
-    lines.append('CONFIDENTIAL — PATHOLOGY REPORT')
+    lines.append(labels['confidential'])
 
     return '\n'.join(lines)
 

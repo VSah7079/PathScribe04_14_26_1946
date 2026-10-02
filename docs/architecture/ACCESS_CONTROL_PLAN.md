@@ -1,6 +1,16 @@
 # ACCESS_CONTROL_PLAN.md — ForMedrix-employee-only settings
 
-**Status: PLANNED, not built.** No customers yet — this doesn't block the
+**Status (updated Sep 30, 2026, Batch 406):** the browser side is built.
+Superadmin is ForMedrixAI support only (Batch 371; see
+`AUTHORIZATION_API.md`). Governing Bodies changes need
+`platform:governing-bodies:manage`; the Terminology screen's platform settings
+show only to a Superadmin session (`useIsSuperAdmin`), not yet through a
+capability of their own. The `isSuperAdmin={true}` hard-coding described below
+is gone. What is
+still planned is the server side: a ForMedrix identity tenant issuing
+Superadmin, described below.
+
+**Original status: PLANNED, not built.** No customers yet — this doesn't block the
 copyright deposit (that's about originality/ownership of the code, not
 runtime access control) and doesn't need to be built until a real
 deployment approaches.

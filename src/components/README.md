@@ -351,6 +351,105 @@ Components across `AppShell/`, `Audit/`, `Config/System/`, `FacilityDictionary/`
 
 **`Support/`** (new): `SupportReferenceChip` and `SupportReferenceLookup`. `EnhancementRequest/` no longer sends identifiers, and `Search/` accepts support references.
 
+## Batch 391
+
+`FacilityDictionary/`: Report language for performing labs. `Editor/`: Korean text drawn in Pretendard.
+
+## Batch 396
+
+New: `CaseUnavailable/` (the one "no access" screen for a case) and `CytologyQc/` (the QC review bar on the screening page). `QualityAssurance/` gained the surgical QA review bar for the report page. `AppShell/`: message links only for cases the reader can open; no stand-in user id for the inbox.
+
+## Batch 397
+
+New `Grossing/` (the required mark and the "needed before grossing can be completed" note).
+
+## Batch 399
+
+New `Intraop/` (the structured verbal report form). `Config/System/IntraopCriticalResultsSection.tsx`: the critical intraoperative results dictionary.
+
+## Batch 400
+
+`Intraop/VerbalReportForm.tsx` can be dictated; AI fills in the fields for the pathologist to check.
+
+## Batch 406
+
+`Config/System/DeckLayoutEditor.tsx` edits an analyser's deck layout, for Rack Loading's deck-slot checks.
+
+## Batch 410
+
+`Common/CapabilityButton` can say why it's disabled (`disabledTitle`).
+
+## Batch 414
+
+`Config/Cytology/CytologyRegistrySettingsSection.tsx`: screening registry reporting on the new registry engine.
+
+## Batch 415
+
+`Config/Cytology/CytologyComplianceFeaturesSection.tsx`: country-specific cytology rules.
+
+## Batch 417
+
+`Common/NationalIdentifierFields.tsx` (new): the national identifier inputs on the Accession page. `Search/CaseSearchBar.tsx` searches national identifier values.
+
+## Batch 418
+
+`Common/RegistryConsentFields.tsx` (new): the registry opt-out checkboxes on the Accession page.
+
+## Batch 419
+
+`Config/Cytology/CytologyRegistrySettingsSection.tsx`: the registry's test / production choice.
+
+## Batch 421
+
+No component changes; the Registry Exceptions page is in `pages/RegistryExceptionsPage/`.
+
+## Batch 422
+
+`Config/System/CancerRegistrySettingsSection.tsx` rebuilt on the registry definitions and permission-checked saves.
+
+## Batch 423
+
+`Config/RegistryGoLive/RegistryGoLivePanel.tsx` is the registry go-live gate. It shows pre-checks, test evidence, the approval with re-entered credentials, the permanent statement and return to test.
+
+## Batch 424
+
+`Config/RegistryGoLive/RegistryGoLivePanel.tsx` has been reworked for validation and production instances: agreement, synthetic test suite, validation record export and import, local changes, go-live and stop live.
+
+## Batch 425
+
+- `Common/`: `PatientRegistryDetailsModal` and `RegistryOptOutBadge`.
+- `NavBar/`: the registry exceptions badge.
+- `QualityAssurance/`: the cytology transmission audit's new columns and download.
+- `Config/System/`: Template Review is capability-gated.
+
+## Batch 426
+
+`Config/Protocols/`: staging tags, units and the staging edition in the template editor.
+
+## Batch 427
+
+`FacilityDictionary/`: the performing lab's combined-PDF setting.
+
+## Batch 428: Configuration permissions
+
+`Config/`: every section checks its own capability in its service, and `Config/ConfigRefusalBanner.tsx` names a refused permission. Four unused Configuration files deleted. See `Config/README.md`.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+`Config/ConfigSectionGate.tsx` shows a Configuration section view only to someone without its capability. See `Config/README.md`.
+
+## Batch 430: personal settings per person; view-only fields
+
+`Voice/SpeechConfigTab.tsx`: your own voice macros; `Config/ConfigSectionGate.tsx`: view-only fields don't take changes.
+
+## Batch 431
+
+Configuration search covers every section; per-person language and worklist sort; access badges from request records; template review work and lab-wide settings behind services.
+
+## Batch 432
+
+New `Profile/` (My dictionary, My voice commands) and `Common/ReasonPromptModal.tsx`; Resolve, Retire, Escalate, Supervisor bypass, Deny, transit status and risk-weight screens for actions nothing called before.
+
 ---
 *Tracking: `PRIORITY_FIXES.md` was retired 2026-08-19 — its open items are
 Jira PS-57 to PS-71, so `PRIORITY_FIXES.md #N` citations throughout these
@@ -435,3 +534,22 @@ Several component folders now take their services from `@/services` instead of m
 
 - **`Billing/`** (new README): the post-sign-out billing reason and applied-code correction modals now take their required fields from Field Requirements; correcting a code needs `billing:applied-code:correct`. Both came off the mock-import baseline.
 - **`Config/System/FieldRequirementsSection`:** two more groups on the Case report page (PS-359).
+
+## Batch 383
+
+- **`Autopsy/`:** the authorization completion and body release forms take their required fields from Field Requirements, show "Still required: …", and can be submitted by voice. Releasing a body needs `autopsy:body:release` (`CapabilityButton`). Both forms had no test before; they have one now.
+- **`Config/System/FieldRequirementsSection`:** two more groups on the Case report page (Autopsy forms, Sign-out gates).
+
+## Batch 384
+
+- **`AppShell/`:** the New message drawer, reply box and Secure email window take their required fields from Field Requirements (a new Messaging page) and show "Still required: …". Secure email can be sent by voice. `AppShell.tsx` came off the mock-import baseline.
+- **`Config/System/FieldRequirementsSection`:** a Messaging page with three groups.
+
+## Batch 385
+
+- **`AppShell/`:** recipients and the secure-email send come from `messageService`; Send, Reply and Secure email need messaging permissions, and a failed send keeps the draft.
+
+## Batch 403
+
+- **`Config/System/StainDictionarySection`:** reference labs linked to molecular tests.
+- **`Config/System/FieldRequirementsSection`:** an Add-On Orders page (from the catalog).

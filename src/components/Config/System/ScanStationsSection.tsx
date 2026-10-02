@@ -286,9 +286,9 @@ const ScanStationsSection: React.FC<{ selectedFacilityId?: string }> = ({ select
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder="Search by name or barcode code..." value={search} onChange={e => setSearch(e.target.value)}
+        <input data-config-nav type="text" placeholder="Search by name or barcode code..." value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">All</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>

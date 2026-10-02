@@ -6,6 +6,7 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 /** Real, sensible fallback if no org config has been saved yet — matches
  *  direct specification's own stated default (10 minutes, 1-30 range),
@@ -48,7 +49,7 @@ function readOrgConfig(): ReportReleaseOrgConfig {
   return FALLBACK_ORG_CONFIG;
 }
 
-export const mockReportReleaseService: IReportReleaseService = {
+const reportReleaseServiceUnchecked: IReportReleaseService = {
   async getOrgDefault() {
     return ok(readOrgConfig());
   },
@@ -250,3 +251,8 @@ export const mockReportReleaseService: IReportReleaseService = {
     }
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReportReleaseService: IReportReleaseService = guardConfigWrites(reportReleaseServiceUnchecked, [
+  ['config:release-buffer:manage', ['setOrgDefault']],
+]);

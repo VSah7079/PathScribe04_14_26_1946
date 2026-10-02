@@ -76,6 +76,10 @@ Two further, real, notification-only siblings exist alongside the mutating funct
 
 `notifyBlockExceptionApplied.ts`, `notifyMaterialLocationApplied.ts` and `processCassetteDispatchOutcomeEvent.ts`: their toasts name the case, so they go through `phi/phiToast.ts → phiToastContent()` and are redacted in screenshots. Their English was hard-coded; it is now translated (`hl7Notifications.*`, all five languages). Tests read the text with `phiToastText()`; `processCassetteDispatchOutcomeEvent.test.ts` is new.
 
+## Batch 417: national identifiers from PID-3
+
+`adtParser.ts` keeps CX.5 (`identifierTypeCode`) on each PID-3 repetition. `processAdtMessage.ts` classifies every repetition with `services/patientIdentifiers/classifyHl7PatientIdentifier.ts` (an `NHS` authority, an `NH` type code in a UK lab…) and records the national ones in the MPI with their check digit run, source `hl7`. A bad check digit is kept as `failedChecksum`, never silently verified. The MRN crosswalk rows are unchanged.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

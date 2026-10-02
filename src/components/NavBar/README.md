@@ -30,6 +30,14 @@
 
 `LanguageSwitcher.tsx` offers Belgian French: the menu reads "Français (France)" and "Français (Belgique)", and the button shows FR-BE.
 
+## Batch 425
+
+A registry exceptions button with the live count (`useRegistryExceptionCount`). It sits next to Messages, appears only for people who can open the worklist and only when something needs attention, and opens Registry Exceptions.
+
+## Batch 431
+
+The language choice is saved to the signed-in person (`hooks/usePersonalLanguage.ts`).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 

@@ -116,8 +116,8 @@ const HardwarePrintPanel: React.FC<HardwarePrintPanelProps> = ({
                 <div>{previewStain.stainName}</div>
               </div>
             </div>
-            <div className="ps-microtomy-comment-meta">{labelLayout.faceWidthMm}mm × {labelLayout.faceHeightMm}mm</div>
-            {fitWarnings.map((w, i) => <div key={i} className="ps-microtomy-label-preview-warning">⚠️ {w.message}</div>)}
+            <div className="ps-microtomy-comment-meta">{t('microtomyWorkstation.hardware.labelSize', { width: labelLayout.faceWidthMm, height: labelLayout.faceHeightMm })}</div>
+            {fitWarnings.map(w => <div key={w.kind} className="ps-microtomy-label-preview-warning">⚠️ {t(`microtomyWorkstation.hardware.fit.${w.kind}`, { required: w.requiredMm, face: w.faceMm })}</div>)}
           </>
         ) : (
           <div className="ps-microtomy-context-field">{t('microtomyWorkstation.hardware.noPreview')}</div>

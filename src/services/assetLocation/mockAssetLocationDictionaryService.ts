@@ -3,6 +3,7 @@ import type { IAssetLocationDictionaryService } from './IAssetLocationDictionary
 import type { AssetLocationEntry } from '@/types/assetLocation/AssetLocationEntry';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
 // Real, per direct guidance's own confirmed dictionary — seeded with
@@ -95,7 +96,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockAssetLocationDictionaryService: IAssetLocationDictionaryService = {
+const assetLocationDictionaryServiceUnchecked: IAssetLocationDictionaryService = {
   async getAll() {
     await delay();
     return ok([...ASSET_LOCATIONS]);
@@ -125,11 +126,11 @@ export const mockAssetLocationDictionaryService: IAssetLocationDictionaryService
   },
 
   async verify(id) {
-    return mockAssetLocationDictionaryService.update(id, { status: 'Active' });
+    return assetLocationDictionaryServiceUnchecked.update(id, { status: 'Active' });
   },
 
   async deactivate(id) {
-    return mockAssetLocationDictionaryService.update(id, { status: 'Inactive' });
+    return assetLocationDictionaryServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async findOrCreateByName(name, note) {
@@ -161,3 +162,8 @@ export const mockAssetLocationDictionaryService: IAssetLocationDictionaryService
     return ok({ ...newL });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockAssetLocationDictionaryService: IAssetLocationDictionaryService = guardConfigWrites(assetLocationDictionaryServiceUnchecked, [
+  ['config:asset-locations:manage', ['add', 'update', 'verify', 'deactivate']],
+]);

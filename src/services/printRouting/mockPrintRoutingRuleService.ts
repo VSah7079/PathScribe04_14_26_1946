@@ -17,6 +17,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IPrintRoutingRuleService } from './IPrintRoutingRuleService';
 import type { PrintRoutingRule } from '@/types/printRouting/PrintRoutingRule';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const KEY = 'print_routing_rules_v1';
 
@@ -106,7 +107,7 @@ const persist = (data: PrintRoutingRule[]) => storageSet(KEY, data);
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockPrintRoutingRuleService: IPrintRoutingRuleService = {
+const printRoutingRuleServiceUnchecked: IPrintRoutingRuleService = {
   async getAll() {
     return ok(load());
   },
@@ -138,3 +139,8 @@ export const mockPrintRoutingRuleService: IPrintRoutingRuleService = {
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockPrintRoutingRuleService: IPrintRoutingRuleService = guardConfigWrites(printRoutingRuleServiceUnchecked, [
+  ['config:print-routing:manage', ['create', 'update', 'remove']],
+]);

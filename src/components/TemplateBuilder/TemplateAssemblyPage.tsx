@@ -30,6 +30,7 @@ import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyle
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
 import { labelStyleVars } from '@/utils/labelStyleVars';
+import ConfigRefusalBanner from '../Config/ConfigRefusalBanner';
 
 const svc  = reportTemplateService;
 const pSvc = reportPartService;
@@ -138,7 +139,7 @@ const PartPicker: React.FC<{
           <div className="ps-tmpla-picker-subtitle">
             {t('templateAssemblyPage.addingToSlotLabel')} <RoleBadge role={role} />
           </div>
-          <input
+          <input data-config-nav
             autoFocus
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -245,7 +246,7 @@ const PartsPanel: React.FC<{
 
       {/* Search */}
       <div className="ps-tmpla-panel-search-wrap">
-        <input
+        <input data-config-nav
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t('templateAssemblyPage.searchPartsPlaceholder')}
           className="ps-tmpla-panel-search"
@@ -671,6 +672,8 @@ export const TemplateAssemblyPage: React.FC = () => {
 
   return (
     <div className="ps-tmpla-root">
+      {/* Batch 428: a refused change names the missing permission. */}
+      <ConfigRefusalBanner />
 
       {/* ── Topbar ── */}
       <header className="ps-tmpla-topbar">

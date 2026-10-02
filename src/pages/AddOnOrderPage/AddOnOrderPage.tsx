@@ -16,6 +16,13 @@
 // Real, per direct visual-consistency guidance carried through the
 // whole series: same header/back-button pattern, same dark palette —
 // see pathscribe.css's own ps-addon-* block.
+//
+// Batch 403 (PS-287 / PS-359): the page sets its own voice context
+// (ADD_ON_ORDER: "add to order", "submit order"). A molecular/send-out line
+// starts with its test's default reference lab (Stain Dictionary). Every
+// action's outcome is shown in the user's language: what is still required,
+// a refused block and why, or a missing permission. The case status is
+// translated.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState } from 'react';
@@ -23,12 +30,17 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { formatFullDisplayName } from '@/utils/personName';
+import { actionRegistryService } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { CASE_STATUS_LABEL_KEY } from '@/utils/search/caseSearchLabels';
+import { formatList } from '@/utils/formatList';
+import type { AddOnActionResult } from '@/services/addOnOrders/addOnOrderActions';
 import { useAddOnOrderStation } from './hooks/useAddOnOrderStation';
 import BlockContextPanel from './components/BlockContextPanel';
 import OrderBuilderPanel from './components/OrderBuilderPanel';
 import OrderSummaryRoutingPanel, { type CartLine } from './components/OrderSummaryRoutingPanel';
 import OrderTrackingDashboard from './components/OrderTrackingDashboard';
-import type { AddOnOrderLineInput } from '@/utils/addOnOrderOperations';
+import { withDefaultSendOutLab, type AddOnOrderLineInput } from '@/utils/addOnOrderOperations';
 import { type AddOnOrderPriority, type SlideMediaType } from '@/types/case/AddOnOrder';
 import '../../pathscribe.css';
 
@@ -36,7 +48,7 @@ let cartIdCounter = 0;
 function nextCartId(): string { cartIdCounter += 1; return `cart-${cartIdCounter}`; }
 
 const AddOnOrderPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('addOnOrder.pageTitle'), '/add-on-orders'); }, [pushCrumb, t]);
@@ -48,11 +60,29 @@ const AddOnOrderPage: React.FC = () => {
   const [priority, setPriority] = useState<AddOnOrderPriority>('Routine Sign-Out');
   const [slideMediaType, setSlideMediaType] = useState<SlideMediaType>('Standard Charged');
   const [cuttingInstructions, setCuttingInstructions] = useState('');
-  const [sendOutFacilityId, setSendOutFacilityId] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
 
   useEffect(() => { w.loadDirectories(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Batch 403: this page has its own voice/keyboard context ("add to order", "submit order").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.ADD_ON_ORDER);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
+
+  /** The text for a refused action. */
+  const describeFailure = (result: AddOnActionResult): string => {
+    if (result.notPermitted) return t('addOnOrder.errors.notPermitted');
+    if (result.missing?.length) {
+      return t('fieldRequirements.stillRequired', { fields: formatList(result.missing.map(id => t(`fieldRequirements.fields.addOnOrder.${id}`)), i18n.language) });
+    }
+    if (result.refused?.length) {
+      return result.refused.map(r => t(`addOnOrder.errors.${r.code}`, { block: r.block })).join(' ');
+    }
+    return t('addOnOrder.errors.failed');
+  };
+  const report = (result: AddOnActionResult) => { if (!result.ok) setSubmitError(describeFailure(result)); };
 
   // Batch 375 (Pete): Add-On Orders is an action on a case now, not a Home
   // tile. The report page's "Add-on order" opens this page with ?case=<id>,
@@ -76,7 +106,11 @@ const AddOnOrderPage: React.FC = () => {
   };
 
   const handleAddLines = (lines: AddOnOrderLineInput[]) => {
-    setCart(prev => [...prev, ...lines.map(l => ({ ...l, cartId: nextCartId() }))]);
+    setCart(prev => [...prev, ...lines.map(l => ({ ...withDefaultSendOutLab(l, w.referenceLabs), cartId: nextCartId() }))]);
+  };
+
+  const handleLineLabChange = (cartId: string, labId: string, labName: string) => {
+    setCart(prev => prev.map(l => l.cartId !== cartId ? l : { ...l, sendOutReferenceLabFacilityId: labId || undefined, sendOutReferenceLabName: labId ? labName : undefined }));
   };
 
   const handleRemoveLine = (cartId: string) => {
@@ -94,10 +128,7 @@ const AddOnOrderPage: React.FC = () => {
       setCuttingInstructions('');
       setSubmitNotice(t('addOnOrder.summary.submitted') as string);
     } else {
-      // Real, established project gotcha (strictNullChecks: false — see
-      // services/reports/README.md): explicit cast, same fix used
-      // throughout this session's own prior workstations.
-      setSubmitError((result as { ok: false; error: string }).error);
+      setSubmitError(describeFailure(result));
     }
   };
 
@@ -119,7 +150,7 @@ const AddOnOrderPage: React.FC = () => {
           />
           <button type="button" className="ps-btn-primary" onClick={handleOpen}>{t('addOnOrder.search.open')}</button>
         </div>
-        {w.searchError && <div className="ps-addon-scan-error">{w.searchError}</div>}
+        {w.searchError && <div className="ps-addon-scan-error">{t(w.searchError.key, w.searchError.values)}</div>}
       </div>
     );
   }
@@ -143,8 +174,8 @@ const AddOnOrderPage: React.FC = () => {
       <div className="ps-addon-context-bar">
         <span><strong data-phi="accession">{fullAccession}</strong></span>
         <span data-phi="name">{patientName}</span>
-        <span>{t('addOnOrder.context.caseStatus')}: <strong>{caseData.status}</strong></span>
-        {caseData.order?.assignedTo && <span>{t('addOnOrder.context.primaryPathologist')}: <strong>{caseData.order.assignedTo}</strong></span>}
+        <span>{t('addOnOrder.context.caseStatusLine', { status: CASE_STATUS_LABEL_KEY[caseData.status] ? t(CASE_STATUS_LABEL_KEY[caseData.status]) : caseData.status })}</span>
+        {caseData.order?.assignedTo && <span>{t('addOnOrder.context.primaryPathologistLine', { name: caseData.order.assignedTo })}</span>}
         {!w.performingLabFacilityId && <span className="ps-addon-warning-inline">{t('addOnOrder.context.noPerformingLab')}</span>}
       </div>
 
@@ -153,11 +184,11 @@ const AddOnOrderPage: React.FC = () => {
 
       <div className="ps-addon-layout">
         <BlockContextPanel specimens={caseData.specimens ?? []} selectedBlockIds={selectedBlockIds} onToggleBlock={handleToggleBlock} />
-        <OrderBuilderPanel stainTypes={w.stainTypes} onAddLines={handleAddLines} />
+        <OrderBuilderPanel stainTypes={w.stainTypes} onAddLines={handleAddLines} requirements={w.requirements} />
         <OrderSummaryRoutingPanel
           cart={cart}
           onRemoveLine={handleRemoveLine}
-          selectedBlockCount={selectedBlockIds.length}
+          selectedBlockIds={selectedBlockIds}
           priority={priority}
           onPriorityChange={setPriority}
           slideMediaType={slideMediaType}
@@ -165,20 +196,22 @@ const AddOnOrderPage: React.FC = () => {
           cuttingInstructions={cuttingInstructions}
           onCuttingInstructionsChange={setCuttingInstructions}
           referenceLabs={w.referenceLabs}
-          sendOutFacilityId={sendOutFacilityId}
-          onSendOutFacilityChange={(id) => setSendOutFacilityId(id)}
+          onLineLabChange={handleLineLabChange}
           stationsForLine={(line) => w.stationsForRouting(line.orderKind, line.stainType.category)}
           performingLabResolved={Boolean(w.performingLabFacilityId)}
           onSubmit={handleSubmit}
-          submitDisabled={cart.length === 0 || selectedBlockIds.length === 0}
+          requirements={w.requirements}
+          caseId={caseData.id}
         />
       </div>
 
       <OrderTrackingDashboard
         orders={w.trackedOrders()}
-        onMarkBlockRetrieved={w.handleMarkBlockRetrieved}
-        onFlagException={w.handleFlagException}
-        onResolveException={w.handleResolveException}
+        caseId={caseData.id}
+        requirements={w.requirements}
+        onMarkBlockRetrieved={id => { setSubmitError(null); void w.handleMarkBlockRetrieved(id).then(report); }}
+        onFlagException={(id, reason, note) => { setSubmitError(null); void w.handleFlagException(id, reason, note).then(report); }}
+        onResolveException={(id, action, note, changes) => { setSubmitError(null); void w.handleResolveException(id, action, note, changes).then(report); }}
       />
     </div>
   );

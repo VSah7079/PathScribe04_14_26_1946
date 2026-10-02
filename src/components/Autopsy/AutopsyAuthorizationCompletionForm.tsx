@@ -24,11 +24,21 @@
 // that file. Investigation before this fix found neither this form
 // nor the gate itself had ANY real UI caller anywhere in the app —
 // this is that real, first one.
+//
+// Batch 383 (PS-359): what the form still needs comes from the
+// organisation's Field Requirements (the written order and date, or the
+// consent time, are locked; the consent scope is an optional switch). The
+// form shows "Still required: …", marks the required labels, keeps Submit
+// off until they are filled, and can be submitted by voice ("record
+// authorization", AUTOPSY_AUTH_SUBMIT) with the same check.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
+import { actionRegistryService, reportFieldRequired } from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 import {
   resolveAutopsyAuthorizationCompletionValidation,
@@ -47,19 +57,27 @@ interface AutopsyAuthorizationCompletionFormProps {
 }
 
 const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletionFormProps> = ({ caseDetails, onSubmit }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('report');
   const [form, setForm] = useState<AutopsyAuthorizationCompletionFormState>(EMPTY_FORM);
-  const [showErrors, setShowErrors] = useState(false);
 
   const currentGate = resolveAutopsyGrossExaminationGate(caseDetails);
-  const validation = resolveAutopsyAuthorizationCompletionValidation(caseDetails.caseAuthority, form);
+  const validation = resolveAutopsyAuthorizationCompletionValidation(caseDetails.caseAuthority, form, requirements);
   const previewDetails = applyAutopsyAuthorizationCompletion(caseDetails, form);
   const previewGate = resolveAutopsyGrossExaminationGate(previewDetails);
 
+  const star = (id: string) => reportFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
   const handleSubmit = () => {
-    if (!validation.valid) { setShowErrors(true); return; }
+    if (!validation.valid) return;
     onSubmit(applyAutopsyAuthorizationCompletion(caseDetails, form));
   };
+
+  // Voice/keyboard "record authorization": the same Submit, with the same check.
+  const submitRef = useRef(handleSubmit);
+  submitRef.current = handleSubmit;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'AUTOPSY_AUTH_SUBMIT') submitRef.current();
+  }), []);
 
   return (
     <div className="ps-conf-card ps-autopsy-intake-card">
@@ -87,7 +105,7 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
           <div className="ps-conf-form-section-title">{t('autopsyAuthCompletion.writtenOrderSectionTitle')}</div>
           <div className="ps-conf-form-row">
             <div>
-              <label className="ps-label" htmlFor="autopsy-auth-order-reference">{t('autopsyAuthCompletion.orderReferenceLabel')}</label>
+              <label className="ps-label" htmlFor="autopsy-auth-order-reference">{t('autopsyAuthCompletion.orderReferenceLabel')} {star('autopsyOrderReference')}</label>
               <input
                 id="autopsy-auth-order-reference"
                 className="ps-conf-input"
@@ -97,7 +115,7 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
               />
             </div>
             <div>
-              <label className="ps-label" htmlFor="autopsy-auth-order-date">{t('autopsyAuthCompletion.orderDateLabel')}</label>
+              <label className="ps-label" htmlFor="autopsy-auth-order-date">{t('autopsyAuthCompletion.orderDateLabel')} {star('autopsyOrderDate')}</label>
               <input
                 id="autopsy-auth-order-date"
                 type="date"
@@ -123,7 +141,7 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
           <div className="ps-conf-form-section-title">{t('autopsyAuthCompletion.consentGrantSectionTitle')}</div>
           <div className="ps-conf-form-row">
             <div>
-              <label className="ps-label" htmlFor="autopsy-auth-consent-at">{t('autopsyAuthCompletion.consentGivenAtLabel')}</label>
+              <label className="ps-label" htmlFor="autopsy-auth-consent-at">{t('autopsyAuthCompletion.consentGivenAtLabel')} {star('autopsyConsentGivenAt')}</label>
               <input
                 id="autopsy-auth-consent-at"
                 type="datetime-local"
@@ -133,7 +151,7 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
               />
             </div>
             <div>
-              <label className="ps-label" htmlFor="autopsy-auth-consent-scope">{t('autopsyAuthCompletion.consentScopeLabel')}</label>
+              <label className="ps-label" htmlFor="autopsy-auth-consent-scope">{t('autopsyAuthCompletion.consentScopeLabel')} {star('autopsyConsentScope')}</label>
               <input
                 id="autopsy-auth-consent-scope"
                 className="ps-conf-input"
@@ -146,8 +164,10 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
         </>
       )}
 
-      {showErrors && !validation.valid && (
-        <div className="ps-conf-validation-errors">{t('autopsyAuthCompletion.validationError')}</div>
+      {!validation.valid && (
+        <p className="ps-field-still-required" role="status">
+          {t('fieldRequirements.stillRequired', { fields: formatList(validation.missingFieldIds.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
+        </p>
       )}
 
       <div className="ps-autopsy-intake-status">
@@ -160,7 +180,7 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
       </div>
 
       <div className="ps-conf-modal-footer ps-autopsy-intake-footer">
-        <button className="ps-conf-btn-primary" onClick={handleSubmit}>{t('autopsyAuthCompletion.submitBtn')}</button>
+        <button className="ps-conf-btn-primary" disabled={!validation.valid} onClick={handleSubmit}>{t('autopsyAuthCompletion.submitBtn')}</button>
       </div>
     </div>
   );

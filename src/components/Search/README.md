@@ -68,5 +68,9 @@
 
 `ReassignCasePatientPanel.tsx` takes `patientIndexService` from `@/services`, and is off the deployment baseline.
 
+## Batch 417
+
+The identifier search reads `patient.nationalIdentifiers[].value` as well as the MRN (and still the old `nhsNumber` / `chiNumber` / `ihiNumber` fields on records from before).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

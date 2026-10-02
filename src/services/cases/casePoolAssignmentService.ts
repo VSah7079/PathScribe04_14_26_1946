@@ -23,6 +23,7 @@ import { Subspecialty }                         from '../subspecialties/ISubspec
 import { mockFacilityService }                  from '../facilities/mockFacilityService';
 import { resolvePerformingLabFacilityId }       from '../facilities/IFacilityService';
 import { ensureHistoryFetchStarted }             from '../patientHistory/ensureHistoryFetchStarted';
+import { permitConfigChange } from '../authorization/guardConfigWrites';
 
 // ─── Routing config ───────────────────────────────────────────────────────────
 // In production this comes from LISSection config in the System Tab.
@@ -138,8 +139,13 @@ export function loadRoutingRules(): RoutingRule[] {
   return merged;
 }
 
-export function saveRoutingRules(rules: RoutingRule[]): void {
+const authz = async () => (await import('../authorization/defaultAuthorizationService')).authorizationService;
+
+/** Batch 428: needs config:case-routing:manage (audited). False when refused (nothing saved). */
+export async function saveRoutingRules(rules: RoutingRule[]): Promise<boolean> {
+  if (!(await permitConfigChange((await authz()).enforce('config:case-routing:manage'), 'config:case-routing:manage'))) return false;
   storageSet(ROUTING_RULES_KEY, rules);
+  return true;
 }
 
 const DEFAULT_ROUTING_CONFIG: RoutingConfig = {
@@ -154,8 +160,11 @@ export function getRoutingConfig(): RoutingConfig {
   return storageGet<RoutingConfig>(ROUTING_CONFIG_KEY, DEFAULT_ROUTING_CONFIG);
 }
 
-export function saveRoutingConfig(config: RoutingConfig): void {
+/** Batch 428: needs config:case-routing:manage (audited). False when refused (nothing saved). */
+export async function saveRoutingConfig(config: RoutingConfig): Promise<boolean> {
+  if (!(await permitConfigChange((await authz()).enforce('config:case-routing:manage'), 'config:case-routing:manage'))) return false;
   storageSet(ROUTING_CONFIG_KEY, config);
+  return true;
 }
 
 // ─── Routing result ───────────────────────────────────────────────────────────
@@ -423,7 +432,13 @@ export async function routeUnassignedCases(cases: Case[]): Promise<{
   skipped:  number;
   failed:   number;
   results:  { caseId: string; result: RoutingResult }[];
+  /** Batch 428: true when the person lacks case:routing:run; nothing was routed. */
+  refused?: boolean;
 }> {
+  // Batch 428: "Run now" reassigns every unassigned case at once (audited).
+  if (!(await permitConfigChange((await authz()).enforce('case:routing:run'), 'case:routing:run'))) {
+    return { routed: 0, skipped: 0, failed: 0, results: [], refused: true };
+  }
   const unassigned = cases.filter(c =>
     !c.order?.assignedTo &&
     c.status !== 'pool' &&

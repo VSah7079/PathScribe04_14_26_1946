@@ -10,10 +10,24 @@
 // Case.subspecialtyId, via useSlideDistributionStation's own
 // resolveDefaultRouting), applied here only as a starting point the
 // tech can still override, never a silent, un-overridable auto-assign.
+//
+// Batch 402 (PS-359): both confirms take what they need from the
+// organisation's Field Requirements (page "slideDistribution"). Required
+// labels are starred, "Still required: …" says what is missing (a checkout
+// always needs a pathologist, a pool or a location), and the button stays off
+// until it is complete. "confirm checkout" (SLIDE_DIST_CONFIRM_PHYSICAL) and
+// "confirm scanner" (SLIDE_DIST_CONFIRM_DIGITAL) by voice act exactly as the
+// buttons do, and only for the destination on screen. The search filter moved
+// to utils/slideDistributionOperations.ts; the doctor's title and the
+// example placeholders are translated.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { actionRegistryService, slideCheckoutMissing, scannerLoadMissing, slideDistributionFieldRequired } from '@/services';
+import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
+import { filterRoutingDirectory } from '@/utils/slideDistributionOperations';
+import { formatList } from '@/utils/formatList';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
 import type { SlideQueueItem } from '../hooks/useSlideDistributionStation';
@@ -34,12 +48,13 @@ export interface DestinationControlPanelProps {
    *  than staying trapped as this panel's own local state. */
   mode: DestinationMode;
   onModeChange: (mode: DestinationMode) => void;
+  requirements: readonly ResolvedFieldRequirement[];
 }
 
 const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
-  activeItem, pathologists, subspecialties, defaultRouting, onAssignPhysical, onAssignScanner, feedback, mode, onModeChange,
+  activeItem, pathologists, subspecialties, defaultRouting, onAssignPhysical, onAssignScanner, feedback, mode, onModeChange, requirements,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [search, setSearch] = useState('');
   const [pathologistId, setPathologistId] = useState<string | undefined>(undefined);
   const [subspecialtyId, setSubspecialtyId] = useState<string | undefined>(undefined);
@@ -70,26 +85,17 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItem?.queueId]);
 
-  const filteredPathologists = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return pathologists;
-    return pathologists.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
-  }, [pathologists, search]);
+  const { pathologists: filteredPathologists, subspecialties: filteredSubspecialties } = useMemo(
+    () => filterRoutingDirectory(pathologists, subspecialties, search), [pathologists, subspecialties, search],
+  );
 
-  const filteredSubspecialties = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return subspecialties;
-    return subspecialties.filter(s => s.name.toLowerCase().includes(q));
-  }, [subspecialties, search]);
-
-  if (!activeItem) {
-    return <div className="ps-slidedist-panel"><div className="ps-slidedist-empty">{t('slideDistribution.destination.selectFirst')}</div></div>;
-  }
-
-  const handlePathologistPick = (id: string) => { setPathologistId(prev => prev === id ? undefined : id); setSubspecialtyId(undefined); };
-  const handleSubspecialtyPick = (id: string) => { setSubspecialtyId(prev => prev === id ? undefined : id); setPathologistId(undefined); };
+  const physicalMissing = slideCheckoutMissing({ pathologistId, subspecialtyId, slideFolderId, trayNumber, courierBagId }, requirements);
+  const digitalMissing = scannerLoadMissing({ scannerInstrumentId, rackId, slotPosition }, requirements);
+  const missing = mode === 'physical' ? physicalMissing : digitalMissing;
+  const star = (fieldId: string) => slideDistributionFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>;
 
   const handleAssignPhysicalClick = () => {
+    if (!activeItem || physicalMissing.length > 0) return;
     const pathologist = pathologists.find(p => p.id === pathologistId);
     onAssignPhysical({
       pathologistId, pathologistName: pathologist ? `${pathologist.firstName} ${pathologist.lastName}` : undefined,
@@ -98,8 +104,24 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
   };
 
   const handleAssignScannerClick = () => {
+    if (!activeItem || digitalMissing.length > 0) return;
     onAssignScanner({ scannerInstrumentId: scannerInstrumentId || undefined, rackId: rackId || undefined, slotPosition: slotPosition || undefined });
   };
+
+  const voiceRef = useRef({ mode, physical: handleAssignPhysicalClick, digital: handleAssignScannerClick });
+  voiceRef.current = { mode, physical: handleAssignPhysicalClick, digital: handleAssignScannerClick };
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    const v = voiceRef.current;
+    if (actionId === 'SLIDE_DIST_CONFIRM_PHYSICAL' && v.mode === 'physical') v.physical();
+    if (actionId === 'SLIDE_DIST_CONFIRM_DIGITAL' && v.mode === 'digital') v.digital();
+  }), []);
+
+  if (!activeItem) {
+    return <div className="ps-slidedist-panel"><div className="ps-slidedist-empty">{t('slideDistribution.destination.selectFirst')}</div></div>;
+  }
+
+  const handlePathologistPick = (id: string) => { setPathologistId(prev => prev === id ? undefined : id); setSubspecialtyId(undefined); };
+  const handleSubspecialtyPick = (id: string) => { setSubspecialtyId(prev => prev === id ? undefined : id); setPathologistId(undefined); };
 
   return (
     <div>
@@ -116,6 +138,7 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
 
         {mode === 'physical' ? (
           <>
+            <p className="ps-slidedist-field-label">{t('slideDistribution.destination.recipient')}{star('readingPathologist')}</p>
             <input
               type="text" className="ps-slidedist-search-input" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={t('slideDistribution.destination.searchPlaceholder') ?? ''}
@@ -127,7 +150,7 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
                   className={`ps-slidedist-picker-chip${pathologistId === p.id ? ' ps-slidedist-picker-chip--active' : ''}`}
                   onClick={() => handlePathologistPick(p.id)}
                 >
-                  Dr. {p.lastName}
+                  {t('slideDistribution.destination.doctorName', { name: p.lastName })}
                 </button>
               ))}
               {filteredSubspecialties.map(s => (
@@ -141,30 +164,35 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
               ))}
             </div>
 
-            <label className="ps-slidedist-field-label">{t('slideDistribution.destination.slideFolderId')}</label>
-            <input type="text" className="ps-slidedist-field-input" value={slideFolderId} onChange={e => setSlideFolderId(e.target.value)} />
-            <label className="ps-slidedist-field-label">{t('slideDistribution.destination.trayNumber')}</label>
-            <input type="text" className="ps-slidedist-field-input" value={trayNumber} onChange={e => setTrayNumber(e.target.value)} />
-            <label className="ps-slidedist-field-label">{t('slideDistribution.destination.courierBagId')}</label>
-            <input type="text" className="ps-slidedist-field-input" value={courierBagId} onChange={e => setCourierBagId(e.target.value)} />
+            <label className="ps-slidedist-field-label" htmlFor="slidedist-folder">{t('slideDistribution.destination.slideFolderId')}{star('slideFolderId')}</label>
+            <input id="slidedist-folder" type="text" className="ps-slidedist-field-input" value={slideFolderId} onChange={e => setSlideFolderId(e.target.value)} />
+            <label className="ps-slidedist-field-label" htmlFor="slidedist-tray">{t('slideDistribution.destination.trayNumber')}{star('trayNumber')}</label>
+            <input id="slidedist-tray" type="text" className="ps-slidedist-field-input" value={trayNumber} onChange={e => setTrayNumber(e.target.value)} />
+            <label className="ps-slidedist-field-label" htmlFor="slidedist-courier">{t('slideDistribution.destination.courierBagId')}{star('courierBagId')}</label>
+            <input id="slidedist-courier" type="text" className="ps-slidedist-field-input" value={courierBagId} onChange={e => setCourierBagId(e.target.value)} />
 
-            <button type="button" className="ps-btn-primary" onClick={handleAssignPhysicalClick} disabled={!pathologistId && !subspecialtyId && !slideFolderId && !trayNumber && !courierBagId}>
+            <button type="button" className="ps-btn-primary" onClick={handleAssignPhysicalClick} disabled={physicalMissing.length > 0}>
               ✅ {t('slideDistribution.destination.confirmPhysical')}
             </button>
           </>
         ) : (
           <>
-            <label className="ps-slidedist-field-label">{t('slideDistribution.destination.scannerInstrument')}</label>
-            <input type="text" className="ps-slidedist-field-input" value={scannerInstrumentId} onChange={e => setScannerInstrumentId(e.target.value)} placeholder="e.g. Leica Aperio GT450 #2" />
-            <label className="ps-slidedist-field-label">{t('slideDistribution.destination.rackId')}</label>
-            <input type="text" className="ps-slidedist-field-input" value={rackId} onChange={e => setRackId(e.target.value)} placeholder="e.g. Rack ID 102" />
-            <label className="ps-slidedist-field-label">{t('slideDistribution.destination.slotPosition')}</label>
-            <input type="text" className="ps-slidedist-field-input" value={slotPosition} onChange={e => setSlotPosition(e.target.value)} placeholder="e.g. Slot 14" />
+            <label className="ps-slidedist-field-label" htmlFor="slidedist-scanner">{t('slideDistribution.destination.scannerInstrument')}{star('scannerInstrument')}</label>
+            <input id="slidedist-scanner" type="text" className="ps-slidedist-field-input" value={scannerInstrumentId} onChange={e => setScannerInstrumentId(e.target.value)} placeholder={t('slideDistribution.destination.scannerPlaceholder') ?? ''} />
+            <label className="ps-slidedist-field-label" htmlFor="slidedist-rack">{t('slideDistribution.destination.rackId')}{star('rackId')}</label>
+            <input id="slidedist-rack" type="text" className="ps-slidedist-field-input" value={rackId} onChange={e => setRackId(e.target.value)} placeholder={t('slideDistribution.destination.rackPlaceholder') ?? ''} />
+            <label className="ps-slidedist-field-label" htmlFor="slidedist-slot">{t('slideDistribution.destination.slotPosition')}{star('slotPosition')}</label>
+            <input id="slidedist-slot" type="text" className="ps-slidedist-field-input" value={slotPosition} onChange={e => setSlotPosition(e.target.value)} placeholder={t('slideDistribution.destination.slotPlaceholder') ?? ''} />
 
-            <button type="button" className="ps-btn-primary" onClick={handleAssignScannerClick} disabled={!scannerInstrumentId}>
+            <button type="button" className="ps-btn-primary" onClick={handleAssignScannerClick} disabled={digitalMissing.length > 0}>
               ✅ {t('slideDistribution.destination.confirmDigital')}
             </button>
           </>
+        )}
+        {missing.length > 0 && (
+          <p className="ps-field-still-required" role="status">
+            {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.slideDistribution.${id}`)), i18n.language) })}
+          </p>
         )}
         {feedback && <div className="ps-slidedist-scan-error ps-mt-8">{feedback}</div>}
       </div>

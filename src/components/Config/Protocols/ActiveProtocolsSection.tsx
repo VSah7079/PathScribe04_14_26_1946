@@ -180,7 +180,7 @@ const ActiveProtocolsSection: React.FC = () => {
         {GROUPS.map(g => {
           const active = groupFilter === g;
           return (
-            <button
+            <button data-config-nav
               key={g}
               onClick={() => setGroupFilter(g)}
               className={active ? 'ps-tat-filter-btn ps-tat-filter-btn--active' : 'ps-tat-filter-btn'}

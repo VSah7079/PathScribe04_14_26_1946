@@ -7,6 +7,7 @@
 // templates in templateService.ts's editorStore -- not CAP/RCPath-derived.
 
 import { ICaseService } from "./ICaseService";
+import { withAddOnOrderDemo } from './addOnOrderDemo';
 import { ConcurrencyConflictError } from "./ConcurrencyConflictError";
 import { callAi } from '../aiIntegration/aiProviderService';
 import { resolveAiConfigOverrideForClient } from '../../components/Config/AI/resolveClientAiModel';
@@ -550,7 +551,9 @@ const MOCK_CASES: Case[] = [
       address: '77 Palo Verde Circle, Chandler, AZ 85224',
     },
     specimens: [
-      { id: 'S26-4405-SP-1', label: 'A', description: 'Right breast lumpectomy', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(6), specimenFlags: [] },
+      { id: 'S26-4405-SP-1', label: 'A', description: 'Right breast lumpectomy', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(6), specimenFlags: [],
+        // Batch 395: selected for post-sign-out peer review (demo for Pete Nimmo).
+        surgicalPeerReview: { postSignOutPeerReviewFlag: { reason: 'random_selection', flaggedAt: isoDaysAgo(1) } } },
     ],
     order: { priority: 'Routine', requestingProvider: 'Dr. Lisa Wong', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: 'Stereotactic biopsy: DCIS, intermediate grade. Screening mammogram calcifications right upper outer quadrant. Proceeding to wire-localised lumpectomy.', receivedDate: isoDaysAgo(6), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
     diagnostic: {
@@ -1013,7 +1016,9 @@ const MOCK_CASES: Case[] = [
       address: '203 Cactus Ridge Rd, Mesa, AZ 85201',
     },
     specimens: [
-      { id: 'S26-4412-SP-1', label: 'A', description: 'Prostate needle biopsy — right mid', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(6), specimenFlags: [] },
+      { id: 'S26-4412-SP-1', label: 'A', description: 'Prostate needle biopsy — right mid', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(6), specimenFlags: [],
+        // Batch 395: selected for post-sign-out peer review (demo for Pete Nimmo).
+        surgicalPeerReview: { postSignOutPeerReviewFlag: { reason: 'targeted_high_risk', flaggedAt: isoDaysAgo(2) } } },
     ],
     order: { priority: 'Routine', requestingProvider: 'Dr. Anil Sharma', facilityId: 'c4', facilityName: 'Westview Surgery Center', clinicalIndication: 'PSA 7.2, PI-RADS 4. Targeted biopsy right mid-gland. Original report amended to update Gleason grade following second opinion review.', receivedDate: isoDaysAgo(6), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
     diagnostic: {
@@ -1129,7 +1134,7 @@ const MOCK_CASES: Case[] = [
       dateOfBirth: isoYearsAgo(68, 4, 12), sex: 'M',
       phone: '0161 234 5678', email: 'w.hartley@nhs.net',
       address: '14 Deansgate, Manchester, M3 2EX',
-      nhsNumber: '485 777 3456',
+      nationalIdentifiers: [{ system: 'mrn_nhs', value: '4857773457', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }],
     },
     specimens: [
       { id: 'MFT26-8801-SP-1', label: 'A', description: 'Anterior resection specimen', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(3), specimenFlags: [] },
@@ -1258,7 +1263,7 @@ const MOCK_CASES: Case[] = [
       dateOfBirth: isoYearsAgo(71, 9, 3), sex: 'M',
       phone: '0161 345 6789', email: 'g.barrowclough@nhs.net',
       address: '7 Piccadilly Gardens, Manchester, M1 1RG',
-      nhsNumber: '612 345 9087',
+      nationalIdentifiers: [{ system: 'mrn_nhs', value: '6123459082', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }],
     },
     specimens: [
       { id: 'MFT26-8802-SP-1', label: 'A', description: 'Prostate biopsy — right apex', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
@@ -1336,7 +1341,7 @@ const MOCK_CASES: Case[] = [
       dateOfBirth: isoYearsAgo(58, 7, 19), sex: 'F',
       phone: '0161 456 7890', email: 'm.ashworth@nhs.net',
       address: '22 Oxford Road, Manchester, M13 9PL',
-      nhsNumber: '345 678 1234',
+      nationalIdentifiers: [{ system: 'mrn_nhs', value: '3456781237', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }],
     },
     specimens: [
       { id: 'MFT26-8803-SP-1', label: 'A', description: 'Transanal endoscopic microsurgery (TEMS) excision — rectal polyp', receivedAt: isoDaysAgo(3), collectedAt: isoDaysAgo(4), specimenFlags: [] },
@@ -1419,7 +1424,7 @@ const MOCK_CASES: Case[] = [
       dateOfBirth: isoYearsAgo(63, 11, 28), sex: 'M',
       phone: '0161 567 8901', email: 't.pemberton@nhs.net',
       address: '45 Wilmslow Road, Manchester, M14 5AQ',
-      nhsNumber: '789 012 3456',
+      nationalIdentifiers: [{ system: 'mrn_nhs', value: '7890123450', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }],
     },
     specimens: [
       { id: 'MFT26-8804-SP-1', label: 'A', description: 'Radical prostatectomy specimen', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
@@ -1489,7 +1494,7 @@ const MOCK_CASES: Case[] = [
       dateOfBirth: isoYearsAgo(55, 2, 8), sex: 'F',
       phone: '0161 678 9012', email: 'p.hollingsworth@nhs.net',
       address: '8 King Street, Manchester, M2 6AQ',
-      nhsNumber: '234 567 8901',
+      nationalIdentifiers: [{ system: 'mrn_nhs', value: '2345678909', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }],
     },
     specimens: [
       { id: 'MFT26-8805-SP-1', label: 'A', description: 'Right hemicolectomy specimen', receivedAt: isoDaysAgo(7), collectedAt: isoDaysAgo(8), specimenFlags: [] },
@@ -1577,7 +1582,7 @@ const MOCK_CASES: Case[] = [
       dateOfBirth: isoYearsAgo(74, 6, 30), sex: 'M',
       phone: '0161 789 0123', email: 'e.blackwood@nhs.net',
       address: '3 Albert Square, Manchester, M2 5PF',
-      nhsNumber: '901 234 5678',
+      nationalIdentifiers: [{ system: 'mrn_nhs', value: '9012345677', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }],
     },
     specimens: [
       { id: 'MFT26-8806-SP-1', label: 'A', description: 'Sigmoid colectomy — emergency resection', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
@@ -1612,7 +1617,7 @@ const MOCK_CASES: Case[] = [
     identifiers: ['SLD-MFT2026807A'],
     accession: { accessionNumber: '8807', accessionPrefix: 'MFT', accessionYear: 2026, fullAccession: 'MFT26-8807-POOL' },
     originHospitalId: 'HOSP-MFT', originEnterpriseId: 'ENT-MFT',
-    patient: { id: 'PAT-UK-007', mrn: '200007', firstName: 'Susan', lastName: 'Hargreaves', dateOfBirth: isoYearsAgo(62, 5, 14), sex: 'F', phone: '0161 890 1234', email: 's.hargreaves@nhs.net', address: '19 Portland Street, Manchester, M1 3HU', nhsNumber: '345 891 2345' },
+    patient: { id: 'PAT-UK-007', mrn: '200007', firstName: 'Susan', lastName: 'Hargreaves', dateOfBirth: isoYearsAgo(62, 5, 14), sex: 'F', phone: '0161 890 1234', email: 's.hargreaves@nhs.net', address: '19 Portland Street, Manchester, M1 3HU', nationalIdentifiers: [{ system: 'mrn_nhs', value: '3458912347', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }] },
     specimens: [{ id: 'MFT26-8807-SP-1', label: 'A', description: 'Sigmoid colon biopsy — three fragments', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] }],
     order: { priority: 'Routine', requestingProvider: 'Dr. Helen Marsden', facilityId: 'c-mft-03', facilityName: 'North Manchester General Hospital', clinicalIndication: 'Change in bowel habit. Colonoscopy: 18mm sessile polyp sigmoid colon. Biopsy taken.', receivedDate: isoDaysAgo(0), assignedTo: null,
       requisitionNumber: 'REQ-MFT-2026-8807', externalOrderId: 'EXT-NHS-88070', labNumber: 'BLK-SP1-C1', blockId: 'BLK-SP1-C1', referralNumber: 'REF-GI-MFT-001' },
@@ -1630,7 +1635,7 @@ const MOCK_CASES: Case[] = [
     id: 'MFT26-8808-POOL',
     accession: { accessionNumber: '8808', accessionPrefix: 'MFT', accessionYear: 2026, fullAccession: 'MFT26-8808-POOL' },
     originHospitalId: 'HOSP-MFT', originEnterpriseId: 'ENT-MFT',
-    patient: { id: 'PAT-UK-008', mrn: '200008', firstName: 'Alan', lastName: 'Butterworth', dateOfBirth: isoYearsAgo(77, 3, 22), sex: 'M', phone: '0161 901 2345', email: 'a.butterworth@nhs.net', address: '6 St Anns Square, Manchester, M2 7LP', nhsNumber: '456 902 3456' },
+    patient: { id: 'PAT-UK-008', mrn: '200008', firstName: 'Alan', lastName: 'Butterworth', dateOfBirth: isoYearsAgo(77, 3, 22), sex: 'M', phone: '0161 901 2345', email: 'a.butterworth@nhs.net', address: '6 St Anns Square, Manchester, M2 7LP', nationalIdentifiers: [{ system: 'mrn_nhs', value: '4569023452', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }] },
     specimens: [{ id: 'MFT26-8808-SP-1', label: 'A', description: 'Prostate biopsy — right apex', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
                 { id: 'MFT26-8808-SP-2', label: 'B', description: 'Prostate biopsy — right mid', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
                 { id: 'MFT26-8808-SP-3', label: 'C', description: 'Prostate biopsy — right base', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] }],
@@ -1653,7 +1658,7 @@ const MOCK_CASES: Case[] = [
     id: 'MFT26-8809-POOL',
     accession: { accessionNumber: '8809', accessionPrefix: 'MFT', accessionYear: 2026, fullAccession: 'MFT26-8809-POOL' },
     originHospitalId: 'HOSP-MFT', originEnterpriseId: 'ENT-MFT',
-    patient: { id: 'PAT-UK-009', mrn: '200009', firstName: 'Dorothy', lastName: 'Whitworth', dateOfBirth: isoYearsAgo(49, 8, 5), sex: 'F', phone: '0161 012 3456', email: 'd.whitworth@nhs.net', address: '31 Chapel Street, Salford, M3 5JJ', nhsNumber: '567 013 4567' },
+    patient: { id: 'PAT-UK-009', mrn: '200009', firstName: 'Dorothy', lastName: 'Whitworth', dateOfBirth: isoYearsAgo(49, 8, 5), sex: 'F', phone: '0161 012 3456', email: 'd.whitworth@nhs.net', address: '31 Chapel Street, Salford, M3 5JJ', nationalIdentifiers: [{ system: 'mrn_nhs', value: '5670134567', verificationStatus: 'verified', verifiedAt: '2026-09-30T00:00:00.000Z', source: 'import' }] },
     specimens: [{ id: 'MFT26-8809-SP-1', label: 'A', description: 'Right hemicolectomy — emergency resection', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] }],
     order: { priority: 'STAT', requestingProvider: 'Mr. Peter Thornton', facilityId: 'c-mft-01', facilityName: 'Manchester Royal Infirmary', clinicalIndication: 'Emergency right hemicolectomy for obstructing caecal mass. CT: suspected adenocarcinoma.', receivedDate: isoDaysAgo(0), assignedTo: null },
     diagnostic: { grossDescription: 'Right hemicolectomy specimen, 32 cm, received fresh. Obstructing tumour in caecum, 5.8 cm. Tumour perforates the serosal surface at one point.', microscopicDescription: '', ancillaryStudies: '' },
@@ -2745,7 +2750,9 @@ const MOCK_CASES: Case[] = [
       address: '502 Palo Verde Dr, Tucson, AZ 85712',
     },
     specimens: [
-      { id: 'S26-4492-SP-1', label: 'A', description: 'Left breast lumpectomy', receivedAt: isoDaysAgo(4), collectedAt: isoDaysAgo(4), specimenFlags: [] },
+      { id: 'S26-4492-SP-1', label: 'A', description: 'Left breast lumpectomy', receivedAt: isoDaysAgo(4), collectedAt: isoDaysAgo(4), specimenFlags: [],
+        // Batch 395: selected for post-sign-out peer review (demo for Pete Nimmo).
+        surgicalPeerReview: { postSignOutPeerReviewFlag: { reason: 'random_selection', flaggedAt: isoDaysAgo(0) } } },
       { id: 'S26-4492-SP-2', label: 'B', description: 'Left axillary sentinel lymph node — one', receivedAt: isoDaysAgo(4), collectedAt: isoDaysAgo(4), specimenFlags: [] },
     ],
     order: { priority: 'Routine', requestingProvider: 'Dr. Michael Trent', facilityId: 'c3', facilityName: 'Foothills Regional Clinic', clinicalIndication: '1.3 cm left breast mass, BI-RADS 4. Core biopsy confirmed invasive ductal carcinoma. Proceeding to lumpectomy with sentinel node biopsy.', receivedDate: isoDaysAgo(4), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
@@ -3772,7 +3779,9 @@ export const mockPatientHistory = mockPatientHistoryMap['S26-4401'] ?? DEFAULT_H
 // ─── Persisted case store ─────────────────────────────────────────────────────
 // Version bump here forces a re-seed whenever mock data changes structurally.
 // Increment MOCK_VERSION whenever MOCK_CASES fields are added/changed.
-const MOCK_VERSION = '45'; // bumped: real, new Northern Ireland demo case (S26-9401) added at the new Lagan Valley Women's Health Centre facility (c-ni-lagan-valley) — real reflex-triggered pathway.
+const MOCK_VERSION = '47'; // bumped (Batch 403): demo add-on orders on S26-4401-BX-001 (services/cases/addOnOrderDemo.ts).
+// Previous: '46'; // bumped (Batch 395): S26-4405, S26-4412 and S26-4492 selected for Surgical Post-Sign-Out QA peer review.
+// Previous: '45'; // bumped: real, new Northern Ireland demo case (S26-9401) added at the new Lagan Valley Women's Health Centre facility (c-ni-lagan-valley) — real reflex-triggered pathway.
 const VERSION_KEY  = 'pathscribe_mock_cases_version';
 
 const storedVersion = localStorage.getItem(VERSION_KEY);
@@ -3785,7 +3794,7 @@ if (storedVersion !== MOCK_VERSION) {
 const stored = localStorage.getItem('pathscribe_mock_' + STORAGE_KEY);
 let CASES: Case[] = stored ? JSON.parse(stored) : null;
 if (!CASES) {
-  CASES = JSON.parse(JSON.stringify(MOCK_CASES));
+  CASES = JSON.parse(JSON.stringify(withAddOnOrderDemo(MOCK_CASES)));
   storageSet(STORAGE_KEY, CASES);
 }
 

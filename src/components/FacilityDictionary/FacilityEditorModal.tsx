@@ -27,6 +27,7 @@
  *              check now (PS-73) — see validate() below.
  */
 
+import { REPORT_LANGUAGES, defaultReportLanguage, type ReportLanguage } from '@/services/reports/reportLanguage';
 import React, { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
@@ -39,7 +40,9 @@ import type { PlaceOfServiceCode } from "../../types/billing/PlaceOfServiceCode"
 import { JURISDICTION_LABELS, type Jurisdiction } from "../../types/systemConfig";
 import { SUFFIX_PRESETS, isPresetSuffix } from "../../utils/personName";
 import { getEligibleModelIdsForClient } from "../Config/AI/resolveClientAiModel";
-import { modelService, locationService } from "../../services";
+import { modelService, locationService, customDictionaryService } from "../../services";
+import DictionaryWordList from "../SpellCheck/DictionaryWordList";
+import { useAuth } from "@/contexts/AuthContext";
 import type { AIModel } from "../../services/models/IModelService";
 import type { Location } from "../../services/locations/ILocationService";
 import { HL7_LOCATION_STATUS_OPTIONS, HL7_PERSON_LOCATION_TYPE_OPTIONS } from "../../services/locations/ILocationService";
@@ -132,7 +135,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode; span?: boolean
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = "general" | "lis_integration" | "identifier_formats" | "reporting" | "tat" | "ai" | "locations";
+type Tab = "general" | "lis_integration" | "identifier_formats" | "reporting" | "tat" | "ai" | "locations" | "spelling";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -470,6 +473,11 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
             {isEdit && (
               <button className={tabClass("locations")}  onClick={() => setTab("locations")}>{t('facilityEditorModal.tabs.locations')}</button>
             )}
+            {/* Batch 432: the lab's spelling dictionary (a performing lab's
+                words are used for its cases); config:facilities:manage. */}
+            {isEdit && hasRole('performing_lab') && (
+              <button className={tabClass("spelling")}  onClick={() => setTab("spelling")}>{t('facilityEditorModal.tabs.spelling')}</button>
+            )}
           </div>
         </div>
 
@@ -616,6 +624,19 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                     </label>
                     <div className="cem-hint">
                       {t('facilityEditorModal.general.forceAddendumOnDedicatedPageHint')}
+                    </div>
+                  </Field>
+                )}
+                {hasRole('performing_lab') && (
+                  <Field label={t('facilityEditorModal.general.reportLanguage')}>
+                    <select className="cem-input" value={form.reportLanguage ?? ''} onChange={(e) => set("reportLanguage", (e.target.value || undefined) as ReportLanguage | undefined)}>
+                      <option value="">{t('facilityEditorModal.general.reportLanguageDefault', { language: t(`language.${defaultReportLanguage(form.jurisdiction)}`) })}</option>
+                      {REPORT_LANGUAGES.map(code => (
+                        <option key={code} value={code}>{t(`language.${code}`)}</option>
+                      ))}
+                    </select>
+                    <div className="cem-hint">
+                      {t('facilityEditorModal.general.reportLanguageHint')}
                     </div>
                   </Field>
                 )}
@@ -868,6 +889,20 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                     ? <>{t('facilityEditorModal.lis.sendsParentDefault', { name: allFacilities.find(c => c.id === form.parentId)?.name ?? t('facilityEditorModal.general.parentEnterpriseFallback') })}</>
                     : t('facilityEditorModal.lis.sendsEnterpriseParentDefault')} {t('facilityEditorModal.lis.unchanged')}
                 </div>
+              )}
+
+              {/* Batch 427 (Pete: the setting belongs to the testing facility): whether this lab's LIS
+                  takes one PDF per accession. Only a performing lab's setting is used. */}
+              {hasRole('performing_lab') && (
+                <>
+                  <div className="cem-section">{t('facilityEditorModal.lis.outboundDocuments')}</div>
+                  <label className="ps-fem-check">
+                    <input type="checkbox" checked={!!form.consolidateOutboundPdfs}
+                      onChange={e => set("consolidateOutboundPdfs", e.target.checked)} />
+                    {t('facilityEditorModal.lis.consolidateOutboundPdfs')}
+                  </label>
+                  <p className="cem-note">{t('facilityEditorModal.lis.consolidateOutboundPdfsNote')}</p>
+                </>
               )}
             </div>
           )}
@@ -1164,6 +1199,14 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
               any specific role (see tab bar above) — edit-mode only,
               since a brand-new, unsaved facility can't have locations
               attached to it yet. */}
+          {tab === "spelling" && facility?.id && (
+            <div className="ps-client-editor-form">
+              <div className="cem-section">{t('facilityEditorModal.spelling.title')}</div>
+              <p className="ps-fixgate-intro cem-mb-12">{t('facilityEditorModal.spelling.intro')}</p>
+              <FacilitySpellingDictionary facilityId={facility.id} facilityName={facility.name} />
+            </div>
+          )}
+
           {tab === "locations" && (
             <div className="ps-client-editor-form">
               <div className="cem-section">{t('facilityEditorModal.locations.title')}</div>
@@ -1340,4 +1383,16 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
       </div>
     </div>
   );
+};
+
+// Batch 432: the facility's spelling dictionary words (add and remove;
+// the dictionary service checks config:facilities:manage and audits each change).
+const FacilitySpellingDictionary: React.FC<{ facilityId: string; facilityName: string }> = ({ facilityId, facilityName }) => {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const actor = { userId: user?.id ?? '', userName: user?.name ?? user?.id ?? '' };
+  const list = React.useCallback(() => customDictionaryService.listFacility(facilityId), [facilityId]);
+  const add = React.useCallback((word: string) => customDictionaryService.addFacility(facilityId, word, actor, facilityName), [facilityId, facilityName, actor.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const remove = React.useCallback((word: string) => customDictionaryService.removeFacility(facilityId, word, actor, facilityName), [facilityId, facilityName, actor.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <DictionaryWordList list={list} add={add} remove={remove} emptyText={t('facilityEditorModal.spelling.empty')} />;
 };

@@ -253,12 +253,12 @@ className="tmpl-error-dismiss">✕</button>
         <div className="tmpl-filter-row">
           <div className="tmpl-filter-bar">
             {(['all', 'published', 'draft', 'archived'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={`tmpl-filter-btn${filter === f ? ' active' : ''}`}>
+              <button data-config-nav key={f} onClick={() => setFilter(f)} className={`tmpl-filter-btn${filter === f ? ' active' : ''}`}>
                 {f === 'all' ? t('templateListTab.filterAll') : t(STATUS_LABEL_KEY[f])}{counts[f] > 0 && <span className="tmpl-filter-count"> ({counts[f]})</span>}
               </button>
             ))}
           </div>
-          <input
+          <input data-config-nav
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder={t('templateListTab.searchPlaceholder')}
             className="tmpl-search"

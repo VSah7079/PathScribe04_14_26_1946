@@ -12,8 +12,8 @@
 // Same "null/unset = inherit" two-layer convention already used for
 // AI Orchestrator mode (see orchestratorModeConfig.ts, this file's own
 // direct model) and Facility.tatFirstTouchHours/jurisdiction/etc.:
-//   1. ORG DEFAULT     — org-wide, admin-editable here, persisted to
-//      localStorage. Defaults to Arial/10pt per direct product decision
+//   1. ORG DEFAULT     — org-wide, admin-editable here, kept in the lab
+//      settings store. Defaults to Arial/10pt per direct product decision
 //      if never explicitly set (fresh install) — not an arbitrary guess.
 //   2. TEMPLATE OVERRIDE — ReportTemplate.documentStyle.body, set per
 //      template in the Template Assembly editor. Wins over the org
@@ -27,6 +27,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import type { LabelConfig } from '../../../types/template';
+import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
 
 const ORG_DOCUMENT_STYLE_KEY = 'pathscribe_org_document_style_body';
 const ORG_DOCUMENT_STYLE_HEADER_KEY = 'pathscribe_org_document_style_header';
@@ -47,15 +48,10 @@ const FALLBACK_FOOTER_DEFAULT: LabelConfig = { position: 'above', fontFamily: 'A
 
 // ── Org-level default (sync — safe to call from render) ────────────────────
 
+// Batch 431: kept in the lab settings store (services/labSettings/), the one
+// place that changes when the API server holds them (PS-345).
 function readStored(key: string, fallback: LabelConfig): LabelConfig {
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored !== null) return { ...fallback, ...JSON.parse(stored) };
-  } catch {
-    // localStorage unavailable (SSR / sandboxed env) or corrupt stored
-    // JSON — fall through to the fallback default rather than throw.
-  }
-  return fallback;
+  return { ...fallback, ...readLabSetting<Partial<LabelConfig>>(key, {}) };
 }
 
 export function getOrgDocumentStyleDefault(): LabelConfig {
@@ -63,11 +59,7 @@ export function getOrgDocumentStyleDefault(): LabelConfig {
 }
 
 export function setOrgDocumentStyleDefault(style: LabelConfig): void {
-  try {
-    localStorage.setItem(ORG_DOCUMENT_STYLE_KEY, JSON.stringify(style));
-  } catch {
-    // ignore write failures
-  }
+  saveLabSetting(ORG_DOCUMENT_STYLE_KEY, style);
 }
 
 export function getOrgHeaderStyleDefault(): LabelConfig {
@@ -75,11 +67,7 @@ export function getOrgHeaderStyleDefault(): LabelConfig {
 }
 
 export function setOrgHeaderStyleDefault(style: LabelConfig): void {
-  try {
-    localStorage.setItem(ORG_DOCUMENT_STYLE_HEADER_KEY, JSON.stringify(style));
-  } catch {
-    // ignore write failures
-  }
+  saveLabSetting(ORG_DOCUMENT_STYLE_HEADER_KEY, style);
 }
 
 export function getOrgFooterStyleDefault(): LabelConfig {
@@ -87,9 +75,5 @@ export function getOrgFooterStyleDefault(): LabelConfig {
 }
 
 export function setOrgFooterStyleDefault(style: LabelConfig): void {
-  try {
-    localStorage.setItem(ORG_DOCUMENT_STYLE_FOOTER_KEY, JSON.stringify(style));
-  } catch {
-    // ignore write failures
-  }
+  saveLabSetting(ORG_DOCUMENT_STYLE_FOOTER_KEY, style);
 }

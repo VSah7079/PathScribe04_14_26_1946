@@ -26,7 +26,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
 import { buildAdt08Payload, buildAdt40Payload, buildAdt47Payload } from '@/services/patients/buildPatientAdtPayload';
-import { buildOruR01Payload } from '@/services/reports/buildOruR01Payload';
+import { prepareOruR01Dispatch } from '@/services/reports/prepareOruR01Dispatch';
+import { permitInterfacePreview } from '@/services/interfacePreview/permitInterfacePreview';
 import type { OruResultState } from '@/types/case/OutboundResultQueueEntry';
 
 type MessageType = 'A08' | 'A40' | 'A47' | 'ORU_R01';
@@ -73,6 +74,8 @@ const OutboundMessagePreviewSection: React.FC = () => {
 
   const handlePreview = async () => {
     reset();
+    // Batch 428: a preview shows a patient's data; it needs config:interface-preview:view.
+    if (!(await permitInterfacePreview())) return;
     setBusy(true);
     try {
       if (messageType === 'A08') {
@@ -94,9 +97,10 @@ const OutboundMessagePreviewSection: React.FC = () => {
         setPayload(result);
         if (!result) setError(t('outboundMessagePreviewSection.errors.nullPayloadBothIds'));
       } else {
-        const result = await buildOruR01Payload(caseId.trim(), instanceId.trim(), resultState);
-        setPayload(result);
-        if (!result) setError(t('outboundMessagePreviewSection.errors.oruNullPayload'));
+        // Batch 392: the message exactly as a release sends it, report PDF included.
+        const prepared = await prepareOruR01Dispatch(caseId.trim(), instanceId.trim(), resultState);
+        setPayload(prepared.ok ? prepared.payload : null);
+        if (prepared.ok === false) setError(t(prepared.reason === 'pdf_unavailable' ? 'outboundMessagePreviewSection.errors.oruPdfUnavailable' : 'outboundMessagePreviewSection.errors.oruNullPayload'));
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('outboundMessagePreviewSection.errors.unexpectedError'));

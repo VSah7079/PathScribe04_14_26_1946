@@ -70,6 +70,7 @@ const DisposalQueuePage = lazy(() => import("./pages/BatchManagement/DisposalQue
 const DisposalReportPage = lazy(() => import("./pages/BatchManagement/DisposalReportPage"));
 const PendingBatchQueuePage = lazy(() => import("./pages/BatchManagement/PendingBatchQueuePage"));
 const EngraverMonitorPage = lazy(() => import("./pages/BatchManagement/EngraverMonitorPage"));
+const EquipmentServiceLogPage = lazy(() => import("./pages/BatchManagement/EquipmentServiceLogPage"));
 const IntraopQueuePage = lazy(() => import("./pages/IntraopQueuePage"));
 const OrSuiteDashboardPage = lazy(() => import("./pages/OrSuiteDashboardPage"));
 const FacilityOpsDashboardPage = lazy(() => import("./pages/FacilityOpsDashboard/FacilityOpsDashboardPage"));
@@ -77,6 +78,7 @@ const ExternalConsultViewPage = lazy(() => import("./pages/ExternalConsultViewPa
 const CriticalAlertReferencePage = lazy(() => import("./pages/CriticalAlertReferencePage/CriticalAlertReferencePage"));
 const MigrationJobsPage = lazy(() => import("./pages/MigrationJobsPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+const RegistryExceptionsPage = lazy(() => import("./pages/RegistryExceptionsPage/RegistryExceptionsPage"));
 const ConfigurationPage = lazy(() => import("./pages/ConfigurationPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const ContributionDashboardPage = lazy(() =>
@@ -235,25 +237,28 @@ const App: React.FC = () => (
                           <Route path="/molecular-rack" element={<ScreenGate screen="molecular"><MolecularRackWorklistPage /></ScreenGate>} />
                           <Route path="/molecular-rack/:rackId" element={<ScreenGate screen="molecular"><MolecularRackLoadingPage /></ScreenGate>} />
                           <Route path="/molecular-control-rules" element={<ScreenGate screen="molecular"><MolecularControlRulesPage /></ScreenGate>} />
-                          <Route path="/dev/mock-interface-engine" element={<MockInterfaceEnginePage />} />
+                          <Route path="/dev/mock-interface-engine" element={<ScreenGate screen="configuration"><MockInterfaceEnginePage /></ScreenGate>} />
                           <Route path="/quality-assurance" element={<ScreenGate screen="qualityAssurance"><QualityAssurancePage /></ScreenGate>} />
                           <Route path="/batch-management" element={<ScreenGate screen="batchManagement"><BatchManagementPage /></ScreenGate>} />
                           <Route path="/batch-management/disposal" element={<ScreenGate screen="batchManagement"><DisposalQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/disposal-report" element={<ScreenGate screen="batchManagement"><DisposalReportPage /></ScreenGate>} />
                           <Route path="/batch-management/pending-load" element={<ScreenGate screen="batchManagement"><PendingBatchQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/engraver-monitor" element={<ScreenGate screen="batchManagement"><EngraverMonitorPage /></ScreenGate>} />
+                          {/* Batch 429: the bench staff record equipment maintenance and calibration here. */}
+                          <Route path="/batch-management/equipment-log" element={<ScreenGate screen="batchManagement"><EquipmentServiceLogPage /></ScreenGate>} />
                           <Route path="/workstations/microtomy" element={<ScreenGate screen="microtomy"><MicrotomyWorkstationPage /></ScreenGate>} />
                           <Route path="/workstations/embedding" element={<ScreenGate screen="embedding"><EmbeddingStationPage /></ScreenGate>} />
                           <Route path="/workstations/slide-distribution" element={<ScreenGate screen="slideDistribution"><SlideDistributionStationPage /></ScreenGate>} />
                           <Route path="/add-on-orders" element={<ScreenGate screen="addOnOrders"><AddOnOrderPage /></ScreenGate>} />
                           <Route path="/intraop-queue" element={<ScreenGate screen="intraopQueue"><IntraopQueuePage /></ScreenGate>} />
-                          <Route path="/molecular-order-queue" element={<MolecularOrderQueuePage />} />
+                          <Route path="/molecular-order-queue" element={<ScreenGate screen="configuration"><MolecularOrderQueuePage /></ScreenGate>} />
                           {/* Batch 375: the two peer-review queues are views of the Worklist now; the old addresses land there. */}
                           <Route path="/cytology-qc-queue" element={<Navigate to="/worklist?view=cytologyQc" replace />} />
                           <Route path="/surgical-qa-worklist" element={<Navigate to="/worklist?view=surgicalQa" replace />} />
-                          <Route path="/migration-jobs" element={<MigrationJobsPage />} />
+                          <Route path="/migration-jobs" element={<ScreenGate screen="configuration"><MigrationJobsPage /></ScreenGate>} />
                           <Route path="/search" element={<ScreenGate screen="search"><SearchPage /></ScreenGate>} />
                           <Route path="/audit" element={<ScreenGate screen="auditLog"><AuditLogPage /></ScreenGate>} />
+                          <Route path="/registry-exceptions" element={<ScreenGate screen="registryExceptions"><RegistryExceptionsPage /></ScreenGate>} />
                           <Route
                             path="/configuration"
                             element={<ScreenGate screen="configuration"><ConfigurationPage /></ScreenGate>}
@@ -282,37 +287,41 @@ const App: React.FC = () => (
                           />
                         </Route>
 
+                        {/* Batch 427 (Pete: "If you don't have permission to access configuration, you should [not] be able to
+                            backdoor in and see individual config pages"): every page opened from Configuration carries
+                            the Configuration gate, so typing its address doesn't get round it. Template Authors and
+                            Approvers hold screen:configuration:open, so nobody who uses these loses them. */}
                         {/* ── Report Part Builder — full-screen canvas for one part ── */}
                         <Route
                           path="/admin/parts/new"
-                          element={<PartBuilderPage />}
+                          element={<ScreenGate screen="configuration"><PartBuilderPage /></ScreenGate>}
                         />
                         <Route
                           path="/admin/parts/:partId/edit"
-                          element={<PartBuilderPage />}
+                          element={<ScreenGate screen="configuration"><PartBuilderPage /></ScreenGate>}
                         />
 
                         {/* ── Template Assembly — slot list editor ── */}
                         <Route
                           path="/admin/templates/new"
-                          element={<TemplateAssemblyPage />}
+                          element={<ScreenGate screen="configuration"><TemplateAssemblyPage /></ScreenGate>}
                         />
                         <Route
                           path="/admin/templates/:templateId/edit"
-                          element={<TemplateAssemblyPage />}
+                          element={<ScreenGate screen="configuration"><TemplateAssemblyPage /></ScreenGate>}
                         />
 
                         <Route
                           path="/template-editor/new"
-                          element={<SynopticEditor />}
+                          element={<ScreenGate screen="configuration"><SynopticEditor /></ScreenGate>}
                         />
                         <Route
                           path="/template-editor/:templateId"
-                          element={<SynopticEditor />}
+                          element={<ScreenGate screen="configuration"><SynopticEditor /></ScreenGate>}
                         />
                         <Route
                           path="/template-review/:templateId"
-                          element={<TemplateRendererPage />}
+                          element={<ScreenGate screen="configuration"><TemplateRendererPage /></ScreenGate>}
                         />
                         <Route
                           path="/mock-emr"

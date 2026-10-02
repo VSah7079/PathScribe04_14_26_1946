@@ -16,6 +16,7 @@ vi.mock('./mockCytologyOutboundResultQueueService', () => ({
 vi.mock('./buildCytologyOruR01Payload', () => ({
   buildCytologyOruR01Payload: vi.fn().mockReturnValue({ messageId: 'msg-1' }),
 }));
+vi.mock('../documentRendering/printFonts', () => ({ loadPrintFont: vi.fn(), printFontLanguageFor: (c: any) => c?.language }));
 vi.mock('../interfaceDispatch/dispatchInterfaceMessage', () => ({
   dispatchInterfaceMessage: vi.fn(),
 }));
@@ -26,8 +27,12 @@ import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordSer
 import { mockCytologyOutboundResultQueueService } from './mockCytologyOutboundResultQueueService';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { dispatchCytologyCaseInstances } from './dispatchCytologyCaseInstances';
+import { loadPrintFont } from '../documentRendering/printFonts';
+import { buildCytologyOruR01Payload } from './buildCytologyOruR01Payload';
 
 beforeEach(() => {
+  vi.mocked(loadPrintFont).mockReset();
+  vi.mocked(loadPrintFont).mockResolvedValue(undefined);
   vi.mocked(caseRouter.getCase).mockReset();
   vi.mocked(caseRouter.getCase).mockResolvedValue({ id: 'CASE-1', patient: { id: 'PT-1' } } as any);
   vi.mocked(mockPatientIndexService.getById).mockReset();
@@ -80,5 +85,22 @@ describe('dispatchCytologyCaseInstances', () => {
     vi.mocked(mockCytologyOutboundResultQueueService.getBySignOutRecordId).mockResolvedValue({ ok: true, data: [{ resultState: 'FINAL' }] } as any);
     await dispatchCytologyCaseInstances('CASE-1');
     expect(mockCytologyOutboundResultQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  describe('Batch 391: the font a Korean report needs', () => {
+    it('loads it for the record\'s language and builds the PDF with it', async () => {
+      const font = { family: 'Pretendard', regularBase64: 'r', boldBase64: 'b' };
+      vi.mocked(loadPrintFont).mockResolvedValue(font);
+      vi.mocked(mockCytologySignOutRecordService.getByCaseId).mockResolvedValue({ ok: true, data: [{ id: 'REC-1', reportContent: { language: 'ko' } }] } as any);
+      await dispatchCytologyCaseInstances('CASE-1');
+      expect(loadPrintFont).toHaveBeenCalledWith('ko');
+      expect(buildCytologyOruR01Payload).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'REC-1' }), 'FINAL', undefined, font);
+    });
+    it('if it cannot be loaded, the message is marked failed (to retry), never sent with an unreadable PDF', async () => {
+      vi.mocked(loadPrintFont).mockRejectedValue(new Error('offline'));
+      await dispatchCytologyCaseInstances('CASE-1');
+      expect(dispatchInterfaceMessage).not.toHaveBeenCalled();
+      expect(mockCytologyOutboundResultQueueService.markFailed).toHaveBeenCalledWith('q-1', expect.objectContaining({ errorCode: 'DISPATCH_REJECTED', maxRetriesExceeded: false }));
+    });
   });
 });

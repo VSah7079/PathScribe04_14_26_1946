@@ -37,3 +37,7 @@ clean compilation after removing each cast.
 ## Batch 353
 
 TAT entries now come from `mockTatTargetService` (`services/tatConfig/`). This file used to import the storage key from the TAT settings component and read browser storage itself.
+
+## Batch 428: Configuration permissions
+
+Comment updated: `ClientDictionaryPage.tsx` was deleted (the Facility Dictionary is the live screen).

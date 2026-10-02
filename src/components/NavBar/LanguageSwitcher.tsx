@@ -1,12 +1,10 @@
 // src/components/NavBar/LanguageSwitcher.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per the RFP-APLIS-2026-GLOBAL Multi-Language UI & Localization
-// Framework gap — the real, working language switcher. Changing the
-// selection here genuinely re-renders every real, translated string
-// in the app immediately (react-i18next's own real, standard
-// re-render-on-language-change behavior), and persists the choice via
-// i18next-browser-languagedetector's own localStorage cache
-// (src/i18n/config.ts), so it survives a reload.
+// The language switcher. Changing the selection re-renders every
+// translated string immediately (react-i18next). Batch 431: the choice is
+// saved to the signed-in person (hooks/usePersonalLanguage.ts, PS-345 on
+// the server); the browser keeps the workstation's last language for the
+// sign-in page (src/i18n/config.ts).
 //
 // Real fix, per direct follow-up ("still looks a bit truncated and the
 // dropdown list is not very nice"): this used to be a native <select>

@@ -36,6 +36,7 @@ import { mockBillingDeficiencyService } from '@/services/billing/mockBillingDefi
 import { canCaseExportDft } from '@/services/billing/canCaseExportDft';
 import { buildDftP03ForCase } from '@/services/hl7/dftBuilder';
 import { buildJsonWebhookPayload } from '@/services/billing/jsonWebhookBuilder';
+import { permitInterfacePreview } from '@/services/interfacePreview/permitInterfacePreview';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { BillingDeficiencyRecord } from '@/types/billing/BillingDeficiencyRecord';
 
@@ -55,6 +56,8 @@ const DftExportPreviewSection: React.FC = () => {
   const handleLookup = async () => {
     const caseId = caseIdInput.trim();
     if (!caseId) return;
+    // Batch 428: a preview shows a case's data; it needs config:interface-preview:view.
+    if (!(await permitInterfacePreview())) return;
     setBusy(true);
     setNotFound(false);
     setResult(null);

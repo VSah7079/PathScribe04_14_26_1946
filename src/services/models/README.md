@@ -60,6 +60,10 @@ The AI models PathScribe calls: a **global catalog** ForMedrixAI publishes once,
 - **Old store-download ids.** Records that point at a pre-PS-58 store-download id (a validation study's `modelId`, a facility's `internalAiModelId`) still resolve through `getById`. List screens that match on `m.id` show them unmatched until they are re-selected or the demo is reset. This only applies to models downloaded from the store before this change.
 - **Override fields unused.** `configOverrides` and `thresholdOverrides` exist on the adoption, but nothing reads or edits them yet.
 
+## Batch 428: Configuration permissions
+
+Choosing, adopting, changing or retiring the lab's AI models needs `config:ai-model:manage`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

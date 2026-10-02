@@ -28,6 +28,14 @@ Coarse-grained specimen classification controlling workflow at Accession (e.g. '
   all three, same free-text, "not validated against a format" posture
   as Facility's. 4 new tests.
 
+## Batch 428: Configuration permissions
+
+- `mockDepartmentService`: `add`, `update`, `verify`, `deactivate` need `config:departments:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+`auditRetentionOverride.ts` (new): the audit entry for a retention override below the governing-body minimum, recorded under the signed-in person (the screen wrote it as "super-admin").
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

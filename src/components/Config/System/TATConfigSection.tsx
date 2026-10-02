@@ -551,11 +551,11 @@ const ResolutionSimulator: React.FC<SimulatorProps> = ({
       </div>
 
       <div className="ps-tat-sim-controls">
-        <select className="ps-conf-select" aria-label={t('tatConfigSection.modal.performingLabAria')} value={simLab} onChange={e => setSimLab(e.target.value)}>
+        <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.modal.performingLabAria')} value={simLab} onChange={e => setSimLab(e.target.value)}>
           <option value="">{t('tatConfigSection.simulator.noSpecificLab')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <select className="ps-conf-select" aria-label={t('tatConfigSection.modal.orderingFacilityAria')} value={simFacility} onChange={e => setSimFacility(e.target.value)}>
+        <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.modal.orderingFacilityAria')} value={simFacility} onChange={e => setSimFacility(e.target.value)}>
           <option value="">{t('tatConfigSection.simulator.noSpecificFacility')}</option>
           {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -885,7 +885,7 @@ const TATConfigSection: React.FC = () => {
           </p>
         </div>
         <div className="ps-rulemodal__footer-actions">
-          <button
+          <button data-config-nav
             className={showSim ? 'ps-tat-sim-btn ps-tat-sim-btn--active' : 'ps-tat-sim-btn'}
             onClick={() => setShowSim(v => !v)}
           >
@@ -932,7 +932,7 @@ const TATConfigSection: React.FC = () => {
       <div className="ps-tat-filters">
         <div className="ps-tatconfig__filter-buttons">
           {(['ALL', ...TAT_TYPES, ...qaActivityTypes.map(qt => qt.id)]).map(typeId => (
-            <button
+            <button data-config-nav
               key={typeId}
               onClick={() => setFilter(typeId)}
               className={filter === typeId ? 'ps-tat-filter-btn ps-tat-filter-btn--active' : 'ps-tat-filter-btn'}
@@ -944,11 +944,11 @@ const TATConfigSection: React.FC = () => {
         {/* Real, per direct guidance: two genuinely independent
             facility filters, usable together or separately. */}
         <div className="ps-tatconfig__facility-filters">
-          <select className="ps-conf-select" aria-label={t('tatConfigSection.filterByPerformingLabAria')} value={performingLabFilter} onChange={e => setPerformingLabFilter(e.target.value)}>
+          <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByPerformingLabAria')} value={performingLabFilter} onChange={e => setPerformingLabFilter(e.target.value)}>
             <option value="">{t('tatConfigSection.allPerformingLabs')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
-          <select className="ps-conf-select" aria-label={t('tatConfigSection.filterByOrderingFacilityAria')} value={orderingFacilityFilter} onChange={e => setOrderingFacilityFilter(e.target.value)}>
+          <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByOrderingFacilityAria')} value={orderingFacilityFilter} onChange={e => setOrderingFacilityFilter(e.target.value)}>
             <option value="">{t('tatConfigSection.allOrderingFacilities')}</option>
             {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>

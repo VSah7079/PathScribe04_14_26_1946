@@ -26,6 +26,15 @@ Real, per direct investigation before building anything: `SynopticReportInstance
 
 The copy's name comes from the caller, in the user's language. The English `"(copy)"` fallback is gone, and so is Template List's hard-coded `'My Surgical Pathology Report'` (now `templateListTab.defaultCustomTemplateName`).
 
+## Batch 428: Configuration permissions
+
+- `mockReportTemplateService`: `create`, `save`, `update`, `clone`, `remove`, `archive` need `config:report-template:manage`.
+- `mockReportTemplateService`: `publish` need `config:report-template:publish`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director, plus Template Author (edit) and Template Approver (publish); see `docs/architecture/AUTHORIZATION_API.md`.
+
+Publishing a report layout is `config:report-template:publish`, separate from editing it (`config:report-template:manage`). Before, a layout went live at once with no check.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

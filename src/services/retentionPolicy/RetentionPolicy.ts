@@ -32,6 +32,7 @@
 // GoverningBody data.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { readStoredConfig } from '../systemConfig/systemConfigStore';
 export type RetainableMaterialType = 'block' | 'slide' | 'wet_tissue';
 
 export const MATERIAL_TYPE_LABEL: Record<RetainableMaterialType, string> = {
@@ -62,20 +63,15 @@ export function formatRetentionPeriod(days: number): string {
 /** Real, direct localStorage read — for service-layer code that isn't
  *  a React component and can't call useSystemConfig() the way
  *  BatchDetailView.tsx (or any other component) does. Same real
- *  storage key (contexts/SystemConfigContext.tsx's own LS_KEY) as the
+ *  store (services/systemConfig/systemConfigStore.ts, Batch 431) as the
  *  single source of truth, read directly rather than guessed at or
  *  duplicated across call sites. Falls back to 'US' — the same real
  *  default SystemConfigContext itself uses when nothing has been
  *  configured yet — so a fresh install still gets a real, sensible
  *  retention gate rather than silently skipping the check. */
 export function getCurrentJurisdiction(): import('@/types/systemConfig').Jurisdiction {
-  try {
-    const raw = localStorage.getItem('pathscribe_system_config_v2');
-    const config = raw ? JSON.parse(raw) : null;
-    return config?.jurisdiction ?? 'US';
-  } catch {
-    return 'US';
-  }
+  const config = readStoredConfig<{ jurisdiction?: import('@/types/systemConfig').Jurisdiction }>('system', {});
+  return config.jurisdiction ?? 'US';
 }
 
 /** Real, single point of calculation — the earliest real, retention-

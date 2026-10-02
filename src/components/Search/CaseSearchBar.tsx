@@ -54,9 +54,11 @@ function getCaseIdentifierFields(kind: string, c: any): string[] {
     case 'mrn':
       return [
         c.patient?.mrn,
-        c.patient?.nhsNumber,   // NHS England/Wales
-        c.patient?.chiNumber,   // Scottish CHI
-        c.patient?.ihiNumber,   // Australian IHI
+        // Batch 417: the national identifiers (NHS number, CHI, IHI…) live in one list now.
+        ...((c.patient?.nationalIdentifiers ?? []).map((i: { value: string }) => i.value)),
+        c.patient?.nhsNumber,   // demo data from before Batch 417
+        c.patient?.chiNumber,
+        c.patient?.ihiNumber,
         c.patient?.ihi,
       ];
     case 'requisition':
@@ -116,6 +118,7 @@ async function lookupCases(
               cas.accession?.accessionNumber,
               cas.id,
               cas.patient?.mrn,
+              ...((cas.patient?.nationalIdentifiers ?? []).map((i: { value: string }) => i.value)),
               cas.patient?.nhsNumber,
               cas.patient?.chiNumber,
               cas.patient?.ihiNumber,

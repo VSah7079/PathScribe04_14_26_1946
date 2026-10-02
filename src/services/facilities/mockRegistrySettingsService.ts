@@ -5,7 +5,12 @@ import { ServiceResult } from '../types';
 
 const STORAGE_KEY = 'registrySettings';
 
-const load    = () => storageGet<RegistrySettingsConfig>(STORAGE_KEY, DEFAULT_REGISTRY_SETTINGS);
+// Batch 414: the Cytology Registry settings screen used to save to the old
+// 'cytologyRegistrySettings' store, which sign-out never read. A lab that
+// chose its registry there keeps it: adopted here when this store is empty.
+const load    = () => storageGet<RegistrySettingsConfig | null>(STORAGE_KEY, null)
+  ?? storageGet<RegistrySettingsConfig | null>('cytologyRegistrySettings', null)
+  ?? DEFAULT_REGISTRY_SETTINGS;
 const persist = (d: RegistrySettingsConfig) => storageSet(STORAGE_KEY, d);
 let MOCK_CONFIG: RegistrySettingsConfig = load();
 

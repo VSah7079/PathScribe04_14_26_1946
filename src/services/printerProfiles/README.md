@@ -70,6 +70,12 @@ The answers usually settle the route without the agent.
   - Duplicating a profile doesn't copy the device (`duplicateEntities.ts`).
 - **`printerProfileList.ts`** (new): the screen's facility filter and support label, moved out of `PrinterProfilesSection.tsx`.
 
+## Batch 428: Configuration permissions
+
+- `mockPrinterProfileService`: `add`, `update`, `remove` need `config:printers:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

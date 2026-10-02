@@ -11,6 +11,7 @@ import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ISurgicalPeerReviewRiskWeightService } from './ISurgicalPeerReviewRiskWeightService';
 import type { QaSubspecialtyRiskWeight } from '@/types/quality/QaSubspecialtyRiskWeight';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'surgical_peer_review_risk_weights_v1';
 
@@ -20,7 +21,7 @@ const persist = (data: QaSubspecialtyRiskWeight[]) => storageSet(STORAGE_KEY, da
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockSurgicalPeerReviewRiskWeightService: ISurgicalPeerReviewRiskWeightService = {
+const surgicalPeerReviewRiskWeightServiceUnchecked: ISurgicalPeerReviewRiskWeightService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -45,3 +46,9 @@ export const mockSurgicalPeerReviewRiskWeightService: ISurgicalPeerReviewRiskWei
     return ok(undefined);
   },
 };
+
+/** Batch 432: setting and removing a weight needs config:qa-types:manage (QA
+ *  Configuration Center → Surgical peer review). Reads pass straight through. */
+export const mockSurgicalPeerReviewRiskWeightService: ISurgicalPeerReviewRiskWeightService = guardConfigWrites(surgicalPeerReviewRiskWeightServiceUnchecked, [
+  ['config:qa-types:manage', ['setWeight', 'removeWeight']],
+]);

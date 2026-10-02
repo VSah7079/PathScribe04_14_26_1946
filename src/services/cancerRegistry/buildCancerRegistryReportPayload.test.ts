@@ -21,6 +21,7 @@ describe('buildCancerRegistryReportPayload — real, per the RFP\'s own "structu
     expect(payload.registryId).toBe('naaccr_us');
     expect(payload.accessionNumber).toBe('S26-1000-A');
     expect(payload.patient.name).toBe('Jane Roe');
+    expect(payload.patient.nationalIdentifiers).toBeUndefined(); // Batch 417: only when the patient has some
     expect(payload.icdOCodes).toHaveLength(1);
     expect(payload.icdOCodes[0].behaviorCode).toBe('3');
     expect(payload.icd10Codes).toEqual(['C50.911']);

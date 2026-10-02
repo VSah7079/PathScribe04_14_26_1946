@@ -16,6 +16,15 @@ Both Level 1 AI-learning captures now use it, so they can't disagree about which
 - the narrative-edit signals (this lookup used to be inline in `useSignOutWorkflow.ts`);
 - the abnormal-detection agreement signals (PS-137).
 
+## Batch 428: Configuration permissions
+
+- `mockValidationStudyService`: `create`, `update`, `submitForReview`, `activate`, `close`, `remove` need `config:validation-studies:manage`.
+- `mockValidationStudyService`: `recordApproval` need `validation:approval:record`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+Activation and a recorded committee approval are stored under the signed-in person (`activatedBy`, `committeeApproval.recordedBy`); the screen passed the fixed text 'admin'. Recording the approval is its own capability, `validation:approval:record`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

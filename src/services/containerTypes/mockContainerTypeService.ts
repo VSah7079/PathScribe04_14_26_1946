@@ -2,6 +2,7 @@
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ContainerType, IContainerTypeService } from './IContainerTypeService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'container_types';
 
@@ -206,7 +207,7 @@ const persist = (data: ContainerType[]) => storageSet(STORAGE_KEY, data);
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockContainerTypeService: IContainerTypeService = {
+const containerTypeServiceUnchecked: IContainerTypeService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -235,6 +236,11 @@ export const mockContainerTypeService: IContainerTypeService = {
     return ok({ ...types[idx] });
   },
 
-  async deactivate(id) { return mockContainerTypeService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockContainerTypeService.update(id, { status: 'Active'   }); },
+  async deactivate(id) { return containerTypeServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return containerTypeServiceUnchecked.update(id, { status: 'Active'   }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockContainerTypeService: IContainerTypeService = guardConfigWrites(containerTypeServiceUnchecked, [
+  ['config:container-types:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

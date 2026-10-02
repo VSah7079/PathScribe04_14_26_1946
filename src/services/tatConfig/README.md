@@ -34,5 +34,11 @@ Pete: TAT targets "will need to move to services the API server owns". This is t
 
   Each used to read the screen's browser storage itself.
 
+## Batch 428: Configuration permissions
+
+- `mockTatTargetService`: `add`, `update`, `remove` need `config:tat-targets:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

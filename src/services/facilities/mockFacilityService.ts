@@ -1,8 +1,13 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { Facility, IFacilityService } from './IFacilityService';
-import { mockSubspecialtyService } from '../subspecialties/mockSubspecialtyService';
+// Batch 428: the catch-all subspecialty is part of saving the facility (already
+// checked under config:facilities:manage), so it is added unchecked.
+import { subspecialtyServiceUnchecked as mockSubspecialtyService } from '../subspecialties/mockSubspecialtyService';
 import { linkFacilitiesToOrganisations } from './facilityHierarchy';
+import { REFERENCE_LAB_SEEDS } from './referenceLabSeeds';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // Facility and IFacilityService now live in IFacilityService.ts — re-exporting
 // here so every existing `import { mockFacilityService, Facility } from
@@ -625,7 +630,15 @@ if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet(SEED_VERSION_KEY, SEED_VERSION);
 }
 
-const load = () => storageGet<Facility[]>('pathscribe_facilities', SEED_FACILITIES);
+// Batch 403: the demo reference labs (referenceLabSeeds.ts) are added to a
+// browser's stored facilities when missing, without replacing anything an
+// administrator changed.
+const load = () => {
+  const stored = storageGet<Facility[] | null>('pathscribe_facilities', null);
+  const { records, added } = withMissingSeedRecords(stored ?? SEED_FACILITIES, REFERENCE_LAB_SEEDS);
+  if (added > 0) storageSet('pathscribe_facilities', records);
+  return records;
+};
 const persist = (data: Facility[]) => storageSet('pathscribe_facilities', data);
 let MOCK_FACILITIES: Facility[] = load();
 
@@ -646,7 +659,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockFacilityService: IFacilityService = {
+const facilityServiceUnchecked: IFacilityService = {
   async getAll() { await delay(); return ok([...MOCK_FACILITIES]); },
 
   async getById(id: ID) {
@@ -672,12 +685,17 @@ export const mockFacilityService: IFacilityService = {
     MOCK_FACILITIES = MOCK_FACILITIES.map(f => f.id === id ? withDerivedContactName({ ...f, ...changes, updatedAt: new Date().toISOString() }) : f);
     persist(MOCK_FACILITIES);
     await ensureDefaultCatchAllPool(MOCK_FACILITIES[idx]);
+    // Batch 431: adding someone to the authorized pediatric pathologists
+    // closes their matching open pediatric access requests.
+    if ('authorizedPediatricPathologistIds' in changes) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
     return ok({ ...MOCK_FACILITIES[idx] });
   },
 
-  async deactivate(id) { return mockFacilityService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockFacilityService.update(id, { status: 'Active' }); },
-  async verify(id) { return mockFacilityService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
+  async verify(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
 
   async findOrCreateByAssigningAuthority(assigningAuthority, name, note) {
     await delay();
@@ -711,3 +729,8 @@ export const mockFacilityService: IFacilityService = {
     return ok({ ...newF });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityService: IFacilityService = guardConfigWrites(facilityServiceUnchecked, [
+  ['config:facilities:manage', ['add', 'update', 'deactivate', 'reactivate', 'verify']],
+]);

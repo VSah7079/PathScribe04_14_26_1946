@@ -24,14 +24,18 @@ import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
-import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
-import { messageService, caseService } from '../../services';
+import { messageService, actionRegistryService, newMessageMissing, secureEmailMissing, replyMissing, messagingFieldRequired, searchRecipients, findRecipientByName, MESSAGE_NOT_PERMITTED, type MessageRecipient } from '../../services';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
 import { extractCaseReferencesFromText } from '../../utils/extractCaseReferencesFromText';
 import { useMessaging } from '../../contexts/MessagingContext';
+import { caseRouter } from '@/services/cases/CaseRouter';
 import NavBar, { SystemInfoModal } from '../NavBar/NavBar';
 import ScanStationPrompt from '../ScanStationPrompt';
 import StationSwitchGuardModal from '../StationSwitchGuardModal';
+
 // Real fix, per direct report: the real Sign Out button (below) used to
 // call handleLogout() directly, with no unsaved-changes check at all —
 // while Home.tsx separately carried its own copy of this exact modal,
@@ -49,27 +53,18 @@ import { useCompanionWindow } from '../../hooks/useCompanionWindow';
 import ConfirmModal from '../Common/ConfirmModal';
 import { safeInternalPath } from '@/utils/safeInternalPath';
 import { markReturnToSearch } from '@/utils/search/searchSession';
+import { setSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
+import { usePersonalLanguage } from '@/hooks/usePersonalLanguage';
+import MyDictionaryModal from '@/components/Profile/MyDictionaryModal';
+import MyVoiceCommandsModal from '@/components/Profile/MyVoiceCommandsModal';
+
+/** Batch 396: a stable empty list, so the link memo doesn't rerun on every render. */
+const NO_ACCESSIONS: string[] = [];
 
 // ─── Internal user directory ─────────────────────────────────────────────────
-interface InternalUser { id: string; name: string; role: string; }
-const INTERNAL_USERS: InternalUser[] = [
-  { id: 'u2',  name: 'Lab Manager',          role: 'Laboratory'           },
-  { id: 'u3',  name: 'System Admin',          role: 'IT / Administration'  },
-  { id: 'u4',  name: 'Dr. Sarah Li Chen',     role: 'Pathology'            },
-  { id: 'u5',  name: 'Dr. James Emeka Okafor',role: 'Pathology'            },
-  { id: 'u6',  name: 'IT Support',            role: 'IT / Administration'  },
-  { id: 'u7',  name: 'Billing Dept',          role: 'Finance'              },
-  { id: 'u8',  name: 'Dr. Miller',            role: 'Pathology'            },
-  { id: 'u9',  name: 'Archives',              role: 'Medical Records'      },
-  { id: 'u10', name: 'QA Team',               role: 'Quality Assurance'    },
-  { id: 'u11', name: 'Dr. Aisha Priya Patel', role: 'Gastroenterology'     },
-  { id: 'u12', name: 'Transcription',         role: 'Medical Transcription'},
-  { id: 'u13', name: 'Medical Records',       role: 'Medical Records'      },
-  { id: 'u14', name: 'Dr. Wilson',            role: 'Oncology'             },
-  { id: 'u15', name: 'Compliance',            role: 'Compliance'           },
-  { id: 'u16', name: 'Supply Room',           role: 'Operations'           },
-  { id: 'u17', name: 'Dr. Lee',               role: 'Dermatopathology'     },
-];
+// Batch 385: who a message can be addressed to comes from messageService.listRecipients()
+// (it was a hard-coded list here); the searching is in services/messages/messageRecipients.ts.
+type InternalUser = MessageRecipient;
 
 const avatarInitials = (name: string) => {
   const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s*/i, '').split(' ').filter(Boolean);
@@ -111,11 +106,12 @@ export const relTime = (ts: Date | string): string => {
 
 // ── UserSearchOverlay ────────────────────────────────────────────────────────
 interface UserSearchOverlayProps {
+  directory: InternalUser[];
   alreadyAdded: string[];
   onSelect: (u: InternalUser) => void;
   onClose: () => void;
 }
-const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onSelect, onClose }) => {
+const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ directory, alreadyAdded, onSelect, onClose }) => {
   const { t } = useTranslation();
   const [q,        setQ]        = React.useState('');
   const [pending,  setPending]  = React.useState<InternalUser[]>([]);
@@ -123,10 +119,7 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
   React.useEffect(() => { ref.current?.focus(); }, []);
 
   const pendingIds = pending.map(u => u.id);
-  const results = INTERNAL_USERS.filter(u =>
-    !alreadyAdded.includes(u.id) &&
-    (u.name.toLowerCase().includes(q.toLowerCase()) || u.role.toLowerCase().includes(q.toLowerCase()))
-  );
+  const results = searchRecipients(directory, q, alreadyAdded);
 
   const toggle = (u: InternalUser) => {
     setPending(prev =>
@@ -203,6 +196,9 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
 
 // ── ComposePanel ─────────────────────────────────────────────────────────────
 interface ComposePanelProps {
+  directory: InternalUser[];
+  /** Why the last send failed, already translated (kept so the draft isn't lost). */
+  sendError?: string | null;
   recipients: InternalUser[];
   toInput: string;
   subject: string;
@@ -225,23 +221,21 @@ interface ComposePanelProps {
   onSecureEmail: () => void;
 }
 
-const ComposePanel: React.FC<ComposePanelProps> = ({
-  recipients, toInput, subject, body, isUrgent,
+export const ComposePanel: React.FC<ComposePanelProps> = ({
+  directory, sendError, recipients, toInput, subject, body, isUrgent,
   toDropdownOpen, toHighlightIdx, toInputRef,
   onRecipientsChange, onToInputChange, onSubjectChange, onBodyChange,
   onUrgentToggle, onToDropdownOpenChange, onToHighlightIdxChange, onShowUserSearch,
   onCancel, onSend, onSecureEmail,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('messaging');
   const suggestions = React.useMemo(() => {
     const q = toInput.toLowerCase().trim();
     if (!q) return [];
     const addedIds = recipients.map(r => r.id);
-    return INTERNAL_USERS.filter(u =>
-      !addedIds.includes(u.id) &&
-      (u.name.toLowerCase().includes(q) || u.role.toLowerCase().includes(q))
-    );
-  }, [toInput, recipients]);
+    return searchRecipients(directory, q, addedIds);
+  }, [toInput, recipients, directory]);
 
   React.useEffect(() => {
     onToDropdownOpenChange(suggestions.length > 0 && toInput.trim().length > 0);
@@ -268,12 +262,20 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
   };
 
   const handleBlur = () => {
-    const exact = INTERNAL_USERS.find(u => u.name.toLowerCase() === toInput.toLowerCase().trim() && !recipients.find(r => r.id === u.id));
+    const exact = findRecipientByName(directory, toInput, recipients.map(r => r.id));
     if (exact) addRecipient(exact);
     setTimeout(() => onToDropdownOpenChange(false), 150);
   };
 
-  const canSend = recipients.length > 0 && subject.trim() && body.trim();
+  // Batch 384 (PS-359): what a message needs comes from the organisation's Field Requirements.
+  const missing = newMessageMissing(recipients.length, subject, body, requirements);
+  // Batch 385: sending also needs message:internal:send, and a secure email message:secure-email:send (greyed out here; the service checks again).
+  const { has, loading } = useCapabilities();
+  const maySend = has('message:internal:send');
+  const mayEmail = has('message:secure-email:send');
+  const canSend = missing.length === 0 && maySend;
+  const canSecureEmail = missing.length === 0 && mayEmail;
+  const star = (id: string) => messagingFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
 
   return (
     <div className="ps-compose-panel">
@@ -281,7 +283,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
 
         {/* To: row */}
         <div className="ps-compose-row ps-compose-row--to">
-          <span className="ps-compose-label">{t('appShell.compose.toLabel')}</span>
+          <span className="ps-compose-label">{t('appShell.compose.toLabel')} {star('messageRecipient')}</span>
           <div className="ps-compose-to-field">
             {recipients.map(r => (
               <span key={r.id} className="ps-compose-chip">
@@ -321,7 +323,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
 
         {/* Subject */}
         <div className="ps-compose-row">
-          <span className="ps-compose-label">{t('appShell.compose.subjectLabel')}</span>
+          <span className="ps-compose-label">{t('appShell.compose.subjectLabel')} {star('messageSubject')}</span>
           <input className="ps-compose-field-input" type="text" placeholder={t('appShell.compose.subjectPlaceholder')} value={subject} onChange={e => onSubjectChange(e.target.value)} />
         </div>
 
@@ -333,7 +335,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
           </button>
           <div className="ps-compose-actions">
             <button className="ps-compose-cancel-btn" onClick={onCancel}>{t('appShell.compose.cancelButton')}</button>
-            <button className={`ps-compose-secure-btn${canSend ? '' : ' disabled'}`} disabled={!canSend} onClick={onSecureEmail} title={t('appShell.compose.secureEmailTitle')}>
+            <button className={`ps-compose-secure-btn${canSecureEmail ? '' : ' disabled'}`} disabled={!canSecureEmail} onClick={onSecureEmail} title={t('appShell.compose.secureEmailTitle')}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               {t('appShell.compose.secureEmailButton')}
             </button>
@@ -346,6 +348,13 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
 
         {/* Body */}
         <textarea className="ps-compose-textarea" placeholder={t('appShell.compose.bodyPlaceholder')} value={body} onChange={e => onBodyChange(e.target.value)} />
+        {missing.length > 0 && (
+          <p className="ps-field-still-required" role="status">
+            {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.messaging.${id}`)), i18n.language) })}
+          </p>
+        )}
+        {!maySend && !loading && <p className="ps-field-still-required" role="status">{t('appShell.messaging.notPermitted')}</p>}
+        {sendError && <p className="ps-field-still-required" role="alert">{sendError}</p>}
       </div>
     </div>
   );
@@ -444,7 +453,7 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
                   )
                 )}
               </div>
-              <div className="ps-msg-row-subject">{m.subject}</div>
+              <div className="ps-msg-row-subject">{m.subject || t('appShell.messageList.noSubject')}</div>
               <div className="ps-msg-row-preview">{m.body}</div>
             </div>
             {!m.isRead && !isEditing && <div className="ps-msg-unread-dot" />}
@@ -489,6 +498,8 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
 
 // ── ThreadPanel ───────────────────────────────────────────────────────────────
 interface ThreadPanelProps {
+  /** Why the last reply failed, already translated (kept so the draft isn't lost). */
+  sendError?: string | null;
   message: any;
   userId: string;
   inputText: string;
@@ -499,8 +510,12 @@ interface ThreadPanelProps {
   onCreateTemplate?: (messageId: string) => void;
 }
 
-const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, onInputChange, onSend, onSoftDelete, onMarkUnread, onCreateTemplate }) => {
+const ThreadPanel: React.FC<ThreadPanelProps> = ({ sendError, message, userId, inputText, onInputChange, onSend, onSoftDelete, onMarkUnread, onCreateTemplate }) => {
   const { t } = useTranslation();
+  const requirements = useFieldRequirements('messaging');
+  const { has, loading } = useCapabilities();
+  const mayReply = has('message:internal:send');
+  const canReply = replyMissing(inputText, requirements).length === 0 && mayReply;
   // Detect template requests — body contains embedded metadata marker
   const isTemplateRequest = typeof message.body === 'string' && message.body.includes('<!-- TEMPLATE_REQUEST_META:');
   const templateMeta = React.useMemo(() => {
@@ -592,18 +607,20 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, o
             onChange={e => onInputChange(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
           />
-          <button onClick={onSend} disabled={!inputText.trim()}
-            className={`ps-thread-reply-send-btn${inputText.trim() ? ' ps-thread-reply-send-btn--active' : ''}`}>
+          <button onClick={onSend} disabled={!canReply}
+            className={`ps-thread-reply-send-btn${canReply ? ' ps-thread-reply-send-btn--active' : ''}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
+        {!mayReply && !loading && <p className="ps-field-still-required" role="status">{t('appShell.messaging.notPermitted')}</p>}
+        {sendError && <p className="ps-field-still-required" role="alert">{sendError}</p>}
       </div>
     </>
   );
 };
 
 // ── SecureEmailModal ──────────────────────────────────────────────────────────
-// Compose and send a secure external email via NHSMail (demo: simulated send)
+// Compose and send a secure external email via NHSMail (demo: the send is simulated in messageService.sendSecureEmail)
 
 interface SecureEmailModalProps {
   isOpen:        boolean;
@@ -620,32 +637,55 @@ interface SecureEmailModalProps {
   onSent?:       (to: string, subject: string) => void;
 }
 
-const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
+export const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
   isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose, onSent,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('messaging');
   const [to,      setTo]      = React.useState(prefillTo);
   const [subject, setSubject] = React.useState(prefillSubject);
   const [body,    setBody]    = React.useState(prefillBody);
   const [status,  setStatus]  = React.useState<'compose' | 'sending' | 'sent'>('compose');
+  const [sendError, setSendError] = React.useState<string | null>(null);
+  const { has, loading } = useCapabilities();
+  const mayEmail = has('message:secure-email:send');
 
   // Reset form when modal opens
   React.useEffect(() => {
     if (isOpen) {
-      setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose');
+      setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose'); setSendError(null);
     }
   }, [isOpen, prefillTo, prefillSubject, prefillBody]);
 
-  const canSend = to.includes('@') && subject.trim() && body.trim();
+  // Batch 384 (PS-359): what a secure email needs comes from the organisation's Field Requirements.
+  const missing = secureEmailMissing(to, subject, body, requirements);
+  const canSend = missing.length === 0 && mayEmail;
+  const star = (id: string) => messagingFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
 
+  // Batch 385: the send (and its permission check, message:secure-email:send) is messageService.sendSecureEmail.
   const handleSend = async () => {
     if (!canSend) return;
     setStatus('sending');
-    // Simulate NHSMail SMTP handshake delay
-    await new Promise(r => setTimeout(r, 1800));
+    setSendError(null);
+    const result = await messageService.sendSecureEmail({ fromName, fromEmail, to, subject, body });
+    if (result.ok === false) {
+      setStatus('compose');
+      setSendError(t(result.error === MESSAGE_NOT_PERMITTED ? 'appShell.messaging.notPermittedSecureEmail' : 'appShell.messaging.sendFailed'));
+      return;
+    }
     setStatus('sent');
     onSent?.(to, subject);
   };
+
+  // Voice/keyboard "submit secure email": the same Send, with the same check.
+  const sendRef = React.useRef(handleSend);
+  sendRef.current = handleSend;
+  React.useEffect(() => {
+    if (!isOpen) return;
+    return actionRegistryService.onAction((actionId: string) => {
+      if (actionId === 'SECURE_EMAIL_SUBMIT' && status === 'compose') void sendRef.current();
+    });
+  }, [isOpen, status]);
 
   if (!isOpen) return null;
 
@@ -696,7 +736,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
 
             {/* To */}
             <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.toLabel')}</span>
+              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.toLabel')} {star('secureEmailTo')}</span>
               <input
                 type="email"
                 placeholder={t('appShell.secureEmailModal.toPlaceholder')}
@@ -708,7 +748,7 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
 
             {/* Subject */}
             <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.subjectLabel')}</span>
+              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.subjectLabel')} {star('secureEmailSubject')}</span>
               <input
                 type="text"
                 placeholder={t('appShell.secureEmailModal.subjectPlaceholder')}
@@ -726,6 +766,15 @@ const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
               rows={7}
               className="ps-sem-body-textarea"
             />
+
+            {missing.length > 0 && (
+              <p className="ps-field-still-required" role="status">
+                {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.messaging.${id}`)), i18n.language) })}
+              </p>
+            )}
+
+            {!mayEmail && !loading && <p className="ps-field-still-required" role="status">{t('appShell.messaging.notPermittedSecureEmail')}</p>}
+            {sendError && <p className="ps-field-still-required" role="alert">{sendError}</p>}
 
             {/* Security notice */}
             <div className="ps-sem-security-notice">
@@ -771,6 +820,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const navigate = useNavigate();
 
   const { user } = useAuth();
+  // Batch 431: the screen language follows the signed-in person.
+  usePersonalLanguage(user?.id);
   const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
   const handleLogout = useLogout();
   const location = useLocation();
@@ -844,8 +895,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   // instead of a page mount/unmount.
   useEffect(() => {
     if (portalOpen) {
-      mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.MESSAGES);
-      return () => { mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+      actionRegistryService.setCurrentContext(VOICE_CONTEXT.MESSAGES);
+      return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
     }
   }, [portalOpen]);
 
@@ -856,13 +907,22 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   // about to read. See extractCaseReferencesFromText.ts for why this
   // matches against real, known accession numbers rather than guessing
   // from a generic pattern.
-  const [knownAccessions, setKnownAccessions] = useState<string[]>([]);
+  //
+  // Batch 396 (Pete's privacy model, rule 4): only cases this reader can
+  // open become links (caseRouter.listLinkableAccessions). This used to scan
+  // every case in every organisation, which confirmed that a case existed
+  // to a reader who couldn't open it. Reloaded when the signed-in user changes.
+  const [linkable, setLinkable] = useState<{ userId: string; accessions: string[] } | null>(null);
+  const linkableUserId = user?.id ?? '';
   useEffect(() => {
-    if (!portalOpen || knownAccessions.length > 0) return;
-    caseService.getAll().then(res => {
-      if (res.ok) setKnownAccessions(res.data.map(c => c.accession?.fullAccession).filter((a): a is string => !!a));
+    if (!portalOpen || !linkableUserId || linkable?.userId === linkableUserId) return;
+    let cancelled = false;
+    void caseRouter.listLinkableAccessions().then(accessions => {
+      if (!cancelled) setLinkable({ userId: linkableUserId, accessions });
     });
-  }, [portalOpen, knownAccessions.length]);
+    return () => { cancelled = true; };
+  }, [portalOpen, linkableUserId, linkable?.userId]);
+  const knownAccessions = linkable?.userId === linkableUserId ? linkable.accessions : NO_ACCESSIONS;
 
 // ─── Drawers & Modals ──────────────────────────────────────────────────────
   // Real fix (PS-298) — same real, reusable companion-window hook DP/EMR
@@ -875,15 +935,23 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const userGuideWindow  = useCompanionWindow({ windowName: 'ps-user-guide',  preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
   const adminGuideWindow = useCompanionWindow({ windowName: 'ps-admin-guide', preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
   const [aboutOpen, setAboutOpen]             = useState(false);
+  const [myDictionaryOpen, setMyDictionaryOpen] = useState(false);
+  const [myVoiceCommandsOpen, setMyVoiceCommandsOpen] = useState(false);
   const [systemInfoOpen, setSystemInfoOpen]   = useState(false);
   const [newRecipients, setNewRecipients]     = useState<InternalUser[]>([]);
   const [newToInput,    setNewToInput]        = useState('');
+  const messagingRequirements = useFieldRequirements('messaging');
   const [newSubject,    setNewSubject]        = useState('');
   const [newBody,       setNewBody]           = useState('');
   const [showUserSearch,   setShowUserSearch]   = useState(false);
   const [toDropdownOpen,   setToDropdownOpen]   = useState(false);
   const [toHighlightIdx,   setToHighlightIdx]   = useState(0);
   const [secureEmailOpen,  setSecureEmailOpen]  = useState(false);
+  // Batch 385: who a message can go to (messageService.listRecipients), and why the last send failed.
+  const [directory, setDirectory] = useState<InternalUser[]>([]);
+  const directoryRef = useRef<InternalUser[]>([]);
+  directoryRef.current = directory;
+  const [sendError, setSendError] = useState<string | null>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Edit / selection ───────────────────────────────────────────────────────
@@ -903,13 +971,25 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const [filterType, setFilterType] = useState<'all' | 'deleted'>('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
-  const userId = user?.id ?? 'u1';
+  // Batch 396: no stand-in id. With nobody signed in there is no inbox.
+  const userId = user?.id ?? '';
   const { log } = useAuditLog();
 
+  useEffect(() => {
+    let cancelled = false;
+    void messageService.listRecipients().then(r => { if (!cancelled && r.ok) setDirectory(r.data); });
+    return () => { cancelled = true; };
+  }, []);
+
   // ─── Load inbox ─────────────────────────────────────────────────────────────
+  // A reply for someone who has since signed out is dropped.
+  const inboxUserRef = useRef(userId);
+  inboxUserRef.current = userId;
   const loadInbox = useCallback(async () => {
+    if (!userId) { setMessages([]); setSelectedMsgId(null); return; }
     setLoading(true);
     const result = await messageService.getInbox(userId);
+    if (inboxUserRef.current !== userId) return;
     if (result.ok) {
       setMessages(result.data);
       setSelectedMsgId(null);
@@ -996,8 +1076,13 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   };
 
   const handleSend = async () => {
-    if (!inputText.trim() || !selectedMsgId) return;
-    const result = await messageService.reply(selectedMsgId, userId, user?.name ?? 'Dr. Sarah Johnson', inputText);
+    if (replyMissing(inputText, messagingRequirements).length > 0 || !selectedMsgId) return;
+    setSendError(null);
+    const result = await messageService.reply(selectedMsgId, userId, user?.name ?? 'Dr. Sarah Johnson', inputText, { composedByPerson: true });
+    if (result.ok === false) {
+      setSendError(result.error === MESSAGE_NOT_PERMITTED ? t('appShell.messaging.notPermitted') : t('appShell.messaging.sendFailed'));
+      return;
+    }
     if (result.ok) {
       setMessages(prev => prev.map(m => m.id === selectedMsgId ? result.data : m));
       const msg = messages.find(m => m.id === selectedMsgId);
@@ -1008,7 +1093,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   };
 
   const handleSendNew = async () => {
-    if (!newBody.trim() || newRecipients.length === 0) return;
+    // Batch 384: the same check as the Send button (the voice "send" used to skip the subject).
+    if (newMessageMissing(newRecipients.length, newSubject, newBody, messagingRequirements).length > 0) return;
+    setSendError(null);
+    let failed: string | null = null;
     for (const recipient of newRecipients) {
       const result = await messageService.send({
         senderId:      userId,
@@ -1019,12 +1107,17 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
         body:          newBody,
         timestamp:     new Date(),
         isUrgent:      isUrgentNew,
-      });
-      if (result.ok) {
+      }, { composedByPerson: true });
+      if (result.ok === true) {
         setMessages(prev => [result.data, ...prev]);
         log('message_sent', { recipientId: recipient.id, recipientName: recipient.name, isUrgent: isUrgentNew });
+      } else {
+        failed = result.error === MESSAGE_NOT_PERMITTED ? t('appShell.messaging.notPermitted') : t('appShell.messaging.sendFailed');
+        break;
       }
     }
+    // A refused or failed send keeps the draft (it used to be cleared either way).
+    if (failed) { setSendError(failed); return; }
     setNewRecipients([]); setNewToInput(''); setNewSubject(''); setNewBody('');
     setIsUrgentNew(false); setIsDirty(false); setIsComposing(false);
   };
@@ -1084,14 +1177,14 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       return;
     }
     setPortalOpen(false);
-    sessionStorage.removeItem('ps_drawer_open');
+    clearSessionFlag('ps_drawer_open');
     resetDrawerState();
   };
 
   const confirmCloseDrawer = () => {
     setPendingCloseDrawer(false);
     setPortalOpen(false);
-    sessionStorage.removeItem('ps_drawer_open');
+    clearSessionFlag('ps_drawer_open');
     resetDrawerState();
   };
 
@@ -1169,7 +1262,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     // Send/Urgent/etc. all keep working unchanged from here.
     const msgComposeTo = (e: Event) => {
       const { staffId, subject } = (e as CustomEvent<{ staffId: string; subject: string }>).detail ?? {};
-      const recipient = INTERNAL_USERS.find(u => u.id === staffId);
+      const recipient = directoryRef.current.find(u => u.id === staffId);
       setPortalOpen(true);
       setPreviousMsgId(selectedMsgId);
       setSelectedMsgId(null);
@@ -1461,7 +1554,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                         {currentMsg.caseNumber && (
                           <button className="ps-msg-case-link" data-phi="accession" onClick={() => {
                             setPortalOpen(false);
-                            sessionStorage.setItem('ps_reopen_messages', '1');
+                            setSessionFlag('ps_reopen_messages', '1');
                             // Real fix, per direct follow-up: "I assume
                             // we will launch the Internal Notes Drawer
                             // when the case gets selected from the
@@ -1486,7 +1579,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                         {detectedCaseRefs.map(ref => (
                           <button key={ref} className="ps-msg-case-link" data-phi="accession" onClick={() => {
                             setPortalOpen(false);
-                            sessionStorage.setItem('ps_reopen_messages', '1');
+                            setSessionFlag('ps_reopen_messages', '1');
                             navigate(`/report/${ref}`, { state: { fromMessages: true, openInternalNotes: true } });
                           }}>
                             {t('appShell.thread.caseLinkLabel', { caseNumber: ref })}
@@ -1571,6 +1664,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               <div className="ps-msg-content">
                 {isComposing ? (
                   <ComposePanel
+                    directory={directory}
+                    sendError={sendError}
                     recipients={newRecipients}
                     toInput={newToInput}
                     subject={newSubject}
@@ -1594,6 +1689,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                   />
                 ) : selectedMsgId && currentMsg ? (
                   <ThreadPanel
+                    sendError={sendError}
                     message={currentMsg}
                     userId={userId}
                     inputText={inputText}
@@ -1635,6 +1731,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {showUserSearch && (
         <div className="ps-user-search-overlay">
           <UserSearchOverlay
+            directory={directory}
             alreadyAdded={newRecipients.map(r => r.id)}
             onSelect={(u) => { setNewRecipients(prev => [...prev, u]); setShowUserSearch(false); toInputRef.current?.focus(); }}
             onClose={() => setShowUserSearch(false)}
@@ -1646,6 +1743,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
       {/* MODALS */}
       {systemInfoOpen && <SystemInfoModal onClose={() => setSystemInfoOpen(false)} />}
+      {myDictionaryOpen && <MyDictionaryModal onClose={() => setMyDictionaryOpen(false)} />}
+      {myVoiceCommandsOpen && <MyVoiceCommandsModal onClose={() => setMyVoiceCommandsOpen(false)} />}
 
       {aboutOpen && (
         <div className="ps-overlay" onClick={() => setAboutOpen(false)}>
@@ -1674,6 +1773,15 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                   <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
                 </svg>
                 {t('appShell.aboutModal.adminGuide')}
+              </button>
+              <div className="ps-about-menu-divider" />
+              {/* Batch 432: the person's own spelling dictionary and learned voice commands. */}
+              <button onClick={() => { setAboutOpen(false); setMyDictionaryOpen(true); }} className="ps-about-menu-item">
+                {t('profileMenu.myDictionary.title')}
+              </button>
+              <div className="ps-about-menu-divider" />
+              <button onClick={() => { setAboutOpen(false); setMyVoiceCommandsOpen(true); }} className="ps-about-menu-item">
+                {t('profileMenu.myVoiceCommands.title')}
               </button>
               <div className="ps-about-menu-divider" />
               <button

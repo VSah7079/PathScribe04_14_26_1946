@@ -150,7 +150,9 @@ const themeVars = (theme: EditorThemeTokens): React.CSSProperties => ({
 const editorWrapVars = (theme: EditorThemeTokens, minHeight: string, font?: string): React.CSSProperties => ({
   ...themeVars(theme),
   '--pse-min-height': minHeight,
-  '--pse-font-family': `${font || 'Arial'}, sans-serif`,
+  // Batch 391: Korean typed in any approved font is drawn in Pretendard (none of
+  // the approved fonts has Hangul), the same font the Korean report PDF prints in.
+  '--pse-font-family': `${font || 'Arial'}, 'Pretendard Variable', sans-serif`,
 } as React.CSSProperties);
 
 

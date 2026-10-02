@@ -35,10 +35,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { generateCytologyReportPdfWithAttachments } from './generateCytologyReportPdf';
+import type { CytologyPdfLabels } from './cytologyPdfLabels';
 import type { CytologyReportContent } from '@/types/cytology/CytologyReportContent';
 
 export interface CytologyPdfWorkerRequest {
   content: CytologyReportContent;
+  /** Batch 391: the PDF's wording for the report's language, resolved on the main thread (this worker has no i18n). */
+  labels?: CytologyPdfLabels;
 }
 
 export type CytologyPdfWorkerResponse =
@@ -49,7 +52,7 @@ const workerSelf = self as unknown as Worker;
 
 workerSelf.onmessage = async (event: MessageEvent<CytologyPdfWorkerRequest>) => {
   try {
-    const bytes = await generateCytologyReportPdfWithAttachments(event.data.content);
+    const bytes = await generateCytologyReportPdfWithAttachments(event.data.content, event.data.labels);
     const response: CytologyPdfWorkerResponse = { ok: true, bytes };
     // Real, deliberate Transferable — hands the underlying
     // ArrayBuffer to the main thread instead of structured-cloning

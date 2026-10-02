@@ -193,6 +193,18 @@ Pete: hospital administrators have no control over Superadmin.
 - **Its role editor opens read-only**, with a banner saying it's ForMedrixAI's, that it can't be changed or given to anyone, and that support opening a case is audited. There is no Save.
 - **Hospital roles' Capabilities tabs** don't list the ForMedrixAI platform group. Their capability count excludes it too.
 
+## Batch 429: view-only sections, equipment log for the bench
+
+The FPPE and cytotechnologist competency panels are wrapped in `ConfigSectionGate`.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+`?section=members|roles|credentialing` opens a sub-tab (Configuration search, links).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

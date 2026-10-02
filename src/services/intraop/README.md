@@ -30,6 +30,22 @@ Every write in `mockIntraoperativeService.ts` announces itself (`announceIntraop
 
 Events carry ids only (session, specimen, location, facility), never patient data.
 
+## Batch 399: the verbal report, critical results and "Surgeon unavailable" (Pete)
+
+- **Why:** a frozen result may go to the surgeon or an authorized member of the surgical team; the read-back is mandatory; the record must say who received it and when. For a critical result, direct communication with the operating surgeon is expected, and the pathologist records why not.
+- `verbalReport.ts`: the rules every report meets (who, role, read-back; a "Surgeon unavailable" reason when a critical result goes to anyone else; "Other" needs a note of at least three real words), the stored record (`buildVerbalReportLog`; the time is the system clock), the audit line, recipient suggestions (the session's surgeon, then the physician directory) and "Operating surgeon" filling in the session's surgeon.
+- `recordVerbalReport(sessionId, input)` now takes the structured input, refuses an incomplete one (`VERBAL_REPORT_INCOMPLETE`) and writes an audit entry. The merge carries who actually received it, their role, the read-back, the critical decision and any reason into the case's critical result record; before, the session's surgeon was recorded as the recipient.
+- `matchIntraopCriticalResults.ts`: which dictionary entries a session's frozen results match, by preliminary category or a term in the diagnosis. Negation- and uncertainty-aware (Pete's edge cases): clauses split at punctuation and "but/though/however/except"; a negation up to four words before the term, or after it in the same clause, clears it; "cannot be ruled out", "cannot exclude", "suspicious", "possible" always keep it. When in doubt it flags; the pathologist decides.
+- `mockIntraopCriticalResultService.ts` (+ `intraopCriticalResultSeeds.ts`): the dictionary (Configuration → System → Intraoperative critical results). Changes need `config:intraop-critical-results:manage`.
+
+## Batch 400: dictating the verbal report (Pete)
+
+- `parseVerbalReportDictation.ts`: from one dictated sentence, proposes who received the report, their role, the read-back and a "Surgeon unavailable" reason if one is mentioned. AI first (the organisation's model, `defaultVerbalReportDictation.ts`), keyword rules when there's no model or it fails.
+- The session's patient name, MRN and date of birth are replaced with [PATIENT] before the text is sent to the model (the read-back protocol means they may be said aloud).
+- The read-back is proposed only when the words say it explicitly and not negated, whichever engine; the model can't add one. A reason is only highlighted, never chosen. Nothing already entered is overwritten (`applyDictationProposal`). The time is never taken from speech.
+- The log records which fields came from dictation and the engine (`VerbalReportLog.dictation`), and the audit line says they were checked by the pathologist.
+- Pete: logging a verbal report needs no permission of its own; everyone who can use the Intraop page (often on a phone) can log one.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

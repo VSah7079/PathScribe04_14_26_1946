@@ -25,7 +25,7 @@ The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashb
 - **`AddOnOrderPage.tsx`** — the page itself: a search/scan-an-accession landing state (genuinely new for this series — every sibling scans a block/slide directly), the header/context bar (Accession, Patient, Case Status, Primary Pathologist), the three-panel layout, and the Order Tracking dashboard below it.
 - **`components/BlockContextPanel.tsx`** — the left panel: every real block on the case, grouped by specimen, with levels-already-cut count, Tiny Tissue/Fragile flags, and a real status badge (Exhausted/Lost/Damaged/Cancelled) that also disables selection.
 - **`components/OrderBuilderPanel.tsx`** — the center panel: the Quick-Add Order Matrix (Recut/Special Stain/IHC/Molecular kind toggle, category-filtered stain search, IHC panel picker, level-depth input, control-pairing mode).
-- **`components/OrderSummaryRoutingPanel.tsx`** — the right panel: the active cart, priority selector, slide media/charge selector, cutting instructions, the routing preview (which real stations this order would actually reach, from `stationsForRouting`), the Reference/Send-Out Lab picker (shown only when the cart has a molecular line), and submit.
+- **`components/OrderSummaryRoutingPanel.tsx`** — the right panel: the active cart, priority selector, slide media/charge selector, cutting instructions, the routing preview (which real stations this order would actually reach, from `stationsForRouting`), a Reference/Send-Out Lab picker on each molecular line (since Batch 403; before, one picker for the whole order), and submit.
 - **`components/OrderTrackingDashboard.tsx`** — the full-width dashboard: every real add-on order on the case with its live, derived stage; "Mark Block Retrieved"; "Flag Exception" (§5's own tech-side trigger); and, for an order with an open exception, the real Cancel/Modify/Approve-Destructive-Cutting response actions.
 - **`hooks/useAddOnOrderStation.ts`** — case load/persist (real accession search via `caseRouter.getCase`, same lookup every other case-scoped page already uses), order submission across every selected block, the tracking-dashboard aggregation, the exception flag/resolve wrappers (including the real, transport-only pathologist-notification email), and routing-station resolution.
 
@@ -52,6 +52,23 @@ Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `AddOnOrderPage.tsx`: the accession in the context bar is tagged.
+
+## Batch 403 (PS-287 / PS-359): Field Requirements, permissions, reference labs
+
+- **Permissions** (Pete: both, for Pathologist, Fellow and Resident): `add-on:order:place` and `add-on:exception:approve-destructive-cut`, checked in `services/addOnOrders/addOnOrderActions.ts`. The Submit, Approve, Modify and Cancel buttons are greyed without them.
+- **Field Requirements** (page "addOnOrder"):
+  - Blocks and order lines are locked.
+  - The send-out lab is locked (Pete: an unrouted send-out leaves blind spots in the courier and tracking logs).
+  - The recut level depth, bench instructions, exception note and response note are switches, off by default.
+  - Required labels are starred, "Still required: …" is shown, and buttons stay off until complete.
+- **Reference labs:** each molecular or send-out line has its own lab. It fills in from the test's default in the Stain Dictionary, or from its only approved lab. The picker offers only the labs approved for that test, or every active reference lab when none is linked. This replaces the single lab picker that applied to the whole order.
+- **Modify & Resubmit** used to resubmit the order unchanged. It now opens the level depth and bench instructions for editing.
+- **Voice:** the page sets `VOICE_CONTEXT.ADD_ON_ORDER`. "add to order" (Ctrl+Alt+Shift+A) and "submit order" (Ctrl+Alt+Shift+S) act as the buttons do.
+- **Translated:** IHC panel names, routing queues, exception reasons, case status, and the search and refusal messages. The stored values stay English. Each exception row keeps its own response note, so typing on one row no longer fills another's.
+- **Moved to `utils/`:** the stain filter, the line building and the default lab. The hook reads scan stations through `@/services` and is off the deployment baseline.
+- **Fixed:** an order on two blocks of the same specimen lost the first block's new orders (see `services/addOnOrders/`).
+- **Demo:** S26-4401-BX-001 has orders at every stage (`services/cases/addOnOrderDemo.ts`), and there are three seeded reference labs.
+- **Tests:** `components/addOnOrderRequirements.test.tsx`.
 
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*

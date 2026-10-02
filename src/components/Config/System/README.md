@@ -1246,6 +1246,83 @@ Saving goes through `services/templates/templateGovernanceSettings.ts → saveTe
 - **Batch 381, `FieldRequirementsSection`:** the Case report page's group 2: Holds, Comments, Delegation, Biopsy arrays, and Block cancellation and restains.
 
 - **Batch 382, `FieldRequirementsSection`:** two more Case report groups: Frozen-final reconciliation, and Billing changes after sign-out (all locked).
+- **Batch 383, `FieldRequirementsSection`:** the last two Case report groups: Autopsy forms and Sign-out gates (mostly locked; the consent scope and the fixation "no time possible" reason are optional switches).
+- **Batch 384, `FieldRequirementsSection`:** a fourth page, Messaging, with the groups New message, Secure email and Reply (recipient and text locked; the subject is a switch).
+- **Batch 390, `FieldRequirementsSection`:** the Cytology page's sixth group, Correction / addendum (reason and addendum text, both locked).
+
+## Batch 386
+
+`FieldRequirementsSection`: the Cytology screening page, with the groups Cytology review (Bethesda), CISOE-A review, 5-year retrospective review and Cyto-histologic correlation.
+
+## Batch 388
+
+`FieldRequirementsSection`: the Microtomy workstation page, with the group Slide orders (Comments already existed).
+
+## Batch 392
+
+`OutboundMessagePreviewSection`: an ORU^R01 preview is the message exactly as a release sends it, report PDF included; a result without a PDF says it would be held.
+
+## Batch 397
+
+`FieldRequirementsSection.tsx` takes its group order from `FIELD_GROUP_ORDER` in `services/fieldRequirements/fieldRequirementRules.ts`, so a new group can't be left off the screen. It now lists the Intraop page.
+
+## Batch 399
+
+`IntraopCriticalResultsSection.tsx`: **Intraoperative critical results** (Lab Materials & Workflows). Add, edit, deactivate entries: a name, a description, match terms and preliminary categories. Buttons are greyed without `config:intraop-critical-results:manage`; the service checks it.
+
+## Batch 403
+
+`StainDictionarySection.tsx` (Molecular tests) has two new controls: "Reference labs approved for this test" (ticks), and a "Default lab" choice when more than one lab is ticked. Add-on orders use them to fill in the lab and to limit the choices. Molecular targets now come through `@/services`, so the file is off the deployment baseline.
+
+## Batch 406
+
+`DeckLayoutEditor.tsx`, shown in the equipment editor for analysers, edits the deck layout (instrument profile). Each slot has its id, deck or bay, and the rack types it takes (sample tube rack, extraction plate, reagent cartridge). `EquipmentSection.tsx` saves it with the rest of the record. Rack Loading and the plate builder offer only the slots that fit.
+
+## Batch 422
+
+`CancerRegistrySettingsSection.tsx` rebuilt: the thirteen registries from `cancerRegistryDefinitions.ts` (COSD relabelled England, since Scotland and Northern Ireland now have their own), each registry's jurisdictions, identifier, wire format and a "confirm with the registry" badge; the environment (test / live) and whether the jurisdiction honours a patient's opt-out (both read by the services since Batches 418–419 with no control until now); every save through `saveCancerRegistrySettings` (`config:cancer-registry:manage`, `CapabilityButton`, audited). No direct mock imports: off the deployment baseline.
+
+## Batch 423
+
+The test/live selector on Cancer Registry Reporting is replaced by the go-live panel (`components/Config/RegistryGoLive/`), with a registry chooser when facility overrides use other registries.
+
+## Batch 424
+
+Cancer Registry Reporting's connection panel now works per registry. Going live with one cancer registry no longer switches the others.
+
+## Batch 425
+
+`TemplateGovernanceSection` greys its two controls out without `config:template-governance:manage` and says why. The save checks the capability too.
+
+## Batch 428: Configuration permissions
+
+Each section's save is checked in its service; the table is in `docs/architecture/AUTHORIZATION_API.md`. Changes in this folder:
+- `RetentionSection.tsx`: loads and saves through `services/retention/retentionPolicyService.ts` (`config:retention-policy:manage`) instead of browser storage; off the deployment baseline.
+- `DocumentStyleSection.tsx`: saves through `services/reportAppearance/saveDocumentStyle.ts` (`config:report-appearance:manage`).
+- `DepartmentsSection.tsx`: the below-floor retention audit entry is written by `services/departments/auditRetentionOverride.ts` under the signed-in person (it said "super-admin"); case masks come from the barrel; off the deployment baseline.
+- `CasePoolAssignmentSection.tsx`, `RoutingRulesSection.tsx`: saves and "Run now" wait for the check (`config:case-routing:manage`, `case:routing:run`).
+- `AssistLisPollingSection.tsx`: poll now, paste a message and retry need `assist:lis-message:ingest`; a refusal shows the Configuration page's banner.
+- `CountrySigningRulesSection.tsx`: saved under `platform:signing-rules:manage` (ForMedrixAI support), which replaces the role check.
+- `OutboundMessagePreviewSection.tsx`, `DftExportPreviewSection.tsx`: each preview needs `config:interface-preview:view` (they show patient data).
+- **Deleted:** `SpecimenCategoriesSection.tsx` and `PatientMatchReviewSection.tsx` here (unused; the live patient-match review is `components/QualityAssurance/PatientMatchReviewSection.tsx`). References to them above are historical.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+Every section here is wrapped in `ConfigSectionGate` (`index.tsx`). Navigation and view buttons in Vendor integrations, Storage locations, Processing protocols (history), TAT (simulator, filter), the modifier and RVU tables (older versions) are marked `data-config-nav` so they stay usable view only. The equipment log is also on Batch Management (`pages/BatchManagement/EquipmentServiceLogPage.tsx`).
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+- The section list and group labels moved to `systemSections.ts` (shared with the Configuration search).
+- Document Style has a "Page size and margins" block: the lab's page size and margins (`services/reportAppearance/pageSetup.ts`).
+- `documentStyleConfig.ts` keeps the styles in the lab settings store.
+
+## Batch 432
+
+`SurgicalPeerReviewRiskWeights.tsx` (new), shown in the QA Configuration Center editor for the Surgical Post-Sign-Out Peer Review type.
 
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*

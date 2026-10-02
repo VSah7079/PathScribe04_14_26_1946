@@ -113,7 +113,7 @@ const MigrationFieldMappingsSection: React.FC = () => {
       </div>
 
       {sourceSystems.length > 0 && (
-        <select className="ps-conf-select ps-mfm__source-filter" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
+        <select data-config-nav className="ps-conf-select ps-mfm__source-filter" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
           <option value="All">{t('migrationFieldMappingsSection.allSourceSystems')}</option>
           {sourceSystems.map(s => <option key={s} value={s}>{s}</option>)}
         </select>

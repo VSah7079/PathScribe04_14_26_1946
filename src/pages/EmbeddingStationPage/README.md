@@ -6,7 +6,7 @@
 
 ## Files
 
-- **`EmbeddingStationPage.tsx`** — the page itself: a scan-to-begin entry state; once a block/cassette resolves, a three-panel layout (Left: a quick specimen block summary — every block on this specimen and its status, current one marked; Center: `EmbeddingCenterPanel`; Right: `CassettePrintPanel`). Owns the mandatory-reason reprint modal (same `ps-overlay`/`ps-modal-dark` convention as Microtomy's own remove-reason modal) and the block Comment Drawer. Also owns the global `PATHSCRIBE_SCAN` listener, identical `STATION:`-prefix-guarded pattern to every other real listener in this app.
+- **`EmbeddingStationPage.tsx`** — the page itself: a scan-to-begin entry state; once a block/cassette resolves, a three-panel layout (Left: a quick specimen block summary — every block on this specimen and its status, current one marked; Center: `EmbeddingCenterPanel`; Right: `CassettePrintPanel`). Owns the mandatory-reason reprint modal (`components/CassetteReprintModal.tsx` since Batch 401; same `ps-overlay`/`ps-modal-dark` convention as Microtomy's own remove-reason modal) and the block Comment Drawer. Also owns the global `PATHSCRIBE_SCAN` listener, identical `STATION:`-prefix-guarded pattern to every other real listener in this app.
 - **`components/EmbeddingCenterPanel.tsx`** — the center-panel interactive controls: toggleable Tiny Tissue/Fragile/Decal Required alert badges plus read-only derived Biopsy/Needle Core badges, Piece Count Verification (expected-vs-observed with a Confirm action), Discrepancy Reporting (the four real one-touch reason buttons), Base Mold Size quick-select chips, Orientation Instructions (free-text + quick-fill buttons), and Multi-Cassette/Split-Block grouping (pick sibling blocks on this specimen, group them, see a pending/complete banner once grouped).
 - **`components/CassettePrintPanel.tsx`** — the right-panel device status, on-demand cassette reprint action (requests the parent's mandatory-reason modal rather than owning it — see that file's own header comment), cumulative reprint count/last reason, and a schematic (non-decodable) cassette label preview — same honest "no real printer telemetry" posture as `HardwarePrintPanel.tsx`'s own header comment.
 - **`components/CommentDrawer.tsx`** — a self-contained copy of the block-comment drawer (not a shared import from `MicrotomyWorkstationPage/`), deliberately simpler than that one: embedding-station comments have no "prints on label" concept, so there's no print toggle here.
@@ -26,7 +26,7 @@
 - **Multi-Cassette / Split-Block Tracking is deliberately the opposite concept from the pre-existing `sharedCassetteId`** (multiple *specimens* sharing one cassette): `splitBlockGroupId` covers one *specimen's* tissue split across several cassettes (A1/A2/A3). The two fields are never conflated or cross-checked against each other in this pass.
 - **Biopsy/Needle Core alert badges are deliberately NOT new stored booleans** — they're derived live from the specimen's own linked `SpecimenEntry.type`/`procedure` (looked up once per work item), never a second, driftable copy of a fact the dictionary entry already states.
 - **"Audit Triggers: routes an alert to the histotechnology supervisor"** is implemented as the real, existing `def-tissue-discrepancy` deficiency landing in the real, existing QA working queue (`QualityAssurancePage.tsx`) supervisors already monitor — not a new, separate paging/notification channel.
-- Deliberate scope cuts for this pass, matching PS-284's own documented precedent exactly: no `MatrixBlock`-level scan resolution or embedding (a cassette shared by multiple specimens is a genuinely separate data shape, not covered here), schematic (non-decodable) cassette label preview, no action-registry/voice wiring.
+- Deliberate scope cuts for this pass, matching PS-284's own documented precedent exactly: no `MatrixBlock`-level scan resolution or embedding (a cassette shared by multiple specimens is a genuinely separate data shape, not covered here), schematic (non-decodable) cassette label preview. (Voice wiring was also out of scope here at first; Batch 401 added it, see below.)
 - **Real fix (foot-pedal follow-up, Sep 2026):** foot-pedal support was originally disclaimed here as out of browser reach — re-verified and found incorrect. `useFootPedal.ts` (same real hook already working for `SynopticReportPage.tsx`'s dictation controls and now `MicrotomyWorkstationPage.tsx`'s own Print/Etch Next) is now wired into this page: Pedal 1 confirms piece count against the expected, grossing-recorded count — PS-285's own named "hands-free triggers for piece-count confirmation." Guarded to no-op with no open work item, no known expected count, or a block already `'Embedded'`. Its sibling trigger, "advancing to next queued cassette," is deliberately NOT wired — this page has no real queue/next-item navigation to advance (a pure scan-to-open, single-cassette workspace), so there's nothing honest to bind a pedal to yet.
 
 
@@ -37,6 +37,20 @@
 ## Batch 367 (PS-74): no inline CSS
 
 `components/CassettePrintPanel.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
+
+## Batch 401 (PS-359): Field Requirements
+
+The page follows the organisation's Field Requirements (page "embedding", `services/fieldRequirements/embeddingChecks.ts`):
+
+- **Confirm** (piece count): the observed count is locked and must be a whole number of 0 or more (before, any number typed, even negative or a fraction, went through to the operation). The base mold size and orientation instructions are optional switches an organisation can turn on. Required labels are starred, "Still required: …" says what is missing, and Confirm stays off until it is complete. Confirm now sends the orientation box's current text with it, saved in the same update, so text typed just before Confirm is neither missed nor overwritten.
+- **Comment drawer:** the comment text (locked), same pattern.
+- **Cassette reprint:** `components/CassetteReprintModal.tsx`. Before, choosing a reason in the list reprinted at once, so a mis-tap printed a label; now the reason is chosen, then Reprint pressed. The reason is locked.
+- `hooks/useEmbeddingStation.ts` checks the same rules for Confirm, Add comment and Reprint, so the foot pedal (Pedal 1, Confirm) is held to them too. It reads the scan station through `@/services` and came off the deployment baseline.
+- **Voice:** the page sets `VOICE_CONTEXT.EMBEDDING` while open: "confirm count" / "confirm embedding" (`EMBEDDING_CONFIRM_PIECE_COUNT`, Ctrl+Alt+Shift+C) and "add comment" (`EMBEDDING_ADD_COMMENT`, Ctrl+Alt+Shift+A) act exactly as the buttons do.
+- **Translated:** block status, mold sizes, orientation quick fills (inserted in the user's language, since the field is free text), discrepancy and reprint reasons (still stored in English), the comment times (user's locale), the scan errors and the reprint errors.
+- The EmbeddingCenterPanel is keyed by block, so scanning a new cassette while one is open no longer carries the previous block's typed count and orientation over.
+- Tests: `components/embeddingRequirements.test.tsx`.
+- Not changed: the split-block panel and the Tissue Discrepancy deficiency's comment text (a stored QA record, English).
 
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*

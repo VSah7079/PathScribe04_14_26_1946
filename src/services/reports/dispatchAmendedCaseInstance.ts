@@ -29,7 +29,8 @@
 import { caseRouter } from '../cases/CaseRouter';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
-import { buildOruR01Payload } from './buildOruR01Payload';
+import { prepareOruR01Dispatch } from './prepareOruR01Dispatch';
+import type { GenerateReportPdf } from './resolveOruReportPdf';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 
 export async function dispatchAmendedCaseInstance(
@@ -42,6 +43,8 @@ export async function dispatchAmendedCaseInstance(
    *  the full reasoning; this function never fetches or constructs
    *  it itself either. */
   previouslyReportedAs?: string,
+  /** Batch 392: the release's PDF (the one printing gets), if one was made. */
+  generatePdf?: GenerateReportPdf,
 ): Promise<void> {
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return;
@@ -53,19 +56,23 @@ export async function dispatchAmendedCaseInstance(
   // organisationId to enqueue against.
   if (!patient) return;
 
-  const payload = await buildOruR01Payload(caseId, instanceId, resultState, undefined, undefined, previouslyReportedAs);
-  // Real, honest skip — buildOruR01Payload() itself returns null for a
-  // genuinely nonexistent instance or a non-orchestrator case; never a
-  // fabricated payload.
-  if (!payload) return;
+  // Batch 392: with its PDF, or held for retry when there is none.
+  const prepared = await prepareOruR01Dispatch(caseId, instanceId, resultState, { generatePdf, previouslyReportedAs });
+  if (prepared.ok === false && prepared.reason === 'not_found') return;
 
   const enqueueRes = await mockOutboundResultQueueService.enqueue({
     caseId, instanceId, resultState,
     organisationId: patient.organisationId,
   });
   if (!enqueueRes.ok) return;
+  if (prepared.ok === false) {
+    await mockOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+      errorCode: 'DISPATCH_REJECTED', errorMessage: prepared.error, maxRetriesExceeded: false,
+    });
+    return;
+  }
 
-  const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', payload);
+  const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', prepared.payload);
   if (result.ok) {
     await mockOutboundResultQueueService.markSent(enqueueRes.data.id);
   } else {

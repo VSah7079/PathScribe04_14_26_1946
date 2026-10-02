@@ -11,8 +11,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
-import { stainTypeService, molecularTargetService, cassetteColorService, blockCancelMissing, restainMissing, chosenReason, type ResolvedFieldRequirement } from '@/services';
+import { stainTypeService, molecularTargetService, cassetteColorService, blockCancelMissing, restainMissing, chosenReason, blockGrossingFieldsMissing, isFieldRequired, type ResolvedFieldRequirement } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { GrossingFieldNote, RequiredMark } from '@/components/Grossing/GrossingFieldNote';
 import { formatDateTime } from '@/utils/formatDate';
 import { WsiViewerLaunchButton } from '../components/WsiViewerLaunchButton';
 import type { StainType } from '@/services/stains/IStainService';
@@ -686,6 +687,11 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
   const { t, i18n } = useTranslation();
   // Batch 381 (PS-359): the cancel-block and restain forms' requirements.
   const requirements = useFieldRequirements('report');
+  // Batch 397: the Grossing page's per-block rules (piece count and
+  // description), marked here where they're entered; checked at Complete grossing.
+  const grossingRequirements = useFieldRequirements('grossing');
+  const pieceCountRequired = isFieldRequired(grossingRequirements, 'pieceCount');
+  const pieceDescriptionRequired = isFieldRequired(grossingRequirements, 'pieceDescription');
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   const [masterTargets, setMasterTargets] = useState<MolecularTarget[]>([]);
   // Real, per the RFP-APLIS-2026-GLOBAL Grossing Station Hardware
@@ -1032,7 +1038,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     handleUpdateBlock). */}
                 <div className="ps-conf-form-row">
                   <div className="ps-conf-form-field">
-                    <label className="ps-conf-label" htmlFor={`block-piece-count-${block.id}`}>{t('blockStainEditorModal.piecesGrossedLabel')}</label>
+                    <label className="ps-conf-label" htmlFor={`block-piece-count-${block.id}`}>{t('blockStainEditorModal.piecesGrossedLabel')}<RequiredMark required={pieceCountRequired} /></label>
                     <input
                       id={`block-piece-count-${block.id}`} type="number" min={0} className="ps-conf-input"
                       disabled={block.status === 'Cancelled'}
@@ -1043,6 +1049,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                         onUpdateBlock(specimenId, block.id, { pieceCount: n });
                       }}
                     />
+                    <GrossingFieldNote missing={block.status !== 'Cancelled' && blockGrossingFieldsMissing(block, grossingRequirements).includes('pieceCount')} />
                   </div>
                   <div className="ps-conf-form-field">
                     <label className="ps-blockstain-checkbox-label">
@@ -1058,7 +1065,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                   </div>
                 </div>
                 <div className="ps-conf-form-field ps-blockstain-field-spaced">
-                  <label className="ps-conf-label" htmlFor={`block-piece-desc-${block.id}`}>{t('blockStainEditorModal.pieceDescriptionLabel')}</label>
+                  <label className="ps-conf-label" htmlFor={`block-piece-desc-${block.id}`}>{t('blockStainEditorModal.pieceDescriptionLabel')}<RequiredMark required={pieceDescriptionRequired} /></label>
                   <input
                     id={`block-piece-desc-${block.id}`} type="text" className="ps-conf-input"
                     disabled={block.status === 'Cancelled'}
@@ -1066,6 +1073,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     placeholder={t('blockStainEditorModal.pieceDescriptionPlaceholder')}
                     onChange={e => onUpdateBlock(specimenId, block.id, { pieceDescription: e.target.value || undefined })}
                   />
+                  <GrossingFieldNote missing={block.status !== 'Cancelled' && blockGrossingFieldsMissing(block, grossingRequirements).includes('pieceDescription')} />
                 </div>
                 {/* Real, per direct follow-up: "add tissue
                     descriptions on cassettes as that would be good

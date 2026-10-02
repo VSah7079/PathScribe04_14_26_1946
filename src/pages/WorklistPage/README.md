@@ -132,5 +132,24 @@ specific to this page.
 
 `AmendedAddendaTriageTile.tsx`: each item's case number is tagged.
 
+## Batch 395
+
+The case table now always reaches the bottom of the window (`hooks/useFillViewportHeight`). It used to measure its height once, 50 ms after the page opened, so when the banners and tiles above finished loading and got shorter it kept the smaller height and left empty space below (Pete's screenshot).
+
+Also Batch 395: the peer-review queue tiles wrap their labels inside the tile (at most three lines, full text as a tooltip) instead of running past the edge.
+
+## Batch 416: the table fills the screen
+
+Pete: "too much dead space in the worklist". Two causes, both fixed:
+
+- **The page was taller than its space.** `.ps-wl-page` was the full window height (`var(--app-height, 100vh)`), but it sits under the 105 px nav bar, in an outlet that clips. Its bottom 105 px were always out of sight. It's now `height: 100%` of the outlet, the fix other pages already had.
+- **The table's height was measured in script and stuck.** `useFillViewportHeight` re-measures when the page body changes size, but this page is exactly window-height, so the body never changes and the height could stay at its 400 px starting value. The table wrapper (`.ps-table-scroll-wrap--fill`) is now a flex item that takes all the height left below the tiles. No measurement, no `tableHeight` prop.
+
+Checked in a browser at 1920×945: the table ends 12 px (the page padding) above the window's bottom edge. `worklistLayout.guard.test.ts` keeps both rules in place.
+
+## Batch 431
+
+The "access requested" marker upkeep is gone (the badges come from request records); the context and branch filters use session flags.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

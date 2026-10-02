@@ -30,6 +30,66 @@ Cassette/slide chain-of-custody through histology processing nodes, plus the thr
 
 `DisposalReportPage.tsx` used the Quality Assurance export helper. It now calls `utils/csv.ts` directly, because the waste-tracking report isn't one of the QA report capabilities. Its export isn't gated yet; it's on the PS-357 sweep list.
 
+## Batch 404 (PS-359): Field Requirements, permissions, demo batches
+
+- **New Container** follows the organisation's Field Requirements (page "batchManagement", `services/fieldRequirements/batchChecks.ts`).
+  - Locked, as before: the protocol, a reusable rack's ID, a decal batch's target duration, a referral's destination lab, and a cytology batch's stain.
+  - Switches: the test requested on a referral, and a staining run's reagent lots.
+  - Required labels are starred and "Still required: …" says what's missing.
+  - "create container" by voice (`BATCH_CREATE_CONTAINER`, Ctrl+Alt+Shift+N) does what Generate does. The page sets `VOICE_CONTEXT.BATCH_MANAGEMENT`. The overrides deliberately have no voice command.
+  - Translated: container types, decal solutions, the station line and the reagent-lot list.
+  - Scan stations come from `@/services`, so the file is off the deployment baseline. The station-to-node rule moved to `services/batches/batchFormHelpers.ts`.
+- **Closing a batch out** goes through `BatchReasonModal.tsx` for three actions. Each has a locked reason and a permission (Pete: three permissions, for every role with this screen). The service checks both.
+  - Aborting a batch needs `batch:run:abort` and, new, a reason. Before, a blank reason was stored as "No reason given."
+  - Completing a reconciliation anyway needs `batch:reconciliation:override`.
+  - Acknowledging a cold-chain excursion needs `batch:cold-chain-excursion:acknowledge`. The browser prompt is gone.
+  - A refusal is shown in the user's language, and times use the user's locale (the English-US format is gone).
+- **Demo batches** (`services/batches/batchDemoSeeds.ts`): a staining reconciliation with a missing slide and an unexpected scan (override), a referral to Summit Molecular with an unacknowledged 11.4 °C excursion (acknowledge), and a running processing batch (abort).
+- **Tests:** `BatchReasonModal.test.tsx`.
+- **Not changed:**
+  - Other batch actions (start reconciliation, remove, move, release rack) still show the service's English error text in their toasts.
+  - `CreateBatchModal.tsx` is no longer used anywhere. `NewContainerModal.tsx` replaced it, and the old file can be deleted.
+
+## Batch 407 (PS-359): the rest of Batch Management
+
+- **New Container form** (Pete: "the top is hidden from view as is the bottom"):
+  - Each field is its own block (`.ps-batch-field`) in a two-column grid, in a dialog widened to 820px (`.ps-batch-create-modal--wide`, `pathscribe.css`). No inline styles.
+  - In the browser at 1920×865 the dialog is 491px tall for Decal and at most 664px (Staining, with its reagent-lot list), so it no longer scrolls.
+  - It drops to one column below 720px wide, and the body scrolls only as a fallback on a very short screen. The barcode step keeps the 460px width.
+  - Labels are tied to their controls.
+- **Refusals translated:** every batch action (start reconciliation, complete, move, remove, release rack, transfer to Processing, scan-in, and a missing or checked-out rack on the New Container form) shows the service's refusal code in the user's language (`batchDetail.errors.*`, `batchDetail.scanRejected.*`). Removing an item no longer fails silently.
+- **Disposal Queue:**
+  - Scanning needs `retention:material:dispose` (Pete: keep today's users). The red screen shows the refusal in the user's language, with dates formatted for it.
+- **Disposal Report:** its CSV export, which had no check, needs `retention:disposal-report:export`, checked at the report's facility.
+- **Pending Batch Load:** search and grouping by case moved to `services/batches/computePendingBatchQueue.ts`.
+- **Engraver Monitor:** times follow the user's language (the page hard-coded `'en-US'`), and the colour and supply warning go through a template.
+- **Patient identifiers:** item ids and case accessions on the Disposal Queue, Disposal Report and Pending Batch Load, Batch Detail's scan flash, and the toasts that name an item are tagged for screenshot redaction. They weren't before.
+- **Deployment baseline:** the Disposal Queue, Disposal Report and Pending Batch Load pages take the scan-station service from `@/services` and are off the baseline.
+- **Removed:** `CreateBatchModal.tsx`, unused since `NewContainerModal.tsx` replaced it. The delta zip can't delete it, so delete it by hand.
+- The "Not changed" notes under Batch 404 are resolved.
+
+## Batch 408 (PS-359): Batch Management closed out
+
+- **List page (`BatchManagementPage.tsx`):**
+  - Batch times follow the user's language. The page had hard-coded `'en-US'`, and it was the last place in the module that did.
+  - Which batches are open or closed, the stage filter and each stage tile's count come from `services/batches/batchListView.ts`.
+  - The stage tiles' label and count colours come from `pathscribe.css` (`.ps-batch-stage-tiles …`). Only the stage's hue (`--ps-hue`) is set on each tile.
+- **Batch Detail:**
+  - Whether Complete is allowed comes from `reconciliationGate`, the same rule the service applies. An unacknowledged cold-chain excursion now greys Complete out too, with the reason in its tooltip; before, the button allowed it and the service then refused.
+  - The missing-item list in refusals comes from the same place.
+- The STAT badge is translated on both pages.
+- Checked in the browser at 1920×865: times, stage filter and tile colours.
+
+With this, no Batch Management page is on the deployment baseline, and none has page logic, inline colours, hard-coded locales or untranslated text left.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+- `EquipmentServiceLogPage.tsx` (new, `/batch-management/equipment-log`, tile "Equipment log"): each active instrument's maintenance and calibration state, and "Log entry" to record one (`equipment:maintenance:record`). For the bench roles, who can't open Configuration. Adding or changing equipment stays in Configuration → System → Equipment.
+
+## Batch 432
+
+Batch detail (external referral): "Mark in transit" / "Mark delivered" (`referral:transit-status:update`, forward only).
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

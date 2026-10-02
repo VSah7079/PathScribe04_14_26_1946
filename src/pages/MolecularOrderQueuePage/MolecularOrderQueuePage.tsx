@@ -23,25 +23,26 @@
 // parallel demo-only code path. A Positive result against the
 // standalone st-hpv-highrisk-screen assay fires the real reflex
 // genotyping order, visibly, in the same table below.
+//
+// Batch 406: the queue service comes from @/services (off the deployment
+// baseline); ordering and the payload check moved to
+// services/molecularOrders/orderQueueView.ts; times follow the user's language.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockMolecularOrderOutboundQueueService } from '@/services/molecularOrders/mockMolecularOrderOutboundQueueService';
+import { molecularOrderOutboundQueueService, queueEntriesNewestFirst, isMolecularOrderPayload as isMolecularPayload } from '@/services';
+import { formatDateTime } from '@/utils/formatDate';
 import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
-import type { MolecularOrderOutboundQueueEntry, MolecularOrderPayload, InstrumentOrderPayload } from '@/types/case/MolecularOrderOutboundQueueEntry';
+import type { MolecularOrderOutboundQueueEntry } from '@/types/case/MolecularOrderOutboundQueueEntry';
 
 const DEMO_ACCESSION = 'S26-5003-CYT-001';
 const DEMO_SPECIMEN_LETTER = 'A';
 const DEMO_ASSAY_STANDALONE = 'st-hpv-highrisk-screen';
 const DEMO_ASSAY_BUNDLED = 'st-hpv-reflex';
 
-function isMolecularPayload(payload: MolecularOrderPayload | InstrumentOrderPayload): payload is MolecularOrderPayload {
-  return 'assayCode' in payload;
-}
-
 const MolecularOrderQueuePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<MolecularOrderOutboundQueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [assayChoice, setAssayChoice] = useState<typeof DEMO_ASSAY_STANDALONE | typeof DEMO_ASSAY_BUNDLED>(DEMO_ASSAY_STANDALONE);
@@ -50,8 +51,8 @@ const MolecularOrderQueuePage: React.FC = () => {
   const [lastOutcome, setLastOutcome] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const res = await mockMolecularOrderOutboundQueueService.getAll();
-    if (res.ok) setEntries([...res.data].sort((a, b) => b.queuedAt.localeCompare(a.queuedAt)));
+    const res = await molecularOrderOutboundQueueService.getAll();
+    if (res.ok) setEntries(queueEntriesNewestFirst(res.data));
     setLoading(false);
   }, []);
 
@@ -59,7 +60,7 @@ const MolecularOrderQueuePage: React.FC = () => {
 
   const queueDemoOrder = async () => {
     setBusy(true);
-    await mockMolecularOrderOutboundQueueService.enqueue({
+    await molecularOrderOutboundQueueService.enqueue({
       caseId: DEMO_ACCESSION,
       eventType: 'order.molecular',
       payload: {
@@ -158,7 +159,7 @@ const MolecularOrderQueuePage: React.FC = () => {
                   ) : '—'}
                 </td>
                 <td>{t(`molecularOrderQueue.status.${entry.status}`)}</td>
-                <td>{new Date(entry.queuedAt).toLocaleString()}</td>
+                <td>{formatDateTime(entry.queuedAt, i18n.language)}</td>
               </tr>
             ))}
           </tbody>

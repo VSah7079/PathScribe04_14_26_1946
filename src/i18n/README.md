@@ -26719,7 +26719,7 @@ So no organisation owned them. Their hospital's staff couldn't see them, jurisdi
 
 **Tests:** type-check clean. Full suite: 673 files passed (3 skipped); 5,892 tests passed (9 skipped). New: `screens/screenAccess.test.ts`, the seed matrix, and custom-role screen seeding.
 
-**Not done:** the API server must check the same screen capability on each screen's endpoints (phase 4; `docs/architecture/AUTHORIZATION_API.md`). Case pages and demo-only tools (`/migration-jobs`, `/dev/mock-interface-engine`, `/molecular-order-queue`) aren't screen-gated.
+**Not done:** the API server must check the same screen capability on each screen's endpoints (phase 4; `docs/architecture/AUTHORIZATION_API.md`). Case pages and demo-only tools (`/migration-jobs`, `/dev/mock-interface-engine`, `/molecular-order-queue`) aren't screen-gated. *(Correction, Batch 427: this missed the pages opened from Configuration (template editor and review, Part Builder, Template Assembly), which weren't gated either. They, Migration Jobs, the Molecular Order Queue and the mock interface engine now are.)*
 
 ## Batch 375 — fewer Home tiles: queues in the Worklist, Add-On Orders on the case, Batch Management in the workspace
 
@@ -27024,7 +27024,7 @@ Found here because a voice-confirmed Complete grossing ran a second time and sho
 - **Discordance modal:** the leftover `showDiscordantForm` state, which was only ever set to false, is gone.
 - **Corrected code that equals the original** now says so ("The new code must differ from …") instead of leaving Correct greyed out without a reason.
 
-**i18n:** 20 keys added in all five languages (2 group names, 10 field names, 3 lock reasons, the "must differ" line, one toast, and the Billing capability group with its label and description). No inline CSS was added. Korean clinical wording should get native-speaker review before clinical use.
+**i18n:** 21 keys added in all five languages (2 group names, 10 field names, 3 lock reasons, the "must differ" line, one toast, the Billing capability group with its label and description, and `common.unknownUser`). No inline CSS was added. Korean clinical wording should get native-speaker review before clinical use.
 
 **Verified**
 - Type-check: no errors in any file this batch touched. The copy I received reports 4 errors that are not from this batch: `CrosswalkSection.tsx` and `AdminTemplateList.tsx` import `react-router-dom` (only `react-router` is installed), and `ClientDictionaryPage.tsx` imports `ClientEditorModal` and `ClientTable`, which are not in the zip. Your last batch reported a clean type-check, so these are likely differences between the zip and your machine.
@@ -27040,8 +27040,1849 @@ Found here because a voice-confirmed Complete grossing ran a second time and sho
 - **PS-346** (informal-review banner) is still To Do although Batch 355 fixed it. Pete to close it.
 
 **Found, not fixed**
-- `SynopticReportPage.tsx` has an English "Unknown User" fallback in six places, not one: the amendment modal (`amendedByName`), the discordance modal's `performedBy`, and four more (`performedBy` at the intraop merge, `authoringPathologist`, and two `authorName`s). Batch 381's handover named one.
+- **Corrected, and fixed in this batch:** I first wrote that `SynopticReportPage.tsx` has the English "Unknown User" fallback in six places. That was wrong: my search output had been cut short, and there were **twelve** (Batch 381's handover named one). All twelve now use `common.unknownUser`, in the user's language: `performedBy` at the intraop merge, `authoringPathologist`, three `authorName`s, the discordance modal's `performedBy`, the amendment modal's `amendedByName`, and five more modal props (`currentUserName` ×4 and `signingUserName`). The page reads it once (`unknownUserName`) and the four callbacks that use it list it as a dependency. New key `common.unknownUser` in all five languages (21 new keys this batch, not 20). Only when nobody is signed in does a saved record (comment author, authoring pathologist, QA `performedBy`) carry the translated text.
 - Group 3 still to do (Batch 383): the two autopsy forms, FixativeTimeGateModal and PreAnalyticDateGateModal.
+
+## Batch 383 — Field Requirements for the case report page, group 3 (part 2): autopsy forms and the two sign-out gates, and a permission for releasing an autopsy body (PS-359)
+
+**Pete (Sep 29):** "Please send 383." The rest of group 3: the two autopsy forms (authorization completion, body release), FixativeTimeGateModal and PreAnalyticDateGateModal. Same standing rules as Batch 382. This completes group 3 of the case report page.
+
+**Built**
+- **Field Requirements → Case report:** two more groups, 11 rules. The report page now lists 54.
+  - **Autopsy forms:** the written order reference and date (medicolegal cases) and the consent time (hospital-consented cases), locked because the gross-examination gate needs them; the consent scope, optional and switchable on; who received the body and who released it, locked (chain of custody).
+  - **Sign-out gates:** the fixation time or the confirmation that none is possible, locked (CAP/ASCO); a reason for "no time possible", optional and switchable on; the collection and receipt date/time or the jurisdiction's administrative override, and the override justification, all locked (ISO 15189, CAP/CLIA and equivalents).
+  - Checks: `autopsyAuthorizationMissing` and `autopsyReleaseMissing` in `reportPageChecks.ts`. Each form and modal shows "Still required: …" and marks required labels. Submit on the authorization form is now off until it is complete (before, it showed a generic message after a failed click).
+- **`services/signoutGates/` (new):** the decisions the two gate modals made inline: when a specimen is resolved, what is still required, and the resolutions sign-out saves (`fixativeGate.ts`, `preAnalyticGate.ts`). The modals only render and dispatch, and still export their types, so `useSignOutWorkflow` is unchanged.
+- **Permission (Rule 7):** `autopsy:body:release`, high risk, in a new **Autopsy** group. Releasing a body ends the mortuary's custody, so it needed one; `releaseAutopsyBody` had no check. Checked in `services/autopsy/releaseAutopsyBody.ts` for the case (before it fetches anything), greyed out on the form with `CapabilityButton`. Seeded to every role with case access, so today's users keep it; a hospital's own roles with case access are offered it. It is its own list in `capabilitySeeds.ts`.
+- **Voice and keyboard** (all five languages; each acts exactly as its button does, checks included):
+  - "record authorization" (`AUTOPSY_AUTH_SUBMIT`, Ctrl+Alt+Shift+3)
+  - "release body" (`AUTOPSY_RELEASE_SUBMIT`, Ctrl+Alt+Shift+4)
+  - "continue fixation gate" (`FIXATIVE_GATE_CONTINUE`, Ctrl+Alt+Shift+5)
+  - "continue date gate" (`PREANALYTIC_GATE_CONTINUE`, Ctrl+Alt+Shift+6)
+  - New internal keys F19+PS014, F19+PS015, F20+PS011 and F20+PS012 (PS-66's collision guard passes).
+
+**Behaviour changes to know about**
+- **The fixation gate's "no time possible" path now has a reason field.** The resolution type already had a place for a comment, and the old code read one, but nothing in the modal could set it, so it was always empty. The field is optional unless an organisation requires it. Everyone sees the new field.
+- **`resolveAutopsyAuthorizationCompletionValidation`'s `missingFieldIds` are now Field Requirement ids** (`autopsyOrderReference`, …), not `orderReference`, …. Its only caller is the form. Its test is updated.
+- **The two autopsy forms' generic "please complete the fields" texts are gone** (`autopsyAuthCompletion.validationError`, `autopsyBodyRelease.validationError`): "Still required" names the fields.
+- **Four English toasts on the report page are translated:** "Authorization recorded" and "Body released" (the autopsy forms), "Fixation time recorded" and "Pre-analytic dates recorded" (the two gates).
+
+**Not done, by decision**
+- **No capability for recording the written order or consent** (the authorization completion form). It completes paperwork and the gross-examination gate already controls what follows. Say so if you want one.
+
+**Found, not fixed**
+- `SynopticReportPage.tsx` still has other English toasts (for example "Organ retention tier recorded", "Sequence saved", "Block/recut added") and `releaseAutopsyBody.ts` returns English error text that the form shows ("Case not found.", "Specimen not found on this case."). They are outside this batch's four components.
+- The autopsy forms are mounted inside overlays in `SynopticReportPage.tsx` without any Cancel button of their own; clicking outside closes them. Left as it was.
+
+**i18n:** 29 keys added and 2 removed in all five languages, 27 net (2 group names, 11 field names, 4 lock reasons, the Autopsy capability group with its label and description, "not permitted" for the release, 3 fixation-gate labels, 1 date-gate label, 4 toasts; the two `validationError` texts removed). No inline CSS was added. Korean clinical wording should get native-speaker review before clinical use.
+
+**Verified**
+- Type-check: no errors in any file this batch touched; the same 4 environment errors as Batch 382 (`react-router-dom` in `CrosswalkSection.tsx` and `AdminTemplateList.tsx`; `ClientDictionaryPage.tsx` imports two files not in the zip).
+- Full suite: **690 files passed (3 skipped); 5,992 tests passed (9 skipped)**, 6 files and 29 tests more than Batch 382. New: `signoutGates/fixativeGate.test.ts` (4), `preAnalyticGate.test.ts` (5), `FixativeTimeGateModal.test.tsx` (3), `PreAnalyticDateGateModal.test.tsx` (3), `AutopsyAuthorizationCompletionForm.test.tsx` (3), `AutopsyBodyReleaseForm.test.tsx` (4); additions to `reportPageChecks.test.ts` (+5), `resolveAutopsyAuthorizationCompletionValidation.test.ts` (+1), `releaseAutopsyBody.test.ts` (+1); `authorization.test.ts` seed expectations updated. The two autopsy forms had no component test before.
+- The guards pass: inline CSS, PHI tagging, deployment readiness (the baseline did not change: none of the four components was on it), capabilities, locale parity, and PS-66's action-key collisions.
+- **Not checked in the browser.** I wasn't given the demo password. The four components are covered by component tests (required fields, "Still required", voice commands, the permission).
+
+**Jira scan (Pete: scan for related work)**: nothing else was safe to build. PS-357 (access control phase 3, sweep of protected actions) is where `autopsy:body:release` belongs; this batch did its share for this one action. PS-354 (released report integrity, autopsy rendering) is separate.
+
+## Batch 384 — Field Requirements for messaging: the New message drawer, reply box and Secure email window (PS-359)
+
+**Pete (Sep 29):** chose "modals accessed from the Worklist page". My survey found no user-input fields in any Worklist modal; the one real form reachable from the Worklist is the message compose drawer in `AppShell`. He then pasted both options (the drawer, or surveying the other worklist screens); I did both: this batch builds the drawer, and the survey is reported separately.
+
+**Built**
+- **Field Requirements → Messaging (a fourth page), 7 rules, 3 groups:**
+  - **New message:** recipient(s), locked; subject, required and switchable off; message text, locked.
+  - **Secure email:** To (external address), locked; subject, required and switchable off; message text, locked.
+  - **Reply:** reply text, locked.
+  - Checks in `services/fieldRequirements/messagingChecks.ts`: `newMessageMissing`, `secureEmailMissing` (the address must contain `@`, as before) and `replyMissing`. Defaults reproduce what the drawer required before.
+- **`AppShell.tsx`:** the drawer, reply box and Secure email window show "Still required: …" and star the required labels. `ComposePanel` and `SecureEmailModal` are now exported for testing.
+- **Voice/keyboard:** "submit secure email" (`SECURE_EMAIL_SUBMIT`, Ctrl+Alt+Shift+7, internal key F18+PS025, all five languages), active only while the window is in its compose state. **Correction to my own suggestion:** I proposed "a voice command for Send" for the drawer. It already existed (`MSG_SEND`); only the Secure email window needed a new command.
+- **Deployment baseline:** `AppShell.tsx` came off the mock-import baseline (it now uses the action registry through `@/services`). It stays on the browser-storage baseline (session storage for the drawer).
+
+**Behaviour changes to know about**
+- **Voice Send used to skip the subject check.** Saying "send message" with an empty subject sent it, though the button refused. `handleSendNew` now uses the same check as the button.
+- A message with no subject shows a translated "(No subject)" in the list (before, a blank line).
+
+**Not done, by decision**
+- **No messaging capability.** Sending a message is not a protected action today; say so if you want one.
+
+**Found, not fixed**
+- `INTERNAL_USERS` in `AppShell.tsx` is a hard-coded recipient list.
+- The `MSG_SECURE_EMAIL` comment says it needs a recipient, subject and body, but the command only opens the window.
+- The secure-email send is simulated (a demo delay standing in for NHSMail). PS-143 (extract a shared compose modal, resolve the dead vendor config, wire to critical-findings notification) and PS-332 (backend routing) are where the real send belongs.
+- `AppShell.tsx` is 1,700+ lines with compose logic inline; I moved the decisions I touched into a service and left the rest.
+- PS-78 flags possibly dead `ps-msg-*` CSS. Not touched.
+
+**i18n:** 15 keys added in all five languages (the page name, 3 group names, 7 field names, 3 lock reasons, "(No subject)"). No inline CSS was added. Korean clinical wording should get native-speaker review before clinical use.
+
+**Verified**
+- Type-check: no errors in any file this batch touched; the same 4 environment errors as Batch 383.
+- Full suite: **692 files passed (3 skipped); 6,001 tests passed (9 skipped)**, 2 files and 9 tests more than Batch 383. New: `messagingChecks.test.ts` (4) and `components/AppShell/messagingRequirements.test.tsx` (5: the drawer, and the Secure email window including the voice path).
+- The guards pass: inline CSS, PHI tagging, deployment readiness (baseline shrank by one), capabilities, locale parity, and PS-66's action-key collisions.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+**Jira scan (Pete: scan for related work):** PS-143 and PS-332 (secure email, real send) need a vendor decision and a backend, so I didn't start them. PS-357 (access control phase 3) is where a messaging capability would go.
+
+## Batch 385 — Messaging: recipients and the secure-email send move into the message service, and sending needs permissions (PS-359 follow-up)
+
+**Pete (Sep 29):** "Fix: the internal recipient list in `AppShell` is hard-coded. The secure-email send is simulated. There is no messaging permission." These were three of the "found, not fixed" items in Batch 384.
+
+**Built**
+- **Recipients:** `messageService.listRecipients()` returns who a message can go to; the demo directory lives in `services/messages/messageRecipients.ts` (the mock) instead of `AppShell.tsx`. The "To" search and exact-name match are pure functions there (`searchRecipients`, `findRecipientByName`), with tests. The drawer, its search overlay and the "compose to" event (`openComposeTo`) use the loaded list.
+- **Secure-email send:** the Secure email window calls `messageService.sendSecureEmail`. The 1.8-second demo delay (standing in for the NHSMail handshake) is now in the mock service, not the component. **Not fixed, by decision:** it is still simulated. The real send needs a backend and a vendor decision: PS-143 and PS-332.
+- **Permissions (Rule 7):** `message:internal:send` (standard) and `message:secure-email:send` (high: the email leaves the organisation), in a new **Messaging** group.
+  - Checked in `mockMessageService`: `send` and `reply` when a person composed the message (`composedByPerson: true`, which the drawer sets) and `sendSecureEmail`. A refusal returns the error `MESSAGE_NOT_PERMITTED`.
+  - Seeded to **every** built-in role and offered to every hospital-made role (Pete: keep today's users), so nobody loses sending. A hospital can now take them off a role.
+  - The drawer greys out Send, Secure email and Reply without them and says why.
+  - **Deliberately not held to the permission:** messages the app sends itself (access requests to administrators, template notices, LIS notices). Holding them would stop someone without the permission from asking for access.
+- **A failed send keeps the draft.** Before, the drawer cleared the recipients, subject and text whether the send worked or not; now a refused or failed send leaves them and shows "You don't have permission to send messages." or "The message could not be sent. Try again."
+
+**Behaviour changes to know about**
+- The two new capabilities appear in the Role Dictionary. Existing roles are offered them once, on load.
+- A message-send failure now shows text where before it was silent.
+- `SecureEmailModal` no longer audits inside the service (the drawer's own `secure_email_sent` log stays), so audit entries are unchanged.
+
+**Found, not fixed**
+- **Non-drawer senders** (`TemplateRequestModal`, `templateService`, `utils/accessRequests.ts`, `useLisIntegration`) send without `composedByPerson`, so no permission check. `TemplateRequestModal` is a message a person writes; it could be marked. Say so if you want it.
+- The recipient list is still the demo directory, not the real staff service (`services/users`, `services/staff`): the real recipients, and who may message whom, are a decision for the API server.
+- `AppShell.tsx` is still 1,700+ lines with the drawer's state inline.
+
+**i18n:** 8 texts added in all five languages (the Messaging group name, 2 capability labels and 2 descriptions, and 3 under `appShell.messaging`: the two "no permission" lines and "could not be sent"). No inline CSS was added. Korean wording should get native-speaker review.
+
+**Verified**
+- Type-check: no errors in any file this batch touched; the same 4 environment errors as Batch 384.
+- Full suite: **694 files passed (3 skipped); 6,013 tests passed (9 skipped)**, 2 files and 12 tests more than Batch 384. New: `messageRecipients.test.ts` (3), `mockMessageService.test.ts` (5: recipients, the two permissions, and that the app's own notices are not held to it); 4 more in `messagingRequirements.test.tsx` (the permission greys out Send and Secure email, a refused secure email keeps the email and shows why, a failed send shows its reason); `authorization.test.ts` seed expectations updated.
+- The guards pass: capabilities (both new keys enforced and worded), inline CSS, PHI tagging, deployment readiness, locale parity, PS-66.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 386 — Field Requirements for the Cytology screening page's five forms (PS-359)
+
+**Pete (Sep 29):** "Cytology screening": all five forms, and translate the whole page. Split in two: this batch does the five forms and their text; **Batch 387** translates the rest of the page.
+
+**Built**
+- **Fifth page in Field Requirements, `cytology`** (20 fields, four groups, in Configuration → System → Field Requirements):
+  - *Bethesda review:* primary interpretation locked; general categorization, adequacy, primary comment, additional interpretations, recommendations, notes optional; last menstrual period optional and asked for only on gynaecologic specimens.
+  - *CISOE-A:* the six components locked; "comment on every axis" and notes optional.
+  - *5-year retrospective review:* outcome locked; corrective action optional, asked for only when the outcome isn't Confirmed Negative.
+  - *Cyto-histologic correlation (manual entry):* histology diagnosis and outcome locked.
+- **The forms are components now** (`pages/CytologyWorklistPage/components/`: `CytologyReviewForm`, `CytologyCisoeAForm`, `CytologyRetrospectiveBanner`, `CytologyHistologyCandidateBanner`, `CytologySearchSelect`), each showing "Still required: …", starring required labels and keeping its button off until filled. CISOE-A's pure draft logic moved to `services/cytology/cisoeADraft.ts`.
+- **Four voice/keyboard commands** (five languages): save review (Ctrl+Alt+Shift+A), save CISOE-A review (+B), complete retrospective review (+C), record correlation (+D, first banner only). Each acts as its button, checks included.
+- **Translated:** the forms' text, the reviewer role names, the LMP label, and the two success toasts (107 keys in all five languages).
+
+**Behaviour changes to know about**
+- The CISOE-A Save button is now off until the six components are filled; before, it stayed on and showed errors after the click.
+- The Bethesda "General Categorization" hint no longer says "optional", since that is now a setting.
+- The correlation outcome in the resolved line reads "Minor discrepancy" instead of "minor discrepancy" with the underscore replaced.
+
+**Found, not fixed**
+- **Batch 387 pending:** the rest of `CytologyScreeningPage.tsx` is still English (review history, QC/HPV cards, workload banners, sign-out text, other toasts, `window.confirm` texts, "Unknown Patient").
+- **No permission** for completing a retrospective review or recording a correlation (only Field Requirements were asked for). Say so if you want one.
+- The save handlers stay in the page and rely on the forms' own check; they don't repeat it.
+- `resolveCisoeAValidation` returns English messages (service text), shown as is.
+- The page is still on the deployment baseline (about 50 direct mock-service imports) and about 3,000 lines.
+- **PS-340** (Correction/Addendum actions on this page) is open and untouched.
+- Korean wording needs native-speaker review before clinical use.
+
+**Verified**
+- Type-check: only the same 4 environment errors as before.
+- Full suite: 700 files, 696 passed, 3 skipped, 1 failed; 6,042 tests passed, 9 skipped, 1 failed. The failure was a spell-check guard that named the page's old textarea; it now names the two forms that hold them (34/34 on rerun). New tests: `cytologyChecks` (7), `cisoeADraft` (4), and 19 in `cytologyRequirements.test.tsx`.
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness, capabilities, actions.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 387 — Cytology screening page: the rest of the text translated (PS-359 follow-up)
+
+**Pete (Sep 29):** "Translate the whole page", done in two batches; Batch 386 did the five forms, this one does the remainder.
+
+**Built**
+- **Translated** (68 keys, five languages, under `cytologyScreening.*`): the role card and review-mode card (with its four options), the workload banners and reassignment messages, Mandatory QC, HPV co-testing, review history (badges, detail labels, Clone, Set as Final and its disabled explanation), the AI concordance prompt, the patient line ("Unknown Patient", MRN), the two unsaved-changes prompts, and the toasts (QC flagged, randomly selected, reassigned, QA deficiency raised, and the plural "prior negative results flagged").
+- **Dates** in the QC card, patient history, five-year lookback and review history use the user's locale (`formatDate(iso, i18n.language)`); they were `toLocaleDateString()` with the browser default.
+- **HPV genotypes** are joined with `formatList` instead of a hard-coded comma.
+- **Guard:** `CytologyScreeningPage.i18n.guard.test.ts` fails if any of 22 English phrases, a literal toast or confirm, or `toLocaleDateString()` returns.
+
+**Behaviour changes to know about**
+- English wording changed slightly where the old text said "real" ("real CLIA workload weight", "real, upstream molecular result"); the hints now read "(CLIA workload weight)" and "(upstream molecular result — read-only)".
+- The concordance prompt no longer says "real, completed"; it says "completed".
+- The HPV "Reason" and "Genotype" lines, and the review badges, now use the same wording in every language; badges are upper-cased in code.
+
+**Found, not fixed (all stored data or service text, not screen chrome)**
+- Patient name fallback "Unknown Patient" on the printed and signed report content, the resident name "Unknown User" in a release record, the QA record's cytology diagnosis fallback "Unknown", and "Unknown dispatch failure." in an audit-style error stay English.
+- The message sent to the attending when a resident releases a case for countersign (`bodyHtml`) is stored English message text.
+- Service text shown on the page stays as the service returns it: sign-out gate reasons (`resolveCytologySignOutGate`), the finalize refusal reason, and the CISOE-A validation messages.
+- The automatic high-risk QC flag's name, "Automatic High-Risk Patient Identification", is stored with the flag and shown as is.
+- The page is still about 2,700 lines with about 50 direct mock-service imports (deployment baseline).
+- Korean and French clinical wording needs native review before clinical use.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: **698 files passed (3 skipped); 6,069 tests passed (9 skipped)**, 1 file and 25 tests more than Batch 386 (the run after the spell-check guard fix). New: `CytologyScreeningPage.i18n.guard.test.ts` (25 tests).
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness, spell-check.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 388 — Microtomy workstation: comment drawer and slide grid (PS-359)
+
+**Pete (Sep 29):** "Microtomy comment drawer and slide grid", the next option from the survey after Cytology.
+
+**Built**
+- **Sixth page in Field Requirements, `microtomy`** (5 fields, Configuration → System → Field Requirements): comment text (locked); stain (locked); level depth in µm (a switch); reprint reason and the cancel reason for a printed slide (both locked, because `utils/microtomyOperations.ts` already requires them and the lists give no way to act without choosing one).
+- **`CommentDrawer` and `SlideGridPanel`** star the required labels, show "Still required: …" and keep Add off until it can act. The reprint and cancel selects check their reason the same way.
+- **Two voice/keyboard commands** (five languages, new category `MICROTOMY`): add comment (Ctrl+Alt+Shift+A) and add stain (Ctrl+Alt+Shift+B). Each acts exactly as its Add button. The Microtomy page now sets its own voice context (`VOICE_CONTEXT.MICROTOMY`); before it set none, so no action could ever have been offered on it.
+- **Translated** (32 keys, five languages): the stain category tabs, the reprint and cancel reasons (stored as the English values, shown through `microtomyWorkstation.reasons.*`), the comment label and meta line, the level label, and the six scan errors the hook sets. Comment time, prior-slide history and date of birth now use the user's locale.
+- **Baseline:** `useMicrotomyWorkstation.ts` came off the deployment mock-import baseline (scan stations through `@/services`).
+
+**Behaviour changes to know about**
+- Add comment and Add stain are off until their required field is filled; before, the drawer looked only for text and the picker only for a stain, so the visible behaviour is the same by default.
+- The comment drawer has a "Comment" label above its box.
+- The scan errors read the same in English except "real case" and "Specimen…" wording trimmed ("didn't resolve to a case, block, or decant").
+
+**Found, not fixed**
+- **No permission** for reprinting a label or cancelling a printed slide (Rule 7 candidates); only Field Requirements were asked for. Say so if you want them. PS-357 (voice/keyboard dispatch into the catalog) covers the wider sweep.
+- Print-chain errors (`printFailureReason`: no station, no printer profile, print failed) are stored on the slide and shown in the grid and batch modal as written; they stay English.
+- `HardwarePrintPanel`, `CytologyPanel` and `BatchProgressModal` were not re-checked for hard-coded text.
+- The hook still reads cases through `caseRouter` directly (not a baseline item).
+- Korean and French wording needs native review before clinical use.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: **701 files passed (3 skipped); 6,101 tests passed (9 skipped)**, 3 files and 32 tests more than Batch 387. New: `microtomyChecks.test.ts` (7), `microtomyRequirements.test.tsx` (11: comment drawer and slide grid) and `MicrotomyWorkstationPage.i18n.guard.test.ts` (14).
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness (baseline one file smaller), actions, capabilities.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 389 — Microtomy workstation: the rest of the page (PS-359 follow-up)
+
+**Pete (Sep 29):** "Finish Microtomy, then move on to Correction/Addendum."
+
+**Built**
+- **Translated** (3 keys, five languages): the two label-fit warnings ("the slide label needs about … mm of height…", "the barcode alone needs about … mm of width…") and the label size. `resolveSlideLabelFitWarnings` now returns `requiredMm` and `faceMm` next to its English `message`; the screen words them from `microtomyWorkstation.hardware.fit.*`.
+- **`CytologyPanel`** joins its suggested preparations with `formatList` instead of a hard-coded comma.
+- **Audit result:** `CytologyPanel`, `BatchProgressModal`, `HardwarePrintPanel` (apart from the above) and the page were already translated; the hook's scan errors were done in Batch 388.
+
+**Found, not fixed**
+- Still English because it is stored data: the print-failure text on a slide, the block status, the tissue and specimen descriptions.
+- **Not gated by Field Requirements, on purpose:** the decant fields save as typed and the print buttons have no required fields.
+- Permissions for reprint and cancelling a printed slide, as in Batch 388.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 702 files passed (3 skipped), 6,109 tests passed (9 skipped); 8 new tests over Batch 388's 6,101.
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 390 — Cytology: correction and addendum (PS-340)
+
+**Pete (Sep 29):** "Finish Microtomy, then move on to Correction/Addendum."
+
+**Checked first (ticket vs. source)**
+- `releaseCytologyCorrection` and `releaseCytologyAddendum` already existed, with tests, but **nothing in the app called them**: a signed-out cytology case had no way to be corrected or added to. They took no reason, checked no permission, and passed no PDF to the released-report event unless a caller supplied one (none did). The PDF had no "corrected" or "addendum" header. Verified by searching the whole repo.
+
+**Built**
+- **Screen:** under the "signed out" banner, **Correct diagnosis** and **Add addendum** (`CytologyRevisionActions`, `CytologyRevisionPanel`, hook `useCytologyRevision`). A correction starts from the signed review (interpretation, adequacy, categorization, additional, recommendations); an addendum is free text. Both need a reason, then the signer's signature confirmation (the existing "cytology sign-out" confirmation). A list of changes since sign-out shows who, when and why.
+- **Reason, mandatory and kept:** the trimmed reason is stored on the new `CytologySignOutRecord.revisionReason` and in the report content, and the PDF prints a "CORRECTED REPORT" (with "Previously reported as: …") or "ADDENDUM" banner with the reason. An empty reason is refused in the service before anything is written, not only on the screen.
+- **PDF and dispatch:** the released-report event now always builds the new record's own PDF (`generateCytologyReportPdfSnapshot`), and the correction or addendum goes out through the same event as the original (`CORRECTED` / `ADDENDUM`).
+- **Final Diagnosis follows a correction:** the corrected review becomes the specimen's Final Diagnosis, so the screen does not keep showing the old one. An addendum leaves it alone.
+- **Two permissions** (rule 7), one per act: `cytology:report:correct` and `cytology:report:addend`, high risk, in the Casework group, checked in each release service before any write; the buttons are `CapabilityButton`s. Seeded to **Pathologist only**; a hospital's own roles get neither until granted.
+- **Field Requirements:** the `cytology` page gains a Correction / addendum group: reason and addendum text, both locked. A correction also follows the organisation's review switches (except notes and the last menstrual period).
+- **Translated:** 24 `cytologyRevision.*` keys, 3 Field Requirements keys and 4 permission texts, in all five languages.
+- **Pure helpers** (`resolveCytologyRevisionInputs.ts`): latest sign-out, correction draft from a review, corrected findings with the pathologist-review flag, and the patient/order/specimen context.
+
+**Tests:** 60 new tests: release services (permission, reason, stored reason, PDF), PDF banner, the two checks, the input helpers, the actions, the panel, the hook (signature refused, no permission, failure, both flows), a source guard, and the updated seed expectation.
+
+**Found, not fixed**
+- **No voice command** for releasing a correction or addendum. It is a signature-confirmed release of a signed report, so I did not add one.
+- The confirmation reuses the existing **"cytology sign-out"** signature action rather than adding two new signing actions; the signature record links to the new sign-out record. Say if you want them separate.
+- The sign-out handler and the print handler on the page still build their patient/order/specimen context inline (the new code uses the helper); converting them is separate work. The page is still on the deployment baseline.
+- A hospital's own roles have no default access to either action; an administrator grants it in the Role Dictionary.
+- PDF text ("CORRECTED REPORT", "Reason:") is English, like the rest of the cytology PDF; the PDF's own translation is a separate question.
+- French and Korean wording needs native review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 705 files passed (3 skipped), 6,169 tests passed (9 skipped); 60 new tests over Batch 389's 6,109.
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness, permissions, spell check.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 391 — Reports in the performing lab's language; Pretendard for Korean (PS-340 follow-up)
+
+**Pete (Sep 29):** "I would have thought the report template and labels would have been written in the language of the performing lab." Then: "Yes go ahead with the lab language setting", and "Yes include the font package" (Pretendard).
+
+**Checked first:** the cytology PDF printed fixed English wording, and dates followed the browser (`toLocaleDateString()` with no locale). No facility carried a language; the jurisdiction gives a date format but can't settle the language (Belgium, Canada). Liberation Sans, the PDF font, has no Hangul.
+
+**Built**
+- **Report language per performing lab:** `Facility.reportLanguage`, set in the Facility Dictionary editor ("Report language"); unset means the jurisdiction's default (`services/reports/reportLanguage.ts`: NL Dutch, DE German, FR French, KR Korean, BE Belgian Dutch, English-speaking jurisdictions English).
+- **Stored with the report:** at sign-out the cytology report content gets `language` and `locale` (date format from the lab's jurisdiction). A correction or addendum keeps the original's; a reprint uses what is stored. Before this nothing was live, so there are no older reports to convert; a report without a language prints in English.
+- **The PDF follows it:** title, section headers, labels, sign-off line, the correction/addendum banner, the continuation-page line and the PDF title come from `cytologyPdf.*` (36 keys) in the report's language; dates and times use the report's locale (24-hour where the jurisdiction uses it). The report's own content (dictionary wording, reason, addendum text, names) prints as stored.
+- **Korean:** Pretendard 1.3.9 (npm, SIL OFL 1.1) is a new dependency *(corrected in Batch 394: no longer a dependency; the files ship in `public/fonts/pretendard/`)*. Korean report PDFs are printed in it (`documentRendering/printFonts.ts`, fetched from the app's own origin only when needed, embedded with Identity-H so only the glyphs used go in: about 300 KB per weight). The font files are used unmodified because the licence reserves the name "Pretendard" for the original; see `embeddedFonts/LICENSE_NOTICE.md`. The screens and the report editor draw Korean text in Pretendard's web version (dynamic subset: the browser downloads only the parts a page shows).
+- **Sending:** the cytology ORU^R01 message's PDF (`reportPdfBase64`) is in the report's language and font. If the Korean font can't be loaded, the message is marked failed so it retries, never sent with an unreadable PDF.
+- **Fixed on the way:** a date without a time (date of birth, LMP) showed the day before anywhere west of UTC (all of the US): `formatDate` now formats those in UTC. This affected every screen using `formatDate` on such dates, not only the PDF.
+- **Translated:** 36 PDF keys and 3 facility-editor keys in all five languages.
+
+**Found, not fixed**
+- **Only cytology sends the PDF to the interface engine.** Surgical pathology (final, corrected, addendum), preliminary and autopsy messages go without it, and surgical final sign-out and the buffered release don't create a PDF at all. Pete: fix next, as Batch 392. The surgical PDF's language is part of that.
+- A French-speaking Belgian or Canadian lab must be set by hand (the jurisdiction default is Belgian Dutch / English).
+- The PDF wording for French, German, Dutch and above all Korean needs native review before clinical use (it prints on a legal document).
+- The page's own sign-out handler still builds its patient/order context inline, as noted in Batch 390.
+- Pretendard is 98 MB installed (every weight and format); the app serves only the regular and bold TTF for PDFs and the web subset files for screens.
+
+**Verified**
+- Type-check: only the 4 known environment errors. A production build (`vite build`) bundles the two TTF files and the 92 web subset files as assets.
+- Full suite: 709 files passed (3 skipped), 6,205 tests passed (9 skipped); 36 new tests over Batch 390's 6,169.
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness, permissions.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 392 — The report PDF with every result sent to the interface engine (PS-340 follow-up)
+
+**Pete (Sep 29):** "Are we sending the pdf along with the JSON report object to the interface engine? … I don't just mean Cytology. I mean all the reports." Then, asked what to do when a result's PDF can't be made: "Hold and retry."
+
+**Checked first:** only cytology's ORU^R01 carried the PDF. For surgical final, correction, addendum, preliminary and autopsy results, `buildOruR01Payload` accepted a PDF but none of the three dispatchers passed one; the release event's PDF went only to printing. Surgical final sign-out and the release after the hold period brought no PDF at all, so their print jobs always failed ("No PDF generation available"). The failed-messages screen and the admin preview rebuilt results without a PDF. The surgical renderer printed English labels and a British date of birth whatever the lab.
+
+**Built**
+- **Every result carries its PDF** (`services/reports/resolveOruReportPdf.ts`, `prepareOruR01Dispatch.ts`): the PDF made at release (rendered once, shared with printing), kept so a retry sends the same document; else the signed PDF saved with the case's report versions (the same instance's newest, or for a final the whole case's newest). A preliminary uses only what its release made.
+- **Hold and retry:** a result with no PDF is queued and marked failed with the reason ("Held: the report PDF is not available. …"). The failed-messages screen retries it with the same preparer and says so when it's still held, instead of the old "a referenced patient/case may no longer exist".
+- **Printing fixed on the way:** a surgical release that brings no PDF (final sign-out, release after the hold period) now uses the saved signed PDF, for printing and results.
+- **The admin preview** (Configuration → Outbound message preview) shows the message as a release sends it, PDF included.
+- **Surgical report language:** the page sends the report's `language` and its wording (`labels`, `surgicalReportPdf.*`, 8 keys, five languages) to the renderer, and writes the date of birth in the lab's locale. `functions/main.py` uses the labels and falls back to English; a test keeps its English fallback equal to `en.json`. The performing-lab lookup moved to `services/reports/resolveReportLocale.ts` (cytology re-exports it).
+- **Translated:** 8 renderer labels, 2 held-message texts, five languages.
+
+**Found, not fixed**
+- **Korean surgical reports:** the Python renderer has no Hangul font. The cytology PDF has Pretendard; the surgical renderer is due to be replaced by the ASP.NET Core API, which should embed it.
+- I changed `functions/main.py`, a Firebase function, though CLAUDE.md says not to extend the Firebase code. The change is small (labels from the request), and the request contract is documented at the top of the file for the replacement server.
+- If the report-rendering service fails at sign-out itself, nothing re-renders the PDF automatically: the result waits in the failed list with that reason until a later release or amendment produces one.
+- The kept release PDFs are in browser storage in the mock (best effort); production needs a blob store beside the outbound queue.
+- Assist-mode cases are unchanged by design: the hospital's LIS makes that report.
+- The narrative text (`reportNarrativeText`) is still sent only when the page supplies it; retries and previews don't.
+- The demo Full Reset now also clears the kept release PDFs (`released_report_pdfs`); `DemoResetTab.coverage.test.ts` caught it.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 712 files passed (3 skipped), 6,227 tests passed (9 skipped); 22 new tests over Batch 391's 6,205.
+- Renderer tests (`python3 functions/test_main.py`): 57 checks pass (5 new).
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness, permissions.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 393 — Korean in the surgical and autopsy PDFs; autopsy reports to the interface engine (PS-340 follow-up)
+
+**Pete (Sep 29):** "I thought we were using Pretendard for the Korean font?" Then: "Yes, and add the server work to one of the existing backend Jira tickets. Also, we need the Autopsy reports as well."
+
+**Checked first:** surgical and autopsy report PDFs are made by the report renderer (`functions/main.py`, ReportLab), which had only Helvetica: Korean printed as empty boxes. An autopsy report goes through the same renderer, so it had the same problem. Its delivery had a bigger gap: results were sent per synoptic report, so an autopsy case with no synoptic report sent nothing to the interface engine, and one with several sent the autopsy report several times.
+
+**Built**
+- **Pretendard in the renderer:** a report in Korean, or containing Hangul anywhere (a Korean patient's name in a US lab), is drawn in Pretendard; everything else stays Helvetica. The two TTF files and the licence are shipped in `functions/fonts/`, unmodified from the npm package; ReportLab embeds only the glyphs used (a test Korean report is about 25 KB). Every style, table and bold mapping follows the chosen font.
+- **Same rule for cytology:** `printFontLanguageFor` loads Pretendard for any cytology report containing Hangul, not only Korean-language ones.
+- **Renderer placeholders translated:** "Not yet generated", "⚠ Required — not yet completed", "No content", "No synoptic data recorded." come from the report's labels (4 keys, five languages).
+- **Autopsy reports sent as one result:** `resultInstances.ts`: an autopsy case sends one case-level ORU^R01 (the PAD as preliminary, the FAD as final) with its PDF, whether it has synoptic reports or not; it is only built once that tier is signed. Retries and holds work as in Batch 392.
+- **Jira:** the rendering-server work is recorded on PS-276 (Document Rendering Engine).
+
+**Found, not fixed**
+- The renderer is still the Firebase function the project will replace; the new API server needs the same fonts, labels contract and rules (PS-276).
+- An autopsy case's earlier per-synoptic-report results (if any were already sent) are not withdrawn; from now on only the case-level result is sent.
+- Korean wording on the PDFs still needs native review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 713 files passed (3 skipped), 6,235 tests passed (9 skipped); 8 new tests over Batch 392's 6,227.
+- Renderer tests (`python3 functions/test_main.py`): 64 checks pass (7 new).
+- Guards pass: locale parity, inline CSS, PHI, deployment readiness, permissions.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 394 — Fix: Pretendard no longer needs an npm package
+
+**Pete (Sep 29):** sent a test run from his machine: 51 files failed (44 at load, 25 tests), all "Failed to resolve import `pretendard/dist/public/static/alternative/Pretendard-Regular.ttf?url`" from `services/documentRendering/printFonts.ts`.
+
+**Cause (mine, Batch 391):** `printFonts.ts` imported the font files through the new `pretendard` npm dependency. On a machine where `npm install` hadn't been run after Batch 391, the import failed, and because `services/index.ts` reaches that file, every test that loads the services barrel failed with it. The three `templateService.governance` failures were the same cause: its role lookup imports the barrel, the import failed inside a `try`, and the user was treated as having no roles. I told you to run `npm install`, but a missing font must never break unrelated code, and I should have caught this.
+
+**Fixed**
+- The font files ship with the app: `public/fonts/pretendard/` (the two TTF files for PDFs, and `web/` with the dynamic-subset CSS and 92 woff2 files for the screens), licence alongside. `printFonts.ts` loads `/fonts/pretendard/...` with no import; `index.html` links the web CSS; `main.tsx` no longer imports the package.
+- The `pretendard` npm dependency is removed (`package.json`, `package-lock.json`). Nothing to install.
+- New tests: nothing in `src/` imports the package; the web and PDF copies carry the licence and match the renderer's copy.
+- Docs that said "run `npm install`" are corrected (root README, licence notice; this entry replaces that instruction in Batch 391's).
+
+**Verified**
+- Run here with the package removed from `node_modules`, as on your machine.
+- Type-check: only the 4 known environment errors. `vite build` copies the fonts from `public/`.
+- Full suite: 713 files passed (3 skipped), 6,237 tests passed (9 skipped); 2 new tests.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 395 — Worklist and Search tables fill the window
+
+**Pete (Sep 29, screenshot of the Worklist):** "Can we use more of the window to present rows. Seems like a large space at the bottom."
+
+**Cause:** the Worklist measured the table's height once, 50 ms after the page opened (window height minus the table's top edge). The banners and triage tiles above it were still loading then; when they settled and got shorter, the table moved up but kept its first, smaller height, leaving the gap. Only a window resize re-measured it. The Search page copied the same code.
+
+**Fixed**
+- `hooks/useFillViewportHeight` measures on the next animation frame, on every window resize, and whenever anything above the table changes size (a `ResizeObserver` on the page body). The arithmetic is in `utils/fillViewportHeight.ts` (to the bottom of the window less 16 px, at least 200 px).
+- Used by the Worklist and the Search results, replacing their one-off measurements.
+- Tests: the arithmetic, and the hook growing the table when the content above shrinks.
+
+**Queue tiles:** the "Cytology QC Peer Review Queue" and "Surgical Post-Sign-Out QA" tiles at the top of the Worklist ran their labels past the tile's edge (Pete's second screenshot). The tile's inner box sized itself to the text on one line; in a queue tile it may now shrink, so the label wraps, and long translations stop at three lines with the full text in a tooltip. Checked by rendering the tiles (English and a long German label).
+
+**Demo data for testing (Pete):** as Pete Nimmo (Desert Valley):
+- **Surgical Post-Sign-Out QA:** S26-4405 (random), S26-4412 (targeted high-risk) and S26-4492 (random) are selected for peer review. The case demo data version goes to 46, which re-seeds the demo cases in each browser, so local edits to demo cases are replaced.
+- **Cytology QC Peer Review:** three pending assignments (`services/cytologyQc/demoCytologyQcAssignments.ts`): S26-5002 (high escalation, ROSE discrepancy), S26-5001 (targeted high-consequence), S26-5007 (routine random). Dr. Sarah Johnson is the primary sign-out provider, so Pete may review them. They load when the browser has no QC assignments stored yet; a browser that already has some gets them after a demo Full Reset.
+- Checked by loading both queues as Pete's session: 3 surgical rows, 3 QC assignments, all cases visible.
+
+**Also answered (no change):** case MFT26-8809-POOL showed "Report Not Found" for Pete's own account because it belongs to Manchester and Pete's account is in another organisation; a superadmin opening another organisation's case needs that organisation's support-access approval (Batch 372), and a refusal is shown as "not found" on purpose. Open: the message linking to it is addressed to Paul Carter, so how it reached Pete's inbox is still to be checked.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 716 files passed (3 skipped), 6,242 tests passed (9 skipped); 7 new tests over Batch 394's 6,237 (hook, arithmetic, demo QC seeds).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 396 — Case privacy model; QA verdicts on the case screen; queue counts
+
+**Pete (Sep 29):** the privacy model (four rules, now `docs/architecture/CASE_PRIVACY_MODEL.md`): a case the reader can't open must look exactly like one that doesn't exist; a typed number proves nothing; auto-linking mustn't leak existence. Then, from the Cytology QC queue: "If I select the case, I'm not seeing the resulting screen in which to render the review?" and "Add the buttons, I would not want to force the pathologist to go to 2 screens." And: "Can you include the count of cases in the queue."
+
+**Privacy model**
+- **One answer for a case you can't open.** `services/cases/openCaseForView.ts` is the one decision for `/report/:caseId` and `/synoptic/:caseId`. Missing, another organisation's, pool-restricted, Orchestration- or pediatric-restricted, or an error: all give the same `{ caseData: null }`. Both pages show `components/CaseUnavailable` ("You do not have access rights to case …", all five languages). The reason is logged for support, never shown.
+- Before, "Report Not Found" said the case didn't exist, while a pediatric or Orchestration case redirected to the Worklist with a toast naming the restriction (which also told the reader the patient was a child). The `?accessDenied=` redirect and its two toasts are removed (`worklistPage.toast.pediatricRestricted`, `.orchestrationRestricted`, the old `caseNotFound.*` and `fullReport.notFound*` keys).
+- **Message links.** The drawer linked any accession number found in a message against every case in every organisation (`caseService.getAll()`, the mock, unfiltered), so a link confirmed that a case existed. It now uses `caseRouter.listLinkableAccessions()`: only cases the reader can open (`services/messages/linkableCaseAccessions.ts`). A superadmin gets links only to their own organisation's cases; support reaches another organisation's case through the support access gate, not from a message. A link a sender attached to the message (`caseNumber`) still shows, and opening it without access gives the neutral screen.
+- **Inbox.** Signing out left the last person's messages in the messaging context until the next load, and the drawer loaded an inbox for a stand-in id `u1` when nobody was signed in. Now the inbox clears as soon as the signed-in user changes, a reply for an earlier account is dropped, and there's no stand-in id. **This is the likeliest route for the Manchester message (addressed to Dr. Paul Carter) to have appeared in Pete's drawer, but I couldn't reproduce it from the demo data:** the message service only returns messages addressed to or sent by the signed-in account.
+- Guard: `services/privacy/casePrivacy.guard.test.ts`.
+
+**QA verdicts on the case screen (Pete)**
+- **Cytology QC:** each queue row has **Open Case** (the screening page: slides, viewer, the primary review in Review History). The screening page shows a **QC peer review bar** whenever the case has an open QC review: Assign to Me, then Record Concurrence or Record Discrepancy. After the verdict it returns to the queue. The reader's own sign-out can't be taken ("another pathologist must review it"). The discrepancy form moved to `components/CytologyQc/CytologyQcDiscrepancyModal.tsx` and is shared. Decisions: `services/cytologyQc/resolveCytologyQcCaseReview.ts`; actions: `hooks/useCytologyQcActions.ts`.
+- **Surgical post-sign-out QA:** each row has **Open Case** (the report page). The report page shows the case's waiting items with Record Review and Not Relevant, using the same review form, and returns to the queue when the last is done. The listing, recording and dismissing moved out of `SurgicalQaWorklistPage.tsx` into `services/quality/surgicalQaReview.ts` (+ `hooks/useSurgicalQaReview.ts`).
+- Both queues used to ignore a failed action; they now say why.
+- **Permissions (Rule 7):** `cytology:qc-review:record` and `surgical:qa-review:record`, high risk, casework. Checked in the services (the QC assignment service's assign/concurrence/discrepancy; `surgicalQaReview.ts`). Seeded to Pathologist and Fellow, the roles that had the queues, so nobody loses anything.
+
+**Queue counts (Pete):** the Cytology QC and Surgical Post-Sign-Out QA tiles on the Worklist show how many items are waiting (`services/quality/reviewQueueCounts.ts`, `hooks/useReviewQueueCounts.ts`), refreshed when the view changes.
+
+**Deployment baseline:** `pages/FullReportPage.tsx`, `pages/CytologyQcQueuePage.tsx` and `pages/SurgicalQaWorklistPage.tsx` no longer import mocks and leave the mock-import baseline (`cytologyQcCaseAssignmentService` is now exported from `@/services`).
+
+**Still open**
+- The QC service's `supervisorBypass` and SLA escalation have no screen and no capability yet.
+- Rules 1 and 2 (telling a sender about a recipient's access) have no screen, as Pete decided.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 722 files passed (3 skipped), 6,270 tests passed (9 skipped); 28 new over Batch 395's 6,242 (open-case decision, message links, QC case review, surgical QA service, queue counts, privacy guard, QC permission refusal).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 397 — Field Requirements: the Intraop page, Add Orders and matrix blocks (PS-359)
+
+**Pete (Sep 29):** "Field Requirements for interop queue next, unless there are some SynopticReportPage Modals still pending", then "do both as Batch 397 and intraop in 397". The two report-page items left were Add Orders → Blocks / Recut and the matrix block editor.
+
+**Intraop page (new page `intraop`, 15 rules in five groups)**
+- **New session:** patient name, MRN and the identity confirmation, locked (patient identification); OR number, required but switchable; surgeon, locked (the session's operating surgeon; the lock reason's wording was corrected in Batch 398); date of birth (asked only of a typed-in patient), facility and location (asked only of a facility with rooms), optional.
+- **Specimens:** label and Quick Gross, locked (the service already refuses touch prep or a frozen cut before Quick Gross); frozen diagnosis, optional; its category, optional and asked only with a diagnosis.
+- **Touch prep:** the "Other" skip note, optional. **Verbal report:** the note, optional. **Merge:** the case, locked.
+- The defaults reproduce what the page required before. Each form shows "Still required: …", marks required labels, and keeps its button off until complete. Checks: `services/fieldRequirements/intraopChecks.ts`.
+- **Voice and keyboard** (all five languages; each acts exactly as its button does), in a new INTRAOP category that is live only on this page: "continue to specimen" (`INTRAOP_START_SESSION`, Ctrl+Alt+Shift+1), "next specimen" (`INTRAOP_SAVE_SPECIMEN_NEXT`, +2), "close and save" (`INTRAOP_SAVE_SPECIMEN_CLOSE`, +3), "merge session" (`INTRAOP_MERGE_CONFIRM`, +4). The verbal report already had "report logged".
+- The location text (point of care / room / bed) now comes from `services/locations/formatLocationDisplay.ts`.
+
+**Add Orders → Blocks / Recut**
+- The specimen and cassette label are listed as locked rules (group **Add Orders**, material traceability), as before. The form now shows "Still required: …" and marks both labels instead of an error after a click, and Add Block stays off until both are given.
+- "confirm block order" (`ADD_ORDERS_ADD_BLOCK`, Ctrl+Alt+Shift+8). ("add block" already opens the modal on this tab.)
+- The appended gross sentence moved to `reportPageChecks.addOrdersBlockSentence` (still English: it's persisted report text). The "Will append" preview is now one translated template instead of a prefix plus hard-coded quotes. Removed keys: `addOrdersModal.blocksTab.willAppendPrefix`, `errorSelectSpecimen`, `errorEnterLabel`.
+
+**Matrix block editor (and the ordinary block editor)**
+- These editors save each field as you type, so, like the Grossing screen, the rules are checked at **Complete grossing**. Matrix blocks were left out of that check; the per-block rules now include them (`grossingBlocks`), named by their own label.
+- New Grossing rule: **piece description** (per block, optional).
+- Both editors now mark the piece count and piece description required when the organisation requires them, and say "Needed before grossing can be completed." when one is missing (`components/Grossing/GrossingFieldNote`).
+
+**Also:** the Field Requirements screen's group order moved into the catalog (`FIELD_GROUP_ORDER`), with a test that every group is shown; `isFieldRequired` is the shared "*" helper.
+
+**Still open**
+- The report page's own Gross Complete (`hooks/useGrossingCompletion.ts`) still doesn't apply the Grossing field requirements (open since Batch 379), so the matrix block rules apply at the Grossing screen's Complete grossing only.
+- Add Orders decides its tab order in the component; the matrix block editor's stain search and the Intraop page's facility/location filtering are still inline.
+- Korean wording for the new intraop rules should get a native speaker's review before clinical use.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 724 files passed (3 skipped), 6,287 tests passed (9 skipped); 17 new over Batch 396's 6,270 (intraop checks, Add Orders checks and modal, matrix blocks in grossing).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 398 — The case report page's Gross Complete follows the Grossing rules (PS-359)
+
+**Pete (Sep 29):** "Please fix the grossing issue": the report page's own Gross Complete (orchestration cases) ignored the Grossing field requirements, open since Batch 379. Asked how the "Grossing protocol attached" rule should work there (that page records grossing on Grossing templates, and no demo O26 case has a protocol), Pete chose: **a Grossing template counts as the protocol**; every other Grossing rule applies as on the Grossing screen.
+
+**Fixed**
+- Gross Complete and Update Gross on the report page now check the organisation's Grossing field requirements (protocol, blocks, piece count and description, fixation end time, fixative ratio) and the `case:grossing:complete` permission, through `services/grossing/reportGrossComplete.ts`. Before, the button checked only that each specimen had some grossing entered, and had no permission check (a Rule 7 gap). Missing items are named with their specimen or block, as on the Grossing screen.
+- With the defaults nothing changes for cases where every specimen has a Grossing template: the protocol rule is met by the template, and blocks are expected only of specimens with an attached protocol.
+- With the protocol rule switched off, specimens with neither a protocol nor a template ask for confirmation, then get a "Grossed without protocol" deficiency for secondary review, exactly as on the Grossing screen (shared: `raiseGrossedWithoutProtocol`). Update Gross checks the same requirements but never asks the protocol question again.
+- The page's "no grossing entered" rule moved from the hook into `specimensWithoutGrossEntry`.
+- `grossingCompletion.ts`: the protocol test is a parameter (`ProtocolSatisfied`), default unchanged.
+
+**Correction to Batch 397 (Pete).** I locked the Intraop session's surgeon with the reason "the frozen section result is reported to the surgeon, who must be named (CAP)". That overstated it: hospital policy and accreditation standards allow the result to go to the surgeon or an authorized member of the surgical team, with a mandatory read-back and a record of who received it and when. The lock reason now says the session records the operating surgeon, and who received the result is recorded with the report, in all five languages. Corrected in the Batch 397 entry above, `services/fieldRequirements/README.md` and the Batch 397 Jira comment. Recording who received the result, their role and the read-back is proposed as Batch 399.
+
+**Still open**
+- Update Gross still asks its reason with `window.prompt`.
+- The Gross Complete button isn't greyed out for someone without `case:grossing:complete` (the check is in the service; they get a message).
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 725 files passed (3 skipped), 6,298 tests passed (9 skipped); 11 new over Batch 397's 6,287 (report-page checks, and the hook's refusal, permission and confirmation paths).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 399 — Intraop: the structured verbal report, a critical results dictionary and "Surgeon unavailable" (PS-359)
+
+**Pete (Sep 29):** a frozen result may be communicated to the surgeon or an authorized, qualified member of the surgical team; direct communication with the operating surgeon is expected for critical findings; a read-back is mandatory; the record must say who received it and when. Then: "use a dictionary that would map to a critical result flag … a button to enter a reason if [the surgeon] wasn't directly contacted … There is going to have to be a human involved in this Decision … a big button that's easy to select and see the available reasons." And his edge cases: complex negation, "Other" notes like "." or "busy", and finding the recipient quickly.
+
+**Before:** "Report to Surgeon" saved a free-text note and the time. It didn't record who received the report, their role or a read-back. On merge, the case's critical result record named the session's surgeon as the recipient, whoever had actually taken the call.
+
+**The verbal report (Intraop page, `components/Intraop/VerbalReportForm.tsx`)**
+- **Received by:** type to search, starting with the session's surgeon and then the physician directory; any typed name is accepted (OR staff are often not in the directory). **Role:** large buttons (operating surgeon, surgical resident, surgical fellow, physician assistant, designated OR staff); picking "Operating surgeon" fills in the session's surgeon.
+- **Read-back confirmed** (patient identifiers and the diagnosis): required.
+- **Critical result:** the dictionary suggests it and shows which entry matched which specimen; the pathologist ticks or unticks. Both the suggestion and the decision are recorded.
+- **Surgeon unavailable:** a critical result given to anyone but the operating surgeon brings up a large amber button that opens the reasons as large buttons (scrubbed in a critical step, communication delegated, intraoperative emergency, not in the room, Other). Nothing can be logged until one is chosen. "Other" offers three starting phrases and needs a note of at least three real words.
+- The time is the moment of logging, never a time said aloud. "report logged" (existing voice command) does exactly what Log does.
+- The session card shows who received it, their role, "Read back", "Critical result" and any "Surgeon unavailable" reason.
+- Rules: `services/intraop/verbalReport.ts`, enforced in `recordVerbalReport` too (`VERBAL_REPORT_INCOMPLETE`), which now also writes an audit entry. Field Requirements: five new locked rules in the Intraop page's Verbal report group; the note stays an optional switch.
+- The merge now carries who received it, their role, the read-back, the critical decision and the reason into the case's critical result record.
+
+**Critical intraoperative results dictionary** (Configuration → System → Intraoperative critical results)
+- Entries with a name, description, match terms and preliminary categories. Starting entries: malignancy on frozen section, positive or close margin, atypical or suspicious for malignancy, positive lymph node. A lab edits, deactivates or adds.
+- Matching (`matchIntraopCriticalResults.ts`) is negation- and uncertainty-aware, from Pete's edge cases: "No definitive evidence of malignancy is seen, except for…" doesn't flag; "Carcinoma cannot be entirely ruled out, though negative for…" does; "negative for lymphovascular invasion, carcinoma present" does; "Lymphoma: absent" doesn't. When in doubt it flags; the pathologist decides.
+- New permission `config:intraop-critical-results:manage` (high risk, administration), checked in the service; the screen greys its buttons without it.
+
+**Also:** the OR Live Board's dismissal checkbox now reads "read-back confirmed with the surgical team" (was "with operating surgeon"). The reason dictionary gains the SURGEON_UNAVAILABLE category, and seed reasons added after a browser stored its list are now merged in.
+
+**Still open**
+- Dictation into the verbal report with AI parsing into these fields (proposed as Batch 400).
+- Logging a verbal report has no permission of its own (it had none before).
+- Korean and the other translations of the new clinical wording should get native-speaker review before clinical use.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 729 files passed (3 skipped), 6,334 tests passed (9 skipped); 36 new over Batch 398's 6,298 (matching with Pete's examples, the report rules, the service and merge, the dictionary, the form).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 400 — Intraop: dictate the verbal report, AI fills in the fields (PS-359)
+
+**Pete (Sep 29):** "So the intent was to use voice on the phone or other small device. Can they dictate this information and have AI parse it?", then "Move to 400. I'm not sure logging a verbal report needs a permission, the user is logging in on their phones and should have access to [Intraop]."
+
+**Built**
+- The verbal report form starts with **Dictate the report**. Tap it and then the microphone (the page's existing tap-and-dictate), or type. For example: "Called results to Dr. Faulkner, operating surgeon. Read back confirmed." **Fill in from dictation** proposes who received it, their role and the read-back, and highlights a "Surgeon unavailable" reason if one is mentioned. Filled fields are tagged "From dictation" until the pathologist changes them, and a note says whether AI or keyword matching did it. The dictation becomes the note if the note is empty. Logging is still the pathologist's tap.
+- **Engines:** the organisation's AI model (the session facility's, when set), through `services/intraop/parseVerbalReportDictation.ts`. When there's no model or it fails, keyword rules (roles such as resident, fellow, PA, nurse or circulator; names after "to/told/called Dr. …"; "the surgeon" means the session's surgeon), so it still works offline.
+- **Patient identifiers** from the session (name parts, MRN, date of birth) are replaced with [PATIENT] before anything is sent to the model, because the read-back protocol means they may be said aloud.
+- **Safety rules:** the read-back is proposed only when the words say it explicitly and not negated ("no read back" and "could not confirm read-back" don't count), and the model can't add one. A reason is highlighted, never chosen. Nothing the pathologist already entered is overwritten. The time is never taken from speech.
+- **Record:** the log keeps which fields came from dictation and which engine (`VerbalReportLog.dictation`), and the audit line says they were checked by the pathologist.
+
+**Decided (Pete):** logging a verbal report needs no permission of its own. Everyone who can use the Intraop page, often on a phone, can log one. This closes Batch 399's open item.
+
+**Still open**
+- The keyword rules are English-only; in other languages the AI does the work (the rules then fill nothing, and the pathologist fills the fields).
+- Not checked with a live AI model here. The AI path is tested with a stand-in model.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 730 files passed (3 skipped), 6,347 tests passed (9 skipped); 13 new over Batch 399's 6,334 (rules, AI path, redaction, never-inferred read-back, the form).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 401 — Embedding station: Field Requirements (PS-359)
+
+**Pete (Sep 29):** "Next required field group". The Embedding station sits between Grossing and Microtomy on the bench, and both of those already had Field Requirements.
+
+**Built**
+- **New page `embedding`** on Configuration → System → Field Requirements (`services/fieldRequirements/embeddingChecks.ts`): comment text (locked); **Confirm embedding**: observed piece count (locked: it is compared with grossing's count and a mismatch raises a Tissue Discrepancy), base mold size and orientation instructions (optional switches); **Cassette label reprint**: the reason (locked). The locked fields are what the page already needed.
+- **Confirm:** required labels starred, "Still required: …", Confirm off until complete. The observed count must now be a whole number of 0 or more (before, a negative number or a fraction went through). Confirm sends the orientation text with it, saved in the same update.
+- **Comment drawer:** same pattern for the comment text.
+- **Reprint:** a new dialog (`CassetteReprintModal`). Before, choosing a reason in the list reprinted at once, so a mis-tap printed a label; now you choose the reason, then press Reprint.
+- **Every path is checked:** `useEmbeddingStation` checks the same rules for Confirm, Add comment and Reprint, so the foot pedal (Pedal 1 confirms at grossing's count) can't confirm a block the organisation still needs a mold size or orientation for.
+- **Voice:** a new `EMBEDDING` context while the page is open: "confirm count" / "confirm embedding" (Ctrl+Alt+Shift+C) and "add comment" (Ctrl+Alt+Shift+A), in all five languages, acting exactly as the buttons do.
+- **Translated (converting on touch):** block status, mold sizes, orientation quick fills (the field is free text, so a quick fill inserts the user's own wording), discrepancy and reprint reasons (stored in English, shown translated), comment times in the user's locale, the scan errors and the reprint errors.
+- **Small fixes:** the centre panel is keyed by block, so a cassette scanned while another is open no longer keeps the previous block's typed count; the hook reads the scan station through `@/services` and is off the deployment baseline.
+
+**Still open**
+- The Tissue Discrepancy deficiency's comment is English (a stored QA record), and "Last flagged … by" shows the user id, not the name.
+- The printer's own error text (from the label printer utility) is shown as it comes.
+- Korean and the other machine translations of the new bench terms should get native-speaker review before clinical use.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 732 files passed (3 skipped), 6,365 tests passed (9 skipped); 18 new over Batch 400's 6,347 (the checks, and the panel, drawer and reprint dialog with voice).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 402 — Slide distribution station: Field Requirements (PS-359)
+
+**Pete (Sep 30):** "Next module". Slide Distribution (PS-286) follows Microtomy and Embedding on the bench. Asked whether a slide label reprint there should need a reason; Pete chose **locked**, as at Microtomy and Embedding.
+
+**Built**
+- **New page `slideDistribution`** on Configuration → System → Field Requirements (`services/fieldRequirements/slideDistributionChecks.ts`):
+  - **Physical checkout:** pathologist or pool, slide folder, tray, courier bag: switches, off by default. A checkout still always needs at least one; "Still required" now says so ("a pathologist, pool or location") instead of just greying the button.
+  - **Digital scanner routing:** the instrument, locked (as before, so the scan can be matched back to the slide); rack and slot are switches.
+  - **Slide exceptions:** a new optional note beside the one-touch reasons, recorded on the chain of custody. Required by an organisation, the reason buttons wait for it.
+  - **Slide label reprint:** reason locked (new). `SlideLabelReprintModal`: Damaged label, Unreadable barcode, Smudged print, Other; choose, then Reprint. Before, the button printed straight away with no reason. `recordLabelReprintRequest` refuses without one and writes it on the chain-of-custody line.
+- Required labels starred, "Still required: …", buttons off until complete; `useSlideDistributionStation` checks the same rules.
+- **Voice:** a new `SLIDE_DISTRIBUTION` context: "confirm checkout" (Ctrl+Alt+Shift+P) and "confirm scanner" (Ctrl+Alt+Shift+D), in all five languages, each only for the destination on screen.
+- **Translated (converting on touch):** routing status, priority badge, split-destination warning, the doctor's title, the example placeholders, scan and printer errors; times in the user's locale (new `formatTime`). The chain-of-custody lines stay English (traceability record).
+- The hook reads the scan station through `@/services` and is off the deployment baseline; the pathologist/pool search moved to `utils/` (`filterRoutingDirectory`).
+
+**Still open**
+- The chain-of-custody lines are shown in English, and the tech column shows the user id.
+- The printer's own error text is shown as it comes.
+- The new bench terms in Korean and the other machine translations should get native-speaker review before clinical use.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 735 files passed (3 skipped), 6,384 tests passed (9 skipped); 19 new over Batch 401's 6,365 (the checks, the reprint reason, the helpers, and the two panels and reprint dialog with voice).
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 403 — Add-On Orders: permissions, Field Requirements, reference labs linked to tests, demo data (PS-287 / PS-359)
+
+**Pete (Sep 30):**
+- "Move to add on orders."
+- Permissions: "Both, all 3 roles."
+- Send-out lab: "Make the reference lab mandatory at the time of final order submission for any cart containing molecular or send-out lines… Link reference vendors to specific test orders or test catalogs so they default in automatically. If multiple vendors are valid, restrict the picker dropdown to a curated, pre-approved list associated with that specific test code."
+- "Add some seed data and some demo data to execute the functionality."
+
+**Built**
+
+- **Permissions.** Two new permissions, both checked in the new `services/addOnOrders/addOnOrderActions.ts`:
+  - `add-on:order:place`: place an order; cancel it, or modify and resubmit it, after an exception.
+  - `add-on:exception:approve-destructive-cut`.
+  
+  Both are seeded to Pathologist, Fellow and Resident, and offered to a hospital's own roles that have case access. The buttons are greyed without them.
+
+- **Field Requirements page "addOnOrder."**
+  - Locked: blocks and order lines (as before), and the reference lab on any molecular or send-out line (new, Pete).
+  - Switches, off by default: the recut level depth, bench instructions, the exception note and the response note.
+  - Required fields are starred, "Still required: …" is shown, and buttons stay off until complete.
+
+- **Reference labs linked to tests.** In the Stain Dictionary, a molecular test lists the reference labs approved to perform it, and a default lab. On an add-on order:
+  - Each send-out line has its own lab, filled in from the default, or from the only approved lab.
+  - The picker offers only that test's approved labs. With none linked, it offers every active reference lab and the pathologist picks one.
+  - This replaces the old single lab picker for the whole order, which could be left blank.
+
+- **Modify & Resubmit** used to resubmit the order unchanged. It now edits the level depth and bench instructions first.
+
+- **Voice.** A new `ADD_ON_ORDER` context: "add to order" (Ctrl+Alt+Shift+A) and "submit order" (Ctrl+Alt+Shift+S).
+
+- **Translated (converting on touch):** IHC panel names, routing queues, exception reasons, case status, and the search and refusal messages. Refusals say which block and why. Stored values stay English.
+
+- **Seed and demo data.**
+  - Three fictional reference labs: Summit Molecular, Pacific Genomics and Great Lakes Cytogenetics. They are added to stored facilities without replacing an administrator's changes.
+  - Test links:
+    - HER2 FISH: Summit or Pacific, with Summit as the default.
+    - Lymphoma FISH Panel: Great Lakes only, so it fills in.
+    - NGS Solid Tumor Panel (new): Summit or Pacific, no default, so the pathologist picks.
+    - MSI by PCR (new): no link, so every lab is offered.
+  - Demo case S26-4401-BX-001 (Pete Nimmo) has one order at each stage:
+    - Ki-67, requested.
+    - HER2 FISH send-out, block retrieved.
+    - A 4 µm recut, cut.
+    - A PAS order with an open exception waiting for the pathologist.
+  - The case mock version is now 47.
+
+- **Fixed.**
+  - An order placed on two blocks of the same specimen lost the first block's new orders: each block started from the case as loaded.
+  - Typing a response note on one exception row filled every row's note.
+
+- **Cleaned up.**
+  - The page hook and `StainDictionarySection.tsx` are off the deployment baseline.
+  - The stain filter, the line building and the default lab moved to `utils/`.
+
+**Still open**
+- The exception email to the ordering pathologist is in English (transport message).
+- "Primary pathologist" shows the assigned user's id, not their name (unchanged).
+- A lab linked to a test that is later deactivated simply drops out of that test's list. If none are left, every lab is offered.
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 740 files passed (3 skipped), 6,416 tests passed (9 skipped). That's 32 new over Batch 402's 6,384, covering the service and permissions, the checks, the lab links and seeds, the demo data, and the three panels with voice.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 404 — Batch Management: Field Requirements, override permissions, demo batches (PS-359)
+
+**Pete (Sep 30):** "Ok let's proceed to the next module." PS-288's Facility Ops dashboards are read-only, so there is nothing to require there. Batch Management comes next on the histology bench. Pete's decisions:
+- Abort reason: "Locked."
+- Permissions: "3 permissions, keep users."
+
+**Built**
+
+- **Field Requirements page "batchManagement".**
+  - New Container, locked as before: protocol, a reusable rack's ID, a decal batch's target duration, a referral's destination lab, and a cytology batch's stain.
+  - New Container switches: the referral's test and a staining run's reagent lots.
+  - Closing a batch out, all locked: the abort reason (new; a blank reason used to be stored as "No reason given."), the override reason, and the cold-chain note.
+  - Required labels are starred, "Still required: …" is shown, and Generate stays off until complete.
+- **Permissions.** Three new permissions, checked in the batch service: `batch:reconciliation:override`, `batch:run:abort` and `batch:cold-chain-excursion:acknowledge`. They're seeded to every role with the Batch Management screen (Histotechnologist, Cytotechnologist, Molecular Technologist) and to a hospital's own roles with case access. The confirm buttons are greyed without them.
+- **One reason dialog** (`BatchReasonModal`) for abort, override and cold-chain acknowledgement. It replaces the cold-chain browser prompt. A refusal (permission or reason) is shown in the user's language.
+- **Voice.** "create container" (Ctrl+Alt+Shift+N) in a new `BATCH_MANAGEMENT` context. The overrides deliberately have no voice command.
+- **Translated (converting on touch).** Container types, decal solutions, the station and reagent-lot lines, and the "(optional)" reagent label. The batch timestamps now use the user's locale instead of a fixed English-US format. The abort and override placeholders and the cold-chain text were rewritten, because they no longer matched.
+- **Demo batches.** Each is added when missing and never replaces a batch:
+  - A staining reconciliation with a missing slide and an unexpected scan, for the override.
+  - A referral to Summit Molecular with an unacknowledged 11.4 °C excursion, for the acknowledgement.
+  - A running processing batch, to abort.
+- **Cleaned up.** `NewContainerModal.tsx` is off the deployment baseline, and the station-to-node rule moved to `services/batches/batchFormHelpers.ts`.
+
+**Still open**
+- Batch Management's other actions (start reconciliation, remove, move, release rack) still show the service's English error text.
+- `CreateBatchModal.tsx` is no longer used anywhere and can be deleted.
+- The Molecular batch pages are the next module with forms.
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 745 files passed (3 skipped), 6,427 tests passed (9 skipped). That's 11 new over Batch 403's 6,416, covering the checks, the service permission and reason checks, the helpers, the demo batches and the reason dialog.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 405 — Molecular plate builder: Field Requirements, specimen on every patient well, supersede permission (PS-359)
+
+**Pete (Sep 30):** "Proceed to Molecular batch." His choices: supersede gets a "Permission, keep users", and patient-well specimens are "Locked."
+
+**Built**
+- **Field Requirements page "molecularBatch"** (`molecularBatchChecks.ts`):
+  - Locked, as before: the assay, the assay name, the target instrument, each control well's lot and expiry, and the supersede reason.
+  - **New and locked:** every patient well names its specimen, by container barcode or accession. The service refuses a plate without it, and the page lists the wells that are missing one.
+  - Switches: the deck slot, at least one reagent lot, and each patient well's aliquot volume.
+- **Create** stays off until everything is in place: the required fields, the reagent-lot gating and the control rules. Before, it was always on and refused afterwards. Required labels are starred and "Still required: …" says what's missing.
+- **Clone & Supersede** needs `molecular:batch:supersede`. It's seeded to the Molecular Technologist and offered to a hospital's own roles with case access. The button is greyed without it, and the service checks it.
+- **Voice:** "create plate", in a new `MOLECULAR` context. Supersede has no voice command.
+- **Translated (converting on touch):** reagent component names and gating reasons. Before, they were codes with the underscores removed.
+- **Cleaned up:** the plate builder takes its services from `@/services` and is off the deployment baseline. The control-rule and extraction-rack services are now exported there.
+- **Demo:** the seeded run `mb-001` can be superseded. New plates can be built on Panther 1 or 2.
+
+**Still open**
+- The other molecular pages (control rules, rack loading, rack worklist) are still on the deployment baseline.
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 746 files passed (3 skipped), 6,433 tests passed (9 skipped). That's 6 new over Batch 404's 6,427: the checks, the supersede permission, and the patient-well refusal.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 406 — Molecular: rack loading with deck-slot checks, control-rules permission, the rest of the molecular pages, System Capabilities (PS-359)
+
+**Pete (Sep 30):**
+- **Control rules:** "default to admin but it remains an assignable permission."
+- **Rack Loading needs:** the rack identifier / barcode; the sample ID mapped to every occupied position; and the instrument and deck slot, "required if the platform utilizes multi-slot loading".
+- **How the system knows and checks the slot:**
+  - an instrument profile (slot layout, rack types per slot);
+  - assay mapping ("Sample Rack 1 must be in Slot A1 or Slot A2");
+  - at Rack Loading, a pick-list filtered by instrument and assay, and a deck-position scan that fills the slot and warns if it's invalid.
+- Then: "Don't forget the readmes and System Capabilities." He attached the design doc "PathScribe Access Control: Capabilities in Context".
+
+**Built**
+- **Instrument profiles:** `Equipment.deckSlots`. Each slot has an id, a deck or bay, and the rack types it takes (sample tube rack, extraction plate, reagent cartridge).
+  - Edited in the equipment editor for analysers (`DeckLayoutEditor.tsx`) and validated (`deckSlotsValid`).
+  - Demo Panther 1 and 2: A1–A4 take sample racks, A4 also takes the plate, and R1 is the reagent bay.
+  - Demo Panther 3: one slot.
+- **Assay mapping:** a control rule can name the slots its sample rack may use. The HPV seed rule allows A1 or A2.
+- **Control Rules permission:** `config:molecular-control-rules:manage` (administration, high risk).
+  - Admin starts with it; any role, a Lab Director for example, can be given it. The service checks it on create, update and delete.
+  - On the page, the buttons are greyed without it, delete asks first, slots are ticked per rule, control types are shown by name, and refusals are translated. The service now returns codes instead of English sentences.
+- **Field Requirements page "molecularRack"** (thirteenth page, `molecularRackChecks.ts`):
+  - Locked: the rack barcode (generated when blank), a sample ID (accession) for every occupied position (the rack needs at least one tube), the instrument, and the deck slot (only when the instrument has more than one slot for a sample rack).
+  - The assay is a switch.
+  - New lock reasons: `rackIdentity`, `sampleMapping`, `deckPlacement`.
+- **Rack service:**
+  - The physical barcode is unique and 3–40 characters.
+  - `setPositionAccession` records a tube's accession.
+  - `placeOnDeck` checks the Field Requirements, the analyser and the slot, then records the instrument, assay, slot, who placed the rack, when, and whether by pick-list or deck scan.
+  - Errors are codes.
+- **Rack Loading page:**
+  - Barcode entry on a new rack.
+  - Manual entry takes the accession, and tubes without one are flagged amber and clickable.
+  - A new "Place on instrument" panel: instrument, assay, and a slot list filtered to what fits. "Scan deck position" reads `LOC-INST-<code>-<slot>` and fills the slot, with a red warning for a wrong slot, a tube scanned by mistake, or another analyser (`resolveDeckScan`).
+  - Stars and "Still required", and "place rack" by voice (`MOLECULAR_PLACE_RACK`).
+- **Plate builder:**
+  - On an analyser with a deck layout, the deck slot is a list of its plate slots, and the batch service refuses any other slot (`deckSlotInvalid`).
+  - The seeded run moved from SLOT_A1 to SLOT_A4.
+  - Clone & Supersede drops a slot the deck no longer takes a plate in.
+- **The rest of the molecular pages** take their services from `@/services`, with their logic moved into services:
+  - rack list: `rackWorklist.ts`, plus a status column;
+  - control rules: `controlRuleDraft.ts`;
+  - molecular QC batches: `cytology/molecularQcRunLinks.ts`;
+  - order queue: `molecularOrders/orderQueueView.ts`.
+  - Five pages left the deployment baseline, and dates follow the user's language.
+- **Demo:** rack `RK-HPV-0417` has three named tubes, ready to place on a Panther. Panther 3 shows the single-slot case.
+- **System Capabilities:**
+  - `docs/architecture/AUTHORIZATION_API.md` gains a "Capability catalog" listing all 64 capabilities with group, risk, default roles and the checking service.
+  - Its endpoint table, which stopped at Batch 380, now runs to Batch 406.
+  - `capabilityDocs.guard.test.ts` fails when the catalog and the doc disagree.
+  - Pete's design doc gained a "Capability catalog" tab and a Phase 3 status line.
+- **Docs corrected:**
+  - `FEATURE_OVERVIEW.md` said platform-level admin restrictions were "not built" (they have been since Batch 371). It also gained the workstations, Add-On Orders, Molecular and Capabilities.
+  - `ACCESS_CONTROL_PLAN.md` said "PLANNED, not built" and described a hard-coded `isSuperAdmin={true}` that is gone.
+  - Early in this batch I told Pete there were "about 70" capabilities. The catalog has 64.
+
+**Still open**
+- A browser that stored the demo batches before this batch keeps `mb-001` in SLOT_A1, which now takes sample racks. Superseding it leaves the slot blank for the tech.
+- The Terminology screen's platform settings show only to a Superadmin session and have no capability of their own yet.
+- The plate builder still has decision logic inline in older paths (well assignment, dispatch). Only the paths changed here were moved.
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 757 files passed (3 skipped), 6,477 tests passed (9 skipped). That's 44 new over Batch 405's 6,433: deck slots and scans, the rack checks and service, plate slots, the control-rules permission, the rack placement panel, the Control Rules page, the deck layout editor, the moved page logic, and the doc guard. The doc guard was written after the full run started, so it was run on its own, together with the authorization and locale tests.
+- **Not checked in the browser.** I wasn't given the demo password.
+
+## Batch 407 — Batch Management: two-column New Container form, translated refusals, disposal permissions (PS-359)
+
+**Pete (Sep 30):**
+- The New Container form "is too long, the top is hidden from view as is the bottom. We can widen the modal and use two columns … no inline css, this would be an update to the pathscribe css."
+- Then "continue with the rest of Batch Management."
+- Disposal permission: "Keep today's users."
+- He gave the demo password, so this batch also includes the first browser check (of Batch 406 too). The password was used only on the command line.
+
+**Built**
+- **New Container form:**
+  - Each field is its own block in a two-column grid, in a dialog widened to 820px (`pathscribe.css`: `.ps-batch-create-modal--wide`, `.ps-batch-create-grid`, `.ps-batch-field`, `.ps-batch-field--wide`).
+  - Measured in the browser at 1920×865: 491px tall for Decal, which is the case in Pete's screenshot, and 664px for the tallest (Staining, with its reagent-lot list). No scrolling.
+  - One column below 720px wide; the body scrolls only as a fallback. Labels are tied to their controls.
+- **Batch refusals translated:**
+  - The batch service's English refusal sentences are codes (`BATCH_ERRORS`, `isBatchErrorCode`), as are the rack registry's (`rackNotRegistered`, `rackCheckedOut`).
+  - Batch Detail and the New Container form show them in the user's language, with the batch's barcode and the missing items filled in. This covers start reconciliation, complete, move, remove, release rack, transfer to Processing and scan-in refusals.
+  - Removing an item no longer fails silently.
+- **Disposal:**
+  - `retention:material:dispose` is checked first in `disposeItemByScan`, at the station's facility.
+  - Refusals carry a code and values, and the red screen shows them in the user's language with dates formatted for it.
+  - The audit entry's date is ISO instead of the browser's locale.
+- **Disposal report export:** it had no check (its own comment said so). It now needs `retention:disposal-report:export`, at the report's facility or all facilities (`exportDisposalReport.ts`).
+- Both new permissions are seeded to every role with the Batch Management screen and offered to a hospital's own roles with case access (Pete: keep today's users). That makes 66 capabilities. The catalog in `AUTHORIZATION_API.md` and Pete's design doc are updated.
+- **Patient identifiers tagged** (they weren't): item ids and accessions on the Disposal Queue (rows, red screen, flash), the Disposal Report table, Pending Batch Load, Batch Detail's scan flash, and the toasts that name an item.
+- **Page logic moved into services:** Pending Batch Load's search and grouping.
+- **Other translation fixes:**
+  - Engraver Monitor's times, which were hard-coded to `'en-US'`, and its colour-plus-warning text.
+  - Hard-coded punctuation in the Pending and Disposal rows now goes through templates.
+- **Deployment baseline:** Disposal Queue, Disposal Report and Pending Batch Load are off it, so no Batch Management page is left on it.
+- **Removed:** the unused `CreateBatchModal.tsx`. The zip can't delete files; delete it by hand.
+- **From the Batch 406 browser check:**
+  - Rack Loading's placement lists are now the same width, and its instructions no longer run into the tube grid.
+  - Everything else in Batch 406 behaved as described: the slot list narrowed to A1/A2 for HPV, the wrong-slot scan warning, placement recorded, and the plate builder offering only A4.
+
+**Still open**
+- Batch Detail works out which items are missing, for the refusal message, inside the page.
+- The Firestore stub logs a connection error in the browser console (no network here). It predates this batch.
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 758 files passed (3 skipped), 6,482 tests passed (9 skipped). That's 5 new over Batch 406's 6,477: the disposal permission and codes, the report export, and the pending search.
+- **Checked in the browser** (Pete's demo account, 1920×865 and 1920×950):
+  - the New Container form for every processing node, and a missing rack's translated refusal;
+  - a scan refusal on Batch Detail, and the Disposal Queue's red screen;
+  - the Disposal Report, Pending Batch Load and Engraver Monitor pages;
+  - all the molecular screens from Batch 406.
+  - No page errors.
+
+## Batch 408 — Batch Management closed out (PS-359)
+
+**Pete (Sep 30):** "Close out batch management", after I reported what Batch 407 had missed.
+
+**Built**
+- **List page:**
+  - Batch times follow the user's language. `BatchManagementPage.tsx` hard-coded `'en-US'`, the same problem Batch 407 fixed on Engraver Monitor but missed here.
+  - Open/closed batches, the stage filter and the stage tile counts come from `services/batches/batchListView.ts`.
+  - The stage tiles' label and count colours moved to `pathscribe.css`, including a grey that was written into the page. Only the stage's hue is set per tile.
+- **One completion rule:** `reconciliationGate` (missing items, unexpected scans, an unacknowledged cold-chain excursion) is used by `completeReconciliation` and by Batch Detail's Complete button.
+  - Before, the button ignored the excursion and the service then refused.
+  - Complete is now greyed out with the reason, and the supervisor override is offered.
+- The STAT badge is translated on both pages.
+
+**Batch Management is complete:**
+- Field Requirements and permissions on every form and protected action.
+- Every refusal in the user's language, and patient identifiers tagged.
+- No page on the deployment baseline, and no page logic, inline colours or hard-coded locales left.
+
+**Still open**
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 759 files passed (3 skipped), 6,484 tests passed (9 skipped). That's 2 new over Batch 407's 6,482: the list rules and the completion gate.
+- **Checked in the browser** (Pete's demo account, 1920×865): list times, the stage filter and tile colours, no page errors.
+
+## Batch 409 — Cytology Workspace: sign-out as a service with its own permission, off the deployment baseline (PS-359)
+
+**Pete (Sep 30):** next module, the Cytology Workspace. On cytology sign-out: "Keep today's users", and "Yes, move it" (the sign-out sequence into a tested service).
+
+**Built**
+- **`cytology:report:sign-out`** (new, high risk):
+  - Checked first in `services/cytology/signOutCytologyCase.ts` for the case.
+  - Seeded to Pathologist, Fellow, Resident and Cytotechnologist, and offered to a hospital's own roles with case access.
+  - Sign Out is greyed without it.
+  - Signing authority, the CT gate and countersign rules still apply on top. Before, nothing let an administrator switch sign-out off for a role.
+- **Sign-out moved out of the page:**
+  - The sequence, from the gate and signature through countersign release, the QA side effects, the record and release event to the registry dispatch, now runs in `signOutCytologyCase.ts`, with its dependencies wired in `signOutCytologyCaseDeps.ts`.
+  - Same steps in the same order; the page shows the outcome.
+  - `CytologyScreeningPage.tsx` went from 2,773 to 2,262 lines.
+- **Translated:** the reasons a cytotechnologist can't sign out showed as raw codes (`non_gyn_specimen, flagged_for_qc`). They're now `cytologySignOut.blockReasons.*`, joined for the user's language.
+- **Deployment baseline:** the Cytology Workspace's three files are off it. 22 cytology, registry and override services, the pool-claim actions and the QA activity-type IDs are exported from `@/services`.
+- **Capabilities:** now 67. `AUTHORIZATION_API.md` and Pete's design doc are updated.
+- **Guards updated:**
+  - `signingScreens.guard.test.ts` checks the signature in the service now.
+  - `CytologyScreeningPage.i18n.guard.test.ts` no longer lists the English stored-data text that moved.
+
+**Still open**
+- `CytologyScreeningPage.tsx` still saves reviews, sets the final diagnosis and flags high-risk QC in the page. It also does the workload/SCU accounting and records secondary-screening QA there.
+- Korean and the other machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 760 files passed (3 skipped), 6,492 tests passed (9 skipped). That's 8 new over Batch 408's 6,484: the sign-out service.
+  - The signing guard failed in the full run, because it looked for the signature check in the page. It was updated and re-run alone (8 of 8 passed), and it was the only file changed after the run.
+- **Checked in the browser** (Pete's demo account):
+  - the Cytology Worklist;
+  - an actual sign-out of S26-5006-CYT-001 through the new service: signature dialog, "Report signed out", and the signed-out banner;
+  - no page errors.
+
+## Batch 410 — Cytology Workspace: all logic in services, five new permissions, stored review agreement (PS-359)
+
+**Pete (Sep 30):**
+- "Complete Cytology Workspace cleaning."
+- Permissions: each of the four new actions gets its own, and today's users keep them.
+- On review agreement: "each subsequent review should explicitly store its level of agreement when saved", tied to the review, the reviewer and a timestamp.
+- Multi-specimen cases: the next piece of work (see Still open).
+
+**Built**
+- **The page renders and dispatches only.** `CytologyScreeningPage.tsx` went from 2,262 to 1,148 lines. What it did itself is now in `services/cytology/`, each tested with its dependencies passed in (`cytologyWorkspacePorts.ts`, wired in `cytologyWorkspaceDeps.ts`):
+  - `loadCytologyWorkspace.ts`: the case, its cytology specimen, nomenclature and categories, reviews, sign-outs, AI result, jurisdiction, credentials, instrumentation modality, lexicon and patient history (seven page effects).
+  - `saveCytologyReview.ts`: both save paths (Bethesda-style and CISOE-A). It covers CLIA workload and reassignment, the pathologist-review requirement, create or update, high-risk then random QC, the secondary-screening QA record and the workload ledger.
+  - `cytologyCaseActions.ts` covers:
+    - final diagnosis, QC flag and unflag, and the 5-year lookback outcome;
+    - cyto-histo correlation: the lookup, recording and dismissing;
+    - decants, stains and ROSE;
+    - Code Manager changes (audited), LMP and the print document.
+  - `cytologyWorkspaceView.ts`: pick lists, labels, sign-out eligibility and panel, lookback card, HPV card, AI summary, workload banner and Code Manager inputs.
+  - `cytologyReviewDraft.ts`: the draft and its conversions.
+- **Five new permissions** (high risk, casework): `cytology:review:record`, `cytology:final-diagnosis:select`, `cytology:qc-flag:remove`, `cytology:retrospective-review:record` and `cytology:histology-correlation:record`.
+  - Seeded to Pathologist, Fellow, Resident and Cytotechnologist (the roles with the Cytology Workspace screen), and offered to hospital roles with case access.
+  - Set as Final is a `CapabilityButton`; the CT/pathologist gate still applies on top.
+  - Removing a QC flag is now audited. Adding one needs no permission.
+  - Each refusal has a translated message.
+  - The catalog has 72 capabilities, and `AUTHORIZATION_API.md` is updated.
+- **Stored agreement:**
+  - Every review after the initial screen stores `agreementWithInitial` when it's saved. That is the level (exact, minor, or major with false negative or false positive), adequacy differing, the interpretations and recommendations added or missed, which initial screen and version was compared, and who assessed it and when.
+  - An edit re-assesses the review and keeps the earlier assessment (`priorAgreements`).
+  - Review history shows it: green, amber or red.
+  - The secondary-screening QA record carries the level.
+  - The QA agreement report reads the stored level, and works it out as before for older reviews.
+- **Translated on touch:**
+  - review history's selection text and quoted notes;
+  - the Code Manager's specimen names;
+  - SCU figures in the user's number format;
+  - patient names through `utils/personName.ts`.
+- **Other:**
+  - `CapabilityButton` takes `disabledTitle`.
+  - The page's i18n guard keeps only `'Unknown'` as stored English.
+- **New locale keys:** 29 in each of the five languages: 5 capability labels and descriptions, 6 refusals, 4 history formats, 9 agreement texts, and the Code Manager specimen name.
+
+**Still open**
+- **One cytology specimen per case.** The workspace loads the first Cytology or FNA specimen, and signing it out finalizes the case. Pete wants the next piece of work to add:
+  - a specimen tab bar;
+  - per-specimen status and sign-out;
+  - the case finalized only when every specimen is signed out, or by an override permission.
+- Editing an initial screen doesn't re-assess the later reviews already stored against it. Each keeps the version it was compared with (`comparedWithVersionAt`).
+- Machine translations (Korean especially) need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 765 files passed (3 skipped), 6,544 tests passed (9 skipped). That's 52 new over Batch 409's 6,492. No code changed after the run started.
+- Not checked in the browser this time: the demo login wasn't available in this session.
+
+## Batch 411 — Cytology Workspace: multi-specimen cases, signed out specimen by specimen (PS-359)
+
+**Pete (Sep 30):**
+- "Taking on the specimen picker and per-specimen sign-out as the next piece of work is definitely the right move". Multi-site FNAs and concurrent Non-GYN and FNA specimens under one accession are common.
+- Specimen tabs, status per specimen, and the case Final only once every specimen is signed out, "or provide an explicit override permission for authorized users".
+- Then (agreed): the pre-sign-out revision workflow as the next piece of work. It locks only the final diagnosis and sign-out, and only the author clears a revision request.
+
+**Built**
+- **Specimen tabs** (`pages/CytologyWorklistPage/components/CytologySpecimenTabs.tsx`). A case with more than one Cytology or FNA specimen shows a tab for each:
+  - "Specimen A", "Specimen B", each with its description and a Draft or Signed out status.
+  - Switching asks first about unsaved changes. Each specimen has its own reviews, drafts, QC, HPV, final diagnosis and sign-out.
+  - The case opens on the first specimen not yet signed out.
+  - `loadCytologyWorkspace` lists them (`cytologySpecimens`) and takes the specimen to open.
+- **Per-specimen sign-out.** `signOutCytologyCase` finalizes the case only when every cytology specimen has a sign-out record (`cytologyCaseFinalization.ts`). Until then the case keeps its status, and the screen says how many specimens are left.
+- **Early finalization.** `cytology:case:finalize` (new, high risk) allows "Finalize case now" part-way through a multi-specimen case:
+  - A reason is required and the action is audited.
+  - `Case.cytologyEarlyFinalization` records who, when, why and the unsigned specimens, and the workspace shows it.
+  - Unsigned specimens can still be signed out.
+  - As an override it's seeded to Pathologist only, and isn't offered to a hospital's own roles. There are now 73 capabilities.
+- **New locale keys:** 19 in each of the five languages (tabs, statuses, progress, the finalize form and its refusals, the per-specimen sign-out toast, the capability).
+- **Docs:** the root README's permission summary said "Batches 378–409" through Batch 410; it now says 378–411.
+
+**Still open**
+- The Cytology Worklist's own tiles (QC pending, 5-year lookback) still read each case's first cytology specimen.
+- Countersign release is case-level: a resident releasing one specimen puts the whole case in pending-countersign.
+- There's no combined multi-specimen report PDF; each specimen's report is its own.
+- Next (Pete, agreed): the pre-sign-out revision workflow. That's review version history with restore; reviewer notes attached to a part of someone's review; and Pending Author Revision, which blocks the final diagnosis and sign-out, cleared only by the author, with its own permission to request.
+- Machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 766 files passed (3 skipped), 6,552 tests passed (9 skipped). That's 8 new over Batch 410's 6,544. No code changed after the run started.
+- Not checked in the browser: the demo login wasn't available in this session.
+
+## Batch 412 — Cytology Workspace: review notes, revision requests (CT only), version history, Revise and sign out (PS-359)
+
+**Pete (Sep 30):**
+- On pre-sign-out revisions: keep a revision history; use structured notes, not editing each other's fields; add a "Requires revision" status.
+- Then, on MD delays: the pathologist is the final gatekeeper and shouldn't be stopped. His answers:
+  - "Blocks CT only";
+  - "Revise and sign out": yes;
+  - direct edit of the CT's review: no, keep it separate.
+- This replaces his earlier answer (a revision request would lock the final diagnosis and sign-out for everyone).
+
+**Built**
+- **Notes on part of a review** (`services/cytology/cytologyReviewNotes.ts`, `components/CytologyReviewNotes.tsx`):
+  - Anyone but the author can leave a note before sign-out, about adequacy, general categorization, primary, secondary, recommendations or notes. Plain notes never block.
+  - "Requires revision" needs the new `cytology:revision:request`, is audited, and marks the specimen tab "Revision requested".
+  - It stops a cytotechnologist from choosing the final diagnosis or signing out (gate reason `pending_author_revision`) until either:
+    - the author acknowledges the note and saves a revised review (only the author can acknowledge); or
+    - a pathologist records their own review ("Resolved by pathologist").
+  - A pathologist is never blocked.
+- **Revise and sign out** (`reviseCytologyReviewForSignOut.ts`). A pathologist copies another reviewer's review into their own; the CT's review is never edited. Saving:
+  - makes it the final diagnosis;
+  - stores the agreement;
+  - resolves revision requests;
+  - audits the change;
+  - and opens the signature.
+- **Version history.** Every edit keeps the review as it stood (`priorVersions`). The author can load an earlier version back into the form, and saving it is a new edit.
+- **Permissions:** `cytology:revision:request` is seeded to Pathologist, Fellow, Resident, Cytotechnologist and hospital roles with case access. There are now 74 capabilities.
+- **Also:**
+  - `saveCytologyReview` writes the QC flag and note changes to the specimen together.
+  - `resolveCytologySignOutGate` takes `pendingAuthorRevision`.
+- **New locale keys:** 37 in each of the five languages.
+
+**Still open**
+- Revise and sign out uses the Bethesda-style form only, not CISOE-A.
+- Nobody is notified when a note is left; the author sees it on the review.
+- From Batch 411: the worklist tiles read each case's first cytology specimen; countersign is case-level; there's no combined multi-specimen report.
+- Machine translations need native-speaker review.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 768 files passed (3 skipped), 6,565 tests passed (9 skipped). That's 13 new over Batch 411's 6,552. No code changed after the run started.
+- Not checked in the browser: the demo login wasn't available in this session.
+
+## Batch 413 — Cytology: country check of Batches 409–412; screening registries GYN only (PS-359)
+
+**Pete (Sep 30):** did Batches 409–412 hurt cytology Non-GYN or GYN regulated workflow in the UK, Ireland, Canada, Scotland, the Netherlands, Germany, France, Belgium, New Zealand, Australia or South Korea?
+
+**Checked against the code, unchanged by those batches:**
+- the five nomenclatures (Bethesda, BSCC/RCPath, München III, SFCC, PALGA CISOE-A) and their dictionaries;
+- the advanced-cytotechnologist sign-out policy per jurisdiction (permitted in GB England and Wales, Scotland, Northern Ireland, the Netherlands and Germany; not elsewhere);
+- the Non-GYN pathologist rule and the report language;
+- the HL7 result dispatch (one FINAL per sign-out record, de-duplicated).
+
+The stored agreement uses the same ranking as the QA reports. BSCC and München categories carry their own ranks, and CISOE-A reviews are compared through their Bethesda mapping.
+
+**Fixed** (`services/cytology/signOutCytologyCase.ts`):
+- **Screening registries take GYN specimens only.** CSMS, CervicalCheck, PALGA/BVO, NCSR and KNCSP are cervical screening programmes. Sign-out sent any specimen. That was already true for a Non-GYN case, and Batch 411's per-specimen sign-out would also have sent a mixed case's Non-GYN or FNA specimen.
+- **The UK CSMS "no reason for study" flag is added once per case.** Per-specimen sign-out would have added one per specimen.
+
+**Still open (older than these batches, applied the same in every country):**
+- The CLIA workload cap and the CAP 5-year retrospective lookback are US rules.
+- A cytotechnologist can sign out a negative GYN case in any jurisdiction; only the advanced exception is per country.
+- Scotland, Canada, New Zealand, Germany, France and Belgium have no screening registry configured.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 768 files passed (3 skipped), 6,567 tests passed (9 skipped); 2 new. No code changed after the run started.
+
+## Batch 414 — Cervical screening registry engine: twelve programmes, lab code mappings, holds (PS-359)
+
+**Pete (Sep 30):** "First release so kind of need to support them all, or at least flexible enough so the engine can be implemented."
+
+**Found and fixed first:** the Configuration → Cytology registry screen saved to `cytologyRegistrySettings` and `facilityCytologyRegistryOverrides`. Sign-out read `registrySettings` and `facilityRegistryOverrides`. So a registry chosen in Configuration never reached sign-out; only the seeded demo facility overrides did. The screen now saves where sign-out reads, and old saved choices are adopted.
+
+**Built** (`services/screeningRegistry/`):
+- **Twelve programmes as data** (`screeningRegistryDefinitions.ts`):
+  - UK: CSMS for England and Wales, NICSP for Northern Ireland, SCCRS for Scotland.
+  - Ireland: CervicalCheck.
+  - Europe: PALGA (Netherlands), the organised programme (Germany), CRCDC (France), the Cyto-Histo Register (Belgium).
+  - Asia-Pacific: NCSR (Australia), the NCSP Register (New Zealand), KNCSP/KCCR (South Korea).
+  - Canada: the provincial programme, one per province through a facility override.
+
+  Each definition gives the jurisdictions, GYN-only eligibility, national identifier, coding (built in, lab mapping table, or text), wire format, and whether it's built from the programme's specification or configured by the lab. The US has no national registry.
+- **A lab's configuration:**
+  - a code for each dictionary category and field (adequacy, primary, secondary, recommendation);
+  - hold until mapped, on by default for mapping-table registries;
+  - hold unless the MRN is the national identifier, off by default.
+- **The engine** decides eligibility, holds, readiness and the payload.
+  - A held result is queued and marked `REGISTRY_NOT_READY` with the reason, so it shows in the transmission audit and can be resent. It's never sent half-coded.
+  - The payload adds the programme, wire format, identifier (and whether it matches) and mapped codes to the existing structured result and built-in coders.
+  - Sign-out's registry step uses it, and the CSMS flag comes from the definition.
+- **Settings screen rebuilt** (Configuration → Cytology):
+  - all twelve programmes for the enterprise and facility registries;
+  - the chosen registry's facts and badge;
+  - the hold settings;
+  - a code-mapping table with "N of M mapped, sent or held".
+- **Permission:** `config:screening-registry:manage` (new, Admin), checked in `saveScreeningRegistrySettings.ts` and audited. There are now 75 capabilities. The screen is off the deployment baseline.
+- **Other:** registry configurations are cleared by the demo reset. New locale keys: 51 in each of the five languages.
+
+**Still open**
+- The nine registries marked "configured by the lab" haven't been checked against those programmes' current published specifications: codes, identifier and file format. The engine and screen are ready, but each needs its programme's spec confirmed before going live.
+- PathScribe keeps one patient identifier (the MRN). A national identifier (NHS number, CHI, BSN…) has to be recorded there for the identifier hold to be used.
+- The old cytology registry stores are now read by nothing; their values are adopted by the facilities stores.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 770 files passed (3 skipped), 6,584 tests passed (9 skipped). That's 17 new over Batch 413's 6,567. No code changed after the run started.
+
+## Batch 415 — Cytology country rules: US rules as features, a cytotechnologist's own sign-out permission (PS-359)
+
+**Pete (Sep 30):**
+- The CLIA workload cap and CAP 5-year lookback "should be an enabled feature".
+- Cytotechnologist sign-out of negative GYN: "Control via permissions".
+
+**Built**
+- **US rules as features** (`services/cytology/cytologyComplianceFeatures.ts`). The CLIA daily workload cap and the CAP 5-year retrospective lookback are each On, Off or Automatic, for the enterprise with facility overrides.
+  - Automatic, the default, is on for a US lab and off elsewhere.
+  - US labs are unchanged; other countries stop getting US rules unless they switch them on.
+  - With the cap off, workload is still recorded. The lookback's on-screen card follows the same switch.
+  - The settings screen is Configuration → Cytology → Country-specific rules (`CytologyComplianceFeaturesSection.tsx`).
+- **A cytotechnologist's sign-out has its own permission,** `cytology:ct-report:sign-out`. It's checked on top of the sign-out permission, covering negative GYN and the advanced-CT exception.
+  - It's seeded to Cytotechnologist and offered to hospital roles with case access.
+  - A lab where cytotechnologists may not sign reports removes it from the role. The Sign Out button then greys out, and sign-out refuses with a message that a pathologist must sign.
+- **Permissions:** `cytology:ct-report:sign-out` and `config:cytology-compliance:manage` (Admin) are new. There are now 77 capabilities.
+- **Also:**
+  - Settings are cleared by the demo reset.
+  - New locale keys: 19 in each of the five languages.
+
+**Still open**
+- Role defaults are global: a new Korean or French lab gets the cytotechnologist sign-out permission on its Cytotechnologist role until an administrator removes it.
+
+**Verified**
+- Type-check: only the 4 known environment errors.
+- Full suite: 771 files passed (3 skipped), 6,591 tests passed (9 skipped); 7 new over Batch 414. No code changed after the run started.
+
+## Batch 416 — Worklist: the case table fills the screen (PS-359)
+
+Pete, with a screenshot: "too much dead space in the worklist". Half the window below the rows was empty. Two causes, both layout:
+
+1. **The page was the height of the whole window, under a 105 px nav bar.** `.ps-wl-page` was `height: var(--app-height, 100vh)`. It lives in `.ps-app-outlet-wrap`, which is the window minus the nav bar and clips what overflows, so the page's bottom 105 px were never visible. Now `height: 100%` of the outlet. (Other pages had this exact fix already, `pathscribe.css` around line 7672; the Worklist was missed.)
+2. **The table's height was measured in script and stuck at its start value.** Batch 395 gave the table `useFillViewportHeight`, which re-measures when the page body changes size. On this page the body never changes size (the page is always exactly window-height), so the observer never fired and the table could keep its 400 px starting height. The wrapper is now `.ps-table-scroll-wrap--fill`: `flex: 1; min-height: 0`, taking all the height left under the tiles. No measurement, no `tableHeight` prop. Batch 395's claim that the hook fixed the Worklist's empty space was wrong; corrected in `hooks/README.md`. Search still uses the hook, where the page does scroll.
+
+Checked in a real browser (Playwright, 1920×945): the table's bottom edge is 12 px above the window's, the page's own padding. `pages/WorklistPage/worklistLayout.guard.test.ts` keeps both rules.
+
+Files: `pathscribe.css`, `pages/WorklistPage/WorklistPage.tsx`, `pages/WorklistPage/worklistLayout.guard.test.ts` (new), READMEs.
+
+- Type-check: clean apart from the four known errors (react-router-dom ×2, ClientDictionaryPage ×2).
+- Full suite (run from the repo root): 772 files passed (3 skipped), 6,594 tests passed (9 skipped); 1 file and 3 tests over Batch 415's 771 / 6,591.
+
+## Batch 417 — National patient identifiers with check digits (Registry Engine SRS v2.1, step 1; PS-359)
+
+Pete approved the SRS v2.1 build order ("Sounds like a good plan"). Step 1: the number each registry keys on, stored apart from the MRN and verified.
+
+**What's new**
+- `types/patient/NationalPatientIdentifier.ts`: `{ system, value, verificationStatus: verified | failedChecksum | unchecked, verifiedAt, source }`, carried on `Patient.nationalIdentifiers`. `system` is the `IDENTIFIER_FORMAT_LIBRARY` id (`mrn_nhs`, `mrn_bsn`…): one vocabulary for the format, the registry definition and the record.
+- `services/patientIdentifiers/checkDigits.ts`: thirteen rules. NHS, CHI and H&C reuse `utils/ukPatientIdValidation.ts`; new: AU IHI (Luhn 16), NZ NHI (new mod 23 and legacy mod 11), NL BSN (elfproef), BE national number (mod 97, "2" prefix for births from 2000), FR NIR (mod 97, Corsica 2A/2B rule), DE KVNR (letter → position, alternating 1,2 weights), IE PPSN (mod 23, second letter weight 9), IE IHI (mod 11), CA provincial (Luhn, Ontario), KR RRN (format only: PIPA, and post-2020 digits are random). One test per rule with a published example where one exists; the unconfirmed ones are named in the file header and the README.
+- Three library entries added (`id_ie_ihi`, `id_ie_ppsn`, `id_ca_phn`). Three corrected: the H&C format was "2 letters + 5–7 digits" and is 10 digits in the 32–39 range; the NHS description said Luhn (mod 11); the CHI example `1401740054` failed its own check (now `…7`, also in `PATIENT_ID_BY_JURISDICTION`).
+- `recordNationalPatientIdentifier`: capability `patient:national-identifier:record` (case work, high; seeded to every case-access role), check digit run, case patient and MPI written, audited without the value. A failed value is kept as `failedChecksum`; a blank removes.
+- MPI: `recordNationalIdentifier` / `listNationalIdentifiers`; one row per (patient, system), assigning authority = the system id, so `resolveByIdentifier('mrn_nhs', …)` works.
+- HL7 ADT: `adtParser` keeps CX.5; `processAdtMessage` classifies each PID-3 repetition (`classifyHl7PatientIdentifier`: authority words, `NH`/`NI` type codes, the lab's jurisdiction) and records the national ones with their check digit.
+- Screening registry engine: `resolveRegistryPatientIdentifier` uses the verified national identifier first; hold reasons `patientIdentifierMissing` and `patientIdentifierChecksum` join `patientIdentifierFormat`; the payload says `verification` and `fromNationalIdentifier`. Sign-out passes the case's patient. Cancer registry payload carries the list.
+- Accession page: `NationalIdentifierFields` under the MRN, inputs chosen by the facility's jurisdiction, check-digit badge live (`data-phi="nhs"`), saved through the service after the case is created.
+- PHI guard: `nationalIdentifiers` paths count as a patient identifier. Search reads the values. Nine demo UK patients' `nhsNumber` became verified `nationalIdentifiers` with correct check digits.
+
+**Checked in a browser** (Playwright, accessioner, Fenwick NHS Foundation Trust): the NHS number field appears, `943 476 5919` shows Verified, `…18` shows "Check digit failed" with the reason as its tooltip.
+
+**Not done** (next steps of the SRS order): consent/opt-out; submission GUID, message type and environment; ACK/NACK intake and states; exception worklist; the five missing cancer registries; JCP versioning. Also: prefilling national identifiers from an existing MPI patient at accession, editing them after accession, and `patientIdentifierMatches` on the Config screen still shows only the format.
+
+**Locale keys** (27 × 5): `capabilities.items.patientNationalIdentifierRecord.*`, `nationalIdentifiers.{title,help,saved,notPermitted}`, `nationalIdentifiers.status.*` (3), `nationalIdentifiers.reasons.*` (5), `nationalIdentifiers.systems.*` (13). Korean wording needs native review before clinical use.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 775 files passed (3 skipped), 6,622 tests passed (9 skipped); 3 files and 28 tests over Batch 416's 772 / 6,594.
+
+## Batch 418 — Registry consent and opt-out (Registry Engine SRS v2.1, step 2; PS-359)
+
+Pete: "Continue to step 2". FR-008.1: evaluate the patient's consent before any registry payload is built.
+
+**What's new**
+- `types/patient/PatientRegistryConsent.ts`: `screeningOptOut`, `cancerRegistryOptOut`, `recordedAt`, `recordedBy`, `source`; on `Patient.registryConsent` and `MasterPatientRecord.registryConsent`.
+- `services/registryConsent/evaluateRegistryConsent.ts` (pure): a screening opt-out always excludes; a cancer registry opt-out is overridden by statute unless `CancerRegistrySettingsConfig.honoursPatientOptOut` (new, default false). `consentExclusionMessage` is the stored English text.
+- `recordPatientRegistryConsent`: capability `patient:registry-consent:record` (case work, high; every case-access role), case patient and MPI written (`setRegistryConsent`), audited. Clearing both flags removes the record.
+- Cytology sign-out: an opted-out patient's result is never built; audit "Registry submission excluded by consent", queue entry failed `EXCLUDED_BY_CONSENT` with `maxRetriesExceeded: true` so it shows in the transmission audit and is never resent. The sign-out stands.
+- Cancer registry dispatch: excluded only where the lab honours the opt-out; otherwise sent with "Registry opt-out overridden by statute" on the audit log.
+- Accession page: `RegistryConsentFields`, two checkboxes under the national identifier; the cancer one carries a tooltip saying it is honoured only where the law allows. Saved through the service after the case is created.
+- `CytologyRegistryOutboundQueueEntry.errorCode` now includes `REGISTRY_NOT_READY` (used since Batch 414 but missing from the type) and `EXCLUDED_BY_CONSENT`.
+
+**Checked in a browser** (Playwright, accessioner, Fenwick NHS Foundation Trust): both checkboxes render under Registry reporting, next to the NHS number field.
+
+**Not done.** A Configuration switch for `honoursPatientOptOut`: the cancer registry settings screen is on the deployment baseline (direct mock imports, unchecked save) and should be cleaned up with its own capability before gaining a legal-exception toggle; the setting works through the service today. Editing an opt-out after accession. Consent from HL7 (a CON segment). Next: SRS step 3, the payload header (submission GUID, version, message type, environment).
+
+**Locale keys** (7 × 5): `capabilities.items.patientRegistryConsentRecord.*`, `registryConsent.{title,screeningOptOut,cancerOptOut,cancerOptOutNote,notPermitted}`.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 777 files passed (3 skipped), 6,632 tests passed (9 skipped); 2 files and 10 tests over Batch 417's 775 / 6,622.
+
+## Batch 419 — Registry payload header: submission id, versions, message type, environment (Registry Engine SRS v2.1, step 3; PS-359)
+
+Pete: "Proceed to step 3". FR-008.4 (NEW / CORRECTION / AMENDMENT), FR-008.5 (idempotent id, duplicate retry), FR-008.8/9 (test vs production).
+
+**What was there.** No header. A registry queue's `retryDispatch` existed but nothing called it. Corrections and addenda never reached a registry at all: a screening programme only ever saw the first sign-out.
+
+**What's new**
+- `services/registrySubmission/registrySubmissionHeader.ts` (pure) and `sha256.ts` (checked against the FIPS 180-4 vectors). `submissionGuid` = hash of facility, case, specimen, sign-out time, version (the SRS formula), GUID-shaped. `masterTransactionId` per facility, case, specimen, registry. Version = latest + 1. `NEW` until the registry has been sent a version, then `CORRECTION` or `AMENDMENT`. `environment` from settings, default `test`. `previousSubmissionGuid` links each version to the one before.
+- `services/screeningRegistry/submitScreeningRegistryResult.ts`: the registry step moved out of `signOutCytologyCase.ts` (consent, eligibility, header, hold or send, CSMS flag on the first submission only), so corrections and addenda use the same path. `submitCytologyRevisionToRegistry.ts`: after `useCytologyRevision` releases a correction or addendum, the registry gets `CORRECTION` / `AMENDMENT`. The release stands whatever the registry step does.
+- Cancer registry dispatch: the same header, case-level (`specimenId: 'case'`); a second dispatch for the case is `CORRECTION`.
+- Both queues: entries store `submission`; `retryDispatch` keeps it and sets `isDuplicateRetry`.
+- Settings: `ScreeningRegistryConfig.environment` with a "Send results to" control on Configuration → Cytology → Registry Reporting (saved through `saveScreeningRegistrySettings`, audited). `CancerRegistrySettingsConfig.environment`, no control yet.
+- Wording fix: the hold-for-identifier checkbox said "unless the patient's MRN is a valid NHS Number"; since Batch 417 it checks the verified national identifier, so it now says that (5 languages). The config comment that said "PathScribe keeps one patient identifier" is corrected too.
+
+**A mistake made and undone in this batch.** Writing the queue-retry test, I overwrote the existing `services/cytology/mockCytologyRegistryOutboundQueueService.test.ts` (5 tests, never in a delta zip). I recovered it byte for byte from vitest's cached transform (its inline source map carries the original source), restored it, and put the new tests in `cytologyRegistryQueueRetry.test.ts`. The restored file is identical to yours and isn't in the zip.
+
+**Checked in a browser** (Playwright, Admin): Registry Reporting → CSMS shows "Send results to: The programme's test system" with its note, and the corrected hold wording.
+
+**Not done.** ACK/NACK intake and the dispatch state machine (step 4); the exception worklist and a resend button (step 5: `retryDispatch` still has no caller); a cancer registry environment control; superseding a held submission when a correction replaces it (today the held one stays in the queue).
+
+**Locale keys** (4 new × 5, 1 changed × 5): `screeningRegistry.detail.{environment,environmentNote}`, `screeningRegistry.environments.{test,production}`; `screeningRegistry.detail.requirePatientIdentifier` reworded.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 780 files passed (3 skipped), 6,646 tests passed (9 skipped); 3 files and 14 tests over Batch 418's 777 / 6,632.
+
+## Batch 420 — Registry acknowledgements and status lifecycle (Registry Engine SRS v2.1, step 4; PS-359)
+
+Pete: "Move on to step 4 and 5." Step 4 here; step 5 (the exception worklist) is Batch 421.
+
+**Found first.** Cancer registry reports were queued and never sent: `dispatchCancerRegistryReportIfApplicable` enqueued and returned, and nothing else picked the queue up. No cancer registry report has ever left PathScribe. Fixed here (it now dispatches `CANCER_REGISTRY_REPORT` and marks sent or failed), since an acknowledgement needs something sent to acknowledge.
+
+**What's new**
+- `services/registrySubmission/registryAcknowledgement.ts` (pure): parsers for an HL7 v2 ACK (MSA-1 AA/CA, AE/CE, AR/CR; MSA-2 is our submission id; ERR segments → findings), a FHIR OperationOutcome (fatal / error / warning / information), and the interface engine's status JSON; one normalised acknowledgement with findings at the SRS severities. The transition rule: awaiting, overdue or rejected takes the answer; accepted is never reopened (`conflict`); the same answer is a `duplicate`. The 72-hour rule.
+- `recordRegistryAcknowledgement` finds the submission by id across the cytology and cancer registry queues, stores the answer with its raw text, moves `registryStatus`, audits ("Registry acknowledgement received / repeated / conflicts…", or "…for an unknown submission", "…rejected" when unreadable). `escalateStaleRegistrySubmissions`: sent and silent 72 hours → `ackOverdue`; undeliverable 72 hours → retries stopped.
+- Queue entries: `registryStatus`, `sentAt`, `acknowledgements[]`; `markSent` → `awaitingAck`; resend clears it; new `setRegistryStatus`. The "sent" audit text said "dispatched and accepted"; it only ever meant delivered to the interface engine, and now says so.
+- `docs/architecture/REGISTRY_ACKNOWLEDGEMENT_API.md`: the `POST /api/registry/acknowledgements` contract for the ASP.NET server (system-authenticated, idempotent), the format table, status rules, the 72-hour job, SQL notes.
+
+**Not done.** The endpoint itself (server side) and a scheduler for the 72-hour job (the worklist runs it on open, Batch 421). The cytology transmission audit export doesn't show the new status yet; the worklist does. No UI text in this batch.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 782 files passed (3 skipped), 6,662 tests passed (9 skipped); 2 files and 16 tests over Batch 419's 780 / 6,646.
+
+## Batch 421 — Registry Exceptions worklist and resend (Registry Engine SRS v2.1, step 5; PS-359)
+
+Pete: "Move on to step 4 and 5." Step 5: FR-008.6 (a worklist for rejected submissions) and FR-008.7 (findings, the raw acknowledgement, a deep link, one-click re-validation).
+
+**What's new**
+- **Quality & Compliance → Registry Exceptions** (`pages/RegistryExceptionsPage/`, route `/registry-exceptions`, `ScreenGate`, hub tile). Every registry submission, screening or cancer, that needs a person: held, not delivered (retries stopped), rejected (fixable or outright), no answer in 72 hours, or conflicting answers. Latest version only. Filter chips with counts; each row shows the case (`data-phi`), the registry, version and message type, a TEST flag, the status, the first finding; Details lists every finding (severity, tier, code, location) and the acknowledgement as received; Open case goes to the Cytology Workspace or the report. Opening it runs the 72-hour escalation.
+- **Re-validate and resend** (`registry:submission:resend`): rebuild from today's data. Still held → nothing queued, the reasons shown. Same content as before (`registryContentHash`): if the registry rejected it, refused ("fix the data first"); otherwise the same submission again, same id, flagged a duplicate retry. Changed content → a new version, linked by the master id: NEW if the registry holds no accepted version, else CORRECTION / AMENDMENT. The patient opting out since, or the registry changing, means nothing is sent. Every attempt is audited.
+- The screening and cancer submissions split into prepare (validate, build, fingerprint) and commit; queue entries store `contentHash`. The header records `kind`, and a version the registry rejected no longer counts as one it holds.
+- Hold messages name the identifier ("NHS Number") instead of its id ("mrn_nhs"), since they now show on screen.
+- Capabilities: `screen:registry-exceptions:open` (Admin, Lab Director, QA Reviewer, configuration-access hospital roles) and `registry:submission:resend` (Admin, Lab Director). 81 in total.
+
+**Checked in a browser** (Playwright, Admin, seeded queue entries): the hub tile; four exception rows in severity order (an accepted submission left out; one sent 100 hours ago escalated to "No answer in 72 h" on opening); coloured status badges; Details with the HL7 ACK as received; Re-validate and resend runs and reports its outcome (the seeded case numbers aren't real cases, so it correctly says the case can't be found). A CSS ordering bug that left every badge grey was found this way and fixed.
+
+**Not done.** The server endpoints (`GET /api/registry/exceptions`, the resend POST; noted in `REGISTRY_ACKNOWLEDGEMENT_API.md`). Resolving a conflict (the row shows it; someone has to ask the registry). A Home-page or worklist badge for new exceptions. The cancer registry still has no test/production control.
+
+**Locale keys** (64 × 5; 1 changed): `registryExceptions.*`, `qualityComplianceHub.registryExceptionsTile.*`, `capabilities.items.{screenRegistryExceptionsOpen,registrySubmissionResend}.*`; `qualityComplianceHub.pageSubtitle` now mentions registry submissions. Korean wording needs native review.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 783 files passed (3 skipped), 6,673 tests passed (9 skipped); 1 file and 11 tests over Batch 420's 782 / 6,662. (The first run caught `/registry-exceptions` missing from the support-ticket route list; added.)
+
+## Batch 422 — Five more cancer registries, as definitions (Registry Engine SRS v2.1, step 6; PS-359)
+
+Pete: "Proceed to step 6." Also asked mid-batch whether the READMEs were up to date; they weren't (see below).
+
+**What was there.** The cancer side was a bare list of eight ids with no identifier, wire format or jurisdiction per registry. Its Configuration screen imported the mock stores directly and saved with no permission check or audit (it was on the deployment baseline).
+
+**What's new**
+- `services/cancerRegistry/cancerRegistryDefinitions.ts`: thirteen registries as data (jurisdictions, national identifier, wire format, spec status). Added: **NCRI** (Ireland; IHI; HL7 v2), **Public Health Scotland** (CHI; HL7 v2), **NICR** (Northern Ireland; H&C number; HL7 v2), **NKR / IKNL** (Netherlands; BSN; PALGA protocol, which feeds the NKR), **Belgian Cancer Registry** (national register number; HD-S4S JSON on healthdata.be). Every jurisdiction PathScribe knows now has one. All `configurable`: identifiers and formats are from public descriptions, to be confirmed by each JCP's sign-off lead. NAACCR matches on demographics; KCCR isn't keyed on the RRN (PIPA).
+- The payload carries `wireFormat` and `patientIdentifier` (verified national identifier first, MRN fallback). Cancer reporting is statutory, so a missing or failed identifier is flagged, not held.
+- `saveCancerRegistrySettings` (`config:cancer-registry:manage`, Admin, audited): enterprise registry, environment, opt-out rule; facility overrides.
+- Configuration → System → Cancer Registry Reporting rebuilt: thirteen registries; each one's jurisdictions, identifier, format and a "confirm with the registry" badge; **test / live** and **honours opt-out** controls (open items from Batches 418 and 419); permission-checked saves. Off the deployment baseline. "COSD (United Kingdom)" relabelled "COSD (England)". Subtitle rewritten (converting on touch).
+
+**README catch-up.** Pete asked whether the READMEs had been kept up. Checked every folder touched in Batches 416–421 and its ancestors: missing were READMEs for `pages/RegistryExceptionsPage/` (and `hooks/`), `pages/QualityComplianceHubPage/`, `components/Config/Cytology/`, `services/interfaceDispatch/`; Batch 419 entries in `pages/CytologyWorklistPage/` (and `hooks/`, `components/`); Batch 417 and 421 entries in `services/cytology/`; and a root README entry for the registry engine. All written; the root now has a "Registry reporting engine" bullet (Batches 414–422). `i18n/locales/` has no README of its own; this changelog covers it.
+
+**Checked in a browser** (Playwright, Admin): the registry list (14 options with None), Public Health Scotland's details (Scotland, CHI Number, HL7 v2 ORU), switching to the live system and saving ("Cancer registry settings saved").
+
+**Not done.** SRS step 7 (JCP versioning vYYYY.Q.X and the governance block with a sign-off lead). No registry's specification has been confirmed; every definition says so on screen.
+
+**Locale keys** (31 × 5, 2 changed): `cancerRegistrySection.{registries.{phsScotland,nicrNorthernIreland,ncriIreland,nkrNetherlands,bcrBelgium},specStatus.*,detail.*,wireFormats.*,environment,environments.*,honoursOptOut,honoursOptOutNote,saved,notPermitted,unknownRegistry}`, `capabilities.items.configCancerRegistryManage.*`; `cancerRegistrySection.subtitle` and `registries.cosdUk` changed.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 784 files passed (3 skipped), 6,681 tests passed (9 skipped); 1 file and 8 tests over Batch 421's 783 / 6,673.
+
+## Batch 423 — Registry go-live gate and template versions (Registry Engine SRS v2.1, step 7; PS-359)
+
+Pete:
+- "Proceed to step 7."
+- On who signs off: not ForMedrixAI. Automated pre-checks, mandatory test evidence, and the site taking the switch.
+- Then: one person with step-up authentication and dual-role audit metadata, not a two-person rule, so a small lab isn't deadlocked.
+- Mid-batch: "We have similar approaches for Synoptic report and template reviews… be consistent with these approval processes, also ability to, if needed, to create a CAPA." Pete chose Template Review's settings with a one-person default, and CAPA from the Registry Exceptions rows.
+
+**What was there.** Since Batch 419 a settings screen could switch a registry to its live register with one click. There was no evidence, no re-confirmation, no versioning, and no record of who did it or in what capacity.
+
+**What's new** (`services/registryGoLive/`, server contract `docs/architecture/REGISTRY_GO_LIVE_API.md`)
+- **Template versions `vYYYY.Q.X`.** Every screening and cancer definition starts at `v2026.4.1`. A later version carries a change class and an effective date:
+  - editorial: nothing to do;
+  - minor: re-approve within 30 days of the effective date;
+  - breaking: re-approve by the effective date.
+
+  After that, live results are **held, never dropped back to test** (Pete agreed). The submission header carries `templateVersion`.
+- **Request go-live** (the registry's manage capability). Six automated pre-checks:
+  - the template is the latest;
+  - the specification is verified or confirmed by the lab;
+  - every category has the registry's code (screening mapping tables);
+  - the identifier hold is on (screening, national-identifier registries);
+  - at least one test submission was accepted on this template;
+  - the registry's test sign-off reference is recorded.
+- **Approve** (`registry:live-register:approve`, new; Admin and Lab Director):
+  - the capacities the approver acts in: Site Administrator, Lab Director, delegated Lab Director designee;
+  - then the **same credential re-confirmation as report sign-out** (`SignatureConfirmModal`, signing action `registry-go-live`, through `signatureGate`: one-time use, 5 minutes, lockout).
+- **Settings in Template Review's shape.** Allow self-approval and approvals required (1–3), reusing its normalisation and counting, with go-live defaults of **self-approval on, 1 approval**. `config:registry-go-live:manage` is new (Admin). A Lab Director or designee capacity must be among the approvals.
+- **Permanent statement** (record and audit), e.g. "Live Register switch for csms_uk (template v2026.4.1) executed by Pete Nimmo (3) acting in dual capacity as Site Administrator and delegated Lab Director designee, who also prepared the request, authorized via step-up credential verification (password re-entry) on 2026-10-01T15:00:00.000Z."
+- **Return to test** ends the live record. Records are never deleted.
+- **Holds.** Screening sign-out and revisions, cancer dispatch, and worklist resends all ask `registryLiveHold`. A live register without a current approval holds the result with `REGISTRY_LIVE_NOT_APPROVED` (shown as *held* on Registry Exceptions). This includes labs set to live before this batch.
+- **Settings saves no longer change the environment.** This applies to screening `saveScreeningRegistryConfig` and to cancer `saveEnterpriseCancerRegistry`, which set it in Batch 422.
+- Both settings screens replace the test/live selector with `components/Config/RegistryGoLive/RegistryGoLivePanel.tsx`. Cancer gets a registry chooser when facility overrides use other registries.
+- **Capture as CAPA** on Registry Exceptions rows (`registrySubmission/captureRegistryExceptionAsCapa.ts`). It raises an open case-level deficiency of the new type `def-registry-submission-failure` into Quality Assurance's CAPA lifecycle, one open per submission, the same way the interface dead-letter screens do.
+
+**Checked in a browser** (Playwright, Admin, Cancer Registry Reporting with Public Health Scotland):
+- pre-checks shown, then passing with an injected accepted test submission and a reference;
+- "Go-live requested";
+- capacities ticked; the credential prompt opens; a wrong password is refused ("4 attempts left") and nothing is recorded;
+- with a live record in place: "Sending to the live register" and the statement;
+- **Return to test system**: the record ends.
+
+On Screening registry reporting, a registry set to live before this batch shows "live results are held until go-live is approved", with six pre-checks and no old selector. The successful approval itself is covered by unit tests: the demo password isn't available to the browser check.
+
+**Not done**
+- A PIN (PathScribe has no PIN credential).
+- Server endpoints.
+- A screen for ForMedrixAI to publish template versions (they ship in a release).
+- CAPA from the go-live panel itself (Pete chose worklist rows only).
+- The Template Review screen itself still saves without a capability check (pre-existing, not touched).
+
+**Locale keys** (88 added, 5 entries removed, × 5):
+- added: `registryGoLive.*`, `registryExceptions.capa.*`, `cancerRegistrySection.goLiveRegistry`, `capabilities.items.{registryLiveRegisterApprove,configRegistryGoLiveManage}.*`;
+- removed: `screeningRegistry.detail.environment{,Note}`, `screeningRegistry.environments`, `cancerRegistrySection.environment{,s}`;
+- nl-BE: four strings use *aanmeldgegevens*.
+
+Korean wording should get a native-speaker review.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 786 files passed (3 skipped), 6,705 tests passed (9 skipped); 2 files and 24 tests over Batch 422's 784 / 6,681.
+
+## Batch 424 — Validation and production instances, synthetic test data only, the local overlay (Registry Engine SRS v2.1, step 7 continued; PS-359)
+
+Pete, after Batch 423:
+- "Skip pin option."
+- The baseline-versus-overlay model for local customisations.
+- "The site should only send test data never production data."
+- "would there not be a PathScribe test instance and PathScribe prod instance".
+- PathScribe ships with its own interface engine; a site's own engine gets ForMedrixAI's code only when the site insists.
+
+His developer:
+- held results go out as a catch-up batch on go-live;
+- the engine adapter is modelled in PathScribe for now.
+
+**Corrections**
+- Earlier comments and docs, and my replies, said PathScribe hands payloads to "the hospital's interface engine". The engine is ForMedrixAI's and ships with PathScribe. Corrected in:
+  - `registryAcknowledgement.ts` and `recordRegistryAcknowledgement.ts`;
+  - `cancerRegistryDefinitions.ts`;
+  - `interfaceDispatch/README.md`;
+  - `REGISTRY_ACKNOWLEDGEMENT_API.md`;
+  - the root README.
+- Batch 423's test mode sent real signed-out cases to registries' test systems. That is now impossible.
+- Batch 422's entry says the cancer screen could switch to the live system. Since Batch 423 that is a go-live approval instead.
+
+**What's new**
+- **Two instances** (`services/deployment/deploymentInstance.ts`):
+  - `VITE_APP_ENV=production` is production;
+  - anything else, or unset, is a validation instance, which fails closed.
+- **The send gate** (`registryGoLive/registrySendGate.ts`) is asked by every registry path: screening sign-out and revisions, cancer dispatch, worklist resends, and the test suite.
+  - Validation: a real case is never sent (not queued, audited).
+  - Validation: a synthetic case goes to the test system once the data-sharing agreement is recorded.
+  - Production: a real result goes live only with a current approval, otherwise it is held.
+  - Production: a synthetic case is never sent.
+- **Boundary check** (`interfaceDispatch/registryPayloadBoundary.ts`): `dispatchInterfaceMessage` repeats the gate's rule on the payload itself.
+- **Connection states.**
+  - Validation instance: Pending, then Testing, then Validated.
+  - Production instance: Pending (held), then Live.
+- **Data-sharing agreement** (BAA, DUA): must be recorded before anything is sent, on either instance.
+- **Synthetic test suite** (`registryGoLive/syntheticTestSuite.ts`):
+  - screening has 3 cases, cancer 2, built through the real builders;
+  - every patient is `SYN-` with a national identifier that passes its check digit (NHS England in its 999 test range);
+  - every payload carries a synthetic marker.
+  - New capability `registry:test-suite:run` (Admin) runs it.
+- **Validation record** (`registryGoLive/registryValidationRecord.ts`):
+  - exported on validation once the registry's test system has accepted the suite;
+  - imported on production;
+  - checked for registry, template, **the release production runs**, instance, accepted count and SHA-256 digest.
+  - Go-live pre-checks now require it, the agreement and reviewed local changes. Batch 423's same-instance test count is gone.
+- **Catch-up:** approving go-live resends every result held for that registry. Registry Exceptions has a new **Attestation required** filter ("Held: attestation required") with **Resend all**.
+- **Stop live reporting** replaces "Return to test system", because production never sends to a test system.
+- **Template change lists and the local overlay:**
+  - each template version lists the elements it changes;
+  - code mappings, the identifier hold and the engine adapter's local rules (a mock layer for now) are stamped with their baseline version;
+  - a release never overwrites them, and flags any it touches for review;
+  - confirming re-stamps them.
+- **Re-approval rule:**
+  - breaking: always;
+  - minor: only when it touches a site customisation;
+  - editorial: never.
+- **Cancer registries go live one by one.** Each has its own go-live record, so the shared enterprise environment setting is no longer read.
+- **PIN dropped** (Pete).
+
+**Bug found and fixed:** a Belgian register number written as its format shows (`YYMMDD-SSS.CC`) always failed its check digit, because the dot wasn't treated as a separator (Batch 417).
+
+**Checked in a browser** (Playwright, Admin, Public Health Scotland, two dev servers):
+- **Validation instance:** Pending, then the agreement recorded (Testing), then the suite run. Both payloads passed the boundary and were queued as `test` / `v2026.4.1`; dispatch failed only because no engine receiver runs here. With an accepted answer recorded: "Accepted …: 1", a rule added, the record exported (file downloaded), state Validated.
+- **Production instance:** Pending with eight pre-checks; that file imported; the agreement recorded; all pre-checks passed; go-live requested.
+- **Registry Exceptions:** **Attestation required** shows the held row; **Resend all** reported it still held, because the registry isn't live yet.
+
+**Not done**
+- Server endpoints, and the engine's own copy of the boundary check.
+- Server signing of validation records.
+- A screen for publishing template versions (they ship in a release).
+- No registry's specification has been confirmed.
+
+**Locale keys:** 103 added or changed, 6 entries removed, × 5. Korean wording should get a native-speaker review.
+
+- Type-check: clean apart from the four known errors.
+- Full suite (from the repo root): 786 files passed (3 skipped), 6,721 tests passed (9 skipped); 16 tests over Batch 423's 6,705.
+
+## Batch 425 — Registry revisions after acceptance, live exception badge, transmission audit, patient details as JSON, the cancer mandatory-data hold (PS-359)
+
+Built from Pete's developer's seven recommendations as adjusted (Oct 1, 2026). The developer agreed the adjustments:
+- keep sign-out unblocked and hold only the registry submission;
+- JSON only, with HL7 and FHIR read by the engine;
+- no research consent.
+
+**What changed**
+1. **JSON only for registry answers.** The Batch 420 HL7 ACK and FHIR OperationOutcome readers are removed. `registryAcknowledgement.ts` reads the engine's normalised JSON:
+   - `submissionId` is accepted as an alias of `submissionGuid`;
+   - `ackCode`/`responseCode` is kept as the answer's `responseCode`;
+   - anything else gets `notNormalizedJson`.
+
+   `services/hl7/` (order and ADT reading, ~6,000 lines) is untouched. Moving it to the engine is a later batch, recorded on PS-331.
+2. **Registry revised after acceptance** (`recordRegistryRevision.ts`). Either shape the developer gave (`REGISTRY_RESPONSE_UPDATED`, or `status: "REVISED"` with `revisedPayload`) is matched by submission id, or by accession plus registry.
+   - It is stored on the accepted submission.
+   - It raises a CAPA deficiency (new type `def-registry-revised-post-acceptance`) automatically, which counts as the row's CAPA.
+   - It is audited and shows on Registry Exceptions as **Revised after acceptance** with the changed fields.
+   - **Mark reviewed** (`registry:revision:review`, Admin and Lab Director) clears the row; the deficiency stays open.
+   - A repeat is a duplicate, and a revision of something not accepted is refused.
+3. **Live exception badge** (`useRegistryExceptionCount`). It appears on the top nav (next to Messages), on Home's Quality & Compliance tile and on the hub's Registry Exceptions tile, for anyone who can open the worklist.
+   - The worklist and the count now cover only the cases the user can see (their organisation and facilities).
+   - The browser polls every minute, and on focus. The server push (SignalR, `ReceiveExceptionCountUpdate`) is PS-345.
+   - The developer named a separate hub, `/hubs/quality-metrics`. The existing spec has one hub, `/hubs/live`. That is left for Pete and the developer to decide.
+4. **Transmission audit** (`registryTransmissionAudit.ts`, `qa:registry-transmission-audit:export`, Admin and QA Reviewer). A single CSV column set covers screening and cancer:
+   - sent time, registry status, response code, answered time and revision count;
+   - no patient names or MRNs.
+
+   It downloads from Registry Exceptions (screening, cancer or both) and from the cytology QA tab, whose table gains Sent, Registry status and Response code.
+5. **National identifiers.**
+   - **Patient details** on each worklist row edits the patient's identifiers and opt-outs after accessioning (`patient:national-identifier:record`). The change is sent as the existing A08 (`sourceOperation: 'recordNationalIdentifier'`); the A08 snapshot already carried national identifiers.
+   - A removal now also comes off the MPI.
+   - JSON intake from the hospital's system (`DEMOGRAPHICS_UPDATED`) applies newest-wins to the MPI and every case of the patient.
+   - The Accession page prefills a known patient's identifiers and opt-outs from the MPI.
+6. **Registry consent.**
+   - JSON intake (`REGISTRY_CONSENT_UPDATED`) is patient-level and newest-`updatedAt`-wins.
+   - An opt-out badge shows on the Cytology Workspace patient line and the report header.
+   - No research consent.
+7. **Cancer mandatory-data hold** (`cancerRegistryMandatoryData.ts`).
+   - Each registry definition lists `mandatoryFields`: date of birth, diagnosis date, primary diagnosis and an ICD-O code, plus the national identifier for a registry keyed on one.
+   - A report missing any of it is queued and held (`HOLD_MISSING_MANDATORY_DATA`), never sent, and shows as Held. A resend re-checks it.
+   - The sign-out is never held.
+   - This replaces Batch 422's rule that an unusable identifier didn't hold a cancer report.
+   - The synthetic test suite's cancer cases meet every registry's list.
+8. **Template Review settings** need `config:template-governance:manage` (Admin) to save. The service refuses without it, storing and auditing nothing, and the controls grey out. Before this, anyone who could open Configuration could change them, including the Lab Director, who now needs it granted.
+
+**Capabilities:** three new, 88 in all; the `AUTHORIZATION_API.md` catalog is regenerated.
+
+**Strings:** 52 keys in all five languages (strings425). Korean needs native review as usual.
+
+**Docs:** `docs/architecture/REGISTRY_ACKNOWLEDGEMENT_API.md` now covers:
+- the engine's JSON contract (answers and revisions), with the HL7/FHIR mapping now the engine's;
+- §8, patient detail messages;
+- §9, the mandatory hold;
+- SQL notes for revisions;
+- the badge.
+
+**Verified**
+- Type-check: clean apart from the four known errors.
+- Browser (validation instance, admin), with a revision recorded through the real intake and a held cancer report:
+  - nav, Home and hub badges show 2;
+  - the filters show Revised after acceptance 1 and Held 1;
+  - the CSV has the 15 columns, with AA and the sent time;
+  - Patient details opens;
+  - Mark reviewed clears the row and the `def-registry-revised-post-acceptance` deficiency stays open;
+  - Template Review is enabled for Admin.
+- Full suite (from the repo root): 790 files passed (3 skipped), 6,742 tests passed (9 skipped); 21 tests over Batch 424's 6,721. `Home.test.tsx` now mocks the new count hook.
+
+**Open**
+- Hub name (above).
+- Server and engine scope on PS-345 and PS-331.
+- Each registry's mandatory-field list to be confirmed at sign-off.
+
+## Batch 426 — Synoptic results to the LIS (v1.0.0), one PDF per workup, staging tags, keep-or-update (PS-359)
+
+Pete and his developer approved the plan on Oct 1, 2026. Pete's correction on scope: in Assist mode PathScribe sends the synoptic reports back to the LIS, which puts them into its own report.
+
+**What was wrong before**
+- An Assist Finalize sent nothing to the LIS.
+- A correction or addendum sent a header plus a placeholder sentence ("Synoptic instance X corrected and re-signed out."), with no synoptic data.
+- An Assist case's printed PDF had only the header, because the renderer drew synoptic answers only inside a report layout and Assist cases have none.
+- Code comments in the result pipeline said an Assist report "is never PathScribe's to send". I repeated that to Pete before checking it against his design, and have now corrected it in the code and here.
+
+**What changed**
+1. **The v1.0.0 structured synoptic result** (`services/reports/synopticResultPayload.ts`, spec `docs/architecture/SYNOPTIC_RESULT_API.md`) carries:
+   - the header: workup id, version and status, the PDF's id, the LIS placer/filler order numbers echoed, template and version, signer with NPI;
+   - MRN and encounter (no name or birth date);
+   - each part's SNOMED CT / ICD-10 / ICD-O codes, as lists with system and version;
+   - staging, from template fields tagged pT/pN/pM/FIGO and coded with the chosen answer's SNOMED;
+   - one observation per answer, with unit, SNOMED concept and value codes, block, `overridden` and `ai_suggested`;
+   - in Assist only, suggested CPT codes without modifiers (Pete's decision).
+
+   Four small departures from the developer's sample, all agreed:
+   - codes are lists;
+   - a numeric answer has no value code;
+   - staging codes come from the template's own answers;
+   - unset code-system versions are null.
+2. **Assist dispatch** (`dispatchAssistSynopticResult.ts`).
+   - **Finalize:** marks the released workups finalized; with no release buffer it publishes the release at once, otherwise when the buffer runs out.
+   - **Each correction and addendum** sends the workup with its version and what changed.
+   - **Each message** carries the structured result, the workup's own PDF, and a text block for text-only LISs, on the LIS-sync queue.
+   - **No PDF:** the message is held (the Batch 392 rule).
+   - **Outbound dead-letter screen:** LIS-sync messages can now be retried there; they used to be disabled.
+   - **`useLisIntegration.ts`** is off the mock-import baseline.
+3. **Orchestration.** Each ORU^R01 result also carries `synopticResult` (no CPT, since its charges have their own feed) and, best effort, its workup's own PDF.
+4. **One PDF per workup.** The renderer (`functions/main.py`) draws one workup from a `workup` block, in the report's language (10 new `surgicalReportPdf` labels):
+   - parts, protocol and version, status, version, signer, document id;
+   - the answers;
+   - "Changed in this version", for a correction.
+5. **Template editor.**
+   - "Reports as" on each field: pT, pN, pM, FIGO, or block identifier.
+   - "Unit" on numeric fields.
+   - "Staging edition" on the template.
+   - The seeded templates aren't tagged, so their staging is null until an admin tags fields.
+6. **Assist intake.** The webhook JSON and the HL7 reader carry the LIS placer/filler order numbers (ORC-2/ORC-3), and they are kept on the case.
+7. **Keep or update?**
+   - When new narrative re-evaluates a field the pathologist typed or confirmed, the new suggestion waits beside the field. The panel shows "The updated narrative suggests X — Keep mine / Accept new value".
+   - **Fixed:** before, the new suggestion replaced the confirmed one's record, so a later run could overwrite a confirmed field.
+   - In Orchestration, re-running AI after dictation is still the pathologist's action, reviewed in the AI Review window, and is unchanged.
+
+**Strings.** 25 keys in all five languages; `outboundInterfaceDlq.lisSyncWarning` removed. Korean needs native review as usual.
+
+**Verified**
+- Type-check: clean apart from the four known errors.
+- Renderer tests (`functions/test_main.py`): 70 checks pass, 6 of them new.
+- Browser check on an Assist case (S26-4493, validation instance):
+  - FINAL v1 sent with the header, order numbers, observations, text block and workup PDF block;
+  - a real correction held with "Held: the report PDF is not available", because no renderer runs in this sandbox (correct behaviour);
+  - the keep-or-update prompt shows on the field, and Accept clears it;
+  - the template editor shows the new inputs.
+- The Finalize button itself was not clicked through (signature modals). Its wiring is covered by type-check and the service tests.
+- Full suite (from the repo root): 792 files passed (3 skipped), 6,759 tests passed (9 skipped); 17 tests over Batch 425's 6,742.
+
+**Open**
+- The per-site combined-PDF option, for an LIS that can't hold several PDFs (not built; build when a site needs it).
+- `additionalSpecimenIds` (one workup over several parts) has no screen yet.
+- Code-system versions are set by the server (PS-345).
+- Engine mapping to OBX / FHIR Observation (PS-331).
+
+## Batch 427 — One combined PDF per case (testing facility setting), workups across parts, no backdoor into Configuration (PS-359)
+
+**What changed**
+1. **One combined PDF per case, set on the testing facility.** Pete: "Shouldn't the setting be associated to the testing facility?" It is: Facility → LIS Integration → "Send one combined PDF per case", shown for performing labs (`Facility.consolidateOutboundPdfs`). It is for an LIS that holds one PDF per accession.
+   - Each workup's structured result still goes on its own. Its `pdf_document_id` points at the case PDF (`PSR-<case>-CASE-V<n>`) and it carries no PDF of its own.
+   - A new `case_pdf` message follows, with every finalized workup in one document and the list of workups it holds. It is resent whole, as the next version, when any workup is corrected or gets an addendum.
+   - Orchestration: with the setting on, the ORU's synoptic result names no workup PDF (the full report PDF is the document).
+   - The renderer (`functions/main.py`) draws `workups: [...]`, one after another, in the report's language.
+2. **A workup can cover several parts.** A ⧉ button on a draft synoptic workup in the report page's sidebar opens "Parts covered" (`WorkupPartsModal`). The choices are Independent (this part only) or Combined (this part plus the ones ticked). The sidebar then shows "Parts A + B".
+   - The rules are in `services/reports/workupParts.ts`: draft only, no part covered twice by the same protocol, known parts only.
+   - The AI no longer proposes a second workup of the same protocol for a covered part. It is given the parts when filling the fields (the AI service's use of that scope is PS-345).
+3. **No backdoor into Configuration** (Pete: "If you don't have permission to access configuration, you should [not] be able to backdoor in and see individual config pages").
+   - The pages opened from Configuration had their own addresses with no gate: the template editor and template review, Part Builder, Template Assembly, Migration Jobs, the Molecular Order Queue and the mock interface engine. Each now has `ScreenGate screen="configuration"`.
+   - Template Authors and Approvers already hold `screen:configuration:open`, so nobody who uses these loses them.
+   - `services/screens/routeGating.guard.test.ts`: every route in App.tsx is gated or listed as open on purpose, with its reason. Those are sign-in, Home, token links, the wall-screen dashboards, redirects, case pages with their own per-case check, and the EMR and slide-viewer stand-ins.
+   - **Correction:** Batch 374's note listed only case pages and demo tools as ungated. It missed these Configuration pages.
+
+**Strings.** 19 keys in all five languages (`workupParts.*`, `sidebar.instance.partsCovered` / `combinedParts`, `facilityEditorModal.lis.outboundDocuments` / `consolidateOutboundPdfs` / `consolidateOutboundPdfsNote`). Korean needs native review as usual.
+
+**Verified**
+- Type-check: clean apart from the four known errors.
+- Renderer tests (`functions/test_main.py`): 74 checks pass, including the combined PDF.
+- Browser check on S26-4493:
+  - the parts modal applies Combined and the sidebar shows "Parts A + B";
+  - with the lab set to combine, dispatch sends FINAL (pdf_document_id `PSR-S26-4493-CASE-V1`, parts A and B, no PDF of its own) and then `case_pdf`.
+- Browser check of the gates:
+  - as a pathologist, `/configuration`, `/template-editor/new`, `/admin/parts/new`, `/template-review/…` and `/migration-jobs` each show "no access";
+  - as an admin, they all open.
+- Full suite (from the repo root): 794 files passed (3 skipped); 6,768 tests passed (9 skipped). That is 9 more tests than Batch 426's 6,759.
+
+**Open**
+- **Who may change each Configuration section:** inside Configuration, saving a section has no capability of its own (saving a facility, for one). A section-by-section scan is the next batch; the access changes go to Pete first.
+- The API server must check the same screen capability on these pages' endpoints (phase 4).
+- The AI service's use of the parts scope, code-system versions set by the server (PS-345), and the engine mapping for `case_pdf` (PS-331).
+
+## Batch 428 — Every Configuration section checks its own permission (PS-359)
+
+Pete asked for a full Configuration scan after Batch 427 closed the address backdoor. I scanned all of it and put the list in the shared Access Control doc (tab "Batch 428 proposal: Configuration") before changing anyone's access. Pete's decisions, Oct 1, 2026:
+1. One capability per section.
+2. Lab Director keeps everything it could change.
+3. A hospital's own roles start with none of these.
+4. Template Author and Template Approver keep only the protocol and template ones.
+
+**What was wrong before**
+- Only 16 of about 100 things changeable in Configuration checked a permission. Everyone who could open Configuration (Admin, Lab Director, Template Author, Template Approver, and a hospital's own roles with Configuration access) could change every other section: billing tables, facilities, delivery rules, cytology QC rates, session timeout and the rest.
+- Some sections had only a screen check (AI service, validation studies) or none in the service (retiring a published protocol, "Run now" case routing, pasting an LIS message into Assist).
+
+**What changed**
+1. **84 Configuration capabilities, one per section**, in nine new groups (protocols and templates, AI and macros, cytology, lab dictionaries and case workflow, results and quality, printing and benches, integrations, billing, security and system), plus `platform:signing-rules:manage`. All are high risk, so every check is audited. Full table: `docs/architecture/AUTHORIZATION_API.md` and the Access Control doc.
+2. **Checked in the services**:
+   - `services/authorization/guardConfigWrites.ts` (new) wraps 88 services so each listed method checks its capability first. Reads are unchanged, and a refused change does nothing.
+   - The rest check at the action: synoptic protocol lifecycle, system settings, AI service, case routing, Assist manual intake, crosswalk, retention policy, document style, interface previews, macros, signing rules, SSO unlink and subspecialty membership.
+   - Paths that aren't a person's change use the unchecked service: the LIS physician master-file feed, LIS flag auto-creation, a facility's catch-all subspecialty.
+3. **Seeds**:
+   - Admin: all 84.
+   - Lab Director: all but drafting synoptic protocols, which it couldn't do before either.
+   - Template Author: drafting protocols and editing report templates.
+   - Template Approver: approving, publishing and retiring protocols, and publishing report templates.
+   - A hospital's own roles: none until an administrator grants them.
+   - Superadmin: everything.
+4. **Synoptic protocols**:
+   - Draft, review (approve, request changes, reset), publish and retire are capabilities.
+   - An app-level "admin" no longer stands in for the roles.
+   - A Template Author can no longer retire a published protocol or wipe a review round.
+5. **A refused change names the permission.** `components/Config/ConfigRefusalBanner.tsx` shows "Not saved: this needs the '…' permission" on the Configuration page, Template Assembly and the Part Builder.
+6. **Fixed along the way**:
+   - New billing rule versions always start as drafts; a caller could pass a status and skip approval.
+   - Standard QA activity and supervision types can't be switched off in the service (only the screen hid it).
+   - The departments below-floor retention audit entry, validation study activation and recorded approvals name the signed-in person, not "super-admin" or "admin".
+   - The retention policy is saved through a service instead of browser storage.
+   - LIS flag auto-creation moved out of the report header bar.
+7. **Deleted four unused screen copies.** These are `Integrations/CrosswalkSection.tsx` (and its `.DELETED.txt`), `Templates/AdminTemplateList.tsx`, `pages/system/ClientDictionaryPage.tsx`, `System/SpecimenCategoriesSection.tsx` and `System/PatientMatchReviewSection.tsx`. They are listed in the zip's `DELETED_FILES.txt`; delete them by hand. Three of them were the source of the four long-standing type-check errors, which are now gone.
+8. **Off the deployment baseline**: `RetentionSection.tsx` and `DepartmentsSection.tsx`, and the two deleted files.
+
+**Corrections to my proposal**
+- **Country signing rules were already Superadmin-only.** A role check did that; I had marked them "no check" for Admin and Lab Director. They are now a platform capability, so nobody gains or loses access.
+- **"Request changes" records the signed-in person's name**, as approval does. My proposal said otherwise.
+- **The demo reset of one's own hospital stays unchecked.** It only clears that tester's demo cases.
+
+All three are noted in the doc.
+
+**Strings.** 181 keys in all five languages:
+- 85 capability names and descriptions;
+- 9 group names;
+- the refusal banner;
+- two protocol refusal messages, which now name the permission instead of a role.
+
+Korean needs native review as usual.
+
+**Verified**
+- **Type-check: 0 errors.** The four known errors are gone with the deleted files.
+- **Browser check, by role:**
+  - Admin (Pete) and a Lab Director can save a facility and a TAT target.
+  - A Template Author can't save either, and can draft a protocol.
+  - The Lab Director can't draft a protocol.
+  - Configuration-type capabilities held: Admin 99, Lab Director 83, Template Author 2.
+  - As the Template Author, the Voice toggle stayed on and the banner read "Not saved: this needs the 'Turn voice on or off' permission…".
+- **Tests:**
+  - Each of eight sampled sections refuses with its own capability.
+  - The guard test reads the wrapper's rules.
+  - Protocol governance tests act through staff roles.
+- **Full suite (from the repo root):** 798 files passed (3 skipped), 6,791 tests passed (9 skipped). That is 23 more than Batch 427's 6,768.
+
+**Open**
+- **Screens don't grey out controls the person can't use yet.** A refused change shows the banner and saves nothing. Greying each section's buttons (`CapabilityButton`) is the next step, section by section.
+- **The API server must check the same capabilities on each section's endpoints (PS-345).** The retention policy also has no purge job behind it yet.
+- **"Personal" voice, pedal and AI override settings are per browser, not per person.** Moving them to per-user settings is a later batch.
+- **The equipment maintenance log sits under `config:equipment:manage`.** If bench staff log maintenance, grant it to their role or split it out.
+
+## Batch 429 — View-only Configuration sections, the equipment log for the bench, the server checklist (PS-359)
+
+Pete asked for the three open items from Batch 428. His answers: do all three; recording equipment maintenance goes to the bench roles as well as Admin and Lab Director.
+
+**1. Sections show view only to someone who can't change them**
+- `components/Config/ConfigSectionGate.tsx` (new) wraps each System and Cytology section, the AI, Actions, TAT, Report Templates, Validation and Synoptic Library tabs, the deployment-wide voice switch, and the FPPE and cytotechnologist competency panels.
+- Without any of the section's capabilities, a note names the permission and where an administrator grants it. Action buttons and checkboxes are greyed and do nothing.
+- Tabs, sub-tabs, search, filters and closing a dialog still work. Those are buttons whose class contains "tab", "close" or "search", or that are marked `data-config-nav` (17 view and filter buttons marked in this batch).
+- Which capabilities make a section editable (any one of them), and which controls stay usable: `services/screens/configSectionAccess.ts`.
+- **Not wrapped:**
+  - sections that already grey their own controls: Staff roles, Support access, Field requirements, the registries, governing bodies, intraop critical results, Template review settings, Demo Reset;
+  - Macros (a person's own macros are theirs);
+  - Terminology (checks only).
+- **Limit:** a select that saves as soon as it changes stays usable in a view-only section. The service refuses the change and the Batch 428 banner names the permission.
+
+**2. Recording equipment maintenance is its own permission**
+- `equipment:maintenance:record` (new), checked in `mockEquipmentLogService.add`.
+- Seeded to Histotechnologist, Cytotechnologist and Molecular Technologist (Pete's choice), and to Admin and Lab Director.
+- The bench roles can't open Configuration, so the log is also on a new page, Batch Management → Equipment log (`/batch-management/equipment-log`). It shows each active instrument's maintenance and calibration state, with "Log entry" opening the same service log as Configuration.
+- Adding or changing equipment still needs `config:equipment:manage`.
+
+**3. The server checklist (PS-345)**
+- `docs/architecture/AUTHORIZATION_API.md` has a new section: every Configuration write the mock services do (115 rows) and the capability the endpoint replacing it must check and audit.
+- System traffic stays unchecked: the scheduled Assist poll, the physician master-file feed, LIS flag auto-creation.
+- The API server itself is the .NET developer's work.
+
+**Strings.** 9 keys in all five languages: the view-only note, the equipment capability, the tile and the page. Korean needs native review as usual.
+
+**Verified**
+- Type-check: 0 errors.
+- Browser check, as a Template Author in Configuration → System → Facility Configuration:
+  - the note reads "View only: changing this needs the 'Manage facilities' permission…";
+  - Add Facility, Edit and Duplicate are greyed, and clicking Edit opens nothing (as Admin it opens the editor);
+  - the Inactive filter and search still work;
+  - the Synoptic Library tab is editable, as it should be for a Template Author.
+- Browser check, as a Histotechnologist:
+  - Batch Management shows the Equipment log tile, the page lists 4 instruments, and "Log entry" records an entry (7 → 8);
+  - Configuration still shows "no access".
+- Tests:
+  - `configSectionAccess.test.ts` and `ConfigSectionGate.test.tsx` are new;
+  - the seed test covers the bench roles.
+- Full suite (from the repo root): 800 files passed (3 skipped), 6,797 tests passed (9 skipped); 6 more than Batch 428's 6,791.
+
+**Open**
+- The API server checks themselves (PS-345, developer).
+- Personal voice, pedal and AI override settings are per browser, not per person (later batch).
+
+## Batch 430 — Personal settings per person, voice macro ownership, view-only fields (PS-359)
+
+Pete asked for the small client-side items from the stock-take.
+
+**Corrections to what I told Pete in the stock-take**
+- **Foot pedal bindings are per workstation on purpose.** The code says why: the pedal is plugged into the machine, not the account. They're unchanged.
+- **Voice macros already had owners.** Personal Quick Text was visible only to its owner. The real gap was that anyone could change or delete anyone's voice macro, and the Voice settings screen added macros everyone could see. Both are fixed below.
+- **The personal AI override isn't set by any screen.** Only administrators see provider settings, and they save the lab-wide one. So Batch 429's warning that view-only blocked it was wrong; nobody was affected.
+- **Batch 428's retention service said saved policies carry over. They didn't:** the mock store prefixes its keys, so a policy saved before Batch 428 wasn't read. It is now.
+
+**What changed**
+1. **Per-person settings.** `services/userSettings/personalSettings.ts` (new) keeps the voice accent, dictation's learned corrections and the personal AI override per signed-in person.
+   - The first time a person reads a setting, the old shared value carries over to them.
+   - The voice provider reloads the accent when someone else signs in.
+   - `AuthContext.useAuthOptional()` (new) lets the voice provider read who is signed in without failing outside the auth provider.
+2. **Voice macro ownership** (`mockVoiceMacroService.ts`).
+   - Your own voice macros are yours to change.
+   - Shared or other people's need `config:macros:manage`, the same rule as report macros.
+   - Configuration → Voice → Speech Processing Rules now lists your own and the shared ones, and what you add or import there is yours.
+3. **View-only fields.** In a view-only section, fields other than search and filters no longer take changes, so a dropdown that saves as soon as it changes can't fire. 77 search and filter fields are marked `data-config-nav` and keep working; the other fields are dimmed.
+
+**Strings.** No new keys.
+
+**Verified**
+- Type-check: 0 errors.
+- Browser check of personal settings:
+  - The shared accent (en-AU) carried over to Sarah.
+  - She changed hers to en-GB; another person set fr-FR.
+  - Sarah's stayed en-GB.
+- Browser check of a view-only section: a Template Author on Document style changed the font dropdown. It stayed on Arial and nothing was saved.
+- New tests: `personalSettings.test.ts`, `mockVoiceMacroService.permission.test.ts`, and the gate's dropdown and filter test.
+- Full suite (from the repo root): 802 files passed (3 skipped), 6,804 tests passed (9 skipped).
+
+**Open**
+- Per-person settings need a server home (the person's settings on the API server, PS-345).
+- The old shared browser values are left in place after carrying over. They're cleared by the demo reset, as before.
+
+## Batch 431 — Data hygiene: no browser copy of AI drafts, access requests recorded, per-person and lab-wide settings behind services, a complete Configuration search (PS-359)
+
+**Why.** A search of everything the browser saves found settings and work that stayed on one computer, plus one real data-integrity risk. Pete: "Yikes, that seems like a big miss. Are we sure that everything is now wired appropriately?" And: "I was searching for Field Requirements, but the system couldn't find any entries."
+
+**What changed**
+1. **AI draft sections: the case is the only copy** (`useOrchestratorDraft.ts`, `ReportPreviewPage.tsx`).
+   - Before, opening a case read a browser copy first, so a copy left on one workstation could override a newer save made at another.
+   - The copy was only ever written after a successful save to the case, so nothing is lost by dropping it.
+   - Old copies, which hold report text, are removed at start-up (`services/browserCleanup/`).
+2. **Access requests are recorded, and closed when access is given.**
+   - Before, a pool, pediatric or Orchestration request was only a message, and nothing ever created a record. The badges and the QA Access Request Response tab had nothing to read, and the pool badge was kept per computer.
+   - Now each request is saved as a record; a repeat while one is pending reuses it.
+   - The badges come from the person's own pending requests.
+   - A request closes as granted (who and when) once the access is given: pool membership, the Pediatric flag plus the facility list, or the Orchestration flag (`closeGrantedAccessRequests.ts`).
+3. **Per-person settings:** language (applied at sign-in, saved when changed; the sign-in page keeps the workstation's language), worklist sort order, and Billing Log saved searches.
+   - Report screen layout stays with the workstation (Pete's decision).
+4. **Lab-wide settings behind services** (`services/labSettings/`, `systemConfig/systemConfigStore.ts`): system, enterprise and hospital configuration; document style; the AI provider settings and orchestrator default; protocol lifecycle state.
+   - Same keys as before, so nothing is lost.
+   - In production (PS-345) only these stores change.
+5. **The lab's page size and margins** (Pete: lab policy, not personal).
+   - New "Page size and margins" block in Document Style, which needs `config:report-appearance:manage`.
+   - The template preview opens with them; changing them there is for that preview only.
+   - What the preview remembered before carries over.
+6. **Template review work** (`services/templates/templateReviewWork.ts`): reviewers' trial answers and question comments go through a service.
+   - The reviewer page no longer keeps its own copy of a template's state.
+7. **Session-only values and the preview window position** use `utils/uiPreferences.ts` (`setSessionFlag` is new).
+8. **The Configuration search covers everything.**
+   - Before, it was a hand-written list of about 50 settings, while the System tab alone has 69 sections.
+   - Now every tab and every System, Cytology, Staff and Synoptic Library section is listed, generated from the same section lists the sidebars use (`System/systemSections.ts`, `Cytology/cytologySections.ts`, new).
+   - A result opens its section on every tab, not only System; Staff sub-tabs can be opened by address.
+   - `configSearchCoverage.test.ts` fails if a section can't be found.
+9. **The browser-storage baseline** went from 24 files to 6: the workstation's own settings, and the demo-reset key audit.
+
+**Strings.** Five new keys, in all five locales: `documentStyleSection.pageSetup.title`, `.hint`, `.pageSizeLabel`, `.marginLabel`, and `templatePreviewPanel.margins.previewOnlyHint`.
+
+**Verified**
+- Type-check: 0 errors.
+- Browser checks:
+  - Start-up removed an old AI draft copy and a per-computer pool marker.
+  - The search found "Field Requirements" and opened System → Field Requirements. "workload" opened Cytology → Daily Workload Cap. "Credentialing" opened Staff → Credentialing.
+  - Document Style saved US Letter, and it was still there after a reload.
+  - Language: Pete chose French. Sarah's first sign-in carried French over; she chose Korean. Pete then signed in to French, and Sarah to Korean.
+- New tests:
+  - `retiredBrowserKeys.test.ts`, `accessRequests.test.ts`, `closeGrantedAccessRequests.test.ts`, `personalLanguage.test.ts`, `pageSetup.test.ts` and `configSearchCoverage.test.ts`;
+  - the draft hook's restore test now checks that a stale browser copy is ignored.
+- Full suite (from the repo root): 808 files passed (3 skipped), 6,832 tests passed (9 skipped).
+
+**Unwired-action check.** Every save-or-change method in the service interfaces was checked for a caller. 15 have none, so the step they belong to can't happen. The table below lists them, for Pete to prioritise.
+
+| Area | What can't happen today | Size |
+|---|---|---|
+| Access requests | An admin can't deny a request (it stays pending until access is given) | medium |
+| Service charges | Four-Eyes charge approval: submit, approve, reject, hold and release have no screen | large |
+| WSI scan batches | Creating, dispatching and unloading a scan batch has no screen | large |
+| Biometric signing | No policy switch and no enrolment wizard, so it can never be offered at sign-out | medium |
+| Audit log | Errors can't be marked resolved (the filter exists) | small |
+| AI models | A model can't be retired (only seed data shows Retired) | small |
+| Cytology QC | No Escalate or supervisor bypass on SLA-breached rows | small |
+| Referrals | Transit status (in transit, delivered) can't be set by hand | small |
+| Surgical peer review | Risk weights can't be set, so weighting never applies | small–medium |
+| Spell-check dictionaries | A wrongly added word can't be removed (personal or facility) | medium |
+| Voice | Learned voice commands can't be viewed or removed | small–medium |
+
+The rest are fine. Some are called another way or happen on the server or interface engine; some are superseded (`startBuffer`, `assignSpecimen`, `markAllRead`); some are fields, not actions.
+
+**Open**
+- PS-345:
+  - the server stores for the per-person, lab-wide and template review data;
+  - "my open access requests";
+  - the PDF renderer still prints A4, whatever the lab's page size.
+- The inbound AI-screening and referral result processors have no demo trigger in the mock, unlike HPV.
+
+## Batch 432 — The unwired actions: deny access requests, resolve audit errors, retire models, QC escalate and bypass, referral transit, risk weights, dictionaries and voice commands (PS-359)
+
+**Why.** Batch 431's check found save-or-change actions that no screen or process called. This batch wires the smaller ones. Service-charge approval and biometric signing come in Batch 433, WSI scan batches in Batch 434.
+
+**Pete's decisions**
+- Resolving Audit Log errors: Admin, Lab Director and QA Reviewer (everyone who opens the Audit Log).
+- Cytology QC supervisor bypass: a permission nobody holds until an administrator assigns it, and holding it opens the QC queue for the override.
+- Learned voice commands and the personal spelling dictionary are per person.
+
+**What changed**
+1. **Access requests: Deny** (QA → Access Request Response, pending rows).
+   - A reason is required, and the requester gets a message with it.
+   - Denying needs the permission that gives that access: pool `config:staff:edit`; pediatric and Orchestration `config:staff-access:assign`.
+2. **Audit Log errors: Resolve** (new `audit:error:resolve`). Records who resolved it and when; hover the Resolved badge to see.
+3. **AI models: Retire** (`config:ai-model:manage`). A confirmation names any facilities pinned to the model. The default model can't be retired.
+4. **Cytology QC queue.**
+   - **Escalate**, on SLA-breached reviews in progress: `cytology:qc-review:record`, reason required.
+   - **Supervisor bypass**: new `cytology:qc-review:bypass`, justification required, shown only to holders.
+   - The audit entries now name the person.
+5. **Referral transit status** (new `referral:transit-status:update`, for every role with Batch Management).
+   - Batch detail: Mark in transit / Mark delivered.
+   - Forward only; "result received" comes only with the result.
+6. **Surgical peer review risk weights** (`config:qa-types:manage`, service now guarded).
+   - QA Configuration Center → Surgical Post-Sign-Out Peer Review → a weight per subspecialty, with the effective sampling shown.
+   - Blank = 1×; a weight is above 0 and up to 10.
+7. **Spelling dictionaries.**
+   - Profile menu → **My dictionary** (add and remove your own words; only the owner can remove).
+   - Facility configuration → **Spelling** tab for performing labs.
+   - The facility dictionary now needs `config:facilities:manage`; it was a role-name check (admin, pathologist-admin, superadmin).
+8. **Learned voice commands are per person.**
+   - They reload when someone else signs in; the old shared list carries over the first time.
+   - Profile menu → **My voice commands** lists them, with Remove.
+
+**Capabilities.** Three new, 177 in all. The `AUTHORIZATION_API.md` catalog is regenerated, with a new "Actions wired in Batch 432" table for the server. The Access Control doc is updated.
+
+**Strings.** 59 new keys, all five locales.
+
+**Verified**
+- Type-check: 0 errors.
+- Browser checks, as Admin:
+  - Resolve on an open error: stored resolved by Pete Nimmo, with the time.
+  - Retire: the confirmation named the model, and it showed Retired.
+  - Deny with a reason: denied, reason saved, and Sarah got one message.
+  - My dictionary: added and removed "megablock".
+  - Risk weight 2× on GI: saved by Pete Nimmo.
+  - Fenwick's Spelling tab: added a word.
+- Browser checks, QC bypass:
+  - A pathologist sees no bypass.
+  - A Lab Director role given the bypass opened the QC queue and saw Supervisor bypass on all 3 cases.
+- New tests:
+  - `resolveError.test.ts`, `riskWeightInput.test.ts`, `surgicalPeerReviewRiskWeight.guard.test.ts`, `learnedMappingsPerPerson.test.ts`;
+  - added to existing tests: QC escalate/bypass permissions, access-request deny, referral forward-only, the bypass opening the screen, the facility-dictionary capability and owner-only removal, seed expectations.
+- Full suite (from the repo root): 812 files passed (3 skipped), 6,843 tests passed (9 skipped).
+
+**Open**
+- "Assign to Me" on the QC queue still shows to people without `cytology:qc-review:record`; the service refuses it with a message.
+- Batch 433: service-charge four-eyes approval and biometric signing. Batch 434: WSI scan batches.
 
 ---
 *When this framework's own contents change meaningfully (a new

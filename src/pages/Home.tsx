@@ -16,6 +16,7 @@ import { useAuth } from "@contexts/AuthContext";
 import PubMedTicker from '@/components/Common/PubMedTicker';
 import { visibleTiles, type HomeTileId } from '@/services/screens/screenAccess';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
 
 interface Card {
   /** Batch 374: which screen (or hub) the tile opens, for the access check. */
@@ -32,6 +33,8 @@ export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const capabilities = useCapabilities();
+  // Batch 425: registry submissions needing a person (own organisation), on the tile that leads to them.
+  const registryExceptionCount = useRegistryExceptionCount();
 
   // --- UI State ---
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -267,6 +270,9 @@ export default function Home() {
                   {/* Text Content */}
                   <div className="ps-home-card-text">
                     <h3 className="ps-home-card-title">{card.title}</h3>
+                    {card.id === 'qualityCompliance' && !!registryExceptionCount && (
+                      <span className="ps-home-card-badge" title={t('home.registryExceptionsBadge', { count: registryExceptionCount })}>{t('home.registryExceptionsBadge', { count: registryExceptionCount })}</span>
+                    )}
                     <p className="ps-home-card-desc">{card.description}</p>
                   </div>
                 </div>

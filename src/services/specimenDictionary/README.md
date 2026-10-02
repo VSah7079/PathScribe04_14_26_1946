@@ -32,6 +32,12 @@ The earlier `defaultBaseCptCode` fix (above) was one instance of the same bug.
 
 `buildSpecimenEntry(draft, existing, { now, newId, updatedBy })` now starts from the stored record and the full draft, then normalizes only the fields the form edits. A field is only ever dropped when the admin clears it. It is tested in `buildSpecimenEntry.test.ts`. The same function builds a Duplicate's new entry, so a copy keeps its source's protocol, category and cytology defaults.
 
+## Batch 428: Configuration permissions
+
+- `mockSpecimenDictionaryService`: `addEntries`, `updateEntries` need `config:specimen-dictionary:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

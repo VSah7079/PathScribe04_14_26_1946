@@ -29,32 +29,27 @@
 // resolvePreAnalyticDateGateConfig.ts) — interpolated into translated
 // sentences, never translated themselves. `s.label`/`s.description`
 // are likewise real specimen data.
+//
+// Batch 383 (PS-359): what is still required comes from the organisation's
+// Field Requirements (both dates and the override comment are locked, per
+// the standards above). The decisions (which dates a specimen still needs,
+// when a row is resolved, the resolutions saved) live in
+// services/signoutGates/preAnalyticGate.ts. The modal shows "Still required:
+// …" and Continue can be said ("continue date gate", PREANALYTIC_GATE_CONTINUE).
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { PreAnalyticDateGateConfig } from '@/services/billing/resolvePreAnalyticDateGateConfig';
+import {
+  actionRegistryService, buildPreAnalyticResolutions, emptyPreAnalyticRow, preAnalyticGateMissing, preAnalyticRowUsesOverride, reportFieldRequired,
+  type PreAnalyticDateGateSpecimen, type PreAnalyticDateResolution, type PreAnalyticRowState,
+} from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
 
-export interface PreAnalyticDateGateSpecimen {
-  specimenId: string;
-  label: string;
-  description: string;
-  missingCollectedAt: boolean;
-  missingReceivedAt: boolean;
-}
-
-export interface PreAnalyticDateResolution {
-  specimenId: string;
-  collectedAt?: string;
-  collectedAtAdministrativeOverride?: boolean;
-  receivedAt?: string;
-  receivedAtAdministrativeOverride?: boolean;
-  /** Required whenever either override flag above is true — the real,
-   *  audited justification for why neither a documented date nor a
-   *  reasonable estimate could be established. */
-  overrideComment?: string;
-}
+export type { PreAnalyticDateGateSpecimen, PreAnalyticDateResolution };
 
 interface Props {
   specimens: PreAnalyticDateGateSpecimen[];
@@ -67,70 +62,35 @@ interface Props {
   onCancel: () => void;
 }
 
-type FieldState =
-  | { mode: 'unset' }
-  | { mode: 'time'; value: string }
-  | { mode: 'override' };
-
-interface RowState {
-  collected: FieldState;
-  received: FieldState;
-  comment: string;
-}
-
-const emptyRow = (): RowState => ({ collected: { mode: 'unset' }, received: { mode: 'unset' }, comment: '' });
-
 export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, onContinue, onCancel }) => {
-  const { t } = useTranslation();
-  const [rows, setRows] = useState<Record<string, RowState>>(
-    Object.fromEntries(specimens.map(s => [s.specimenId, emptyRow()]))
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('report');
+  const [rows, setRows] = useState<Record<string, PreAnalyticRowState>>(
+    Object.fromEntries(specimens.map(s => [s.specimenId, emptyPreAnalyticRow()]))
   );
 
-  const patchRow = (id: string, patch: Partial<RowState>) =>
-    setRows(prev => ({ ...prev, [id]: { ...(prev[id] ?? emptyRow()), ...patch } }));
+  const patchRow = (id: string, patch: Partial<PreAnalyticRowState>) =>
+    setRows(prev => ({ ...prev, [id]: { ...(prev[id] ?? emptyPreAnalyticRow()), ...patch } }));
 
-  const fieldResolved = (s: PreAnalyticDateGateSpecimen, row: RowState, which: 'collected' | 'received') => {
-    const required = which === 'collected' ? s.missingCollectedAt : s.missingReceivedAt;
-    if (!required) return true;
-    const field = row[which];
-    if (field.mode === 'time') return !!field.value;
-    if (field.mode === 'override') return true;
-    return false;
-  };
-
-  const usesOverride = (row: RowState) => row.collected.mode === 'override' || row.received.mode === 'override';
-
-  const allResolved = specimens.every(s => {
-    const row = rows[s.specimenId] ?? emptyRow();
-    const collectedOk = fieldResolved(s, row, 'collected');
-    const receivedOk = fieldResolved(s, row, 'received');
-    // A comment is required once any field on this specimen used the
-    // administrative override — the real, audited justification.
-    const commentOk = usesOverride(row) ? row.comment.trim().length > 0 : true;
-    return collectedOk && receivedOk && commentOk;
-  });
+  const missing = preAnalyticGateMissing(specimens, rows, requirements);
+  const allResolved = missing.length === 0;
+  const star = (id: string) => reportFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
 
   const handleContinue = () => {
-    const resolutions: PreAnalyticDateResolution[] = specimens.map(s => {
-      const row = rows[s.specimenId] ?? emptyRow();
-      const resolution: PreAnalyticDateResolution = { specimenId: s.specimenId };
-      if (s.missingCollectedAt) {
-        if (row.collected.mode === 'time') resolution.collectedAt = new Date(row.collected.value).toISOString();
-        else if (row.collected.mode === 'override') resolution.collectedAtAdministrativeOverride = true;
-      }
-      if (s.missingReceivedAt) {
-        if (row.received.mode === 'time') resolution.receivedAt = new Date(row.received.value).toISOString();
-        else if (row.received.mode === 'override') resolution.receivedAtAdministrativeOverride = true;
-      }
-      if (usesOverride(row)) resolution.overrideComment = row.comment.trim();
-      return resolution;
-    });
-    onContinue(resolutions);
+    if (!allResolved) return;
+    onContinue(buildPreAnalyticResolutions(specimens, rows));
   };
+
+  // Voice/keyboard "continue date gate": the same Continue, with the same check.
+  const continueRef = useRef(handleContinue);
+  continueRef.current = handleContinue;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'PREANALYTIC_GATE_CONTINUE') continueRef.current();
+  }), []);
 
   const fieldRow = (
     s: PreAnalyticDateGateSpecimen,
-    row: RowState,
+    row: PreAnalyticRowState,
     which: 'collected' | 'received',
     label: string
   ) => {
@@ -139,18 +99,18 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
     const field = row[which];
     return (
       <div className="ps-fixgate-row-fields" key={which}>
-        <span className="ps-fixgate-field-label">{label}</span>
+        <span className="ps-fixgate-field-label">{label} {star(which === 'collected' ? 'preAnalyticCollectedAt' : 'preAnalyticReceivedAt')}</span>
         {field.mode !== 'override' ? (
           <>
             <input
               type="datetime-local"
               className="ps-input-dark"
               value={field.mode === 'time' ? field.value : ''}
-              onChange={e => patchRow(s.specimenId, { [which]: { mode: 'time', value: e.target.value } } as Partial<RowState>)}
+              onChange={e => patchRow(s.specimenId, { [which]: { mode: 'time', value: e.target.value } } as Partial<PreAnalyticRowState>)}
             />
             <button
               className="ps-btn-secondary ps-fixgate-unrecoverable-btn"
-              onClick={() => patchRow(s.specimenId, { [which]: { mode: 'override' } } as Partial<RowState>)}
+              onClick={() => patchRow(s.specimenId, { [which]: { mode: 'override' } } as Partial<PreAnalyticRowState>)}
             >
               {t('preAnalyticDateGateModal.notRecoverableApply', { label: config.administrativeOverrideLabel })}
             </button>
@@ -160,7 +120,7 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
             <span className="ps-fixgate-unrecoverable-badge">
               {t('preAnalyticDateGateModal.administrativeOverrideBadge', { label: config.administrativeOverrideLabel })}
             </span>
-            <button className="ps-btn-secondary" onClick={() => patchRow(s.specimenId, { [which]: { mode: 'unset' } } as Partial<RowState>)}>
+            <button className="ps-btn-secondary" onClick={() => patchRow(s.specimenId, { [which]: { mode: 'unset' } } as Partial<PreAnalyticRowState>)}>
               {t('caseTeamModal.dropZone.undoButton')}
             </button>
           </>
@@ -179,7 +139,7 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
           </p>
 
           {specimens.map(s => {
-            const row = rows[s.specimenId] ?? emptyRow();
+            const row = rows[s.specimenId] ?? emptyPreAnalyticRow();
             return (
               <div key={s.specimenId} className="ps-fixgate-row">
                 <div className="ps-fixgate-row-title">
@@ -187,8 +147,9 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
                 </div>
                 {fieldRow(s, row, 'collected', t('preAnalyticDateGateModal.collectedLabel'))}
                 {fieldRow(s, row, 'received', t('preAnalyticDateGateModal.receivedLabel'))}
-                {usesOverride(row) && (
+                {preAnalyticRowUsesOverride(row) && (
                   <div className="ps-fixgate-row-fields">
+                    <span className="ps-fixgate-field-label">{t('preAnalyticDateGateModal.overrideCommentLabel')} {star('preAnalyticOverrideComment')}</span>
                     <input
                       type="text"
                       className="ps-input-dark ps-fixgate-comment-input"
@@ -201,6 +162,11 @@ export const PreAnalyticDateGateModal: React.FC<Props> = ({ specimens, config, o
               </div>
             );
           })}
+          {missing.length > 0 && (
+            <p className="ps-field-still-required" role="status">
+              {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
+            </p>
+          )}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-ms-btn-cancel" onClick={onCancel}>{t('preAnalyticDateGateModal.cancelButton')}</button>

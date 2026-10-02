@@ -98,6 +98,21 @@ export interface CytologyReportContent {
    *  it was on the record this addendum adds to. */
   addendumText?: string;
 
+  /** Batch 391 (Pete): the language this report is written in, that of the
+   *  performing lab at sign-out (services/reports/reportLanguage.ts). The PDF's
+   *  wording and dates follow it; a reprint, a correction and an addendum keep
+   *  it. Undefined only on records that predate it (English). */
+  language?: string;
+  /** Batch 391: how the report writes dates and times (BCP-47), from the
+   *  performing lab's jurisdiction at sign-out (a UK lab writes 02/04/1988). */
+  locale?: string;
+
+  /** Batch 390 (PS-340): set only on a correction or an addendum. The PDF
+   *  prints it as a banner under the title ("CORRECTED REPORT" or
+   *  "ADDENDUM", the reason, and for a correction what was reported
+   *  before). Undefined on every original sign-out. */
+  revision?: { kind: 'correction' | 'addendum'; reason: string; previouslyReportedAs?: string };
+
   // ── 7. Educational Notes, Comments, & Sign-Off ───────────────────────────
   recommendations: string[];
   educationalNotes?: string;

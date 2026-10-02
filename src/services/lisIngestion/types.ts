@@ -29,6 +29,10 @@ export interface NormalizedLisUpdate {
   grossText?: string;
   microscopicText?: string;
   diagnosisText?: string;
+  /** Batch 426: the LIS's placer (ORC-2) and filler (ORC-3) order numbers, kept on
+   *  the case and echoed on the structured synoptic result. */
+  placerOrderNumber?: string;
+  fillerOrderNumber?: string;
 }
 
 export type StagedEventState = 'pending' | 'processed' | 'failed';

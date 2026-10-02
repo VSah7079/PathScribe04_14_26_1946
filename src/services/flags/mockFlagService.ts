@@ -1,6 +1,7 @@
 import { IFlagService, Flag } from './IFlagService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_FLAGS: Flag[] = [
 
@@ -141,7 +142,7 @@ const ok    = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
 const err   = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 const delay = ()                                  => new Promise(r => setTimeout(r, 80));
 
-export const mockFlagService: IFlagService = {
+export const flagServiceUnchecked: IFlagService = {
 
   async getAll() {
     await delay();
@@ -171,6 +172,11 @@ export const mockFlagService: IFlagService = {
     return ok({ ...MOCK_FLAGS[idx], ...changes });
   },
 
-  async deactivate(id) { return mockFlagService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockFlagService.update(id, { status: 'Active'   }); },
+  async deactivate(id) { return flagServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return flagServiceUnchecked.update(id, { status: 'Active'   }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFlagService: IFlagService = guardConfigWrites(flagServiceUnchecked, [
+  ['config:case-flags:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

@@ -19,11 +19,14 @@ import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
-import { batchService, hardwareContainerRegistryService } from '@/services';
+import { batchService, hardwareContainerRegistryService, actionRegistryService } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { playScanBeep, playScanErrorTone } from '@/utils/playScanBeep';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
 import type { Batch, BatchProcessingNode } from '@/services/batches/IBatchService';
 import { BATCH_PROCESSING_NODES } from '@/services/batches/IBatchService';
+import { openBatches, closedBatches, openCountByNode } from '@/services/batches/batchListView';
+import { formatDateTime } from '@/utils/formatDate';
 import NewContainerModal from './NewContainerModal';
 import BatchDetailView from './BatchDetailView';
 
@@ -46,16 +49,18 @@ const NODE_COLOR: Record<BatchProcessingNode, string> = {
   // reasoning.
   'Cytology Processing': '#0EA5E9', 'Cytology Staining': '#D946EF', 'Cytology Imaging': '#84CC16',
 };
-function formatTimestamp(iso: string): string {
-  try { return new Date(iso).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit' }); }
-  catch { return iso; }
-}
 
 const BatchManagementPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('batchManagement.pageTitle'), '/batch-management'); }, [pushCrumb, t]);
+
+  // Batch 404: this page has its own voice/keyboard context ("create container").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.BATCH_MANAGEMENT);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
   const { user } = useAuth();
   const { stationId } = useCurrentScanStation();
 
@@ -153,12 +158,9 @@ const BatchManagementPage: React.FC = () => {
     );
   }
 
-  const activeBatches = batches
-    .filter(b => b.status === 'active' || b.status === 'reconciling')
-    .filter(b => !stageFilter || b.processingNode === stageFilter);
-  const closedBatches = batches.filter(b => b.status === 'complete' || b.status === 'aborted');
-  const activeCountByNode = (node: BatchProcessingNode) =>
-    batches.filter(b => (b.status === 'active' || b.status === 'reconciling') && b.processingNode === node).length;
+  // Batch 408: services/batches/batchListView.ts.
+  const activeBatches = openBatches(batches, stageFilter);
+  const closedList = closedBatches(batches);
 
   return (
     <div className="ps-batch-page">
@@ -183,7 +185,7 @@ const BatchManagementPage: React.FC = () => {
           <div className="ps-batch-stage-tiles">
             {BATCH_PROCESSING_NODES.map(node => {
               const isActive = stageFilter === node;
-              const count = activeCountByNode(node);
+              const count = openCountByNode(batches, node);
               const color = NODE_COLOR[node];
               return (
                 <button
@@ -193,13 +195,13 @@ const BatchManagementPage: React.FC = () => {
                   onClick={() => setStageFilter(isActive ? null : node)}
                   style={{ '--ps-hue': color } as React.CSSProperties}
                 >
-                  <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? color : '#8899aa' } as React.CSSProperties}>
+                  <div className="ps-wl-filter-tile__label">
                     {t(`batchManagement.nodeTileLabel.${node}`)}
                   </div>
-                  <div className="ps-wl-filter-tile__count" style={{ '--tile-count-color': color } as React.CSSProperties}>
+                  <div className="ps-wl-filter-tile__count">
                     {count}
                   </div>
-                  <div className="ps-wl-filter-tile__sublabel" style={{ '--tile-count-color': color } as React.CSSProperties}>
+                  <div className="ps-wl-filter-tile__sublabel">
                     {'\u00A0'}
                   </div>
                 </button>
@@ -296,6 +298,22 @@ const BatchManagementPage: React.FC = () => {
                 {'\u00A0'}
               </div>
             </button>
+            {/* Batch 429 (Pete): the bench staff record equipment maintenance and calibration. */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--equipment-log"
+              title={t('batchManagement.equipmentLogTitle')}
+              onClick={() => navigate('/batch-management/equipment-log')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.equipmentLogTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--engraver-monitor">
+                🔧
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--engraver-monitor">
+                {'\u00A0'}
+              </div>
+            </button>
           </div>
 
           <div className="ps-batch-toolbar">
@@ -330,17 +348,17 @@ const BatchManagementPage: React.FC = () => {
                       <span className="ps-batch-row-protocol">{b.protocol}</span>
                       {b.priority === 'STAT' && <span className="ps-batch-row-stat">{t('newContainerModal.stat')}</span>}
                       <span className="ps-batch-row-count">{t('batchManagement.itemCount', { count: b.items.length })}</span>
-                      <span className="ps-batch-row-time">{formatTimestamp(b.createdAt)}</span>
+                      <span className="ps-batch-row-time">{formatDateTime(b.createdAt, i18n.language)}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              {closedBatches.length > 0 && (
+              {closedList.length > 0 && (
                 <>
-                  <div className="ps-batch-section-label">{t('batchManagement.closedSectionLabel', { count: closedBatches.length })}</div>
+                  <div className="ps-batch-section-label">{t('batchManagement.closedSectionLabel', { count: closedList.length })}</div>
                   <div className="ps-batch-list">
-                    {closedBatches.map(b => (
+                    {closedList.map(b => (
                       <div key={b.id} className="ps-batch-row ps-batch-row--closed" onClick={() => setSelectedBatchId(b.id)}>
                         <span className="ps-batch-row-status ps-batch-row-status--hued" style={{ '--ps-hue': STATUS_COLOR[b.status] } as React.CSSProperties}>
                           {t(`batchManagement.status.${b.status}`)}
@@ -349,7 +367,7 @@ const BatchManagementPage: React.FC = () => {
                         <span className="ps-batch-row-node">{t(`batchManagement.nodes.${b.processingNode}`)}</span>
                         <span className="ps-batch-row-protocol">{b.protocol}</span>
                         <span className="ps-batch-row-count">{t('batchManagement.itemCount', { count: b.items.length })}</span>
-                        <span className="ps-batch-row-time">{formatTimestamp(b.completedAt ?? b.abortedAt ?? b.createdAt)}</span>
+                        <span className="ps-batch-row-time">{formatDateTime(b.completedAt ?? b.abortedAt ?? b.createdAt, i18n.language)}</span>
                       </div>
                     ))}
                   </div>

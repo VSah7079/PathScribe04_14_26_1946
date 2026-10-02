@@ -29,6 +29,21 @@ This folder's own `mockSpecimenDeficiencyService.ts`/`mockDeficiencyTypeService.
 - **`def-grossed-without-protocol`** (specimen level) is raised, left open, for each specimen whose grossing was completed without a protocol, where the organisation has switched off the protocol rule (see `services/grossing/`). It is the "secondary review" Pete asked for, reusing the QA deficiency queue rather than a new review mechanism.
 - **`mockDeficiencyTypeService`**: a stored list now gains any built-in type it's missing (by id) when it loads. Before, a new built-in type needed `DEFICIENCY_TYPE_VERSION` bumped, which also wiped the site's own custom types. The version stays at 4.
 
+## Batch 423
+
+There is a new seed deficiency type, `def-registry-submission-failure` (case-level), for a registry submission raised for CAPA review from the Registry Exceptions worklist (`services/registrySubmission/captureRegistryExceptionAsCapa.ts`). Stored type lists pick it up through `withNewSeedTypes`.
+
+## Batch 425
+
+New seed type `def-registry-revised-post-acceptance` ("Registry Revised After Acceptance", case level). It is raised automatically when a registry revises data it had accepted (`services/registrySubmission/recordRegistryRevision.ts`). Type version bumped to 5.
+
+## Batch 428: Configuration permissions
+
+- `mockDeficiencyTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:deficiency-types:manage`.
+- `mockResolutionTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:deficiency-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

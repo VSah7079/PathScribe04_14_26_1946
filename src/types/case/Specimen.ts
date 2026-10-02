@@ -1472,6 +1472,8 @@ export interface CytologyScreeningRecord {
    * defaulted or inferred.
    */
   finalDiagnosis?: CytologyFinalDiagnosisSelection;
+  /** Batch 412: reviewers' notes on parts of each other's reviews before sign-out (services/cytology/cytologyReviewNotes.ts). */
+  reviewNotes?: import('@/types/cytology/CytologyReviewRecord').CytologyReviewNote[];
   /**
    * Real, per direct follow-up: a "QC" tile/pool needs somewhere real
    * to draw from. Real, honest scoping: the actual automatic

@@ -37,6 +37,11 @@ const ENFORCING = new RegExp(`\\b(?:enforce|exportQaReportRows|exportQaReport)\\
 /** Anywhere a capability key is named: checks, and gated buttons. */
 const NAMED = new RegExp(`(?:\\b(?:enforce|evaluate|exportQaReportRows|exportQaReport|has)\\(\\s*'(${KEY})'|capability="(${KEY})")`, 'g');
 
+/** Batch 428: a service wrapped by guardConfigWrites names its capabilities in the rules list. */
+const GUARDED_BLOCK = /\bguardConfigWrites\([\s\S]*?\n\]/g;
+const GUARDED_KEY = new RegExp(`\\[\\s*'(${KEY})'\\s*,\\s*\\[`, 'g');
+const guardedKeys = (text: string) => [...text.matchAll(GUARDED_BLOCK)].flatMap(b => [...b[0].matchAll(GUARDED_KEY)].map(m => m[1]));
+
 const files = sourceFiles(SRC).filter(f => !f.startsWith(CATALOG_DIR));
 const texts = files.map(f => ({ file: relative(SRC, f), text: readFileSync(f, 'utf8') }));
 const matchesIn = (text: string, re: RegExp) => [...text.matchAll(re)].map(m => m[1] ?? m[2]);
@@ -45,12 +50,12 @@ describe('capabilities: one catalog, no dead flags (PS-355)', () => {
   const catalogKeys = CAPABILITY_CATALOG.map(c => c.key);
 
   it('every catalog capability is checked at an action', () => {
-    const enforced = new Set(texts.flatMap(t => matchesIn(t.text, ENFORCING)));
+    const enforced = new Set(texts.flatMap(t => [...matchesIn(t.text, ENFORCING), ...guardedKeys(t.text)]));
     expect(catalogKeys.filter(k => !enforced.has(k))).toEqual([]);
   });
 
   it('every capability key named in the app is in the catalog', () => {
-    const unknown = texts.flatMap(t => matchesIn(t.text, NAMED).filter(k => !catalogKeys.includes(k as never)).map(k => `${t.file}: ${k}`));
+    const unknown = texts.flatMap(t => [...matchesIn(t.text, NAMED), ...guardedKeys(t.text)].filter(k => !catalogKeys.includes(k as never)).map(k => `${t.file}: ${k}`));
     expect(unknown).toEqual([]);
   });
 
@@ -62,7 +67,7 @@ describe('capabilities: one catalog, no dead flags (PS-355)', () => {
       // onExport) is checked in the parent: allow it when some file enforces it.
       return buttons.filter(k => !enforced.has(k)).map(k => ({ file: t.file, key: k }));
     });
-    const enforcedAnywhere = new Set(texts.flatMap(t => matchesIn(t.text, ENFORCING)));
+    const enforcedAnywhere = new Set(texts.flatMap(t => [...matchesIn(t.text, ENFORCING), ...guardedKeys(t.text)]));
     expect(gatedOnly.filter(g => !enforcedAnywhere.has(g.key)).map(g => `${g.file}: ${g.key}`)).toEqual([]);
   });
 

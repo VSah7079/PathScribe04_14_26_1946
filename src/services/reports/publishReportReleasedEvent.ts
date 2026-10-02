@@ -33,6 +33,7 @@
 // it in is real, separate follow-on work, not attempted here.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { generateOnce, savedReportPdf } from './resolveOruReportPdf';
 import { dispatchCaseInstances } from './dispatchCaseInstances';
 import { dispatchAmendedCaseInstance } from './dispatchAmendedCaseInstance';
 import { dispatchCytologyCaseInstances } from '../cytology/dispatchCytologyCaseInstances';
@@ -151,7 +152,29 @@ export interface ReportReleasedEventResult {
  * one, real place a future print-queue subscriber would also hook in,
  * rather than every real caller needing to learn about it separately.
  */
+/** Batch 426: an Assist case's finalized workups, to the LIS. The signer is whoever released it,
+ *  or (the release buffer running out, no one on the page) whoever finalized the case. */
+async function releaseAssistWorkups(event: ReportReleasedEvent): Promise<void> {
+  const [{ dispatchAssistCaseRelease }, { assistSynopticDeps }, { caseRouter }, { mockUserService }] = await Promise.all([
+    import('./dispatchAssistSynopticResult'), import('./dispatchAssistSynopticResultDeps'), import('../cases/CaseRouter'), import('../users/mockUserService'),
+  ]);
+  const c: any = await caseRouter.getCase(event.caseId);
+  if (!c || c.reportingMode !== 'assist') return;
+  let signer = event.releasedBy;
+  if (!signer && c.finalizedBy) {
+    const u = await mockUserService.getById(c.finalizedBy).catch(() => null);
+    signer = { id: c.finalizedBy, name: u && u.ok ? [u.data.firstName, u.data.lastName].filter(Boolean).join(' ') : c.finalizedBy };
+  }
+  await dispatchAssistCaseRelease(event.caseId, signer ?? { id: '', name: '' }, assistSynopticDeps);
+}
+
 export async function publishReportReleasedEvent(event: ReportReleasedEvent): Promise<ReportReleasedEventResult> {
+  // Batch 392: the release's PDF is made once and used by printing and by
+  // every electronic result (surgical, preliminary, autopsy), which now carry
+  // it. A surgical release that brings none (final sign-out, the release after
+  // the hold period) uses the signed PDF saved with the case's report versions;
+  // before, its print job failed for want of a PDF.
+  const generatePdf = generateOnce(event.generatePdf ?? (event.source === 'CYTOLOGY' ? undefined : savedReportPdf(event.caseId, event.reportType)));
   await mockReportReleasedEventLogService.record(event);
 
   // Real, per direct follow-up ("Component C" — the Delivery
@@ -205,7 +228,10 @@ export async function publishReportReleasedEvent(event: ReportReleasedEvent): Pr
                 // Real, per this file's own header: dispatchCaseInstances.ts's
                 // own real, existing, tested dispatch loop and dedup logic —
                 // never re-implemented here.
-                await dispatchCaseInstances(event.caseId);
+                await dispatchCaseInstances(event.caseId, generatePdf);
+                // Batch 426 (Pete): an Assist case sends its synoptic workups to the LIS
+                // (dispatchAssistSynopticResult.ts); dispatchCaseInstances skips it.
+                await releaseAssistWorkups(event).catch(e => console.error('[publishReportReleasedEvent] Assist workups not sent:', e));
               }
               return {};
             case 'CORRECTED':
@@ -243,7 +269,7 @@ export async function publishReportReleasedEvent(event: ReportReleasedEvent): Pr
               // this is a real, silent no-op rather than a guess at
               // which instance the caller meant.
               if (event.instanceId) {
-                await dispatchAmendedCaseInstance(event.caseId, event.instanceId, event.reportType, event.previouslyReportedAs);
+                await dispatchAmendedCaseInstance(event.caseId, event.instanceId, event.reportType, event.previouslyReportedAs, generatePdf);
               }
               return {};
             case 'PRELIMINARY': {
@@ -251,7 +277,7 @@ export async function publishReportReleasedEvent(event: ReportReleasedEvent): Pr
               // dispatch loop releasePreliminaryReport.ts's own real caller
               // now shares through this one, real function — never a second,
               // separate copy of it.
-              const dispatchedCount = await dispatchPreliminaryCaseInstances(event.caseId);
+              const dispatchedCount = await dispatchPreliminaryCaseInstances(event.caseId, generatePdf);
               return { dispatchedCount };
             }
           }
@@ -259,7 +285,7 @@ export async function publishReportReleasedEvent(event: ReportReleasedEvent): Pr
       : Promise.resolve({}),
     runPrint
       ? dispatchPrintJob(
-          event.caseId, event.performingFacilityId, event.reportType, event.priority ?? 'Routine', event.generatePdf,
+          event.caseId, event.performingFacilityId, event.reportType, event.priority ?? 'Routine', generatePdf,
           // Real, per PS-278 — forwards the same real 'SURGPATH' |
           // 'CYTOLOGY' signal this event already carries, so
           // dispatchPrintJob's own DIRECT_NETWORK_PRINT mode (Mode 3)

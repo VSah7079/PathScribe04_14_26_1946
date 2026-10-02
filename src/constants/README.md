@@ -142,3 +142,19 @@ consuming side of this fix.
 - **Batch 379:** `grossing.completeConfirm` (F24+PS051) and `grossing.completeCancel` (F24+PS052), answering the Grossing screen's "complete without a protocol?" confirmation.
 
 - **Batch 382:** `diagnosis.recordDiscordance` (F17+PS059), `billing.confirmPostSignoutChange` (F24+PS053) and `billing.correctAppliedCode` (F24+PS054): the reconciliation, post-sign-out reason and applied-code correction modals' buttons.
+- **Batch 383:** `case.recordAutopsyAuthorization` (F19+PS014), `case.releaseAutopsyBody` (F19+PS015), `specimen.continueFixativeGate` (F20+PS011) and `specimen.continuePreAnalyticGate` (F20+PS012): the two autopsy forms' and the two sign-out gates' buttons.
+- **Batch 384:** `messages.submitSecureEmail` (F18+PS025): the Secure email window's Send button.
+- **Batch 388:** `VOICE_CONTEXT.MICROTOMY` for the Microtomy workstation (used by the two new `MICROTOMY_*` actions in `services/actionRegistry/`).
+- **Batch 401:** `VOICE_CONTEXT.EMBEDDING` for the Embedding station (used by the two new `EMBEDDING_*` actions in `services/actionRegistry/`).
+- **Batch 402:** `VOICE_CONTEXT.SLIDE_DISTRIBUTION` for the Slide distribution station (used by the two new `SLIDE_DIST_*` actions).
+- **Batch 403:** `VOICE_CONTEXT.ADD_ON_ORDER` for the Add-On Orders page.
+- **Batch 404:** `VOICE_CONTEXT.BATCH_MANAGEMENT` for Batch Management.
+- **Batch 405:** `VOICE_CONTEXT.MOLECULAR` for the molecular plate builder.
+
+## Batch 399
+
+`configSearchIndex.ts`: Intraoperative critical results is searchable in Configuration.
+
+## Batch 431: the Configuration search covers everything
+
+Pete: "I was searching for Field Requirements, but the system couldn't find any entries." `configSearchIndex.ts` now adds one entry for every tab and every System, Cytology, Staff and Synoptic Library section, generated from the sidebar lists (`Config/System/systemSections.ts`, `Config/Cytology/cytologySections.ts`), to the hand-written entries. `configSearchCoverage.test.ts` fails if a section can't be found or an entry points at a section that doesn't exist. `CONFIG_TABS` is shared with ConfigurationPage.

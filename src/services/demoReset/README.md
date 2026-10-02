@@ -11,6 +11,22 @@ The demo data reset (mock backend only). Moved out of `components/Config/System/
 
 `STATE_KEYS` gains the report page's display preferences under their `utils/uiPreferences` names: `ps_ui_reportHeaderCompact`, `ps_ui_reportSidebarCollapsed` and `ps_ui_reportTabWidth`. The old keys stay listed so old values are still cleared.
 
+## Batch 392
+
+`released_report_pdfs` (report PDFs kept from release so an ORU^R01 retry sends the same document) is cleared by a Full Reset.
+
+## Batch 423
+
+The reset now covers `registryGoLiveRecords` and `registryGoLiveGovernance` (registry go-live requests and approvals, and the approval settings).
+
+## Batch 424
+
+The reset now also clears `registryAgreements`, `registryAdapterRules` and `registryValidationRecords`.
+
+## Batch 431
+
+Also clears `pathscribe_org_page_setup`, `ps_ui_previewWindowGeometry`, and the template review key families (`ps_answers_`, `ps_comments_`, `ps_state_`, now in `RUNTIME_KEY_PREFIXES`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

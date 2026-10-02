@@ -9,6 +9,8 @@ import type {
   PatientIdentifier,
 } from './IPatientIndexService';
 import { caseRouter } from '../cases/CaseRouter';
+import type { NationalPatientIdentifier } from '@/types/patient/NationalPatientIdentifier';
+import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
 import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { getSessionUser } from '../auth/caseAccessControl';
@@ -732,6 +734,52 @@ export const mockPatientIndexService: IPatientIndexService = {
   async addIdentifier(patientId: string, assigningAuthority: string, identifierValue: string, source: 'resolution' | 'manual' = 'manual'): Promise<PatientIdentifier> {
     await delay();
     return recordIdentifierInternal(patientId, assigningAuthority, identifierValue, source);
+  },
+
+  // Batch 417: national identifiers live in the same crosswalk store, one row
+  // per (patient, system). The assigning authority is the system id, so the
+  // existing resolveByIdentifier(system, value) finds a patient by NHS number.
+  async recordNationalIdentifier(patientId: string, identifier: NationalPatientIdentifier): Promise<PatientIdentifier> {
+    await delay();
+    const identifiers = loadIdentifiers();
+    const rest = identifiers.filter(i => !(i.patientId === patientId && i.system === identifier.system));
+    const record: PatientIdentifier = {
+      id: `PID-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      patientId,
+      assigningAuthority: identifier.system,
+      identifierValue: identifier.value,
+      source: identifier.source === 'manual' ? 'manual' : 'resolution',
+      recordedAt: new Date().toISOString(),
+      system: identifier.system,
+      verificationStatus: identifier.verificationStatus,
+      verifiedAt: identifier.verifiedAt,
+    };
+    saveIdentifiers([...rest, record]);
+    return record;
+  },
+
+  // Batch 425: a national identifier removed after accessioning comes off the MPI too.
+  async removeNationalIdentifier(patientId: string, system: string): Promise<void> {
+    await delay();
+    saveIdentifiers(loadIdentifiers().filter(i => !(i.patientId === patientId && i.system === system)));
+  },
+
+  // Batch 418: the registry opt-outs live on the master record.
+  async setRegistryConsent(patientId: string, consent: PatientRegistryConsent | undefined): Promise<void> {
+    await delay();
+    const records = loadRecords();
+    const idx = records.findIndex(r => r.id === patientId);
+    if (idx === -1) return;
+    const { registryConsent: _old, ...rest } = records[idx];
+    records[idx] = { ...rest, ...(consent ? { registryConsent: consent } : {}), updatedAt: new Date().toISOString() };
+    saveRecords(records);
+  },
+
+  async listNationalIdentifiers(patientId: string): Promise<NationalPatientIdentifier[]> {
+    await delay();
+    return loadIdentifiers()
+      .filter(i => i.patientId === patientId && i.system)
+      .map(i => ({ system: i.system!, value: i.identifierValue, verificationStatus: i.verificationStatus ?? 'unchecked', verifiedAt: i.verifiedAt, source: i.source === 'manual' ? 'manual' as const : 'hl7' as const }));
   },
 
   async updateDemographics(

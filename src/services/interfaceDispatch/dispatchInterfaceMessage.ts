@@ -30,13 +30,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
+import { checkRegistryPayloadBoundary } from './registryPayloadBoundary';
+import { deploymentInstance } from '../deployment/deploymentInstance';
 
 // 'CRITICAL_ALERT' added per direct follow-up ("Can the interface
 // engine be used for any post GA modification to fully implement this
 // feature?") — used only by the new, deliberately NOT-yet-wired
 // services/clinical/postGaAlertChannels/ module; no currently-active
 // call site produces it yet. See that folder's own README.
-export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT';
+export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT';
 
 export interface InterfaceDispatchEnvelope {
   queueEntryId: string;
@@ -125,6 +127,10 @@ export async function dispatchInterfaceMessage(
     dispatchedAt: new Date().toISOString(),
     payload,
   };
+  // Batch 424: registry payloads cross only within their instance's lane (test data to test
+  // systems on a validation instance, real data to live registers on production).
+  const refused = checkRegistryPayloadBoundary(transactionType, payload, deploymentInstance.role);
+  if (refused) return { ok: false, errorCode: 'DISPATCH_REJECTED', error: refused };
   if (INTERFACE_RECEIVER.ok === false) {
     return { ok: false, errorCode: 'DISPATCH_UNREACHABLE', error: INTERFACE_RECEIVER.message };
   }

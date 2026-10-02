@@ -14,14 +14,28 @@
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { withMissingSeedRecords, withSeedFieldBackfill } from '../mockSeedMerge';
-import type { Equipment, EquipmentError, IEquipmentService } from './IEquipmentService';
-import { normaliseEquipmentCode, validateEquipmentDraft } from './equipmentRules';
+import type { Equipment, EquipmentError, IEquipmentService , DeckSlot } from './IEquipmentService';
+import { normaliseEquipmentCode, validateEquipmentDraft , normaliseDeckSlotId } from './equipmentRules';
 import { mockScanStationService } from '../scanStations/mockScanStationService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+
+// Batch 406 (Pete): instrument profiles for the demo analysers. Panther 1 and
+// 2 take sample racks in four slots on Deck 1 and a reagent cartridge in the
+// reagent bay, so a rack's slot must be recorded; Panther 3 is set up with a
+// single sample slot, so it needn't be.
+const PANTHER_DECK: DeckSlot[] = [
+  { id: 'SLOT_A1', deck: 'Deck 1', rackTypes: ['sample_tube_rack'] },
+  { id: 'SLOT_A2', deck: 'Deck 1', rackTypes: ['sample_tube_rack'] },
+  { id: 'SLOT_A3', deck: 'Deck 1', rackTypes: ['sample_tube_rack'] },
+  { id: 'SLOT_A4', deck: 'Deck 1', rackTypes: ['sample_tube_rack', 'extraction_plate'] },
+  { id: 'SLOT_R1', deck: 'Reagent bay', rackTypes: ['reagent_cartridge'] },
+];
+const SINGLE_SLOT_DECK: DeckSlot[] = [{ id: 'SLOT_A1', deck: 'Deck 1', rackTypes: ['sample_tube_rack'] }];
 
 export const SEED_EQUIPMENT: readonly Equipment[] = [
-  { id: 'inst-panther-01', code: 'PANTHER_01', name: 'Panther 1', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', scanStationId: 'station-molecular-1', status: 'Active' },
-  { id: 'inst-panther-02', code: 'PANTHER_02', name: 'Panther 2', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', scanStationId: 'station-molecular-1', status: 'Active' },
-  { id: 'inst-panther-03', code: 'PANTHER_03', name: 'Panther 3', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', status: 'Active' },
+  { id: 'inst-panther-01', code: 'PANTHER_01', name: 'Panther 1', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', scanStationId: 'station-molecular-1', status: 'Active', deckSlots: PANTHER_DECK },
+  { id: 'inst-panther-02', code: 'PANTHER_02', name: 'Panther 2', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', scanStationId: 'station-molecular-1', status: 'Active', deckSlots: PANTHER_DECK },
+  { id: 'inst-panther-03', code: 'PANTHER_03', name: 'Panther 3', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', status: 'Active', deckSlots: SINGLE_SLOT_DECK },
   // Batch 359: the physical printer behind the seeded Zebra printer profile
   // (printer-zt411-example), shared by Grossing Station 1 and Microtomy Bench 1.
   { id: 'eq-zebra-zt411-01', code: 'ZEBRA_ZT411_01', name: 'Zebra ZT411 label printer', kind: 'label_printer', make: 'Zebra', model: 'ZT411', facilityId: 'c-fenwick-general', status: 'Active' },
@@ -44,8 +58,10 @@ function load(): Equipment[] {
   // Batch 360: schedules added to the seeded Panthers reach browsers that stored them earlier.
   const maint = withSeedFieldBackfill(merged.records, SEED_EQUIPMENT, 'maintenanceIntervalDays');
   const calib = withSeedFieldBackfill(maint.records, SEED_EQUIPMENT, 'calibrationIntervalDays');
-  if (changed || merged.added > 0 || maint.filled > 0 || calib.filled > 0) storageSet(EQUIPMENT_STORAGE_KEY, calib.records);
-  return calib.records;
+  // Batch 406: the seeded analysers' deck layouts reach browsers that stored them earlier.
+  const decks = withSeedFieldBackfill(calib.records, SEED_EQUIPMENT, 'deckSlots');
+  if (changed || merged.added > 0 || maint.filled > 0 || calib.filled > 0 || decks.filled > 0) storageSet(EQUIPMENT_STORAGE_KEY, decks.records);
+  return decks.records;
 }
 const save = (all: Equipment[]) => storageSet(EQUIPMENT_STORAGE_KEY, all);
 const fail = (error: EquipmentError) => ({ ok: false as const, error });
@@ -62,6 +78,7 @@ const tidy = (e: Equipment): Equipment => ({
   model: e.model?.trim() || undefined,
   serialNumber: e.serialNumber?.trim() || undefined,
   scanStationId: e.scanStationId || undefined,
+  deckSlots: e.deckSlots?.length ? e.deckSlots.map(sl => ({ ...sl, id: normaliseDeckSlotId(sl.id), deck: sl.deck?.trim() || undefined })) : undefined,
 });
 
 function setStatus(id: ID, status: Equipment['status']): ServiceResult<Equipment> {
@@ -73,7 +90,7 @@ function setStatus(id: ID, status: Equipment['status']): ServiceResult<Equipment
   return { ok: true, data: all[idx] };
 }
 
-export const mockEquipmentService: IEquipmentService = {
+const equipmentServiceUnchecked: IEquipmentService = {
   async getAll() {
     return { ok: true, data: load() };
   },
@@ -119,3 +136,8 @@ export const mockEquipmentService: IEquipmentService = {
   async deactivate(id) { return setStatus(id, 'Inactive'); },
   async reactivate(id) { return setStatus(id, 'Active'); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockEquipmentService: IEquipmentService = guardConfigWrites(equipmentServiceUnchecked, [
+  ['config:equipment:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

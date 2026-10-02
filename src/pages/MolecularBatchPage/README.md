@@ -63,3 +63,56 @@ An analyser with an open malfunction or past due is shown in red in the target i
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `MolecularPlateBuilderPage.tsx`: the well's accession-number field is tagged.
+
+## Batch 405 (PS-359): Field Requirements, supersede permission
+
+**`MolecularPlateBuilderPage.tsx`:**
+- **Create** follows the organisation's Field Requirements (page "molecularBatch", `services/fieldRequirements/molecularBatchChecks.ts`).
+  - Locked, as before: the assay, the assay name, the instrument, and each control well's lot and expiry.
+  - New and locked (Pete): **every patient well names its specimen**, by container barcode or accession. The service refuses a plate that doesn't (`MOLECULAR_BATCH_WELL_SPECIMEN_MISSING`), and the page lists which wells are missing one.
+  - Switches: the deck slot, a reagent lot, and each patient well's aliquot volume.
+  - Required labels are starred and "Still required: …" says what's missing. Create stays off until the fields are complete and the reagent and control checks pass. Before, it was always on and the refusal came afterwards.
+- **Clone & Supersede** needs `molecular:batch:supersede` (Pete: keep today's users). The button is greyed without it, and the service checks it. The reason stays locked.
+- **Voice:** "create plate" (`MOLECULAR_CREATE_PLATE`) in a new `VOICE_CONTEXT.MOLECULAR`. Supersede has no voice command.
+- **Translated:** reagent component names and the gating reasons (before, they were codes with the underscores removed).
+- The page takes the batch, control-rule, extraction-rack, scan-station and stain services from `@/services`, so it is off the deployment baseline.
+- **Demo:** the seeded run BATCH-20260906-0042 (`mb-001`) can be superseded. A new plate can be built on Panther 1 or 2.
+- **Still open:** the other pages in this folder (control rules, rack loading, rack worklist) are still on the deployment baseline.
+
+## Batch 406 (PS-359): Rack Loading, Control Rules, the rack list
+
+**`MolecularRackLoadingPage.tsx`** follows Pete's required fields (Field Requirements page "molecularRack").
+- **New rack:**
+  - It takes the physical rack's barcode (scan or type). Left blank, one is generated.
+  - A duplicate or malformed barcode is refused with a translated message.
+- **Tubes:**
+  - Manual entry takes the tube's accession too.
+  - A tube without one is flagged amber. Clicking it lets the tech record the accession, and a line names the positions still missing one.
+- **Place on instrument** (`components/RackPlacementPanel.tsx`):
+  - Instrument: active analysers, this station's lab first.
+  - Assay: optional.
+  - Deck slot: only the slots on that instrument that take a sample rack and suit the assay. It is starred and required only when more than one fits.
+  - "Scan deck position": scanning the deck's `LOC-INST-…` label fills the instrument and slot. A slot that doesn't take the rack, or isn't the assay's, shows a red warning and blocks placing. Scanning a tube by mistake, an unknown analyser or another analyser is also explained.
+  - "Still required: …" says what's missing.
+  - "place rack" by voice (`MOLECULAR_PLACE_RACK`).
+  - A placed rack shows where it went, who placed it and when, and can be placed again.
+
+**`MolecularControlRulesPage.tsx`:**
+- Adding, editing, saving and deleting need `config:molecular-control-rules:manage` (Pete: Admin by default, assignable). The buttons are greyed without it, and the service checks it again.
+- Delete asks first.
+- A rule can tick the deck slots its sample rack may use.
+- Control types are shown by name, and refusals are translated.
+
+**`MolecularRackWorklistPage.tsx`:**
+- A status column: loading, needs sample IDs, or on an instrument and slot.
+- Dates in the user's language.
+
+**`MolecularPlateBuilderPage.tsx`:**
+- On an instrument with a deck layout, the deck slot is a list of its extraction-plate slots, and a wrong slot is refused with a translated message.
+- The creator's name comes from `molecularActor`.
+
+All four pages take their services from `@/services`, and the three that were still on the deployment baseline are off it. The "Still open" note under Batch 405 is resolved.
+
+## Batch 407
+
+Found clicking through in the browser: Rack Loading's placement lists are now the same width (`.ps-rack-placement-grid .ps-input-dark`), and its instructions have space below them (`.ps-rack-loading-help`). Everything else in Batch 406 behaved as described.

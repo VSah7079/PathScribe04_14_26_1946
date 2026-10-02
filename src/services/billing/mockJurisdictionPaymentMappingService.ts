@@ -3,6 +3,7 @@ import { IJurisdictionPaymentMappingService } from './IJurisdictionPaymentMappin
 import { JurisdictionPaymentMapping } from '../../types/billing/JurisdictionPaymentMapping';
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 function ok<T>(data: T): ServiceResult<T> { return { ok: true, data } as any; }
 function err(msg: string): ServiceResult<never> { return { ok: false, error: msg } as any; }
@@ -35,7 +36,7 @@ const STORAGE_KEY = 'pathscribe_jurisdiction_payment_mappings';
 const load = () => storageGet<JurisdictionPaymentMapping[]>(STORAGE_KEY, SEED);
 const persist = (data: JurisdictionPaymentMapping[]) => storageSet(STORAGE_KEY, data);
 
-export const mockJurisdictionPaymentMappingService: IJurisdictionPaymentMappingService = {
+const jurisdictionPaymentMappingServiceUnchecked: IJurisdictionPaymentMappingService = {
   async getAll() {
     return ok(load());
   },
@@ -69,3 +70,8 @@ export const mockJurisdictionPaymentMappingService: IJurisdictionPaymentMappingS
     return this.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockJurisdictionPaymentMappingService: IJurisdictionPaymentMappingService = guardConfigWrites(jurisdictionPaymentMappingServiceUnchecked, [
+  ['config:payment-mappings:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

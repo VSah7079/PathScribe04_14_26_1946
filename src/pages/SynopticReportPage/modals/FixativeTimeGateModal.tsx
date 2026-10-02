@@ -17,25 +17,26 @@
 //
 // i18n note: `s.label`/`s.description` are real specimen data, never
 // translated.
+//
+// Batch 383 (PS-359): what is still required comes from the organisation's
+// Field Requirements (the fixation time is locked, CAP/ASCO; a comment on
+// the "no time is possible" path is an optional switch). The decisions
+// (when a specimen is resolved, the resolutions saved) live in
+// services/signoutGates/fixativeGate.ts. The modal shows "Still required: …"
+// and Continue can be said ("continue fixation gate", FIXATIVE_GATE_CONTINUE).
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
+import {
+  actionRegistryService, buildFixativeResolutions, fixativeGateMissing, reportFieldRequired,
+  type FixativeGateSpecimen, type FixativeResolution, type FixativeRowState,
+} from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
 
-export interface FixativeGateSpecimen {
-  specimenId: string;
-  label: string;
-  description: string;
-}
-
-export interface FixativeResolution {
-  specimenId: string;
-  processedAt?: string;          // undefined only for the unrecoverable path
-  processedAtIsEstimated: boolean;
-  resolutionTypeId: 'res-fixation-documented' | 'res-fixation-estimated' | 'res-fixation-unrecoverable';
-  resolutionComment?: string;
-}
+export type { FixativeGateSpecimen, FixativeResolution };
 
 interface Props {
   specimens: FixativeGateSpecimen[];
@@ -43,47 +44,30 @@ interface Props {
   onCancel: () => void;
 }
 
-type RowState =
-  | { mode: 'unset' }
-  | { mode: 'time'; value: string; estimated: boolean }
-  | { mode: 'unrecoverable'; comment: string };
-
 export const FixativeTimeGateModal: React.FC<Props> = ({ specimens, onContinue, onCancel }) => {
-  const { t } = useTranslation();
-  const [rows, setRows] = useState<Record<string, RowState>>(
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('report');
+  const [rows, setRows] = useState<Record<string, FixativeRowState>>(
     Object.fromEntries(specimens.map(s => [s.specimenId, { mode: 'unset' as const }]))
   );
 
-  const setRow = (id: string, row: RowState) => setRows(prev => ({ ...prev, [id]: row }));
+  const setRow = (id: string, row: FixativeRowState) => setRows(prev => ({ ...prev, [id]: row }));
 
-  const allResolved = specimens.every(s => {
-    const r = rows[s.specimenId];
-    if (!r) return false;
-    if (r.mode === 'time') return !!r.value;
-    if (r.mode === 'unrecoverable') return true;
-    return false;
-  });
+  const missing = fixativeGateMissing(specimens, rows, requirements);
+  const allResolved = missing.length === 0;
+  const star = (id: string) => reportFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
 
   const handleContinue = () => {
-    const resolutions: FixativeResolution[] = specimens.map(s => {
-      const r = rows[s.specimenId];
-      if (r.mode === 'time') {
-        return {
-          specimenId: s.specimenId,
-          processedAt: new Date(r.value).toISOString(),
-          processedAtIsEstimated: r.estimated,
-          resolutionTypeId: r.estimated ? 'res-fixation-estimated' : 'res-fixation-documented',
-        };
-      }
-      return {
-        specimenId: s.specimenId,
-        processedAtIsEstimated: false,
-        resolutionTypeId: 'res-fixation-unrecoverable',
-        resolutionComment: (r as any).comment || undefined,
-      };
-    });
-    onContinue(resolutions);
+    if (!allResolved) return;
+    onContinue(buildFixativeResolutions(specimens, rows));
   };
+
+  // Voice/keyboard "continue fixation gate": the same Continue, with the same check.
+  const continueRef = useRef(handleContinue);
+  continueRef.current = handleContinue;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'FIXATIVE_GATE_CONTINUE') continueRef.current();
+  }), []);
 
   return (
     <div className="ps-ms-overlay">
@@ -104,6 +88,7 @@ export const FixativeTimeGateModal: React.FC<Props> = ({ specimens, onContinue, 
 
                 {row.mode !== 'unrecoverable' && (
                   <div className="ps-fixgate-row-fields">
+                    <span className="ps-fixgate-field-label">{t('fixativeTimeGateModal.timeLabel')} {star('fixationTime')}</span>
                     <input
                       type="datetime-local"
                       className="ps-input-dark"
@@ -119,6 +104,19 @@ export const FixativeTimeGateModal: React.FC<Props> = ({ specimens, onContinue, 
                       />
                       {t('accessionPage.specimens.processedAtEstimated')}
                     </label>
+                  </div>
+                )}
+
+                {row.mode === 'unrecoverable' && (
+                  <div className="ps-fixgate-row-fields">
+                    <span className="ps-fixgate-field-label">{t('fixativeTimeGateModal.unrecoverableCommentLabel')} {star('fixationUnrecoverableComment')}</span>
+                    <input
+                      type="text"
+                      className="ps-input-dark ps-fixgate-comment-input"
+                      placeholder={t('fixativeTimeGateModal.unrecoverableCommentPlaceholder')}
+                      value={row.comment}
+                      onChange={e => setRow(s.specimenId, { mode: 'unrecoverable', comment: e.target.value })}
+                    />
                   </div>
                 )}
 
@@ -140,6 +138,11 @@ export const FixativeTimeGateModal: React.FC<Props> = ({ specimens, onContinue, 
               </div>
             );
           })}
+          {missing.length > 0 && (
+            <p className="ps-field-still-required" role="status">
+              {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
+            </p>
+          )}
         </div>
         <div className="ps-ms-footer">
           <button className="ps-ms-btn-cancel" onClick={onCancel}>{t('preAnalyticDateGateModal.cancelButton')}</button>

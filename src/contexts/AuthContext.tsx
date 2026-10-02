@@ -173,6 +173,12 @@ export function roleHas(user: User | null, check: "pathologist" | "admin"): bool
   if (user.role === "pathologist-admin") return true;
   return user.role === check;
 }
+/** Batch 430: the auth context when there is one (providers that may also render
+ *  outside AuthProvider, e.g. in tests); null otherwise. */
+export function useAuthOptional() {
+  return useContext(AuthContext);
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");

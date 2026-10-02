@@ -190,3 +190,20 @@ The AI synoptic suggestions and the narrative-from-answers call read `PathScribe
 - **Batch 380, `useAmendmentWorkflow.ts`:**
   - When the modal's mode changes, the draft's type follows (`amendmentService.changeDraftType`), and it's checked again before saving. Before this, minor amendments and addenda couldn't be saved from a new draft.
   - It reaches the audit service and the AI suggestion functions through `@/services`, so it came off the mock-import baseline.
+
+## Batch 398
+
+`useGrossingCompletion.ts` applies the Grossing field requirements and `case:grossing:complete` before Gross Complete / Update Gross, and returns `pendingProtocolConfirmation` with confirm/cancel for the protocol-off case. The decisions are in `services/grossing/reportGrossComplete.ts`.
+
+## Batch 426
+
+- `useLisIntegration.sendSynopticReportToLis` sends the workup itself through `services/reports/dispatchAssistSynopticResult.ts`: the structured result, its PDF and the text block. Before, it sent a header and a placeholder sentence.
+- `useSignOutWorkflow.finalizeCase` marks an Assist case's released workups `finalized` and, with no release buffer, publishes the release so they go to the LIS.
+
+## Batch 428: Configuration permissions
+
+`__tests__/useSpecimenBlockManagement.test.ts` allows Configuration changes in its mocked authorization (the specimen dictionary it writes is checked now).
+
+## Batch 431
+
+`useOrchestratorDraft.ts`: the AI draft sections are saved to and loaded from the case only; the browser copy is gone (a copy left on one workstation could override a newer save made at another).

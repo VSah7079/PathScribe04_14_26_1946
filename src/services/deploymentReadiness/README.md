@@ -80,5 +80,52 @@ Off the baselines:
 
 Off the mock-import baseline: `components/Billing/CorrectAppliedCodeModal.tsx` (RVU code map), `components/Billing/PostSignoutBillingChangeModal.tsx` (reason dictionary) and `pages/SynopticReportPage/modals/DiscordanceReconciliationModal.tsx` (the frozen-final activity type id), all now through `@/services`.
 
+## Batch 384
+
+Off the mock-import baseline: `components/AppShell/AppShell.tsx` (the action registry), now through `@/services`. It stays on the browser-storage baseline (session storage for the messages drawer).
+
+## Batch 388
+
+`pages/MicrotomyWorkstationPage/hooks/useMicrotomyWorkstation.ts` came off the mock-import baseline: it read scan stations from `mockScanStationService` and now uses `scanStationService` from `@/services`.
+
+## Batch 406
+
+Five pages left the baseline:
+- `MolecularRackLoadingPage.tsx`
+- `MolecularRackWorklistPage.tsx`
+- `MolecularControlRulesPage.tsx`
+- `MolecularBatchManagementPage.tsx`
+- `MolecularOrderQueuePage.tsx`
+
+Every molecular page now takes its services from `@/services`.
+
+## Batch 407
+
+`DisposalQueuePage.tsx`, `DisposalReportPage.tsx` and `PendingBatchQueuePage.tsx` left the baseline. No Batch Management page is on it now.
+
+## Batch 409
+
+The Cytology Workspace (`CytologyScreeningPage.tsx`, `CytologyWorklistPage.tsx`, `CytologySynopticFormView.tsx`) left the baseline.
+
+## Batch 414
+
+`components/Config/Cytology/CytologyRegistrySettingsSection.tsx` left the baseline: it takes its services from `@/services`.
+
+## Batch 422
+
+`components/Config/System/CancerRegistrySettingsSection.tsx` off the baseline: it now reads through `@/services` and saves through the permission-checked service.
+
+## Batch 426
+
+`pages/SynopticReportPage/hooks/useLisIntegration.ts` is off the mock-import baseline. Its LIS send now goes through `services/reports/dispatchAssistSynopticResult.ts`.
+
+## Batch 428: Configuration permissions
+
+Off the baseline: `RetentionSection.tsx` (now a service), `DepartmentsSection.tsx` (barrel imports), and the deleted `SpecimenCategoriesSection.tsx` and `System/PatientMatchReviewSection.tsx`.
+
+## Batch 431
+
+The browser-storage baseline went from 24 files to 6. What's left is the workstation's own settings (scan station, OR terminal, display profile, companion window, foot pedal) and the demo-reset key audit. Moved: per-person settings, lab-wide settings, template review work, AI drafts (removed), access badges (records), and session flags and the preview window position (`utils/uiPreferences.ts`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

@@ -11,6 +11,11 @@
 // This file is intentionally thin — layout + modal wiring only.
 // ─────────────────────────────────────────────────────────────
 
+import { CaseUnavailable } from '@/components/CaseUnavailable/CaseUnavailable';
+import { WorkupPartsModal } from './modals/WorkupPartsModal';
+import { setWorkupParts, type WorkupPartsMode } from '@/services/reports/workupParts';
+import { resolveReportLocaleForFacility } from '@/services/reports/resolveReportLocale';
+import { surgicalReportLabelsFor, formatReportDateOfBirth } from '@/services/reports/surgicalReportLabels';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,7 +23,7 @@ import { useVoice } from '@/contexts/VoiceProvider';
 import { useFootPedal } from '@/hooks/useFootPedal';
 import { useAudioSegmentRecorder } from '@/hooks/useAudioSegmentRecorder';
 import { useParams, useNavigate, useLocation } from 'react-router';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/utils/formatDate';
 import AddSynopticModal       from './components/AddSynopticModal';
 import SpecimenEditModal      from './modals/SpecimenEditModal';
@@ -42,6 +47,8 @@ import { resolveAutopsyBodyReleaseGate } from '@/services/autopsy/resolveAutopsy
 import { resolveAutopsyBodyAlreadyReleased } from '@/services/autopsy/resolveAutopsyBodyAlreadyReleased';
 import { signAutopsyReport } from '@/services/autopsy/signAutopsyReport';
 import { SignatureConfirmModal } from '@/components/Signing/SignatureConfirmModal';
+import ConfirmModal from '@/components/Common/ConfirmModal';
+import { formatList } from '@/utils/formatList';
 import type { SignatureConfirmation } from '@/services/auth/signerConfirmation';
 import { releasePreliminaryReport } from '@/services/reports/releasePreliminaryReport';
 import { getMainBodySpecimen } from '@/services/autopsy/getMainBodySpecimen';
@@ -233,6 +240,8 @@ const SynopticReportPage: React.FC = () => {
   const { log }   = useAuditLog();
   const navigate   = useNavigate();
   const { t: tGrossingNav, i18n: i18nForDates } = useTranslation();
+  // Batch 382: the name used when nobody is signed in, in the user's language (was English in twelve places).
+  const unknownUserName = tGrossingNav('common.unknownUser');
   const location   = useLocation();
   const handleLogout = useLogout();
 
@@ -1955,11 +1964,11 @@ const SynopticReportPage: React.FC = () => {
       matchType: intraopMatch.matchType,
       confidence: intraopMatch.confidence,
       wasManualOverride: false, // this modal only offers Merge Now / Go to Queue Later / Dismiss — no manual case-ID entry
-      performedBy: signingUser?.name ?? 'Unknown User',
+      performedBy: signingUser?.name ?? unknownUserName,
     });
     showToast(tGrossingNav('synopticReportPage.toast.intraopMerged', { caseId: caseData.id }), 'success', { containsPhi: true });
     setIntraopMatch(null);
-  }, [intraopMatch, caseData, signingUser, showToast]);
+  }, [intraopMatch, caseData, signingUser, unknownUserName, showToast]);
 
   // Previously an anonymous inline closure on AddOrdersModal's onAddBlock
   // JSX prop — a genuinely separate flow from useSpecimenBlockManagement's
@@ -2042,7 +2051,7 @@ const SynopticReportPage: React.FC = () => {
     if (caseData?.status === 'finalized' && caseData?.id) {
       const draftRes = await amendmentService.startDraft({
         caseId: caseData.id, type: 'addendum',
-        authoringPathologist: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' },
+        authoringPathologist: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? unknownUserName },
       });
       if (draftRes.ok) {
         const markedReports = ((updatedCase as any).synopticReports ?? []).map((r: any) =>
@@ -2059,7 +2068,7 @@ const SynopticReportPage: React.FC = () => {
       // for amendments.
     }
     setCaseData(finalCaseData);
-  }, [markDirty, caseData, signingUser, setCaseData]);
+  }, [markDirty, caseData, signingUser, unknownUserName, setCaseData]);
 
   // Previously an anonymous inline closure on CaseCommentModal's
   // onAddComment JSX prop — append-only case-level comment.
@@ -2072,7 +2081,7 @@ const SynopticReportPage: React.FC = () => {
     const newComment: CaseComment = {
       id: `cmt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       authorId: signingUser?.id ?? 'unknown',
-      authorName: signingUser?.name ?? 'Unknown User',
+      authorName: signingUser?.name ?? unknownUserName,
       text,
       createdAt: new Date().toISOString(),
       origin: 'pathscribe',
@@ -2102,7 +2111,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error('[CaseComment] Failed to persist:', e);
     }
-  }, [caseData, signingUser, caseComments, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
+  }, [caseData, signingUser, unknownUserName, caseComments, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
 
   // Previously an anonymous inline closure on ReportCommentModal's
   // onAddComment JSX prop — append-only specimen-level comment.
@@ -2115,7 +2124,7 @@ const SynopticReportPage: React.FC = () => {
     const newComment: CaseComment = {
       id: `cmt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       authorId: signingUser?.id ?? 'unknown',
-      authorName: signingUser?.name ?? 'Unknown User',
+      authorName: signingUser?.name ?? unknownUserName,
       text,
       createdAt: new Date().toISOString(),
       origin: 'pathscribe',
@@ -2141,7 +2150,7 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error('[SpecimenComment] Failed to persist:', e);
     }
-  }, [caseData, signingUser, activeSpecimenCommentId, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
+  }, [caseData, signingUser, unknownUserName, activeSpecimenCommentId, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
 
 
   const handleOrchPrint = useCallback(async () => {
@@ -2752,6 +2761,17 @@ const SynopticReportPage: React.FC = () => {
   // Previously an anonymous inline closure on Sidebar's onDeleteReport
   // JSX prop — removes a synoptic report instance and, if it was the
   // currently active one, falls back to whatever report is now first.
+  // Batch 427: "Parts covered" for a draft synoptic workup (services/reports/workupParts.ts).
+  const [partsInstanceId, setPartsInstanceId] = useState<string | null>(null);
+  const handleApplyWorkupParts = useCallback((choice: { mode: WorkupPartsMode; additionalSpecimenIds: string[] }) => {
+    if (!caseData || !partsInstanceId) return;
+    const r = setWorkupParts(caseData.synopticReports ?? [], (caseData.specimens ?? []).map(sp => sp.id), partsInstanceId, choice, new Date().toISOString());
+    if (r.ok === false) return;
+    setCaseData({ ...caseData, synopticReports: r.reports, updatedAt: new Date().toISOString() });
+    markDirty('Synoptic reports');
+    setPartsInstanceId(null);
+  }, [caseData, partsInstanceId, setCaseData, markDirty]);
+
   const handleDeleteReport = useCallback((instanceId: string) => {
     if (!caseData) return;
     const remaining = (caseData.synopticReports ?? []).filter(r => r.instanceId !== instanceId);
@@ -2817,6 +2837,9 @@ const SynopticReportPage: React.FC = () => {
     if (!caseData) throw new Error('No case data available.');
     const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '';
     const patient = caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
+    // Batch 392 (Pete): the report is written in the performing lab's language;
+    // its labels and date of birth go to the renderer in that language.
+    const reportLocale = await resolveReportLocaleForFacility(caseData.order?.facilityId);
 
     // Real bug, confirmed directly: resolvedContext is only ever set
     // when isOrchestrationMode is true (see the useEffect that calls
@@ -2874,9 +2897,7 @@ const SynopticReportPage: React.FC = () => {
       caseHeader: {
         accession, patient,
         mrn: caseData.patient?.mrn ?? '',
-        dob: caseData.patient?.dateOfBirth
-          ? new Date(caseData.patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
-          : '',
+        dob: formatReportDateOfBirth(caseData.patient?.dateOfBirth, reportLocale.locale),
         referring: caseData.order?.facilityName ?? '',
         clinician: caseData.order?.requestingProvider ?? '',
       },
@@ -2904,6 +2925,9 @@ const SynopticReportPage: React.FC = () => {
       // relying on the backend's own default matching whatever the
       // caller happened to mean.
       outputFormat,
+      // Batch 392: the report's language, and the wording around it in that language.
+      language: reportLocale.language,
+      labels: surgicalReportLabelsFor(reportLocale.language),
     };
   }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode]);
 
@@ -2998,7 +3022,10 @@ const SynopticReportPage: React.FC = () => {
   // detection useEffect right after it. Ref, not state: pure bookkeeping,
   // shouldn't trigger renders on its own.
   const grossingSnapshotRef = React.useRef<Map<string, string>>(new Map());
-  const { isEvaluatingSynopticFit, handleGrossComplete } = useGrossingCompletion({
+  const {
+    isEvaluatingSynopticFit, handleGrossComplete,
+    pendingProtocolConfirmation, confirmGrossCompleteWithoutProtocol, cancelGrossCompleteWithoutProtocol,
+  } = useGrossingCompletion({
     caseData, setCaseData, showToast, log, knownVersionRef,
     setConcurrencyConflict, grossingSnapshotRef, handleProtocolChangesDetected,
     handleGrossingProtocolChangesDetected,
@@ -3499,7 +3526,7 @@ const SynopticReportPage: React.FC = () => {
         );
       }));
 
-      showToast('Fixation time recorded');
+      showToast(tGrossingNav('synopticReportPage.toast.fixationTimeRecorded'));
     } catch (err) {
       if (err instanceof ConcurrencyConflictError) {
         // Same reasoning as finalizeSignOut/handleAmendmentSubmit —
@@ -3528,7 +3555,7 @@ const SynopticReportPage: React.FC = () => {
       const succeeded = await finalizeCase(args);
       if (succeeded) await releasePendingAmendmentOrAddendum();
     })();
-  }, [caseData, knownVersionRef, setCaseData, signingUser, showToast, setConcurrencyConflict, setFixativeGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  }, [caseData, knownVersionRef, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setFixativeGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
 
   // Real, per PS-289/PS-292's own Gating Strategy — simpler than
   // handleFixativeGateContinue above, since the real confirmation
@@ -3565,7 +3592,7 @@ const SynopticReportPage: React.FC = () => {
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, autopsy: updatedDetails } as typeof prev) : prev);
       setShowAutopsyAuthCompletion(false);
-      showToast('Authorization recorded');
+      showToast(tGrossingNav('synopticReportPage.toast.authorizationRecorded'));
     } catch (err) {
       if (err instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: err.actualVersion, blockOverride: true });
@@ -3574,7 +3601,7 @@ const SynopticReportPage: React.FC = () => {
       console.error('[AutopsyAuthCompletion] Failed to persist authorization:', err);
       showToast(tGrossingNav('synopticReportPage.toast.authorizationSaveFailed'), 'warning');
     }
-  }, [caseData, knownVersionRef, setCaseData, showToast, setConcurrencyConflict]);
+  }, [caseData, knownVersionRef, setCaseData, showToast, tGrossingNav, setConcurrencyConflict]);
 
   // Real, per direct follow-up: "it all needs to be wired" —
   // AutopsyCaseDetails.organRetentionTier had no real UI anywhere to
@@ -3721,7 +3748,7 @@ const SynopticReportPage: React.FC = () => {
           }).catch(err => console.error('[PreAnalyticDateGate] Failed to raise deficiency:', err));
         }));
 
-      showToast('Pre-analytic dates recorded');
+      showToast(tGrossingNav('synopticReportPage.toast.preAnalyticDatesRecorded'));
     } catch (err) {
       if (err instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: err.actualVersion, blockOverride: true });
@@ -3745,7 +3772,7 @@ const SynopticReportPage: React.FC = () => {
       const succeeded = await finalizeCase(args);
       if (succeeded) await releasePendingAmendmentOrAddendum();
     })();
-  }, [caseData, knownVersionRef, setCaseData, signingUser, showToast, setConcurrencyConflict, setPreAnalyticDateGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  }, [caseData, knownVersionRef, setCaseData, signingUser, showToast, tGrossingNav, setConcurrencyConflict, setPreAnalyticDateGateSpecimens, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
 
   // Previously an anonymous inline closure on AddCodeModal's
   // onAddToSpecimens JSX prop — merges new ICD/SNOMED/CPT codes into the
@@ -4023,19 +4050,10 @@ const SynopticReportPage: React.FC = () => {
   // ─────────────────────────────────────────────────────────
   // ── Case not found ─────────────────────────────────────────────────────────
   if (isLoaded && caseNotFound) {
+    // Batch 396: the same neutral screen as /report/:caseId, whatever the reason.
     return (
       <div className="ps-case-not-found">
-        <div className="ps-case-not-found-icon">🔍</div>
-        <div className="ps-case-not-found-title">{tGrossingNav('caseNotFound.title')}</div>
-        <div className="ps-case-not-found-subtitle">
-          <Trans i18nKey="caseNotFound.subtitle" values={{ id: caseId }} components={{ id: <code className="ps-case-not-found-id" data-phi="accession" /> }} />
-        </div>
-        <button
-          onClick={() => navigate('/')}
-          className="ps-btn-primary ps-case-not-found-button"
-        >
-          ← {tGrossingNav('caseNotFound.back')}
-        </button>
+        <CaseUnavailable caseId={caseId ?? ''} onBack={() => navigate('/')} />
       </div>
     );
   }
@@ -4170,10 +4188,20 @@ const SynopticReportPage: React.FC = () => {
                 setActiveReportType(reportType);
               }}
               onDeleteReport={handleDeleteReport}
+              onEditWorkupParts={setPartsInstanceId}
               collapsed={sidebarCollapsed}
               onToggleCollapse={() => setSidebarCollapsed(v => !v)}
             />
           </SynopticSidebar>
+
+          {/* Batch 427: which parts a synoptic workup covers. */}
+          <WorkupPartsModal
+            instance={(caseData?.synopticReports ?? []).find(r => r.instanceId === partsInstanceId) ?? null}
+            reports={caseData?.synopticReports ?? []}
+            specimens={(caseData?.specimens ?? []).map(sp => ({ id: sp.id, label: sp.label, description: sp.description }))}
+            onApply={handleApplyWorkupParts}
+            onClose={() => setPartsInstanceId(null)}
+          />
 
           {/* Left panel — tabbed ──────────────────────────────────────────── */}
           <div className="ps-syn-left-panel-wrap">
@@ -4899,6 +4927,18 @@ const SynopticReportPage: React.FC = () => {
 
       {/* ── Modals ─────────────────────────────────────────── */}
 
+      {/* Batch 398 (PS-359): Gross Complete with the Grossing protocol rule
+          switched off, for specimens with neither a protocol nor a Grossing
+          template: confirm, then they're routed for secondary review. */}
+      <ConfirmModal
+        show={!!pendingProtocolConfirmation}
+        title={tGrossingNav('useGrossingCompletion.withoutProtocol.title')}
+        message={tGrossingNav('useGrossingCompletion.withoutProtocol.body', { count: pendingProtocolConfirmation?.length ?? 0, specimens: formatList(pendingProtocolConfirmation ?? [], i18nForDates.language) })}
+        confirmLabel={tGrossingNav('grossingScreen.complete.withoutProtocol.confirm')}
+        onConfirm={() => { void confirmGrossCompleteWithoutProtocol(); }}
+        onCancel={cancelGrossCompleteWithoutProtocol}
+      />
+
       <CaseSignOutModal
         show={showSignOutModal}
         accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
@@ -4962,7 +5002,7 @@ const SynopticReportPage: React.FC = () => {
           caseType={pendingReconciliation.caseType}
           frozenCategory={pendingReconciliation.frozenCategory}
           frozenDx={pendingReconciliation.frozenDx}
-          performedBy={{ userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'Unknown User' }}
+          performedBy={{ userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? unknownUserName }}
           draftedBy={(() => {
             // A resident/fellow participant whose draft is being
             // reconciled by whoever is currently signing out — undefined
@@ -5167,7 +5207,7 @@ const SynopticReportPage: React.FC = () => {
           return specimen ? `Specimen ${specimen.label}: ${r.templateName}` : r.templateName;
         })()}
         sequenceNumber={amendmentSequenceNumber}
-        amendedByName={signingUser?.name ?? 'Unknown User'}
+        amendedByName={signingUser?.name ?? unknownUserName}
         versionHistory={versionHistory}
         resuming={resumingAmendment}
         orderingPhysicianName={caseData?.order?.requestingProvider}
@@ -5304,7 +5344,7 @@ const SynopticReportPage: React.FC = () => {
           accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
           comments={caseComments}
           currentUserId={signingUser?.id ?? 'unknown'}
-          currentUserName={signingUser?.name ?? 'Unknown User'}
+          currentUserName={signingUser?.name ?? unknownUserName}
           onAddComment={handleAddCaseComment}
           onClose={() => setShowCaseCommentModal(false)}
         />
@@ -5316,7 +5356,7 @@ const SynopticReportPage: React.FC = () => {
           accession={caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? ''}
           retentionHolds={caseData.retentionHolds ?? []}
           currentUserId={signingUser?.id ?? 'unknown'}
-          currentUserName={signingUser?.name ?? 'Unknown User'}
+          currentUserName={signingUser?.name ?? unknownUserName}
           onUpdated={(updated, version) => { if (version !== undefined) knownVersionRef.current = version; setCaseData(prev => prev ? { ...prev, retentionHolds: updated } : prev); }}
           onClose={() => setShowRetentionHoldModal(false)}
         />
@@ -5328,7 +5368,7 @@ const SynopticReportPage: React.FC = () => {
           accession={caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? ''}
           caseHolds={caseData.caseHolds ?? []}
           currentUserId={signingUser?.id ?? 'unknown'}
-          currentUserName={signingUser?.name ?? 'Unknown User'}
+          currentUserName={signingUser?.name ?? unknownUserName}
           onUpdated={(updated, version) => { if (version !== undefined) knownVersionRef.current = version; setCaseData(prev => prev ? { ...prev, caseHolds: updated } : prev); }}
           onClose={() => setShowCaseHoldModal(false)}
         />
@@ -5354,7 +5394,7 @@ const SynopticReportPage: React.FC = () => {
           comments={specimenComments[activeSpecimenCommentId] ?? []}
           isFinalized={false}
           currentUserId={signingUser?.id ?? 'unknown'}
-          currentUserName={signingUser?.name ?? 'Unknown User'}
+          currentUserName={signingUser?.name ?? unknownUserName}
           onAddComment={handleAddSpecimenComment}
           onClose={() => setShowSpecimenCommentModal(false)}
         />
@@ -5402,7 +5442,7 @@ const SynopticReportPage: React.FC = () => {
           onCreateSpareSlide={handleCreateSpareSlide}
           onOrderRestain={handleOrderRestain}
           currentUserId={signingUser?.id ?? 'unknown'}
-          currentUserName={signingUser?.name ?? 'Unknown User'}
+          currentUserName={signingUser?.name ?? unknownUserName}
           onClose={() => { setShowBlockEditor(false); setFocusedDecantId(null); }}
           initialFocusBlockId={focusedDecantId ? undefined : focusedBlockEntry?.block.id}
           initialFocusDecantId={focusedDecantId ?? undefined}
@@ -5421,7 +5461,7 @@ const SynopticReportPage: React.FC = () => {
         <StainQcGateModal
           blocking={stainQcGateBlocking}
           signingUserId={signingUser?.id ?? 'unknown'}
-          signingUserName={signingUser?.name ?? 'Unknown User'}
+          signingUserName={signingUser?.name ?? unknownUserName}
           onCancel={() => { setStainQcGateBlocking(null); setPendingFinalizeArgs([]); setPendingActionIsSignOut(false); }}
           onContinue={handleStainQcGateContinue}
         />
@@ -5449,7 +5489,7 @@ const SynopticReportPage: React.FC = () => {
                 autopsyDetails={caseData.autopsy}
                 onReleased={() => {
                   setShowAutopsyBodyRelease(false);
-                  showToast('Body released');
+                  showToast(tGrossingNav('synopticReportPage.toast.bodyReleased'));
                   // Real, same established refresh pattern as the
                   // MATERIAL_SCAN_UPDATED_EVENT listener above \u2014
                   // releaseAutopsyBody.ts persists directly via its

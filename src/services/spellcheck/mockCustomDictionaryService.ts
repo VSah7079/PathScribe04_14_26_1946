@@ -10,7 +10,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import type { ICustomDictionaryService, CustomWordResult } from './ICustomDictionaryService';
 import {
-  canManageFacilityDictionary, facilityDictionaryAuditEntry, normalizeCustomWord, withCustomWord, withoutCustomWord,
+  facilityDictionaryAuditEntry, normalizeCustomWord, withCustomWord, withoutCustomWord,
   type CustomWordEntry, type CustomWordRefusal,
 } from './customDictionaryRules';
 
@@ -23,13 +23,24 @@ const MESSAGES: Record<CustomWordRefusal, string> = {
   EMPTY: 'Enter a word.',
   NOT_A_WORD: 'Only a single word can be added.',
   TOO_LONG: 'That word is too long.',
-  NOT_PERMITTED: 'Only an administrator can change the facility dictionary.',
+  NOT_PERMITTED: 'You do not have permission to change this dictionary.',
   NOT_FOUND: 'That word is not in the dictionary.',
 };
 const refuse = <T>(code: CustomWordRefusal): CustomWordResult<T> => ({ ok: false, code, error: MESSAGES[code] });
 const ok = <T>(data: T): CustomWordResult<T> => ({ ok: true, data });
 
 const read = (key: string) => storageGet<Store>(key, {});
+
+// Batch 432: changing a facility's dictionary needs config:facilities:manage
+// (it was a role-name check). Removing a personal word is for its owner only.
+async function mayManageFacility(): Promise<boolean> {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return (await authorizationService.enforce('config:facilities:manage')).allowed;
+}
+async function isOwner(userId: string): Promise<boolean> {
+  const { getSessionUser } = await import('../auth/caseAccessControl');
+  return getSessionUser()?.id === userId;
+}
 const write = (key: string, store: Store) => storageSet(key, store);
 
 export const mockCustomDictionaryService: ICustomDictionaryService = {
@@ -47,6 +58,7 @@ export const mockCustomDictionaryService: ICustomDictionaryService = {
   },
 
   async removePersonal(userId, word) {
+    if (!(await isOwner(userId))) return refuse('NOT_PERMITTED');
     const store = read(PERSONAL_WORDS_KEY);
     const { list, removed } = withoutCustomWord(store[userId] ?? [], word);
     if (!removed) return refuse('NOT_FOUND');
@@ -59,7 +71,7 @@ export const mockCustomDictionaryService: ICustomDictionaryService = {
   },
 
   async addFacility(facilityId, raw, actor, facilityLabel) {
-    if (!canManageFacilityDictionary(actor.role)) return refuse('NOT_PERMITTED');
+    if (!(await mayManageFacility())) return refuse('NOT_PERMITTED');
     const n = normalizeCustomWord(raw);
     if (n.ok === false) return refuse(n.code);
     const store = read(FACILITY_WORDS_KEY);
@@ -72,7 +84,7 @@ export const mockCustomDictionaryService: ICustomDictionaryService = {
   },
 
   async removeFacility(facilityId, word, actor, facilityLabel) {
-    if (!canManageFacilityDictionary(actor.role)) return refuse('NOT_PERMITTED');
+    if (!(await mayManageFacility())) return refuse('NOT_PERMITTED');
     const store = read(FACILITY_WORDS_KEY);
     const { list, removed } = withoutCustomWord(store[facilityId] ?? [], word);
     if (!removed) return refuse('NOT_FOUND');

@@ -67,3 +67,8 @@ The copy's name is localized. The page test was updated to match.
 ## Batch 368
 
 `FacilityDictionaryPage.test.tsx` mocks `placeOfServiceCodeService` through `@/services`, since the editor now takes it from there.
+
+## Batch 428: Configuration permissions
+
+`ClientDictionaryPage.tsx` was deleted: nothing routed to it, and the Facility Dictionary (`FacilityDictionaryPage.tsx`) is the live screen. Saving a facility now needs `config:facilities:manage`.
+

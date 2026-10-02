@@ -32,6 +32,14 @@ Two further, real configuration gaps closed in the same pass:
 - **Cassette routing** — `proto-autopsy-cardiac-sectioning` had no cassette-color rule at all; added `route-autopsy-cardiac-protocol` (white — the one neutral color not already claimed by an urgency/type convention), confirmed end-to-end in `generateDefaultMaterial.test.ts`.
 - **Config discoverability** — neither the Protocol Dictionary nor the new Asset Location Dictionary had any entry in `constants/configSearchIndex.ts`, so searching "autopsy" or "mortuary" in Config found nothing even though the real configuration existed. Added entries for both, plus an "autopsy" synonym on the existing Specimens entry. A genuinely separate, dedicated "Autopsy Config" screen was considered and deliberately not built: the remaining Autopsy functions (TAT/SLA, HTA applicability, consent priority) are hardcoded, spec-derived lookups with nothing for an admin to actually configure — they're fixed logic, not settings, and are already surfaced read-only on the case itself.
 
+## Batch 383 (PS-359)
+
+Both forms now take what they need from the organisation's Field Requirements (page "report", group Autopsy forms):
+- **`AutopsyAuthorizationCompletionForm.tsx`:** the written order and date (medicolegal) or the consent time (hospital-consented) are locked; the consent scope is an optional switch. The form shows "Still required: …", marks required labels, and keeps Submit off until they are filled (before, it showed a generic error after a failed click). Voice: "record authorization".
+- **`AutopsyBodyReleaseForm.tsx`:** who received the body and who released it are locked (chain of custody). Release needs `autopsy:body:release` (`CapabilityButton`; `releaseAutopsyBody` checks it again and returns `notPermitted`). Voice: "release body".
+- Their generic "please complete the fields" messages are gone (`autopsyAuthCompletion.validationError`, `autopsyBodyRelease.validationError`); "Still required" names the fields.
+- New tests: `AutopsyAuthorizationCompletionForm.test.tsx` (3), `AutopsyBodyReleaseForm.test.tsx` (4).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md if this folder's overall PURPOSE changes.*

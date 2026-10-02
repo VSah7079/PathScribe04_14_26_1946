@@ -412,9 +412,11 @@ export interface Batch {
  *  specimen is added." */
 export type AddItemOutcome =
   | { outcome: 'added'; batch: Batch; item: BatchItem }
-  | { outcome: 'already-in-batch'; reason: string }
-  | { outcome: 'in-other-active-batch'; reason: string; otherBatchId: ID; otherMasterBarcode: string }
-  | { outcome: 'not-found'; reason: string };
+  // Batch 407: `reason` is English, for logs; the screen builds its own text
+  // from the outcome and the item (displayId) or what was scanned.
+  | { outcome: 'already-in-batch'; reason: string; displayId: string }
+  | { outcome: 'in-other-active-batch'; reason: string; displayId: string; otherBatchId: ID; otherMasterBarcode: string }
+  | { outcome: 'not-found'; reason: string; scanned: string };
 
 export interface IBatchService {
   getAll(): Promise<ServiceResult<Batch[]>>;
@@ -570,3 +572,45 @@ export interface IBatchService {
    *  fails honestly otherwise. */
   transferToProcessing(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<{ fromBatch: Batch; toBatch: Batch }>>;
 }
+
+/** Batch 404: returned as the error when the user lacks the action's
+ *  permission (batch:reconciliation:override, batch:run:abort,
+ *  batch:cold-chain-excursion:acknowledge). The screen shows its own text. */
+export const BATCH_NOT_PERMITTED = 'NOT_PERMITTED';
+/** Batch 404: returned when the locked reason or note is blank. */
+export const BATCH_REASON_REQUIRED = 'REASON_REQUIRED';
+
+/**
+ * Batch 407: every other refusal from the batch service, as codes the Batch
+ * Management screens translate (`batchDetail.errors.<code>`). They used to be
+ * English sentences shown as they came. The screen fills in the details it
+ * already has (the batch's barcode, which items are missing).
+ */
+export const BATCH_ERRORS = {
+  notFound: 'batchNotFound',
+  rackIdRequired: 'rackIdRequired',
+  sameBatch: 'sameBatch',
+  sourceNotActive: 'sourceNotActive',
+  destinationNotActive: 'destinationNotActive',
+  itemNotFound: 'itemNotFound',
+  itemAlreadyInDestination: 'itemAlreadyInDestination',
+  notActive: 'notActive',
+  notReconciling: 'notReconciling',
+  itemsMissing: 'itemsMissing',
+  unexpectedScans: 'unexpectedScans',
+  coldChainUnacknowledged: 'coldChainUnacknowledged',
+  excursionAlreadyOpen: 'excursionAlreadyOpen',
+  noExcursion: 'noExcursion',
+  notCytologyProcessing: 'notCytologyProcessing',
+  notStaining: 'notStaining',
+  noRack: 'noRack',
+  notDecal: 'notDecal',
+  noItemsToTransfer: 'noItemsToTransfer',
+  /** From the hardware rack registry. */
+  rackNotRegistered: 'rackNotRegistered',
+  rackCheckedOut: 'rackCheckedOut',
+} as const;
+export type BatchErrorCode = typeof BATCH_ERRORS[keyof typeof BATCH_ERRORS];
+const BATCH_ERROR_CODES: readonly string[] = [BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED, ...Object.values(BATCH_ERRORS)];
+/** Whether a batch service error is one of its codes (anything else is shown as a generic failure). */
+export const isBatchErrorCode = (error: string): boolean => BATCH_ERROR_CODES.includes(error);

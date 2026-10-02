@@ -47,10 +47,24 @@ export interface MolecularAssayControlRule {
    *  string this rule's own admin screen used to accept. */
   assayCode: string;
   requiredControls: MolecularRequiredControl[];
+  /** Batch 406 (Pete: "Assay templates map … sample racks to specific valid
+   *  deck regions"): the deck slots (DeckSlot.id, e.g. SLOT_A1) a sample rack
+   *  for this assay may go in. Empty or missing: any slot that takes a sample
+   *  rack. See services/molecular/deckSlots.ts. */
+  allowedSampleRackSlotIds?: string[];
   createdAt: string;
 }
 
-export type NewMolecularAssayControlRule = Pick<MolecularAssayControlRule, 'assayCode' | 'requiredControls'>;
+export type NewMolecularAssayControlRule = Pick<MolecularAssayControlRule, 'assayCode' | 'requiredControls' | 'allowedSampleRackSlotIds'>;
+
+/** Batch 406: why a change was refused, as codes the Control Rules page
+ *  translates (`molecularControlRules.errors.<code>`). */
+/** The user lacks config:molecular-control-rules:manage. */
+export const MOLECULAR_CONTROL_RULE_NOT_PERMITTED = 'notPermitted';
+/** The assay already has a rule: update that one instead. */
+export const MOLECULAR_CONTROL_RULE_DUPLICATE = 'duplicateAssay';
+/** No rule with that id. */
+export const MOLECULAR_CONTROL_RULE_NOT_FOUND = 'notFound';
 
 export interface IMolecularAssayControlRuleService {
   getAll(): Promise<ServiceResult<MolecularAssayControlRule[]>>;

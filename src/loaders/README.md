@@ -31,3 +31,7 @@ Full detail in `PRIORITY_FIXES.md` item #37.
 ## React Router 7 (Batch 341, PS-344)
 
 Every file here that used `react-router-dom` now imports the same hooks and components from `react-router` 7 (`react-router-dom` was removed from the project). Nothing else changed: the app had already opted into version 7's behaviour. See `src/i18n/README.md` → Batch 341.
+
+## Batch 396
+
+`synopticLoader.ts` decides through `services/cases/openCaseForView.ts`. A case the reader can't open, missing or restricted, goes to `/report/:caseId`, which shows the one neutral "no access" screen. It used to go to the Worklist, with a toast naming the restriction for pediatric and Orchestration cases.

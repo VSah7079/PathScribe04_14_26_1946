@@ -42,5 +42,13 @@ Both push adapters come with an example message for the admin screen's **Test an
 - **The real poll source** depends on each site's LIS (FHIR `_lastUpdated`, an HL7 query, or a vendor API) and needs that LIS's integration guide.
 - **Authentication** of inbound messages (webhook signing, engine credentials) is part of building those endpoints.
 
+## Batch 426
+
+`NormalizedLisUpdate` gains `placerOrderNumber` and `fillerOrderNumber`:
+- the webhook JSON takes them as optional fields;
+- the HL7 reader takes ORC-2/ORC-3, or OBR-2/OBR-3 if those are missing.
+
+They are echoed on the structured synoptic result.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

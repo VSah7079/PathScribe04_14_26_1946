@@ -104,7 +104,7 @@ export const FacilityTable: React.FC<FacilityTableProps> = ({
         {/* Search */}
         <div className="fct-search-wrap">
           <span className="fct-search-icon">🔍</span>
-          <input
+          <input data-config-nav
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('facilityTable.searchPlaceholder')}

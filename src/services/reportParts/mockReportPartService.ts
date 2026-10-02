@@ -34,6 +34,7 @@ import type { ServiceResult, ID } from '../types';
 import type { ReportPart, PartLibraryFilter, ReportPartType, ReportPartStatus } from '../../types/reportPart';
 import type { TemplateNode } from '../../types/template';
 import type { IReportPartService } from './IReportPartService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -775,4 +776,10 @@ class MockReportPartService implements IReportPartService {
   }
 }
 
-export const mockReportPartService: IReportPartService = new MockReportPartService();
+const reportPartServiceUnchecked: IReportPartService = new MockReportPartService();
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReportPartService: IReportPartService = guardConfigWrites(reportPartServiceUnchecked, [
+  ['config:report-template:manage', ['create', 'save', 'archive', 'clone', 'remove']],
+  ['config:report-template:publish', ['publish']],
+]);

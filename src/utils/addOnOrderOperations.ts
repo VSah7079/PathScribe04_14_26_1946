@@ -56,9 +56,12 @@ import {
 } from '@/types/case/AddOnOrder';
 import { isExhausted, isLost, isDamaged } from '@/utils/blockExceptionStates';
 
+/** Batch 403: why an order was refused, for the screen's locale key (`addOnOrder.errors.<code>`). */
+export type AddOnOrderErrorCode = 'blockNotFound' | 'blockExhausted' | 'blockLost' | 'blockDamaged' | 'blockCancelled' | 'noLines';
+
 export type AddOnOrderOperationResult =
   | { ok: true; specimen: Specimen; createdStainIds: string[] }
-  | { ok: false; error: string };
+  | { ok: false; error: string; errorCode?: AddOnOrderErrorCode };
 
 export type AddOnExceptionOperationResult =
   | { ok: true; specimen: Specimen }
@@ -134,6 +137,9 @@ export interface AddOnOrderLineInput {
   controlMode?: ControlMode;
   panelId?: string;
   panelName?: string;
+  /** Batch 403: this line's reference lab (molecular/send-out lines). Wins over the submission's. */
+  sendOutReferenceLabFacilityId?: string;
+  sendOutReferenceLabName?: string;
 }
 
 export interface AddOnOrderSubmissionInput {
@@ -165,12 +171,12 @@ export function createAddOnOrder(
   actor: { id: string; name: string },
 ): AddOnOrderOperationResult {
   const block = findBlock(specimen, blockId);
-  if (!block) return { ok: false, error: 'Block not found.' };
-  if (isExhausted(block)) return { ok: false, error: 'This block is already marked Exhausted — no further cutting orders can be placed against it.' };
-  if (isLost(block)) return { ok: false, error: 'This block is marked Lost — cannot place a cutting order until it is located.' };
-  if (isDamaged(block)) return { ok: false, error: 'This block is marked Damaged — cannot place a cutting order until it is re-embedded.' };
-  if (block.status === 'Cancelled') return { ok: false, error: 'This block is Cancelled.' };
-  if (lines.length === 0) return { ok: false, error: 'Add at least one order line before submitting.' };
+  if (!block) return { ok: false, error: 'Block not found.', errorCode: 'blockNotFound' };
+  if (isExhausted(block)) return { ok: false, error: 'This block is already marked Exhausted — no further cutting orders can be placed against it.', errorCode: 'blockExhausted' };
+  if (isLost(block)) return { ok: false, error: 'This block is marked Lost — cannot place a cutting order until it is located.', errorCode: 'blockLost' };
+  if (isDamaged(block)) return { ok: false, error: 'This block is marked Damaged — cannot place a cutting order until it is re-embedded.', errorCode: 'blockDamaged' };
+  if (block.status === 'Cancelled') return { ok: false, error: 'This block is Cancelled.', errorCode: 'blockCancelled' };
+  if (lines.length === 0) return { ok: false, error: 'Add at least one order line before submitting.', errorCode: 'noLines' };
 
   const newStains: StainOrder[] = [];
   let nextLevel = block.stains.length;
@@ -180,6 +186,9 @@ export function createAddOnOrder(
     nextLevel += 1;
     const routing = resolveAddOnRouting(line.orderKind, line.stainType.category);
     const isSendOut = routing.queueLabel === 'Reference/Send-Out Lab Queue';
+    // Batch 403: the line's own lab (filled from the test's linked labs) wins.
+    const labId = line.sendOutReferenceLabFacilityId ?? submission.sendOutReferenceLabFacilityId;
+    const labName = line.sendOutReferenceLabFacilityId ? line.sendOutReferenceLabName : submission.sendOutReferenceLabName;
 
     const clinical: StainOrder = {
       id: genId('stain'),
@@ -199,8 +208,8 @@ export function createAddOnOrder(
       cuttingInstructions: submission.cuttingInstructions,
       routedQueueLabel: routing.queueLabel,
       routedWorkflowStage: routing.workflowStage,
-      sendOutReferenceLabFacilityId: isSendOut ? submission.sendOutReferenceLabFacilityId : undefined,
-      sendOutReferenceLabName: isSendOut ? submission.sendOutReferenceLabName : undefined,
+      sendOutReferenceLabFacilityId: isSendOut ? labId : undefined,
+      sendOutReferenceLabName: isSendOut ? labName : undefined,
     };
 
     // Real, per the spec's own Auto-Control Pairing. Explicit caller
@@ -237,8 +246,8 @@ export function createAddOnOrder(
         slideMediaType: submission.slideMediaType,
         routedQueueLabel: routing.queueLabel,
         routedWorkflowStage: routing.workflowStage,
-        sendOutReferenceLabFacilityId: isSendOut ? submission.sendOutReferenceLabFacilityId : undefined,
-        sendOutReferenceLabName: isSendOut ? submission.sendOutReferenceLabName : undefined,
+        sendOutReferenceLabFacilityId: isSendOut ? labId : undefined,
+        sendOutReferenceLabName: isSendOut ? labName : undefined,
       };
       clinical.pairedControlSlideId = controlId;
       newStains.push(control);
@@ -400,3 +409,88 @@ export function resolvePathologistException(
   const stains = block.stains.map(s => s.id !== stainOrderId ? s : updated);
   return { ok: true, specimen: replaceBlockStains(specimen, blockId, stains) };
 }
+
+// ─── Batch 403: reference labs linked to a test ─────────────────────────────
+
+/** The reference labs a molecular/send-out line can go to, and the one it
+ *  starts with. Pete: the ordering pathologist may not know the vendor, so a
+ *  test's pre-approved labs (StainType.referenceLabFacilityIds, set in the
+ *  Stain Dictionary) restrict the choice and its default lab (or its only
+ *  lab) fills in. A test with no linked lab still active offers every active
+ *  reference lab and starts blank; the lab is still required at submission
+ *  (Field Requirements "sendOutLab", locked). */
+export function resolveSendOutLabChoices<F extends { id: string }>(
+  stainType: Pick<StainType, 'referenceLabFacilityIds' | 'defaultReferenceLabFacilityId'>,
+  referenceLabs: readonly F[],
+): { choices: F[]; defaultId?: string; limited: boolean } {
+  const linked = (stainType.referenceLabFacilityIds ?? [])
+    .map(id => referenceLabs.find(f => f.id === id))
+    .filter((f): f is F => Boolean(f));
+  if (linked.length === 0) return { choices: [...referenceLabs], limited: false };
+  const preferred = linked.find(f => f.id === stainType.defaultReferenceLabFacilityId);
+  return { choices: linked, defaultId: preferred?.id ?? (linked.length === 1 ? linked[0].id : undefined), limited: true };
+}
+
+// ─── Batch 403: moved out of the Add-On Orders components ───────────────────
+
+const KIND_CATEGORY_FILTER: Record<AddOnOrderKind, StainType['category'][] | null> = {
+  recut: null, // any stain can be recut/leveled
+  special_stain: ['Special Stain'],
+  ihc: ['IHC', 'Immunofluorescence'],
+  molecular: ['Molecular'],
+};
+
+/** The stains the builder offers for this kind of order, matching the search text. */
+export function filterStainsForKind(stainTypes: readonly StainType[], orderKind: AddOnOrderKind, search: string): StainType[] {
+  const q = search.trim().toLowerCase();
+  const filter = KIND_CATEGORY_FILTER[orderKind];
+  return stainTypes.filter(s => (!q || s.name.toLowerCase().includes(q)) && (!filter || filter.includes(s.category)));
+}
+
+/** The lines one "Add to order" makes: a whole IHC panel, or one stain. */
+export function buildAddOnLines(input: {
+  orderKind: AddOnOrderKind;
+  stain?: StainType;
+  panel?: { id: string; name: string; stainTypeIds: string[] };
+  stainTypes: readonly StainType[];
+  levelDepth: string;
+  controlMode: ControlMode;
+}): AddOnOrderLineInput[] {
+  const control = input.controlMode === 'none' ? undefined : input.controlMode;
+  if (input.orderKind === 'ihc' && input.panel) {
+    const panel = input.panel;
+    return panel.stainTypeIds
+      .map(id => input.stainTypes.find(s => s.id === id))
+      .filter((st): st is StainType => Boolean(st))
+      .map(stainType => ({ stainType, orderKind: 'ihc' as const, controlMode: control, panelId: panel.id, panelName: panel.name }));
+  }
+  if (!input.stain) return [];
+  const depth = input.levelDepth.trim();
+  return [{
+    stainType: input.stain,
+    orderKind: input.orderKind,
+    levelDepthMicrons: input.orderKind === 'recut' && depth ? Number(depth) : undefined,
+    controlMode: control,
+  }];
+}
+
+/** A molecular/send-out line starts with its test's default reference lab (or its only approved one). */
+export function withDefaultSendOutLab<F extends { id: string; name: string }>(line: AddOnOrderLineInput, referenceLabs: readonly F[]): AddOnOrderLineInput {
+  if (line.orderKind !== 'molecular' || line.sendOutReferenceLabFacilityId) return line;
+  const { choices, defaultId } = resolveSendOutLabChoices(line.stainType, referenceLabs);
+  const lab = choices.find(f => f.id === defaultId);
+  return lab ? { ...line, sendOutReferenceLabFacilityId: lab.id, sendOutReferenceLabName: lab.name } : line;
+}
+
+/** Stored English values → `addOnOrder.*` locale keys, so the screen shows them translated. */
+export const ADD_ON_ROUTE_QUEUE_KEYS: Readonly<Record<AddOnRouteQueue, string>> = {
+  'Histology Cutting Queue': 'histologyCutting',
+  'Special Stains Bench Queue': 'specialStainsBench',
+  'IHC/Special Histochemistry Queue': 'ihcSpecialHistochemistry',
+  'Reference/Send-Out Lab Queue': 'referenceSendOut',
+};
+export const BLOCK_EXCEPTION_REASON_KEYS: Readonly<Record<BlockExceptionReason, string>> = {
+  'Block exhausted': 'blockExhausted',
+  'Insufficient tissue for panel': 'insufficientTissue',
+  'Requires re-grossing': 'requiresRegrossing',
+};

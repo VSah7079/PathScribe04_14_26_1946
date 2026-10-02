@@ -32,6 +32,7 @@ import {
 } from '@/types/config/CaseMask';
 import { getFacilityDateParts } from '@/utils/facilityTime';
 import { renderCaseMask as renderMask } from './renderCaseMask';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'ps_case_masks_v1';
 
@@ -91,7 +92,7 @@ function findEffectiveMask(candidates: CaseMaskScopeCandidate[], masks: Record<s
   return undefined;
 }
 
-export const mockCaseMaskService: ICaseMaskService = {
+const caseMaskServiceUnchecked: ICaseMaskService = {
   async getMask(scopeType, scopeId) {
     const masks = load();
     return ok(masks[keyFor(scopeType, scopeId)] ?? null);
@@ -168,3 +169,8 @@ export const mockCaseMaskService: ICaseMaskService = {
     return ok(renderMask(effective.maskPattern, effective.prefix, nextSeq, effective.sequenceDigits, timezone));
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCaseMaskService: ICaseMaskService = guardConfigWrites(caseMaskServiceUnchecked, [
+  ['config:case-masks:manage', ['saveMask', 'deleteMask']],
+]);

@@ -10,6 +10,7 @@
 import { storageGet, storageSet } from '../mockStorage';
 import { LABEL_TYPE_ALLOWS_FACILITY_OVERRIDE, resolveLabelLayoutForFacility } from './ILabelLayoutService';
 import type { ILabelLayoutService, LabelLayout, LabelType } from './ILabelLayoutService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORE_KEY = 'label_designer_layouts';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -19,7 +20,7 @@ const delay = () => new Promise(res => setTimeout(res, 30));
 const load = (): LabelLayout[] => storageGet(STORE_KEY, []);
 const persist = (data: LabelLayout[]) => storageSet(STORE_KEY, data);
 
-export const mockLabelLayoutService: ILabelLayoutService = {
+const labelLayoutServiceUnchecked: ILabelLayoutService = {
   async getByLabelType(labelType: LabelType, facilityId?: string) {
     await delay();
     return ok(resolveLabelLayoutForFacility(labelType, facilityId, load()) ?? null);
@@ -56,3 +57,8 @@ export const mockLabelLayoutService: ILabelLayoutService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockLabelLayoutService: ILabelLayoutService = guardConfigWrites(labelLayoutServiceUnchecked, [
+  ['config:label-layouts:manage', ['save', 'reset']],
+]);

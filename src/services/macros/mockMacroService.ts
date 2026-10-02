@@ -1,6 +1,16 @@
 import { IMacroService, Macro } from './IMacroService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { getSessionUser } from '../auth/caseAccessControl';
+import { CONFIG_NOT_PERMITTED, permitConfigChange } from '../authorization/guardConfigWrites';
+import { macroChangeNeedsCapability } from './macroAccess';
+
+/** Batch 428: a person's own macro is theirs; a shared one (or someone else's) needs config:macros:manage. */
+async function permitMacroChange(before: Macro | undefined, after: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'>): Promise<boolean> {
+  if (!macroChangeNeedsCapability(before, after, getSessionUser()?.id)) return true;
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return permitConfigChange(authorizationService.enforce('config:macros:manage'), 'config:macros:manage');
+}
 
 const SEED_MACROS: Macro[] = [
   {
@@ -93,6 +103,7 @@ export const mockMacroService: IMacroService = {
 
   async add(macro) {
     await delay();
+    if (!(await permitMacroChange(undefined, macro))) return err(CONFIG_NOT_PERMITTED);
     const newM: Macro = { ...macro, id: 'm' + Date.now() };
     MOCK_MACROS = [...MOCK_MACROS, newM];
     persist(MOCK_MACROS);
@@ -103,6 +114,7 @@ export const mockMacroService: IMacroService = {
     await delay();
     const idx = MOCK_MACROS.findIndex(m => m.id === id);
     if (idx === -1) return err(`Macro ${id} not found`);
+    if (!(await permitMacroChange(MOCK_MACROS[idx], { ...MOCK_MACROS[idx], ...changes }))) return err(CONFIG_NOT_PERMITTED);
     MOCK_MACROS = MOCK_MACROS.map(m => m.id === id ? { ...m, ...changes } : m);
     persist(MOCK_MACROS);
     return ok({ ...MOCK_MACROS[idx], ...changes });

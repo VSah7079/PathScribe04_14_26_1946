@@ -17,13 +17,21 @@
 
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
-import { mockFacilityService } from '../facilities/mockFacilityService';
-import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
+import { resolvePerformingLabFacility } from './resolveCytologyReportLanguage';
+import { resolveReportLanguage } from '../reports/reportLanguage';
+import { reportLocaleOf } from './resolveCytologyReportLanguage';
 
 export interface ReleaseCytologyAddendumResult {
   ok: boolean;
   signOutRecordId?: string;
   error?: string;
+  /** Batch 390: the user lacks cytology:report:addend. */
+  notPermitted?: true;
+  /** Batch 390: no reason, or no addendum text, was given. */
+  reasonMissing?: true;
+  textMissing?: true;
 }
 
 export async function releaseCytologyAddendum(
@@ -31,9 +39,19 @@ export async function releaseCytologyAddendum(
   specimenId: string,
   addendumText: string,
   addingUser: { id: string; name: string; isPathologist: boolean },
+  /** Batch 390 (PS-340): why the addendum is being added. Mandatory, stored on the new sign-out record and printed on the PDF. */
+  reason: string,
   facilityId?: string,
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
 ): Promise<ReleaseCytologyAddendumResult> {
+  // Batch 390 (PS-340): an addendum needs its own permission, some text and a reason.
+  const decision = await authorizationService.enforce('cytology:report:addend', { caseId });
+  if (!decision.allowed) return { ok: false, notPermitted: true, error: 'Adding an addendum to a signed-out cytology report needs the cytology:report:addend permission.' };
+  const revisionReason = (reason ?? '').trim();
+  if (revisionReason === '') return { ok: false, reasonMissing: true, error: 'A reason for the addendum is required.' };
+  const text = (addendumText ?? '').trim();
+  if (text === '') return { ok: false, textMissing: true, error: 'The addendum text is required.' };
+
   const priorRecordsRes = await mockCytologySignOutRecordService.getBySpecimenId(specimenId);
   if (!priorRecordsRes.ok || priorRecordsRes.data.length === 0) {
     return { ok: false, error: 'No prior sign-out exists for this specimen — nothing to add an addendum to.' };
@@ -53,19 +71,10 @@ export async function releaseCytologyAddendum(
   // no performing_lab role/override anywhere) leaves this undefined —
   // the renderer's own existing-behavior default, never a thrown error
   // over what's genuinely just a print-layout preference.
-  let forceAddendumOnDedicatedPage: boolean | undefined;
-  if (facilityId) {
-    const facilityRes = await mockFacilityService.getById(facilityId);
-    if (facilityRes.ok) {
-      const performingLabId = resolvePerformingLabFacilityId(facilityRes.data);
-      const labRes = !performingLabId
-        ? undefined
-        : performingLabId === facilityRes.data.id
-          ? facilityRes
-          : await mockFacilityService.getById(performingLabId);
-      if (labRes?.ok) forceAddendumOnDedicatedPage = labRes.data.forceAddendumOnDedicatedPagePrintPolicy;
-    }
-  }
+  // Batch 391: the same performing-lab lookup gives the report's language when
+  // the record being added to has none.
+  const performingLab = await resolvePerformingLabFacility(facilityId);
+  const forceAddendumOnDedicatedPage: boolean | undefined = performingLab?.forceAddendumOnDedicatedPagePrintPolicy;
 
   // Real, per this file's own header — the original diagnosis stays
   // exactly what it was; only addendumText, signedBy, signedAt, and the
@@ -73,7 +82,11 @@ export async function releaseCytologyAddendum(
   // real report content.
   const reportContent = {
     ...priorRecord.reportContent,
-    addendumText,
+    addendumText: text,
+    // Batch 391: an addendum keeps the language of the report it adds to.
+    language: priorRecord.reportContent.language ?? resolveReportLanguage(performingLab),
+    locale: priorRecord.reportContent.language ? priorRecord.reportContent.locale : reportLocaleOf(performingLab),
+    revision: { kind: 'addendum' as const, reason: revisionReason },
     signedBy: { name: addingUser.name, isPathologist: addingUser.isPathologist },
     signedAt: signedAtIso,
     forceAddendumOnDedicatedPage,
@@ -85,6 +98,7 @@ export async function releaseCytologyAddendum(
     reportContent,
     signedBy: { userId: addingUser.id, userName: addingUser.name, isPathologist: addingUser.isPathologist },
     addsToRecordId: priorRecord.id,
+    revisionReason,
   });
   if (!createRes.ok) return { ok: false, error: 'Could not create the addendum sign-out record.' };
   const newRecord = createRes.data;
@@ -97,7 +111,8 @@ export async function releaseCytologyAddendum(
     releasedAt: signedAtIso,
     releasedBy: { id: addingUser.id, name: addingUser.name },
     performingFacilityId: facilityId,
-    generatePdf,
+    // Batch 390: the addendum's own PDF, unless the caller supplies one.
+    generatePdf: generatePdf ?? (() => generateCytologyReportPdfSnapshot(newRecord.reportContent ?? reportContent)),
   });
 
   return { ok: true, signOutRecordId: newRecord.id };

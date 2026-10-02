@@ -31,6 +31,12 @@ Registry of physical scan/work stations — where a tech actually scans a specim
 
 The seeded Panthers now live in the equipment register (`services/equipment/`), still at `station-molecular-1`.
 
+## Batch 428: Configuration permissions
+
+- `mockScanStationService`: `create`, `update`, `deactivate`, `reactivate` need `config:scan-stations:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

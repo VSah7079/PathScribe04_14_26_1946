@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('./mockCytologySignOutRecordService', () => ({
   mockCytologySignOutRecordService: { getBySpecimenId: vi.fn(), create: vi.fn() },
 }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: vi.fn() } }));
+vi.mock('./generateCytologyReportPdfSnapshot', () => ({ generateCytologyReportPdfSnapshot: vi.fn().mockResolvedValue({ pdfBase64: 'PDF' }) }));
 vi.mock('../reports/publishReportReleasedEvent', () => ({
   publishReportReleasedEvent: vi.fn().mockResolvedValue({}),
 }));
@@ -12,6 +14,8 @@ vi.mock('../facilities/mockFacilityService', () => ({
 }));
 
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
 import { mockFacilityService } from '../facilities/mockFacilityService';
 import { releaseCytologyAddendum } from './releaseCytologyAddendum';
@@ -28,7 +32,11 @@ function priorRecord(overrides: any = {}) {
   };
 }
 
+const REASON = 'HPV result received after sign-out.';
+
 beforeEach(() => {
+  vi.mocked(authorizationService.enforce).mockReset();
+  vi.mocked(authorizationService.enforce).mockResolvedValue({ allowed: true } as any);
   vi.mocked(mockCytologySignOutRecordService.getBySpecimenId).mockReset();
   vi.mocked(mockCytologySignOutRecordService.getBySpecimenId).mockResolvedValue({ ok: true, data: [priorRecord()] } as any);
   vi.mocked(mockCytologySignOutRecordService.create).mockReset();
@@ -41,14 +49,14 @@ beforeEach(() => {
 describe('releaseCytologyAddendum', () => {
   it('a real specimen with no prior sign-out at all fails honestly \u2014 nothing to add an addendum to', async () => {
     vi.mocked(mockCytologySignOutRecordService.getBySpecimenId).mockResolvedValue({ ok: true, data: [] } as any);
-    const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser);
+    const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser, REASON);
     expect(result.ok).toBe(false);
     expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
     expect(publishReportReleasedEvent).not.toHaveBeenCalled();
   });
 
   it('a real, successful addendum creates a new, linked sign-out record referencing the SAME reviewRecordId, and publishes the real ADDENDUM event', async () => {
-    const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser, 'FAC-A');
+    const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser, REASON, 'FAC-A');
 
     expect(result.ok).toBe(true);
     expect(result.signOutRecordId).toBe('cyto-signout-2');
@@ -64,13 +72,13 @@ describe('releaseCytologyAddendum', () => {
   });
 
   it('never sends previouslyReportedAs \u2014 an addendum leaves the original diagnosis intact, it never replaces it', async () => {
-    await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser);
+    await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser, REASON);
     const call = vi.mocked(publishReportReleasedEvent).mock.calls[0][0];
     expect(call.previouslyReportedAs).toBeUndefined();
   });
 
   it('the real, original primaryInterpretation is carried forward unchanged into the new record\u2019s own report content', async () => {
-    await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser);
+    await releaseCytologyAddendum('CASE-1', 'SP-1', 'HPV co-testing: positive for HPV 16.', addingUser, REASON);
     const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
     expect(created.reportContent.primaryInterpretation).toBe('Atypical squamous cells of undetermined significance (ASC-US).');
     expect(created.reportContent.addendumText).toBe('HPV co-testing: positive for HPV 16.');
@@ -83,20 +91,20 @@ describe('releaseCytologyAddendum', () => {
         priorRecord({ id: 'cyto-signout-first-addendum', signedAt: '2026-09-05T00:00:00.000Z' }),
       ],
     } as any);
-    await releaseCytologyAddendum('CASE-1', 'SP-1', 'A second addendum.', addingUser);
+    await releaseCytologyAddendum('CASE-1', 'SP-1', 'A second addendum.', addingUser, REASON);
     expect(mockCytologySignOutRecordService.create).toHaveBeenCalledWith(expect.objectContaining({ addsToRecordId: 'cyto-signout-first-addendum' }));
   });
 
   it('a real failure creating the addendum sign-out record fails honestly, never publishes an event', async () => {
     vi.mocked(mockCytologySignOutRecordService.create).mockResolvedValue({ ok: false, error: 'boom' } as any);
-    const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser);
+    const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON);
     expect(result.ok).toBe(false);
     expect(publishReportReleasedEvent).not.toHaveBeenCalled();
   });
 
   it('a real, optional generatePdf callback is forwarded through, untouched, to the published event', async () => {
     const generatePdf = vi.fn();
-    await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, undefined, generatePdf);
+    await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON, undefined, generatePdf);
     expect(publishReportReleasedEvent).toHaveBeenCalledWith(expect.objectContaining({ generatePdf }));
   });
 
@@ -106,7 +114,7 @@ describe('releaseCytologyAddendum', () => {
         if (id === 'FAC-A') return { ok: true, data: { id: 'FAC-A', roles: ['performing_lab'], forceAddendumOnDedicatedPagePrintPolicy: true } } as any;
         return { ok: false, error: 'not found' } as any;
       });
-      await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, 'FAC-A');
+      await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, REASON, 'FAC-A');
       const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
       expect(created.reportContent.forceAddendumOnDedicatedPage).toBe(true);
     });
@@ -117,23 +125,60 @@ describe('releaseCytologyAddendum', () => {
         if (id === 'FAC-LAB') return { ok: true, data: { id: 'FAC-LAB', roles: ['performing_lab'], forceAddendumOnDedicatedPagePrintPolicy: true } } as any;
         return { ok: false, error: 'not found' } as any;
       });
-      await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, 'FAC-ORDERING');
+      await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, REASON, 'FAC-ORDERING');
       const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
       expect(created.reportContent.forceAddendumOnDedicatedPage).toBe(true);
     });
 
     it('a real, honest undefined — no facilityId given at all — never throws, and the flag is simply left unset', async () => {
-      await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser);
+      await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, REASON);
       const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
       expect(created.reportContent.forceAddendumOnDedicatedPage).toBeUndefined();
       expect(mockFacilityService.getById).not.toHaveBeenCalled();
     });
 
     it('a facilityId that resolves to no real facility at all is a real, honest no-op — never throws', async () => {
-      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, 'FAC-MISSING');
+      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'A real addendum.', addingUser, REASON, 'FAC-MISSING');
       expect(result.ok).toBe(true);
       const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
       expect(created.reportContent.forceAddendumOnDedicatedPage).toBeUndefined();
+    });
+  });
+
+  describe('Batch 390 (PS-340): permission, reason, stored reason and PDF', () => {
+    it('is refused without cytology:report:addend, and nothing is written', async () => {
+      vi.mocked(authorizationService.enforce).mockResolvedValue({ allowed: false } as any);
+      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON);
+      expect(authorizationService.enforce).toHaveBeenCalledWith('cytology:report:addend', { caseId: 'CASE-1' });
+      expect(result).toMatchObject({ ok: false, notPermitted: true });
+      expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
+      expect(publishReportReleasedEvent).not.toHaveBeenCalled();
+    });
+
+    it.each(['', '   ', undefined as any])('refuses an empty reason (%j)', async reason => {
+      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, reason);
+      expect(result).toMatchObject({ ok: false, reasonMissing: true });
+      expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses empty addendum text', async () => {
+      const result = await releaseCytologyAddendum('CASE-1', 'SP-1', '  ', addingUser, REASON);
+      expect(result).toMatchObject({ ok: false, textMissing: true });
+      expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
+    });
+
+    it('stores the trimmed reason on the new record and in the report content', async () => {
+      await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, `  ${REASON} `);
+      const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
+      expect(created.revisionReason).toBe(REASON);
+      expect(created.reportContent.revision).toEqual({ kind: 'addendum', reason: REASON });
+    });
+
+    it('without a caller-supplied generatePdf, the event builds the addendum record\'s own PDF', async () => {
+      await releaseCytologyAddendum('CASE-1', 'SP-1', 'Some addendum.', addingUser, REASON);
+      const call = vi.mocked(publishReportReleasedEvent).mock.calls[0][0] as any;
+      await expect(call.generatePdf()).resolves.toEqual({ pdfBase64: 'PDF' });
+      expect((vi.mocked(generateCytologyReportPdfSnapshot).mock.calls[0][0] as any).revision.kind).toBe('addendum');
     });
   });
 });

@@ -38,5 +38,13 @@ A support analyst must never need a patient's case number. Instead they quote a 
 - **Attachments** the user adds.
 - **Interface messages** carry their own `messageId` from the Engine; this adds a reference for the exception record, not the message.
 
+## Batch 421
+
+`SUPPORT_ROUTE_PATTERNS` gains `/registry-exceptions` (its test checks every App.tsx route is listed; the full suite caught the miss).
+
+## Batch 429: view-only sections, equipment log for the bench
+
+`/batch-management/equipment-log` added to the known routes.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

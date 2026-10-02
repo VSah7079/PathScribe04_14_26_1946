@@ -21,6 +21,7 @@ type CodeModalSystem = 'snomed' | 'icd' | 'SNOMED' | 'ICD-10' | 'ICD-11' | 'ICD-
 //     list; flags are chosen by id.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useFillViewportHeight } from '@/hooks/useFillViewportHeight';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
@@ -757,20 +758,9 @@ const SearchPage: React.FC = () => {
   }, [flagDefinitions]);
   const flagName = (id: string) => flagDefinitions.find(f => f.id === id)?.name;
 
-  // Measure available height for the table container — mirrors
-  // WorklistPage.tsx's identical hook (immune to parent flex/overflow issues).
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const [tableHeight, setTableHeight] = useState<number>(400);
-  useEffect(() => {
-    const measure = () => {
-      if (!wrapperRef.current) return;
-      const top = wrapperRef.current.getBoundingClientRect().top;
-      setTableHeight(Math.max(200, window.innerHeight - top - 16));
-    };
-    const timer = setTimeout(measure, 50);
-    window.addEventListener('resize', measure);
-    return () => { clearTimeout(timer); window.removeEventListener('resize', measure); };
-  }, []);
+  // Height for the results table: to the bottom of the window, re-measured
+  // whenever anything above it changes size (Batch 395, same hook as the Worklist).
+  const { ref: wrapperRef, height: tableHeight } = useFillViewportHeight<HTMLDivElement>();
 
   const [isLoaded,        setIsLoaded]        = useState(false);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);

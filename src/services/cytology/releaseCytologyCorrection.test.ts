@@ -10,6 +10,8 @@ vi.mock('./mockCytologySignOutRecordService', () => ({
 vi.mock('./resolveCytologyReportContent', () => ({
   resolveCytologyReportContent: vi.fn(),
 }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: vi.fn() } }));
+vi.mock('./generateCytologyReportPdfSnapshot', () => ({ generateCytologyReportPdfSnapshot: vi.fn().mockResolvedValue({ pdfBase64: 'PDF' }) }));
 vi.mock('../reports/publishReportReleasedEvent', () => ({
   publishReportReleasedEvent: vi.fn().mockResolvedValue({}),
 }));
@@ -17,6 +19,8 @@ vi.mock('../reports/publishReportReleasedEvent', () => ({
 import { mockCytologyReviewRecordService } from './mockCytologyReviewRecordService';
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
 import { releaseCytologyCorrection } from './releaseCytologyCorrection';
 
@@ -36,7 +40,11 @@ function priorRecord(overrides: any = {}) {
   };
 }
 
+const REASON = 'Wrong category selected on the first report.';
+
 beforeEach(() => {
+  vi.mocked(authorizationService.enforce).mockReset();
+  vi.mocked(authorizationService.enforce).mockResolvedValue({ allowed: true } as any);
   vi.mocked(mockCytologySignOutRecordService.getBySpecimenId).mockReset();
   vi.mocked(mockCytologySignOutRecordService.getBySpecimenId).mockResolvedValue({ ok: true, data: [priorRecord()] } as any);
   vi.mocked(mockCytologySignOutRecordService.create).mockReset();
@@ -51,14 +59,14 @@ beforeEach(() => {
 describe('releaseCytologyCorrection', () => {
   it('a real specimen with no prior sign-out at all fails honestly \u2014 nothing to correct, nothing created', async () => {
     vi.mocked(mockCytologySignOutRecordService.getBySpecimenId).mockResolvedValue({ ok: true, data: [] } as any);
-    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser);
+    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
     expect(result.ok).toBe(false);
     expect(mockCytologyReviewRecordService.create).not.toHaveBeenCalled();
     expect(publishReportReleasedEvent).not.toHaveBeenCalled();
   });
 
   it('a real, successful correction creates a new review, a new linked sign-out record, and publishes the real CORRECTED event', async () => {
-    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser);
+    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
 
     expect(result.ok).toBe(true);
     expect(result.signOutRecordId).toBe('cyto-signout-2');
@@ -83,7 +91,7 @@ describe('releaseCytologyCorrection', () => {
       ],
     } as any);
 
-    await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser);
+    await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
 
     expect(mockCytologySignOutRecordService.create).toHaveBeenCalledWith(expect.objectContaining({ amendsRecordId: 'cyto-signout-first-correction' }));
     expect(publishReportReleasedEvent).toHaveBeenCalledWith(expect.objectContaining({ previouslyReportedAs: 'First corrected finding.' }));
@@ -91,7 +99,7 @@ describe('releaseCytologyCorrection', () => {
 
   it('a real failure creating the corrected review fails honestly, never creates a sign-out record or publishes an event', async () => {
     vi.mocked(mockCytologyReviewRecordService.create).mockResolvedValue({ ok: false, error: 'boom' } as any);
-    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser);
+    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
     expect(result.ok).toBe(false);
     expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
     expect(publishReportReleasedEvent).not.toHaveBeenCalled();
@@ -99,14 +107,50 @@ describe('releaseCytologyCorrection', () => {
 
   it('a real failure creating the corrected sign-out record fails honestly, never publishes an event', async () => {
     vi.mocked(mockCytologySignOutRecordService.create).mockResolvedValue({ ok: false, error: 'boom' } as any);
-    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser);
+    const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
     expect(result.ok).toBe(false);
     expect(publishReportReleasedEvent).not.toHaveBeenCalled();
   });
 
   it('a real, optional generatePdf callback is forwarded through, untouched, to the published event', async () => {
     const generatePdf = vi.fn();
-    await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, generatePdf);
+    await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON, generatePdf);
     expect(publishReportReleasedEvent).toHaveBeenCalledWith(expect.objectContaining({ generatePdf }));
+  });
+
+  describe('Batch 390 (PS-340): permission, reason, stored reason and PDF', () => {
+    it('is refused without cytology:report:correct, and nothing is written', async () => {
+      vi.mocked(authorizationService.enforce).mockResolvedValue({ allowed: false } as any);
+      const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
+      expect(authorizationService.enforce).toHaveBeenCalledWith('cytology:report:correct', { caseId: 'CASE-1' });
+      expect(result).toMatchObject({ ok: false, notPermitted: true });
+      expect(mockCytologyReviewRecordService.create).not.toHaveBeenCalled();
+      expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
+      expect(publishReportReleasedEvent).not.toHaveBeenCalled();
+    });
+
+    it.each(['', '   ', undefined as any])('refuses an empty reason (%j) before writing anything', async reason => {
+      const result = await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, reason);
+      expect(result).toMatchObject({ ok: false, reasonMissing: true });
+      expect(mockCytologyReviewRecordService.create).not.toHaveBeenCalled();
+      expect(mockCytologySignOutRecordService.create).not.toHaveBeenCalled();
+    });
+
+    it('stores the trimmed reason on the new sign-out record and puts it in the report content', async () => {
+      await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, `  ${REASON}  `);
+      const created = vi.mocked(mockCytologySignOutRecordService.create).mock.calls[0][0] as any;
+      expect(created.revisionReason).toBe(REASON);
+      expect(created.reportContent.revision).toMatchObject({ kind: 'correction', reason: REASON });
+      expect(created.reportContent.revision.previouslyReportedAs).toBeDefined();
+    });
+
+    it('without a caller-supplied generatePdf, the event builds the corrected record\'s own PDF', async () => {
+      await releaseCytologyCorrection('CASE-1', 'SP-1', correctedFindings, [], patient, order, specimen, correctingUser, REASON);
+      const call = vi.mocked(publishReportReleasedEvent).mock.calls[0][0] as any;
+      expect(call.reportType).toBe('CORRECTED');
+      await expect(call.generatePdf()).resolves.toEqual({ pdfBase64: 'PDF' });
+      const content = vi.mocked(generateCytologyReportPdfSnapshot).mock.calls[0][0] as any;
+      expect(content.revision.kind).toBe('correction');
+    });
   });
 });

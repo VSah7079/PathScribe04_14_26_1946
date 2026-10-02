@@ -17,6 +17,10 @@ AI model performance/version comparison tab.
 
 - Models arrive here two ways: the organisation's starter adoptions, or adoption from the ForMedrixAI store (`ValidationStudies/ModelStoreModal.tsx`). A newly adopted model is always Beta, not the default, with zero cases.
 
+## Batch 432
+
+Each model that isn't the default has Retire, confirmed first (the message names any facilities pinned to it). The service checks `config:ai-model:manage`.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

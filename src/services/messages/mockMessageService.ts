@@ -1,6 +1,8 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import { Message, MessageThread, IMessageService } from './IMessageService';
+import { Message, MessageThread, IMessageService, MESSAGE_NOT_PERMITTED } from './IMessageService';
+import { DEMO_MESSAGE_RECIPIENTS } from './messageRecipients';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
@@ -514,6 +516,22 @@ const delay = () => new Promise(r => setTimeout(r, 80));
 
 export const mockMessageService: IMessageService = {
 
+  async listRecipients() {
+    await delay();
+    return ok(DEMO_MESSAGE_RECIPIENTS.map(r => ({ ...r })));
+  },
+
+  async sendSecureEmail(input) {
+    // Batch 385: needs message:secure-email:send.
+    const decision = await authorizationService.enforce('message:secure-email:send');
+    if (!decision.allowed) return err<void>(MESSAGE_NOT_PERMITTED);
+    // Demo: stands in for the NHSMail SMTP handshake. The real send is PS-143 / PS-332.
+    await new Promise(r => setTimeout(r, 1800));
+    // The caller logs the sent email (useAuditLog 'secure_email_sent'), as before.
+    void input;
+    return ok(undefined);
+  },
+
   async getInbox(userId: ID) {
     await delay();
     const inbox = MOCK_MESSAGES.filter(
@@ -528,7 +546,12 @@ export const mockMessageService: IMessageService = {
     return m ? ok({ ...m }) : err(`Message ${id} not found`);
   },
 
-  async send(message) {
+  async send(message, options) {
+    // Batch 385: a message a person composed needs message:internal:send.
+    if (options?.composedByPerson) {
+      const decision = await authorizationService.enforce('message:internal:send');
+      if (!decision.allowed) return err(MESSAGE_NOT_PERMITTED);
+    }
     await delay();
     const newMsg: Message = {
       ...message,
@@ -553,7 +576,12 @@ export const mockMessageService: IMessageService = {
     return ok({ ...newMsg });
   },
 
-  async reply(messageId: ID, senderId: ID, senderName: string, text: string) {
+  async reply(messageId: ID, senderId: ID, senderName: string, text: string, options) {
+    // Batch 385: a person's reply needs message:internal:send.
+    if (options?.composedByPerson) {
+      const decision = await authorizationService.enforce('message:internal:send');
+      if (!decision.allowed) return err(MESSAGE_NOT_PERMITTED);
+    }
     await delay();
     const idx = MOCK_MESSAGES.findIndex(m => m.id === messageId);
     if (idx === -1) return err(`Message ${messageId} not found`);

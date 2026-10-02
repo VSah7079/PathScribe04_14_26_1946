@@ -18,6 +18,14 @@ Admin editor for the voice/keyboard-shortcut system action registry.
 
 - No issues. Folder is small, single-purpose, and correctly scoped.
 
+## Batch 429: view-only sections, equipment log for the bench
+
+The Action Registry tab is view only without `config:actions:manage`; the category buttons stay usable.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

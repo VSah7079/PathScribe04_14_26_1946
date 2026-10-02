@@ -218,6 +218,13 @@ scan-batch status; nothing launched a real vendor's actual viewer.
 
 `services/facilityOpsDashboard/computeDiagnosticSignOutSummary.ts` reads `mockWsiScanBatchService.getAll()` for the Diagnostic Sign-Out/Scanner department dashboard's real pending/scanning/completed/failed slide counts, plus a real "Scan QC Failed" alert whenever a completed slide's own `qcPassed` is `false`. Confirmed directly before building: `WsiScanBatch` carries no direct `facilityId` — only each real slide has a `caseId` — so facility scoping joins per-slide through `Case.originHospitalId`, the same real pattern `services/facilityOpsDashboard/resolveBatchFacilityId.ts` uses for `Batch`. Read-only; nothing in this folder's own files changed.
 
+## Batch 428: Configuration permissions
+
+- `mockDpVendorService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:vendor-integrations:manage`.
+- `mockWsiViewerVendorService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:vendor-integrations:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

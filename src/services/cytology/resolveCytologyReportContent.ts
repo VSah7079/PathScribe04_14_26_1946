@@ -85,7 +85,7 @@ export function resolveCytologyReportContent(
    *  resolves these (services/facilities/resolveFacilityPrintBranding.ts)
    *  and passes the result straight through; omitted entirely, this
    *  function's own output is byte-identical to before this batch. */
-  printContext?: { printBranding?: ResolvedPrintBranding; componentSplitBillingType?: 'TC' | '26' | 'Global' },
+  printContext?: { printBranding?: ResolvedPrintBranding; componentSplitBillingType?: 'TC' | '26' | 'Global'; /** Batch 391: the report's language and date format (the performing lab's). */ language?: string; locale?: string },
 ): CytologyReportContent {
   return {
     patientName: patient.name,
@@ -122,5 +122,7 @@ export function resolveCytologyReportContent(
     signedAt,
     printBranding: printContext?.printBranding,
     componentSplitBillingType: printContext?.componentSplitBillingType,
+    language: printContext?.language,
+    locale: printContext?.locale,
   };
 }

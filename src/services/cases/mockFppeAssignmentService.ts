@@ -4,6 +4,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { FppeAssignment } from '@/types/case/FppeAssignment';
 import type { IFppeAssignmentService } from './IFppeAssignmentService';
 import { computeFppeProgress } from './fppeEndCondition';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'fppe_assignments';
 const load    = (): FppeAssignment[] => storageGet<FppeAssignment[]>(STORAGE_KEY, []);
@@ -31,7 +32,7 @@ function completionReason(a: FppeAssignment): 'case_count_met' | 'duration_met' 
   return (byCasesFraction ?? 0) >= 1 ? 'case_count_met' : 'duration_met';
 }
 
-export const mockFppeAssignmentService: IFppeAssignmentService = {
+const fppeAssignmentServiceUnchecked: IFppeAssignmentService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -92,3 +93,8 @@ export const mockFppeAssignmentService: IFppeAssignmentService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFppeAssignmentService: IFppeAssignmentService = guardConfigWrites(fppeAssignmentServiceUnchecked, [
+  ['config:fppe:manage', ['create', 'graduate']],
+]);

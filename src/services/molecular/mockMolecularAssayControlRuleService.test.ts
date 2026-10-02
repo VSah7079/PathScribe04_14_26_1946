@@ -1,5 +1,9 @@
 // src/services/molecular/mockMolecularAssayControlRuleService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Batch 406: changing a rule needs config:molecular-control-rules:manage.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn(async (_key: string) => ({ allowed: true })) }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (k: string) => enforce(k) } }));
 
 beforeEach(() => {
   const store: Record<string, string> = {};
@@ -65,5 +69,28 @@ describe('mockMolecularAssayControlRuleService — real, per §3.2 Dynamic Contr
     const res = await mockMolecularAssayControlRuleService.getByAssayCode('st-hpv-highrisk-screen');
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data).toBeNull();
+  });
+
+  it('Batch 406: the seeded HPV rule says its sample rack goes in slot A1 or A2', async () => {
+    const { mockMolecularAssayControlRuleService } = await import('./mockMolecularAssayControlRuleService');
+    const res = await mockMolecularAssayControlRuleService.getByAssayCode('st-hpv-highrisk-screen');
+    expect(res.ok && res.data?.allowedSampleRackSlotIds).toEqual(['SLOT_A1', 'SLOT_A2']);
+  });
+
+  it('Batch 406: create, update and delete each need config:molecular-control-rules:manage, and change nothing when refused', async () => {
+    const { mockMolecularAssayControlRuleService } = await import('./mockMolecularAssayControlRuleService');
+    const { MOLECULAR_CONTROL_RULE_NOT_PERMITTED } = await import('./IMolecularAssayControlRuleService');
+    enforce.mockImplementation(async () => ({ allowed: false }));
+    try {
+      const created = await mockMolecularAssayControlRuleService.create({ assayCode: 'CT_NG_PCR', requiredControls: [] });
+      const updated = await mockMolecularAssayControlRuleService.update('rule-001', { requiredControls: [] });
+      const deleted = await mockMolecularAssayControlRuleService.delete('rule-001');
+      for (const r of [created, updated, deleted]) expect(r).toMatchObject({ ok: false, error: MOLECULAR_CONTROL_RULE_NOT_PERMITTED });
+      expect(enforce).toHaveBeenCalledWith('config:molecular-control-rules:manage');
+    } finally {
+      enforce.mockImplementation(async () => ({ allowed: true }));
+    }
+    const res = await mockMolecularAssayControlRuleService.getByAssayCode('st-hpv-highrisk-screen');
+    expect(res.ok && res.data?.requiredControls).toHaveLength(2);
   });
 });

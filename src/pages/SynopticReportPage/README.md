@@ -131,6 +131,46 @@ See `modals/README.md` and `hooks/README.md`. `SynopticReportPage.tsx` itself wa
 
 - **Group 3, part 1:** Field Requirements now cover the frozen-versus-final reconciliation modal and the two billing modals (post-sign-out reason, applied-code correction). See `modals/README.md`.
 - **`SynopticReportPage.tsx`:** correcting an applied billing code asks `billing:applied-code:correct` before it changes anything, and says so if refused (a translated toast).
+- **Signed-out fallback name:** the English "Unknown User" appeared in twelve places (not six, as first reported); all use `common.unknownUser` now, read once as `unknownUserName`.
+
+## Batch 383 (PS-359)
+
+- **Group 3, part 2:** Field Requirements now cover `FixativeTimeGateModal` and `PreAnalyticDateGateModal`, and the page mounts the two autopsy forms with the same rules. See `modals/README.md`.
+- **`SynopticReportPage.tsx`:** four success toasts were English text and are translated: authorization recorded, body released, fixation time recorded, pre-analytic dates recorded (`synopticReportPage.toast.*`).
+
+## Batch 392
+
+`buildReportRenderPayload` sends `language` and `labels` (from `services/reports/surgicalReportLabels.ts`, in the performing lab's language) and writes the date of birth in the lab's locale (it was always British English). The renderer (`functions/main.py`) uses them. The PDF the page makes at release now also travels with the result message (`services/reports/`).
+
+## Batch 397
+
+Field Requirements for Add Orders → Blocks / Recut and the block and matrix block editors' piece fields. See `modals/README.md`.
+
+## Batch 398
+
+`hooks/useGrossingCompletion.ts`: Gross Complete / Update Gross apply the organisation's Grossing field requirements and `case:grossing:complete` (`services/grossing/reportGrossComplete.ts`); a Grossing template counts as the specimen's protocol. With the protocol rule off, `SynopticReportPage.tsx` shows a confirmation (the shared `ConfirmModal`) and the specimens are routed for secondary review. Still open: Update Gross asks its reason with `window.prompt`.
+
+## Batch 425
+
+The header's patient field shows the registry opt-out badge (`components/HeaderBar.tsx`).
+
+## Batch 426
+
+- An Assist Finalize sends the case's synoptic workups to the LIS, each with its own PDF.
+- Corrections and addenda send the corrected workup.
+- The synoptic panel asks "keep or update?" for fields the AI re-evaluated.
+
+## Batch 427
+
+A draft synoptic workup can be set to cover several parts (sidebar → ⧉ "Parts covered"). Like any synoptic edit, the change is saved with Save.
+
+## Batch 428: Configuration permissions
+
+`components/HeaderBar.tsx`: LIS flag auto-creation moved to a service. See `components/README.md`.
+
+## Batch 431
+
+`hooks/useOrchestratorDraft.ts`: no browser copy of the AI draft sections. Saving writes the case only; opening reads the case only. Before, a browser copy was read first and could override a newer save made at another workstation.
 
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*

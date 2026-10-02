@@ -75,7 +75,7 @@ const CountrySigningRulesSection: React.FC = () => {
     setError(null);
     const res = await saveCountryProfilesWithAudit(
       { types, jurisdiction, original, edited: rows, actor: { ...resolveAuditActor(session), role: session?.role }, reason },
-      { typeService: participationTypeService, auditService },
+      { auditService },
     );
     setBusy(false);
     if (res.ok === false) {

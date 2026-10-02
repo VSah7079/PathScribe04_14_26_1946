@@ -28,10 +28,9 @@ export function normalizeCustomWord(raw: string): { ok: true; word: string } | {
   return { ok: true, word };
 }
 
-/** Who may change a facility's dictionary: the admin-tier roles. */
-export function canManageFacilityDictionary(role: string | undefined): boolean {
-  return role === 'admin' || role === 'pathologist-admin' || role === 'superadmin';
-}
+// Batch 432: who may change a facility's dictionary is now the capability
+// config:facilities:manage, checked by the dictionary service (it was a
+// role-name check here).
 
 /** Adds a word unless it's already there (compared case-insensitively). */
 export function withCustomWord(list: readonly CustomWordEntry[], entry: CustomWordEntry): { list: CustomWordEntry[]; added: boolean } {

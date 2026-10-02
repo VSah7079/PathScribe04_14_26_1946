@@ -5,10 +5,14 @@
 // (STAT vs. Routine), Assigned Pathologist or Scanner Target." Priority
 // is the real, existing Case.priority field ('Routine' | 'Rush' |
 // 'STAT') — never a new, separate priority concept invented here.
+//
+// Batch 402: the priority and routing status are shown in the user's language
+// (stored in English).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { CASE_PRIORITY_KEYS, DISTRIBUTION_STATUS_KEYS } from '@/utils/slideDistributionOperations';
 import type { SlideQueueItem } from '../hooks/useSlideDistributionStation';
 
 export interface QueuePanelProps {
@@ -50,7 +54,7 @@ const QueuePanel: React.FC<QueuePanelProps> = ({ queue, activeQueueId, onSelect,
               <div className="ps-slidedist-queue-row-top">
                 <span>
                   <span data-phi="accession">{item.caseData.accession?.fullAccession ?? item.caseData.id}</span> · {item.specimen.label}{item.block.label}
-                  <span className={`ps-slidedist-priority-badge ps-slidedist-priority-badge--${item.caseData.order.priority}`}>{item.caseData.order.priority}</span>
+                  <span className={`ps-slidedist-priority-badge ps-slidedist-priority-badge--${item.caseData.order.priority}`}>{CASE_PRIORITY_KEYS[item.caseData.order.priority] ? t(`slideDistribution.priority.${CASE_PRIORITY_KEYS[item.caseData.order.priority]}`) : item.caseData.order.priority}</span>
                 </span>
                 <button
                   type="button" className="ps-slidedist-row-btn ps-slidedist-row-btn--danger"
@@ -60,7 +64,10 @@ const QueuePanel: React.FC<QueuePanelProps> = ({ queue, activeQueueId, onSelect,
                   ✕
                 </button>
               </div>
-              <div className="ps-slidedist-queue-row-meta">{item.stain.stainName} · {item.stain.distributionStatus ?? t('slideDistribution.queue.unrouted')}</div>
+              <div className="ps-slidedist-queue-row-meta">{t('slideDistribution.queue.metaLine', {
+                stain: item.stain.stainName,
+                status: item.stain.distributionStatus ? t(`slideDistribution.status.${DISTRIBUTION_STATUS_KEYS[item.stain.distributionStatus]}`) : t('slideDistribution.queue.unrouted'),
+              })}</div>
               <div className="ps-slidedist-queue-row-meta">{targetLabel(item)}</div>
             </li>
           ))}

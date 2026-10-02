@@ -74,7 +74,6 @@ export const DUPLICATE_POLICY: Record<string, DuplicatePolicyEntry> = {
   participationTypes:    { file: 'components/Config/System/ParticipationTypesSection.tsx',          duplicate: true, category: 'complex-configuration', reason: 'Capability flags plus per-country signing authority.' },
 
   // ── Allowed: template entities ───────────────────────────────────────────
-  specimenCategories:    { file: 'components/Config/System/SpecimenCategoriesSection.tsx',          duplicate: true, category: 'template-entity', reason: 'Category defaults: grossing template, retention overrides, lab scope.' },
   specimenDictionary:    { file: 'components/Config/System/SpecimenDictionarySection.tsx',          duplicate: true, category: 'template-entity', reason: 'Specimen definitions with CPT, complexity, stains, protocol and cytology defaults.' },
   reportParts:           { file: 'components/TemplateBuilder/PartLibraryTab.tsx',                   duplicate: true, category: 'template-entity', reason: 'Document template parts.' },
   reportTemplates:       { file: 'components/TemplateBuilder/TemplateListTab.tsx',                  duplicate: true, category: 'template-entity', reason: 'Document templates.' },

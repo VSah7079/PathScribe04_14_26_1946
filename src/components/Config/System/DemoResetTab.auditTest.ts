@@ -40,7 +40,7 @@ const SRC_ROOT = (() => {
   return dir;
 })();
 
-const RUNTIME_PREFIX_PATTERNS = ['ps_rpart_', 'ps_orch_sections_'];
+const RUNTIME_PREFIX_PATTERNS = ['ps_rpart_', 'ps_orch_sections_', 'ps_answers_', 'ps_comments_', 'ps_state_'];
 
 function walkTsFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

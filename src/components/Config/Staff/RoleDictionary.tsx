@@ -333,7 +333,7 @@ const RoleModal: React.FC<{
                   <span className="ps-rd-action-granted-count">
                     {t('roleDictionary.permissions.grantedCount', { granted: groupIds.filter(id => draft.permissions[id]).length, total: groupIds.length })}
                   </span>
-                  <input value={search} onChange={e => setSearch(e.target.value)}
+                  <input data-config-nav value={search} onChange={e => setSearch(e.target.value)}
                     placeholder={t('roleDictionary.permissions.filterPlaceholder')}
                     className="ps-conf-input ps-rd-action-search" />
                 </div>
@@ -436,7 +436,7 @@ const RoleModal: React.FC<{
           {activeTab === 'cheatsheet' && (
             <div className="ps-rd-cheat-tab">
               <div className="ps-rd-cheat-header">
-                <input autoFocus value={cheatSearch} onChange={e => setCheatSearch(e.target.value)}
+                <input data-config-nav autoFocus value={cheatSearch} onChange={e => setCheatSearch(e.target.value)}
                   placeholder={t('roleDictionary.cheatsheet.searchPlaceholder')}
                   className="ps-conf-input" />
                 <div className="ps-rd-cheat-count">
@@ -595,7 +595,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
         <CapabilityButton capability="config:roles:manage" className="ps-section-add-btn" onClick={() => setModal({ mode: 'add' })}>{t('roleDictionary.list.addRoleButton')}</CapabilityButton>
       </div>
 
-      <input type="text" placeholder={t('roleDictionary.list.searchPlaceholder')} value={search}
+      <input data-config-nav type="text" placeholder={t('roleDictionary.list.searchPlaceholder')} value={search}
         onChange={e => setSearch(e.target.value)} className="ps-rd-search" />
 
       <div className="ps-rd-table-wrap">

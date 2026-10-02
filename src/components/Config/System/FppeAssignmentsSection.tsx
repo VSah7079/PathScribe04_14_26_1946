@@ -155,7 +155,7 @@ const FppeAssignmentsSection: React.FC = () => {
         <div className="ps-conf-form-row ps-mb-16">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('fppeAssignmentsSection.facilityLabel')}</label>
-            <select className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
+            <select data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
               <option value="">{t('fppeAssignmentsSection.allFacilities')}</option>
               {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>

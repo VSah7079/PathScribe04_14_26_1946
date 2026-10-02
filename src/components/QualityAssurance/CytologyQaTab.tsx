@@ -25,7 +25,7 @@ import type { CytologyQaAggregateReport } from '@/services/cytology/resolveCytol
 import type { CytologyCtStatisticalComparisonRow } from '@/services/cytology/resolveCytologyCtStatisticalComparisonReport';
 import type { CytologyAscusHpvReflexRow } from '@/services/cytology/resolveCytologyAscusHpvReflexReport';
 import type { CytologyWorkloadTrackingRow } from '@/services/cytology/resolveCytologyWorkloadTrackingReport';
-import type { CytologyRegistryTransmissionAuditRow } from '@/services/cytology/resolveCytologyRegistryTransmissionAuditReport';
+import { cytologyTransmissionAuditCsvRows, type CytologyRegistryTransmissionAuditRow } from '@/services/cytology/resolveCytologyRegistryTransmissionAuditReport';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { CytologyHistologyCorrelationReport } from '@/services/cytology/resolveCytologyHistologyCorrelationReport';
 import type { CytologyUnscreenedBacklogRow } from '@/services/cytology/resolveCytologyUnscreenedBacklogReport';
@@ -783,10 +783,16 @@ const TRANSMISSION_STATUS_LABEL_KEY: Record<string, { textKey: string; color: st
   FAILED: { textKey: 'cytologyQaTab.transmissionTable.status.failed', color: '#ef4444' },
 };
 
-const TransmissionAuditTable: React.FC<{ rows: CytologyRegistryTransmissionAuditRow[] }> = ({ rows }) => {
+const TransmissionAuditTable: React.FC<{ rows: CytologyRegistryTransmissionAuditRow[]; onDownload: () => void }> = ({ rows, onDownload }) => {
   const { t } = useTranslation();
   return (
     <div className="ps-conf-table-wrap">
+      {/* Batch 425: the download (qa:registry-transmission-audit:export). */}
+      <div className="ps-qa-table-actions">
+        <CapabilityButton capability="qa:registry-transmission-audit:export" className="ps-btn-ghost-dark" disabled={!rows.length} onClick={onDownload}>
+          {t('cytologyQaTab.transmissionTable.download')}
+        </CapabilityButton>
+      </div>
       <div className="ps-conf-table-scroll">
         <table className="ps-conf-table">
           <thead className="ps-conf-thead-sticky">
@@ -798,6 +804,9 @@ const TransmissionAuditTable: React.FC<{ rows: CytologyRegistryTransmissionAudit
               <th className="ps-conf-th">{t('cytologyQaTab.transmissionTable.transmitted')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.transmissionTable.status.header')}</th>
               <th className="ps-conf-th">{t('cytologyQaTab.transmissionTable.error')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.transmissionTable.sentAt')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.transmissionTable.registryStatus')}</th>
+              <th className="ps-conf-th">{t('cytologyQaTab.transmissionTable.responseCode')}</th>
             </tr>
           </thead>
           <tbody>
@@ -814,10 +823,13 @@ const TransmissionAuditTable: React.FC<{ rows: CytologyRegistryTransmissionAudit
                     <span className="ps-qa-badge" style={{ '--qa-badge-color': status.color } as React.CSSProperties}>{t(status.textKey)}</span>
                   </td>
                   <td className="ps-conf-td">{r.errorReasonCode ?? '—'}</td>
+                  <td className="ps-conf-td">{r.sentAt ?? '—'}</td>
+                  <td className="ps-conf-td">{r.registryStatus ? t(`cytologyQaTab.transmissionTable.registryStatuses.${r.registryStatus}`) : '—'}</td>
+                  <td className="ps-conf-td">{r.responseCode ?? '—'}</td>
                 </tr>
               );
             })}
-            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={7}>{t('cytologyQaTab.transmissionTable.noneOnFile')}</td></tr>)}
+            {rows.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={10}>{t('cytologyQaTab.transmissionTable.noneOnFile')}</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -999,7 +1011,10 @@ export const CytologyQaTab: React.FC = () => {
           {activeReport === 'ct-stats' && <CtStatisticalComparisonTable rows={ctStatsReport} />}
           {activeReport === 'ascus-hpv' && <AscusHpvReflexTable rows={ascusHpvReport} />}
           {activeReport === 'workload' && <WorkloadTrackingTable rows={workloadReport} />}
-          {activeReport === 'transmission' && <TransmissionAuditTable rows={transmissionReport} />}
+          {activeReport === 'transmission' && (
+            <TransmissionAuditTable rows={transmissionReport}
+              onDownload={() => { void exportQaReportRows('qa:registry-transmission-audit:export', cytologyTransmissionAuditCsvRows(transmissionReport, transmissionRegistryId), `registry-transmission-audit-${transmissionRegistryId}-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope)); }} />
+          )}
           {activeReport === 'secondary-screening-audit' && <SecondaryScreeningAuditTable records={secondaryScreeningAuditReport} />}
           {activeReport === 'histology-correlation' && (
             <HistologyCorrelationTable

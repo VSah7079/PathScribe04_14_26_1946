@@ -73,11 +73,12 @@ export type ActionId =
   | 'messages.search' | 'messages.edit' | 'messages.restore'
   | 'messages.viewDeleted' | 'messages.deleteAll'
   | 'messages.gotoSubject' | 'messages.gotoBody'
-  | 'messages.clearSubject' | 'messages.clearBody'
+  | 'messages.clearSubject' | 'messages.clearBody' | 'messages.submitSecureEmail'
   // ── Case management ───────────────────────────────────────────────────────
   | 'case.viewWorklist' | 'case.open' | 'case.create' | 'case.editDemographics'
   | 'case.assign' | 'case.reassign' | 'case.prioritize' | 'case.hold'
   | 'case.releaseHold' | 'case.archive' | 'case.delete' | 'case.viewPediatric' | 'case.postComment'
+  | 'case.recordAutopsyAuthorization' | 'case.releaseAutopsyBody'
   // ── Accession (only when the Accession page is active) ─────────────────────
   | 'accession.importOrder' | 'accession.caseComment'
   | 'accession.clinicalHistoryCategory1' | 'accession.clinicalHistoryCategory2' | 'accession.clinicalHistoryCategory3'
@@ -90,6 +91,7 @@ export type ActionId =
   | 'grossing.completeConfirm' | 'grossing.completeCancel'
   // ── Specimen ──────────────────────────────────────────────────────────────
   | 'specimen.add' | 'specimen.edit' | 'specimen.remove' | 'specimen.saveEdit' | 'specimen.saveBiopsyArray'
+  | 'specimen.continueFixativeGate' | 'specimen.continuePreAnalyticGate'
   | 'specimen.applyFlag' | 'specimen.removeFlag' | 'specimen.assignSubspecialty'
   // ── Reports ───────────────────────────────────────────────────────────────
   | 'report.preview' | 'report.generate' | 'report.deliver'
@@ -294,6 +296,8 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'messages.gotoBody',        label: 'Go to Message Body',     internalKey: 'F18+PS011' },
       { id: 'messages.clearSubject',    label: 'Clear Subject',          internalKey: 'F18+PS012' },
       { id: 'messages.clearBody',       label: 'Clear Message Body',     internalKey: 'F18+PS013' },
+      // Batch 384: the secure email window's Send.
+      { id: 'messages.submitSecureEmail', label: 'Submit Secure Email',   internalKey: 'F18+PS025' },
       // ── View & management ─────────────────────────────────────────────────
       { id: 'messages.close',           label: 'Close Messages',         internalKey: 'F18+PS009', shortcutable: true },
       { id: 'messages.search',          label: 'Search Messages',        internalKey: 'F18+PS018' },
@@ -323,6 +327,9 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'case.viewPediatric',    label: 'View Pediatric Cases',       internalKey: 'F19+PS012', description: 'Requires client authorization' },
       // Batch 381: the case and report comment modals' Post.
       { id: 'case.postComment',      label: 'Post Comment',               internalKey: 'F19+PS013' },
+      // Batch 383: the two autopsy forms' buttons.
+      { id: 'case.recordAutopsyAuthorization', label: 'Record Autopsy Authorization', internalKey: 'F19+PS014' },
+      { id: 'case.releaseAutopsyBody',         label: 'Release Autopsy Body',         internalKey: 'F19+PS015' },
     ],
   },
 
@@ -392,6 +399,9 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { id: 'specimen.saveEdit',          label: 'Save Specimen',              internalKey: 'F20+PS009' },
       // Batch 381: the biopsy array modal's Save.
       { id: 'specimen.saveBiopsyArray',   label: 'Save Biopsy Array',          internalKey: 'F20+PS010' },
+      // Batch 383: the fixation-time and collection/receipt-date sign-out gates' Continue.
+      { id: 'specimen.continueFixativeGate',    label: 'Continue Past Fixation Time Gate',      internalKey: 'F20+PS011' },
+      { id: 'specimen.continuePreAnalyticGate', label: 'Continue Past Collection/Receipt Date Gate', internalKey: 'F20+PS012' },
     ],
   },
 
@@ -651,6 +661,18 @@ export const VOICE_CONTEXT = {
   CYTOLOGY:      'CYTOLOGY',
   /** Batch 378: the Grossing screen (/case/:id/grossing), a page of its own. */
   GROSSING:      'GROSSING',
+  /** Batch 388: the Microtomy workstation (/workstations/microtomy), a page of its own. */
+  MICROTOMY:     'MICROTOMY',
+  /** Batch 401: the Embedding station (/workstations/embedding), a page of its own. */
+  EMBEDDING:     'EMBEDDING',
+  /** Batch 402: the Slide distribution station (/workstations/slide-distribution). */
+  SLIDE_DISTRIBUTION: 'SLIDE_DISTRIBUTION',
+  /** Batch 403: the Add-On Orders page (/add-on-orders). */
+  ADD_ON_ORDER: 'ADD_ON_ORDER',
+  /** Batch 404: Batch Management (/batch-management). */
+  BATCH_MANAGEMENT: 'BATCH_MANAGEMENT',
+  /** Batch 405: the molecular plate builder (/molecular-batch/:batchId). */
+  MOLECULAR: 'MOLECULAR',
 } as const;
 
 export type VoiceContextName = typeof VOICE_CONTEXT[keyof typeof VOICE_CONTEXT];
@@ -692,7 +714,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
-    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.secureEmail': true, 'messages.submitSecureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
     'messages.search': true, 'messages.edit': true, 'messages.restore': true,
     'messages.viewDeleted': true, 'messages.deleteAll': true,
     'messages.gotoSubject': true, 'messages.gotoBody': true,
@@ -747,7 +769,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
-    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.secureEmail': true, 'messages.submitSecureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
     'messages.search': true, 'messages.edit': true, 'messages.restore': true,
     'messages.viewDeleted': true, 'messages.deleteAll': true,
     'messages.gotoSubject': true, 'messages.gotoBody': true,
@@ -786,7 +808,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
-    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.secureEmail': true, 'messages.submitSecureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
     'messages.search': true, 'messages.edit': true, 'messages.restore': true,
     'messages.viewDeleted': true, 'messages.deleteAll': true,
     'messages.gotoSubject': true, 'messages.gotoBody': true,
@@ -857,7 +879,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
-    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.secureEmail': true, 'messages.submitSecureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
     'messages.search': true, 'messages.edit': true, 'messages.restore': true,
     'messages.viewDeleted': true, 'messages.deleteAll': true,
     'messages.gotoSubject': true, 'messages.gotoBody': true,
@@ -920,7 +942,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionSet> = {
     'messages.next': true, 'messages.previous': true, 'messages.reply': true,
     'messages.delete': true, 'messages.markRead': true, 'messages.markUnread': true,
     'messages.compose': true, 'messages.send': true, 'messages.close': true,
-    'messages.secureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
+    'messages.secureEmail': true, 'messages.submitSecureEmail': true, 'messages.recipientSearch': true, 'messages.recipientAdd': true,
     'messages.search': true, 'messages.edit': true, 'messages.restore': true,
     'messages.viewDeleted': true, 'messages.deleteAll': true,
     'messages.gotoSubject': true, 'messages.gotoBody': true,

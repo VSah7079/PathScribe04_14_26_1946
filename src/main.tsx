@@ -3,8 +3,15 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css'
 import './pathscribe.css';
+// Pretendard (Korean text) is loaded by index.html from public/fonts/pretendard/
+// (Batch 393 follow-up: no npm package needed).
 import './i18n/config';
 import { signingCallbackProvider } from './services/auth/sso/ssoClient';
+import { removeRetiredBrowserKeys } from './services/browserCleanup/retiredBrowserKeys';
+
+// Batch 431: remove browser copies the app no longer uses (old AI draft
+// copies hold report text; see the service's header).
+removeRetiredBrowserKeys();
 
 // Real, per direct follow-up on testing PS-239's own real endpoint
 // with mock data — see services/mockInterfaceEngine/

@@ -18,7 +18,11 @@
 // seedCase helper) — real caseRouter.createCase, not a synthetic
 // fixture the real services never actually touch.
 // ─────────────────────────────────────────────────────────────────────────────
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Batch 407: disposing needs retention:material:dispose.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn(async (_key: string, _ctx?: unknown) => ({ allowed: true })) }));
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (k: string, c?: unknown) => enforce(k, c) } }));
 
 const store = new Map<string, string>();
 (globalThis as any).localStorage = {
@@ -135,6 +139,25 @@ describe('Specimen-level disposal — real, first wiring of RetainableMaterialTy
       const result = await disposeItemByScan(scanValue, undefined, 'PATH-001', 'Dr. Test Pathologist');
       expect(result.outcome).toBe('rejected');
       if (result.outcome === 'rejected') expect(result.reason).toContain('retention-eligible');
+      // Batch 407: the screen gets a code and the date to show in the user's language.
+      if (result.outcome === 'rejected') {
+        expect(result.code).toBe('notEligible');
+        expect(result.values.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      }
+    });
+
+    it('Batch 407: needs retention:material:dispose, at the station\'s facility, and disposes nothing when refused', async () => {
+      const { caseId, scanValue } = await seedCaseWithSpecimen({ finalizedAt: SIX_MONTHS_AGO });
+      enforce.mockImplementationOnce(async () => ({ allowed: false }));
+      const refused = await disposeItemByScan(scanValue, 'fac-1', 'PATH-001', 'Dr. Test Pathologist');
+      expect(refused).toMatchObject({ outcome: 'rejected', code: 'notPermitted' });
+      expect(enforce).toHaveBeenLastCalledWith('retention:material:dispose', { facilityId: 'fac-1' });
+      const after = await caseRouter.getCase(caseId);
+      expect(after?.specimens?.find((s: any) => s.label === 'A')?.disposedAt).toBeUndefined();
+    });
+
+    it('Batch 407: a scan that matches nothing is refused with a code', async () => {
+      expect(await disposeItemByScan('NOT-A-REAL-BARCODE', undefined, 'PATH-001', 'Dr. Test')).toMatchObject({ outcome: 'rejected', code: 'noMatch' });
     });
 
     it('rejects a specimen whose case has an active retention hold', async () => {
@@ -145,6 +168,7 @@ describe('Specimen-level disposal — real, first wiring of RetainableMaterialTy
       const result = await disposeItemByScan(scanValue, undefined, 'PATH-001', 'Dr. Test Pathologist');
       expect(result.outcome).toBe('rejected');
       if (result.outcome === 'rejected') expect(result.reason).toContain('retention hold');
+      if (result.outcome === 'rejected') expect(result).toMatchObject({ code: 'onHold', values: { note: 'Real, active hold for this test' } });
     });
 
     it('rejects a specimen already disposed, never double-disposing', async () => {
@@ -154,6 +178,7 @@ describe('Specimen-level disposal — real, first wiring of RetainableMaterialTy
       const second = await disposeItemByScan(scanValue, undefined, 'PATH-002', 'Dr. Second User');
       expect(second.outcome).toBe('rejected');
       if (second.outcome === 'rejected') expect(second.reason).toContain('already disposed');
+      if (second.outcome === 'rejected') expect(second.code).toBe('alreadyDisposed');
     });
 
     it('the queue and the scan-dispose action agree — a real item the queue includes is genuinely disposable by scan', async () => {

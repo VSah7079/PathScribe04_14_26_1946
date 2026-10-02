@@ -84,6 +84,14 @@ Jurisdiction names in the UI come from the new top-level `jurisdictionNames.*` i
 - **Cache fix:** `saveParticipationType.ts` now also clears `utils/participationTypeLookup.ts`'s cache after a successful save. Before this, a lab override didn't reach the sign-out check until the page was reloaded.
 - **Standing-rules guard:** `standingRules.guard.test.ts` now covers `CountrySigningRulesSection.tsx`. Its i18n check also understands plural keys (`_one` / `_other`).
 
+## Batch 428: Configuration permissions
+
+- `mockParticipationTypeService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:participation-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+Country signing rules (`saveCountryProfiles.ts`) are ForMedrixAI support's: `platform:signing-rules:manage` (Superadmin only), replacing the role check. They write the participation type unchecked, since the change is checked above.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

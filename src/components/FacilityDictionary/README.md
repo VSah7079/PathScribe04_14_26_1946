@@ -181,5 +181,21 @@ note above) and that had genuinely never been wired, closed:
 
 `FacilityEditorModal.tsx` takes `placeOfServiceCodeService` from `@/services`, and is off the deployment baseline.
 
+## Batch 391
+
+`FacilityEditorModal`: a performing lab gets a **Report language** choice (the app's languages, or "Default for the jurisdiction (…)" naming what that is), with a hint that it sets the report PDF's labels, headers and dates and is kept with each report at sign-out.
+
+## Batch 427
+
+The LIS Integration tab of a performing-lab facility adds "Send one combined PDF per case (this lab's LIS takes one PDF per accession)" (`consolidateOutboundPdfs`). Saving a facility still checks no capability (disclosed; Configuration-wide scan to follow).
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 432
+
+Facility editor: a Spelling tab for performing labs (edit mode) lists the lab's spelling dictionary, with add and remove (`config:facilities:manage`, audited).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

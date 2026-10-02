@@ -26,6 +26,7 @@
 // service functions WorklistPage.tsx's own PoolClaimModal calls.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { acceptPoolCase, aiScreeningResultService, claimPoolCase, cytologyInstrumentationService, cytologyReviewRecordService, cytologyRoutingSettingsService, cytologyScreeningStrategyService, facilityCytologyRoutingOverrideService, facilityCytologyScreeningStrategyOverrideService, passPoolCase, specimenDictionaryService, wsiScanBatchService } from '@/services';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
@@ -34,15 +35,7 @@ import '../../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
-import { claimPoolCase, acceptPoolCase, passPoolCase } from '@/services/cases/mockCaseService';
-import { mockSpecimenDictionaryService } from '@/services/specimenDictionary/mockSpecimenDictionaryService';
-import { mockCytologyRoutingSettingsService } from '@/services/cytology/mockCytologyRoutingSettingsService';
-import { mockFacilityCytologyRoutingOverrideService } from '@/services/cytology/mockFacilityCytologyRoutingOverrideService';
-import { mockCytologyScreeningStrategyService } from '@/services/cytology/mockCytologyScreeningStrategyService';
-import { mockAiScreeningResultService } from '@/services/digitalPathology/mockAiScreeningResultService';
 import type { AiScreeningResult } from '@/types/digitalPathology/AiScreeningResult';
-import { mockFacilityCytologyScreeningStrategyOverrideService } from '@/services/cytology/mockFacilityCytologyScreeningStrategyOverrideService';
-import { mockCytologyReviewRecordService } from '@/services/cytology/mockCytologyReviewRecordService';
 import { resolveEffectiveCytologyRoutingSettings } from '@/services/cytology/resolveEffectiveCytologyRoutingSettings';
 import { resolveEffectiveCytologyScreeningStrategy } from '@/services/cytology/resolveEffectiveCytologyScreeningStrategy';
 import { resolveEffectiveCytologyScreeningStrategyForPatient } from '@/services/cytology/resolveEffectiveCytologyScreeningStrategyForPatient';
@@ -50,8 +43,6 @@ import { resolveAgeFromDateOfBirth } from '@/services/cytology/resolveAgeFromDat
 import { resolveCaseCytologyWorklistMembership } from '@/services/cytology/resolveCaseCytologyWorklistMembership';
 import { resolveCaseCytologyTriagePendingMembership } from '@/services/cytology/resolveCaseCytologyTriagePendingMembership';
 import { resolveCaseCytologyScansCompletedMembership } from '@/services/cytology/resolveCaseCytologyScansCompletedMembership';
-import { mockCytologyInstrumentationService } from '@/services/cytology/mockCytologyInstrumentationService';
-import { mockWsiScanBatchService } from '@/services/digitalPathology/mockWsiScanBatchService';
 import { resolveCaseCytologyRecallNeededMembership } from '@/services/cytology/resolveCaseCytologyRecallNeededMembership';
 import { resolveCytologyQcPoolMembership } from '@/services/cytology/resolveCytologyQcPoolMembership';
 import { resolveCytologyRetrospectiveReviewPoolMembership } from '@/services/cytology/resolveCytologyRetrospectiveReviewPoolMembership';
@@ -185,10 +176,10 @@ const CytologyWorklistPage: React.FC = () => {
     try {
       const [allCases, dictRes, enterpriseRes, enterpriseStrategyRes, aiScreeningRes] = await Promise.all([
         caseRouter.listCasesForUser(user.id),
-        mockSpecimenDictionaryService.getAll(),
-        mockCytologyRoutingSettingsService.get(),
-        mockCytologyScreeningStrategyService.get(),
-        mockAiScreeningResultService.getAll(),
+        specimenDictionaryService.getAll(),
+        cytologyRoutingSettingsService.get(),
+        cytologyScreeningStrategyService.get(),
+        aiScreeningResultService.getAll(),
       ]);
       const dictionary = dictRes.ok ? dictRes.data : [];
       const enterpriseDefault = enterpriseRes.ok ? enterpriseRes.data : { nonGynCytologyRouting: 'surgical_pathology_worklist' as NonGynCytologyRouting };
@@ -212,14 +203,14 @@ const CytologyWorklistPage: React.FC = () => {
       // facilityId present just once each, not once per case.
       const facilityIds = Array.from(new Set(allCases.map(c => c.order?.facilityId).filter((id): id is string => !!id)));
       const overrideEntries = await Promise.all(
-        facilityIds.map(async id => [id, await mockFacilityCytologyRoutingOverrideService.getForFacility(id)] as const)
+        facilityIds.map(async id => [id, await facilityCytologyRoutingOverrideService.getForFacility(id)] as const)
       );
       const overridesByFacility = new Map(overrideEntries.map(([id, res]) => [id, res.ok ? res.data : null]));
 
       // Real, per-case effective screening strategy — same real,
       // per-facility resolution pattern as routing, above.
       const strategyOverrideEntries = await Promise.all(
-        facilityIds.map(async id => [id, await mockFacilityCytologyScreeningStrategyOverrideService.getForFacility(id)] as const)
+        facilityIds.map(async id => [id, await facilityCytologyScreeningStrategyOverrideService.getForFacility(id)] as const)
       );
       const strategyOverridesByFacility = new Map(strategyOverrideEntries.map(([id, res]) => [id, res.ok ? res.data : null]));
 
@@ -256,8 +247,8 @@ const CytologyWorklistPage: React.FC = () => {
       // are ready to screen now, distinct from cytologyCases above
       // (which doesn't distinguish scan status at all).
       const [instrumentationRes, allBatchesRes] = await Promise.all([
-        mockCytologyInstrumentationService.get(),
-        mockWsiScanBatchService.getAll(),
+        cytologyInstrumentationService.get(),
+        wsiScanBatchService.getAll(),
       ]);
       const instrumentationModality = instrumentationRes.ok ? instrumentationRes.data.modality : 'wsi';
       const allBatches = allBatchesRes.ok ? allBatchesRes.data : [];
@@ -298,7 +289,7 @@ const CytologyWorklistPage: React.FC = () => {
         let isQcPending = false;
         let isRetrospectiveReviewPending = false;
         if (specimenId && cytoSpecimen?.cytologyScreening?.qcFlag) {
-          const reviewsRes = await mockCytologyReviewRecordService.getBySpecimenId(specimenId);
+          const reviewsRes = await cytologyReviewRecordService.getBySpecimenId(specimenId);
           const reviews = reviewsRes.ok ? reviewsRes.data : [];
           isQcPending = resolveCytologyQcPoolMembership(cytoSpecimen.cytologyScreening.qcFlag, reviews);
         }
@@ -307,7 +298,7 @@ const CytologyWorklistPage: React.FC = () => {
         }
         let isPostSignOutPeerReviewPending = false;
         if (specimenId && cytoSpecimen?.cytologyScreening?.postSignOutPeerReviewFlag) {
-          const reviewsRes = await mockCytologyReviewRecordService.getBySpecimenId(specimenId);
+          const reviewsRes = await cytologyReviewRecordService.getBySpecimenId(specimenId);
           const reviews = reviewsRes.ok ? reviewsRes.data : [];
           isPostSignOutPeerReviewPending = resolveCytologyPostSignOutPeerReviewPoolMembership(cytoSpecimen.cytologyScreening.postSignOutPeerReviewFlag, reviews);
         }

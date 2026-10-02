@@ -20,6 +20,18 @@ Retention-eligibility resolution, the two real computed disposal-related queues,
 - `RetentionHold` (case-level, gates disposal after finalization) is a deliberately separate concept from `CaseHold` (`types/case/CaseHold.ts` — case-level, gates finalize on an active, not-yet-done case) — see that type's own header for the full distinction. Neither type lives in this folder; both are referenced by the queue functions here.
 - **Real, per direct follow-up ("Can we cleanup those 12 errors?"): `RetentionPolicy.ts`'s own `RetentionOverrideDays` type had always pointed to `Department.retentionOverrideDays` as its real, intended attachment point (see that file's own doc comment) — but the field itself was never actually added to `IDepartmentService.ts`, a real, confirmed `tsc` error, not a stylistic gap.** Fixed there — see `services/departments/README.md`'s own account. `resolveCategoryOverride()` (below) and `DepartmentsSection.tsx` (`components/Config/System/`) had both already been built genuinely depending on this field. This was the last of the app's real, pre-existing `tsc` baseline — the other 35 errors it once included traced to five separate, now-deleted dead files (`components/Config/System/README.md` has that account) — `tsc` is now genuinely, fully clean, zero errors.
 
+## Batch 407
+
+- `disposeItemByScan.ts`:
+  - Checks `retention:material:dispose` first, with the station's facility (Pete: keep today's users).
+  - Each refusal carries a `code` (`notPermitted`, `noMatch`, `notFound`, `alreadyDisposed`, `notSignedOut`, `onHold`, `notEligible`, `wrongFacility`) and `values` (item, ISO date, hold note) for the screen. `reason` stays in English for logs.
+  - The audit entry's date is ISO, not the browser's locale.
+- `exportDisposalReport.ts` (new): the waste-tracking report's CSV export checks `retention:disposal-report:export` at the report's facility, or all facilities, before writing.
+
+## Batch 431
+
+`getCurrentJurisdiction()` reads the system configuration through `services/systemConfig/systemConfigStore.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

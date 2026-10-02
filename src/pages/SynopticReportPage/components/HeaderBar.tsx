@@ -1,6 +1,7 @@
 // src/pages/SynopticReportPage/components/HeaderBar.tsx
 // Rich case header — white bar with accession, patient info, progress steps.
 
+import { RegistryOptOutBadge } from '@/components/Common/RegistryOptOutBadge';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -9,8 +10,8 @@ import type { Case } from '@/types/case/Case';
 import type { BlockStatus } from '@/types/case/Specimen';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
-import { lisSyncService, flagService } from '@/services';
-import type { LisSyncState, LisSyncPendingFlag } from '@/services';
+import { lisSyncService, resolveLisFlagDefinitionId } from '@/services';
+import type { LisSyncState } from '@/services';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { getSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
 import { getCaseStatusLabel, hasDisplayableRevision } from '@/utils/caseRevisionDisplay';
@@ -218,23 +219,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // case-level. Deduplicates against an already-applied, non-deleted
   // instance of the same definition, same real check
   // caseFlagsApi.ts's own applyFlags() uses.
-  const resolveOrCreateFlagDefId = async (pf: LisSyncPendingFlag): Promise<string> => {
-    const catalog = await flagService.getAll();
-    const existing = catalog.ok ? catalog.data.find(f => f.lisCode === pf.lisCode) : undefined;
-    if (existing) return existing.id;
-    const created = await flagService.add({
-      name: pf.name,
-      lisCode: pf.lisCode,
-      description: `Auto-created from LIS sync (code: ${pf.lisCode})`,
-      level: pf.specimenId ? 'Specimen' : 'Case',
-      severity: pf.severity,
-      status: 'Active',
-      tagClass: pf.tagClass,
-      autoCreated: true,
-    });
-    if (created.ok) return created.data.id;
-    throw new Error((created as { ok: false; error: string }).error);
-  };
+  // Batch 428: the catalog lookup and auto-create live in services/flags/resolveLisFlagDefinition.ts.
+  const resolveOrCreateFlagDefId = resolveLisFlagDefinitionId;
 
   const handleCheckNow = async () => {
     if (!caseData?.id || checkingNow) return;
@@ -625,6 +611,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             <div className="ps-hb-field">
               <div className="ps-hb-field-label">{t('headerBar.field.patient')}</div>
               <div className="ps-hb-field-value ps-hb-field-value--lg" data-phi="name">{patient}</div>
+              {/* Batch 425: the patient's registry opt-outs. */}
+              <RegistryOptOutBadge consent={caseData?.patient?.registryConsent} />
             </div>
             <div className="ps-hb-field">
               <div className="ps-hb-field-label">{t('headerBar.field.sex')}</div>

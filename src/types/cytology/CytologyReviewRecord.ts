@@ -198,6 +198,19 @@ export interface CytologyReviewRecord {
     };
   };
 
+  /** Batch 410 (Pete): a later review's agreement with the specimen's
+   *  initial screen, worked out and stored when the review is saved
+   *  (services/cytology/resolveCytologyReviewAgreement.ts). Absent on the
+   *  initial screen itself, and when there was no initial screen to compare. */
+  agreementWithInitial?: CytologyReviewAgreement;
+  /** Earlier assessments of this review, oldest first: each edit re-assesses
+   *  it and keeps the one it replaces. */
+  priorAgreements?: CytologyReviewAgreement[];
+  /** Batch 412: the review as it stood before each edit, oldest first. The
+   *  author can load one back into the form; saving it is a new edit, so
+   *  nothing is ever lost. */
+  priorVersions?: CytologyReviewVersion[];
+
   recordedAt: string;
   recordedBy: { userId: string; userName: string };
   /** Real, per direct correction: a review IS editable by its own
@@ -205,6 +218,79 @@ export interface CytologyReviewRecord {
    *  review stays honestly distinguishable from one that's been
    *  revised since it was first recorded. */
   updatedAt?: string;
+}
+
+/** Batch 412: one earlier save of a review (its clinical content, and when it was saved). */
+export interface CytologyReviewVersion {
+  savedAt: string;
+  adequacySelections?: CytologyCategorySelection[];
+  generalCategorizationId?: string;
+  primaryInterpretationId: string;
+  primaryInterpretationComment?: string;
+  additionalInterpretations?: CytologyCategorySelection[];
+  recommendations?: CytologyCategorySelection[];
+  cisoeAScore?: CytologyReviewRecord['cisoeAScore'];
+  synopticData?: CytologyReviewRecord['synopticData'];
+  requiresPathologistReview: boolean;
+  notes?: string;
+  reviewMode?: CytologyReviewMode;
+}
+
+/** The part of a review a note is about. */
+export type CytologyReviewSection = 'adequacy' | 'generalCategorization' | 'primary' | 'additional' | 'recommendations' | 'notes';
+
+/**
+ * Batch 412 (Pete): a reviewer's note on part of someone else's review, before
+ * sign-out. Nobody edits another person's review; they leave a note. A
+ * "Requires revision" note stops a cytotechnologist signing the specimen out
+ * until the author acknowledges it and saves a revised review, or a
+ * pathologist records their own review (which resolves it). Kept on the
+ * specimen's screening record (cytologyScreening.reviewNotes).
+ */
+export interface CytologyReviewNote {
+  id: string;
+  reviewId: string;
+  /** The author of the review the note is about (the only person who can acknowledge it). */
+  reviewAuthorId: string;
+  section: CytologyReviewSection;
+  text: string;
+  requiresRevision: boolean;
+  by: { userId: string; userName: string };
+  at: string;
+  /** open → acknowledged (by the author) → revised (the author saved after acknowledging);
+   *  or resolvedByPathologist (a pathologist recorded their own review). */
+  status: 'open' | 'acknowledged' | 'revised' | 'resolvedByPathologist';
+  acknowledgedAt?: string;
+  closedAt?: string;
+  /** resolvedByPathologist: the pathologist's review, and who. */
+  resolvedByReviewId?: string;
+  resolvedBy?: { userId: string; userName: string };
+}
+
+/**
+ * Batch 410: one review's agreement with the initial screen, at the time it
+ * was saved. `level` is the standard QA taxonomy (classifyCytologyAgreement):
+ * exact (concordant), minor discrepancy (same side of the high-grade line), or
+ * major discrepancy (false negative / false positive), with adequacy
+ * (satisfactory vs unsatisfactory) as its own flag. The interpretation and
+ * recommendation differences are kept too, so reports never re-parse text.
+ */
+export interface CytologyReviewAgreement {
+  level: 'exact' | 'minor_discrepancy' | 'major_discrepancy';
+  majorSubtype?: 'false_negative' | 'false_positive' | 'high_grade_skip';
+  adequacyDiscrepancy: boolean;
+  /** Interpretations (primary and secondary) this review has that the initial screen doesn't, and the reverse. */
+  addedInterpretationIds: string[];
+  missedInterpretationIds: string[];
+  addedRecommendationIds: string[];
+  missedRecommendationIds: string[];
+  /** The initial screen compared with, whose it was, and which version (its updatedAt, else recordedAt). */
+  comparedWithReviewId: string;
+  comparedWithUserId: string;
+  comparedWithVersionAt: string;
+  assessedAt: string;
+  /** The reviewer whose review this is (who saved it). */
+  assessedBy: { userId: string; userName: string };
 }
 
 /**

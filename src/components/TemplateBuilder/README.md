@@ -120,6 +120,22 @@ documented adapter) previewing an assembled Template.
 
 `TemplateAssemblyPage.tsx` takes `reportTemplateService`, `reportPartService` and `onReportPartsChanged` from `@/services`, and is off the deployment baseline.
 
+## Batch 428: Configuration permissions
+
+Report templates and parts: editing needs `config:report-template:manage`, publishing `config:report-template:publish` (checked in their services). Template Assembly and the Part Builder show `ConfigRefusalBanner` when a change is refused.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+The Report Templates tab is view only without the report-template capabilities; the part and template list filters stay usable.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+The preview opens at the lab's page size and margins (Document Style). Changing them in the preview is for that preview only.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

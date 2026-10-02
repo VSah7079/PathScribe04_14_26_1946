@@ -513,6 +513,27 @@ per-dictionary detail.
 
 - **Batch 375, `uiPreferences.ts`:** `getSessionFlag` / `clearSessionFlag` read and clear a per-tab, session-only flag under the exact key another screen set (the report header's "back to messages").
 
+## Batch 389
+
+- **`labels/resolveSlideLabelFitWarnings.ts`:** each warning also carries `requiredMm` and `faceMm`, so the screen can word it in the user's language; `message` stays English.
+
+## Batch 391
+
+`formatDate`: a date without a time ("1988-04-02", a date of birth or LMP) is formatted in UTC. Before, it is midnight UTC shown in the viewer's timezone, so anywhere west of UTC (all of the US) it showed the day before.
+
+## Batch 395
+
+`fillViewportHeight(top, viewportHeight)`: the height from a panel's top edge to the bottom of the window, less a 16 px margin, never below 200 px. Pure, with a test.
+
+## Batch 428: Configuration permissions
+
+Tests only: `participationTypeLookup.test.ts` and `labels/` tests allow Configuration changes in a mocked authorization service, since the services they set up are checked now.
+
+## Batch 431
+
+- `accessRequests.ts`: each request is now saved as a record (`accessRequestService`) before the admins are messaged; `pendingAccessRequestsFor` feeds the badges.
+- `uiPreferences.ts`: `setSessionFlag` (new). The worklist filters, messages drawer, voice AI probe and preview pop-up flag use the session flags; the preview window position is a display preference (`previewWindowGeometry`).
+
 ---
 *Note on structure: earlier entries above this section predate the
 convention of grouping by concern — they're the original, individual
@@ -593,3 +614,26 @@ own later additions.*
 - **`labelStyleVars.ts`** takes an optional name prefix (`--<prefix>-size`, …), so nested elements each read their own settings. It is used by the report preview's page, header, footer, headings and labels, and by the Document Style and Template Assembly previews.
 
 - **Batch 376:** `formatList` is now also used by the Accession page (missing required fields, department conflicts).
+
+## Batch 388
+
+- **Batch 388, `microtomyOperations.ts`:** `MICROTOMY_REASON_KEYS` maps the stored English reprint and cancel reasons to the keys of `microtomyWorkstation.reasons.*`, so the screen shows them translated while the records keep the English value.
+
+## Batch 401
+
+- **`embeddingOperations.ts`:** `EMBEDDING_MOLD_SIZE_KEYS`, `EMBEDDING_DISCREPANCY_REASON_KEYS`, `CASSETTE_REPRINT_REASON_KEYS` and `BLOCK_STATUS_KEYS` map stored English values to `embeddingStation.*` locale keys; `EMBEDDING_ORIENTATION_QUICK_FILLS` are now locale keys (the field is free text, so a quick fill inserts the user's own wording); `splitBlockCandidates` moved out of the Embedding panel.
+
+## Batch 402
+
+- **`slideDistributionOperations.ts`:** a slide label reprint needs a reason (`SLIDE_LABEL_REPRINT_REASONS`; `recordLabelReprintRequest` refuses without one and writes it on the chain-of-custody line). Locale-key maps for exception reasons, reprint reasons, routing status and case priority; `SplitDestinationWarning.kind` for the screen's text (the English `detail` stays); `filterRoutingDirectory` moved out of the destination panel.
+- **`formatDate.ts`:** `formatTime(iso, locale)`, hours and minutes in the user's locale (test: `formatTime.test.ts`).
+
+## Batch 403
+
+`addOnOrderOperations.ts`:
+- Each order line can carry its own reference lab.
+- `resolveSendOutLabChoices`: a test's approved labs, and its default.
+- `withDefaultSendOutLab`: fills a line's lab from its test.
+- Moved out of the page: `filterStainsForKind` and `buildAddOnLines`.
+- Locale-key maps for routing queues and exception reasons.
+- Refusals carry an `errorCode` for the screen.

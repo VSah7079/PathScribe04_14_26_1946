@@ -9,6 +9,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AutopsyCaseAuthority } from '@/types/autopsy/AutopsyCaseDetails';
+import { REPORT_DEFAULT_REQUIREMENTS, autopsyAuthorizationMissing } from '../fieldRequirements/reportPageChecks';
+import type { ResolvedFieldRequirement } from '../fieldRequirements/fieldRequirementRules';
 
 export interface AutopsyAuthorizationCompletionFormState {
   orderReference: string;
@@ -19,23 +21,19 @@ export interface AutopsyAuthorizationCompletionFormState {
 
 export interface AutopsyAuthorizationCompletionValidationResult {
   valid: boolean;
+  /** Field Requirement ids (autopsyOrderReference, autopsyOrderDate, autopsyConsentGivenAt, autopsyConsentScope). */
   missingFieldIds: string[];
 }
 
+// Batch 383 (PS-359): the requirements come from the organisation's Field
+// Requirements. Their defaults are exactly what this checked before (the
+// written order and its date, or the consent time); the consent scope is an
+// optional switch.
 export function resolveAutopsyAuthorizationCompletionValidation(
   caseAuthority: AutopsyCaseAuthority,
   form: AutopsyAuthorizationCompletionFormState,
+  requirements: readonly ResolvedFieldRequirement[] = REPORT_DEFAULT_REQUIREMENTS,
 ): AutopsyAuthorizationCompletionValidationResult {
-  const missingFieldIds: string[] = [];
-
-  if (caseAuthority === 'medicolegal_forensic') {
-    if (!form.orderReference.trim()) missingFieldIds.push('orderReference');
-    if (!form.orderDate) missingFieldIds.push('orderDate');
-  }
-
-  if (caseAuthority === 'hospital_consented') {
-    if (!form.consentGivenAt) missingFieldIds.push('consentGivenAt');
-  }
-
+  const missingFieldIds = autopsyAuthorizationMissing(caseAuthority, form, requirements);
   return { valid: missingFieldIds.length === 0, missingFieldIds };
 }

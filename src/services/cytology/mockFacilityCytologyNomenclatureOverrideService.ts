@@ -2,6 +2,7 @@
 import type { IFacilityCytologyNomenclatureOverrideService, FacilityCytologyNomenclatureOverride } from './IFacilityCytologyNomenclatureOverrideService';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'facilityCytologyNomenclatureOverrides';
 
@@ -72,7 +73,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockFacilityCytologyNomenclatureOverrideService: IFacilityCytologyNomenclatureOverrideService = {
+const facilityCytologyNomenclatureOverrideServiceUnchecked: IFacilityCytologyNomenclatureOverrideService = {
   async getForFacility(facilityId) {
     await delay();
     const record = load().find(r => r.facilityId === facilityId);
@@ -113,3 +114,8 @@ export const mockFacilityCytologyNomenclatureOverrideService: IFacilityCytologyN
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityCytologyNomenclatureOverrideService: IFacilityCytologyNomenclatureOverrideService = guardConfigWrites(facilityCytologyNomenclatureOverrideServiceUnchecked, [
+  ['config:cytology-nomenclature:manage', ['create', 'update', 'remove']],
+]);

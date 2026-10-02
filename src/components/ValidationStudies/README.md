@@ -20,5 +20,13 @@
 
 `ValidationStudiesSection.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 429: view-only sections, equipment log for the bench
+
+The Validation tab is view only without its capabilities; the store link and "How it works" stay usable.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

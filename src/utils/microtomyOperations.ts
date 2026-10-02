@@ -43,6 +43,13 @@ export type MicrotomyCancelReason = typeof MICROTOMY_CANCEL_REASONS[number];
  *  single-tap reason selection." */
 export const MICROTOMY_REPRINT_REASONS = ['Jam', 'Scratched Glass', 'Misprint', 'Other'] as const;
 
+/** Batch 388: the reasons are stored as these English values (audit and label
+ *  records); the screen shows them through `microtomyWorkstation.reasons.<key>`. */
+export const MICROTOMY_REASON_KEYS: Record<typeof MICROTOMY_CANCEL_REASONS[number] | typeof MICROTOMY_REPRINT_REASONS[number], string> = {
+  'Damaged Section': 'damagedSection', 'Ordered in Error': 'orderedInError', 'Tissue Exhausted': 'tissueExhausted', 'Other': 'other',
+  'Jam': 'jam', 'Scratched Glass': 'scratchedGlass', 'Misprint': 'misprint',
+};
+
 function genId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }

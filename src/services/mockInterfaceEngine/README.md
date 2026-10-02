@@ -47,6 +47,7 @@ real backend existing yet.
   Reachable only at its own direct route, `/dev/mock-interface-engine` — told
   to the person who asked for it, not discoverable by a real admin or
   clinical user browsing the app.
+  Since Batch 427 the route also needs Configuration access.
 - **Never silently masks the real PS-239 gap.** The moment a real backend
   exists, this mechanism does nothing on its own to hide that — it has to be
   explicitly enabled, and its own control panel says plainly what it is.

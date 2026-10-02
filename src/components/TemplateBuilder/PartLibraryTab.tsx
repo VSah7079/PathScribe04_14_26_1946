@@ -224,7 +224,7 @@ const PartLibraryTab: React.FC = () => {
       <div className="ps-plib__filters">
         <div className="ps-plib__filter-group">
           {(['all', 'header', 'body', 'footer'] as const).map(f => (
-            <button
+            <button data-config-nav
               key={f}
               onClick={() => setTypeFilter(f)}
               className={`ps-plib__filter-btn${typeFilter === f ? ' active' : ''}`}
@@ -233,14 +233,14 @@ const PartLibraryTab: React.FC = () => {
             </button>
           ))}
         </div>
-        <input
+        <input data-config-nav
           className="ps-plib__search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={t('templateAssemblyPage.searchPartsPlaceholder')}
         />
         {labs.length > 0 && (
-          <select className="ps-conf-select" value={labFilter} onChange={e => setLabFilter(e.target.value as any)}>
+          <select data-config-nav className="ps-conf-select" value={labFilter} onChange={e => setLabFilter(e.target.value as any)}>
             <option value="all">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

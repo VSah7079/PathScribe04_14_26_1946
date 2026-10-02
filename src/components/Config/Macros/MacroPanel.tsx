@@ -370,7 +370,7 @@ const MacroPanel: React.FC<MacroPanelProps> = ({ approvedFonts }) => {
         </div>
 
         {activeTier === 'facility' && (
-          <select className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
+          <select data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
             <option value="">— {t('macroPanel.sidebar.selectFacility')} —</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>

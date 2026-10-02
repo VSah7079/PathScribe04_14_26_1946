@@ -16,6 +16,12 @@ Governed, real physical/asset location dictionary — mortuary storage (racks/tr
 - No admin/reviewer UI exists yet for verifying/reconciling autoCreated entries — the governance data model is real and functional, but there's nowhere in the app to actually review it yet.
 - The "Validation by Exception" / narrativeText-redundancy-style governance UI discussed for the Managed Pathology Lexicon (`services/cytology/`) hasn't been proposed or built for this dictionary.
 
+## Batch 428: Configuration permissions
+
+- `mockAssetLocationDictionaryService`: `add`, `update`, `verify`, `deactivate` need `config:asset-locations:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

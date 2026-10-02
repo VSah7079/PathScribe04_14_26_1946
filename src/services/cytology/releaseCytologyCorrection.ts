@@ -29,14 +29,23 @@ import { mockCytologyReviewRecordService } from './mockCytologyReviewRecordServi
 import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { generateCytologyReportPdfSnapshot } from './generateCytologyReportPdfSnapshot';
+import { resolveCytologyReportLocale } from './resolveCytologyReportLanguage';
 import type { CytologyCategoryEntry } from './ICytologyCategoryService';
-import type { CytologyCategorySelection } from '@/types/cytology/CytologyReviewRecord';
+import type { CytologyCategorySelection, CytologyReviewRecord } from '@/types/cytology/CytologyReviewRecord';
 import type { CisoeAScore } from '@/types/cytology/CisoeAScore';
 
 export interface ReleaseCytologyCorrectionResult {
   ok: boolean;
   signOutRecordId?: string;
+  /** Batch 390: the corrected review, so the caller can make it the specimen's Final Diagnosis. */
+  review?: CytologyReviewRecord;
   error?: string;
+  /** Batch 390: the user lacks cytology:report:correct. */
+  notPermitted?: true;
+  /** Batch 390: no reason was given. */
+  reasonMissing?: true;
 }
 
 export async function releaseCytologyCorrection(
@@ -67,8 +76,16 @@ export async function releaseCytologyCorrection(
     educationalNotes?: string;
   },
   correctingUser: { id: string; name: string; isPathologist: boolean },
+  /** Batch 390 (PS-340): why the report is being corrected. Mandatory, stored on the new sign-out record and printed on the PDF. */
+  reason: string,
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
 ): Promise<ReleaseCytologyCorrectionResult> {
+  // Batch 390 (PS-340): a correction needs its own permission and a reason.
+  const decision = await authorizationService.enforce('cytology:report:correct', { caseId });
+  if (!decision.allowed) return { ok: false, notPermitted: true, error: 'Correcting a signed-out cytology report needs the cytology:report:correct permission.' };
+  const revisionReason = (reason ?? '').trim();
+  if (revisionReason === '') return { ok: false, reasonMissing: true, error: 'A reason for the correction is required.' };
+
   // Real, honest requirement — a correction with no real prior sign-out
   // to correct doesn't mean anything. getBySpecimenId returns every
   // real record for this specimen; the most recent by signedAt is the
@@ -93,18 +110,24 @@ export async function releaseCytologyCorrection(
   const newReview = reviewRes.data;
 
   const signedAtIso = new Date().toISOString();
-  const reportContent = resolveCytologyReportContent(
+  const resolvedContent = resolveCytologyReportContent(
     newReview, categories, patient, order, specimen,
     // Real, deliberate: a correction has no real "primary screener" of
     // its own — it's the pathologist's own, direct corrected finding.
     undefined,
     { name: correctingUser.name, isPathologist: correctingUser.isPathologist }, signedAtIso,
   );
+  // Batch 390 (PS-340): the PDF prints this as the corrected-report banner.
+  // Batch 391: a correction keeps the language of the report it corrects.
+  const prior = priorRecord.reportContent;
+  const { language, locale } = prior.language ? { language: prior.language, locale: prior.locale } : await resolveCytologyReportLocale(order.facilityId);
+  const reportContent = { ...resolvedContent, language, locale, revision: { kind: 'correction' as const, reason: revisionReason, previouslyReportedAs } };
 
   const createRes = await mockCytologySignOutRecordService.create({
     caseId, specimenId, reviewRecordId: newReview.id, reportContent,
     signedBy: { userId: correctingUser.id, userName: correctingUser.name, isPathologist: correctingUser.isPathologist },
     amendsRecordId: priorRecord.id,
+    revisionReason,
   });
   if (!createRes.ok) return { ok: false, error: 'Could not create the corrected sign-out record.' };
   const newRecord = createRes.data;
@@ -118,8 +141,9 @@ export async function releaseCytologyCorrection(
     releasedBy: { id: correctingUser.id, name: correctingUser.name },
     performingFacilityId: order.facilityId,
     previouslyReportedAs,
-    generatePdf,
+    // Batch 390: the corrected report's own PDF, unless the caller supplies one.
+    generatePdf: generatePdf ?? (() => generateCytologyReportPdfSnapshot(newRecord.reportContent ?? reportContent)),
   });
 
-  return { ok: true, signOutRecordId: newRecord.id };
+  return { ok: true, signOutRecordId: newRecord.id, review: newReview };
 }

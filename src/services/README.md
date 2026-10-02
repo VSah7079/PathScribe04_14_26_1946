@@ -933,3 +933,267 @@ Not yet wired, and disclosed: `deriveEligibleFinalizerIds()`. The repo-root `fir
 - **`authorization/`:** that capability, in a new Billing group, seeded to today's users.
 - **`actionRegistry/`:** voice commands for the three modals' buttons.
 - **`deploymentReadiness/`:** three modals came off the mock-import baseline.
+
+## Batch 383: Field Requirements for the case report page, group 3 part 2 (PS-359)
+
+- **`fieldRequirements/`:** two more groups on the Case report page, Autopsy forms and Sign-out gates, with `autopsyAuthorizationMissing` and `autopsyReleaseMissing`.
+- **`signoutGates/` (new):** the decisions behind the fixation-time and collection/receipt-date gates (what is resolved, what is still required, the resolutions saved).
+- **`autopsy/`:** `releaseAutopsyBody` needs `autopsy:body:release`; the authorization completion validation reads Field Requirements.
+- **`authorization/`:** that capability, in a new Autopsy group, seeded to the roles with case access.
+- **`actionRegistry/`:** voice commands for the four buttons.
+
+## Batch 384: Field Requirements for messaging (PS-359)
+
+- **`fieldRequirements/`:** a Messaging page (new message, secure email, reply) with `newMessageMissing`, `secureEmailMissing` and `replyMissing`.
+- **`actionRegistry/`:** a voice command for sending a secure email.
+- **`deploymentReadiness/`:** `AppShell.tsx` came off the mock-import baseline.
+
+## Batch 385: messaging recipients, secure-email send and permissions (PS-359 follow-up)
+
+- **`messages/`:** the recipient list and its search moved out of `AppShell`; `sendSecureEmail` is the service's; sending needs `message:internal:send` and `message:secure-email:send`.
+- **`authorization/`:** those two capabilities, in a new Messaging group, seeded to every role.
+
+## Batch 386: Cytology screening Field Requirements
+
+`fieldRequirements/` gains the `cytology` page and `cytologyChecks.ts` (exported from `services/index.ts`); `cytology/` gains `cisoeADraft.ts`; `actionRegistry/` gains four voice/keyboard actions. See those READMEs.
+
+## Batch 388: Microtomy workstation Field Requirements
+
+`fieldRequirements/` gains the `microtomy` page and `microtomyChecks.ts` (exported from `services/index.ts`); `actionRegistry/` gains two actions. `deploymentReadiness/deploymentBaseline.ts` loses `useMicrotomyWorkstation.ts` (its scan-station read now goes through `@/services`).
+
+## Batch 390: Cytology correction and addendum (PS-340)
+
+`cytology/` gains `resolveCytologyRevisionInputs.ts`, and its two release services take a mandatory reason and check a permission each; `authorization/` gains `cytology:report:correct` and `cytology:report:addend`; `fieldRequirements/` gains the Correction / addendum group and its two checks. See those READMEs.
+
+## Batch 391: report language
+
+`reports/reportLanguage.ts` (a report is in the performing lab's language; `Facility.reportLanguage` with a jurisdiction default); `documentRendering/printFonts.ts` (Pretendard for Korean PDFs); `cytology/` stores the language at sign-out and words its PDF in it. See those READMEs.
+
+## Batch 392: report PDFs to the interface engine
+
+`reports/` gains `resolveOruReportPdf.ts`, `prepareOruR01Dispatch.ts`, `releasedReportPdfStore.ts`, `resolveReportLocale.ts` and `surgicalReportLabels.ts`: every surgical, preliminary and autopsy ORU^R01 now carries its report PDF or is held for retry. See its README.
+
+## Batch 393: autopsy results and Korean in every report PDF
+
+`reports/resultInstances.ts` (an autopsy report is one result); `documentRendering/printFonts.ts` (`printFontLanguageFor`: Korean or any Hangul uses Pretendard). See those READMEs.
+
+## Batch 395
+
+`cytologyQc/` gains demo QC assignments and `cases/` flags three demo cases for surgical post-sign-out peer review, so both QA queues have work for Pete Nimmo. See those READMEs.
+
+## Batch 396: case privacy model
+
+Pete's four rules for anything that names, links to or opens a case are in `docs/architecture/CASE_PRIVACY_MODEL.md`, enforced by `services/privacy/casePrivacy.guard.test.ts`. See `cases/`, `messages/`, `cytologyQc/` and `quality/`.
+
+## Batch 397
+
+Field Requirements now cover the Intraop page, Add Orders → Blocks / Recut and matrix blocks (`fieldRequirements/`, `grossing/`). See `i18n/README.md` → Batch 397.
+
+## Batch 398
+
+The case report page's Gross Complete applies the Grossing field requirements and permission (`grossing/reportGrossComplete.ts`).
+
+## Batch 399
+
+The Intraop verbal report is a structured record with a critical-results dictionary and "Surgeon unavailable" reasons (`intraop/`, `reasons/`, `clinical/`).
+
+## Batch 400
+
+Dictating the Intraop verbal report, with AI (patient identifiers removed first) or keyword rules filling in the fields (`intraop/parseVerbalReportDictation.ts`).
+
+## Batch 401
+
+`fieldRequirements/` gains the `embedding` page and `embeddingChecks.ts` (exported from `services/index.ts`); `actionRegistry/` gains two `EMBEDDING` actions. `deploymentReadiness/deploymentBaseline.ts` loses `useEmbeddingStation.ts` (its scan-station read now goes through `@/services`).
+
+## Batch 402
+
+`fieldRequirements/` gains the `slideDistribution` page and `slideDistributionChecks.ts` (exported from `services/index.ts`); `actionRegistry/` gains two `SLIDE_DISTRIBUTION` actions. `deploymentReadiness/deploymentBaseline.ts` loses `useSlideDistributionStation.ts`.
+
+## Batch 403
+
+- New `addOnOrders/` folder: the Add-On Orders actions, with two new permissions in `authorization/`.
+- `fieldRequirements/` gains the `addOnOrder` page.
+- `stains/` links reference labs to molecular tests (`referenceLabLink.ts`).
+- `facilities/` seeds three demo reference labs, and `cases/` seeds demo add-on orders.
+- `actionRegistry/` gains two `ADD_ON_ORDER` actions.
+- `deploymentBaseline.ts` loses `useAddOnOrderStation.ts` and `StainDictionarySection.tsx`.
+
+## Batch 404
+
+- `fieldRequirements/` gains the `batchManagement` page.
+- `batches/`:
+  - The service checks three new permissions from `authorization/`, and an abort now needs a reason.
+  - Demo batches, one per override.
+  - `batchFormHelpers.ts`.
+- `actionRegistry/` gains `BATCH_CREATE_CONTAINER`.
+- `deploymentBaseline.ts` loses `NewContainerModal.tsx`.
+
+## Batch 405
+
+- `fieldRequirements/` gains the `molecularBatch` page.
+- `molecular/`:
+  - Refuses a patient well that names no specimen.
+  - Checks `molecular:batch:supersede`, a new permission in `authorization/`.
+- `actionRegistry/` gains `MOLECULAR_CREATE_PLATE`.
+- The molecular control-rule and extraction-rack services are exported from `index.ts`.
+- `deploymentBaseline.ts` loses `MolecularPlateBuilderPage.tsx`.
+
+## Batch 406
+
+- `authorization/`:
+  - New `config:molecular-control-rules:manage` (Admin by default, assignable).
+  - `capabilityDocs.guard.test.ts` keeps the capability catalog in `docs/architecture/AUTHORIZATION_API.md` in step with the code.
+- `equipment/`: analysers have deck layouts (`deckSlots`).
+- `molecular/`:
+  - Deck-slot rules (`deckSlots.ts`).
+  - Control rules name their sample rack's slots.
+  - Racks take a physical barcode, an accession per tube and a placement (`placeOnDeck`).
+  - A plate must go in a plate slot.
+- `fieldRequirements/` gains the `molecularRack` page.
+- `cytology/` and `molecularOrders/`: the QC-run and order-queue pages' logic moved into services.
+- `actionRegistry/` gains `MOLECULAR_PLACE_RACK`.
+- `deploymentBaseline.ts` loses five molecular pages.
+
+## Batch 407
+
+- `authorization/`: `retention:material:dispose` and `retention:disposal-report:export`.
+- `retentionPolicy/`: disposal refusals are codes, and the report export checks its permission (`exportDisposalReport.ts`).
+- `batches/` and `hardwareContainers/`: refusals are codes the screens translate, and the Pending Batch Load search moved in.
+- `deploymentBaseline.ts` loses the last three Batch Management pages.
+
+## Batch 408
+
+`batches/batchListView.ts`: the Batch Management list's filtering, and one completion rule shared by the service and the Complete button.
+
+## Batch 409
+
+- `cytology/signOutCytologyCase.ts`: cytology sign-out as a tested service with a new permission (`cytology:report:sign-out`).
+- `index.ts` exports the Cytology Workspace's 22 remaining services and the pool-claim actions.
+- `deploymentBaseline.ts` loses the Cytology Workspace.
+
+## Batch 410
+
+`cytology/`: the Cytology Workspace's loading, review saving, other actions and display decisions moved out of the page into `loadCytologyWorkspace.ts`, `saveCytologyReview.ts`, `cytologyCaseActions.ts` and `cytologyWorkspaceView.ts`, with five new permissions (`authorization/`). Each review after the initial screen stores its level of agreement with it (`resolveCytologyReviewAgreement.ts`), and the QA agreement report reads the stored level.
+
+## Batch 411
+
+`cytology/`: multi-specimen cases are signed out specimen by specimen, and the case is final when every cytology specimen is (`cytologyCaseFinalization.ts`), or early with `cytology:case:finalize` (`authorization/`).
+
+## Batch 412
+
+`cytology/`: pre-sign-out review without delays. That covers notes on part of someone's review, and "Requires revision" (`cytology:revision:request`), which stops a cytotechnologist but never a pathologist. It also covers review version history and a pathologist's one-step "Revise and sign out".
+
+## Batch 413
+
+`cytology/signOutCytologyCase.ts`: only GYN specimens go to cervical screening registries, and the CSMS eligibility flag is added once per case (a country check of Batches 409–412).
+
+## Batch 414
+
+`screeningRegistry/` (new): the cervical screening registry engine, with twelve programmes as definitions and the lab's code mappings as configuration. Sign-out's registry step and the Configuration screen use it. `index.ts` exports its config service and permissioned saves.
+
+## Batch 415
+
+`cytology/`: the CLIA workload cap and CAP 5-year lookback are switchable features (automatically on for US labs only), and a cytotechnologist's sign-out needs its own permission (`authorization/`).
+
+## Batch 417: national patient identifiers
+
+`patientIdentifiers/` (new): the national identifiers the registries key on (NHS number, BSN, IHI…), separate from the MRN, with their check digits run and the result stored. The screening registry engine uses the verified identifier first and holds a submission whose identifier failed or is missing; the cancer registry payload carries the list; HL7 ADT intake records them from PID-3. One capability, `patient:national-identifier:record`.
+
+## Batch 418: registry consent
+
+`registryConsent/` (new): the patient's registry opt-outs. A screening opt-out excludes the cytology registry submission (audited, `EXCLUDED_BY_CONSENT` in the transmission audit, never retried); a cancer registry opt-out is overridden by statute unless the enterprise cancer registry settings honour it. One capability, `patient:registry-consent:record`.
+
+## Batch 419: registry payload header
+
+`registrySubmission/` (new): every registry payload carries a deterministic submission id, a version, a master transaction id linking every version of the result, `NEW` / `CORRECTION` / `AMENDMENT`, and `test` / `production`. A resend keeps the id and is marked a duplicate. Cytology corrections and addenda now reach the screening registry (they never did before).
+
+## Batch 420: registry acknowledgements
+
+`registrySubmission/` reads the registry's answer (HL7 ACK, FHIR OperationOutcome, status JSON; since Batch 425 only the interface engine's normalised JSON, the engine reading the other two), moves each submission through awaiting → accepted / accepted with warnings / rejected fixable / rejected outright, keeps the raw message, and escalates after 72 hours of silence or failed delivery. Cancer registry reports are now actually sent to the interface engine (before, they were queued and never dispatched). Endpoint contract: `docs/architecture/REGISTRY_ACKNOWLEDGEMENT_API.md`.
+
+## Batch 421: Registry Exceptions
+
+`registrySubmission/` drives a new worklist (Quality & Compliance → Registry Exceptions): every held, undelivered, rejected, unanswered or conflicting registry submission, latest version only, with the registry's findings and raw acknowledgement, and "Re-validate and resend" (`registry:submission:resend`): the same submission again when nothing changed, a new linked version when the data did, refused when the registry rejected exactly that. The screening and cancer registry submissions each split into prepare (validate and build) and commit, so a resend can re-validate without queuing.
+
+## Batch 422: five more cancer registries
+
+`cancerRegistry/` has thirteen registries as definitions (added: NCRI Ireland, Public Health Scotland, NICR Northern Ireland, NKR/IKNL Netherlands, Belgian Cancer Registry), each with its national identifier and wire format, carried on the payload. Its Configuration saves now need `config:cancer-registry:manage`. Step 6 of the Registry Engine SRS v2.1 order.
+
+## Batch 423: registryGoLive/
+
+`registryGoLive/` is the test-to-live gate for screening and cancer registries:
+- versioned registry templates (`vYYYY.Q.X`);
+- pre-checks and test evidence;
+- an approval with re-entered credentials, under Template Review-style settings (one person by default);
+- a permanent dual-role statement;
+- live results held, not dropped to test, when the approval lapses.
+
+`@/services` exports the service functions and `registryGoLiveDeps`. Also: Capture as CAPA on the Registry Exceptions worklist (`registrySubmission/captureRegistryExceptionAsCapa.ts`).
+
+## Batch 424: deployment/ and registryGoLive/ (two instances)
+
+- `deployment/` is new. `deploymentInstance.ts` holds the instance role from `VITE_APP_ENV`: production, or else validation (fails closed).
+- `registryGoLive/` adds:
+  - the send gate (every registry path asks it first);
+  - the synthetic test suite;
+  - the validation record carried from validation to production;
+  - the local overlay, with template change lists, baseline stamps and review;
+  - the catch-up resend on go-live.
+- `interfaceDispatch/registryPayloadBoundary.ts` refuses a registry payload that crosses lanes: real data to a test system, or synthetic data to a live register.
+- Corrected: the interface engine is ForMedrixAI's and ships with PathScribe. A site's own engine is used only when the site insists. Earlier notes said "the hospital's engine".
+
+## Batch 425 — registry: JSON only, revisions, mandatory-data hold, patient details
+
+- `registrySubmission/` reads only the interface engine's normalised JSON; the HL7 and FHIR readers moved to the engine. It also:
+  - takes a registry's revision of accepted data, raising a CAPA deficiency;
+  - builds the screening and cancer transmission audit;
+  - scopes the worklist and its badge count to the user's organisation.
+- `cancerRegistry/` holds a report missing its registry's mandatory data (`HOLD_MISSING_MANDATORY_DATA`), never the sign-out.
+- `patients/patientRegistryDetails.ts` takes national identifiers and registry consent from the hospital's system (JSON, newest wins), and prefills accessioning.
+- `patientIdentifiers/` sends an A08 for a change made after accessioning.
+- `templates/` checks `config:template-governance:manage` on save.
+
+See `i18n/README.md` → Batch 425.
+
+## Batch 426 — synoptic results to the LIS (both modes), one PDF per workup, keep-or-update
+
+- `reports/` builds the v1.0.0 structured synoptic result. An Assist case now sends its workups to the LIS on Finalize and on each correction and addendum, each with its own PDF; before, Finalize sent nothing. An Orchestration result carries the same block.
+- `assistPolling/` asks "keep or update?" instead of dropping a new suggestion for a field the pathologist set, and no longer resets a confirmed field.
+- `lisIngestion/` keeps the LIS's order numbers.
+
+See `docs/architecture/SYNOPTIC_RESULT_API.md`.
+
+## Batch 427 — combined PDF per testing facility; workups across parts
+
+- `reports/` sends one combined case PDF when the performing lab's LIS takes one PDF per accession (a facility setting).
+- A draft synoptic workup can cover several parts (`reports/workupParts.ts`). The AI respects that when proposing templates and is told the parts.
+- `screens/`: the pages opened from Configuration (template editor and review, Part Builder, Template Assembly, Migration Jobs, Molecular Order Queue, mock interface engine) now need Configuration access; typing the address no longer gets round it. `screens/routeGating.guard.test.ts` fails the build on any new ungated route.
+
+## Batch 428: Configuration permissions
+
+Every Configuration section's service now checks its own capability (84 new ones, one per section, Pete's choice, Oct 1, 2026), plus `platform:signing-rules:manage`:
+- `authorization/guardConfigWrites.ts` (new) wraps a service so each listed method is checked (audited) and refused changes do nothing; system paths that aren't a person's change use the `…Unchecked` object.
+- New: `aiConfig/`, `interfacePreview/`, `reportAppearance/`, `retention/`, `systemConfig/systemConfigChangeChecks.ts`, `quality/standardQaTypeRules.ts`, `departments/auditRetentionOverride.ts`, `flags/resolveLisFlagDefinition.ts`.
+- Synoptic protocols (`templates/`): draft, review, publish and retire are capabilities; an app-level "admin" no longer stands in for roles.
+- Seeds: Admin all; Lab Director all but drafting synoptic protocols; Template Author and Template Approver only the protocol and template ones; a hospital's own roles none.
+- Fixed with the scan: new billing rule versions always start as drafts; standard QA types can't be switched off; departments' below-floor audit entry and validation study approvals name the signed-in person.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+- `screens/configSectionAccess.ts`: which capabilities make each Configuration section editable, for the view-only screens.
+- `equipment:maintenance:record`: recording equipment maintenance is its own capability, for the bench roles too.
+- `docs/architecture/AUTHORIZATION_API.md` lists every Configuration write and its capability for the API server (PS-345).
+
+## Batch 430: personal settings per person; view-only fields
+
+- `userSettings/personalSettings.ts` (new): the voice accent, dictation's learned corrections and the personal AI override are kept per person, not per browser.
+- `voicemacro/`: owner and capability checks like report macros; the Voice settings screen adds the person's own macros.
+- `retention/`: reads a policy saved before Batch 428.
+
+## Batch 431
+
+New: `browserCleanup/` (removes retired browser copies at start-up) and `labSettings/` (where lab-wide settings are kept). Also new: `access/closeGrantedAccessRequests.ts`, `reportAppearance/pageSetup.ts`, `systemConfig/systemConfigStore.ts`, `templates/templateReviewWork.ts` and `userSettings/personalLanguage.ts`.
+
+## Batch 432
+
+Actions nothing called are now wired (see `src/i18n/README.md` → Batch 432); three new capabilities.

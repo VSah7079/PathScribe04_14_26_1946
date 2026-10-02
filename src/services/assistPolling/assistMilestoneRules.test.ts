@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import type { Case, SynopticReportInstance, ProtocolChange } from '@/types/case/Case';
 import {
   mapLisStatusToMilestone, findCrosswalkProblems, textFingerprint, planMilestoneWork, lisTextPatch,
-  caseForAiFill, isUntouchedAiDraft, applyTemplateProposals, mergeSuggestionsIntoInstance,
+  caseForAiFill, isUntouchedAiDraft, applyTemplateProposals, mergeSuggestionsIntoInstance, resolveReevaluation,
   summarizeRun, DEFAULT_ASSIST_POLLING_SETTINGS,
 } from './assistMilestoneRules';
 import type { LisCaseSnapshot } from './types';
@@ -81,6 +81,12 @@ describe('lisTextPatch / caseForAiFill', () => {
     expect(lisTextPatch(c, snap({ grossText: 'new' })).diagnostic).toMatchObject({ grossDescription: 'new', microscopicDescription: 'm', primaryDiagnosis: 'dx' });
   });
 
+  it('Batch 426: keeps the LIS order numbers on the case\'s order', () => {
+    const withOrder = { ...c, order: { priority: 'Routine' } } as unknown as Case;
+    expect(lisTextPatch(withOrder, snap({ placerOrderNumber: 'ORD-1', fillerOrderNumber: 'LIS-9' })).order).toEqual({ priority: 'Routine', placerOrderNumber: 'ORD-1', fillerOrderNumber: 'LIS-9' });
+    expect(lisTextPatch(withOrder, snap({ grossText: 'g' })).order).toBeUndefined();
+  });
+
   it('hides microscopic and ancillary text from a gross-stage fill', () => {
     expect(caseForAiFill(c, 'gross').diagnostic).toMatchObject({ grossDescription: 'old', microscopicDescription: '', ancillaryStudies: '' });
   });
@@ -138,10 +144,43 @@ describe('mergeSuggestionsIntoInstance', () => {
       answers: { a: '', b: 'old-ai', c: 'typed' },
       aiSuggestions: { b: s('old-ai'), c: s('ai-c') },
     });
-    const { instance, fieldsSuggested } = mergeSuggestionsIntoInstance(before, { a: s('A'), b: s('B'), c: s('C') }, NOW);
+    const { instance, fieldsSuggested, fieldsToReview } = mergeSuggestionsIntoInstance(before, { a: s('A'), b: s('B'), c: s('C') }, NOW);
     expect(instance.answers).toEqual({ a: 'A', b: 'B', c: 'typed' });
-    expect(instance.aiSuggestions?.c.value).toBe('C');
+    // Batch 426: the typed field keeps its earlier suggestion; the new one waits for "keep or update?".
+    expect(instance.aiSuggestions?.c.value).toBe('ai-c');
+    expect(instance.reevaluations).toEqual({ c: { value: 'C', confidence: 80, source: 'x', suggestedAt: NOW } });
     expect(fieldsSuggested).toBe(3);
+    expect(fieldsToReview).toBe(1);
+  });
+
+  it('Batch 426: a confirmed field stays confirmed; the same value again asks nothing; a later run never overwrites it', () => {
+    const confirmed = { ...s('pT2'), verification: 'verified' as const };
+    const before = inst({ answers: { t: 'pT2' }, aiSuggestions: { t: confirmed } });
+    const again = mergeSuggestionsIntoInstance(before, { t: s('pT2') }, NOW).instance;
+    expect(again.aiSuggestions?.t.verification).toBe('verified');
+    expect(again.reevaluations).toBeUndefined();
+    const changed = mergeSuggestionsIntoInstance(again, { t: s('pT3') }, NOW).instance;
+    expect(changed.answers.t).toBe('pT2');
+    expect(changed.reevaluations?.t.value).toBe('pT3');
+  });
+});
+
+describe('resolveReevaluation (Batch 426)', () => {
+  const pending = { value: 'pT3', confidence: 90, source: 'Micro: "invades subserosa"', suggestedAt: NOW };
+  const base = inst({ answers: { t: 'pT2', u: 'x' }, aiSuggestions: { t: { value: 'pT2', confidence: 70, source: 's', verification: 'verified' } }, reevaluations: { t: pending, u: { ...pending, value: 'y' } } });
+  it('keep: the pathologist\'s value stays, only that question goes', () => {
+    const r = resolveReevaluation(base, 't', 'keep');
+    expect(r.answers.t).toBe('pT2');
+    expect(Object.keys(r.reevaluations ?? {})).toEqual(['u']);
+  });
+  it('accept: the new value becomes the answer, confirmed', () => {
+    const r = resolveReevaluation(resolveReevaluation(base, 'u', 'keep'), 't', 'accept');
+    expect(r.answers.t).toBe('pT3');
+    expect(r.aiSuggestions?.t).toMatchObject({ value: 'pT3', verification: 'verified' });
+    expect(r.reevaluations).toBeUndefined();
+  });
+  it('nothing pending: unchanged', () => {
+    expect(resolveReevaluation(base, 'zz', 'accept')).toBe(base);
   });
 });
 

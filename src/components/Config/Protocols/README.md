@@ -262,6 +262,27 @@ They are now real, in the new shared **`ProtocolCardParts.tsx`** (`ProtocolRowAc
 - `LIFECYCLE_STYLES` and `SOURCE_STYLES` were removed.
 - The editor's imperative `onFocus`/`onBlur` border writes are now `:focus` rules.
 
+## Batch 426
+
+The template editor adds:
+- **Reports as** on each field (pT, pN, pM, FIGO stage, block identifier);
+- **Unit** on numeric fields;
+- **Staging edition** on the template (e.g. AJCC 8th).
+
+They feed the structured synoptic result (`services/reports/synopticResultPayload.ts`). The seeded templates have no tagged fields, so their staging is sent as null until a field is tagged.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+The Synoptic Library tab is view only without any protocol capability. Its status and group filters are marked `data-config-nav`.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+Protocol lifecycle overrides (`protocolShared.tsx`) are kept in the lab settings store.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

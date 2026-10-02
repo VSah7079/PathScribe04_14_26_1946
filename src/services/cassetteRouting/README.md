@@ -15,6 +15,12 @@ Admin-configurable rules resolving which logical cassette color (`services/casse
 - Cassette type/form-factor is deliberately never a second field here — it always comes from the matched protocol's own processing format, so it can never drift from the real protocol definition.
 - A real "small biopsy" category spanning several genuinely different protocols needs one rule per protocol — `protocolId` has no array form. Higher `priorityWeight` wins when more than one rule genuinely matches the same order.
 
+## Batch 428: Configuration permissions
+
+- `mockCassetteRoutingRuleService`: `create`, `update`, `deactivate`, `reactivate` need `config:cassette-routing:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

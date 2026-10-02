@@ -30,6 +30,7 @@ import { mockLisStagingQueueService } from '../lisIngestion/mockLisStagingQueueS
 import { hl7v2StatusAdapter } from '../lisIngestion/adapters/hl7v2StatusAdapter';
 import { webhookJsonAdapter } from '../lisIngestion/adapters/webhookJsonAdapter';
 import type { LisPushAdapter } from '../lisIngestion/types';
+import { CONFIG_NOT_PERMITTED, permitConfigChange } from '../authorization/guardConfigWrites';
 
 async function buildDeps(): Promise<AssistPollDeps> {
   const [{ mockCaseService, evaluateSynopticAssignment, generateAiSuggestionsForReport }, templateModule, { aiBehaviorService, auditService }] =
@@ -71,7 +72,19 @@ async function buildDeps(): Promise<AssistPollDeps> {
   return deps;
 }
 
+/** Batch 428: polling, pasting a message in or retrying by hand changes cases
+ *  and runs the AI, so a person needs assist:lis-message:ingest (audited).
+ *  The scheduled poll is the system's and isn't checked. A refusal throws
+ *  CONFIG_NOT_PERMITTED and nothing runs. */
+async function permitManualIngest(): Promise<void> {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  if (!(await permitConfigChange(authorizationService.enforce('assist:lis-message:ingest'), 'assist:lis-message:ingest'))) {
+    throw new Error(CONFIG_NOT_PERMITTED);
+  }
+}
+
 export async function runAssistPollNow(trigger: 'manual' | 'scheduled' = 'manual'): Promise<AssistPollRun> {
+  if (trigger === 'manual') await permitManualIngest();
   return runAssistPollCycle(await buildDeps(), trigger);
 }
 
@@ -82,9 +95,11 @@ export const LIS_PUSH_ADAPTERS: Record<'hl7v2' | 'webhook', LisPushAdapter> = {
 };
 
 export async function ingestLisMessageNow(kind: 'hl7v2' | 'webhook', raw: string): Promise<AssistPollRun> {
+  await permitManualIngest();
   return ingestPushedMessage(await buildDeps(), LIS_PUSH_ADAPTERS[kind], raw);
 }
 
 export async function retryFailedLisEventsNow(): Promise<AssistPollRun> {
+  await permitManualIngest();
   return retryFailedEvents(await buildDeps());
 }

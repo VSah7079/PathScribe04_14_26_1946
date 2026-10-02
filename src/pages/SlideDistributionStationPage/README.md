@@ -17,7 +17,7 @@
 
 - **`SlideDistributionStationPage.tsx`** — the page itself: an always-visible continuous-scan input (no scan-to-open/scan-to-clear state machine — the queue just grows), the header/context bar (Slide Count in Queue, Selected Destination Mode, Assigned Carrier or Scanner ID, Active Tech User ID), and the three-panel layout (`QueuePanel` / `ScanCenterPanel` / `DestinationControlPanel`). Owns the global `PATHSCRIBE_SCAN` listener (same `STATION:`-guarded convention as the rest of the series).
 - **`components/QueuePanel.tsx`** — the left-panel real-time scanned-slide list: Accession, Block, Stain Type, real `Case.order.priority` badge (STAT/Rush/Routine), and the current assigned pathologist/pool or scanner target, click-to-select, remove-from-queue.
-- **`components/ScanCenterPanel.tsx`** — the center panel: a schematic "occupied slots" chip grid over every queued slide (color-coded by destination/exception — see this file's own honest scope note on why it isn't a literal rack layout), the active slide's own detail/status, the Split-Destination warning banner, the Scan Exception Log (both session-scoped unresolved-scan exceptions and the active slide's own flagged exception with one-touch reasons), the "trigger a replacement label print" action, and the slide's own chain-of-custody event history.
+- **`components/ScanCenterPanel.tsx`** — the center panel: a schematic "occupied slots" chip grid over every queued slide (color-coded by destination/exception — see this file's own honest scope note on why it isn't a literal rack layout), the active slide's own detail/status, the Split-Destination warning banner, the Scan Exception Log (both session-scoped unresolved-scan exceptions and the active slide's own flagged exception with one-touch reasons and, since Batch 402, an optional note), the "trigger a replacement label print" action (which opens `SlideLabelReprintModal` since Batch 402), and the slide's own chain-of-custody event history.
 - **`components/DestinationControlPanel.tsx`** — the right panel: the Physical/Digital destination toggle (lifted to page state so the header can show it), a pathologist/subspecialty-pool quick-search grid, physical location fields (Slide Folder ID/Tray Number/Courier Bag), and scanner/rack/slot fields — pre-filled from the real case-level default (`Case.assignedTo`/`Case.subspecialtyId`) the moment a not-yet-routed slide becomes active, per the spec's own "Automatic Routing Logic."
 - **`hooks/useSlideDistributionStation.ts`** — the real, per-case-versioned persistence layer (a queue can span multiple cases in one shift, unlike the single-case hooks in the other two workstations), the scan-resolution flow (block/slide targets only — see Scope cuts), the pathologist/subspecialty directory load, and the real slide-label reprint dispatch (identical GS1/ZPL `printSlideLabel` chain PS-284 already proved).
 
@@ -37,6 +37,20 @@
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `components/QueuePanel.tsx`: the accession in each queue row is tagged.
+
+## Batch 402 (PS-359): Field Requirements
+
+The page follows the organisation's Field Requirements (page "slideDistribution", `services/fieldRequirements/slideDistributionChecks.ts`):
+
+- **Physical checkout:** pathologist or pool, slide folder, tray and courier bag are switches, off by default. A checkout still always needs one of them; when none is filled, "Still required" says "a pathologist, pool or location" (before, the button was simply off).
+- **Scanner routing:** the scanner instrument is locked (as before); rack and slot are switches.
+- **Exceptions:** a new optional note beside the one-touch reasons, saved on the chain-of-custody record. An organisation can require it; the reason buttons then wait for it.
+- **Label reprint:** now needs a reason (Pete, locked), as at Microtomy and Embedding: `components/SlideLabelReprintModal.tsx` (Damaged label, Unreadable barcode, Smudged print, Other). Before, the button printed straight away with no reason. The reason goes on the chain-of-custody line.
+- Required labels are starred, "Still required: …" says what is missing, and each button stays off until complete. `hooks/useSlideDistributionStation.ts` checks the same rules, reads the scan station through `@/services` (off the deployment baseline), and returns locale keys instead of English messages.
+- **Voice:** the page sets `VOICE_CONTEXT.SLIDE_DISTRIBUTION`: "confirm checkout" (`SLIDE_DIST_CONFIRM_PHYSICAL`, Ctrl+Alt+Shift+P) and "confirm scanner" (`SLIDE_DIST_CONFIRM_DIGITAL`, Ctrl+Alt+Shift+D), each acting only for the destination on screen.
+- **Translated:** routing status, priority, the split warning, the doctor's title, the example placeholders, the scan and printer errors; times use the user's locale (`formatTime`). The chain-of-custody lines themselves stay English (a traceability record).
+- The pathologist/pool search filter moved to `utils/slideDistributionOperations.ts` (`filterRoutingDirectory`).
+- Tests: `components/slideDistributionRequirements.test.tsx`.
 
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*

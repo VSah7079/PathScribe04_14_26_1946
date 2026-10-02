@@ -26,14 +26,25 @@
 // already proved (station -> supportsPrinting + printer profile ->
 // printSettingsService.get() -> printSlideLabel) for the spec's own
 // "trigger a replacement label print" exception action.
+//
+// Batch 402 (PS-359): checkout, scanner routing, flagging an exception and
+// reprinting a label check the organisation's Field Requirements (page
+// "slideDistribution", services/fieldRequirements/slideDistributionChecks.ts)
+// here, so the buttons and the voice commands are held to the same rule. A
+// label reprint now needs a reason (Pete). Messages the page shows are
+// returned as locale keys (slideDistribution.*), and the scan station comes
+// from @/services rather than the mock directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { printerProfileService, printSettingsService, userService, subspecialtyService } from '@/services';
+import {
+  printerProfileService, printSettingsService, userService, subspecialtyService, scanStationService,
+  slideCheckoutMissing, scannerLoadMissing, slideExceptionMissing, slideReprintMissing,
+} from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
@@ -45,7 +56,21 @@ import {
   assignPhysicalSlide, assignScannerSlide, flagSlideException, resolveSlideException, recordLabelReprintRequest,
   resolveSplitDestinationWarning,
 } from '@/utils/slideDistributionOperations';
-import type { PhysicalAssignment, ScannerAssignment, SlideExceptionReason, SplitDestinationWarning } from '@/utils/slideDistributionOperations';
+import type { PhysicalAssignment, ScannerAssignment, SlideExceptionReason, SlideLabelReprintReason, SplitDestinationWarning } from '@/utils/slideDistributionOperations';
+
+/** A message for the page to show: a locale key and its values. */
+export interface SlideDistributionMessage { key: string; values?: Record<string, string> }
+
+/** The outcome of an action (flat: strictNullChecks is off). */
+export interface SlideDistributionActionResult {
+  ok: boolean;
+  /** Field Requirements still unmet (field ids), when that is why it stopped. */
+  missing?: string[];
+  /** A message to show, when something else stopped it. */
+  message?: SlideDistributionMessage;
+  /** A printer's own error text, shown as given. */
+  printerMessage?: string;
+}
 
 export interface SlideQueueItem {
   queueId: string;
@@ -62,6 +87,9 @@ export interface ScanException {
   timestamp: string;
 }
 
+const notInQueue: SlideDistributionActionResult = { ok: false, message: { key: 'slideDistribution.errors.notInQueue' } };
+const failed: SlideDistributionActionResult = { ok: false, message: { key: 'slideDistribution.destination.assignFailed' } };
+
 function levelLabelFor(stains: StainOrder[], stainId: string): string {
   const idx = stains.findIndex(s => s.id === stainId);
   return `L${idx + 1}`;
@@ -73,7 +101,8 @@ export function useSlideDistributionStation() {
 
   const [queue, setQueue] = useState<SlideQueueItem[]>([]);
   const [activeQueueId, setActiveQueueId] = useState<string | null>(null);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<SlideDistributionMessage | null>(null);
+  const requirements = useFieldRequirements('slideDistribution');
   const [scanExceptions, setScanExceptions] = useState<ScanException[]>([]);
   const [pathologists, setPathologists] = useState<StaffUser[]>([]);
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
@@ -115,12 +144,13 @@ export function useSlideDistributionStation() {
    *  targets (matrix_*, specimen, decant*) aren't supported here yet,
    *  same documented-scope-cut posture as PS-285's own block/slide-only
    *  resolution. */
-  const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true } | { ok: false; message: string }> => {
+  const resolveScan = useCallback(async (rawScanValue: string): Promise<SlideDistributionActionResult> => {
     setScanError(null);
-    if (!rawScanValue.trim()) return { ok: false, message: 'Empty scan.' };
+    if (!rawScanValue.trim()) return { ok: false };
+    const fail = (message: SlideDistributionMessage): SlideDistributionActionResult => { setScanError(message); return { ok: false, message }; };
     const resolved = await resolveMaterialFromScan(rawScanValue);
     if (!resolved) {
-      const message = 'That scan didn’t resolve to a real case, block, or slide — check the barcode and try again.';
+      const message: SlideDistributionMessage = { key: 'slideDistribution.scanErrors.notResolved' };
       setScanError(message);
       setScanExceptions(prev => [...prev, { id: `exc-${Date.now().toString(36)}`, rawScan: rawScanValue, reason: 'Unreadable Barcode', timestamp: new Date().toISOString() }]);
       return { ok: false, message };
@@ -128,29 +158,17 @@ export function useSlideDistributionStation() {
     const { caseData, specimenLetter, target } = resolved;
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
     if (!specimen) {
-      const message = 'Specimen not found on the resolved case.';
+      const message: SlideDistributionMessage = { key: 'slideDistribution.scanErrors.specimenNotFound' };
       setScanError(message);
       setScanExceptions(prev => [...prev, { id: `exc-${Date.now().toString(36)}`, rawScan: rawScanValue, reason: 'Unassigned Accession', timestamp: new Date().toISOString() }]);
       return { ok: false, message };
     }
-    if (target.level !== 'block' && target.level !== 'slide') {
-      const message = 'This scan target (a matrix/cell-block cassette, a decant, or a bare specimen scan) isn’t supported at the Slide Distribution Station yet — scan a specific block or slide barcode.';
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (target.level !== 'block' && target.level !== 'slide') return fail({ key: 'slideDistribution.scanErrors.unsupportedTarget' });
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
-    if (!block) {
-      const message = `Block ${specimen.label}${target.blockNumber} not found.`;
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (!block) return fail({ key: 'slideDistribution.scanErrors.blockNotFound', values: { block: `${specimen.label}${target.blockNumber}` } });
     if (target.level === 'block') {
       const stains = block.stains ?? [];
-      if (stains.length === 0) {
-        const message = `Block ${specimen.label}${block.label} has no slides to distribute.`;
-        setScanError(message);
-        return { ok: false, message };
-      }
+      if (stains.length === 0) return fail({ key: 'slideDistribution.scanErrors.noSlides', values: { block: `${specimen.label}${block.label}` } });
       let firstId = '';
       stains.forEach((stain, i) => { const id = enqueue(caseData, specimen, block, stain); if (i === 0) firstId = id; });
       setActiveQueueId(firstId);
@@ -158,11 +176,7 @@ export function useSlideDistributionStation() {
     }
     // target.level === 'slide'
     const stain = block.stains?.find((_, i) => `L${i + 1}` === target.slideLevel);
-    if (!stain) {
-      const message = `Slide ${specimen.label}${block.label}-${target.slideLevel} not found.`;
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (!stain) return fail({ key: 'slideDistribution.scanErrors.slideNotFound', values: { slide: `${specimen.label}${block.label}-${target.slideLevel}` } });
     const id = enqueue(caseData, specimen, block, stain);
     setActiveQueueId(id);
     return { ok: true };
@@ -201,34 +215,42 @@ export function useSlideDistributionStation() {
     return updatedSpecimen;
   }, []);
 
-  const handleAssignPhysical = useCallback(async (id: string, assignment: PhysicalAssignment) => {
+  const handleAssignPhysical = useCallback(async (id: string, assignment: PhysicalAssignment): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
-    if (!item) return { ok: false, message: 'Slide not found in queue.' };
+    if (!item) return notInQueue;
+    const missing = slideCheckoutMissing(assignment, requirements);
+    if (missing.length > 0) return { ok: false, missing };
     // Real, per this codebase's own established gotcha (see
     // services/reports/README.md et al.): strictNullChecks: false
     // means a discriminated union doesn't reliably narrow on
     // `if (!result.ok)` — handled with an explicit cast instead.
     const result = assignPhysicalSlide(item.specimen, item.block.id, item.stain.id, assignment, actor.id);
-    if (!result.ok) return { ok: false, message: (result as { ok: false; error: string }).error };
+    if (!result.ok) return failed;
     await persist(item.caseData, result.specimen);
     return { ok: true };
-  }, [queue, persist, actor.id]);
+  }, [queue, persist, actor.id, requirements]);
 
-  const handleAssignScanner = useCallback(async (id: string, assignment: ScannerAssignment) => {
+  const handleAssignScanner = useCallback(async (id: string, assignment: ScannerAssignment): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
-    if (!item) return { ok: false, message: 'Slide not found in queue.' };
+    if (!item) return notInQueue;
+    const missing = scannerLoadMissing(assignment, requirements);
+    if (missing.length > 0) return { ok: false, missing };
     const result = assignScannerSlide(item.specimen, item.block.id, item.stain.id, assignment, actor.id);
-    if (!result.ok) return { ok: false, message: (result as { ok: false; error: string }).error };
+    if (!result.ok) return failed;
     await persist(item.caseData, result.specimen);
     return { ok: true };
-  }, [queue, persist, actor.id]);
+  }, [queue, persist, actor.id, requirements]);
 
-  const handleFlagException = useCallback(async (id: string, reason: SlideExceptionReason, note?: string) => {
+  const handleFlagException = useCallback(async (id: string, reason: SlideExceptionReason, note?: string): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
-    if (!item) return;
-    const result = flagSlideException(item.specimen, item.block.id, item.stain.id, reason, actor.id, note);
-    if (result.ok) await persist(item.caseData, result.specimen);
-  }, [queue, persist, actor.id]);
+    if (!item) return notInQueue;
+    const missing = slideExceptionMissing(note, requirements);
+    if (missing.length > 0) return { ok: false, missing };
+    const result = flagSlideException(item.specimen, item.block.id, item.stain.id, reason, actor.id, note?.trim() || undefined);
+    if (!result.ok) return { ok: false };
+    await persist(item.caseData, result.specimen);
+    return { ok: true };
+  }, [queue, persist, actor.id, requirements]);
 
   const handleResolveException = useCallback(async (id: string) => {
     const item = queue.find(q => q.queueId === id);
@@ -238,14 +260,14 @@ export function useSlideDistributionStation() {
   }, [queue, persist, actor.id]);
 
   const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string } | { error: string }> => {
-    if (!effectiveStationId) return { error: 'No scan station selected for this device — set one from the NavBar station indicator.' };
-    const stationRes = await mockScanStationService.getById(effectiveStationId);
-    if (!stationRes.ok) return { error: 'Scan station not found.' };
+    if (!effectiveStationId) return { error: 'slideDistribution.errors.noStation' };
+    const stationRes = await scanStationService.getById(effectiveStationId);
+    if (!stationRes.ok) return { error: 'slideDistribution.errors.stationNotFound' };
     if (!stationRes.data.supportsPrinting || !stationRes.data.cassetteSlidePrinterProfileId) {
-      return { error: 'This station isn’t configured for real slide-label printing — check Scan Stations config.' };
+      return { error: 'slideDistribution.errors.notConfigured' };
     }
     const printerRes = await printerProfileService.getById(stationRes.data.cassetteSlidePrinterProfileId);
-    if (!printerRes.ok || !printerRes.data) return { error: 'The configured printer profile no longer exists — check Scan Stations config.' };
+    if (!printerRes.ok || !printerRes.data) return { error: 'slideDistribution.errors.profileMissing' };
     const settingsRes = await printSettingsService.get();
     const gtin = settingsRes.ok ? settingsRes.data.gs1Gtin : '';
     return { printer: printerRes.data, gtin };
@@ -256,18 +278,20 @@ export function useSlideDistributionStation() {
    *  (recordLabelReprintRequest) then dispatches the actual print
    *  through the identical real GS1/ZPL path PS-284's Microtomy
    *  Workstation already proved. */
-  const handleRequestReprint = useCallback(async (id: string) => {
+  const handleRequestReprint = useCallback(async (id: string, reason: SlideLabelReprintReason | ''): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
-    if (!item) return { ok: false, message: 'Slide not found in queue.' };
-    const recorded = recordLabelReprintRequest(item.specimen, item.block.id, item.stain.id, actor.id);
-    if (!recorded.ok) return { ok: false, message: (recorded as { ok: false; error: string }).error };
+    if (!item) return notInQueue;
+    const missing = slideReprintMissing(reason, requirements);
+    if (missing.length > 0) return { ok: false, missing };
+    const recorded = recordLabelReprintRequest(item.specimen, item.block.id, item.stain.id, actor.id, reason as SlideLabelReprintReason);
+    if (!recorded.ok) return { ok: false, missing: ['reprintReason'] };
     const specimen = await persist(item.caseData, recorded.specimen);
     const block = specimen.blocks?.find(b => b.id === item.block.id);
     const stain = block?.stains.find(s => s.id === item.stain.id);
-    if (!block || !stain) return { ok: false, message: 'Slide not found after persisting reprint request.' };
+    if (!block || !stain) return notInQueue;
 
     const ctx = await getPrinterContext();
-    if ('error' in ctx) return { ok: false, message: ctx.error };
+    if ('error' in ctx) return { ok: false, message: { key: ctx.error } };
     const fullAccession = item.caseData.accession?.fullAccession ?? item.caseData.id;
     const level = levelLabelFor(block.stains, stain.id);
     const slideId = stain.displayId ?? `${specimen.label}${block.label}-${level}`;
@@ -275,8 +299,8 @@ export function useSlideDistributionStation() {
       { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: stain.stainName, slideId },
       ctx.printer, ctx.gtin,
     );
-    return result.ok ? { ok: true } : { ok: false, message: (result as { ok: false; message: string }).message };
-  }, [queue, persist, getPrinterContext, actor.id]);
+    return result.ok ? { ok: true } : { ok: false, printerMessage: (result as { ok: false; message: string }).message };
+  }, [queue, persist, getPrinterContext, actor.id, requirements]);
 
   const splitDestinationWarningFor = useCallback((id: string): SplitDestinationWarning | null => {
     const item = queue.find(q => q.queueId === id);
@@ -285,7 +309,7 @@ export function useSlideDistributionStation() {
   }, [queue]);
 
   return {
-    queue, activeQueueId, setActiveQueueId, scanError, scanExceptions, resolveScan, removeFromQueue,
+    queue, activeQueueId, setActiveQueueId, scanError, scanExceptions, resolveScan, removeFromQueue, requirements,
     pathologists, subspecialties, loadDirectories, resolveDefaultRouting,
     handleAssignPhysical, handleAssignScanner, handleFlagException, handleResolveException, handleRequestReprint,
     splitDestinationWarningFor, effectiveStationId, actor,

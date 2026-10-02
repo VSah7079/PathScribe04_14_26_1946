@@ -172,6 +172,90 @@ describe('generateCytologyReportPdf — real, per PS-277 §1.2.3 addendum render
   });
 });
 
+describe('generateCytologyReportPdf — Batch 390 (PS-340) correction and addendum banner', () => {
+  it('a correction prints CORRECTED REPORT, the reason and what was reported before', () => {
+    const out = generateCytologyReportPdf({ ...MINIMAL_CONTENT, revision: { kind: 'correction', reason: 'Wrong category selected.', previouslyReportedAs: 'ASC-US' } }).output();
+    expect(out).toContain('CORRECTED REPORT');
+    expect(out).toContain('Reason: Wrong category selected.');
+    expect(out).toContain('Previously reported as: ASC-US');
+  });
+
+  it('an addendum prints ADDENDUM and the reason, and no "previously reported" line', () => {
+    const out = generateCytologyReportPdf({ ...MINIMAL_CONTENT, revision: { kind: 'addendum', reason: 'HPV result received.', previouslyReportedAs: 'ignored' } }).output();
+    expect(out).toContain('Reason: HPV result received.');
+    expect(out).not.toContain('Previously reported as');
+  });
+
+  it('an original report has no banner', () => {
+    const out = generateCytologyReportPdf(MINIMAL_CONTENT).output();
+    expect(out).not.toContain('CORRECTED REPORT');
+    expect(out).not.toContain('Reason:');
+  });
+});
+
+/** PDF text for searching: jsPDF writes a line with characters outside Latin-1 (an em dash) as two bytes per character. */
+const pdfText = (out: string) => out.replace(/\x00/g, '');
+
+describe('generateCytologyReportPdf — Batch 391 report language', () => {
+  const de = () => import('./cytologyPdfLabels').then(m => ({
+    ...m.ENGLISH_CYTOLOGY_PDF_LABELS,
+    title: 'Zytologiebefund — Gynäkologische Zervixkarzinom-Früherkennung', patient: 'Patient', interpretation: 'Beurteilung / Diagnostisches Ergebnis',
+    dob: 'Geburtsdatum: {{date}}', accession: 'Eingangsnummer: {{accession}}', signedBy: 'Freigegeben von: {{name}}, {{role}} — {{date}}',
+    rolePathologist: 'Pathologe/Pathologin', correctedReport: 'KORRIGIERTER BEFUND', reason: 'Grund: {{reason}}', signOff: 'Freigabe',
+    continuationPage: 'Seite {{page}} von {{total}}', metadataTitle: 'Zytologiebefund — {{accession}}',
+  }));
+
+  it('prints the wording it is given, and none of the English labels', async () => {
+    const labels = await de();
+    const out = pdfText(generateCytologyReportPdf({ ...FULL_CONTENT, language: 'de', locale: 'de-DE' }, undefined, labels).output());
+    for (const text of ['Zytologiebefund', 'Beurteilung / Diagnostisches Ergebnis', 'Eingangsnummer: S26-5002-CYT-001', 'Freigegeben von: Dr. Second, Pathologe/Pathologin', 'Freigabe']) expect(out).toContain(text);
+    expect(out).not.toContain('Interpretation / Diagnostic Result');
+    expect(out).not.toContain('Accession:');
+    expect(out).not.toContain('Signed by');
+  });
+  it('dates follow the report language, not the browser (German 02.04.1988)', async () => {
+    const out = pdfText(generateCytologyReportPdf({ ...FULL_CONTENT, language: 'de', locale: 'de-DE' }, undefined, await de()).output());
+    expect(out).toContain('Geburtsdatum: 02.04.1988');
+    expect(out).toMatch(/Freigegeben von: Dr\. Second, Pathologe\/Pathologin .{1,3}\d{2}\.\d{2}\.2026, \d{2}:\d{2}\)/); // 24-hour clock, German order
+    expect(out).toMatch(/Collected: \d{2}\.\d{2}\.2026, \d{2}:\d{2}\)/);
+  });
+  it('a correction banner is in the report language', async () => {
+    const out = generateCytologyReportPdf({ ...MINIMAL_CONTENT, language: 'de', revision: { kind: 'correction', reason: 'Falsche Kategorie.' } }, undefined, await de()).output();
+    expect(out).toContain('KORRIGIERTER BEFUND');
+    expect(out).toContain('Grund: Falsche Kategorie.');
+  });
+  it('continuation pages use the wording and page format of the language', async () => {
+    const long: CytologyReportContent = { ...FULL_CONTENT, language: 'de', additionalInterpretations: Array.from({ length: 80 }, (_, i) => `Zeile ${i}`) };
+    const out = generateCytologyReportPdf(long, undefined, await de()).output();
+    expect(out).toMatch(/Seite 2 von \d+/);
+    expect(out).not.toContain('Page 2 of');
+  });
+  it('a Korean report is printed in Pretendard, worded in Korean', async () => {
+    const { readFontFromDisk } = await import('../documentRendering/readFontFromDisk.testSupport');
+    const { loadPrintFont } = await import('../documentRendering/printFonts');
+    const font = await loadPrintFont('ko', readFontFromDisk);
+    const labels = { ...(await de()), title: '세포검사 보고서', patient: '환자' };
+    const out = generateCytologyReportPdf({ ...FULL_CONTENT, patientName: '김민지', language: 'ko', locale: 'ko-KR' }, undefined, labels, font).output();
+    expect(out).toContain('/BaseFont /Pretendard');
+    expect(out).toContain('/Encoding /Identity-H');
+    expect(out).not.toContain('/BaseFont /LiberationSans'); // Liberation is registered but nothing is set in it
+  });
+  it('a Latin report does not embed Pretendard', () => {
+    expect(generateCytologyReportPdf(FULL_CONTENT).output()).not.toContain('Pretendard');
+  });
+
+  it('the PDF metadata title follows the language', async () => {
+    const bytes = await generateCytologyReportPdfWithAttachments({ ...MINIMAL_CONTENT, language: 'de' }, await de());
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getTitle()).toBe('Zytologiebefund — S26-5002-CYT-001');
+  });
+  it('with no labels the wording is English, as before', () => {
+    const out = pdfText(generateCytologyReportPdf(FULL_CONTENT).output());
+    expect(out).toContain('Interpretation / Diagnostic Result');
+    expect(out).toContain('DOB 04/02/1988'); // a date of birth no longer slips a day west of UTC
+  });
+});
+
 describe('generateCytologyReportPdf — real, per PS-277 §1.2.1 continuation-page headers', () => {
   it('a real, multi-page report gets a real "Page X of Y" continuation header on every page after the first, never on page 1', () => {
     const heavy: CytologyReportContent = {

@@ -419,7 +419,7 @@ describe('useSignOutWorkflow — handleSignOutConfirm (resident/countersign gate
     const finalizeCall = updateCalls.find((call: any[]) => call[1]?.status === 'finalized');
     expect(finalizeCall).toBeDefined();
     expect(finalizeCall[1].releasedAt).toBeDefined();
-    expect(dispatchCaseInstances).toHaveBeenCalledWith('TEST-CASE-NOBUFFER');
+    expect(dispatchCaseInstances).toHaveBeenCalledWith('TEST-CASE-NOBUFFER', expect.any(Function)); // Batch 392: with the saved signed PDF
   });
 
   it('denies sign-out entirely and shows the real denial reason when the user has no genuine relationship to the case', async () => {

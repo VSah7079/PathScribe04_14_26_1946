@@ -58,7 +58,15 @@
     "title": "Erkennung von Auffälligkeiten — Hochrisiko-Auslöseregeln"
   },
   "accessRequestResponseTab": {
+    "deny": {
+      "button": "Ablehnen",
+      "failed": "Die Anfrage konnte nicht abgelehnt werden.",
+      "message": "{{name}} erhält eine Nachricht mit Ihrem Grund.",
+      "reasonLabel": "Grund",
+      "title": "Diese Zugriffsanfrage ablehnen?"
+    },
     "headers": {
+      "actions": "Aktionen",
       "requestedAt": "Angefragt am",
       "requestedBy": "Angefragt von",
       "resolvedBy": "Gelöst von"
@@ -750,15 +758,43 @@
       "title": "Zusatzauftrags-Ersteller"
     },
     "context": {
-      "caseStatus": "Fallstatus",
+      "caseStatusLine": "Fallstatus: {{status}}",
       "noPerformingLab": "Für diesen Fall konnte kein ausführendes Labor ermittelt werden — die Weiterleitung zeigt alle passenden Stationen, nicht auf ein Labor beschränkt.",
-      "primaryPathologist": "Hauptpathologe"
+      "primaryPathologistLine": "Hauptpathologe: {{name}}"
+    },
+    "errors": {
+      "blockCancelled": "Block {{block}} ist storniert.",
+      "blockDamaged": "Block {{block}} ist als beschädigt markiert; bis zur Neueinbettung sind keine Aufträge möglich.",
+      "blockExhausted": "Block {{block}} ist aufgebraucht; es können keine weiteren Schnittaufträge erteilt werden.",
+      "blockLost": "Block {{block}} ist als verloren markiert; bis er gefunden wird, sind keine Aufträge möglich.",
+      "blockNotFound": "Block {{block}} wurde in diesem Fall nicht gefunden.",
+      "caseNotFound": "Kein Fall gefunden für „{{query}}“.",
+      "enterAccession": "Geben Sie eine Eingangsnummer ein oder scannen Sie sie.",
+      "failed": "Das hat nicht geklappt. Der Auftrag hat sich eventuell geändert; öffnen Sie den Fall erneut und versuchen Sie es noch einmal.",
+      "noLines": "Fügen Sie für Block {{block}} mindestens eine Auftragszeile hinzu.",
+      "notPermitted": "Sie haben dafür keine Berechtigung. Wenden Sie sich an Ihren Administrator."
+    },
+    "exceptionReasons": {
+      "blockExhausted": "Block aufgebraucht",
+      "insufficientTissue": "Unzureichendes Gewebe für das Panel",
+      "requiresRegrossing": "Erneuter Zuschnitt erforderlich"
     },
     "pageTitle": "Zusatzauftrags-Ersteller",
+    "panels": {
+      "panel-breast": "Mamma-Panel (ER/PR/HER2/Ki-67)",
+      "panel-lynch-mmr": "Lynch-/MMR-Panel (MLH1/MSH2/MSH6/PMS2)",
+      "panel-renal-if": "Nieren-IF-Panel (IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
     "priority": {
       "Research_Protocol": "Forschung / Protokoll",
       "Routine_Sign_Out": "Routinebefundung",
       "STAT_Urgent": "STAT / Dringend"
+    },
+    "queues": {
+      "histologyCutting": "Histologie-Schneidewarteschlange",
+      "ihcSpecialHistochemistry": "IHC- / Spezialhistochemie-Warteschlange",
+      "referenceSendOut": "Warteschlange Referenz- / Fremdlabor",
+      "specialStainsBench": "Warteschlange Spezialfärbungen"
     },
     "search": {
       "open": "Fall öffnen",
@@ -773,8 +809,11 @@
       "blocksSelected": "{{count}} Block/Blöcke ausgewählt",
       "cuttingInstructions": "Anweisungen für den Mikrotom-Arbeitsplatz",
       "emptyCart": "Noch keine Auftragszeilen hinzugefügt.",
+      "labsAll": "Mit diesem Test ist noch kein Labor verknüpft, daher werden alle Referenzlabore angezeigt.",
+      "labsApprovedForTest": "Nur die für diesen Test freigegebenen Labore werden angezeigt.",
       "microns": "{{count}} µm Schnittebenen",
       "noPerformingLab": "Das ausführende Labor dieses Falls konnte nicht ermittelt werden — Aufträge werden dennoch erstellt, jedoch ohne labor-bezogene Stationszuordnung.",
+      "panelBadge": "· {{panel}}",
       "priority": "Priorität",
       "remove": "Entfernen",
       "routesTo": "Wird weitergeleitet an: {{stations}}",
@@ -794,12 +833,17 @@
       "count": "{{count}}",
       "empty": "Für diesen Fall wurden noch keine Zusatzaufträge erteilt.",
       "exceptionNote": "Optionale Notiz…",
+      "exceptionNoteLabel": "Notiz",
+      "exceptionReason": "Grund",
       "flagException": "Ausnahme melden",
       "flaggedBy": "Gemeldet von {{name}}",
       "markRetrieved": "Block als entnommen markieren",
       "modify": "Ändern und erneut einreichen",
       "orderedBy": "Angeordnet von {{name}}",
       "responseNote": "Antwortnotiz…",
+      "responseNoteLabel": "Antwortnotiz",
+      "resubmit": "Erneut senden",
+      "sendOutTo": "Externer Versand: {{lab}}",
       "stage": {
         "BlockRetrieved": "Block entnommen",
         "Cancelled": "Storniert",
@@ -818,10 +862,8 @@
       "cassetteLabel": "Kassetten-/Blockbezeichnung",
       "cassettePlaceholder": "z. B. A2, A3",
       "description": "Zusätzliche Kassette oder Nachschnitt von bereits zugeschnittenem und beschriebenem Gewebe — keine neue Probe. Fügt der Zuschnittsbeschreibung des Falls automatisch einen echten Satz hinzu; keine neue physische Beschreibung nötig, da nichts Neues eingegangen ist.",
-      "errorEnterLabel": "Geben Sie eine Kassetten-/Blockbezeichnung ein.",
-      "errorSelectSpecimen": "Wählen Sie die Probe aus, von der dieser Block/Nachschnitt stammt.",
       "specimenPlaceholder": "Probe auswählen, aus der dies stammt…",
-      "willAppendPrefix": "Wird angehängt:"
+      "willAppend": "Wird angehängt: „{{sentence}}“"
     },
     "eyebrow": {
       "grossingInProgress": "Zuschnitt läuft",
@@ -1221,12 +1263,18 @@
       "emptyDeleted": "Keine gelöschten Nachrichten.",
       "emptyInbox": "Ihr Posteingang ist leer.",
       "loading": "Wird geladen…",
+      "noSubject": "(Kein Betreff)",
       "readAllButton": "Alle lesen",
       "regionLabel": "Nachrichtenliste",
       "restoreButton": "Wiederherstellen",
       "searchPlaceholder": "Suchen",
       "secureEmailTitle": "Sichere externe E-Mail senden",
       "urgentPill": "Dringend"
+    },
+    "messaging": {
+      "notPermitted": "Sie haben keine Berechtigung, Nachrichten zu senden.",
+      "notPermittedSecureEmail": "Sie haben keine Berechtigung, sichere E-Mails zu senden.",
+      "sendFailed": "Die Nachricht konnte nicht gesendet werden. Versuchen Sie es erneut."
     },
     "pageLabels": {
       "auditLog": "Prüfprotokoll",
@@ -1493,6 +1541,8 @@
       "footerCount": "{{shown}} von {{total}} Fehlern angezeigt",
       "infoPill": "ℹ️ Info",
       "openOnly": "Nur offene",
+      "resolveButton": "Beheben",
+      "resolvedByTitle": "Behoben von {{name}}, {{when}}",
       "resolvedOnly": "Nur gelöste",
       "scrollAria": "Fehlerprotokolleinträge, scrollbare Tabelle",
       "searchPlaceholder": "Meldung, Code, Quelle suchen…",
@@ -1639,7 +1689,6 @@
     "subtitle": "Erfassen Sie die schriftliche Genehmigung, sobald sie eintrifft. Die Besichtigung bleibt gesperrt, bis diese vorliegt.",
     "title": "Genehmigung vervollständigen",
     "unknownValue": "unbekannt",
-    "validationError": "Bitte füllen Sie die erforderlichen Felder aus, bevor Sie fortfahren.",
     "verbalOrderOnFile": "Mündliche Anordnung erhalten von {{authority}} am {{at}}.",
     "willUnblockNote": "Durch das Absenden kann die Besichtigung fortgesetzt werden.",
     "writtenOrderSectionTitle": "Schriftliche Anordnung"
@@ -1648,6 +1697,7 @@
     "bannerSummary": "Der PAD ist unterzeichnet und keine Zurückhaltung für Zusatzuntersuchungen ist aktiv — der Leichnam kann jetzt freigegeben werden.",
     "bannerTitle": "Autopsie — Bereit zur Freigabe des Leichnams",
     "genericError": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "notPermitted": "Sie haben keine Berechtigung, einen Leichnam freizugeben.",
     "releasedByLabel": "Freigegeben von",
     "releasedByPlaceholder": "z. B. Techniker: M. Davis",
     "releasedToLabel": "Freigegeben an",
@@ -1655,8 +1705,7 @@
     "submitBtn": "Freigabe bestätigen",
     "submittingBtn": "Wird freigegeben…",
     "subtitle": "Erfassen Sie, wohin der Leichnam freigegeben wird. Dies wird Teil der dauerhaften Standorthistorie des Präparats.",
-    "title": "Leichnam freigeben",
-    "validationError": "Bitte füllen Sie beide Felder aus, bevor Sie fortfahren."
+    "title": "Leichnam freigeben"
   },
   "autopsyIntake": {
     "accessionStatus": {
@@ -1727,19 +1776,46 @@
     "abortBatch": "Charge abbrechen",
     "abortModalText": "Diese Charge und ihr Manifest werden für die Prüfung aufbewahrt, aber als Abgebrochen markiert und können keine Scans mehr annehmen.",
     "abortModalTitle": "Charge abbrechen?",
-    "abortReasonPlaceholder": "Grund (optional)",
+    "abortReasonPlaceholder": "Warum wird diese Charge abgebrochen?",
     "abortedNote": "Abgebrochen — {{reason}}",
     "abortedToast": "Charge {{barcode}} abgebrochen.",
     "acknowledge": "Bestätigen",
-    "acknowledgeNotePrompt": "Bestätigungshinweis (erforderlich):",
+    "acknowledgeNotePrompt": "Die Temperatur lag außerhalb des Bereichs. Halten Sie fest, was passiert ist, bevor diese Charge abgeschlossen werden kann.",
+    "actionFailed": "Das hat nicht geklappt. Öffnen Sie die Charge erneut und versuchen Sie es noch einmal.",
     "addedFlash": "{{displayId}} hinzugefügt",
     "backToBatches": "Zurück zu den Chargen",
     "batchCompleteToast": "Charge {{barcode}} abgeschlossen.",
     "cancel": "Abbrechen",
+    "coldChainAckPlaceholder": "Was ist passiert und was wurde unternommen…",
+    "coldChainAckTitle": "Temperaturabweichung bestätigen",
     "coldChainExcursion": "Kühlkettenabweichung erkannt: {{temp}} °C um {{time}}. Der Chargenabschluss ist blockiert, bis dies bestätigt wird.",
     "completeBatch": "Charge abschließen",
     "completeDisabledTitle": "{{missing}} fehlend, {{unexpected}} unerwartet — beheben oder überschreiben",
     "emptyManifest": "Es wurden noch keine Elemente in diese Charge eingescannt.",
+    "errors": {
+      "batchNotFound": "Diese Charge existiert nicht mehr. Gehen Sie zur Liste zurück und öffnen Sie sie erneut.",
+      "coldChainUnacknowledged": "Für diese Charge liegt eine nicht bestätigte Kühlketten-Abweichung vor. Bestätigen Sie sie oder verwenden Sie eine Supervisor-Freigabe.",
+      "destinationNotActive": "Elemente können nur in eine aktive Charge verschoben werden.",
+      "excursionAlreadyOpen": "Charge {{barcode}} hat bereits eine nicht bestätigte Kühlketten-Abweichung. Bestätigen Sie sie, bevor Sie eine weitere erfassen.",
+      "itemAlreadyInDestination": "Dieses Element ist bereits in der gewählten Charge.",
+      "itemNotFound": "Dieses Element ist nicht mehr in Charge {{barcode}}.",
+      "itemsMissing": "Noch nicht ausgescannt: {{items}}. Scannen Sie sie oder verwenden Sie eine Supervisor-Freigabe.",
+      "noExcursion": "Charge {{barcode}} hat keine Kühlketten-Abweichung zu bestätigen.",
+      "noItemsToTransfer": "Diese Charge hat keine Elemente zum Übergeben.",
+      "noRack": "Diese Charge hat kein wiederverwendbares Rack zum Freigeben.",
+      "notActive": "Charge {{barcode}} ist nicht mehr aktiv. Sie wurde eventuell bereits abgeglichen, übergeben oder geschlossen.",
+      "notCytologyProcessing": "Der Gerätestatus gilt nur für eine Zytologie-Verarbeitungscharge.",
+      "notDecal": "Die Übergabe an die Verarbeitung gilt nur für eine Entkalkungs-/Spezialverarbeitungscharge.",
+      "notReconciling": "Starten Sie zuerst den Abgleich von Charge {{barcode}}.",
+      "notStaining": "Dies gilt nur für eine Färbecharge.",
+      "rackCheckedOut": "Rack {{rackId}} ist bereits in einer anderen aktiven Charge. Geben Sie es dort zuerst frei oder wählen Sie ein anderes Rack.",
+      "rackIdRequired": "Ein wiederverwendbares Rack braucht seine Rack-ID.",
+      "rackNotRegistered": "Rack {{rackId}} ist nicht registriert. Prüfen Sie die ID oder registrieren Sie das Rack zuerst.",
+      "sameBatch": "Das Element ist bereits in dieser Charge. Wählen Sie eine andere.",
+      "sourceNotActive": "Elemente können nur aus einer aktiven Charge verschoben werden.",
+      "unexpectedScans_one": "{{count}} Element, das nicht zu dieser Charge gehört, wurde gescannt. Klären Sie es oder verwenden Sie eine Supervisor-Freigabe.",
+      "unexpectedScans_other": "{{count}} Elemente, die nicht zu dieser Charge gehören, wurden gescannt. Klären Sie sie oder verwenden Sie eine Supervisor-Freigabe."
+    },
     "forceCompletedToast": "Charge {{barcode}} mit Override zwangsabgeschlossen.",
     "instrumentReports": "Gerät meldet: {{status}}",
     "manifestSection": "Manifest ({{count}})",
@@ -1760,19 +1836,25 @@
     "movedFrom": "verschoben von {{barcode}}",
     "movedToast": "{{displayId}} nach {{barcode}} verschoben.",
     "noOtherBatches": "Keine andere aktive Charge zum Verschieben verfügbar.",
+    "notPermitted": "Sie haben dafür keine Berechtigung. Wenden Sie sich an Ihren Administrator.",
+    "noteLabel": "Notiz",
     "overdueBy": "Überfällig um {{duration}} — Ziel war {{target}}",
     "overrideAndComplete": "Überschreiben & abschließen",
     "overrideModalText": "{{missing}} Element(e) fehlen noch, {{unexpected}} unerwartete(r) Scan(s). Der Abschluss trotzdem wird dauerhaft unter Ihrem Namen erfasst und erfordert einen Grund.",
     "overrideModalTitle": "Vorgesetzten-Override",
     "overrideNote": "Der Abgleich wurde von {{user}} am {{time}} überschrieben — {{reason}}",
-    "overrideReasonPlaceholder": "Grund (erforderlich)",
+    "overrideReasonPlaceholder": "Warum wird diese Charge trotz Abweichungen abgeschlossen?",
     "rackReleased": "Gestell freigegeben",
     "rackReleasedToast": "Gestell {{rackId}} freigegeben — jetzt wieder verfügbar.",
     "reagentLotsUsed": "Verwendete Reagenz-/Lösungschargen",
+    "reasonLabel": "Grund",
+    "reasonRequired": "Ein Grund ist erforderlich.",
     "referral": {
       "delivered": "An Referenzlabor geliefert — Ergebnis ausstehend.",
       "dispatched": "An Referenzlabor versandt — Transit-Update ausstehend.",
       "inTransit": "Auf dem Transit zum Referenzlabor.",
+      "markDelivered": "Als zugestellt markieren",
+      "markInTransit": "Als unterwegs markieren",
       "resultReceived": "Ergebnis erhalten: {{result}}",
       "resultReceivedPdf": "Ergebnis erhalten (PDF):",
       "viewReport": "Bericht ansehen"
@@ -1784,6 +1866,11 @@
     "removedToast": "{{displayId}} aus Charge entfernt.",
     "scanHintActive": "Scannen Sie den Barcode einer Kassette oder eines Objektträgers, um ihn dieser Charge hinzuzufügen. Freihändig — kein Klicken in ein Feld nötig.",
     "scanHintReconcile": "Prozessunabhängige Verifizierung: Scannen Sie jedes physische Element, während Sie es vom Träger entfernen.",
+    "scanRejected": {
+      "alreadyInBatch": "{{displayId}} ist bereits in dieser Charge.",
+      "inOtherActiveBatch": "{{displayId}} ist bereits in der aktiven Charge {{barcode}}.",
+      "notFound": "„{{value}}“ passt zu keiner Kassette und keinem Objektträger eines Falls."
+    },
     "startReconciliation": "Abgleich starten",
     "supervisorOverrideLink": "Vorgesetzten-Override…",
     "transferToProcessing": "Zur Verarbeitung übertragen",
@@ -1802,6 +1889,8 @@
     "emptyActive": "Keine aktiven Chargen. Erstellen Sie eine, um zu beginnen.",
     "engraverMonitorTile": "Gravurmonitor",
     "engraverMonitorTitle": "Gravurmonitor — Status der Gravurgeräte auf hoher Ebene, in Echtzeit, von der Cassette Engine",
+    "equipmentLogTile": "Gerätelogbuch",
+    "equipmentLogTitle": "Wartung und Kalibrierung der Laborgeräte erfassen",
     "filterTileTitle": "Filtern nach: {{node}}",
     "filterTileTitleActive": "Anzeige: {{node}} — Klicken zum Zurücksetzen",
     "itemCount_one": "{{count}} Element",
@@ -2418,35 +2507,77 @@
   "cancerRegistrySection": {
     "addOverride": "+ Überschreibung hinzufügen",
     "cancel": "Abbrechen",
+    "detail": {
+      "configurableNote": "Kennung und Format stammen aus der öffentlichen Beschreibung des Registers. Vor dem Livebetrieb beides mit dessen eigener Spezifikation abgleichen.",
+      "demographics": "Abgleich über Name und Geburtsdatum",
+      "identifier": "Patientenkennung: {{identifier}}",
+      "jurisdictions": "Gilt in: {{list}}",
+      "wireFormat": "Gesendet als: {{format}}"
+    },
     "enterpriseCard": {
       "title": "Unternehmensstandard"
     },
     "facilityCard": {
       "title": "Einrichtungs-Überschreibungen"
     },
+    "goLiveRegistry": "Register",
+    "honoursOptOut": "Dieser Rechtsraum erkennt den Widerspruch eines Patienten gegen die Krebsregistermeldung an",
+    "honoursOptOutNote": "Ausgeschaltet lassen, wo die Meldung gesetzlich vorgeschrieben ist (die meisten Rechtsräume): Ein widersprechender Patient wird trotzdem gemeldet, und das Audit-Protokoll vermerkt es.",
     "noOverrides": "Keine Einrichtungs-Überschreibungen — jede Einrichtung verwendet den Unternehmensstandard.",
+    "notPermitted": "Sie dürfen die Krebsregistermeldung nicht ändern",
     "registries": {
       "adtGekidGermany": "ADT/GEKID (Deutschland)",
       "aihwAustralia": "AIHW (Australien)",
-      "cosdUk": "COSD (Vereinigtes Königreich)",
+      "bcrBelgium": "Belgisches Krebsregister (Belgien)",
+      "cosdUk": "COSD (England)",
       "cpacCanada": "CPAC (Kanada)",
       "incaFrance": "INCa (Frankreich)",
       "kccrKorea": "KCCR (Korea)",
       "naaccrUs": "NAACCR (Vereinigte Staaten)",
+      "ncriIreland": "NCRI (Irland)",
+      "nicrNorthernIreland": "NICR (Nordirland)",
+      "nkrNetherlands": "NKR / IKNL (Niederlande)",
       "none": "Keine — keine zentrale Registrierungspflicht",
-      "nzCancerRegistry": "NZ-Krebsregister (Neuseeland)"
+      "nzCancerRegistry": "NZ-Krebsregister (Neuseeland)",
+      "phsScotland": "Public Health Scotland (Schottland)"
     },
     "remove": "Entfernen",
     "save": "Speichern",
-    "subtitle": "An welches reale, nationale zentrale Krebsregister die bestätigten chirurgisch-pathologischen Diagnosen einer Einrichtung gemeldet werden. Wirklich getrennt von der Zytologie-Register-Meldung — ein zytologisches Screening-Ergebnis löst nie eine Krebsregister-Meldung aus, nur eine bestätigte chirurgisch-pathologische Signatur tut dies. Zweistufige Kaskade — Unternehmensstandard, mit einer optionalen Einrichtungs-Überschreibung für Labore, die an das Register einer anderen realen Rechtsprechung melden.",
+    "saved": "Krebsregistereinstellungen gespeichert",
+    "specStatus": {
+      "configurable": "Mit dem Register abstimmen",
+      "verified": "Spezifikation geprüft"
+    },
+    "subtitle": "Das Krebsregister, an das die bestätigten chirurgisch-pathologischen Diagnosen einer Einrichtung gemeldet werden. Getrennt von den Zytologie-Screening-Registern: Ein Screening-Ergebnis löst nie eine Krebsregistermeldung aus. Eine Standardeinstellung für das Unternehmen, mit optionalen Ausnahmen je Einrichtung.",
     "title": "Krebsregister-Meldung",
-    "unsavedChange": "Nicht gespeicherte Änderung"
+    "unknownRegistry": "Dieses Register ist PathScribe nicht bekannt",
+    "unsavedChange": "Nicht gespeicherte Änderung",
+    "wireFormats": {
+      "cda_cr_acp": "CDA CR-ACP",
+      "cosd_xml": "COSD XML",
+      "hd_s4s_json": "HD-S4S JSON (healthdata.be)",
+      "hl7v2_oru": "HL7 v2 ORU",
+      "naaccr_xml": "NAACCR XML",
+      "obds_xml": "oBDS XML",
+      "palga_protocol": "PALGA-Protokoll (speist das NKR)"
+    }
   },
   "capabilities": {
     "groups": {
       "administration": "Verwaltung: Personal, Rollen und System",
+      "autopsy": "Obduktion",
       "billing": "Abrechnung",
       "casework": "Fallbearbeitung",
+      "configAi": "Konfiguration: KI, Sprache, Aktionen und Makros",
+      "configBilling": "Konfiguration: Abrechnungstabellen",
+      "configCytology": "Konfiguration: Zytologie",
+      "configIntegrations": "Konfiguration: Schnittstellen und Eingang",
+      "configLab": "Konfiguration: Laborverzeichnisse und Fallablauf",
+      "configOperations": "Konfiguration: Druck, Etiketten und Arbeitsplätze",
+      "configQuality": "Konfiguration: Ergebnisse, Befundung und Qualität",
+      "configSystem": "Konfiguration: Sicherheit und System",
+      "configTemplates": "Konfiguration: Protokolle und Befundvorlagen",
+      "messaging": "Nachrichten",
       "platform": "ForMedrixAI-Plattformsupport",
       "qaCapa": "Qualitätssicherung: CAPA",
       "qaCytology": "Qualitätssicherung: Zytologie",
@@ -2458,6 +2589,38 @@
       "supportAccess": "Support-Zugriff: ForMedrixAI-Support in dieser Organisation"
     },
     "items": {
+      "addOnExceptionApproveDestructiveCut": {
+        "description": "Erlauben, einen Zusatzauftrag aus einem Block zu schneiden, der dadurch aufgebraucht werden kann.",
+        "label": "Destruktiven Schnitt freigeben"
+      },
+      "addOnOrderPlace": {
+        "description": "Nachschnitte, Spezialfärbungen, IHC oder molekulare/externe Tests an den Blöcken eines Falls anfordern und einen Zusatzauftrag nach einer Blockausnahme stornieren oder ändern.",
+        "label": "Zusatzauftrag erteilen"
+      },
+      "assistLisMessageIngest": {
+        "description": "Das LIS jetzt abfragen, eine Nachricht einfügen oder fehlgeschlagene Nachrichten wiederholen. Das ändert Fälle und startet die KI. Protokolliert.",
+        "label": "LIS-Nachrichten manuell verarbeiten"
+      },
+      "auditErrorResolve": {
+        "description": "Einen Fehler unter Audit-Protokoll → Fehlerprotokoll als behoben markieren. Wer und wann werden festgehalten.",
+        "label": "Fehler im Audit-Protokoll als behoben markieren"
+      },
+      "autopsyBodyRelease": {
+        "description": "Die Übergabe eines Leichnams an ein Bestattungsunternehmen oder die Familie erfassen und damit die Obhut der Leichenhalle beenden.",
+        "label": "Einen Leichnam freigeben"
+      },
+      "batchColdChainExcursionAcknowledge": {
+        "description": "Eine Temperaturabweichung einer Charge mit Notiz bestätigen, damit sie abgeschlossen werden kann.",
+        "label": "Kühlkettenabweichung bestätigen"
+      },
+      "batchReconciliationOverride": {
+        "description": "Eine Charge trotz fehlender oder unerwarteter Elemente mit Begründung als abgeschlossen markieren.",
+        "label": "Chargenabgleich trotzdem abschließen"
+      },
+      "batchRunAbort": {
+        "description": "Eine Verarbeitungs-, Färbe- oder Versandcharge mit Begründung abbrechen.",
+        "label": "Charge abbrechen"
+      },
       "billingAppliedCodeCorrect": {
         "description": "Die ursprüngliche Belastung eines angewendeten Abrechnungscodes per Gutschrift rückgängig machen und den korrigierten Code belasten.",
         "label": "Angewendeten Abrechnungscode korrigieren"
@@ -2486,17 +2649,337 @@
         "description": "Eine Aufbewahrungssperre mit Vermerk aufheben, damit das Material regulär entsorgt werden kann.",
         "label": "Aufbewahrungssperre aufheben"
       },
+      "caseRoutingRun": {
+        "description": "Alle nicht zugewiesenen Fälle auf einmal nach den Regeln zuweisen. Protokolliert.",
+        "label": "Nicht zugewiesene Fälle jetzt zuweisen"
+      },
+      "configAbnormalTriggersManage": {
+        "description": "Festlegen, was als auffälliger Befund gilt, und die Erkennung ein- oder ausschalten. Protokolliert.",
+        "label": "Regeln für auffällige Befunde verwalten"
+      },
+      "configActionGroupsManage": {
+        "description": "Festlegen, welche Aktionen jeder Arbeitsplatz erlaubt. Protokolliert.",
+        "label": "Aktionsgruppen verwalten"
+      },
+      "configActionsManage": {
+        "description": "Tastenkürzel und Sprachbefehle für alle ändern. Protokolliert.",
+        "label": "Tastatur- und Sprachbefehle verwalten"
+      },
+      "configAiBehaviorManage": {
+        "description": "Die KI-Funktionen (Makroskopie, Mikroskopie und weitere) für alle ein- oder ausschalten. Protokolliert.",
+        "label": "KI-Funktionen verwalten"
+      },
+      "configAiModelManage": {
+        "description": "Das Modell festlegen, aus dem die klinischen Vorschläge stammen. Protokolliert.",
+        "label": "Standard-KI-Modell wählen"
+      },
+      "configAiProviderManage": {
+        "description": "Den KI-Dienst des Labors und den Standard-Befundungsmodus festlegen. Protokolliert.",
+        "label": "KI-Dienst verwalten"
+      },
+      "configAssetLocationsManage": {
+        "description": "Orte anlegen und bearbeiten, an denen Material und Verstorbene aufbewahrt werden. Protokolliert.",
+        "label": "Lagerorte verwalten"
+      },
+      "configAssistPollingManage": {
+        "description": "Festlegen, wie oft und wo PathScribe im Assist-Modus das LIS abfragt. Protokolliert.",
+        "label": "LIS-Abfrage im Assist-Modus verwalten"
+      },
+      "configBillingCodeImportRun": {
+        "description": "Abrechnungscodes in großer Menge importieren oder einen Import zurücknehmen. Protokolliert.",
+        "label": "Abrechnungscodes importieren"
+      },
+      "configBillingModifiersManage": {
+        "description": "Neue Versionen der Modifikatortabelle vorbereiten (freigabepflichtig). Protokolliert.",
+        "label": "CPT-Modifikatoren verwalten"
+      },
+      "configBillingNcciManage": {
+        "description": "Die NCCI-Prüfregeln eines Quartals importieren (freigabepflichtig). Protokolliert.",
+        "label": "NCCI-Prüfregeln verwalten"
+      },
+      "configBillingRulesManage": {
+        "description": "Versionen von Abrechnungsregeln anlegen, einreichen und stilllegen. Protokolliert.",
+        "label": "Abrechnungsregeln verwalten"
+      },
+      "configBillingRvuManage": {
+        "description": "Neue Versionen der RVU-Werte vorbereiten (freigabepflichtig). Protokolliert.",
+        "label": "RVU-Zuordnung verwalten"
+      },
+      "configBillingTablesApprove": {
+        "description": "Abrechnungsregeln, Modifikatoren, RVU, NCCI und Code-Importe freigeben oder ablehnen. Eigene Uploads lassen sich nicht freigeben. Protokolliert.",
+        "label": "Abrechnungstabellen freigeben"
+      },
+      "configBillingTriggersManage": {
+        "description": "Festlegen, wann Leistungen abgerechnet werden, für das Labor und jeden Standort. Protokolliert.",
+        "label": "Abrechnungsauslöser verwalten"
+      },
+      "configCancerRegistryManage": {
+        "description": "Festlegen, an welches Krebsregister jede Einrichtung meldet, ob Ergebnisse an das Test- oder Livesystem gehen und ob der Rechtsraum einen Patientenwiderspruch anerkennt. Protokolliert.",
+        "label": "Krebsregistermeldung verwalten"
+      },
+      "configCaseFlagsManage": {
+        "description": "Die Kennzeichen anlegen und bearbeiten, die an Fällen und Proben gesetzt werden können. Protokolliert.",
+        "label": "Fallkennzeichen verwalten"
+      },
+      "configCaseMasksManage": {
+        "description": "Festlegen, wie Fallnummern aufgebaut sind. Protokolliert.",
+        "label": "Fallnummernformate verwalten"
+      },
+      "configCaseRoutingManage": {
+        "description": "Festlegen, welcher Pool oder Pathologe einen neuen Fall erhält. Protokolliert.",
+        "label": "Fallzuweisungsregeln verwalten"
+      },
+      "configCassetteColorsManage": {
+        "description": "Die Farbcodierung der Kassetten ändern. Protokolliert.",
+        "label": "Kassettenfarben verwalten"
+      },
+      "configCassetteRoutingManage": {
+        "description": "Ändern, wie Kassetten gedruckt und weitergeleitet werden. Protokolliert.",
+        "label": "Kassettenzuweisung verwalten"
+      },
+      "configConcordanceReviewManage": {
+        "description": "Die Standardeinstellung der Konkordanzprüfung des Labors festlegen. Protokolliert.",
+        "label": "Konkordanzprüfung verwalten"
+      },
+      "configContainerTypesManage": {
+        "description": "Behälter und ihre Fixiermittel anlegen und bearbeiten. Protokolliert.",
+        "label": "Behälterarten verwalten"
+      },
+      "configContributionSettingsManage": {
+        "description": "Festlegen, ob Pathologen Durchschnittswerte der Kollegen sehen, und die Zeitzone der Einrichtung bestimmen. Protokolliert.",
+        "label": "Beitragseinstellungen verwalten"
+      },
+      "configCrosswalkManage": {
+        "description": "Ändern, wie eingehende Probencodes zugeordnet werden. Protokolliert.",
+        "label": "Probencode-Zuordnung verwalten"
+      },
+      "configCytologyCategoriesManage": {
+        "description": "Die gynäkologischen und nicht-gynäkologischen Diagnosekategorien anlegen, bearbeiten und deaktivieren. Protokolliert.",
+        "label": "Zytologie-Kategorien verwalten"
+      },
+      "configCytologyComplianceManage": {
+        "description": "Die tägliche CLIA-Arbeitslastgrenze und die CAP-5-Jahres-Rückschau für das Unternehmen oder eine Einrichtung ein- oder ausschalten. Protokolliert.",
+        "label": "Länderspezifische Zytologieregeln verwalten"
+      },
+      "configCytologyInstrumentationManage": {
+        "description": "Die Bildgebungs- und Präparationsgeräte festlegen, für das Labor und jede Einrichtung. Protokolliert.",
+        "label": "Zytologie-Geräte verwalten"
+      },
+      "configCytologyNomenclatureManage": {
+        "description": "Das zytologische Befundsystem für das Labor und jede Einrichtung festlegen. Protokolliert.",
+        "label": "Zytologie-Nomenklatur verwalten"
+      },
+      "configCytologyQcRatesManage": {
+        "description": "Den Anteil zufälliger Nachmusterungen für das Labor, jede Einrichtung und jede Person festlegen. Protokolliert.",
+        "label": "QK-Nachmusterungsraten verwalten"
+      },
+      "configCytologyQcRulesManage": {
+        "description": "Festlegen, welche Pap-Fälle zwingend nachgeprüft werden. Protokolliert.",
+        "label": "Zytologie-QK-Regeln verwalten"
+      },
+      "configCytologyRoutingManage": {
+        "description": "Festlegen, wohin Zytologiefälle gehen, für das Labor und jede Einrichtung. Protokolliert.",
+        "label": "Zytologie-Zuweisung verwalten"
+      },
+      "configCytologyScreeningStrategyManage": {
+        "description": "Die primäre Methode des Zervix-Screenings festlegen, für das Labor und jede Einrichtung. Protokolliert.",
+        "label": "Screening-Strategie verwalten"
+      },
+      "configCytologySeverityMappingManage": {
+        "description": "Histologische SNOMED-CT-Codes den Schweregraden der zyto-histologischen Korrelation zuordnen. Protokolliert.",
+        "label": "Histologische Schweregrad-Zuordnung verwalten"
+      },
+      "configCytologyWorkloadCapManage": {
+        "description": "Das tägliche Objektträgerlimit für das Labor, jede Einrichtung und jede Person festlegen. Protokolliert.",
+        "label": "Objektträger-Arbeitslimit verwalten"
+      },
+      "configCytotechCompetencyManage": {
+        "description": "Kompetenzprüfungen von Zytotechnikern beginnen und beenden. Protokolliert.",
+        "label": "Kompetenz der Zytotechniker verwalten"
+      },
+      "configDeficiencyTypesManage": {
+        "description": "Arten von Befundmängeln und ihrer Behebung anlegen und bearbeiten. Protokolliert.",
+        "label": "Mängelarten verwalten"
+      },
+      "configDelegationTypesManage": {
+        "description": "Festlegen, wer für wen handeln darf. Protokolliert.",
+        "label": "Vertretungsarten verwalten"
+      },
+      "configDeliveryRulesManage": {
+        "description": "Festlegen, wohin Befunde gesendet werden. Protokolliert.",
+        "label": "Befundzustellregeln verwalten"
+      },
       "configDemoDataReset": {
         "description": "Die Demodaten aller Tester löschen und die Ausgangsdaten wiederherstellen. Nur in Demoversionen.",
         "label": "Alle Demodaten zurücksetzen"
+      },
+      "configDepartmentsManage": {
+        "description": "Abteilungen und ihre Aufbewahrungsausnahmen anlegen und bearbeiten. Protokolliert.",
+        "label": "Abteilungen verwalten"
+      },
+      "configDisplayProfilesManage": {
+        "description": "Festlegen, was die Wandanzeigen zeigen. Protokolliert.",
+        "label": "Wandanzeige-Profile verwalten"
+      },
+      "configEquipmentManage": {
+        "description": "Geräte anlegen und bearbeiten sowie Wartung und Kalibrierung erfassen. Protokolliert.",
+        "label": "Geräte verwalten"
+      },
+      "configExternalResourcesManage": {
+        "description": "Die den Benutzern angezeigten Links anlegen, bearbeiten und löschen. Protokolliert.",
+        "label": "Externe Links verwalten"
+      },
+      "configFacilitiesManage": {
+        "description": "Einrichtungen, ihre Rollen, LIS- und Abrechnungseinstellungen und ihre Standorte anlegen und bearbeiten. Protokolliert.",
+        "label": "Einrichtungen verwalten"
       },
       "configFieldRequirementsManage": {
         "description": "Festlegen, welche Felder jede Seite vor dem Speichern verlangt, für Ihre Organisation. Gesperrte Felder bleiben Pflicht.",
         "label": "Pflichtfelder verwalten"
       },
+      "configFppeManage": {
+        "description": "Gezielte Bewertungen der ärztlichen Praxis (FPPE) beginnen und beenden. Protokolliert.",
+        "label": "FPPE-Zuweisungen verwalten"
+      },
+      "configGrossingHardwareManage": {
+        "description": "Zuschnittgeräte und ihre Verbindungen anlegen und bearbeiten. Protokolliert.",
+        "label": "Zuschnittgeräte verwalten"
+      },
+      "configGrossingRoutesManage": {
+        "description": "Festlegen, wo Proben zugeschnitten werden, wenn der übliche Weg nicht gilt. Protokolliert.",
+        "label": "Zuschnitt-Ausnahmen verwalten"
+      },
+      "configInterfacePreviewView": {
+        "description": "Eine ausgehende Nachricht oder einen Abrechnungsexport für einen Patienten oder Fall anhand der Kennung ansehen. Protokolliert.",
+        "label": "Schnittstellennachrichten ansehen"
+      },
+      "configIntraopCriticalResultsManage": {
+        "description": "Einträge hinzufügen, ändern oder deaktivieren, die einen Schnellschnittbefund als kritisch markieren.",
+        "label": "Verzeichnis kritischer intraoperativer Befunde verwalten"
+      },
+      "configLabelLayoutsManage": {
+        "description": "Ändern, was auf Etiketten gedruckt wird. Protokolliert.",
+        "label": "Etikettenlayouts verwalten"
+      },
+      "configMacrosManage": {
+        "description": "Befundmakros des Unternehmens und der Einrichtungen anlegen, bearbeiten und deaktivieren. Eigene Makros verwaltet jeder selbst. Protokolliert.",
+        "label": "Gemeinsame Makros verwalten"
+      },
+      "configMigrationMappingsManage": {
+        "description": "Ändern, wie Altdaten importiert werden. Protokolliert.",
+        "label": "Migrationszuordnungen verwalten"
+      },
+      "configMolecularControlRulesManage": {
+        "description": "Die für die Platten eines molekularen Assays erforderlichen Kontrollen und die für sein Probenrack zulässigen Deck-Positionen hinzufügen, ändern oder löschen.",
+        "label": "Kontrollregeln für molekulare Assays verwalten"
+      },
+      "configOrSuiteTerminalsManage": {
+        "description": "Festlegen, wo Schnellschnittergebnisse angezeigt werden. Protokolliert.",
+        "label": "OP-Terminals verwalten"
+      },
+      "configParticipationTypesManage": {
+        "description": "Festlegen, wer welche Befunde unterschreiben darf. Protokolliert.",
+        "label": "Beteiligungsarten verwalten"
+      },
+      "configPaymentMappingsManage": {
+        "description": "Zahlungsarten je Rechtsraum zuordnen. Protokolliert.",
+        "label": "Zahlungszuordnungen verwalten"
+      },
+      "configPaymentTypesManage": {
+        "description": "Die Liste der Zahlungsarten anlegen und bearbeiten. Protokolliert.",
+        "label": "Zahlungsarten verwalten"
+      },
+      "configPhysiciansManage": {
+        "description": "Ärzte anlegen, bearbeiten, bestätigen und deaktivieren. Protokolliert.",
+        "label": "Ärzteverzeichnis verwalten"
+      },
+      "configPrintRoutingManage": {
+        "description": "Festlegen, welcher Drucker welchen Druckauftrag erhält. Protokolliert.",
+        "label": "Druckzuweisung verwalten"
+      },
+      "configPrintSettingsManage": {
+        "description": "Druckregeln und Bedarfsdruck-Grenzen ändern, für das Labor und jede Einrichtung. Protokolliert.",
+        "label": "Druckeinstellungen verwalten"
+      },
+      "configPrintersManage": {
+        "description": "Druckerprofile anlegen, bearbeiten und löschen. Protokolliert.",
+        "label": "Drucker verwalten"
+      },
+      "configProcessingProtocolsManage": {
+        "description": "Zuschnitt- und Verarbeitungsprotokolle anlegen und bearbeiten sowie frühere Versionen wiederherstellen. Protokolliert.",
+        "label": "Verarbeitungsprotokolle verwalten"
+      },
+      "configProtocolApprove": {
+        "description": "Ein synoptisches Protokoll freigeben, Änderungen anfordern oder es in den Entwurf zurücksetzen. Protokolliert.",
+        "label": "Synoptische Protokolle prüfen"
+      },
+      "configProtocolDraft": {
+        "description": "Entwürfe synoptischer Protokolle speichern, einreichen und löschen. Protokolliert.",
+        "label": "Synoptische Protokolle entwerfen"
+      },
+      "configProtocolPublish": {
+        "description": "Ein freigegebenes synoptisches Protokoll in Gebrauch nehmen. Protokolliert.",
+        "label": "Synoptische Protokolle veröffentlichen"
+      },
+      "configProtocolRetire": {
+        "description": "Ein synoptisches Protokoll außer Gebrauch nehmen, auch ein veröffentlichtes, oder es als Entwurf wiederherstellen. Protokolliert.",
+        "label": "Synoptische Protokolle stilllegen"
+      },
+      "configQaTypesManage": {
+        "description": "QS-Aktivitäts- und Supervisionsarten anlegen und bearbeiten. Die Standardarten lassen sich nicht abschalten. Protokolliert.",
+        "label": "QS-Aktivitätsarten verwalten"
+      },
+      "configReagentLotsManage": {
+        "description": "Chargen von Färbereagenzien anlegen und bearbeiten. Protokolliert.",
+        "label": "Reagenzchargen verwalten"
+      },
+      "configRegistryGoLiveManage": {
+        "description": "Ob die Person, die den Livebetrieb eines Registers beantragt, ihn auch freigeben darf, und wie viele Freigaben nötig sind (wie bei der Vorlagenprüfung). Protokolliert.",
+        "label": "Freigabeeinstellungen für den Registerlivebetrieb verwalten"
+      },
+      "configReleaseBufferManage": {
+        "description": "Festlegen, wie lange ein unterschriebener Befund vor der Freigabe wartet. Protokolliert.",
+        "label": "Freigabepuffer verwalten"
+      },
+      "configReportAppearanceManage": {
+        "description": "Die zugelassenen Schriften und die Standard-Textstile der Befunde festlegen. Protokolliert.",
+        "label": "Befunddarstellung verwalten"
+      },
+      "configReportTemplateManage": {
+        "description": "Befundlayouts und ihre Bausteine anlegen, bearbeiten, kopieren, archivieren und löschen. Protokolliert.",
+        "label": "Befundvorlagen und -bausteine bearbeiten"
+      },
+      "configReportTemplatePublish": {
+        "description": "Ein Befundlayout oder einen Baustein in Gebrauch nehmen. Protokolliert.",
+        "label": "Befundvorlagen und -bausteine veröffentlichen"
+      },
+      "configResearchFeedManage": {
+        "description": "Die Suche des Literatur-Feeds ändern. Protokolliert.",
+        "label": "Literatur-Feed verwalten"
+      },
+      "configRetentionPolicyManage": {
+        "description": "Festlegen, wie lange Material und Unterlagen aufbewahrt werden. Protokolliert.",
+        "label": "Aufbewahrungsrichtlinie verwalten"
+      },
       "configRolesManage": {
         "description": "Rollen im Rollenverzeichnis anlegen, bearbeiten und duplizieren, einschließlich der Berechtigungen, die jede Rolle gewährt.",
         "label": "Rollen verwalten"
+      },
+      "configScanStationsManage": {
+        "description": "Scanstationen, ihre Schritte und Drucker anlegen und bearbeiten. Protokolliert.",
+        "label": "Scanstationen verwalten"
+      },
+      "configScreeningRegistryManage": {
+        "description": "Festlegen, an welches Zervixkarzinom-Screening-Register jede Einrichtung meldet, sowie die Codezuordnungen jedes Registers und was zurückgehalten statt gesendet wird. Protokolliert.",
+        "label": "Meldungen an Screening-Register verwalten"
+      },
+      "configSessionSecurityManage": {
+        "description": "Die Abmeldung bei Inaktivität für alle festlegen. Protokolliert.",
+        "label": "Sitzungs-Timeout verwalten"
+      },
+      "configSpecimenDictionaryManage": {
+        "description": "Probenarten und ihre Standardwerte anlegen und bearbeiten. Protokolliert.",
+        "label": "Probenverzeichnis verwalten"
       },
       "configStaffAccessAssign": {
         "description": "Ändern, was ein Mitarbeiter tun oder sehen darf: Rollen, Einrichtungszuordnung, Zugriff auf Pädiatrie, Orchestrierung und organisationsübergreifende QA sowie rechtsraumbezogene Qualifikationen.",
@@ -2505,6 +2988,14 @@
       "configStaffEdit": {
         "description": "Personal anlegen und Angaben bearbeiten: Name, Kontakt, Zulassung, Sprach- und Rechtschreibeinstellungen, Unterschrift, OP-PIN und Status.",
         "label": "Personaldatensätze bearbeiten"
+      },
+      "configStainDictionaryManage": {
+        "description": "Färbungen, Schneideprotokolle, Auftragsmakros und molekulare Zielstrukturen anlegen und bearbeiten. Protokolliert.",
+        "label": "Färbeverzeichnis verwalten"
+      },
+      "configSubspecialtiesManage": {
+        "description": "Subspezialitäten und die ihnen zugeordneten Probenarten anlegen und bearbeiten. Protokolliert.",
+        "label": "Subspezialitäten verwalten"
       },
       "configSupportAccessApprove": {
         "description": "Eine Anfrage des ForMedrixAI-Supports auf Zugriff auf die Daten dieser Organisation genehmigen, ablehnen oder widerrufen.",
@@ -2518,6 +3009,110 @@
         "description": "Alles einsehen, was der ForMedrixAI-Support in dieser Organisation getan hat, prüfen, dass das Protokoll nicht verändert wurde, und es als CSV oder JSON exportieren.",
         "label": "Support-Audit anzeigen und exportieren"
       },
+      "configTatTargetsManage": {
+        "description": "Ziele für die Bearbeitungszeit anlegen, bearbeiten und löschen. Protokolliert.",
+        "label": "Bearbeitungszeit-Ziele verwalten"
+      },
+      "configTemplateGovernanceManage": {
+        "description": "Die Einstellungen der Vorlagenprüfung ändern: ob Autoren eigene Vorlagen freigeben dürfen und wie viele unabhängige Prüfer eine Vorlage braucht. Protokolliert.",
+        "label": "Einstellungen der Vorlagenprüfung verwalten"
+      },
+      "configTemplateRoutingManage": {
+        "description": "Festlegen, welche Befundvorlage ein Fall erhält. Protokolliert.",
+        "label": "Vorlagen-Zuordnungsregeln verwalten"
+      },
+      "configValidationStudiesManage": {
+        "description": "Methodenvalidierungsstudien anlegen, bearbeiten, einreichen, aktivieren und abschließen. Protokolliert.",
+        "label": "Validierungsstudien verwalten"
+      },
+      "configVendorIntegrationsManage": {
+        "description": "Anbindungen an Objektträger-, Bild- und KI-Anbieter anlegen und bearbeiten. Protokolliert.",
+        "label": "Herstelleranbindungen verwalten"
+      },
+      "configVoiceManage": {
+        "description": "Die Spracheingabe für die gesamte Installation ein- oder ausschalten. Protokolliert.",
+        "label": "Sprache ein- oder ausschalten"
+      },
+      "configWorkstationGroupsManage": {
+        "description": "Den QK-Modus an jedem Arbeitsplatz festlegen. Protokolliert.",
+        "label": "Arbeitsplatzgruppen verwalten"
+      },
+      "cytologyCaseFinalize": {
+        "description": "Einen Zytologiefall abschließen, bevor alle Proben freigegeben sind, mit Begründung. Protokolliert; die nicht freigegebenen Proben werden genannt und können weiterhin freigegeben werden.",
+        "label": "Zytologiefall vorzeitig abschließen"
+      },
+      "cytologyCtReportSignOut": {
+        "description": "Freigabe eines negativen gynäkologischen Falls durch einen Zytologieassistenten (oder nach der Ausnahme für erfahrene Zytologieassistenten). Entfernen Sie sie aus der Rolle, wo Zytologieassistenten keine Befunde unterzeichnen dürfen. Erfordert auch die Freigabeberechtigung.",
+        "label": "Zytologiebefund als Zytologieassistent freigeben"
+      },
+      "cytologyFinalDiagnosisSelect": {
+        "description": "Festlegen, welche Befundung die Enddiagnose der Probe ist, die freigegeben wird. Eine Befundung, die einen Pathologen erfordert, kann weiterhin nur von einem Pathologen gewählt werden.",
+        "label": "Zytologische Enddiagnose festlegen"
+      },
+      "cytologyHistologyCorrelationRecord": {
+        "description": "Erfassen, ob eine spätere Biopsie mit einer Zytologiediagnose übereinstimmt, oder eine Kandidatenbiopsie verwerfen, die nicht zutrifft.",
+        "label": "Zyto-histologische Korrelation erfassen"
+      },
+      "cytologyQcFlagRemove": {
+        "description": "Eine zufällige oder risikobasierte QK-Markierung von einer Zytologieprobe entfernen. Solange sie markiert ist, kann ein Zytologieassistent sie ohne Nachbefundung nicht freigeben. Jede Entfernung wird protokolliert.",
+        "label": "Zytologische QK-Markierung entfernen"
+      },
+      "cytologyQcReviewBypass": {
+        "description": "Einen Fall der Zytologie-QK-Warteschlange mit schriftlicher Begründung endgültig freigeben; die Begründung wird im Audit-Protokoll gespeichert.",
+        "label": "Zytologie-QK-Prüfung umgehen (Supervisor)"
+      },
+      "cytologyQcReviewRecord": {
+        "description": "Einen Fall aus der Zytologie-QK-Peer-Review-Warteschlange übernehmen und erfassen, ob Sie der Erstbeurteilung zustimmen oder eine Diskrepanz festgestellt haben.",
+        "label": "Zytologie-QK-Peer-Review erfassen"
+      },
+      "cytologyReportAddend": {
+        "description": "Einen Nachtrag freigeben, der einen freigegebenen Zytologiebefund ergänzt und dessen Diagnose bestehen lässt.",
+        "label": "Nachtrag zu einem freigegebenen Zytologiebefund hinzufügen"
+      },
+      "cytologyReportCorrect": {
+        "description": "Eine korrigierte Diagnose für einen freigegebenen Zytologiebefund freigeben. Der ursprüngliche Befund bleibt gespeichert und die Korrektur wird als Korrektur versendet.",
+        "label": "Freigegebenen Zytologiebefund korrigieren"
+      },
+      "cytologyReportSignOut": {
+        "description": "Eine Zytologieprobe freigeben oder zur Gegenzeichnung weitergeben. Zeichnungsbefugnis sowie die Regeln für Zytologieassistenten und Gegenzeichnung gelten weiterhin.",
+        "label": "Zytologiebefund freigeben"
+      },
+      "cytologyRetrospectiveReviewRecord": {
+        "description": "Ergebnis und etwaige Korrekturmaßnahme der CAP-5-Jahres-Rückschau eines früheren negativen Zytologiebefunds erfassen.",
+        "label": "5-Jahres-Rückschau erfassen"
+      },
+      "cytologyReviewRecord": {
+        "description": "Eine Screening- oder Pathologenbefundung einer Zytologieprobe im Zytologie-Arbeitsbereich speichern oder die eigene bearbeiten. Arbeitslastgrenzen und QK-Auswahl gelten weiterhin.",
+        "label": "Zytologische Befundung erfassen"
+      },
+      "cytologyRevisionRequest": {
+        "description": "Eine Notiz zur Zytologiebefundung einer anderen Person als überarbeitungsbedürftig markieren. Ein Zytologieassistent kann die Probe erst freigeben, wenn der Verfasser überarbeitet hat oder ein Pathologe eine eigene Befundung erfasst.",
+        "label": "Überarbeitung einer Zytologiebefundung anfordern"
+      },
+      "equipmentMaintenanceRecord": {
+        "description": "Wartung, Kalibrierung und Störungen im Servicebuch eines Geräts erfassen (Chargenverwaltung → Gerätelogbuch). Protokolliert.",
+        "label": "Gerätewartung erfassen"
+      },
+      "messageSecureEmailSend": {
+        "description": "Eine sichere E-Mail an eine Adresse außerhalb der Organisation senden.",
+        "label": "Sichere E-Mail senden"
+      },
+      "messageSend": {
+        "description": "Eine interne Nachricht an andere Mitarbeitende senden oder darauf antworten.",
+        "label": "Nachricht oder Antwort senden"
+      },
+      "molecularBatchSupersede": {
+        "description": "Einen molekularen Lauf mit Begründung stilllegen und seinen Ersatz starten (Klonen und ersetzen).",
+        "label": "Molekularen Lauf ersetzen"
+      },
+      "patientNationalIdentifierRecord": {
+        "description": "Die nationale Gesundheitskennnummer, auf die ein Register sich stützt (NHS-Nummer, BSN, IHI usw.), erfassen oder entfernen. Die Prüfziffer wird geprüft und das Ergebnis gespeichert. Protokolliert.",
+        "label": "Nationale Kennnummer eines Patienten erfassen"
+      },
+      "patientRegistryConsentRecord": {
+        "description": "Den Widerspruch eines Patienten gegen die Meldung an das Screening-Programm und, wo gesetzlich zulässig, an das Krebsregister erfassen oder aufheben. Protokolliert.",
+        "label": "Registerwiderspruch eines Patienten erfassen"
+      },
       "platformCrossTenantCasesView": {
         "description": "Zugriff des PathScribe-Supports auf einen Fall außerhalb der eigenen Organisation. Jedes Öffnen wird im Audit-Log protokolliert.",
         "label": "Fälle anderer Organisationen öffnen (Support)"
@@ -2525,6 +3120,10 @@
       "platformGoverningBodiesManage": {
         "description": "Festlegen, welche Inhalte der Fachgesellschaften (CAP, RCPath, ICCR, RCPA) in die synoptische Bibliothek der Plattform übernommen werden.",
         "label": "Inhalte der Fachgesellschaften verwalten"
+      },
+      "platformSigningRulesManage": {
+        "description": "Die nationalen Signaturregeln für jedes Land festlegen. Nur ForMedrixAI-Support. Protokolliert.",
+        "label": "Länderspezifische Signaturregeln verwalten"
       },
       "qaAccessRequestResponseExport": {
         "description": "Zugriffsanfragen von Patienten und ihre Antwortzeiten als CSV herunterladen.",
@@ -2582,9 +3181,41 @@
         "description": "Den Bericht zu Diskordanz und Abgleich als CSV herunterladen.",
         "label": "Diskordanz und Abgleich exportieren"
       },
+      "qaRegistryTransmissionAuditExport": {
+        "description": "Herunterladen, was an Screening- und Krebsregister gesendet wurde: Sendezeit, Registerstatus und dessen Antwortcode. Ohne Patientennamen oder Patientennummern. Protokolliert.",
+        "label": "Übertragungsprotokoll an Register exportieren"
+      },
+      "referralTransitStatusUpdate": {
+        "description": "Festhalten, dass eine an ein externes Labor gesendete Charge unterwegs oder zugestellt ist. Der Status kann nur vorwärts gehen.",
+        "label": "Transportstatus einer Überweisungscharge aktualisieren"
+      },
+      "registryLiveRegisterApprove": {
+        "description": "Den Wechsel eines Registers vom Testsystem zum Livebetrieb freigeben, unter Angabe der Funktion und mit erneuter Eingabe der Anmeldedaten. Live, sobald die vom Labor verlangten Freigaben vorliegen. Dauerhaft protokolliert.",
+        "label": "Livebetrieb eines Registers freigeben"
+      },
+      "registryRevisionReview": {
+        "description": "Die Änderung bereits angenommener Daten durch ein Register als geprüft markieren, damit sie die Arbeitsliste der Registerausnahmen verlässt. Die dazu eröffnete CAPA-Abweichung bleibt in der Qualitätssicherung offen. Protokolliert.",
+        "label": "Registerkorrektur als geprüft markieren"
+      },
+      "registrySubmissionResend": {
+        "description": "Eine zurückgehaltene, nicht zugestellte, unbeantwortete oder abgelehnte Übermittlung mit den aktuellen Daten neu prüfen und erneut senden (dieselbe Übermittlung oder eine neue Version, wenn sich die Daten geändert haben). Protokolliert.",
+        "label": "Registerübermittlung erneut senden"
+      },
+      "registryTestSuiteRun": {
+        "description": "Die synthetischen Testfälle (nur fiktive Patienten) an das Testsystem eines Registers senden, nur auf einer Validierungsinstanz. Protokolliert.",
+        "label": "Registertestsuite ausführen"
+      },
       "reportChangeHistoryExport": {
         "description": "Den Änderungsverlauf des Befunds eines Falls (wer welches Feld wann an welchem Arbeitsplatz geändert hat) als CSV herunterladen.",
         "label": "Änderungsverlauf des Befunds exportieren"
+      },
+      "retentionDisposalReportExport": {
+        "description": "Den Entsorgungsnachweis mit den Eingangsnummern der Fälle herunterladen.",
+        "label": "Entsorgungsbericht exportieren"
+      },
+      "retentionMaterialDispose": {
+        "description": "Nassgewebe, Blöcke oder Objektträger in der Entsorgungsliste scannen, um sie nach Ablauf der Aufbewahrungsfrist als entsorgt zu kennzeichnen.",
+        "label": "Aufbewahrtes Material entsorgen"
       },
       "screenAccessionOpen": {
         "description": "Den Bildschirm „Eingang“ und seine Kachel auf der Startseite sehen.",
@@ -2638,6 +3269,10 @@
         "description": "Den Bildschirm „Qualitätssicherung“ und seine Kachel in „Qualität & Compliance“ sehen.",
         "label": "„Qualitätssicherung“ öffnen"
       },
+      "screenRegistryExceptionsOpen": {
+        "description": "Jede Registerübermittlung sehen, die Bearbeitung braucht: zurückgehalten, nicht zugestellt, abgelehnt oder unbeantwortet.",
+        "label": "Registerausnahmen öffnen"
+      },
       "screenSearchOpen": {
         "description": "Den Bildschirm „Suche“ und seine Kachel auf der Startseite sehen.",
         "label": "„Suche“ öffnen"
@@ -2653,6 +3288,14 @@
       "screenWorklistOpen": {
         "description": "Den Bildschirm „Arbeitsliste“ und seine Kachel auf der Startseite sehen.",
         "label": "„Arbeitsliste“ öffnen"
+      },
+      "surgicalQaReviewRecord": {
+        "description": "Ein chirurgisches Peer-Review oder ein Biopsie-Resektions-Korrelationsreview erfassen oder einen Korrelationskandidaten als nicht relevant verwerfen.",
+        "label": "Chirurgisches QS-Review nach Freigabe erfassen"
+      },
+      "validationApprovalRecord": {
+        "description": "Die Freigabe einer Validierungsstudie durch ein Gremium erfassen. Protokolliert.",
+        "label": "Validierungsfreigabe erfassen"
       }
     },
     "notGranted": "Ihre Rollen enthalten „{{capability}}“ nicht.",
@@ -2752,11 +3395,6 @@
     "distributionSummary": "Verteilung der signierten Fälle nach Kategorie · {{total}} insgesamt",
     "pct": "{{pct}}%",
     "tooltipCasesPct": "{{count}} Fälle · {{pct}}%"
-  },
-  "caseNotFound": {
-    "back": "Zurück zur Arbeitsliste",
-    "subtitle": "Es gibt keinen Fall mit der ID <id>{{id}}</id>",
-    "title": "Fall nicht gefunden"
   },
   "casePoolAssignmentSection": {
     "assignmentTimeoutHint": "Wie lange PathScribe auf eine Zuweisung durch das LIS wartet, bevor an einen Pool weitergeleitet wird. 0 = sofortige Weiterleitung.",
@@ -3020,6 +3658,11 @@
     "staffCard": {
       "onCaseBadge": "im Fall"
     }
+  },
+  "caseUnavailable": {
+    "back": "Zurück",
+    "body": "Sie haben keine Zugriffsrechte für den Fall <id>{{id}}</id>.",
+    "title": "Kein Zugriff"
   },
   "cassetteColorControl": {
     "notYetResolved": "Noch nicht aufgelöst",
@@ -3635,6 +4278,7 @@
     "showInactive": "Inaktive anzeigen",
     "signOut": "Abmelden",
     "skip": "Überspringen",
+    "unknownUser": "Unbekannter Benutzer",
     "yes": "Ja"
   },
   "computeDraftDiff": {
@@ -3673,6 +4317,10 @@
     "saved": "Gespeichert",
     "subtitle": "Steuert den automatischen Vergleich eines vorläufigen Befunds (z. B. einer Schnellschnittdiagnose) mit der entsprechenden endgültigen Diagnose sowie den optionalen Prüfbildschirm, der bei der Signatur angezeigt wird. Der Pathologe trifft immer die tatsächliche Übereinstimmungsentscheidung — diese Einstellungen steuern nur, ob das System hilft, sie sichtbar zu machen, niemals, ob das eigene Urteil des Pathologen erforderlich ist. Dies ist der organisationsweite Standard — einzelne ausführende Labore können ihn übernehmen oder eigene Werte im Bearbeitungsdialog der Einrichtungskonfiguration festlegen, und einzelne Mitarbeiter können jede Einstellung zusätzlich für sich selbst überschreiben, gemäß derselben realen Kaskade Unternehmen → Einrichtung → Mitarbeiter, die diese App bereits für Zytologie-QC-Stichprobenraten verwendet.",
     "title": "Übereinstimmungsprüfung vorläufig vs. endgültig"
+  },
+  "configRefusal": {
+    "dismiss": "Schließen",
+    "message": "Nicht gespeichert: Dafür ist die Berechtigung „{{permission}}“ nötig. Ein Administrator kann sie unter Konfiguration → Personal → Rollenverzeichnis erteilen."
   },
   "configSearchIndex": {
     "entries": {
@@ -3797,6 +4445,9 @@
       "sys-info": {
         "description": "Anwendungsversion, KI-Anbieter/-Modell und API-Verbindungsstatus für die Support-Diagnose."
       },
+      "sys-intraop-critical-results": {
+        "description": "Welche Schnellschnittbefunde als kritische intraoperative Befunde gelten, sodass die mündliche Mitteilung den Operateur oder einen dokumentierten Grund erwartet."
+      },
       "sys-jurisdiction": {
         "description": "Legt die SNOMED-CT-Version und die ICD-Variante für die Region des Labors fest (USA, Kanada, Großbritannien, Irland)."
       },
@@ -3848,6 +4499,10 @@
     "noResults": "Keine Einstellungen für „{{query}}“ gefunden",
     "searchAriaLabel": "Konfigurationseinstellungen durchsuchen",
     "searchPlaceholder": "Einstellungen suchen…"
+  },
+  "configViewOnly": {
+    "message": "Nur Ansicht: Für Änderungen ist die Berechtigung „{{permissions}}“ nötig. Ein Administrator kann sie unter Konfiguration → Personal → Rollenverzeichnis erteilen.",
+    "or": "“ oder „"
   },
   "configuration": {
     "adminRequiredSub": "Validierungsstudien stehen nur Administratoren zur Verfügung.",
@@ -4370,6 +5025,29 @@
     },
     "title": "Interpretation und Empfehlungen"
   },
+  "cytologyCompliance": {
+    "features": {
+      "fiveYearLookback": {
+        "help": "(USA, CAP): eine neue hochgradige Diagnose markiert die negativen Abstriche der Patientin aus den letzten fünf Jahren zur Rückschau.",
+        "label": "CAP-5-Jahres-Rückschau"
+      },
+      "workloadCap": {
+        "help": "(USA, 42 CFR § 493.1274): stoppt die Befundung eines Zytologieassistenten, sobald seine anteilige Tagesgrenze erreicht ist, und gibt seine Warteschlange an den Pool zurück. Die Arbeitslast wird in jedem Fall erfasst.",
+        "label": "Tägliche CLIA-Arbeitslastgrenze"
+      }
+    },
+    "notPermitted": "Sie haben keine Berechtigung, länderspezifische Regeln zu ändern.",
+    "saved": "Gespeichert.",
+    "settings": {
+      "auto": "Automatisch (in den USA an)",
+      "off": "Aus",
+      "on": "An"
+    },
+    "subtitle": "Vorschriften, die nur in manchen Ländern gelten. Automatisch schaltet sie für ein US-Labor ein und anderswo aus; ein Labor kann sie für das Unternehmen oder eine Einrichtung ein- oder ausschalten.",
+    "summary": "{{feature}}: {{setting}}",
+    "summarySeparator": "; ",
+    "title": "Länderspezifische Regeln"
+  },
   "cytologyHistologyCorrelationPrintView": {
     "scopeLine": "Geltungsbereich: {{scope}} — Erstellt am {{date}}",
     "title": "CYT-QA-04 — Zyto-histologische Korrelations- und Diskrepanzmatrix"
@@ -4392,6 +5070,44 @@
       "sfcc": "SFCC (Frankreich — französisch bezeichnetes Bethesda)"
     },
     "title": "Zytologie-Nomenklatursystem"
+  },
+  "cytologyPdf": {
+    "accession": "Eingangsnummer: {{accession}}",
+    "addendum": "Nachtrag",
+    "addendumBanner": "NACHTRAG",
+    "adjunctive": "Zusatzuntersuchungen und integrierte Ergebnisse",
+    "clia": "CLIA/ISO: {{number}}",
+    "collected": "Entnommen: {{date}}",
+    "computerAssisted": "Computergestütztes Screening: {{value}}",
+    "continuationPage": "Seite {{page}} von {{total}}",
+    "correctedReport": "KORRIGIERTER BEFUND",
+    "director": "Leitung: {{name}}",
+    "dob": "Geburtsdatum: {{date}}",
+    "generalCategorization": "Allgemeine Kategorisierung",
+    "hpv": "HPV: {{result}}",
+    "interpretation": "Beurteilung / Diagnostisches Ergebnis",
+    "lmp": "Letzte Menstruation: {{date}}",
+    "metadataSubject": "Zytologiebefund",
+    "metadataTitle": "Zytologiebefund — {{accession}}",
+    "mrn": "Patienten-Nr.: {{mrn}}",
+    "no": "Nein",
+    "orderingProvider": "Einsender: {{name}}",
+    "patient": "Patient",
+    "prepConventional": "Konventionell",
+    "prepLiquidBased": "Flüssigkeitsbasiert",
+    "previouslyReported": "Zuvor befundet als: {{diagnosis}}",
+    "reason": "Grund: {{reason}}",
+    "received": "Eingang: {{date}}",
+    "recommendations": "Empfehlungen und Kommentare",
+    "roleCytotechnologist": "Zytologieassistent/in",
+    "rolePathologist": "Pathologe/Pathologin",
+    "screenedBy": "Gescreent von: {{name}}",
+    "signOff": "Freigabe",
+    "signedBy": "Freigegeben von: {{name}}, {{role}} — {{date}}",
+    "specimenAdequacy": "Beurteilbarkeit des Materials",
+    "specimenType": "Materialart",
+    "title": "Zytologiebefund — Gynäkologische Zervixkarzinom-Früherkennung",
+    "yes": "Ja"
   },
   "cytologyQaTab": {
     "apacPtTable": {
@@ -4576,10 +5292,22 @@
     },
     "transmissionTable": {
       "cytologyResult": "Zytologie-Ergebnis",
+      "download": "Herunterladen",
       "error": "Fehler",
       "hpvResult": "HPV-Ergebnis",
       "mrn": "Patienten-ID",
       "noneOnFile": "Für diesen Bereich sind noch keine Registerübermittlungen erfasst.",
+      "registryStatus": "Registerstatus",
+      "registryStatuses": {
+        "accepted": "Angenommen",
+        "acceptedWithWarnings": "Mit Warnungen angenommen",
+        "ackOverdue": "Keine Antwort in 72 h",
+        "awaitingAck": "Antwort ausstehend",
+        "rejectedFatal": "Endgültig abgelehnt",
+        "rejectedRecoverable": "Abgelehnt, behebbar"
+      },
+      "responseCode": "Antwortcode",
+      "sentAt": "Gesendet",
       "status": {
         "failed": "Fehlgeschlagen",
         "header": "Status",
@@ -4619,9 +5347,28 @@
   "cytologyQcQueue": {
     "assignToMeBtn": "Mir zuweisen",
     "assignedToOther": "Einem anderen Gutachter zugewiesen",
+    "bypass": {
+      "button": "Supervisor-Umgehung",
+      "message": "Der Fall wird ohne QK-Prüfung freigegeben, um eine klinische Verzögerung zu vermeiden. Ihr Name und Ihre Begründung werden im Audit-Protokoll gespeichert.",
+      "reasonLabel": "Begründung",
+      "title": "QK-Prüfung für diesen Fall umgehen?"
+    },
+    "caseBarTitle": "Zytologie-QK-Peer-Review",
     "commentaryLabel": "Kommentar des Gutachters",
     "discrepancyModalTitle": "Diskrepanz erfassen",
     "emptyRow": "Keine Fälle in dieser Warteschlange.",
+    "error": {
+      "failed": "Das Review konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "notPermitted": "Sie sind nicht berechtigt, Zytologie-QK-Reviews zu erfassen.",
+      "selfReview": "Sie haben diesen Fall freigegeben; ein anderer Pathologe muss ihn prüfen."
+    },
+    "escalate": {
+      "button": "Eskalieren",
+      "message": "Die Prüfung hat ihre Frist überschritten. Sie geht ohne Zuweisung zurück in die Warteschlange, damit eine andere Person sie übernehmen kann.",
+      "reasonLabel": "Grund",
+      "title": "Diese überfällige Prüfung eskalieren?"
+    },
+    "openCaseBtn": "Fall öffnen",
     "pageTitle": "Zytologie-QS-Zweitbegutachtungswarteschlange",
     "primaryCodeLabel": "Primärer Diagnosecode",
     "recordConcurrenceBtn": "Übereinstimmung erfassen",
@@ -4745,6 +5492,40 @@
     "subtitle": "An welches echte, nationale zentrale Register die abgeschlossenen GYN-Zytologiebefunde eines Labors gemeldet werden. Zweistufige Kaskade — Unternehmensstandard, mit optionaler Einrichtungs-Außerkraftsetzung für Labore, die an das Register einer anderen echten Rechtsordnung melden.",
     "title": "Zytologie-Register-Meldung"
   },
+  "cytologyRevision": {
+    "addendum": {
+      "confirmTitle": "Unterschrift bestätigen, um den Nachtrag freizugeben",
+      "intro": "Ein Nachtrag ergänzt den Befund. Die ursprüngliche Diagnose bleibt bestehen und wird nicht geändert.",
+      "reason": "Grund für den Nachtrag",
+      "releaseBtn": "Nachtrag freigeben",
+      "text": "Text des Nachtrags",
+      "textPlaceholder": "Was dem Befund hinzugefügt wird (zum Beispiel ein späteres Untersuchungsergebnis)",
+      "title": "Nachtrag hinzufügen"
+    },
+    "addendumBtn": "Nachtrag hinzufügen",
+    "correctBtn": "Diagnose korrigieren",
+    "correction": {
+      "confirmTitle": "Unterschrift bestätigen, um die Korrektur freizugeben",
+      "intro": "Eine Korrektur ersetzt das bisher Befundete. Der ursprüngliche Befund bleibt gespeichert, der korrigierte Befund wird als Korrektur versendet.",
+      "reason": "Grund für die Korrektur",
+      "releaseBtn": "Korrektur freigeben",
+      "title": "Freigegebene Diagnose korrigieren"
+    },
+    "currentlyReported": "Aktuell befundet als: {{diagnosis}}",
+    "history": {
+      "addendum": "Nachtrag von {{name}}, {{date}}.",
+      "correction": "Korrigiert von {{name}}, {{date}}.",
+      "reason": "Grund: {{reason}}",
+      "title": "Änderungen seit der Freigabe"
+    },
+    "reasonPlaceholder": "Warum wird dies geändert? Der Grund wird mit dem Befund gespeichert.",
+    "toasts": {
+      "addendumReleased": "Nachtrag freigegeben.",
+      "correctionReleased": "Korrektur freigegeben.",
+      "failed": "Der Befund konnte nicht freigegeben werden. Es wurde nichts geändert.",
+      "notPermitted": "Sie haben keine Berechtigung, dies freizugeben."
+    }
+  },
   "cytologyRoutingSettingsSection": {
     "routes": {
       "cytologyWorklist": "Arbeitsliste Zytologie",
@@ -4757,14 +5538,142 @@
     "assistModeOnly": "Dieser Fall wird von einem externen LIS verwaltet (Assistenzmodus). Die strukturierte Zytologie-Befundung und Freigabe in PathScribe ist nur für Fälle im Orchestrierungsmodus verfügbar.",
     "backToWorklist": "Zurück zur Arbeitsliste",
     "caseTitle": "Fall <accession>{{id}}</accession>",
+    "cisoea": {
+      "adequacy": "A — Adäquatheit",
+      "adequacyOptions": {
+        "satisfactory": "Zufriedenstellend",
+        "suboptimal": "Suboptimal",
+        "unsatisfactory": "Nicht zufriedenstellend"
+      },
+      "axes": {
+        "composition": "C — Zusammensetzung",
+        "endocervical": "E — Endozervikales Epithel",
+        "inflammation": "I — Entzündung",
+        "otherEndometrium": "O — Sonstiges / Endometrium",
+        "squamous": "S — Plattenepithel"
+      },
+      "commentRequiredPlaceholder": "Kommentar (erforderlich)",
+      "scaleHint": "(0-9)",
+      "selectOption": "— Auswählen —",
+      "subtitle": "Unabhängige 6-Komponenten-Matrix (Zusammensetzung, Entzündung, Plattenepithel, Sonstiges/Endometrium, Endozervikal, Adäquatheit) — jede Achse wird einzeln bewertet, nicht als Einzelauswahl.",
+      "suggestColposcopy": "Vorschlag: Überweisung zur Kolposkopie (mäßige Dyskaryose oder schlimmer).",
+      "suggestHpvGenotyping": "Vorschlag: HPV-Genotypisierung empfehlen (16/18 vs. andere Hochrisikotypen), um zwischen Kolposkopie und Kontrollzytologie zu entscheiden.",
+      "titleEdit": "Ihre CISOE-A-Beurteilung bearbeiten",
+      "titleNew": "Neue CISOE-A-Beurteilung erfassen"
+    },
+    "codes": {
+      "specimenName": "{{label}}: {{description}}"
+    },
     "codesBtn": "Codes",
+    "concordance": {
+      "agree": "Einverstanden",
+      "body": "Für diesen Objektträger lag ein abgeschlossenes KI-Screening-Ergebnis vor: {{result}}. Stimmt Ihr eigener, unabhängiger Befund oben mit diesem KI-Ergebnis überein?",
+      "disagree": "Nicht einverstanden",
+      "fovCount_one": "{{count}} von der KI markiertes Sichtfeld",
+      "fovCount_other": "{{count}} von der KI markierte Sichtfelder",
+      "noFurtherReview": "Keine weitere Beurteilung",
+      "reviewRecommended": "Beurteilung empfohlen",
+      "title": "Konkordanz des KI-Screenings",
+      "withQuintile": "{{triage}} (Quintil {{group}}/{{total}})"
+    },
+    "confirm": {
+      "discard": "Sie haben ungespeicherte Änderungen an dieser Beurteilung. Verwerfen und stattdessen diese laden?",
+      "leave": "Sie haben ungespeicherte Änderungen an dieser Beurteilung. Ohne Speichern verlassen?"
+    },
     "delegateBtn": "Delegieren",
+    "errors": {
+      "correlationNotPermitted": "Sie haben keine Berechtigung, zyto-histologische Korrelationen zu erfassen.",
+      "finalDiagnosisNotPermitted": "Sie haben keine Berechtigung, die Enddiagnose festzulegen.",
+      "qcFlagRemoveNotPermitted": "Sie haben keine Berechtigung, QK-Markierungen zu entfernen.",
+      "retrospectiveNotPermitted": "Sie haben keine Berechtigung, Rückschauen zu erfassen.",
+      "reviewNotPermitted": "Sie haben keine Berechtigung, zytologische Befundungen zu erfassen.",
+      "saveFailed": "Die Befundung konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
     "fiveYearLookback": {
       "subtitle": "(CAP-vorgeschrieben — frühere negative Ergebnisse im Rückblickzeitraum)",
       "title": "5-Jahres-Rückblick",
       "viewSlide": "Fall ansehen"
     },
     "flagsBtn": "Kennzeichen",
+    "histologyCorrelation": {
+      "body": "Bei dieser Patientin gab es im Nachbeobachtungszeitraum nach diesem auffälligen zytologischen Befund einen Folgefall (<accession>{{caseId}}</accession>). Bestätigen Sie, dass es sich um die relevante Biopsie handelt, bevor Sie eine Korrelation erfassen.",
+      "confirmBtn": "Bestätigen und erfassen",
+      "diagnosis": "Histologiediagnose",
+      "diagnosisPlaceholder": "z. B. CIN III in der Biopsie",
+      "manualNote": "Keine SNOMED-Kodierung dieses Falls ergibt bisher einen bekannten Schweregrad — Histologiediagnose nach Lesen des Befunds manuell eingeben.",
+      "notRelevantBtn": "Nicht relevant",
+      "outcome": "Ergebnis",
+      "outcomes": {
+        "concordant": "Konkordant",
+        "discordant": "Diskordant",
+        "major_discrepancy": "Erhebliche Diskrepanz",
+        "minor_discrepancy": "Geringe Diskrepanz",
+        "unresolvable": "Nicht bestimmbar"
+      },
+      "recordBtn": "Erfassen",
+      "resolvedLine": "Zytologie: <b>{{cytology}}</b> — Histologie (aus SNOMED-Kodierung): <b>{{histology}}</b> — Ergebnis: <b>{{outcome}}</b>",
+      "resolving": "Wird ermittelt…",
+      "selectOption": "— auswählen —",
+      "title": "Kandidat für zyto-histologische Korrelation",
+      "unknownDx": "Unbekannt"
+    },
+    "history": {
+      "additional": "Weitere:",
+      "adequacy": "Adäquatheit:",
+      "agreement": {
+        "adequacyDiffers": "Die Beurteilbarkeit weicht von der Erstbefundung ab.",
+        "levels": {
+          "exact": "vollständig",
+          "major_discrepancy": "wesentliche Abweichung",
+          "minor_discrepancy": "geringfügige Abweichung"
+        },
+        "line": "Übereinstimmung mit der Erstbefundung: {{level}}",
+        "subtypes": {
+          "false_negative": "falsch negativ",
+          "false_positive": "falsch positiv",
+          "high_grade_skip": "Übersprung hochgradig"
+        },
+        "withSubtype": "{{level}} ({{subtype}})"
+      },
+      "clone": "Klonen",
+      "ctEligible": "Für CT zulässig",
+      "empty": "Noch keine Beurteilungen erfasst.",
+      "finalTag": "Enddiagnose",
+      "generalCategorization": "Allgemeine Kategorisierung:",
+      "initial": "Erstbeurteilung",
+      "pathRequired": "Pathologe erforderlich",
+      "primary": "Primär:",
+      "quotedNotes": "„{{notes}}“",
+      "recommendations": "Empfehlungen:",
+      "selectionSeparator": "; ",
+      "selectionWithComment": "{{label}} ({{comment}})",
+      "setAsFinal": "Als endgültig festlegen",
+      "setAsFinalBlocked": "Nur ein Pathologe kann diese Beurteilung als Enddiagnose auswählen — sie erfordert vor der Freigabe eine Pathologenbeurteilung.",
+      "title": "Beurteilungsverlauf"
+    },
+    "hpv": {
+      "flagLine": "(Kennzeichen: {{flag}})",
+      "genotypeLabel": "Genotyp",
+      "genotypes": {
+        "hpv16": "HPV 16",
+        "hpv18Or45": "HPV 18/45",
+        "otherHighRisk": "Anderer Hochrisikotyp"
+      },
+      "hint": "(vorgelagertes molekulares Ergebnis — nur lesbar)",
+      "label": "HPV-Kotestung",
+      "none": "Keine Kotestung vorhanden.",
+      "notSet": "Nicht gesetzt",
+      "notSpecified": "Nicht angegeben",
+      "orderedLabel": "Kotestung angefordert",
+      "reasonLabel": "Grund",
+      "reasons": {
+        "ascus_reflex": "ASC-US-Reflex-Triage",
+        "post_treatment": "Überwachung nach Behandlung"
+      },
+      "referenceRange": "Referenzbereich",
+      "resultLabel": "Ergebnis"
+    },
+    "lmpLabel": "LMP",
     "materialBtn": "Material",
     "materialDrawer": {
       "addCellBlockBtn": "Zellblock hinzufügen",
@@ -4786,9 +5695,120 @@
       "title": "Zyto-/Histo-Vorgeschichte des Patienten",
       "viewCase": "Fall ansehen"
     },
+    "patientLine": "{{name}} · MRN {{mrn}}",
+    "patientUnknown": "Unbekannter Patient",
     "printBtn": "Drucken",
+    "qc": {
+      "autoHint": "Die zufällige QK-Auswahl läuft automatisch, wenn die Erstbeurteilung gespeichert wird.",
+      "flagBtn": "Für Hochrisiko-QK markieren",
+      "flaggedRandom": "Von {{name}} am {{date}} für QK per Zufallsauswahl markiert.",
+      "flaggedTargeted": "Von {{name}} am {{date}} für gezielte Hochrisiko-QK markiert.",
+      "label": "Verpflichtende QK",
+      "removeFlag": "Markierung entfernen",
+      "toastDiscordance": "Erfasst — für diese Diskordanz wurde eine QS-Abweichung angelegt.",
+      "toastHighRisk": "Dieser Fall wurde für eine verpflichtende QK-Beurteilung markiert — die Patientin erfüllt ein oder mehrere Standard-Hochrisikokriterien.",
+      "toastRandom": "Dieser Fall wurde zufällig für eine verpflichtende QK-Beurteilung ausgewählt."
+    },
     "requestPeerReviewBtn": "Peer-Review anfordern",
     "requestReviewBtn": "Gutachten anf.",
+    "retrospective": {
+      "body": "Dieser frühere negative zytologische Befund wurde für eine verpflichtende Rückschau markiert, nachdem der Fall <accession>{{caseId}}</accession> dieser Patientin eine neue Diagnose HSIL+/AIS/maligne erhielt (5-Jahres-Rückschau nach CAP).",
+      "completeBtn": "Rückschau abschließen",
+      "correctiveAction": "Korrekturmaßnahme (Nachschulung, geänderter Befund usw.)",
+      "correctiveActionPlaceholder": "In den meisten CAP-akkreditierten Laboren bei nicht-negativem Ergebnis erforderlich",
+      "outcome": "Ergebnis",
+      "outcomes": {
+        "confirmed_negative": "Negativ bestätigt",
+        "interpretation_error": "Interpretationsfehler",
+        "sampling_error": "Probenentnahmefehler",
+        "screening_error": "Screening-Fehler"
+      },
+      "selectOption": "— auswählen —",
+      "title": "5-Jahres-Rückschau erforderlich"
+    },
+    "reviewForm": {
+      "additional": "Weitere Interpretationen",
+      "additionalPlaceholder": "Weitere Interpretationen suchen…",
+      "adequacy": "Probenadäquatheit",
+      "adequacyPlaceholder": "Adäquatheit suchen…",
+      "generalCategorization": "Allgemeine Kategorisierung",
+      "generalCategorizationHint": "(wörterbuchgesteuert — die allgemeine Bethesda-Kategorie)",
+      "multiHint": "(beliebig viele auswählen; jede mit eigenem Kommentar)",
+      "noneOption": "— Keine —",
+      "notes": "Notizen",
+      "primary": "Primäre Interpretation",
+      "primaryHint": "(genau eine; mit optionalem Kommentar)",
+      "primaryPlaceholder": "Primäre Interpretation suchen…",
+      "recommendations": "Empfehlungen",
+      "recommendationsPlaceholder": "Empfehlungen suchen…",
+      "saveAsRole": "Als {{role}} speichern",
+      "titleEdit": "Ihre Beurteilung bearbeiten",
+      "titleNew": "Neue Beurteilung erfassen",
+      "updateBtn": "Beurteilung aktualisieren"
+    },
+    "reviewMode": {
+      "hint": "(CLIA-Arbeitsbelastungsgewicht)",
+      "label": "Beurteilungsmodus",
+      "options": {
+        "fov_assisted": "FOV-unterstützt, ohne Zweitscreening (0,5 SCU)",
+        "fov_manual_rescreen": "FOV + vollständiges manuelles Zweitscreening (1,5 SCU)",
+        "liquid_nongyn": "Flüssigkeitsbasiert, nicht gynäkologisch (0,5 SCU)",
+        "primary_manual": "Vollständiges manuelles Screening (1,0 SCU)"
+      }
+    },
+    "reviewNotes": {
+      "acknowledge": "Zur Kenntnis nehmen",
+      "add": "Notiz hinzufügen",
+      "byLine": "{{name}}, {{date}}",
+      "errors": {
+        "notAuthor": "Nur der Verfasser der Befundung kann diese Notiz zur Kenntnis nehmen.",
+        "notFound": "Diese Notiz existiert nicht mehr.",
+        "notOpen": "Diese Notiz wurde bereits zur Kenntnis genommen.",
+        "notPermitted": "Sie haben keine Berechtigung, eine Überarbeitung anzufordern.",
+        "ownReview": "Sie können Ihre eigene Befundung nicht kommentieren. Bearbeiten Sie sie stattdessen.",
+        "textRequired": "Schreiben Sie zuerst die Notiz."
+      },
+      "placeholder": "Was soll der Verfasser prüfen?",
+      "requiresRevision": "Überarbeitung erforderlich",
+      "requiresRevisionOption": "Überarbeitung erforderlich (ein Zytologieassistent kann erst nach der Überarbeitung freigeben)",
+      "resolvedBy": "Durch die Pathologenbefundung von {{name}} erledigt.",
+      "save": "Notiz speichern",
+      "saveToRevise": "Zur Kenntnis genommen. Speichern Sie Ihre überarbeitete Befundung, um sie abzuschließen.",
+      "sectionLabel": "Betrifft",
+      "sections": {
+        "additional": "Zusätzliche Befunde",
+        "adequacy": "Beurteilbarkeit",
+        "generalCategorization": "Allgemeine Kategorisierung",
+        "notes": "Notizen",
+        "primary": "Hauptbefund",
+        "recommendations": "Empfehlungen"
+      },
+      "status": {
+        "acknowledged": "Zur Kenntnis genommen",
+        "open": "Offen",
+        "resolvedByPathologist": "Durch Pathologen erledigt",
+        "revised": "Überarbeitet"
+      }
+    },
+    "revise": {
+      "banner": "Die Befundung von {{name}} wird als Ihre eigene überarbeitet. Beim Speichern wird sie zur Enddiagnose und die Signatur öffnet sich; die Befundung von {{name}} bleibt unverändert.",
+      "button": "Überarbeiten und freigeben",
+      "cancel": "Überarbeitung beenden"
+    },
+    "role": {
+      "auto": "Wird automatisch aus dem Beurteilungsverlauf und Ihrer Kontorolle ermittelt.",
+      "editing": "Sie haben diesen Fall bereits beurteilt — Sie bearbeiten unten Ihre eigene Beurteilung.",
+      "label": "Ihre Rolle bei dieser Beurteilung"
+    },
+    "roles": {
+      "pathologist_review": "Pathologen-Review",
+      "post_signout_peer_review_random": "Peer-Review nach Freigabe — Zufallsauswahl",
+      "post_signout_peer_review_targeted": "Peer-Review nach Freigabe — Gezielt Hochrisiko",
+      "primary_screen": "Erstscreener",
+      "qc_random_selection": "QK — Zufallsauswahl",
+      "qc_targeted_high_risk": "QK — Gezielt Hochrisiko",
+      "secondary_reviewer": "Zweitbeurteiler"
+    },
     "roseBtn": "ROSE",
     "roseDrawer": {
       "addPassBtn": "Durchgang hinzufügen",
@@ -4809,6 +5829,34 @@
       "priorEvaluations": "Frühere ROSE-Bewertungen",
       "recordNew": "Neue Bewertung erfassen",
       "saveBtn": "Bewertung speichern"
+    },
+    "search": {
+      "commentPlaceholder": "Kommentar (optional)",
+      "remove": "Entfernen"
+    },
+    "specimens": {
+      "finalizeEarly": {
+        "button": "Fall jetzt abschließen",
+        "confirm": "Fall abschließen",
+        "done": "Fall abgeschlossen. Die noch nicht freigegebenen Proben sind mit Ihrer Begründung erfasst.",
+        "errors": {
+          "alreadyComplete": "Alle Proben sind bereits freigegeben.",
+          "notPermitted": "Sie haben keine Berechtigung, einen Zytologiefall vorzeitig abzuschließen.",
+          "nothingSignedOut": "Geben Sie zuerst mindestens eine Probe frei.",
+          "reasonRequired": "Geben Sie eine Begründung für den Abschluss an."
+        },
+        "notice": "Fall am {{date}} von {{name}} abgeschlossen, bevor alle Proben freigegeben waren: {{reason}}",
+        "reasonLabel_one": "Warum jetzt abschließen? {{count}} Probe ist noch nicht freigegeben.",
+        "reasonLabel_other": "Warum jetzt abschließen? {{count}} Proben sind noch nicht freigegeben."
+      },
+      "progress": "{{signed}} von {{total}} Proben freigegeben",
+      "status": {
+        "draft": "Entwurf",
+        "pendingRevision": "Überarbeitung angefordert",
+        "signedOut": "Freigegeben"
+      },
+      "tabLabel": "Probe {{label}}",
+      "tabsLabel": "Zytologieproben"
     },
     "synopticBtn": "Synoptisch",
     "synopticDrawer": {
@@ -4847,7 +5895,26 @@
       "unvalidatedTermsTitle": "Nicht validierte klinische Begriffe",
       "validationError": "Bitte füllen Sie alle erforderlichen synoptischen Felder aus."
     },
-    "teamBtn": "Team"
+    "teamBtn": "Team",
+    "toasts": {
+      "correlationRecorded": "Zyto-histologische Korrelation erfasst.",
+      "retrospectiveFlagged_one": "{{count}} früherer negativer zytologischer Befund dieser Patientin für die verpflichtende 5-Jahres-Rückschau markiert.",
+      "retrospectiveFlagged_other": "{{count}} frühere negative zytologische Befunde dieser Patientin für die verpflichtende 5-Jahres-Rückschau markiert.",
+      "retrospectiveRecorded": "5-Jahres-Rückschau erfasst."
+    },
+    "versions": {
+      "load": "In das Formular laden",
+      "loaded": "Frühere Version geladen. Speichern Sie, um sie wiederherzustellen; die aktuelle bleibt als Version erhalten.",
+      "toggle_one": "{{count}} frühere Version",
+      "toggle_other": "{{count}} frühere Versionen"
+    },
+    "workload": {
+      "approaching": "Sie nähern sich Ihrem anteiligen CLIA-Screening-Limit für diese Sitzung ({{used}}/{{max}} SCU).",
+      "blockedReason": "Sie haben Ihr anteiliges CLIA-Screening-Limit für diese Sitzung erreicht. Dieser Fall und Ihre verbleibende Warteschlange werden anderen verfügbaren Zytotechnologen zugewiesen.",
+      "escalationReason": "Dieser Fall wird gespeichert — bereits erfasste klinische Arbeit wird nie verworfen —, aber Sie liegen nun über Ihrem anteiligen CLIA-Screening-Limit. Ihre verbleibende Warteschlange wird anderen verfügbaren Zytotechnologen zugewiesen.",
+      "exceeded": "Gesperrt — anteiliges CLIA-Limit erreicht ({{used}}/{{max}} SCU).",
+      "reassigned": "Dieser Fall wurde neu zugewiesen — Ihre verbleibende Warteschlange wurde für andere verfügbare Zytotechnologen in den Pool zurückgegeben."
+    }
   },
   "cytologyScreeningStrategySection": {
     "strategies": {
@@ -4859,8 +5926,19 @@
     "title": "Zytologie-Screening-Strategie"
   },
   "cytologySignOut": {
+    "blockReasons": {
+      "flagged_for_qc": "für QK markiert",
+      "non_gyn_specimen": "nicht-gynäkologische Probe",
+      "pending_author_revision": "Überarbeitung beim Verfasser angefordert",
+      "requires_pathologist_review": "Befundung durch Pathologen erforderlich",
+      "unsatisfactory_adequacy": "Material nicht beurteilbar",
+      "unvalidated_synoptic_translation": "nicht validierte synoptische Übersetzung"
+    },
     "confirmTitle": "Bestätigen Sie Ihre Signatur, um diesen Fall freizugeben",
+    "ctNotPermitted": "Sie haben keine Berechtigung, Zytologiebefunde als Zytologieassistent freizugeben. Ein Pathologe muss diesen freigeben.",
+    "failed": "Die Freigabe konnte nicht gespeichert werden. Bitte erneut versuchen.",
     "finalDiagnosisPathologistOnly": "Nur ein Pathologe darf diese Befundung als Enddiagnose auswählen. Sie erfordert vor der Abzeichnung eine pathologische Prüfung.",
+    "notPermitted": "Sie haben keine Berechtigung, Zytologiebefunde freizugeben.",
     "pathologistRequired": "Abzeichnung durch einen Pathologen erforderlich: {{reasons}}",
     "ready": "Bereit zur Abzeichnung.",
     "releasedForCountersign": "Fall {{caseId}} zur Gegenzeichnung freigegeben",
@@ -4868,11 +5946,14 @@
     "signOut": "Abzeichnen",
     "signedOut": "Befund abgezeichnet.",
     "signedOutBanner": "Abgezeichnet von {{name}} am {{date}}.",
-    "signing": "Wird abgezeichnet…"
+    "signing": "Wird abgezeichnet…",
+    "specimenSignedOut_one": "Probe freigegeben. Noch {{count}} Probe freizugeben, bevor der Fall abgeschlossen ist.",
+    "specimenSignedOut_other": "Probe freigegeben. Noch {{count}} Proben freizugeben, bevor der Fall abgeschlossen ist."
   },
   "cytologyTab": {
     "sections": {
       "assistedInstrumentation": "Unterstützte Instrumentierung",
+      "countryRules": "Länderspezifische Regeln",
       "cytoHistologicCorrelation": "Zyto-histologische Korrelation (SNOMED)",
       "dailyWorkloadCap": "Tägliche Arbeitslastgrenze",
       "nonGynRouting": "Nicht-gynäkologische Weiterleitung",
@@ -5348,6 +6429,19 @@
     },
     "title": "Abrechnungsexport-Vorschau"
   },
+  "dictionaryWordList": {
+    "addButton": "Hinzufügen",
+    "addPlaceholder": "Wort hinzufügen",
+    "addedBy": "Hinzugefügt von {{name}}, {{when}}",
+    "refusal": {
+      "empty": "Geben Sie ein Wort ein.",
+      "notAWord": "Es kann nur ein einzelnes Wort hinzugefügt werden.",
+      "notFound": "Dieses Wort ist nicht im Wörterbuch.",
+      "notPermitted": "Sie haben keine Berechtigung, dieses Wörterbuch zu ändern.",
+      "tooLong": "Dieses Wort ist zu lang."
+    },
+    "removeAria": "„{{word}}“ entfernen"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "Die Endkategorie weicht vom Schnellschnitt ab — dies muss als Diskordanz erfasst werden, bevor der Abschluss fortgesetzt werden kann.",
     "commentLabel": "Kommentar — erforderlich",
@@ -5436,8 +6530,7 @@
   "disposalQueue": {
     "computing": "Aktuelle Warteschlange wird berechnet…",
     "dismissHint": "Zum Schließen irgendwo tippen",
-    "disposedFlash": "{{displayId}} entsorgt",
-    "eligibleSince": "Qualifiziert seit {{date}}",
+    "disposedFlash": "✓ {{displayId}} entsorgt",
     "empty": "An diesem Standort qualifiziert derzeit nichts für die Entsorgung.",
     "materialType": {
       "block": "Gewebeblock",
@@ -5447,10 +6540,24 @@
     "noStationAllLocations": "Keine Scanstation festgelegt — alle Standorte werden angezeigt. Legen Sie eine Station für eine standortbezogene Warteschlange fest.",
     "pageSubtitle": "Eine echte, berechnete Liste von Blöcken und Objektträgern, die jetzt tatsächlich für die Entsorgung qualifiziert sind — Aufbewahrungsfrist abgelaufen, keine aktive Sperre, noch nicht entsorgt. Scannen Sie den Barcode eines physischen Elements, um es zu entsorgen; alles, was nicht übereinstimmt, wird sofort auf dem Bildschirm abgelehnt.",
     "pageTitle": "Entsorgungswarteschlange",
+    "refusals": {
+      "alreadyDisposed": "{{displayId}} wurde bereits am {{date}} entsorgt.",
+      "noMatch": "„{{displayId}}“ passt zu keiner Kassette, keinem Objektträger und keinem Gefäß eines Falls.",
+      "notEligible": "{{displayId}} darf erst ab {{date}} entsorgt werden, wenn die Aufbewahrungsfrist endet.",
+      "notFound": "{{displayId}} wurde im Fall nicht gefunden.",
+      "notPermitted": "Sie haben keine Berechtigung, aufbewahrtes Material zu entsorgen.",
+      "notSignedOut": "Der Fall von {{displayId}} ist noch nicht freigegeben; die Aufbewahrungsfrist hat noch nicht begonnen.",
+      "onHold": "{{displayId}} kann nicht entsorgt werden: Für den Fall gilt eine aktive Aufbewahrungssperre ({{note}}).",
+      "wrongFacility": "{{displayId}} wurde zuletzt an einem anderen Standort erfasst, nicht in dieser Einrichtung."
+    },
+    "rowDetail": "{{specimen}} · Entsorgbar seit {{date}}",
+    "rowDetailWithLocation": "{{specimen}} · Entsorgbar seit {{date}} · {{location}}",
     "scanHint": "Scannen Sie den Barcode einer Kassette oder eines Objektträgers, um sie zu entsorgen. Freihändig — kein Klicken in ein Feld nötig.",
     "scopedTo": "Beschränkt auf {{facility}}.",
     "sectionLabel": "Zur Entsorgung qualifiziert ({{count}})",
-    "shared": "(gemeinsam)"
+    "shared": "(gemeinsam)",
+    "sharedSpecimens": "{{specimens}} (gemeinsam)",
+    "unknownDate": "einem unbekannten Datum"
   },
   "disposalReport": {
     "columns": {
@@ -5471,6 +6578,7 @@
       "itemId": "Element-ID",
       "location": "Standort",
       "materialType": "Materialtyp",
+      "notPermitted": "Sie haben keine Berechtigung, den Entsorgungsbericht zu exportieren.",
       "specimen": "Präparat"
     },
     "filters": {
@@ -5504,6 +6612,12 @@
     },
     "fontFamilyLabel": "Schriftfamilie",
     "fontSizeLabel": "Schriftgröße (px)",
+    "pageSetup": {
+      "hint": "Papierformat und Druckränder des Labors in Millimetern. Die Vorlagenvorschau öffnet sich mit diesen Werten.",
+      "marginLabel": "Rand {{side}} (mm)",
+      "pageSizeLabel": "Seitenformat",
+      "title": "Seitenformat und Ränder"
+    },
     "previewText": "Vorschau — {{category}}-Text wird organisationsweit so dargestellt, sofern nicht eine Vorlage oder Komponente dies überschreibt.",
     "saved": "Gespeichert",
     "subtitle": "Der Standardtextstil, der für jeden Bericht in der gesamten Organisation für jeden dieser drei Bereiche angewendet wird, sofern nicht eine bestimmte Berichtsvorlage ihren eigenen Stil festlegt (eigenes Stil-Panel des Vorlagen-Montage-Editors). Einzelne Komponenten innerhalb einer Vorlage können dies weiterhin für bestimmte Felder überschreiben — zum Beispiel, indem die Enddiagnose fett und großgeschrieben wird, während alles andere beim Standardstil des Fließtexts bleibt.",
@@ -5568,9 +6682,20 @@
     "unresolvedSectionTitle": "Fälle mit ungelöster Drift-Korrektur"
   },
   "embeddingStation": {
+    "blockStatus": {
+      "cancelled": "Storniert",
+      "damaged": "Beschädigt",
+      "embedded": "Eingebettet",
+      "exhausted": "Aufgebraucht",
+      "grossed": "Zugeschnitten",
+      "lost": "Verloren",
+      "pending": "Ausstehend"
+    },
     "comments": {
       "add": "Kommentar hinzufügen",
       "empty": "Noch keine Kommentare.",
+      "label": "Kommentar",
+      "meta": "{{author}} — {{when}}",
       "placeholder": "Kommentar hinzufügen…"
     },
     "context": {
@@ -5607,6 +6732,7 @@
     "hardware": {
       "deviceStatus": "Gerätestatus",
       "labelPreview": "Etikettenvorschau",
+      "noBlock": "Kein Block geöffnet. Scannen Sie zuerst eine Kassette.",
       "noPrinter": "Kein Drucker konfiguriert",
       "noStation": "Keine Scanstation für dieses Gerät ausgewählt — legen Sie eine über die Stationsanzeige in der Navigationsleiste fest.",
       "notConfigured": "Diese Station ist nicht für den echten Kassettenetikettendruck konfiguriert.",
@@ -5615,6 +6741,7 @@
       "reprintCassette": "Kassette nachdrucken",
       "reprintCount": "{{count}}× nachgedruckt, letzter Grund: ",
       "reprintFailed": "Nachdruck fehlgeschlagen — siehe Meldung oben.",
+      "stationNotFound": "Die Scanstation wurde nicht gefunden.",
       "status": {
         "error": "Druckfehler",
         "offline": "Offline",
@@ -5622,10 +6749,22 @@
       }
     },
     "mold": {
+      "size": {
+        "megaMold": "Mega-Gießform",
+        "mold15x15": "15 × 15 mm",
+        "mold24x24": "24 × 24 mm",
+        "mold24x30": "24 × 30 mm",
+        "mold7x7": "7 × 7 mm"
+      },
       "title": "Standard-Formgröße"
     },
     "orientation": {
       "placeholder": "Freitext-Orientierungshinweise…",
+      "quickFill": {
+        "crossSectionUp": "Querschnitt nach oben",
+        "epitheliumDown": "Epitheloberfläche nach unten",
+        "onEdge": "Hochkant einbetten"
+      },
       "title": "Orientierungsanweisungen"
     },
     "pageTitle": "Einbettungsstation",
@@ -5633,12 +6772,27 @@
       "confirm": "Bestätigen",
       "expected": "Erwartet (aus der Zuschnitt): ",
       "observed": "Beobachtet bei der Einbettung: ",
+      "observedLabel": "Beobachtete Anzahl",
       "title": "Verifizierung der Gewebestückzahl"
     },
     "reprintReason": {
       "body": "Der Nachdruck eines Kassettenetiketts erfordert zu Prüfzwecken eine Begründung.",
+      "label": "Grund",
+      "reason": {
+        "fadedBarcode": "Verblasster Barcode",
+        "mechanicalJam": "Mechanischer Stau",
+        "other": "Sonstiges",
+        "waxBuildup": "Paraffinablagerung"
+      },
+      "reprint": "Nachdrucken",
       "select": "Begründung auswählen…",
       "title": "Begründung erforderlich"
+    },
+    "scanErrors": {
+      "blockNotFound": "Block {{block}} wurde nicht gefunden.",
+      "notResolved": "Dieser Scan passt zu keinem Fall und keinem Block. Prüfen Sie den Barcode und versuchen Sie es erneut.",
+      "specimenNotFound": "Das Präparat wurde in diesem Fall nicht gefunden.",
+      "unsupportedTarget": "Die Einbettstation nimmt nur Blockkassetten an. Matrix- oder Zellblockkassetten, Dekantate und Präparat-Barcodes werden noch nicht unterstützt."
     },
     "scanPlaceholder": "Barcode scannen oder eingeben…",
     "scanPrompt": "Scannen Sie einen Kassetten-Barcode, um zu beginnen",
@@ -5680,7 +6834,8 @@
       "CASSETTE_SUPPLY_DEPLETED": "Erschöpft",
       "CASSETTE_SUPPLY_LOW": "Niedrig",
       "COLOR_UNAVAILABLE": "Nicht verfügbar"
-    }
+    },
+    "supplyWarningForColor": "{{color}}: {{state}}"
   },
   "enhancementRequestButton": {
     "enhancementTooltip": "Verbesserungsanfrage senden",
@@ -5849,11 +7004,29 @@
   },
   "equipmentSection": {
     "addButton": "+ Gerät hinzufügen",
+    "deck": {
+      "add": "+ Steckplatz hinzufügen",
+      "deck": "Deck oder Fach",
+      "deckPlaceholder": "z. B. Deck 1",
+      "hint": "Die Steckplätze im Deck dieses Analysators und was jeder aufnimmt. Die Rack-Beladung bietet nur passende Steckplätze an; die Steckplatz-ID steht auf dem Barcode der Deck-Position (LOC-INST-Code-Steckplatz).",
+      "none": "Noch keine Steckplätze.",
+      "rackType": {
+        "extraction_plate": "Extraktionsplatte",
+        "reagent_cartridge": "Reagenzkartusche",
+        "sample_tube_rack": "Probenröhrchen-Rack"
+      },
+      "rackTypes": "Nimmt auf",
+      "remove": "Entfernen",
+      "slotId": "Steckplatz-ID",
+      "slotIdPlaceholder": "SLOT_A1",
+      "title": "Deck-Layout"
+    },
     "emptyRow": "Keine Geräte entsprechen dem aktuellen Filter.",
     "errors": {
       "codeFormat": "Nur Buchstaben, Ziffern, „_“ und „-“ verwenden.",
       "codeRequired": "Ein Code ist erforderlich.",
       "codeTaken": "Ein anderes Gerät hat bereits diesen Code.",
+      "deckSlotsInvalid": "Jeder Steckplatz braucht eine ID aus Buchstaben, Ziffern oder „_“ (keine doppelt) und mindestens einen Rack-Typ.",
       "facilityRequired": "Wählen Sie das ausführende Labor.",
       "intervalInvalid": "Ganze Tage angeben, 1 bis 3650.",
       "kindRequired": "Wählen Sie eine Art.",
@@ -5917,6 +7090,11 @@
     "subtitle": "Alle Geräte des Labors in einem Verzeichnis. Arbeitsablaufspezifische Einstellungen (Drucker, Zuschnitt-Hardware) bleiben auf ihren eigenen Seiten; molekulare Chargen zielen auf die aktiven Analysegeräte.",
     "title": "Geräte",
     "wasDue": "Fällig seit {{date}}"
+  },
+  "equipmentServiceLog": {
+    "logEntry": "Eintrag erfassen",
+    "pageSubtitle": "Wartungs- und Kalibrierstatus jedes aktiven Geräts. Erfassen Sie Ihre Arbeit mit „Eintrag erfassen“; Geräte anlegen oder ändern unter Konfiguration → System → Geräte.",
+    "pageTitle": "Gerätelogbuch"
   },
   "evaluateMicroscopicFinalizeGate": {
     "incompleteSynopticFields": "Die synoptische Vorlage dieser Probe enthält noch nicht ausgefüllte Pflichtfelder.",
@@ -6136,6 +7314,9 @@
       "phone": "Telefon",
       "placeOfServiceCode": "Leistungsort-Code",
       "placeOfServiceCodeHint": "Der reale, aktuelle CMS-Leistungsort-Codesatz — spiegelt die Umgebung wider, in der die Probe tatsächlich entnommen wird, nicht die eigenen Merkmale des ausführenden Labors dieser Einrichtung.",
+      "reportLanguage": "Befundsprache",
+      "reportLanguageDefault": "Standard der Rechtsordnung ({{language}})",
+      "reportLanguageHint": "Die Sprache, in der dieses Labor seine Befunde schreibt: Bezeichnungen, Abschnittsüberschriften und Datumsangaben im Befund-PDF. Sie wird bei der Freigabe mit dem Befund gespeichert; Korrekturen und Nachträge behalten sie. Die Diagnoseformulierungen stammen aus den Wörterbüchern.",
       "roles": "Rollen",
       "rolesHint": "Eine Einrichtung kann jede beliebige Kombination von Rollen haben — ein Krankenhaus kann z. B. gleichzeitig ein ausführendes Labor und eine interne Bestelleinrichtung sein. Die Tabs HL7, Berichterstellung/Bearbeitungszeit und KI & Leistung oben erscheinen je nachdem, welche Rollen hier angekreuzt sind.",
       "specimenLabeling": "Proben-/Blockkennzeichnung",
@@ -6153,6 +7334,8 @@
       "authTypeApiKey": "API-Schlüssel",
       "authTypeBasic": "Basis",
       "authTypeNone": "Keine",
+      "consolidateOutboundPdfs": "Ein zusammengefasstes PDF pro Fall senden (das LIS dieses Labors nimmt ein PDF pro Eingangsnummer an)",
+      "consolidateOutboundPdfsNote": "Aus: ein PDF pro Synoptik-Befund, eine Korrektur ersetzt nur diesen Teil. Ein: alle Befunde des Falls in einem PDF, bei jeder Änderung vollständig neu gesendet; die strukturierten Daten gehen weiterhin pro Befund. Orchestration-Ergebnisse tragen dann nur das PDF des Gesamtbefunds.",
       "credentialConfigured": "Zugangsdaten konfiguriert",
       "credentialConfiguredLabel": "Für diese Verbindung wurden echte Zugangsdaten bereitgestellt",
       "endpoint": "Interface-Engine-Endpunkt",
@@ -6169,6 +7352,7 @@
       "optional": "Optional",
       "outboundChannelOverride": "Ausgangskanal-Überschreibung",
       "outboundChannelOverridePlaceholder": "z. B. ein separater SFTP-Ordner oder lokaler VPN-Listener — optional",
+      "outboundDocuments": "An das LIS gesendete Dokumente",
       "overrideRouting": "Unternehmens-Routing für diese Einrichtung überschreiben",
       "receivingFacilityId": "ID der empfangenden Einrichtung (MSH-6)",
       "sendingFacilityId": "ID der sendenden Einrichtung (MSH-4)",
@@ -6217,6 +7401,11 @@
     },
     "saveChanges": "Änderungen speichern",
     "saved": "Gespeichert",
+    "spelling": {
+      "empty": "Für dieses Labor wurden noch keine Wörter hinzugefügt.",
+      "intro": "Wörter, die die Rechtschreibprüfung in allen Berichten für die Fälle dieses Labors akzeptiert. Jede Änderung wird im Audit-Protokoll festgehalten.",
+      "title": "Rechtschreibwörterbuch"
+    },
     "tabs": {
       "ai": "KI & Leistung",
       "general": "Allgemein",
@@ -6224,6 +7413,7 @@
       "lisIntegration": "LIS-Integration",
       "locations": "Standorte",
       "reporting": "Berichterstellung",
+      "spelling": "Rechtschreibung",
       "tat": "Bearbeitungszeit & Eskalation"
     },
     "tat": {
@@ -6329,20 +7519,137 @@
         "requestingProvider": "Anfordernder Arzt",
         "specimenDescription": "Probenbeschreibung"
       },
+      "addOnOrder": {
+        "addOnBlocks": "Blöcke",
+        "addOnLines": "Auftragszeilen",
+        "cuttingInstructions": "Anweisungen für den Mikrotomplatz",
+        "exceptionNote": "Ausnahmenotiz",
+        "levelDepth": "Stufentiefe (µm)",
+        "responseNote": "Antwortnotiz",
+        "sendOutLab": "Referenz- / Fremdlabor"
+      },
+      "batchManagement": {
+        "abortReason": "Abbruchgrund",
+        "coldChainNote": "Kühlkettennotiz",
+        "cytologyStainType": "Färbung",
+        "decalDuration": "Zieldauer",
+        "overrideReason": "Grund für die Übersteuerung",
+        "protocol": "Protokoll",
+        "rackId": "Rack-ID",
+        "referralDestination": "Ziel-Referenzlabor",
+        "referralTestRequested": "Angeforderter Test / Panel",
+        "stainingReagentLots": "Reagenz- / Lösungschargen"
+      },
+      "cytology": {
+        "cisoeaAdequacy": "A — Adäquatheit",
+        "cisoeaComments": "Kommentar zu jeder Achse",
+        "cisoeaComposition": "C — Zusammensetzung",
+        "cisoeaEndocervical": "E — Endozervikales Epithel",
+        "cisoeaInflammation": "I — Entzündung",
+        "cisoeaNotes": "CISOE-A-Notizen",
+        "cisoeaOtherEndometrium": "O — Sonstiges / Endometrium",
+        "cisoeaSquamous": "S — Plattenepithel",
+        "histologyDiagnosis": "Histologiediagnose",
+        "histologyOutcome": "Korrelationsergebnis",
+        "retroCorrectiveAction": "Korrekturmaßnahme",
+        "retroOutcome": "Ergebnis der Rückschau",
+        "reviewAdditional": "Weitere Interpretationen",
+        "reviewAdequacy": "Probenadäquatheit",
+        "reviewGeneralCategorization": "Allgemeine Kategorisierung",
+        "reviewLmp": "Letzte Menstruation",
+        "reviewNotes": "Beurteilungsnotizen",
+        "reviewPrimaryComment": "Kommentar zur primären Interpretation",
+        "reviewPrimaryInterpretation": "Primäre Interpretation",
+        "reviewRecommendations": "Empfehlungen",
+        "revisionAddendumText": "Text des Nachtrags",
+        "revisionReason": "Grund für Korrektur / Nachtrag"
+      },
+      "embedding": {
+        "commentText": "Kommentartext",
+        "moldSize": "Größe der Gießform",
+        "observedPieceCount": "Beobachtete Stückzahl",
+        "orientationInstructions": "Orientierungsanweisungen",
+        "reprintReason": "Grund für den Nachdruck"
+      },
       "grossing": {
         "blocks": "Mindestens ein Block",
         "fixationEndedAt": "Ende der Fixierung",
         "fixativeRatioConfirmed": "Verhältnis Fixativ zu Gewebe bestätigt",
         "pieceCount": "Stückzahl",
+        "pieceDescription": "Beschreibung der Gewebestücke",
         "protocol": "Zuschnittprotokoll zugeordnet"
       },
+      "intraop": {
+        "dateOfBirth": "Geburtsdatum",
+        "facility": "Einrichtung",
+        "frozenCategory": "Vorläufige Kategorie",
+        "frozenDiagnosis": "Schnellschnittdiagnose",
+        "location": "Standort (Raum)",
+        "mergeCase": "Zielfall für die Zusammenführung",
+        "mrn": "Patientennummer (MRN)",
+        "orNumber": "OP-Saal-Nummer",
+        "patientConfirmed": "Patientenidentität bestätigt",
+        "patientName": "Patientenname",
+        "quickGross": "Schnellmakroskopie",
+        "specimenLabel": "Probenbezeichnung",
+        "surgeon": "Operateur",
+        "surgeonUnavailableNote": "Operateur nicht erreichbar: Notiz („Sonstiges“)",
+        "surgeonUnavailableReason": "Operateur nicht erreichbar: Grund",
+        "touchPrepSkipNote": "Grund für das Auslassen des Tupfpräparats („Sonstiges“)",
+        "verbalReportNote": "Notiz zur mündlichen Mitteilung an den Operateur",
+        "verbalReportReadBack": "Rückbestätigung erfolgt",
+        "verbalReportRecipient": "Empfangen von",
+        "verbalReportRole": "Funktion des Empfängers"
+      },
+      "messaging": {
+        "messageBody": "Nachrichtentext",
+        "messageRecipient": "Empfänger",
+        "messageReply": "Antworttext",
+        "messageSubject": "Betreff",
+        "secureEmailBody": "Nachrichtentext",
+        "secureEmailSubject": "Betreff",
+        "secureEmailTo": "E-Mail-Adresse des Empfängers"
+      },
+      "microtomy": {
+        "cancelReason": "Stornogrund (gedruckter Objektträger)",
+        "commentText": "Kommentartext",
+        "levelDepth": "Schnitttiefe (µm)",
+        "reprintReason": "Grund für den Neudruck",
+        "stainType": "Färbung"
+      },
+      "molecularBatch": {
+        "aliquotVolume": "Aliquotvolumen (µL)",
+        "assayCode": "Test",
+        "assayName": "Testname",
+        "controlLotInfo": "Kontrollcharge und Verfallsdatum",
+        "deckSlot": "Deck-Position",
+        "patientSpecimen": "Probe des Patienten-Wells (Barcode oder Eingangsnummer)",
+        "reagentLots": "Reagenzchargen",
+        "supersedeReason": "Grund für das Ersetzen",
+        "targetInstrument": "Zielgerät"
+      },
+      "molecularRack": {
+        "assay": "Assay",
+        "deckSlot": "Deck-Steckplatz",
+        "instrument": "Gerät",
+        "rackBarcode": "Rack-Kennung / Barcode",
+        "sampleMapping": "Proben-ID für jede belegte Position"
+      },
       "report": {
+        "addOrdersCassetteLabel": "Aufträge hinzufügen: Kassettenbezeichnung",
+        "addOrdersSpecimen": "Aufträge hinzufügen: Probe für den neuen Block",
         "addendumNotification": "Benachrichtigter Kliniker bei Nachtrag (wer und wie)",
         "addendumTitle": "Nachtragstitel",
         "amendmentNotification": "Benachrichtigter Kliniker bei wesentlicher Änderung (wer und wie)",
         "anatomicSite": "Anatomische Stelle",
         "arrayCassetteLabel": "Kassettenbezeichnung",
         "arraySpecimens": "Mindestens zwei Proben",
+        "autopsyConsentGivenAt": "Einwilligung erteilt am",
+        "autopsyConsentScope": "Umfang der Einwilligung",
+        "autopsyOrderDate": "Datum der schriftlichen Anordnung",
+        "autopsyOrderReference": "Aktenzeichen der schriftlichen Anordnung",
+        "autopsyReleasedBy": "Übergeben durch",
+        "autopsyReleasedTo": "Leichnam übergeben an",
         "blockCancelReason": "Grund für die Stornierung eines Blocks",
         "caseHoldNote": "Vermerk zur Fallsperre",
         "caseHoldReleaseNote": "Freigabevermerk zur Fallsperre",
@@ -6367,9 +7674,14 @@
         "discordanceRootCause": "Ursache",
         "discordanceRootCauseNote": "Erläuterung, wenn die Ursache Sonstiges ist",
         "discordanceSeverity": "Klinische Auswirkung",
+        "fixationTime": "Fixierungszeit (oder Bestätigung, dass keine möglich ist)",
+        "fixationUnrecoverableComment": "Grund, warum keine Fixierungszeit möglich ist",
         "laterality": "Seitigkeit",
         "postSignoutBillingComment": "Kommentar zur Abrechnungsänderung",
         "postSignoutBillingReason": "Grund der Abrechnungsänderung",
+        "preAnalyticCollectedAt": "Entnahmedatum/-zeit (oder administrative Ausnahme)",
+        "preAnalyticOverrideComment": "Begründung der Ausnahme",
+        "preAnalyticReceivedAt": "Eingangsdatum/-zeit (oder administrative Ausnahme)",
         "restainReason": "Grund für die Nachfärbung",
         "restainStain": "Färbung für die Nachfärbung",
         "retentionHoldNote": "Vermerk zur Aufbewahrungssperre",
@@ -6380,57 +7692,168 @@
         "snomedTypeCode": "SNOMED-Probentyp",
         "specimenDescription": "Probenbeschreibung",
         "specimenLabel": "Probenbezeichnung"
+      },
+      "slideDistribution": {
+        "checkoutTarget": "ein Pathologe, ein Pool oder ein Ablageort",
+        "courierBagId": "Kuriertransporttasche",
+        "exceptionNote": "Ausnahmenotiz",
+        "rackId": "Rack-ID",
+        "readingPathologist": "Pathologe oder Pool",
+        "reprintReason": "Grund für den Nachdruck",
+        "scannerInstrument": "Scannergerät",
+        "slideFolderId": "Objektträgermappen-ID",
+        "slotPosition": "Steckplatzposition",
+        "trayNumber": "Tablettnummer"
       }
     },
     "forOrganisation": "Einstellungen für {{organisation}}",
     "groups": {
+      "addOnException": "Blockausnahme melden",
+      "addOnOrder": "Zusatzauftrag erteilen",
+      "addOnResponse": "Antwort des Pathologen auf eine Ausnahme",
+      "addOrders": "Aufträge hinzufügen: Blöcke und Nachschnitte",
+      "autopsy": "Obduktionsformulare",
+      "batchClose": "Abschluss einer Charge",
+      "batchCreate": "Neuer Behälter",
       "billingChanges": "Abrechnungsänderungen nach Signierung",
       "biopsyArray": "Biopsie-Arrays",
       "blockChanges": "Blockstornierung und Nachfärbungen",
       "blocks": "Blöcke",
+      "cassetteReprint": "Nachdruck des Kassettenetiketts",
+      "cisoea": "CISOE-A-Beurteilung",
       "comments": "Kommentare",
       "criticalFindings": "Kritische Befunde",
+      "cytologyReview": "Zytologische Beurteilung (Bethesda)",
+      "cytologyRevision": "Korrektur / Nachtrag",
       "delegation": "Delegation",
       "discordance": "Abgleich Schnellschnitt-Endbefund",
+      "embeddingConfirm": "Einbettung bestätigen",
       "fixation": "Fixierung",
+      "histologyCorrelation": "Zyto-histologische Korrelation",
       "holds": "Sperren",
+      "intraopMerge": "Mit einem Fall zusammenführen",
+      "intraopReport": "Mündliche Mitteilung an den Operateur",
+      "intraopSession": "Neue Sitzung",
+      "intraopSpecimen": "Proben",
+      "intraopTouchPrep": "Tupfpräparat",
+      "molecularRackContents": "Das Rack und seine Röhrchen",
+      "molecularRackPlacement": "Platzierung des Racks im Gerät",
+      "molecularRun": "Der Lauf",
+      "molecularSupersede": "Klonen und ersetzen",
+      "molecularWells": "Wells",
+      "newMessage": "Neue Nachricht",
       "order": "Auftrag",
       "patient": "Patient",
+      "reply": "Antwort",
+      "retrospective": "5-Jahres-Rückschau",
       "revisions": "Änderungen und Nachträge",
+      "scannerLoad": "Weiterleitung an den Scanner",
+      "secureEmail": "Sichere E-Mail",
+      "signoutGates": "Prüfungen vor der Freigabe",
+      "slideCheckout": "Physische Ausgabe",
+      "slideException": "Objektträger-Ausnahmen",
+      "slideLabelReprint": "Nachdruck des Objektträgeretiketts",
+      "slideOrders": "Objektträger-Aufträge",
       "specimenDetails": "Probe hinzufügen oder bearbeiten",
       "specimens": "Proben"
     },
     "hints": {
       "blocksScope": "Wird für jede Probe mit Protokoll geprüft, außer zytologischen Präparaten",
+      "controlWellsOnly": "Nur Kontroll- und Kalibrator-Wells.",
+      "criticalNotSurgeonOnly": "Nur wenn ein kritischer Befund an jemand anderen als den Operateur geht",
+      "cytologyStainingOnly": "Nur zytologische Färbechargen.",
+      "decalOnly": "Nur Entkalkungs- / Sonderverarbeitungschargen.",
       "delegationNoteByType": "Eine Delegationsart kann auch einen eigenen Vermerk verlangen (Delegationsarten)",
-      "protocolOff": "Ausgeschaltet: Proben, die ohne Protokoll abgeschlossen werden, gehen zur Zweitbegutachtung"
+      "gynOnly": "Nur bei gynäkologischer Zytologie angezeigt.",
+      "matrixBlocksToo": "Bei jedem Block geprüft, Matrixblöcke eingeschlossen, wenn der Zuschnitt abgeschlossen wird",
+      "multiSlotOnly": "Nur wenn das Gerät mehr als einen Steckplatz für ein Probenrack hat.",
+      "noAdtMatchOnly": "Nur verlangt, wenn der Patient manuell erfasst wird (kein ADT-Treffer)",
+      "nonNegativeOnly": "Nur gefordert, wenn das Ergebnis nicht „Negativ bestätigt“ ist.",
+      "occupiedPositionsOnly": "Nur belegte Positionen; das Rack braucht mindestens ein Röhrchen.",
+      "otherReasonOnly": "Nur verlangt, wenn der Grund „Sonstiges“ ist",
+      "patientWellsOnly": "Nur Patienten-Wells.",
+      "protocolOff": "Ausgeschaltet: Proben, die ohne Protokoll abgeschlossen werden, gehen zur Zweitbegutachtung",
+      "recutLinesOnly": "Nur Nachschnittzeilen.",
+      "referralOnly": "Nur Chargen für externe Überweisungen.",
+      "reusableRackOnly": "Nur wiederverwendbare Racks.",
+      "sendOutLinesOnly": "Nur molekulare/externe Zeilen; wird aus den freigegebenen Laboren des Tests vorbelegt.",
+      "stainingOnly": "Nur Färbechargen.",
+      "withFrozenDiagnosis": "Nur verlangt, wenn eine Schnellschnittdiagnose eingegeben ist"
     },
     "lockReasons": {
+      "addOnOrderContent": "Ein Zusatzauftrag wird aus ausgewählten Blöcken geschnitten und nennt, was bestellt wird.",
       "amendmentNotification": "Bei einer geänderten Diagnose ist festzuhalten, welcher Kliniker wie informiert wurde (CAP, RCPath).",
+      "autopsyAuthority": "Die makroskopische Untersuchung ist gesperrt, bis die schriftliche Anordnung (gerichtsmedizinische Fälle) bzw. die Einwilligung (Krankenhausfälle mit Einwilligung) vorliegt.",
+      "batchCustodyChange": "Das Abbrechen oder erzwungene Abschließen einer Charge ändert ihre Nachweiskette, daher wird der Grund festgehalten.",
+      "batchProtocol": "Eine Charge dokumentiert das verwendete Protokoll.",
+      "batchStain": "Eine zytologische Färbecharge wird durch ihre Färbung bestimmt.",
       "billingAudit": "Eine Abrechnungsänderung nach der Signierung muss den Grund festhalten, damit Belastung und Gutschrift prüfbar sind.",
       "billingCodeCorrection": "Die Korrektur belastet den neuen Code, daher muss er sich vom korrigierten Code unterscheiden.",
       "biopsyArray": "Ein Array fasst zwei oder mehr Proben in einer beschrifteten Kassette zusammen.",
+      "bodyReleaseCustody": "Lückenlose Nachweiskette: Bei der Übergabe eines Leichnams müssen Empfänger und übergebende Person erfasst werden.",
+      "cassetteReprintReason": "Für den Nachdruck eines Kassettenetiketts ist ein Grund für die Doppeletiketten- und Rückverfolgbarkeitsprotokolle nötig.",
+      "cisoeaMatrix": "CISOE-A bewertet jede Achse unabhängig; mit fehlender Achse lässt sich das Ergebnis nicht berechnen.",
+      "coldChainRecord": "Eine bestätigte Temperaturabweichung braucht eine Notiz für das Kühlkettenprotokoll.",
       "commentText": "Ein Kommentar braucht Text.",
+      "controlTraceability": "Ein Kontroll-Well dokumentiert Charge und Verfallsdatum, damit keine abgelaufene Kontrolle läuft.",
+      "correlationRecord": "Ein Korrelationseintrag braucht Histologiediagnose und Ergebnis, um im QS-Reporting nutzbar zu sein.",
       "criticalResult": "Bei kritischen Befunden ist festzuhalten, wer wie und von wem informiert wurde (CLIA).",
+      "criticalResultDirect": "Ein kritischer Befund soll direkt an den Operateur gehen; jede Ausnahme wird mit Grund dokumentiert.",
+      "decalTiming": "Der Entkalkungstimer zählt ab der Zieldauer herunter.",
+      "deckPlacement": "Das Gerät liest die Röhrchen nach Deck-Position; Gerät und Steckplatz des Racks müssen daher bekannt sein.",
       "delegationRouting": "Bestimmt, an wen der Fall oder Befund geht.",
       "discordanceRecord": "Ein Schnellschnitt, der vom Endbefund abweicht, muss eingestuft und erläutert werden (CAP, ISO 15189).",
+      "externalAddress": "Eine sichere E-Mail benötigt eine Empfängeradresse.",
+      "fixationCompliance": "Die CAP/ASCO-Biomarker-Leitlinien verlangen vor der Freigabe eine dokumentierte Fixierungszeit oder eine bestätigte Ausnahme.",
       "holdAccountability": "Eine Sperre stoppt die Arbeit am Fall; beim Setzen oder Aufheben wird der Grund festgehalten.",
+      "intraopMergeTarget": "Eine Sitzung wird mit genau einem Fall zusammengeführt.",
+      "intraopReporting": "Die Sitzung erfasst den Operateur. Das Schnellschnittergebnis kann dem Operateur oder einem befugten Mitglied des OP-Teams mitgeteilt werden; der Empfänger wird mit der Mitteilung dokumentiert.",
       "materialTraceability": "Änderungen an Blöcken und Objektträgern müssen rückverfolgbar sein: was und warum (ISO 15189).",
+      "messageContent": "Eine Nachricht ohne Text sagt nichts aus.",
+      "messageRouting": "Eine Nachricht kann nicht ohne Empfänger gesendet werden.",
+      "molecularRunRecord": "Ein molekularer Lauf dokumentiert den Test und das verwendete Gerät.",
       "orderingProvider": "Laborvorschriften verlangen den Namen der Person, die die Untersuchung angefordert hat.",
       "patientIdentification": "Identifiziert den Patienten; Laborstandards verlangen mindestens zwei Identifikatoren.",
+      "pieceCountVerification": "Die beobachtete Stückzahl wird mit der beim Zuschnitt erfassten verglichen; eine Abweichung löst eine Gewebediskrepanz aus.",
+      "preAnalyticCompliance": "Akkreditierungsnormen (ISO 15189, CAP/CLIA und vergleichbare) verlangen Entnahme- und Eingangsdatum oder eine begründete administrative Ausnahme.",
+      "quickGrossGate": "Tupfpräparat und Gefrierschnitte werden erst nach der Schnellmakroskopie der Probe protokolliert.",
+      "rackIdentity": "Das Rack wird während der Extraktion über seine Kennung verfolgt.",
+      "rackTraceability": "Ein wiederverwendbares Rack wird über seine ID verfolgt.",
+      "readBack": "Eine Rückbestätigung von Patientenidentität und Diagnose ist Pflicht.",
       "retentionHold": "Eine Aufbewahrungssperre verhindert die Entsorgung von Material; beim Setzen oder Aufheben wird der Grund festgehalten.",
+      "retrospectiveOutcome": "Eine Rückschau ohne Ergebnis ist keine Rückschau; das Ergebnis ist, was sie festhält.",
       "revisionRecord": "Laborstandards verlangen, dass jede Änderung eines abgezeichneten Befunds festhält, was sich geändert hat und warum.",
       "routing": "Bestimmt, wohin der Fall geleitet und wie er abgerechnet wird.",
+      "sampleMapping": "Jedes Röhrchen im Rack muss seiner Probe zugeordnet sein, damit jedes Ergebnis zum Patienten zurückverfolgt werden kann.",
+      "scannerInstrument": "Ein zum Scannen gesendeter Objektträger wird einem benannten Scanner zugeordnet, damit der Scan dem Objektträger zugeordnet werden kann.",
+      "screeningResult": "Die primäre Interpretation ist das Screening-Ergebnis selbst; ohne sie kann keine Beurteilung gespeichert werden.",
+      "sendOutRouting": "Ein externer Versand ohne Referenzlabor hinterlässt Lücken in den Kurier- und Nachverfolgungsprotokollen.",
+      "slideChangeReason": "Für den Neudruck oder das Stornieren eines gedruckten Objektträgers ist ein Grund für die Doppeletiketten- und Rückverfolgbarkeitsprotokolle nötig.",
+      "slideOrder": "Ein Objektträger-Auftrag ohne Färbung kann weder geschnitten noch beschriftet werden.",
       "specimen": "Ein Fall braucht mindestens eine beschriebene Probe.",
       "specimenDescription": "Jede Probe braucht eine Beschreibung; sie erscheint im Befund.",
-      "specimenIdentity": "Kennzeichnet die Probe auf Etiketten, Blöcken und im Befund."
+      "specimenIdentity": "Kennzeichnet die Probe auf Etiketten, Blöcken und im Befund.",
+      "supersedeRecord": "Beim Ersetzen eines Laufs bleibt der Grund in beiden Laufprotokollen erhalten.",
+      "verbalReportRecord": "Die Dokumentation muss zeigen, wer den Befund erhalten hat und in welcher Funktion.",
+      "wellTraceability": "Ein Patienten-Well muss seine Probe nennen, damit das Ergebnis zurückverfolgt werden kann."
     },
+    "neededToCompleteGrossing": "Erforderlich, bevor der Zuschnitt abgeschlossen werden kann.",
     "noOrganisation": "Ihr Konto ist keiner Organisation zugeordnet; dies sind die Standardwerte und können hier nicht geändert werden.",
     "page": "Seite",
     "pages": {
       "accession": "Eingang",
+      "addOnOrder": "Zusatzaufträge",
+      "batchManagement": "Chargenverwaltung",
+      "cytology": "Zytologie-Screening",
+      "embedding": "Einbettstation",
       "grossing": "Zuschnitt",
-      "report": "Fallbefund"
+      "intraop": "Intraoperative Konsultation",
+      "messaging": "Nachrichten",
+      "microtomy": "Mikrotomie-Arbeitsplatz",
+      "molecularBatch": "Molekularer Plattenaufbau",
+      "molecularRack": "Molekulare Rack-Beladung",
+      "report": "Fallbefund",
+      "slideDistribution": "Objektträger-Verteilstation"
     },
     "perBlock": "Wird für jeden Block geprüft",
     "perSpecimen": "Wird für jede Probe geprüft",
@@ -6456,8 +7879,11 @@
     "header": "Fixierungszeit vor der Freigabe erforderlich",
     "intro": "Die unten aufgeführten Präparate benötigen eine dokumentierte Fixierungszeit (CAP/ASCO-Biomarker-Leitlinie), bevor dieser Fall freigegeben werden kann. Lösen Sie jedes davon, um fortzufahren.",
     "specimenRowTitle": "Präparat {{label}} — {{description}}",
+    "timeLabel": "Fixierungszeit",
     "unrecoverableBadge": "Bestätigt nicht verfügbar — keine Schätzung möglich",
-    "unrecoverableButton": "Keine Zeit oder Schätzung möglich — Außerkraftsetzung"
+    "unrecoverableButton": "Keine Zeit oder Schätzung möglich — Außerkraftsetzung",
+    "unrecoverableCommentLabel": "Grund",
+    "unrecoverableCommentPlaceholder": "Warum keine Fixierungszeit oder Schätzung möglich ist"
   },
   "flagConfigPage": {
     "addFlagButton": "+ Kennzeichen hinzufügen",
@@ -6684,12 +8110,8 @@
     "claimBtn": "✋ Diesen Fall übernehmen",
     "defaultPoolName": "MFT-Pool",
     "eyebrow": "Pathologiebericht",
-    "goBackBtn": "← Zurück",
     "lastUpdated": "Zuletzt aktualisiert",
-    "loading": "Wird geladen…",
-    "notFoundCasePrefix": "Fall",
-    "notFoundCaseSuffix": "konnte nicht gefunden werden.",
-    "notFoundTitle": "Bericht nicht gefunden"
+    "loading": "Wird geladen…"
   },
   "governingBodiesSection": {
     "addCustomBodyBtn": "Benutzerdefinierte Institution hinzufügen",
@@ -7108,6 +8530,8 @@
       "description": "Systemaktivitätsprotokolle und Audit-Trail sowie die Arbeitswarteschlange der Qualitätssicherung — Abweichungen, Abgleich und CAPA-Management",
       "title": "Qualität & Compliance"
     },
+    "registryExceptionsBadge_one": "{{count}} Registerausnahme",
+    "registryExceptionsBadge_other": "{{count}} Registerausnahmen",
     "searchTile": {
       "description": "Abgeschlossene und laufende Fälle durchsuchen",
       "title": "Suche"
@@ -7298,6 +8722,29 @@
     "title": "interne notizen",
     "visibilityLabel": "Sichtbarkeit"
   },
+  "intraopCriticalResults": {
+    "add": "+ Eintrag hinzufügen",
+    "addTitle": "Kritischen Befund hinzufügen",
+    "categoriesLabel": "Passende vorläufige Kategorien",
+    "deactivate": "Deaktivieren",
+    "descriptionLabel": "Beschreibung",
+    "edit": "Bearbeiten",
+    "editTitle": "Kritischen Befund bearbeiten",
+    "empty": "Keine Einträge.",
+    "inactive": "Inaktiv",
+    "matchesSummary": "Kategorien: {{categories}} · Begriffe: {{terms}}",
+    "nameLabel": "Name",
+    "needsNameAndMatch": "Einen Namen und mindestens einen Begriff oder eine Kategorie angeben.",
+    "notPermitted": "Sie sind nicht berechtigt, das Verzeichnis kritischer Befunde zu ändern.",
+    "reactivate": "Reaktivieren",
+    "readOnly": "Sie können dieses Verzeichnis ansehen, aber nicht ändern.",
+    "saveFailed": "Die Änderung konnte nicht gespeichert werden.",
+    "showInactive": "Inaktive Einträge anzeigen",
+    "subtitle": "Schnellschnittbefunde, die den Operateur direkt erreichen sollen. Eine Probe passt über ihre vorläufige Kategorie oder einen Begriff in der Schnellschnittdiagnose (verneinte Formulierungen werden ignoriert). Ein Treffer markiert die mündliche Mitteilung als kritischen Befund, den der Pathologe bestätigt oder aufhebt.",
+    "termsHint": "Ein Begriff oder Ausdruck pro Zeile (oder durch Kommas getrennt). Als ganze Wörter gesucht, ohne Groß-/Kleinschreibung.",
+    "termsLabel": "Begriffe",
+    "title": "Kritische intraoperative Befunde"
+  },
   "intraopLinkageTab": {
     "entryHeader": "Eintrags-ID",
     "loading": "Intraoperative Verknüpfungsdaten werden geladen…",
@@ -7351,9 +8798,9 @@
       "mergeButton": "Mobile Erfassungsdaten zusammenführen",
       "pendingMatch": "🔒 Zuordnung ausstehend",
       "reportNotePlaceholder": "Was gesagt wurde (optional) — z. B. Ränder frei, Gefrierschnitt ausstehend",
-      "reportToSurgeonButton": "📞 Jetzt an Operateur berichten",
-      "reportToSurgeonLabel": "Bericht an Operateur",
-      "verbalReportLabel": "Mündlicher Bericht an Operateur — {{time}}"
+      "reportToSurgeonButton": "📞 Mündliche Mitteilung protokollieren",
+      "reportToSurgeonLabel": "Mündliche Mitteilung an das OP-Team",
+      "verbalReportLabel": "Mündliche Mitteilung — {{time}}"
     },
     "fields": {
       "frozenDiagnosis": "Schnellschnittdiagnose",
@@ -7463,6 +8910,53 @@
       "specimenLabelPlaceholder": "Probe A: linke Brust, Ränder",
       "specimenSummary_one": " · {{count}} Probe gespeichert",
       "specimenSummary_other": " · {{count}} Proben gespeichert"
+    },
+    "verbalReport": {
+      "criticalCheckbox": "Kritischer Befund: direkte Mitteilung an den Operateur erwartet",
+      "criticalMatch": "{{name}} (Probe {{specimens}})",
+      "criticalSuggested": "Vorgeschlagener kritischer Befund",
+      "criticalTag": "Kritischer Befund",
+      "dictationHint": "Hier tippen, dann das Mikrofon, und sagen, wem Sie es mitgeteilt haben, seine Funktion und ob er es wiederholt hat. Oder eintippen.",
+      "dictationLabel": "Mitteilung diktieren",
+      "dictationPlaceholder": "z. B. „Befund an Dr. Faulkner, Operateur, mitgeteilt. Rückbestätigung erfolgt.“",
+      "directExpected": "Dies ist ein kritischer Befund. Eine direkte Mitteilung an den Operateur wird erwartet.",
+      "failed": "Die mündliche Mitteilung konnte nicht protokolliert werden. Angaben prüfen und erneut versuchen.",
+      "fillFromDictation": "Aus Diktat ausfüllen",
+      "filledByAi_one": "Die KI hat {{count}} Feld aus Ihrem Diktat ausgefüllt. Vor dem Protokollieren prüfen.",
+      "filledByAi_other": "Die KI hat {{count}} Felder aus Ihrem Diktat ausgefüllt. Vor dem Protokollieren prüfen.",
+      "filledByRules_one": "{{count}} Feld per Stichwortsuche aus Ihrem Diktat ausgefüllt (KI nicht verfügbar). Vor dem Protokollieren prüfen.",
+      "filledByRules_other": "{{count}} Felder per Stichwortsuche aus Ihrem Diktat ausgefüllt (KI nicht verfügbar). Vor dem Protokollieren prüfen.",
+      "filling": "Wird gelesen …",
+      "fromDictation": "Aus Diktat",
+      "nothingFilled": "Aus dem Diktat konnte nichts Neues ausgefüllt werden. Bitte die Felder unten ausfüllen.",
+      "otherReasonPlaceholder": "Warum der Operateur nicht erreicht wurde",
+      "otherSuggestions": {
+        "callWithAnotherTeam": "Operateur im Gespräch mit einem anderen Team; Befund an das Team im Saal",
+        "leftHospitalCoveringInformed": "Operateur hatte das Krankenhaus verlassen; vertretender Chirurg informiert",
+        "unreachableByPhone": "Operateur telefonisch oder per Pager nicht erreichbar"
+      },
+      "otherTooShort": "Kurz begründen, in ein paar Worten.",
+      "readBackCheckbox": "Rückbestätigung erfolgt: Der Empfänger hat Patientenidentität und Diagnose wiederholt",
+      "readBackTag": "Rückbestätigt",
+      "reasons": {
+        "SU_DELEGATED": "Operateur hat die Kommunikation delegiert",
+        "SU_EMERGENCY": "Intraoperativer Notfall",
+        "SU_NOT_IN_ROOM": "Operateur nicht im OP-Saal",
+        "SU_OTHER": "Sonstiges",
+        "SU_SCRUBBED": "Operateur in kritischem OP-Schritt"
+      },
+      "receivedByPlaceholder": "Zum Suchen tippen oder Namen eingeben",
+      "roles": {
+        "operating_surgeon": "Operateur",
+        "or_staff": "Benanntes OP-Personal",
+        "physician_assistant": "Arztassistent",
+        "surgical_fellow": "Fellow Chirurgie",
+        "surgical_resident": "Assistenzarzt Chirurgie"
+      },
+      "suggestedFromDictation": "Erwähnt",
+      "summary": "An {{name}} ({{role}})",
+      "surgeonUnavailableButton": "Operateur nicht erreichbar",
+      "unavailableSummary": "Operateur nicht erreichbar: {{reason}}"
     }
   },
   "jurisdictionNames": {
@@ -8027,6 +9521,8 @@
     "comments": {
       "add": "Kommentar hinzufügen",
       "empty": "Noch keine Kommentare.",
+      "label": "Kommentar",
+      "meta": "{{author}} — {{when}}",
       "placeholder": "Kommentar hinzufügen…",
       "printOnLabel": "Diesen Kommentar auf dem physischen Etikett drucken"
     },
@@ -8079,7 +9575,12 @@
       "allPrinted": "Alle Objektträger dieses Blocks wurden gedruckt.",
       "batch": "Stapel",
       "deviceStatus": "Gerätestatus",
+      "fit": {
+        "height_overflow": "Bei dieser Modulgröße und Schrifthöhe benötigt das Objektträgeretikett etwa {{required}} mm Höhe, die konfigurierte Fläche ist aber nur {{face}} mm hoch. Der Inhalt wird über den Rand des Mattierungsfelds des Glasobjektträgers hinaus gedruckt.",
+        "width_overflow": "Bei dieser Modulgröße benötigt allein der Barcode etwa {{required}} mm Breite, die konfigurierte Fläche ist aber nur {{face}} mm breit und lässt keinen Platz für Text."
+      },
       "labelPreview": "Etikettenvorschau",
+      "labelSize": "{{width}} mm × {{height}} mm",
       "nextUnprinted": "Nächster ungedruckter Objektträger:",
       "noPreview": "Wählen oder drucken Sie einen Objektträger, um dessen Etikett anzuzeigen.",
       "noPrinter": "Kein Drucker konfiguriert",
@@ -8105,10 +9606,29 @@
       "Printed": "Gedruckt",
       "Printing": "Wird gedruckt…"
     },
+    "reasons": {
+      "damagedSection": "Beschädigter Schnitt",
+      "jam": "Papierstau",
+      "misprint": "Fehldruck",
+      "orderedInError": "Irrtümlich angefordert",
+      "other": "Sonstiges",
+      "scratchedGlass": "Zerkratztes Glas",
+      "tissueExhausted": "Gewebe aufgebraucht"
+    },
     "removeReason": {
       "body": "Dieser Objektträger wurde bereits gedruckt — wählen Sie einen Grund, um ihn zu stornieren.",
       "select": "Grund auswählen…",
       "title": "Grund erforderlich"
+    },
+    "scanErrors": {
+      "blockNotFound": "Block {{label}} nicht gefunden.",
+      "blockNotOnCase": "Block in diesem Fall nicht gefunden.",
+      "caseNotFound": "Fall nicht gefunden.",
+      "decantNotFound": "Dekant {{label}} nicht gefunden.",
+      "empty": "Leerer Scan.",
+      "specimenNotFound": "Probe im ermittelten Fall nicht gefunden.",
+      "unresolved": "Dieser Scan ließ sich keinem Fall, Block oder Dekant zuordnen — Barcode prüfen und erneut versuchen.",
+      "unsupported": "Dieses Scanziel (Matrixblock/Zellblock-Kassette oder reiner Probenscan) wird am Mikrotomie-Arbeitsplatz noch nicht unterstützt — scannen Sie den Barcode eines bestimmten Blocks oder Dekants/Flüssigkeitsbehälters."
     },
     "scanPlaceholder": "Barcode scannen oder eingeben…",
     "scanPrompt": "Scannen Sie einen Block- oder Dekantier-/Flüssigkeitsbehälter-Barcode, um zu beginnen",
@@ -8116,6 +9636,13 @@
     "slideGrid": {
       "addLevel": "+ Ebene",
       "addLevelTitle": "Eine weitere Ebene derselben Färbung schneiden",
+      "categories": {
+        "cytology": "Zytologie",
+        "ihc": "IHC",
+        "molecular": "Molekular",
+        "other": "Sonstige",
+        "special": "Spezialfärbungen"
+      },
       "col": {
         "actions": "Aktionen",
         "level": "Ebene",
@@ -8126,6 +9653,7 @@
       "control": "Kontrolle",
       "duplicateCount": "×",
       "levelDepth": "µm",
+      "levelShort": "L{{n}}",
       "onLabel": "Auf Etikett",
       "pairControl": "Mit Kontroll-Objektträger paaren",
       "print": "Drucken",
@@ -8271,6 +9799,14 @@
     "facilitiesCount_one": "{{count}} Einrichtung",
     "facilitiesCount_other": "{{count}} Einrichtungen",
     "loading": "Modelle werden geladen...",
+    "retire": {
+      "button": "Außer Betrieb nehmen",
+      "cannotRetireDefault": "Das Standardmodell kann nicht außer Betrieb genommen werden. Legen Sie zuerst ein anderes Modell als Standard fest.",
+      "confirmMessage": "{{name}} wird nicht mehr angeboten. Bereits erzeugte Ergebnisse bleiben unverändert.",
+      "confirmMessagePinned": "{{name}} wird nicht mehr angeboten. Diese Einrichtungen sind daran gebunden und brauchen ein anderes Modell: {{facilities}}.",
+      "confirmTitle": "Dieses Modell außer Betrieb nehmen?",
+      "failed": "Das Modell konnte nicht außer Betrieb genommen werden."
+    },
     "setDefaultButton": "Als Standard festlegen",
     "subtitle": "Die KI-Modelle, die Ihre Organisation aus dem ForMedrixAI-Katalog übernommen hat. Status, Standardmodell und Fallzahlen gelten nur für Ihre Organisation.",
     "tableHeaders": {
@@ -8377,17 +9913,27 @@
   },
   "molecularControlRulesPage": {
     "addRequiredControl": "+ Erforderliche Kontrolle hinzufügen",
+    "anySampleRackSlot": "Jeder Probenrack-Steckplatz",
     "assayCodeRequired": "Testcode ist erforderlich.",
     "assayLabel": "Test",
     "backToBatches": "← Zurück zu Chargen",
     "cancel": "Abbrechen",
     "colActions": "Aktionen",
     "colAssayCode": "Testcode",
+    "colRackSlots": "Steckplätze für das Probenrack",
     "colRequiredControls": "Erforderliche Kontrollen",
+    "controlLine": "{{sampleType}}: {{position}}",
     "delete": "Löschen",
+    "deleteConfirmText": "Neue {{assay}}-Platten werden nicht mehr auf diese Kontrollen geprüft, und seine Probenracks dürfen in jeden Probenrack-Steckplatz.",
+    "deleteConfirmTitle": "Diese Kontrollregel löschen?",
     "edit": "Bearbeiten",
     "editRuleTitle": "Kontrollregel bearbeiten",
     "emptyRules": "Noch keine Kontrollregeln definiert.",
+    "errors": {
+      "duplicateAssay": "Dieser Assay hat bereits eine Regel. Bearbeiten Sie diese.",
+      "notFound": "Diese Regel existiert nicht mehr.",
+      "notPermitted": "Sie haben keine Berechtigung, molekulare Kontrollregeln zu verwalten."
+    },
     "fixedAt": "fixiert auf {{position}}",
     "fixedPositionMissingWell": "{{sampleType}} ist auf eine feste Position eingestellt, aber es wurde keine Vertiefung angegeben.",
     "fixedPositionOption": "Feste Position",
@@ -8395,6 +9941,10 @@
     "loading": "Wird geladen…",
     "newRule": "+ Neue Regel",
     "newRuleTitle": "Neue Kontrollregel",
+    "noDeckSlots": "Noch kein Analysator hat ein Deck-Layout (Konfiguration → Geräte).",
+    "positionModeLabel": "Position",
+    "rackSlotsHint": "Die Rack-Beladung bietet für diesen Assay nur diese Steckplätze an. Nichts ankreuzen, um jeden Steckplatz für Probenracks zu erlauben.",
+    "rackSlotsLabel": "Deck-Steckplätze für das Probenrack dieses Assays",
     "randomPosition": "zufällige Position",
     "randomPositionOption": "Zufällige Position",
     "removeButton": "Entfernen",
@@ -8402,7 +9952,9 @@
     "saving": "Wird gespeichert…",
     "selectAssayOption": "— Test auswählen —",
     "subtitle": "Legen Sie fest, welche Kontrollen ein bestimmter Test erfordert, bevor eine Charge erstellt werden kann, und ob jede an eine bestimmte Vertiefung gebunden oder überall auf der Platte erlaubt ist.",
-    "title": "Test-Kontrollregeln"
+    "title": "Test-Kontrollregeln",
+    "wellLabel": "Well",
+    "wellPlaceholder": "A01"
   },
   "molecularOrderQueue": {
     "assayBundled": "st-hpv-reflex (gebündelt)",
@@ -8467,6 +10019,15 @@
     "colTrace": "Rückverfolgung",
     "colWell": "Vertiefung",
     "componentLabel": "Komponente",
+    "componentType": {
+      "CONTROL": "Kontrolle",
+      "DETECTION_REAGENT": "Nachweisreagenz",
+      "EXTRACTION_BUFFER": "Extraktionspuffer",
+      "MASTER_MIX": "Mastermix",
+      "NEGATIVE_CONTROL": "Negativkontrolle",
+      "POSITIVE_CONTROL": "Positivkontrolle",
+      "PRIMER_PROBE": "Primer / Sonde"
+    },
     "confirmCloneAndSupersede": "Klonen & Ersetzen bestätigen",
     "confirmDispatch": "Versand bestätigen",
     "containerBarcodeLabel": "Behälter-Barcode",
@@ -8478,6 +10039,7 @@
     "creating": "Wird erstellt…",
     "deckLocationBarcodeLabel": "Standort-Barcode",
     "deckLocationLabel": "🖨️ Standort-Etikett",
+    "deckSlotInvalid": "{{slot}} auf {{instrument}} nimmt keine Extraktionsplatte auf. Wählen Sie einen seiner Platten-Steckplätze.",
     "deckSlotLabel": "Deck-Steckplatz",
     "deckSlotPlaceholder": "z. B. SLOT_A1",
     "dispatchPanelDescription": "Gemäß §3.4 müssen sowohl die Zielplatte als auch der Instrumenten-Standort gescannt und als übereinstimmend bestätigt werden, bevor die ausgehende Arbeitsliste gesendet wird.",
@@ -8488,6 +10050,12 @@
     "expirationLabel": "Ablaufdatum",
     "fill": "Befüllen",
     "gatingFailure": "⚠️ {{componentType}} ({{lotNumber}}): {{reason}}",
+    "gatingReason": {
+      "expired": "abgelaufen",
+      "failed_qc": "QK nicht bestanden",
+      "missing_control_lot_info": "Kontrollcharge oder Verfallsdatum fehlt",
+      "no_qc_signoff": "keine QK-Freigabe"
+    },
     "genericCloneError": "Unbekannter Fehler beim Klonen dieser Charge.",
     "hide": "Ausblenden",
     "instrumentAlertMalfunction": "{{name}} hat eine offene Störung. Sie können es trotzdem auswählen, prüfen Sie es aber, bevor Sie diesen Batch starten.",
@@ -8525,10 +10093,9 @@
     "qcSignedOff": "Freigegeben",
     "qcStatusLabel": "QC-Status",
     "reagentLotsTitle": "Reagenzchargen",
+    "reasonLabel": "Grund",
     "reasonPlaceholder": "z. B. Probe in Vertiefung A03 wurde falsch gescannt; Wiederholung mit korrigierter Zugangsnummer",
-    "reasonRequiredLabel": "Grund (erforderlich)",
     "removeButton": "Entfernen",
-    "requiredFieldsError": "Testcode, Testname und Zielinstrument sind alle erforderlich.",
     "runResultsTitle": "Laufergebnisse",
     "sampleType": {
       "CALIBRATOR": "Kalibrator",
@@ -8549,6 +10116,7 @@
     "selectAssayOption": "— Test auswählen —",
     "selectInstrumentOption": "— Gerät wählen —",
     "specimenLabels": "🖨️ Probenetiketten",
+    "supersedeNotPermitted": "Sie haben keine Berechtigung, einen Lauf zu ersetzen. Wenden Sie sich an Ihren Administrator.",
     "supersededBanner": "⚠ Diese Charge wurde am {{date}} von {{name}} ersetzt — „{{reason}}“.",
     "supersededEarlierBatch": "einer früheren, ersetzten Charge",
     "targetInstrumentLabel": "Zielinstrument",
@@ -8564,22 +10132,78 @@
     "waitingForScan": "📡 Wartet auf Scan…",
     "waitingScan": "📡 Wartet…",
     "wellHeading": "Vertiefung {{position}}",
+    "wellsMissingSpecimen": "Diese Patienten-Wells nennen noch keine Probe: {{wells}}.",
     "worklistDispatchedAt": "✓ Arbeitsliste gesendet am {{date}}"
   },
   "molecularRackLoadingPage": {
+    "accessionFor": "Eingangsnummer für Position {{position}} ({{barcode}})",
+    "accessionPlaceholder": "Eingangsnummer",
     "backToRacks": "← Zurück zu Gestellen",
     "cancel": "Abbrechen",
     "capacityLabel": "Kapazität",
     "createRack": "Gestell erstellen",
     "creating": "Wird erstellt…",
+    "errors": {
+      "duplicateRackBarcode": "Ein anderes Rack hat bereits diesen Barcode.",
+      "generic": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+      "instrumentUnavailable": "Dieses Gerät ist kein aktiver Analysator.",
+      "invalidRackBarcode": "Ein Rack-Barcode hat 3 bis 40 Buchstaben, Ziffern, Binde- oder Unterstriche.",
+      "notForAssay": "Die Kontrollregel des Assays erlaubt sein Probenrack nicht in diesem Steckplatz.",
+      "placementIncomplete": "Das Rack kann erst platziert werden, wenn alle Pflichtfelder ausgefüllt sind.",
+      "positionEmpty": "Diese Position ist leer.",
+      "positionNotFound": "Das Rack hat diese Position nicht.",
+      "positionOccupied": "Diese Position ist bereits belegt. Eine Position hält jeweils nur ein Röhrchen.",
+      "rackNotFound": "Dieses Rack existiert nicht mehr.",
+      "unknownSlot": "Dieses Gerät hat diesen Steckplatz nicht.",
+      "wrongRackType": "Dieser Steckplatz nimmt kein Probenrack auf."
+    },
     "genericLoadError": "Unbekannter Fehler beim Laden der Probe in das Gestell.",
-    "helperText": "Wählen Sie eine leere Position und scannen Sie dann ein Probenröhrchen, um es zu laden — gemäß §5.1 wird dabei die Bewegung primary_vial → secondary_rack mit dem aktuellen Benutzer und Standort erfasst.",
+    "helperText": "Wählen Sie eine freie Position und scannen Sie dann ein Probenröhrchen, um es zu laden. Jede Beladung erfasst die Bewegung vom Röhrchen ins Rack mit dem aktuellen Benutzer und Arbeitsplatz. Sobald jedes Röhrchen seine Proben-ID hat, platzieren Sie das Rack unten im Gerät.",
     "load": "Laden",
     "loading": "Wird geladen…",
-    "manualEntryPlaceholder": "Proben-/Behälter-Barcode",
+    "manualEntryPlaceholder": "Röhrchen-Barcode",
     "manualEntryPrompt": "⌨️ Scan funktioniert nicht? Proben-ID manuell eingeben",
     "newRackTitle": "Neues Extraktionsgestell",
+    "placement": {
+      "assay": "Assay",
+      "assaySlots": "Das Probenrack dieses Assays gehört in {{slots}}.",
+      "deckSlot": "Deck-Steckplatz",
+      "instrument": "Gerät",
+      "movePlace": "Neue Platzierung erfassen",
+      "noDeckLayout": "Für dieses Gerät ist kein Deck-Layout erfasst (Konfiguration → Geräte).",
+      "noSlotsForAssay": "Kein Steckplatz dieses Geräts passt zu diesem Rack und Assay. Prüfen Sie das Deck-Layout und die Kontrollregel des Assays.",
+      "place": "Rack platzieren",
+      "placed": "Auf {{instrument}} platziert von {{name}}, {{when}}.",
+      "placedSlot": "Auf {{instrument}}, Steckplatz {{slot}}, platziert von {{name}}, {{when}}.",
+      "placing": "Wird platziert…",
+      "scanDeck": "Deck-Position scannen",
+      "scanFilled": "Gescannt: {{instrument}}, Steckplatz {{slot}}.",
+      "scanProblem": {
+        "notDeckBarcode": "Das ist kein Deck-Positions-Barcode. Scannen Sie das Etikett am Steckplatz.",
+        "otherInstrument": "Falsches Gerät: Diese Position gehört zu {{instrument}}, nicht zu {{chosen}}.",
+        "unknownInstrument": "Der Deck-Barcode nennt {{instrument}}, das kein aktiver Analysator ist."
+      },
+      "selectAssay": "Assay auswählen",
+      "selectInstrument": "Gerät auswählen",
+      "selectSlot": "Steckplatz auswählen",
+      "singleSlot": "Dieses Gerät hat einen Steckplatz für ein Probenrack; ein Steckplatz ist daher nicht nötig.",
+      "slotFlagged": "{{slot}} (hier nicht gültig)",
+      "slotOnDeck": "{{slot}} ({{deck}})",
+      "slotProblem": {
+        "notForAssay": "Falscher Steckplatz: Das Probenrack dieses Assays gehört nicht in {{slot}}. Rack umsetzen.",
+        "unknownSlot": "{{instrument}} hat keinen Steckplatz {{slot}}.",
+        "wrongRackType": "Falscher Steckplatz: {{slot}} auf {{instrument}} nimmt kein Probenrack auf. Rack umsetzen."
+      },
+      "title": "Im Gerät platzieren",
+      "waitingForDeckScan": "Warte auf den Barcode der Deck-Position…"
+    },
     "positionEmpty": "Position {{position}} — leer",
+    "positionNeedsSampleId": "Position {{position}}: {{barcode}}, noch keine Eingangsnummer",
+    "positionTube": "Position {{position}}: {{barcode}} ({{accession}})",
+    "positionsMissingSampleId": "Proben-ID fehlt: Position {{positions}}. Klicken Sie auf eine markierte Position, um die Eingangsnummer zu erfassen.",
+    "rackBarcodeHint": "Scannen oder tippen Sie den Barcode des Racks. Leer lassen, um einen zu erzeugen.",
+    "rackBarcodePlaceholder": "z. B. RK-HPV-0417",
+    "saveAccession": "Speichern",
     "scanIntoPosition": "📷 In Position {{position}} scannen",
     "waitingForScan": "📡 Warte auf Scan in Position {{position}}…"
   },
@@ -8588,9 +10212,18 @@
     "colCreated": "Erstellt",
     "colOccupied": "Belegt",
     "colRack": "Gestell",
+    "colStatus": "Status",
     "empty": "Noch keine Extraktionsgestelle vorhanden.",
     "loading": "Wird geladen…",
     "newRack": "+ Neues Gestell",
+    "occupiedOf": "{{occupied}} / {{capacity}}",
+    "status": {
+      "loading": "Wird beladen",
+      "needsSampleIds": "Proben-IDs fehlen",
+      "placed": "Platziert"
+    },
+    "statusPlaced": "Auf {{instrument}}",
+    "statusPlacedSlot": "Auf {{instrument}}, {{slot}}",
     "subtitle": "Physische Röhrchengestelle mit Eingangsproben vor oder während der Lyse/Extraktion, vor dem Beladen der Platte.",
     "title": "Extraktionsgestelle"
   },
@@ -8616,6 +10249,39 @@
   "narrativeEditor": {
     "defaultPlaceholder": "Erzählbericht beginnen…"
   },
+  "nationalIdentifiers": {
+    "help": "Die Nummer, auf die sich das Register stützt, getrennt von der MRN. Die Prüfziffer wird beim Verlassen des Feldes geprüft.",
+    "notPermitted": "Sie dürfen keine nationale Kennnummer erfassen",
+    "reasons": {
+      "checksumMismatch": "Die Prüfziffer stimmt nicht",
+      "empty": "Wert eingeben",
+      "noCheckDigit": "Diese Kennnummer hat keine Prüfziffer; das Format wurde geprüft",
+      "noRule": "Für diese Kennnummer ist keine Prüfung definiert",
+      "wrongFormat": "Nicht das erwartete Format für diese Kennnummer"
+    },
+    "saved": "Nationale Kennnummer gespeichert",
+    "status": {
+      "failedChecksum": "Prüfziffer ungültig",
+      "unchecked": "Nicht geprüft",
+      "verified": "Geprüft"
+    },
+    "systems": {
+      "id_ca_phn": "Provinzielle Gesundheitsnummer",
+      "id_ie_ihi": "IHI (Irland)",
+      "id_ie_ppsn": "PPS-Nummer",
+      "mrn_be": "Nationale Registernummer",
+      "mrn_bsn": "BSN",
+      "mrn_chi": "CHI-Nummer",
+      "mrn_hc": "H&C-Nummer",
+      "mrn_ihi": "IHI (Australien)",
+      "mrn_ins": "INS / NIR",
+      "mrn_krn": "Einwohnerregisternummer",
+      "mrn_kvnr": "KVNR",
+      "mrn_nhi": "NHI-Nummer",
+      "mrn_nhs": "NHS-Nummer"
+    },
+    "title": "Nationale Kennnummer"
+  },
   "nav": {
     "accession": "Accession",
     "audit": "Prüfprotokoll",
@@ -8634,6 +10300,8 @@
     "focusedMode": "Fokusmodus",
     "messages": "Nachrichten",
     "messagesUnread": "Nachrichten, {{count}} ungelesen",
+    "registryExceptions_one": "Registerausnahmen: {{count}} Übermittlung braucht Aufmerksamkeit",
+    "registryExceptions_other": "Registerausnahmen: {{count}} Übermittlungen brauchen Aufmerksamkeit",
     "switchBackToFocusedMode": "Zurück zum Fokusmodus",
     "systemInfo": {
       "anthropic": "Anthropic",
@@ -8782,6 +10450,13 @@
     "containerCreated": "Behälter erstellt",
     "containerIdentifierMode": "Behälter-Identifikationsmodus",
     "containerType": "Behältertyp",
+    "containerTypes": {
+      "adHocBatch": "Ad-hoc-Charge",
+      "archiveTray": "Archivierungstablett",
+      "decalVessel": "Entkalkungsgefäß",
+      "processorBasket": "Gewebeprozessor-Korb",
+      "stainingRack": "Färbegestell"
+    },
     "continueScanItems": "Weiter — Elemente scannen",
     "disposableLabel": "Einweg-Etikett",
     "disposableLabelTitle": "Das System erstellt ein neues, einmaliges, zeitgestempeltes Etikett",
@@ -8789,6 +10464,7 @@
     "generating": "Wird erstellt…",
     "hours": "Std",
     "minutes": "Min",
+    "noReagentLots": "Keine aktiven Reagenzchargen im Register.",
     "noReferenceLabConfigured": "Derzeit ist keine Einrichtung mit der Rolle „Referenzlabor“ konfiguriert — fügen Sie zuerst eine in den Einrichtungseinstellungen hinzu.",
     "noStation": "— Keine Station —",
     "print": "Drucken",
@@ -8800,6 +10476,8 @@
     "rackCheckedOutNoPrint": "Gestell {{barcode}} ist dieser Charge nun zugewiesen — kein neues Etikett zu drucken.",
     "rackId": "Gestell-ID",
     "rackIdPlaceholder": "Scannen oder eingeben, z. B. {{example}}",
+    "reagentLotLine": "{{reagent}} — {{lot}}",
+    "reagentLots": "Verwendete Reagenz- / Lösungschargen",
     "referenceLabDestination": "Ziel-Referenzlabor",
     "reusableRack": "Wiederverwendbares Gestell",
     "reusableRackTitle": "Ein vorhandenes, lasergraviertes, wiederverwendbares Gestell verwenden — kein neues Etikett wird gedruckt",
@@ -8808,10 +10486,16 @@
     "selectStainProtocol": "— Färbeprotokoll auswählen —",
     "sessionStarted": "Sitzung gestartet",
     "solutionType": "Lösungstyp",
+    "solutions": {
+      "edta": "EDTA",
+      "nbfFixation": "10 % NBF (Fixierungsfenster)",
+      "rapidDecal": "Schnellentkalkung (Ameisensäure/HCl)"
+    },
     "stainProtocol": "Färbeprotokoll",
     "startSession": "Sitzung starten",
     "stat": "STAT",
     "stationMismatchWarning": "⚠ {{station}} ist normalerweise eine „{{node}}“-Station — bitte prüfen, ob das beabsichtigt ist.",
+    "stationWithStage": "{{station}} ({{stage}})",
     "targetDuration": "Zieldauer / Alarm-Timer",
     "targetWorkstation": "Ziel-Arbeitsstation",
     "testPanelPlaceholder": "z. B. Foundation Medicine CDx NGS-Panel",
@@ -8870,7 +10554,7 @@
     "pinNotRecognized": "PIN nicht erkannt.",
     "preliminaryDiagnosis": "Vorläufige Diagnose:",
     "preliminaryLabel": "VORLÄUFIG: {{diagnosis}}",
-    "readbackConfirmedLabel": "Rückmeldung des Ergebnisses mit dem Operateur bestätigt",
+    "readbackConfirmedLabel": "Rückbestätigung des mündlichen Befunds mit dem OP-Team erfolgt",
     "rowMeta": "Probe {{specimenLabel}} · Chirurg: {{surgeon}} · Pathologe: {{pathologist}}",
     "selectTerminal": "— Terminal auswählen —",
     "startDemo": "Demo starten",
@@ -9080,7 +10764,7 @@
       "engineUnreachable": "Engine nicht erreichbar",
       "unknown": "Unbekannt"
     },
-    "lisSyncWarning": "⚠ Die reale Nutzlast dieser Warteschlange (der tatsächliche Berichtstext) wird aus einem realen, flüchtigen Wert erstellt, der nirgendwo dauerhaft gespeichert wird — sie kann hier später wirklich nicht rekonstruiert werden. Die reale Übermittlung für diesen Typ erfolgt sofort, in dem Moment, in dem die Nutzlast tatsächlich erstellt wird (im eigenen Freigabe-/Änderungsablauf von SynopticReportPage.tsx) — Jetzt übermitteln/Übermittlung erneut versuchen sind unten deaktiviert, anstatt eine unvollständige Nutzlast zu senden.",
+    "heldNoPdf": "Zurückgehalten: Das Befund-PDF ist noch nicht verfügbar. Es wird bei einem späteren Versuch mit dem PDF gesendet.",
     "maxExceededSuffix": "(Maximum überschritten)",
     "noFailedDispatches": "Keine fehlgeschlagenen Übermittlungen.",
     "noQueuedMessages": "Keine Nachrichten in der Warteschlange.",
@@ -9127,6 +10811,7 @@
       "a47PriorNotFound": "Kein vorübergehender Patient mit der ID „{{id}}“ gefunden.",
       "nullPayloadBothIds": "Der Paket-Generator hat null zurückgegeben — überprüfen Sie beide Patienten-IDs.",
       "oruNullPayload": "Der Paket-Generator hat null zurückgegeben — stellen Sie sicher, dass der Fall im reportingMode „orchestrator“ ist und die Instanz-ID einem echten, abgeschlossenen synoptischen Bericht entspricht.",
+      "oruPdfUnavailable": "Für dieses Ergebnis ist kein Befund-PDF verfügbar; eine Freigabe würde es für einen erneuten Versuch zurückhalten. Noch nichts in der Vorschau.",
       "patientNotFound": "Kein Patient mit der ID „{{id}}“ gefunden.",
       "unexpectedError": "Echter, unerwarteter Fehler beim Erstellen dieses Pakets."
     },
@@ -9654,6 +11339,18 @@
     "subtitle": "Fälle, in denen die Patientenakten-Nr. (MRN), der Name oder das Geburtsdatum eines neuen Patienten teilweise mit einem bestehenden Datensatz übereinstimmten — niemals automatisch aufgelöst, da eine falsche Vermutung hier bedeuten würde, die Historie eines Patienten dem Fall eines anderen zuzuordnen. Jeder Fall erfordert eine echte Entscheidung: bestätigen, dass es sich wirklich um einen neuen Patienten handelt, oder ihn mit dem bestehenden Datensatz zusammenführen, zu dem er wahrscheinlich gehört.",
     "title": "Patientenabgleich-Überprüfung"
   },
+  "patientRegistryDetails": {
+    "caseLabel": "Fall",
+    "loading": "Wird geladen…",
+    "note": "Änderungen gelten für den Patienten, nicht nur für diesen Fall, und gehen als demografische Aktualisierung (A08) an das Krankenhaussystem. Eine zurückgehaltene Übermittlung danach erneut senden.",
+    "partlyRefused": "Teilweise gespeichert: Für einige dieser Änderungen fehlt Ihnen die Berechtigung.",
+    "refused": "Nicht gespeichert: Sie haben keine Berechtigung, diese Patientendaten zu ändern.",
+    "save": "Speichern",
+    "saved": "Patientendaten gespeichert.",
+    "saving": "Wird gespeichert…",
+    "title": "Patientenkennungen und Registerwidersprüche",
+    "unchanged": "Nichts geändert."
+  },
   "pendingApprovalSection": {
     "approve": "Genehmigen",
     "billingRules": {
@@ -9703,6 +11400,7 @@
     "rejectionReasonRequired": "Ein tatsächlicher Ablehnungsgrund ist erforderlich."
   },
   "pendingBatchQueue": {
+    "caseHeading": "{{accession}} — {{items}}",
     "clear": "Löschen",
     "computing": "Aktuelle Warteschlange wird berechnet…",
     "emptyAll": "Derzeit wartet nichts Gedrucktes darauf, in eine Charge geladen zu werden.",
@@ -9870,6 +11568,7 @@
     "header": "Entnahme-/Eingangsdatum vor Freigabe erforderlich",
     "intro": "Bei den unten aufgeführten Proben fehlt ein erforderliches präanalytisches Datum ({{standardReference}}). Lösen Sie jede einzelne, um fortzufahren — geben Sie entweder das tatsächlich dokumentierte Datum/die Uhrzeit ein, oder bestätigen Sie, dass es wirklich nicht wiederherstellbar ist, wodurch die von dieser Jurisdiktion festgelegte administrative Ausnahme sowie ein verpflichtender Berichtshinweis angewendet werden.",
     "notRecoverableApply": "Nicht wiederherstellbar — „{{label}}“ anwenden",
+    "overrideCommentLabel": "Begründung",
     "receivedLabel": "Eingegangen",
     "specimenRowTitle": "Probe {{label}} — {{description}}"
   },
@@ -10294,6 +11993,21 @@
       "toggleTopPerf": "Bester Wert"
     }
   },
+  "profileMenu": {
+    "myDictionary": {
+      "empty": "Sie haben noch keine Wörter hinzugefügt.",
+      "intro": "Wörter, die Sie Ihrem eigenen Rechtschreibwörterbuch hinzugefügt haben. Die Rechtschreibprüfung akzeptiert sie nur in Ihren Berichten.",
+      "title": "Mein Wörterbuch"
+    },
+    "myVoiceCommands": {
+      "empty": "Noch keine gelernten Sprachbefehle.",
+      "intro": "Formulierungen, die PathScribe von Ihnen gelernt hat, als Sie bestätigt haben, was Sie meinten. Entfernen Sie eine, wenn sie die falsche Aktion ausführt.",
+      "removeAria": "„{{phrase}}“ entfernen",
+      "runs_one": "Führt „{{action}}“ aus · einmal verwendet",
+      "runs_other": "Führt „{{action}}“ aus · {{count}}-mal verwendet",
+      "title": "Meine Sprachbefehle"
+    }
+  },
   "protocolActions": {
     "archiveConfirm": {
       "body": "{{name}} (v{{version}}) archivieren? Es wird für neue Befunde nicht mehr angeboten. Sie können es später als Entwurf wiederherstellen.",
@@ -10569,6 +12283,15 @@
       "statusLabel": "Status",
       "teachingCheckboxLabel": "Feedback zu Lehre und Einarbeitung erfassen"
     },
+    "riskWeights": {
+      "colEffective": "Effektive Stichprobe",
+      "colMultiplier": "Gewichtung (×)",
+      "colSubspecialty": "Subspezialität",
+      "hint": "Eine Gewichtung multipliziert den Stichprobenanteil dieses Typs für die Fälle der Subspezialität, höchstens 100 %. Leer lassen für 1×. Wird beim Verlassen jedes Felds gespeichert.",
+      "inputAria": "Risikogewichtung für {{name}}",
+      "invalid": "Geben Sie eine Gewichtung über 0 und bis 10 ein oder lassen Sie das Feld leer.",
+      "title": "Risikogewichtung nach Subspezialität"
+    },
     "subtitle": "Aktivitäten basieren auf einem von zwei echten Archetypen — Überprüfung mit Ergebnis (ein Fall wird überprüft und bewertet, z. B. Gefrierschnitt- vs. Endkorrelation) oder Aufsicht/Zuweisung (ein Anbieter wird über eine Fallzahl oder einen Zeitraum beaufsichtigt, z. B. FPPE). Standardaktivitäten sind von PathScribe für Ihre Rechtsordnung ({{jurisdiction}}) kuratiert und können hier nicht deaktiviert werden — duplizieren Sie eine, um sie anzupassen.",
     "table": {
       "configure": "Konfigurieren",
@@ -10843,11 +12566,15 @@
       "title": "Audit"
     },
     "backToHome": "← Zurück zur Startseite",
-    "pageSubtitle": "Systemprotokolle und Audit-Trail sowie die Arbeitswarteschlange der Qualitätssicherung — Abweichungen, intraoperative Verknüpfung, Diskordanz & Abgleich sowie CAPA-Management",
+    "pageSubtitle": "Systemprotokolle und Audit-Trail, die Arbeitswarteschlange der Qualitätssicherung — Abweichungen, intraoperative Verknüpfung, Diskordanz & Abgleich sowie CAPA-Management — und Registerübermittlungen, die Bearbeitung brauchen",
     "pageTitle": "Qualität & Compliance",
     "qualityAssuranceTile": {
       "description": "Abweichungen, intraoperative Verknüpfung sowie Diskordanz- und Abgleichsberichte",
       "title": "Qualitätssicherung"
+    },
+    "registryExceptionsTile": {
+      "description": "Registerübermittlungen, die zurückgehalten, nicht zugestellt, abgelehnt oder nie beantwortet wurden",
+      "title": "Registerausnahmen"
     }
   },
   "qualityTab": {
@@ -11111,6 +12838,341 @@
       "concordance_other": "Übereinstimmung: {{rate}} % ({{count}} Abgleiche)",
       "noData": "Keine Abgleiche in diesem Monat"
     }
+  },
+  "registryConsent": {
+    "badge": {
+      "both": "Widerspruch Screening und Krebsregister",
+      "cancer": "Krebsregister-Widerspruch",
+      "screening": "Screening-Widerspruch",
+      "title": "Der Patient hat der Registermeldung widersprochen (gilt für den Patienten, nicht nur diesen Fall)"
+    },
+    "cancerOptOut": "Patient widerspricht der Meldung an das Krebsregister",
+    "cancerOptOutNote": "Die Krebsregistermeldung ist in den meisten Rechtsräumen gesetzlich vorgeschrieben: Der Bericht wird trotzdem gesendet, sofern die Konfiguration nicht festlegt, dass dieser Rechtsraum den Widerspruch anerkennt.",
+    "notPermitted": "Sie dürfen keinen Registerwiderspruch erfassen",
+    "screeningOptOut": "Patientin widerspricht der Meldung an das Zervixkarzinom-Screening-Programm",
+    "title": "Registermeldung"
+  },
+  "registryExceptions": {
+    "attestationNote": "Zurückgehalten, weil der Livebetrieb für diese Register nicht freigegeben ist. Die Freigabe sendet sie nach; dies sendet sie jetzt, jedes erneut geprüft.",
+    "audit": {
+      "done_one": "Übertragungsprotokoll heruntergeladen: {{count}} Übermittlung.",
+      "done_other": "Übertragungsprotokoll heruntergeladen: {{count}} Übermittlungen.",
+      "download": "Übertragungsprotokoll herunterladen",
+      "notPermitted": "Sie haben keine Berechtigung, das Übertragungsprotokoll an Register zu exportieren.",
+      "queue": "Übertragungsprotokoll für",
+      "queues": {
+        "all": "Screening und Krebs",
+        "cancer": "Krebsregister",
+        "cytology": "Screening (Zytologie)"
+      }
+    },
+    "capa": {
+      "alreadyCaptured": "Für diese Meldung ist bereits eine CAPA offen",
+      "capture": "Als CAPA erfassen",
+      "captured": "Zur CAPA-Prüfung in der Qualitätssicherung erfasst",
+      "failed": "Die CAPA konnte nicht erfasst werden",
+      "notPermitted": "Dazu sind Sie nicht berechtigt",
+      "raised": "CAPA offen"
+    },
+    "columns": {
+      "actions": "Aktionen",
+      "case": "Fall",
+      "problem": "Problem",
+      "registry": "Register",
+      "status": "Status",
+      "when": "Wann"
+    },
+    "details": "Details",
+    "emptyAll": "Keine Registerübermittlung braucht Bearbeitung.",
+    "emptyFilter": "Nichts in dieser Gruppe.",
+    "filters": {
+      "ackOverdue": "Keine Antwort",
+      "all": "Alle",
+      "attestationRequired": "Bestätigung erforderlich",
+      "conflict": "Widersprüchliche Antworten",
+      "deliveryFailed": "Nicht zugestellt",
+      "held": "Zurückgehalten",
+      "rejectedFatal": "Endgültig abgelehnt",
+      "rejectedRecoverable": "Abgelehnt, korrigierbar",
+      "revisedPostAcceptance": "Nach Annahme geändert"
+    },
+    "hideDetails": "Details ausblenden",
+    "kinds": {
+      "ackOverdue": "Keine Antwort in 72 h",
+      "attestationRequired": "Zurückgehalten: Bestätigung erforderlich",
+      "conflict": "Widersprüchliche Antworten",
+      "deliveryFailed": "Nicht zugestellt",
+      "held": "Zurückgehalten, nicht gesendet",
+      "rejectedFatal": "Endgültig abgelehnt",
+      "rejectedRecoverable": "Abgelehnt, korrigierbar",
+      "revisedPostAcceptance": "Nach Annahme geändert"
+    },
+    "loading": "Wird geladen…",
+    "location": "bei {{location}}",
+    "messageTypes": {
+      "AMENDMENT": "Nachtrag",
+      "CORRECTION": "Korrektur",
+      "NEW": "neu"
+    },
+    "moreFindings_one": "und {{count}} weiteres",
+    "moreFindings_other": "und {{count}} weitere",
+    "noAcknowledgement": "Für diese Übermittlung ist keine Bestätigung eingegangen.",
+    "noFindings": {
+      "none": "Keine Einzelheiten angegeben.",
+      "overdue": "Gesendet; das Register hat seit 72 Stunden nicht geantwortet."
+    },
+    "openCase": "Fall öffnen",
+    "outcomeWithDetail": "{{outcome}} {{detail}}",
+    "outcomes": {
+      "newVersion": "Als Version {{version}} ({{type}}) gesendet.",
+      "noHeader": "Diese Übermittlung ist älter als die Funktion und kann hier nicht erneut gesendet werden.",
+      "notApplicable": "Nicht gesendet:",
+      "notFound": "Die Übermittlung wurde nicht gefunden.",
+      "notPermitted": "Sie dürfen keine Registerübermittlungen erneut senden.",
+      "resendFailed": "Die Schnittstellen-Engine war nicht erreichbar.",
+      "resent": "Als dieselbe Übermittlung erneut gesendet.",
+      "stillHeld": "Weiterhin zurückgehalten:",
+      "unchanged": "Seit der Ablehnung durch das Register hat sich nichts geändert. Zuerst die Daten korrigieren."
+    },
+    "patientDetails": "Patientendaten",
+    "rawAcknowledgement": "Bestätigung wie empfangen",
+    "refresh": "Aktualisieren",
+    "resend": "Neu prüfen und erneut senden",
+    "resendAllDone": "{{resent}} erneut gesendet, {{notResent}} nicht gesendet",
+    "resendAll_one": "{{count}} erneut senden",
+    "resendAll_other": "Alle {{count}} erneut senden",
+    "resending": "Wird gesendet…",
+    "revision": {
+      "markReviewed": "Als geprüft markieren",
+      "notFound": "Diese Übermittlung ist nicht mehr auffindbar.",
+      "notPermitted": "Sie haben keine Berechtigung, Registerkorrekturen als geprüft zu markieren.",
+      "nothingToReview": "Für diese Übermittlung ist nichts mehr zu prüfen.",
+      "reviewed": "Korrektur als geprüft markiert. Die CAPA-Abweichung bleibt in der Qualitätssicherung offen."
+    },
+    "severities": {
+      "CRITICAL_REJECT": "Abgelehnt",
+      "FATAL": "Fatal",
+      "INFORMATIONAL": "Information",
+      "WARNING": "Warnung"
+    },
+    "subtitle": "Übermittlungen an Krebsregister und Screening-Programme, die Bearbeitung brauchen. Daten korrigieren, dann neu prüfen und erneut senden.",
+    "test": "TEST",
+    "tier": "Stufe {{tier}}",
+    "title": "Registerausnahmen",
+    "version": "Version {{version}} · {{type}}"
+  },
+  "registryGoLive": {
+    "agreement": {
+      "onRecord": "Erfasst: {{reference}}, von {{name}} am {{date}}",
+      "pendingNote": "An dieses Register wird nichts gesendet, auch keine Testfälle, bis die Vereinbarung (BAA, DUA oder die des Registers) erfasst ist.",
+      "placeholder": "Vereinbarungsnummer oder Dokumentreferenz",
+      "record": "Vereinbarung erfassen",
+      "reference": "Referenz der Vereinbarung",
+      "title": "Datenweitergabevereinbarung"
+    },
+    "approve": "Mit meinen Anmeldedaten freigeben",
+    "capacities": {
+      "labDirector": "Laborleitung",
+      "labDirectorDesignee": "Beauftragte Vertretung der Laborleitung",
+      "siteAdministrator": "Standortadministration",
+      "title": "Ich gebe frei als"
+    },
+    "changeClasses": {
+      "breaking": "grundlegende Änderung",
+      "editorial": "redaktionelle Änderung",
+      "initial": "erste Version",
+      "minor": "kleinere Änderung"
+    },
+    "changes": {
+      "item": "{{element}} ({{change}}): {{note}}",
+      "title": "Was sich in {{version}} geändert hat"
+    },
+    "checkStatus": {
+      "failed": "Nicht erfüllt",
+      "notApplicable": "Nicht zutreffend",
+      "passed": "Erfüllt"
+    },
+    "confirm": {
+      "label": "Freigeben",
+      "message": "{{registry}} erhält Liveergebnisse, sobald die erforderlichen Freigaben vorliegen. Geben Sie zur Freigabe Ihre Anmeldedaten erneut ein.",
+      "title": "Livebetrieb freigeben"
+    },
+    "elements": {
+      "codes_additionalInterpretation": "Codes der Zusatzbefundung",
+      "codes_adequacy": "Codes der Beurteilbarkeit",
+      "codes_primaryInterpretation": "Codes der Hauptbefundung",
+      "codes_recommendation": "Empfehlungscodes",
+      "demographics": "Demografische Daten",
+      "diagnosis": "Diagnosecodierung",
+      "eligibility": "Meldepflicht",
+      "identifier": "Patientenkennung",
+      "segments": "Nachrichtensegmente",
+      "transport": "Übertragung"
+    },
+    "governance": {
+      "required": "Erforderliche Freigaben",
+      "requiredOption_one": "{{count}} Freigabe",
+      "requiredOption_other": "{{count}} Freigaben",
+      "selfApproval": "Die beantragende Person darf den Livebetrieb auch freigeben",
+      "selfApprovalNote": "Standardmäßig an, damit ein kleines Labor mit einer Person live gehen kann; der Eintrag nennt jede ausgeübte Funktion. Ausschalten oder mehr Freigaben verlangen, um eine weitere Person vorzuschreiben, wie bei der Vorlagenprüfung.",
+      "title": "Freigabeeinstellungen (alle Register)"
+    },
+    "history": {
+      "row": "{{version}}: {{status}}, beantragt von {{name}} am {{date}}",
+      "status": {
+        "ended": "beendet",
+        "inReview": "wartet auf Freigabe",
+        "live": "live",
+        "withdrawn": "zurückgezogen"
+      },
+      "title_one": "Verlauf des Livebetriebs ({{count}} Eintrag)",
+      "title_other": "Verlauf des Livebetriebs ({{count}} Einträge)"
+    },
+    "instance": {
+      "production": "Produktionsinstanz",
+      "validation": "Validierungsinstanz"
+    },
+    "live": {
+      "statement": "Hinterlegte Freigabe (live seit {{date}})"
+    },
+    "open": {
+      "approval": "{{name}}, als {{capacities}}, {{date}}",
+      "by": "Beantragt von {{name}} am {{date}}, Vorlage {{version}}",
+      "evidence": "Testnachweis: {{reference}}; angenommene synthetische Meldungen: {{count}}",
+      "needsDirector": "Eine Laborleitung oder eine beauftragte Vertretung muss unter den Freigebenden sein.",
+      "progress": "{{counted}} von {{required}} Freigaben",
+      "title": "Livebetrieb beantragt"
+    },
+    "outcomes": {
+      "added": "Adapterregel hinzugefügt",
+      "alreadyApproved": "Sie haben diesen Antrag bereits freigegeben",
+      "alreadyLive": "Bereits live auf der neuesten Vorlage",
+      "alreadyRequested": "Ein Antrag auf Livebetrieb wartet bereits auf Freigabe",
+      "approved": "Freigabe erfasst; weitere Freigaben sind nötig",
+      "confirmed_one": "{{count}} lokale Änderung bestätigt",
+      "confirmed_other": "{{count}} lokale Änderungen bestätigt",
+      "conflictingCapacities": "Wählen Sie Laborleitung oder Vertretung, nicht beides",
+      "descriptionRequired": "Beschreiben, was die Regel tut",
+      "exported": "Validierungsnachweis exportiert",
+      "imported": "Validierungsnachweis importiert",
+      "live": "Freigegeben: Ergebnisse gehen jetzt an den Livebetrieb. {{resent}} zurückgehaltene Ergebnisse nachgesendet, {{held}} weiterhin zurückgehalten.",
+      "noCapacity": "Wählen Sie, in welcher Funktion Sie freigeben",
+      "notEnoughAccepted": "Das Register hat noch nicht genug synthetische Meldungen angenommen",
+      "notFound": "Der Antrag ist nicht mehr auffindbar",
+      "notInReview": "Der Antrag wartet nicht mehr auf Freigabe",
+      "notLive": "Dieses Register ist nicht live",
+      "notPermitted": "Dazu sind Sie nicht berechtigt",
+      "notProductionInstance": "Nur die Produktionsinstanz geht live",
+      "notValidationInstance": "Nur eine Validierungsinstanz führt die Testsuite aus",
+      "nothingToConfirm": "Nichts zu prüfen",
+      "prechecksFailed": "Einige Vorabprüfungen sind nicht erfüllt",
+      "ran": "Testsuite an das Testsystem des Registers gesendet",
+      "recorded": "Vereinbarung erfasst",
+      "referenceRequired": "Referenz der Vereinbarung eingeben",
+      "registryPending": "Zuerst die Datenweitergabevereinbarung erfassen",
+      "removed": "Adapterregel entfernt",
+      "requested": "Livebetrieb beantragt",
+      "saved": "Freigabeeinstellungen gespeichert",
+      "selfApproval": "Sie haben diesen Livebetrieb beantragt; laut Einstellungen muss eine andere Person freigeben",
+      "stepUpRefused": "Die Bestätigung Ihrer Anmeldedaten wurde abgelehnt; bitte erneut versuchen",
+      "stopped": "Livebetrieb beendet; Ergebnisse werden bis zur erneuten Freigabe zurückgehalten",
+      "unknownRegistry": "Dieses Register ist PathScribe nicht bekannt",
+      "validationRejected": "Validierungsnachweis abgelehnt: {{problems}}",
+      "withdrawn": "Antrag auf Livebetrieb zurückgezogen"
+    },
+    "overlay": {
+      "adapterRule": "{{element}}: {{description}} (erstellt auf {{baseline}})",
+      "adapterTitle": "Lokale Regeln im Engine-Adapter",
+      "add": "Regel hinzufügen",
+      "confirm": "Prüfung bestätigen",
+      "description": "Was die Regel tut",
+      "descriptionPlaceholder": "z. B. den Einrichtungscode dem Standortcode des Registers zuordnen",
+      "element": "Teil der Vorlage",
+      "kinds": {
+        "adapterRule": "Adapterregel",
+        "codeMapping": "Code-Zuordnung",
+        "holdRule": "Rückhalteregel"
+      },
+      "needsReview_one": "{{count}} lokale Änderung nach einer Vorlagenaktualisierung zu prüfen",
+      "needsReview_other": "{{count}} lokale Änderungen nach einer Vorlagenaktualisierung zu prüfen",
+      "noAdapterRules": "Keine erfasst",
+      "note": "Die eigenen Änderungen des Standorts über der Vorlage von ForMedrixAI: Code-Zuordnungen, die Rückhaltung bei fehlender Kennung und lokale Regeln im Engine-Adapter. Ein Release überschreibt sie nie; ändert es etwas, worauf sie beruhen, werden sie hier zur Prüfung markiert.",
+      "reviewItem": "{{kind}}, {{element}}: {{detail}} (erstellt auf {{baseline}}; geändert in {{versions}})",
+      "title_one": "Lokale Änderungen ({{count}})",
+      "title_other": "Lokale Änderungen ({{count}})"
+    },
+    "prechecks": {
+      "agreementRecorded": "Die Datenweitergabevereinbarung ist erfasst",
+      "codesMapped": "Jede Ergebniskategorie hat den Code des Registers",
+      "codesMissing": "({{missing}} ohne Code)",
+      "identifierHold": "Ergebnisse ohne nationale Patientenkennung werden zurückgehalten",
+      "overridesReviewed": "Lokale Änderungen, die eine neuere Vorlage berührt, sind geprüft ({{count}} zu prüfen)",
+      "specificationConfirmed": "Die Spezifikation des Registers ist von PathScribe geprüft oder vom Labor bestätigt",
+      "templateCurrent": "Vorlage {{version}} ist die neueste veröffentlichte Version",
+      "testEvidence": "Die Referenz der Testfreigabe durch das Register ist erfasst",
+      "validationRecord": "Ein Validierungsnachweis aus der Validierungsinstanz für {{version}} und dieses Release (angenommene synthetische Meldungen: {{count}}; mindestens {{min}})"
+    },
+    "request": {
+      "reference": "Referenz der Testfreigabe durch das Register",
+      "referencePlaceholder": "Brief-, Ticket- oder E-Mail-Referenz",
+      "specConfirmed": "Wir haben Codes, Kennungen und Format mit der Spezifikation des Registers abgeglichen",
+      "submit": "Livebetrieb beantragen",
+      "title": "Livebetrieb beantragen"
+    },
+    "states": {
+      "live": "Live",
+      "pending": "Ausstehend",
+      "testing": "Im Test",
+      "validated": "Validiert"
+    },
+    "status": {
+      "current": "Live, freigegeben auf Vorlage {{version}}",
+      "expired": "Ergebnisse seit {{date}} zurückgehalten: Vorlage {{version}} ({{change}}) erfordert eine erneute Freigabe",
+      "reapprovalDue": "Vorlage {{version}} ({{change}}) ist veröffentlicht: Livebetrieb vor dem {{date}} erneut freigeben, sonst werden Ergebnisse ab dann zurückgehalten",
+      "unapprovedLive": "Ausstehend: echte Ergebnisse werden zurückgehalten (Bestätigung erforderlich), bis der Livebetrieb freigegeben ist"
+    },
+    "stopLive": "Livebetrieb beenden",
+    "subtitleProduction": "Dies ist die Produktionsinstanz: Echte Ergebnisse gehen nur an den Livebetrieb und erst nach Freigabe. Bis dahin werden sie zurückgehalten, nie an ein Testsystem gesendet, und bei der Freigabe nachgesendet.",
+    "subtitleValidation": "Dies ist eine Validierungsinstanz: Sie sendet nie echte Patientendaten. Nur die synthetische Testsuite geht hinaus, und nur an das Testsystem des Registers. Hat das Register sie angenommen, den Validierungsnachweis exportieren und in der Produktion importieren.",
+    "suite": {
+      "accepted": "Vom Testsystem des Registers auf {{version}} angenommen: {{count}}",
+      "note": "Fiktive Patienten und Ergebnisse, auf demselben Weg wie echte Fälle aufgebaut, mit nationalen Kennungen mit gültiger Prüfziffer. Echte Fälle werden von dieser Instanz nie gesendet.",
+      "results": {
+        "failed": "Fehlgeschlagen",
+        "held": "Zurückgehalten",
+        "sent": "Gesendet"
+      },
+      "run": "Testsuite ausführen",
+      "title": "Synthetische Testsuite"
+    },
+    "template": "Vorlage {{version}} ({{change}}, gültig ab {{date}})",
+    "title": "Registeranbindung",
+    "validation": {
+      "chooseFile": "Datei des Validierungsnachweises",
+      "export": "Validierungsnachweis exportieren",
+      "importNote": "Den Nachweis importieren, der aus der Validierungsinstanz mit diesem Release ({{release}}) exportiert wurde.",
+      "importTitle": "Validierungsnachweis aus der Validierungsinstanz",
+      "imported": "Importiert: Vorlage {{version}}, Release {{release}}, exportiert von {{name}} am {{date}}; angenommen: {{count}}",
+      "lastExported": "Zuletzt exportiert: Vorlage {{version}}, Release {{release}}, {{date}}; angenommen: {{count}}",
+      "stale": "Der importierte Nachweis passt nicht mehr: {{problems}}",
+      "stateNote": {
+        "live": "Live",
+        "pending": "Ausstehend: vor jedem Versand die Datenweitergabevereinbarung erfassen",
+        "testing": "Im Test: die synthetische Suite ausführen, bis das Testsystem des Registers sie annimmt",
+        "validated": "Auf der neuesten Vorlage validiert: den Validierungsnachweis in die Produktion übernehmen"
+      }
+    },
+    "validationProblems": {
+      "digestMismatch": "er wurde nach dem Export geändert",
+      "notEnoughAccepted": "zu wenige angenommene Testmeldungen",
+      "notFromValidation": "nicht aus einer Validierungsinstanz",
+      "unreadable": "die Datei ist nicht lesbar",
+      "wrongFormat": "kein PathScribe-Validierungsnachweis",
+      "wrongRegistry": "für ein anderes Register",
+      "wrongRelease": "aus einem anderen PathScribe-Release",
+      "wrongVersion": "für eine andere Vorlagenversion"
+    },
+    "withdraw": "Antrag zurückziehen"
   },
   "releaseBufferBanner": {
     "nonSignerMessage": "<bold>{{status}}</bold> — das Rückruffenster des unterzeichnenden Pathologen schließt automatisch in <countdown>{{time}}</countdown>.",
@@ -11377,6 +13439,11 @@
     "loadFailedFallback": "Vorlage konnte nicht geladen werden",
     "loading": "Synoptischer Bericht wird geladen…",
     "noCaseLoaded": "Kein Fall geladen.",
+    "reevaluation": {
+      "accept": "Neuen Wert übernehmen",
+      "keep": "Meinen behalten",
+      "suggests": "Der aktualisierte Text schlägt {{value}} vor ({{confidence}} % Konfidenz). Ihren Wert behalten oder aktualisieren?"
+    },
     "sectionTabs": {
       "unverifiedLabel": "{{count}} unverifiziert",
       "unverifiedTitle_one": "{{count}} KI-Vorschlag wartet auf diesem Tab auf Überprüfung",
@@ -11784,6 +13851,73 @@
       "title": "Sie haben keinen Zugriff auf diesen Bildschirm"
     },
     "noTiles": "Keine Ihrer Rollen gibt Ihnen bisher Zugriff auf einen Bildschirm. Bitten Sie Ihre Administration, Ihnen eine Rolle zuzuweisen."
+  },
+  "screeningRegistry": {
+    "coding": {
+      "builtIn": "in PathScribe integriert",
+      "mappingTable": "Codezuordnung des Labors",
+      "text": "Ergebnistext (Codes optional)"
+    },
+    "configure": "Konfigurieren",
+    "detail": {
+      "builtInNote": "PathScribe codiert die Ergebnisse dieses Registers selbst nach der Programmspezifikation; keine Zuordnung erforderlich.",
+      "choose": "Register auswählen",
+      "coding": "Ergebniscodierung: {{coding}}",
+      "configurableNote": "Die Engine ist bereit; prüfen Sie Codes, Kennung und Dateiformat vor dem Echtbetrieb anhand der aktuellen Programmspezifikation.",
+      "identifier": "Patientenkennung: {{identifier}}",
+      "jurisdictions": "Gilt in: {{list}}",
+      "mappedReady": "{{mapped}} von {{total}} Kategorien zugeordnet. Ergebnisse werden gesendet.",
+      "mappedWillHold": "{{mapped}} von {{total}} Kategorien zugeordnet. Ein Ergebnis mit einer nicht zugeordneten Kategorie wird zurückgehalten.",
+      "mrn": "die Patientennummer",
+      "requireMappedCodes": "Ein Ergebnis zurückhalten, bis jede verwendete Kategorie einen Registercode hat",
+      "requirePatientIdentifier": "Ein Ergebnis zurückhalten, wenn der Patient keine geprüfte {{identifier}} hat",
+      "save": "Registerkonfiguration speichern",
+      "title": "Registerkonfiguration",
+      "wireFormat": "Gesendet als: {{format}}"
+    },
+    "errors": {
+      "notPermitted": "Sie haben keine Berechtigung, die Meldung an Screening-Register zu ändern.",
+      "unknownRegistry": "Dieses Register ist PathScribe nicht bekannt."
+    },
+    "fields": {
+      "additionalInterpretation": "Zusätzlicher Befund",
+      "adequacy": "Beurteilbarkeit",
+      "primaryInterpretation": "Hauptbefund",
+      "recommendation": "Empfehlung"
+    },
+    "registries": {
+      "belgiumChr": "Zyto-Histo-Register (Belgien)",
+      "canadaProvincial": "Provinzielles Zervixkarzinom-Screening (Kanada)",
+      "cervicalCheckIreland": "CervicalCheck (Irland)",
+      "csmsUk": "CSMS (England und Wales)",
+      "franceCrcdc": "Regionales Screening-Zentrum CRCDC (Frankreich)",
+      "germanyOkfe": "Organisiertes Zervixkarzinom-Screening (Deutschland)",
+      "kncspKccrKorea": "KNCSP / KCCR (Südkorea)",
+      "ncspNewZealand": "NCSP-Register (Neuseeland)",
+      "ncsrAustralia": "NCSR (Australien)",
+      "nicspNorthernIreland": "NICSP (Nordirland)",
+      "palgaNetherlands": "PALGA (Niederlande)",
+      "sccrsScotland": "SCCRS (Schottland)"
+    },
+    "saved": "Gespeichert.",
+    "specStatus": {
+      "configurable": "Vom Labor konfiguriert",
+      "verified": "Nach der Programmspezifikation erstellt"
+    },
+    "subtitle": "An welches nationale oder regionale Zervixkarzinom-Screening-Programm jede Einrichtung freigegebene gynäkologische Zytologie meldet, wie die Ergebnisse dafür codiert werden und was zurückgehalten statt gesendet wird.",
+    "table": {
+      "category": "Kategorie",
+      "code": "Registercode",
+      "display": "Registertext",
+      "field": "Feld"
+    },
+    "title": "Meldung an Screening-Register",
+    "wireFormats": {
+      "batch_file": "Stapeldatei",
+      "fhir": "FHIR",
+      "hl7v2_oru": "HL7-v2-Befund (ORU)",
+      "programme_module": "das eigene Programmmodul"
+    }
   },
   "searchPage": {
     "actions": {
@@ -12251,8 +14385,10 @@
     },
     "expandTitle": "Seitenleiste erweitern",
     "instance": {
+      "combinedParts": "Teile {{parts}}",
       "fieldsAnswered_one": "{{count}} Feld beantwortet",
       "fieldsAnswered_other": "{{count}} Felder beantwortet",
+      "partsCovered": "Erfasste Teile",
       "removeReport": "Diesen synoptischen Bericht entfernen",
       "unverifiedOnReport_one": "{{count}} KI-Vorschlag auf diesem Bericht noch nicht verifiziert",
       "unverifiedOnReport_other": "{{count}} KI-Vorschläge auf diesem Bericht noch nicht verifiziert",
@@ -12374,6 +14510,7 @@
   "slideDistribution": {
     "activeSlide": {
       "history": "Nachweiskette",
+      "historyLine": "{{detail}} — {{time}}",
       "none": "Wählen Sie einen Objektträger aus der Warteschlange oder dem Raster oben.",
       "reprintFailed": "Nachdruck fehlgeschlagen — siehe Meldung oben.",
       "reprintLabel": "Ersatzetikett auslösen",
@@ -12393,17 +14530,31 @@
       "confirmPhysical": "Physische Weiterleitung bestätigen",
       "courierBagId": "Kurier-Transportbeutel",
       "digital": "Digitaler Scanner",
+      "doctorName": "Dr. {{name}}",
       "physical": "Physische Abholung",
       "rackId": "Rack-ID",
+      "rackPlaceholder": "z. B. Rack 102",
+      "recipient": "Pathologe oder Pool",
       "scannerInstrument": "Scanner-Instrument",
+      "scannerPlaceholder": "z. B. Leica Aperio GT450 Nr. 2",
       "searchPlaceholder": "Pathologen oder Pools suchen…",
       "selectFirst": "Wählen Sie zuerst einen Objektträger aus der Warteschlange.",
       "slideFolderId": "Objektträgermappen-ID",
+      "slotPlaceholder": "z. B. Steckplatz 14",
       "slotPosition": "Steckplatzposition",
       "title": "Ziel & Zuweisung",
       "trayNumber": "Trägernummer"
     },
+    "errors": {
+      "noStation": "Keine Scanstation für dieses Gerät ausgewählt — legen Sie eine über die Stationsanzeige in der Navigationsleiste fest.",
+      "notConfigured": "Diese Station ist nicht für den Druck von Objektträgeretiketten eingerichtet.",
+      "notInQueue": "Dieser Objektträger ist nicht mehr in der Warteschlange.",
+      "profileMissing": "Das konfigurierte Druckerprofil existiert nicht mehr.",
+      "stationNotFound": "Die Scanstation wurde nicht gefunden."
+    },
     "exceptions": {
+      "note": "Notiz",
+      "notePlaceholder": "Was ist passiert (optional, sofern nicht erforderlich)…",
       "reason": {
         "missingGlass": "Fehlender Objektträger",
         "other": "Sonstiges",
@@ -12411,25 +14562,66 @@
         "unreadableBarcode": "Unlesbarer Barcode"
       },
       "resolve": "Lösen",
+      "scanLogLine": "{{reason}} — „{{scan}}“ ({{time}})",
       "scanLogTitle": "Nicht aufgelöste Scans",
       "title": "Scan-Ausnahmeprotokoll"
     },
     "pageTitle": "Objektträger-Verteilstation",
+    "priority": {
+      "routine": "Routine",
+      "rush": "Eilig",
+      "stat": "STAT"
+    },
     "queue": {
       "count": "{{count}}",
       "empty": "Noch keine Objektträger gescannt.",
+      "metaLine": "{{stain}} · {{status}}",
       "pool": "Subspezialitäten-Pool",
       "remove": "Aus der Warteschlange entfernen",
       "title": "Arbeitswarteschlange",
       "unassigned": "Nicht zugewiesen",
       "unrouted": "Noch nicht weitergeleitet"
     },
+    "reprintReason": {
+      "body": "Ein nachgedrucktes Objektträgeretikett kann ein Duplikat sein, daher wird der Grund in der Nachweiskette des Objektträgers festgehalten.",
+      "label": "Grund",
+      "reason": {
+        "damagedLabel": "Beschädigtes Etikett",
+        "other": "Sonstiges",
+        "smudgedPrint": "Verschmierter Druck",
+        "unreadableBarcode": "Unlesbarer Barcode"
+      },
+      "reprint": "Nachdrucken",
+      "select": "Grund auswählen…",
+      "title": "Grund erforderlich"
+    },
+    "scanErrors": {
+      "blockNotFound": "Block {{block}} wurde nicht gefunden.",
+      "noSlides": "Block {{block}} hat keine Objektträger zum Verteilen.",
+      "notResolved": "Dieser Scan passt zu keinem Fall, Block oder Objektträger. Prüfen Sie den Barcode und versuchen Sie es erneut.",
+      "slideNotFound": "Objektträger {{slide}} wurde nicht gefunden.",
+      "specimenNotFound": "Das Präparat wurde in diesem Fall nicht gefunden.",
+      "unsupportedTarget": "Diese Station nimmt nur Block- und Objektträger-Barcodes an. Matrix- oder Zellblockkassetten, Dekantate und Präparat-Barcodes werden noch nicht unterstützt."
+    },
     "scanPlaceholder": "Barcode scannen oder eingeben…",
     "scanPrompt": "Scannen Sie einen Objektträger- oder Block-/Kassetten-Barcode — die Warteschlange wächst kontinuierlich",
     "scanSubmit": "Los",
     "slots": {
+      "chipTitle": "{{slide}} — {{stain}}",
       "empty": "Noch nichts in der Warteschlange — scannen Sie einen Objektträger, um zu beginnen.",
       "title": "Chargenfortschritt"
+    },
+    "splitWarning": {
+      "differentPhysical": "Die Objektträger dieses Blocks sind an verschiedene Pathologen oder Orte ausgegeben.",
+      "differentScanners": "Die Objektträger dieses Blocks sind in verschiedenen Scannern geladen.",
+      "none": "Alle weitergeleiteten Objektträger dieses Blocks gehen an dasselbe Ziel.",
+      "physicalAndDigital": "Die Objektträger dieses Blocks sind zwischen physischer Ausgabe und digitalem Scannen aufgeteilt."
+    },
+    "status": {
+      "assigned": "Zugewiesen",
+      "checkedOut": "Ausgegeben",
+      "inScanningQueue": "In der Scan-Warteschlange",
+      "loadedOnScanner": "Im Scanner geladen"
     }
   },
   "snomedCervicalHistologySeverityMappingSection": {
@@ -13007,6 +15199,8 @@
       "controlTissueHint": "Nur informativ — füllt die eigene Probenbeschreibung der automatisch erstellten Kontrolle vorab aus. Wird nie validiert oder erzwungen; die tatsächliche Kontrollgewebewahl eines echten Laufs kann abweichen.",
       "controlTissueLabel": "Standard-Kontrollgewebe",
       "controlTissuePlaceholder": "z. B. Tonsille, Brust, Kolon (normale Mukosa)",
+      "defaultReferenceLabLabel": "Standardlabor",
+      "defaultReferenceLabNone": "Kein Standard (der Pathologe wählt)",
       "defaultTargetsHint": "Wird zum Bestellzeitpunkt auf jede neue Bestellung kopiert und dort dann frei bearbeitbar — das Ändern dieses Wörterbuchstandards betrifft niemals die eigenen Ziele einer bestehenden Bestellung.",
       "defaultTargetsLabel": "Standardziele",
       "descriptionPlaceholder": "Wofür diese Färbung verwendet wird",
@@ -13036,6 +15230,9 @@
       "qcModeLabel": "QK-Durchsetzungsmodus nach dem Lauf",
       "qcModeNoOverride": "— Keine Überschreibung (Bank-Standard verwenden) —",
       "qcSettingsLabel": "QK- und Kontrollobjektträger-Einstellungen",
+      "referenceLabsHint": "Ein Zusatzauftrag für diesen Test bietet nur diese Labore an und belegt das Standardlabor vor. Ist keines angehakt, werden alle aktiven Referenzlabore angeboten.",
+      "referenceLabsLabel": "Für diesen Test freigegebene Referenzlabore",
+      "referenceLabsNone": "Noch keine aktiven Referenzlabore. Legen Sie eines im Einrichtungsverzeichnis mit der Rolle Referenzlabor an.",
       "removeTargetAria": "{{symbol}} entfernen",
       "requireControlToggle": "Zielkontrollobjektträger erforderlich (erzwingt das QK-Gate bei der Abzeichnung)",
       "standaloneBillingHint": "Aus (Standard): Diese Färbung belegt weiterhin eine echte Position in der IHC-Sequenz der Probe für alles, was danach kommt — verwenden Sie dies für einen einzelnen Antikörper, der zu seinem eigenen Satz abgerechnet wird, aber klinisch immer noch eine echte IHC-Färbung ist. Ein: Diese Färbung wird weder selbst sequenzzugewiesen noch belegt sie einen Platz für eine spätere Färbung — verwenden Sie dies für ein eigenständiges Multiplex-/Kombinationspanel wie „PIN-4“, das von Anfang an nie wirklich eine zählbare einzelne IHC-Färbung war.",
@@ -13310,13 +15507,43 @@
     }
   },
   "surgicalQaWorklist": {
+    "caseBarTitle": "Chirurgische QS nach Freigabe",
     "correlationCandidate": "Biopsie-Resektion-Korrelationskandidat: {{candidateCaseId}}",
     "emptyRow": "Nichts ausstehend — jeder markierte Fall und jeder Korrelationskandidat wurde überprüft.",
+    "error": {
+      "failed": "Das Review konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "notPermitted": "Sie sind nicht berechtigt, chirurgische QS-Reviews zu erfassen."
+    },
     "notRelevantBtn": "Nicht relevant",
+    "openCaseBtn": "Fall öffnen",
     "pageTitle": "Chirurgische QA nach Befundfreigabe",
     "peerReviewRandom": "Peer-Review — Zufällig",
     "peerReviewTargeted": "Peer-Review — Gezielt",
     "recordReviewBtn": "Review erfassen"
+  },
+  "surgicalReportPdf": {
+    "clinician": "Behandelnder Arzt",
+    "confidential": "VERTRAULICH — PATHOLOGIEBEFUND",
+    "dob": "Geburtsdatum",
+    "mrn": "Patienten-Nr.",
+    "noContent": "Kein Inhalt",
+    "noSynopticData": "Keine synoptischen Daten erfasst.",
+    "notYetGenerated": "Noch nicht erstellt",
+    "patient": "Patient",
+    "referring": "Einsender",
+    "reportTemplate": "Befundvorlage: {{name}}",
+    "requiredNotCompleted": "⚠ Pflichtangabe — noch nicht ausgefüllt",
+    "resolvedBy": " (ermittelt durch {{name}})",
+    "workupAddendum": "Nachtrag",
+    "workupChanges": "In dieser Version geändert",
+    "workupCorrected": "Korrigiert",
+    "workupDocument": "Dokument",
+    "workupFinal": "Endgültig",
+    "workupParts": "Teil(e)",
+    "workupProtocol": "Protokoll",
+    "workupSigned": "Signiert",
+    "workupStatus": "Status",
+    "workupVersion": "Version"
   },
   "synopticComments": {
     "newCommentNote": "— neuer Kommentar",
@@ -13384,7 +15611,7 @@
       "title": "Nicht gespeicherte Änderungen"
     },
     "errors": {
-      "notTemplateAuthor": "Zum Entwerfen von Vorlagen ist die Rolle Template Author erforderlich.",
+      "notTemplateAuthor": "Sie haben keine Berechtigung, Vorlagen zu entwerfen.",
       "saveFailed": "Speichern fehlgeschlagen — bitte erneut versuchen",
       "submitFailed": "Einreichen fehlgeschlagen — bitte erneut versuchen"
     },
@@ -13403,8 +15630,20 @@
       "noOptionsYet": "Noch keine Antwortoptionen — auf + Antwortoption hinzufügen klicken",
       "optionalBadge": "Optional",
       "optionalTag": "(optional)",
+      "reportingRoleHint": "Was dieses Feld im strukturierten Ergebnis an das LIS und die Register meldet: ein Stadium (pT, pN, pM, FIGO) oder eine Blockkennung.",
+      "reportingRoleLabel": "Gemeldet als",
+      "reportingRoles": {
+        "block": "Blockkennung",
+        "figo": "FIGO-Stadium",
+        "none": "Nichts Bestimmtes",
+        "pM": "pM (Fernmetastasen)",
+        "pN": "pN (regionäre Lymphknoten)",
+        "pT": "pT (Primärtumor)"
+      },
       "requiredBadge": "Erforderlich",
-      "snomedCodedTooltip": "SNOMED kodiert"
+      "snomedCodedTooltip": "SNOMED kodiert",
+      "unitLabel": "Einheit",
+      "unitPlaceholder": "z. B. cm"
     },
     "fieldType": {
       "checkboxes": {
@@ -13441,6 +15680,8 @@
       "namePlaceholder": "z. B. CAP Kolonresektion",
       "nameRequiredError": "Vorlagenname ist erforderlich",
       "sourceLabel": "Quelle / Fachgesellschaft",
+      "stagingEditionLabel": "Stadieneinteilung (Auflage)",
+      "stagingEditionPlaceholder": "z. B. AJCC 8. Auflage",
       "title": "Vorlagen-Metadaten",
       "versionLabel": "Version",
       "versionPart": {
@@ -13520,16 +15761,20 @@
   },
   "synopticReportPage": {
     "toast": {
+      "authorizationRecorded": "Genehmigung erfasst",
       "authorizationSaveFailed": "Die Einwilligung konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "billingCorrectionNotPermitted": "Sie sind nicht berechtigt, einen angewendeten Abrechnungscode zu korrigieren.",
+      "bodyReleased": "Leichnam freigegeben",
       "caseDelegated": "Fall delegiert.",
       "decantLabelPrintFailed": "Das Behälteretikett für das Dekantat {{label}} konnte nicht gedruckt werden.",
       "draftOverwroteOther": "Entwurf gespeichert. Ihre Version hat eine gleichzeitige Änderung einer anderen Person ersetzt.",
       "fixationSaveFailed": "Die Fixierungszeit konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "fixationTimeRecorded": "Fixierungszeit erfasst",
       "grossingTemplateAssignFailed": "Probe hinzugefügt, aber die Zuschnittvorlage konnte nicht automatisch zugewiesen werden. Bitte weisen Sie eine zu.",
       "intraopMerged": "Intraoperativer Eintrag zusammengeführt in {{caseId}}",
       "organRetentionSaveFailed": "Die Stufe der Organaufbewahrung konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "pdfFailedPrintingScreen": "Das PDF konnte nicht erstellt werden ({{error}}). Stattdessen wird die Bildschirmansicht gedruckt.",
+      "preAnalyticDatesRecorded": "Entnahme- und Eingangsdatum erfasst",
       "preAnalyticSaveFailed": "Die präanalytischen Daten konnten nicht gespeichert werden. Bitte erneut versuchen.",
       "preliminaryReleaseFailed": "Der vorläufige Befund konnte nicht freigegeben werden.",
       "unknownError": "unbekannter Fehler"
@@ -13636,6 +15881,7 @@
       "governingBodies": "Aufsichtsbehörden",
       "grossingHardware": "Zuschnitt-Hardware",
       "grossingRouteOverrides": "Zuschnitt-Routenüberschreibungen",
+      "intraopCriticalResults": "Kritische intraoperative Befunde",
       "jurisdictionPaymentMappings": "Rechtsordnung-Zahlungszuordnung",
       "labelDesigner": "Etikettendesigner",
       "masterPaymentTypes": "Stammwörterbuch der Zahlungsarten",
@@ -13937,6 +16183,8 @@
     }
   },
   "templateGovernanceSection": {
+    "notPermitted": "Nicht gespeichert: Sie haben keine Berechtigung, die Einstellungen der Vorlagenprüfung zu ändern.",
+    "readOnly": "Sie können diese Einstellungen ansehen; zum Ändern ist die Berechtigung „Einstellungen der Vorlagenprüfung verwalten“ nötig.",
     "requiredReviewers": {
       "description": "Anzahl der Freigaben, die eine Vorlage vor der Veröffentlichung benötigt, jeweils von einem anderen Vorlagenfreigeber, Laborleiter oder Administrator, der nicht zu ihren Autoren gehört.",
       "label": "Erforderliche Prüfer",
@@ -14268,6 +16516,7 @@
       "bottom": "Unten",
       "heading": "RÄNDER (mm)",
       "left": "Links",
+      "previewOnlyHint": "Nur für diese Vorschau. Seitenformat und Ränder des Labors werden unter Konfiguration → System → Dokumentstil festgelegt.",
       "right": "Rechts",
       "top": "Oben"
     },
@@ -14304,7 +16553,7 @@
       "alreadyApproved": "Sie haben diese Vorlage bereits freigegeben. Sie benötigt die Freigabe eines weiteren Prüfers.",
       "approvalRecorded": "Freigabe erfasst ({{count}} von {{required}}). Die Vorlage bleibt in Prüfung, bis die übrigen Prüfer sie freigeben.",
       "failed": "Die Änderung konnte nicht gespeichert werden: {{message}}",
-      "notApprover": "Nur ein Vorlagenfreigeber, Laborleiter oder Administrator kann Vorlagen freigeben oder veröffentlichen.",
+      "notApprover": "Sie haben keine Berechtigung, diese Vorlage freizugeben, zu veröffentlichen oder zurückzugeben.",
       "notEnoughApprovals": "Diese Vorlage hat {{count}} der {{required}} unabhängigen Freigaben, die sie vor der Veröffentlichung benötigt.",
       "selfApproval": "Diese Vorlage erfordert vor der Veröffentlichung eine unabhängige Prüfung. Bitte weisen Sie einen Prüfer zu oder fordern Sie die Freigabe durch eine Laborleitung an.",
       "snomedBelowThreshold": "Für die Veröffentlichung sind mindestens {{threshold}} % SNOMED-Abdeckung erforderlich. Diese Vorlage hat {{coverage}} %. Fügen Sie ihren Feldern im Editor SNOMED-Codes hinzu und reichen Sie sie erneut zur Prüfung ein."
@@ -14604,6 +16853,11 @@
       "specimensMissingGrossing_other": "Für die Proben {{labels}} wurde noch kein Gross-Befund erfasst — erfassen Sie jede Probe, bevor Sie Gross abschließen",
       "updateCancelledReasonRequired": "Aktualisierung abgebrochen — ein Grund ist erforderlich",
       "updateGrossFailed": "Aktualisierung von Gross fehlgeschlagen — bitte erneut versuchen"
+    },
+    "withoutProtocol": {
+      "body_one": "Probe {{specimens}} hat weder ein Protokoll noch eine Zuschnittvorlage. Beim Abschließen wird sie zur Zweitbegutachtung weitergeleitet.",
+      "body_other": "Die Proben {{specimens}} haben weder ein Protokoll noch eine Zuschnittvorlage. Beim Abschließen werden sie zur Zweitbegutachtung weitergeleitet.",
+      "title": "Zuschnitt ohne Protokoll oder Zuschnittvorlage abschließen?"
     }
   },
   "useLisIntegration": {
@@ -15043,11 +17297,7 @@
     },
     "tableRegionLabel": "Arbeitslistenfälle, scrollbare Tabelle",
     "tileTitleActive": "Angezeigt: {{label}} — klicken, um zurückzusetzen",
-    "tileTitleInactive": "Filtern nach: {{label}}",
-    "toast": {
-      "orchestrationRestricted": "Dies ist ein Orchestrierungs-/Outreach-Fall. Sie haben keinen Orchestrierungszugriff — verwenden Sie „Zugriff anfordern“ in der Arbeitsliste, um einen Administrator zu bitten.",
-      "pediatricRestricted": "Dieser Fall ist für Kinder eingeschränkt. Sie haben nicht die erforderliche Einrichtungsberechtigung, um ihn zu öffnen — verwenden Sie „Zugriff anfordern“ in der Arbeitsliste, um einen Administrator zu bitten."
-    }
+    "tileTitleInactive": "Filtern nach: {{label}}"
   },
   "worklistTable": {
     "abnormalDot": {
@@ -15201,6 +17451,30 @@
       }
     },
     "title": "Arbeitsplatzgruppen"
+  },
+  "workupParts": {
+    "aiNote": "Die KI erfährt, welche Teile dieser Befund abdeckt, und schlägt für sie keinen zweiten Befund dieses Protokolls vor.",
+    "apply": "Übernehmen",
+    "modes": {
+      "combined": {
+        "hint": "ein Protokoll für die unten angekreuzten Teile",
+        "label": "Zusammengefasst"
+      },
+      "independent": {
+        "hint": "nur dieser Teil; jeder andere Teil erhält einen eigenen Befund",
+        "label": "Einzeln"
+      }
+    },
+    "noOtherParts": "Dieser Fall hat keine weiteren Teile.",
+    "partLabel": "Teil {{part}}: {{description}}",
+    "problems": {
+      "alreadyCovered": "Teil {{part}} hat bereits einen Befund mit diesem Protokoll; fassen Sie dort zusammen.",
+      "notDraft": "Nur die Teile eines Befundentwurfs lassen sich ändern; dieser wurde freigegeben.",
+      "notFound": "Dieser Befund ist nicht mehr auffindbar.",
+      "unknownPart": "Teil {{part}} gehört nicht zu diesem Fall."
+    },
+    "subtitle": "Über welche Teile der Befund {{protocol}} berichtet.",
+    "title": "Erfasste Teile"
   },
   "wsiViewer": {
     "mockNotice": "Simulierter WSI-Viewer — in dieser Umgebung existiert kein echter Bildserver. Dies ist ein echter, ehrlicher Platzhalter für die Stelle, an der ein echter digitaler Pathologie-Viewer die eigene reale Lamelle dieser Probe anzeigen würde.",

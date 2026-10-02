@@ -40,6 +40,50 @@ file) — see `constants/README.md` for that disclosure.
 
 **Fixed: every action was announced twice.** `executeAction` dispatched `VOICE_ACTION_TRIGGERED` once at the start and again after doing the work. So every page's `onAction` listener ran each command twice: Grossing, Accession, the report page, Intraop, Pool Claim and Delegate. The success toast also showed twice. It now announces once. Found when a voice-confirmed Complete grossing ran a second time against the same case version and showed "This case was updated elsewhere". Guarded by `executeActionDispatch.test.ts`.
 
+## Batch 388
+
+Two buttons in a new category `MICROTOMY` (voice phrases in all five languages; the Microtomy page sets `VOICE_CONTEXT.MICROTOMY` while it is open): `MICROTOMY_ADD_COMMENT` ("add comment", Ctrl+Alt+Shift+A, F26+PS016) and `MICROTOMY_ADD_STAIN` ("add stain", Ctrl+Alt+Shift+B, F26+PS017). The comment drawer and the slide grid's stain picker listen while on screen and act exactly as their Add buttons do, checks included. "add stain" is also a phrase of the case report page's `ADD_ORDERS_STAIN`; the two are in different categories and are never eligible together.
+
+## Batch 397: five more save commands
+
+`ADD_ORDERS_ADD_BLOCK` ("confirm block order", Ctrl+Alt+Shift+8, SYNOPTIC) and, in a new **INTRAOP** category (only while the Intraop page is open), `INTRAOP_START_SESSION` ("continue to specimen", Ctrl+Alt+Shift+1), `INTRAOP_SAVE_SPECIMEN_NEXT` ("next specimen", +2), `INTRAOP_SAVE_SPECIMEN_CLOSE` ("close and save", +3), `INTRAOP_MERGE_CONFIRM` ("merge session", +4). Each acts exactly as its button does, Field Requirements included. The older intraop actions stay in NAVIGATION.
+
+## Batch 401
+
+Two buttons in a new category `EMBEDDING` (voice phrases in all five languages; the Embedding station sets `VOICE_CONTEXT.EMBEDDING` while it is open): `EMBEDDING_CONFIRM_PIECE_COUNT` ("confirm count", "confirm embedding", Ctrl+Alt+Shift+C, F28+PS001) and `EMBEDDING_ADD_COMMENT` ("add comment", Ctrl+Alt+Shift+A, F28+PS002). They act exactly as Confirm and Add Comment do, Field Requirements included. "add comment" is also a Microtomy phrase; the two categories are never eligible together.
+
+## Batch 402
+
+Two buttons in a new category `SLIDE_DISTRIBUTION` (the Slide distribution station sets `VOICE_CONTEXT.SLIDE_DISTRIBUTION` while open): `SLIDE_DIST_CONFIRM_PHYSICAL` ("confirm checkout", "check out slide", Ctrl+Alt+Shift+P, F29+PS001) and `SLIDE_DIST_CONFIRM_DIGITAL` ("confirm scanner", "send to scanner", Ctrl+Alt+Shift+D, F29+PS002), in all five languages. Each acts exactly as its button does, Field Requirements included, and only while its destination is the one on screen.
+
+## Batch 403
+
+A new category, `ADD_ON_ORDER`, is set by the Add-On Orders page while it is open. It has two actions:
+- `ADD_ON_ADD_TO_ORDER`: "add to order", Ctrl+Alt+Shift+A, F30+PS001.
+- `ADD_ON_SUBMIT_ORDER`: "submit order", Ctrl+Alt+Shift+S, F30+PS002.
+
+Both have phrases in all five languages. Each acts exactly as its button does, Field Requirements and permission included.
+
+## Batch 404
+
+`BATCH_CREATE_CONTAINER` ("create container", Ctrl+Alt+Shift+N, F31+PS001), in a new category, `BATCH_MANAGEMENT`, which Batch Management sets while it's open. It does what New Container's Generate does. Aborting, forcing a reconciliation complete and acknowledging a cold-chain excursion deliberately have no voice command.
+
+## Batch 405
+
+`MOLECULAR_CREATE_PLATE` ("create plate", Ctrl+Alt+Shift+N, F32+PS001), in a new category, `MOLECULAR`, which the plate builder sets while it's open. It does what Create does. Clone & Supersede has no voice command.
+
+## Batch 406
+
+`MOLECULAR_PLACE_RACK` ("place rack", Ctrl+Alt+Shift+P, `F32+PS002`, in `VOICE_CONTEXT.MOLECULAR`) does what Rack Loading's "Place rack" button does, including its Field Requirements and deck-slot checks.
+
+## Batch 428: Configuration permissions
+
+Changing the lab's shortcuts and voice commands (`updateAction`) needs `config:actions:manage` (guardConfigWrites).
+
+## Batch 432
+
+Learned voice commands are per person (Pete): kept as a personal setting (`ps_learned_triggers`), reloaded when someone else signs in; the old shared list carries over the first time. Listed and removable in the profile menu → "My voice commands".
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
@@ -71,3 +115,22 @@ Three more modal buttons (category `SYNOPTIC`, voice phrases in all five languag
 - `CORRECT_CODE_CONFIRM` ("correct billing code", Ctrl+Alt+Shift+2, `billing.correctAppliedCode` / F24+PS054)
 
 Alt+Shift+F1 and F4 were left free (F1 is help; Alt+F4 closes a window). Each modal listens while it's open and acts exactly as its button does, checks included; the correction also needs `billing:applied-code:correct`.
+
+## Batch 383
+
+Four more buttons (category `SYNOPTIC`, voice phrases in all five languages):
+- `AUTOPSY_AUTH_SUBMIT` ("record authorization", Ctrl+Alt+Shift+3, `case.recordAutopsyAuthorization` / F19+PS014)
+- `AUTOPSY_RELEASE_SUBMIT` ("release body", Ctrl+Alt+Shift+4, `case.releaseAutopsyBody` / F19+PS015)
+- `FIXATIVE_GATE_CONTINUE` ("continue fixation gate", Ctrl+Alt+Shift+5, `specimen.continueFixativeGate` / F20+PS011)
+- `PREANALYTIC_GATE_CONTINUE` ("continue date gate", Ctrl+Alt+Shift+6, `specimen.continuePreAnalyticGate` / F20+PS012)
+
+Each form or modal listens while it is open and acts exactly as its button does, checks included; the body release also needs `autopsy:body:release`.
+
+## Batch 384
+
+One more button (category `MESSAGES`, voice phrases in all five languages): `SECURE_EMAIL_SUBMIT` ("submit secure email", Ctrl+Alt+Shift+7, `messages.submitSecureEmail` / F18+PS025). The Secure email window listens while it is in its compose state and sends exactly as its button does, checks included. The drawer's Send by voice (`MSG_SEND`) already existed.
+
+## Batch 386
+
+Four buttons in category `CYTOLOGY` (voice phrases in all five languages): `CYTOLOGY_SAVE_REVIEW` ("save review", Ctrl+Alt+Shift+A, F26+PS012), `CYTOLOGY_SAVE_CISOEA` ("save CISOE-A review", +B, PS013), `CYTOLOGY_COMPLETE_RETROSPECTIVE` ("complete retrospective review", +C, PS014) and `CYTOLOGY_RECORD_CORRELATION` ("record correlation", +D, PS015). Each form listens while it is on screen and acts exactly as its button does, checks included.
+

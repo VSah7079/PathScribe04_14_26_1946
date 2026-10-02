@@ -18,6 +18,10 @@ Renders Orchestration mode's `orchSections` as a formatted clinical report previ
 
 `ReportPreviewRenderer.tsx`: `labelStyle()` is gone. A template's label formatting reaches the page, header, footer, section headings and field labels as `--rp-<part>-*` custom properties (`utils/labelStyleVars.ts`, now with a name prefix so a page's settings don't leak into its headings).
 
+## Batch 431
+
+Draft sections come from the case only (no browser copy, which could be older than a save made at another workstation). The window position is a display preference.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -12,6 +12,8 @@ import type { IParticipationTypeService, ParticipationTypeRecord } from './IPart
 import type { Jurisdiction } from '../../types/systemConfig';
 import { buildCountryProfileAuditEntry, planCountryProfileSave, type CountryProfileChange, type CountryProfileRefusal, type CountryProfileRow } from './countryProfileEditor';
 import { invalidateParticipationTypeLookup } from '../../utils/participationTypeLookup';
+import { permitConfigChange } from '../authorization/guardConfigWrites';
+import { participationTypeServiceUnchecked } from './mockParticipationTypeService';
 
 export type SaveCountryProfilesResult =
   | { ok: true; savedTypeIds: string[] }
@@ -27,14 +29,27 @@ export async function saveCountryProfilesWithAudit(
     reason: string;
     now?: () => string;
   },
-  deps: { typeService: Pick<IParticipationTypeService, 'update'>; auditService: Pick<IAuditService, 'logEvent'> },
+  deps: {
+    typeService?: Pick<IParticipationTypeService, 'update'>;
+    auditService: Pick<IAuditService, 'logEvent'>;
+    /** Batch 428: the capability check (a fake in tests). */
+    authorization?: { enforce: (capability: string) => Promise<{ allowed: boolean }> };
+  },
 ): Promise<SaveCountryProfilesResult> {
+  // Batch 428: national signing rules are ForMedrixAI support's (platform:signing-rules:manage, audited).
+  const authorization = deps.authorization ?? (await import('../authorization/defaultAuthorizationService')).authorizationService;
+  if (!(await permitConfigChange(authorization.enforce('platform:signing-rules:manage'), 'platform:signing-rules:manage'))) {
+    return { ok: false, code: 'NOT_PERMITTED' };
+  }
+  // The country profile lives on the participation type record; this change is
+  // checked above, so the record is written without the participation-types check.
+  const typeService = deps.typeService ?? participationTypeServiceUnchecked;
   const plan = planCountryProfileSave({ ...input, nowIso: (input.now ?? (() => new Date().toISOString()))() });
   if (plan.ok === false) return { ok: false, code: plan.code, ...(plan.typeIds ? { typeIds: plan.typeIds } : {}) };
 
   const saved: string[] = [];
   for (const u of plan.updates) {
-    const res = await deps.typeService.update(u.typeId, u.changes);
+    const res = await typeService.update(u.typeId, u.changes);
     if (res.ok === false) {
       // Types saved before the failure are audited; nothing is claimed for the rest.
       await audit(plan.changes.filter(c => saved.includes(c.typeId)));

@@ -1,5 +1,9 @@
 // src/services/batches/referralDispatchIntegration.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Batch 404: overrideAndComplete now checks batch:reconciliation:override;
+// these tests are about referral dispatch, so the check allows.
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: async () => ({ allowed: true }) } }));
 
 // Real, direct follow-up: a fixed 150ms wait (this file's own prior fix)
 // was NOT enough — the exact same 5000ms timeout recurred. Root cause is

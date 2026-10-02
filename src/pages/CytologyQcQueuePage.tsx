@@ -16,11 +16,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { CytologyQcDiscrepancyModal } from '@/components/CytologyQc/CytologyQcDiscrepancyModal';
+import { useCytologyQcActions } from '@/hooks/useCytologyQcActions';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import ReasonPromptModal from '@/components/Common/ReasonPromptModal';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockCytologyQcCaseAssignmentService } from '@/services/cytologyQc/mockCytologyQcCaseAssignmentService';
+import { cytologyQcCaseAssignmentService } from '@/services';
+import { useNavigate } from 'react-router';
 import { resolveQcQueueTabFilter, type QcQueueTab } from '@/services/cytologyQc/resolveQcQueueTabFilter';
 import { resolveQcSlaStatus, type QcSlaStatus } from '@/services/cytologyQc/resolveQcSlaStatus';
 import { resolvePatientFullDisplayName } from '@/utils/personName';
@@ -33,50 +39,12 @@ const SLA_STATUS_CLASS: Record<QcSlaStatus, string> = {
   breached: 'ps-qcqueue-sla--breached',
 };
 
-const DiscrepancyModal: React.FC<{
-  onSubmit: (primary: string, secondary: string, severity: 'major' | 'minor', commentary: string) => void;
-  onClose: () => void;
-}> = ({ onSubmit, onClose }) => {
-  const { t } = useTranslation();
-  const [primary, setPrimary] = useState('');
-  const [secondary, setSecondary] = useState('');
-  const [severity, setSeverity] = useState<'major' | 'minor'>('major');
-  const [commentary, setCommentary] = useState('');
-
-  return (
-    <div data-capture-hide="true" className="ps-conf-backdrop" onClick={onClose}>
-      <div className="ps-conf-modal ps-conf-modal--narrow" onClick={e => e.stopPropagation()}>
-        <div className="ps-conf-modal-header">{t('cytologyQcQueue.discrepancyModalTitle')}</div>
-        <div className="ps-conf-modal-body">
-          <label className="ps-label" htmlFor="qc-disc-primary">{t('cytologyQcQueue.primaryCodeLabel')}</label>
-          <input id="qc-disc-primary" className="ps-conf-input" value={primary} onChange={e => setPrimary(e.target.value)} />
-
-          <label className="ps-label" htmlFor="qc-disc-secondary">{t('cytologyQcQueue.secondaryCodeLabel')}</label>
-          <input id="qc-disc-secondary" className="ps-conf-input" value={secondary} onChange={e => setSecondary(e.target.value)} />
-
-          <label className="ps-label" htmlFor="qc-disc-severity">{t('cytologyQcQueue.severityLabel')}</label>
-          <select id="qc-disc-severity" className="ps-conf-input" value={severity} onChange={e => setSeverity(e.target.value as 'major' | 'minor')}>
-            <option value="major">{t('cytologyQcQueue.severity.major')}</option>
-            <option value="minor">{t('cytologyQcQueue.severity.minor')}</option>
-          </select>
-
-          <label className="ps-label" htmlFor="qc-disc-commentary">{t('cytologyQcQueue.commentaryLabel')}</label>
-          <textarea id="qc-disc-commentary" className="ps-conf-input ps-conf-textarea" value={commentary} onChange={e => setCommentary(e.target.value)} />
-        </div>
-        <div className="ps-conf-modal-footer">
-          <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="ps-conf-btn-primary" disabled={!primary.trim() || !secondary.trim()} onClick={() => onSubmit(primary, secondary, severity, commentary)}>
-            {t('cytologyQcQueue.submitDiscrepancyBtn')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const CytologyQcQueuePage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  // Batch 432: the bypass shows only to people whose role holds it.
+  const { has: can } = useCapabilities();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<QcQueueTab>('all');
   const [queue, setQueue] = useState<CytologyQcCaseAssignment[]>([]);
   const [casesById, setCasesById] = useState<Record<string, Case>>({});
@@ -84,7 +52,7 @@ const CytologyQcQueuePage: React.FC = () => {
   const [discrepancyTargetId, setDiscrepancyTargetId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const result = await mockCytologyQcCaseAssignmentService.getUnifiedQueue();
+    const result = await cytologyQcCaseAssignmentService.getUnifiedQueue();
     if (!result.ok) return;
     setQueue(result.data);
     const uniqueCaseIds = [...new Set(result.data.map(a => a.caseId))];
@@ -102,29 +70,23 @@ const CytologyQcQueuePage: React.FC = () => {
 
   const visible = resolveQcQueueTabFilter(queue, activeTab);
 
-  const handleAssignToMe = async (id: string) => {
-    if (!user) return;
-    await mockCytologyQcCaseAssignmentService.assignReviewer(id, user.id);
-    refresh();
-  };
-
-  const handleConcurrence = async (id: string) => {
-    await mockCytologyQcCaseAssignmentService.recordConcurrence(id);
-    refresh();
-  };
+  // Batch 396: the actions go through the same hook as the case screen's
+  // review bar, and a refusal or failure is shown instead of ignored.
+  const { busy, message, assignToMe, recordConcurrence, recordDiscrepancy, escalate, bypass } = useCytologyQcActions(refresh);
+  // Batch 432: escalating an SLA breach, and the supervisor bypass, each with a reason.
+  const [escalateTargetId, setEscalateTargetId] = useState<string | null>(null);
+  const [bypassTargetId, setBypassTargetId] = useState<string | null>(null);
 
   const handleDiscrepancySubmit = async (primary: string, secondary: string, severity: 'major' | 'minor', commentary: string) => {
     if (!discrepancyTargetId) return;
-    await mockCytologyQcCaseAssignmentService.recordDiscrepancy(discrepancyTargetId, {
-      primaryDiagnosticCode: primary, secondaryDiagnosticCode: secondary, severity, reviewerCommentary: commentary,
-    });
+    await recordDiscrepancy(discrepancyTargetId, { primaryDiagnosticCode: primary, secondaryDiagnosticCode: secondary, severity, reviewerCommentary: commentary });
     setDiscrepancyTargetId(null);
-    refresh();
   };
 
   return (
     <div className="ps-qcqueue-page">
       <h1 className="ps-qcqueue-title">{t('cytologyQcQueue.pageTitle')}</h1>
+      {message && <div className="ps-qcqueue-error" role="alert">{t(`cytologyQcQueue.error.${message}`)}</div>}
 
       <div className="ps-qcqueue-tabs">
         {(['all', 'escalations_discrepancies', 'routine_random'] as QcQueueTab[]).map(tab => (
@@ -154,17 +116,32 @@ const CytologyQcQueuePage: React.FC = () => {
                 <span className={`ps-qcqueue-sla-badge ${SLA_STATUS_CLASS[slaStatus]}`}>{t(`cytologyQcQueue.slaStatus.${slaStatus}`)}</span>
               </div>
               <div className="ps-qcqueue-row-actions">
+                {/* Batch 396 (Pete): open the case to review it (slides, the
+                    primary review) before recording a verdict. Back returns here. */}
+                <button className="ps-conf-btn-secondary" onClick={() => navigate(`/cytology-worklist/${encodeURIComponent(assignment.caseId)}`, { state: { returnTo: '/worklist?view=cytologyQc' } })}>
+                  {t('cytologyQcQueue.openCaseBtn')}
+                </button>
                 {assignment.state === 'QC_PENDING' && (
-                  <button className="ps-conf-btn-primary" onClick={() => handleAssignToMe(assignment.id)}>{t('cytologyQcQueue.assignToMeBtn')}</button>
+                  <button className="ps-conf-btn-primary" disabled={busy} onClick={() => void assignToMe(assignment.id)}>{t('cytologyQcQueue.assignToMeBtn')}</button>
                 )}
                 {assignment.state === 'QC_IN_REVIEW' && isAssignedToMe && (
                   <>
-                    <button className="ps-conf-btn-primary" onClick={() => handleConcurrence(assignment.id)}>{t('cytologyQcQueue.recordConcurrenceBtn')}</button>
+                    <button className="ps-conf-btn-primary" disabled={busy} onClick={() => void recordConcurrence(assignment.id)}>{t('cytologyQcQueue.recordConcurrenceBtn')}</button>
                     <button className="ps-conf-btn-secondary" onClick={() => setDiscrepancyTargetId(assignment.id)}>{t('cytologyQcQueue.recordDiscrepancyBtn')}</button>
                   </>
                 )}
                 {assignment.state === 'QC_IN_REVIEW' && !isAssignedToMe && (
                   <span className="ps-qcqueue-assigned-note">{t('cytologyQcQueue.assignedToOther')}</span>
+                )}
+                {assignment.state === 'QC_IN_REVIEW' && slaStatus === 'breached' && (
+                  <CapabilityButton capability="cytology:qc-review:record" className="ps-conf-btn-secondary" disabled={busy} onClick={() => setEscalateTargetId(assignment.id)}>
+                    {t('cytologyQcQueue.escalate.button')}
+                  </CapabilityButton>
+                )}
+                {assignment.state !== 'FINAL_APPROVED' && assignment.state !== 'QC_DISCREPANCY_REVISE' && can('cytology:qc-review:bypass') && (
+                  <button className="ps-conf-btn-secondary ps-qcqueue-bypass-btn" disabled={busy} onClick={() => setBypassTargetId(assignment.id)}>
+                    {t('cytologyQcQueue.bypass.button')}
+                  </button>
                 )}
               </div>
             </div>
@@ -173,8 +150,27 @@ const CytologyQcQueuePage: React.FC = () => {
         {visible.length === 0 && <div className="ps-conf-empty-row">{t('cytologyQcQueue.emptyRow')}</div>}
       </div>
 
+      <ReasonPromptModal
+        show={!!escalateTargetId}
+        title={t('cytologyQcQueue.escalate.title')}
+        message={t('cytologyQcQueue.escalate.message')}
+        reasonLabel={t('cytologyQcQueue.escalate.reasonLabel')}
+        confirmLabel={t('cytologyQcQueue.escalate.button')}
+        onConfirm={reason => { const id = escalateTargetId; setEscalateTargetId(null); if (id) void escalate(id, reason); }}
+        onCancel={() => setEscalateTargetId(null)}
+      />
+      <ReasonPromptModal
+        show={!!bypassTargetId}
+        title={t('cytologyQcQueue.bypass.title')}
+        message={t('cytologyQcQueue.bypass.message')}
+        reasonLabel={t('cytologyQcQueue.bypass.reasonLabel')}
+        confirmLabel={t('cytologyQcQueue.bypass.button')}
+        onConfirm={reason => { const id = bypassTargetId; setBypassTargetId(null); if (id) void bypass(id, reason); }}
+        onCancel={() => setBypassTargetId(null)}
+      />
+
       {discrepancyTargetId && (
-        <DiscrepancyModal onSubmit={handleDiscrepancySubmit} onClose={() => setDiscrepancyTargetId(null)} />
+        <CytologyQcDiscrepancyModal onSubmit={handleDiscrepancySubmit} onClose={() => setDiscrepancyTargetId(null)} />
       )}
     </div>
   );

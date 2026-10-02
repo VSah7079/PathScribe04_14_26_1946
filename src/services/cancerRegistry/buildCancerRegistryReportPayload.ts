@@ -21,6 +21,8 @@
 
 import type { Case } from '@/types/case/Case';
 import type { CancerRegistryId } from './ICancerRegistrySettingsService';
+import { cancerRegistryDefinition, type CancerRegistryWireFormat } from './cancerRegistryDefinitions';
+import { resolveRegistryPatientIdentifier, type RegistryPatientIdentifierResolution } from '../screeningRegistry/screeningRegistryEngine';
 import { resolveIcdOBehaviorCode, type IcdOBehaviorCode } from './resolveIcdOBehaviorCode';
 
 export interface CancerRegistryIcdOEntry {
@@ -35,7 +37,12 @@ export interface CancerRegistryReportPayload {
   registryId: CancerRegistryId;
   facilityId: string;
   facilityName?: string;
-  patient: { mrn?: string; name: string; dateOfBirth?: string };
+  patient: {
+    mrn?: string; name: string; dateOfBirth?: string;
+    /** Batch 417 (SRS v2.1 FR-004): the patient's national identifiers with their check-digit status.
+     *  The interface engine picks the one the registry keys on; a 'failedChecksum' one must not be sent. */
+    nationalIdentifiers?: { system: string; value: string; verificationStatus: string }[];
+  };
   accessionNumber: string;
   diagnosisDate?: string;
   primaryDiagnosis: string;
@@ -45,6 +52,13 @@ export interface CancerRegistryReportPayload {
    *  real ICD-O finding. */
   icdOCodes: CancerRegistryIcdOEntry[];
   icd10Codes: string[];
+  /** Batch 422: the wire format the interface engine turns this into (cancerRegistryDefinitions.ts). */
+  wireFormat?: CancerRegistryWireFormat;
+  /** Batch 422: the national identifier this registry keys on, from the patient's verified national
+   *  identifiers first (Batch 417), the MRN as a format-checked fallback. Absent for a registry that
+   *  matches on demographics. Cancer reporting is statutory, so an unusable identifier doesn't hold
+   *  the report; the interface engine and the registry see `verification`. */
+  patientIdentifier?: { formatId: string; value?: string; verification: RegistryPatientIdentifierResolution['status']; fromNationalIdentifier: boolean };
 }
 
 export function buildCancerRegistryReportPayload(
@@ -54,6 +68,8 @@ export function buildCancerRegistryReportPayload(
   facilityName: string | undefined,
 ): CancerRegistryReportPayload {
   const patientName = [caseData.patient.firstName, caseData.patient.lastName].filter(Boolean).join(' ').trim() || 'Unknown';
+  const definition = cancerRegistryDefinition(registryId);
+  const identifier = definition ? resolveRegistryPatientIdentifier(definition, caseData.patient) : undefined;
 
   const icdOCodes: CancerRegistryIcdOEntry[] = [];
   const icd10Codes: string[] = [];
@@ -72,11 +88,16 @@ export function buildCancerRegistryReportPayload(
     registryId,
     facilityId,
     facilityName,
-    patient: { mrn: caseData.patient.mrn, name: patientName, dateOfBirth: caseData.patient.dateOfBirth },
+    patient: {
+      mrn: caseData.patient.mrn, name: patientName, dateOfBirth: caseData.patient.dateOfBirth,
+      ...(caseData.patient.nationalIdentifiers?.length ? { nationalIdentifiers: caseData.patient.nationalIdentifiers.map(i => ({ system: i.system, value: i.value, verificationStatus: i.verificationStatus })) } : {}),
+    },
     accessionNumber: caseData.accession.fullAccession ?? caseData.accession.accessionNumber,
     diagnosisDate: caseData.diagnostic?.issuedDate,
     primaryDiagnosis: caseData.diagnostic?.primaryDiagnosis ?? '',
     icdOCodes,
     icd10Codes,
+    ...(definition ? { wireFormat: definition.wireFormat } : {}),
+    ...(identifier ? { patientIdentifier: { formatId: identifier.formatId, value: identifier.value, verification: identifier.status, fromNationalIdentifier: identifier.fromNationalIdentifier } } : {}),
   };
 }

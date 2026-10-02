@@ -7,6 +7,10 @@ vi.mock('../cases/CaseRouter', () => ({
 vi.mock('../patients/mockPatientIndexService', () => ({
   mockPatientIndexService: { getById: vi.fn() },
 }));
+vi.mock('./resolveOruReportPdf', async (orig) => ({
+  ...(await orig<typeof import('./resolveOruReportPdf')>()),
+  resolveOruReportPdf: vi.fn().mockResolvedValue({ ok: true, pdfBase64: 'PDF', source: 'release' }),
+}));
 vi.mock('./buildOruR01Payload', () => ({
   buildOruR01Payload: vi.fn(),
 }));
@@ -22,6 +26,7 @@ import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { buildOruR01Payload } from './buildOruR01Payload';
 import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
+import { resolveOruReportPdf } from './resolveOruReportPdf';
 import { dispatchAmendedCaseInstance } from './dispatchAmendedCaseInstance';
 
 beforeEach(() => {
@@ -54,7 +59,7 @@ describe('dispatchAmendedCaseInstance', () => {
 
   it('dispatches a real CORRECTED message for the specific real instance and marks it sent on real success', async () => {
     await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED');
-    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', undefined, undefined, undefined);
+    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', expect.any(Function), undefined, undefined);
     expect(mockOutboundResultQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ instanceId: 'INST-1', resultState: 'CORRECTED' }));
     expect(dispatchInterfaceMessage).toHaveBeenCalledWith('q-1', 'ORU_R01', expect.objectContaining({ messageId: 'msg-1' }));
     expect(mockOutboundResultQueueService.markSent).toHaveBeenCalledWith('q-1');
@@ -62,13 +67,13 @@ describe('dispatchAmendedCaseInstance', () => {
 
   it('dispatches a real ADDENDUM message with the correct resultState', async () => {
     await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'ADDENDUM');
-    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'ADDENDUM', undefined, undefined, undefined);
+    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'ADDENDUM', expect.any(Function), undefined, undefined);
     expect(mockOutboundResultQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ resultState: 'ADDENDUM' }));
   });
 
   it('a real, verbatim previouslyReportedAs value is forwarded through, untouched, to buildOruR01Payload', async () => {
     await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED', 'Benign fibroadenoma.');
-    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', undefined, undefined, 'Benign fibroadenoma.');
+    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'CORRECTED', expect.any(Function), undefined, 'Benign fibroadenoma.');
   });
 
   it('a real dispatch failure marks the real queue entry failed, never throws', async () => {
@@ -87,5 +92,21 @@ describe('dispatchAmendedCaseInstance', () => {
     await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED');
     await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED');
     expect(dispatchInterfaceMessage).toHaveBeenCalledTimes(2);
+  });
+
+  describe('Batch 392: with its PDF, or held for retry', () => {
+    it('with no PDF it is queued, marked failed with the reason, and not sent', async () => {
+      vi.mocked(resolveOruReportPdf).mockResolvedValueOnce({ ok: false, error: 'No report PDF has been made for this result.' });
+      await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED');
+      expect(mockOutboundResultQueueService.enqueue).toHaveBeenCalled();
+      expect(dispatchInterfaceMessage).not.toHaveBeenCalled();
+      expect(mockOutboundResultQueueService.markFailed).toHaveBeenCalledWith('q-1', expect.objectContaining({ errorCode: 'DISPATCH_REJECTED', maxRetriesExceeded: false, errorMessage: expect.stringContaining('Held: the report PDF is not available.') }));
+    });
+    it('the PDF the release made is handed on', async () => {
+      const gen = vi.fn();
+      vi.mocked(resolveOruReportPdf).mockClear();
+      await dispatchAmendedCaseInstance('CASE-1', 'INST-1', 'CORRECTED', undefined, gen);
+      expect(vi.mocked(resolveOruReportPdf).mock.calls[0][0]).toMatchObject({ generatePdf: gen });
+    });
   });
 });

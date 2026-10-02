@@ -18,5 +18,7 @@ export interface IAccessRequestService {
   create(request: NewAccessRequest): Promise<ServiceResult<AccessRequest>>;
 
   grant(id: ID, resolvedByUserId: ID, resolvedByUserName: string): Promise<ServiceResult<AccessRequest>>;
-  deny(id: ID, resolvedByUserId: ID, resolvedByUserName: string): Promise<ServiceResult<AccessRequest>>;
+  /** Batch 432: needs the permission that gives that access
+   *  (accessRequestDecision.ts) and a reason; the requester is messaged. */
+  deny(id: ID, resolvedByUserId: ID, resolvedByUserName: string, reason: string): Promise<ServiceResult<AccessRequest>>;
 }

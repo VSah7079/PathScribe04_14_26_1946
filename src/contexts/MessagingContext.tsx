@@ -14,6 +14,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { messageService } from '../services';
 import { useAuth } from './AuthContext';
 import type { Message } from '../services';
+import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
 
   const [messages,    setMessages]    = useState<Message[]>([]);
   const [portalOpen,  setPortalOpenRaw] = useState(
-    () => sessionStorage.getItem('ps_drawer_open') === 'true'
+    () => getSessionFlag('ps_drawer_open') === 'true'
   );
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -47,13 +48,23 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
   const hasUrgent   = messages.some(m => m.isUrgent && !m.isRead && !m.isDeleted);
 
   const setPortalOpen = (open: boolean) => {
-    sessionStorage.setItem('ps_drawer_open', String(open));
+    setSessionFlag('ps_drawer_open', String(open));
     setPortalOpenRaw(open);
   };
+
+  // Batch 396: the inbox belongs to whoever is signed in now. On sign-out
+  // (or a switch to another account) the previous person's messages are
+  // cleared at once, and a reply that arrives for an account no longer
+  // signed in is dropped. Before this, signing out left the last inbox in
+  // place, so the next person could briefly see it.
+  const currentUserRef = useRef(userId);
+  currentUserRef.current = userId;
+  useEffect(() => { setMessages([]); }, [userId]);
 
   const reloadInbox = useCallback(async () => {
     if (!userId) return;
     const result = await messageService.getInbox(userId);
+    if (currentUserRef.current !== userId) return;
     if (result.ok) setMessages(result.data);
   }, [userId]);
 

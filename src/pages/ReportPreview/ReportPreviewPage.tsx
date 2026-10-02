@@ -8,7 +8,7 @@
 //
 // Architecture:
 //   1. On mount: loads caseData from mockOrchestratorCaseService (fallback)
-//      and restores orchSections from localStorage
+//      and loads orchSections from the case (Batch 431: no browser copy)
 //   2. BroadcastChannel listener: receives SECTIONS_UPDATE from draft editor
 //      and re-renders immediately
 //   3. "🔴 Live" indicator turns green when connected to the draft editor
@@ -22,6 +22,10 @@ import ReportPreviewRenderer from './ReportPreviewRenderer';
 import { mockOrchestratorCaseService } from '@/services/cases/mockOrchestratorCaseService';
 import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
+import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
+
+// Batch 431: the same workstation preference usePreviewChannel.ts opens the window with.
+const PREVIEW_GEOMETRY_KEY = 'previewWindowGeometry';
 
 const ReportPreviewPage: React.FC = () => {
   const { t } = useTranslation();
@@ -38,13 +42,9 @@ const ReportPreviewPage: React.FC = () => {
   // Chrome ignores left/top in window.open() for cross-monitor placement,
   // but window.moveTo() called from inside the window works correctly.
   useEffect(() => {
-    const GEOMETRY_KEY = 'ps_preview_window_geometry';
     try {
-      const stored = localStorage.getItem(GEOMETRY_KEY);
-      if (!stored) return;
-      const geo = JSON.parse(stored) as {
-        width: number; height: number; left: number; top: number;
-      };
+      const geo = getUiPreference<{ width: number; height: number; left: number; top: number } | null>(PREVIEW_GEOMETRY_KEY, null);
+      if (!geo) return;
       // Validate — must be plausible values
       if (geo.width < 200 || geo.height < 200) return;
       // Move and resize to remembered position/size
@@ -58,12 +58,10 @@ const ReportPreviewPage: React.FC = () => {
     } catch { /* ignore */ }
   }, []); // Run once on mount only
 
-  // Save geometry directly to localStorage from inside the preview window.
+  // Save geometry (workstation display preference) from inside the preview window.
   // This is the most reliable approach — the window knows its own position.
   // screenX/screenY correctly report multi-monitor coordinates.
   useEffect(() => {
-    const GEOMETRY_KEY = 'ps_preview_window_geometry';
-
     const saveGeo = () => {
       try {
         const geo = {
@@ -73,7 +71,7 @@ const ReportPreviewPage: React.FC = () => {
           top:    window.screenY,
         };
         if (geo.width >= 200 && geo.height >= 200) {
-          localStorage.setItem(GEOMETRY_KEY, JSON.stringify(geo));
+          setUiPreference(PREVIEW_GEOMETRY_KEY, geo);
         }
       } catch { /* ignore */ }
     };
@@ -100,16 +98,8 @@ const ReportPreviewPage: React.FC = () => {
         setFallbackCaseData(c);
         setFallbackSections((c as any).orchSections ?? []);
       }
-      // Also check localStorage for more recent draft
-      try {
-        const stored = localStorage.getItem(`ps_orch_sections_${caseId}`);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setFallbackSections(parsed);
-          }
-        }
-      } catch { /* ignore */ }
+      // Batch 431: the case record is the only copy (no browser copy of the
+      // draft, which could be older than a save made at another workstation).
       setIsLoading(false);
     });
   }, [caseId]);

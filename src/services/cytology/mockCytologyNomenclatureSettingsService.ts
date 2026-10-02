@@ -2,6 +2,7 @@
 import { ICytologyNomenclatureSettingsService, CytologyNomenclatureSettingsConfig, DEFAULT_CYTOLOGY_NOMENCLATURE_SETTINGS } from './ICytologyNomenclatureSettingsService';
 import { storageGet, storageSet } from '../mockStorage';
 import { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'cytologyNomenclatureSettings';
 
@@ -12,7 +13,7 @@ let MOCK_CONFIG: CytologyNomenclatureSettingsConfig = load();
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockCytologyNomenclatureSettingsService: ICytologyNomenclatureSettingsService = {
+const cytologyNomenclatureSettingsServiceUnchecked: ICytologyNomenclatureSettingsService = {
   async get() {
     await delay();
     return ok({ ...MOCK_CONFIG });
@@ -32,3 +33,8 @@ export const mockCytologyNomenclatureSettingsService: ICytologyNomenclatureSetti
     return ok({ ...MOCK_CONFIG });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCytologyNomenclatureSettingsService: ICytologyNomenclatureSettingsService = guardConfigWrites(cytologyNomenclatureSettingsServiceUnchecked, [
+  ['config:cytology-nomenclature:manage', ['update', 'reset']],
+]);

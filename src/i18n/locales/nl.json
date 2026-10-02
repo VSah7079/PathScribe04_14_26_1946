@@ -58,7 +58,15 @@
     "title": "Detectie van afwijkingen — Hoogrisico-triggerregels"
   },
   "accessRequestResponseTab": {
+    "deny": {
+      "button": "Weigeren",
+      "failed": "De aanvraag kon niet worden geweigerd.",
+      "message": "{{name}} krijgt een bericht met uw reden.",
+      "reasonLabel": "Reden",
+      "title": "Deze toegangsaanvraag weigeren?"
+    },
     "headers": {
+      "actions": "Acties",
       "requestedAt": "Aangevraagd op",
       "requestedBy": "Aangevraagd door",
       "resolvedBy": "Opgelost door"
@@ -750,15 +758,43 @@
       "title": "Aanvullende-opdrachtbouwer"
     },
     "context": {
-      "caseStatus": "Dossierstatus",
+      "caseStatusLine": "Casusstatus: {{status}}",
       "noPerformingLab": "Er kon geen uitvoerend laboratorium worden bepaald voor dit dossier — routering toont alle overeenkomende stations, niet beperkt tot één laboratorium.",
-      "primaryPathologist": "Hoofdpatholoog"
+      "primaryPathologistLine": "Hoofdpatholoog: {{name}}"
+    },
+    "errors": {
+      "blockCancelled": "Blok {{block}} is geannuleerd.",
+      "blockDamaged": "Blok {{block}} is als beschadigd gemarkeerd; er kan pas besteld worden na herinbedding.",
+      "blockExhausted": "Blok {{block}} is uitgeput; er kunnen geen snijbestellingen meer op worden geplaatst.",
+      "blockLost": "Blok {{block}} is als verloren gemarkeerd; er kan pas besteld worden als het gevonden is.",
+      "blockNotFound": "Blok {{block}} is niet gevonden in deze casus.",
+      "caseNotFound": "Geen casus gevonden voor ‘{{query}}’.",
+      "enterAccession": "Voer een accessienummer in of scan het.",
+      "failed": "Dat is niet gelukt. De bestelling is mogelijk gewijzigd; open de casus opnieuw en probeer het nogmaals.",
+      "noLines": "Voeg ten minste één bestelregel toe voor blok {{block}}.",
+      "notPermitted": "U hebt hiervoor geen toestemming. Vraag het uw beheerder."
+    },
+    "exceptionReasons": {
+      "blockExhausted": "Blok uitgeput",
+      "insufficientTissue": "Onvoldoende weefsel voor het panel",
+      "requiresRegrossing": "Opnieuw snijden vereist"
     },
     "pageTitle": "Aanvullende-opdrachtbouwer",
+    "panels": {
+      "panel-breast": "Borstpanel (ER/PR/HER2/Ki-67)",
+      "panel-lynch-mmr": "Lynch/MMR-panel (MLH1/MSH2/MSH6/PMS2)",
+      "panel-renal-if": "Nier-IF-panel (IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
     "priority": {
       "Research_Protocol": "Onderzoek / protocol",
       "Routine_Sign_Out": "Routinematige afronding",
       "STAT_Urgent": "STAT / Spoed"
+    },
+    "queues": {
+      "histologyCutting": "Histologie-snijwachtrij",
+      "ihcSpecialHistochemistry": "IHC- / speciale histochemie-wachtrij",
+      "referenceSendOut": "Wachtrij referentie- / extern lab",
+      "specialStainsBench": "Wachtrij speciale kleuringen"
     },
     "search": {
       "open": "Dossier openen",
@@ -773,8 +809,11 @@
       "blocksSelected": "{{count}} blok(ken) geselecteerd",
       "cuttingInstructions": "Instructies voor de microtoomwerkplek",
       "emptyCart": "Nog geen orderregels toegevoegd.",
+      "labsAll": "Er is nog geen lab aan deze test gekoppeld, dus alle referentielabs worden getoond.",
+      "labsApprovedForTest": "Alleen de labs die voor deze test zijn goedgekeurd, worden getoond.",
       "microns": "{{count}} µm niveaus",
       "noPerformingLab": "Het uitvoerend laboratorium van dit dossier kon niet worden bepaald — orders worden toch aangemaakt, zonder labgebonden stationmatch.",
+      "panelBadge": "· {{panel}}",
       "priority": "Prioriteit",
       "remove": "Verwijderen",
       "routesTo": "Routeert naar: {{stations}}",
@@ -794,12 +833,17 @@
       "count": "{{count}}",
       "empty": "Nog geen aanvullende orders geplaatst voor dit dossier.",
       "exceptionNote": "Optionele notitie…",
+      "exceptionNoteLabel": "Notitie",
+      "exceptionReason": "Reden",
       "flagException": "Uitzondering markeren",
       "flaggedBy": "Gemarkeerd door {{name}}",
       "markRetrieved": "Markeer blok als opgehaald",
       "modify": "Wijzigen en opnieuw indienen",
       "orderedBy": "Besteld door {{name}}",
       "responseNote": "Reactienotitie…",
+      "responseNoteLabel": "Antwoordnotitie",
+      "resubmit": "Opnieuw indienen",
+      "sendOutTo": "Externe verzending: {{lab}}",
       "stage": {
         "BlockRetrieved": "Blok opgehaald",
         "Cancelled": "Geannuleerd",
@@ -818,10 +862,8 @@
       "cassetteLabel": "Cassette-/blokaanduiding",
       "cassettePlaceholder": "bijv. A2, A3",
       "description": "Extra cassette of hersnede van weefsel dat al is gesneden en beschreven — geen nieuw specimen. Voegt automatisch een echte zin toe aan de macroscopische beschrijving van de zaak; geen nieuwe fysieke beschrijving nodig omdat er niets nieuws is ontvangen.",
-      "errorEnterLabel": "Voer een cassette-/blokaanduiding in.",
-      "errorSelectSpecimen": "Selecteer van welk specimen dit blok/deze hersnede afkomstig is.",
       "specimenPlaceholder": "Selecteer het specimen waar dit vandaan komt…",
-      "willAppendPrefix": "Wordt toegevoegd:"
+      "willAppend": "Wordt toegevoegd: \"{{sentence}}\""
     },
     "eyebrow": {
       "grossingInProgress": "Snijden in uitvoering",
@@ -1221,12 +1263,18 @@
       "emptyDeleted": "Geen verwijderde berichten.",
       "emptyInbox": "Uw inbox is leeg.",
       "loading": "Laden…",
+      "noSubject": "(Geen onderwerp)",
       "readAllButton": "Alles lezen",
       "regionLabel": "Berichtenlijst",
       "restoreButton": "Herstellen",
       "searchPlaceholder": "Zoeken",
       "secureEmailTitle": "Beveiligde externe e-mail verzenden",
       "urgentPill": "Urgent"
+    },
+    "messaging": {
+      "notPermitted": "U hebt geen toestemming om berichten te verzenden.",
+      "notPermittedSecureEmail": "U hebt geen toestemming om beveiligde e-mail te verzenden.",
+      "sendFailed": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
     },
     "pageLabels": {
       "auditLog": "Auditlogboek",
@@ -1493,6 +1541,8 @@
       "footerCount": "{{shown}} van {{total}} fouten weergegeven",
       "infoPill": "ℹ️ Info",
       "openOnly": "Alleen open",
+      "resolveButton": "Oplossen",
+      "resolvedByTitle": "Opgelost door {{name}}, {{when}}",
       "resolvedOnly": "Alleen opgelost",
       "scrollAria": "Foutenlogboekvermeldingen, scrollbare tabel",
       "searchPlaceholder": "Zoek bericht, code, bron…",
@@ -1639,7 +1689,6 @@
     "subtitle": "Voer de schriftelijke machtiging in zodra deze binnenkomt. De sectie blijft geblokkeerd totdat dit aanwezig is.",
     "title": "Machtiging voltooien",
     "unknownValue": "onbekend",
-    "validationError": "Vul de verplichte velden in voordat u verzendt.",
     "verbalOrderOnFile": "Mondeling bevel ontvangen van {{authority}} op {{at}}.",
     "willUnblockNote": "Verzenden maakt het mogelijk om de sectie voort te zetten.",
     "writtenOrderSectionTitle": "Schriftelijk bevel"
@@ -1648,6 +1697,7 @@
     "bannerSummary": "Het PAD is ondertekend en er is geen aanhouding voor aanvullend onderzoek actief — het lichaam kan nu worden vrijgegeven.",
     "bannerTitle": "Obductie — Klaar voor vrijgave van het lichaam",
     "genericError": "Er is iets misgegaan. Probeer het opnieuw.",
+    "notPermitted": "U hebt geen toestemming om een lichaam vrij te geven.",
     "releasedByLabel": "Vrijgegeven door",
     "releasedByPlaceholder": "bijv. Technicus: M. Davis",
     "releasedToLabel": "Vrijgegeven aan",
@@ -1655,8 +1705,7 @@
     "submitBtn": "Vrijgave bevestigen",
     "submittingBtn": "Bezig met vrijgeven…",
     "subtitle": "Registreer waarheen het lichaam wordt vrijgegeven. Dit wordt onderdeel van de permanente locatiegeschiedenis van het specimen.",
-    "title": "Lichaam vrijgeven",
-    "validationError": "Vul beide velden in voordat u verzendt."
+    "title": "Lichaam vrijgeven"
   },
   "autopsyIntake": {
     "accessionStatus": {
@@ -1727,19 +1776,46 @@
     "abortBatch": "Charge afbreken",
     "abortModalText": "Deze charge en het manifest worden bewaard voor audit, maar gemarkeerd als Afgebroken en kunnen geen scans meer accepteren.",
     "abortModalTitle": "Charge afbreken?",
-    "abortReasonPlaceholder": "Reden (optioneel)",
+    "abortReasonPlaceholder": "Waarom wordt deze batch afgebroken?",
     "abortedNote": "Afgebroken — {{reason}}",
     "abortedToast": "Charge {{barcode}} afgebroken.",
     "acknowledge": "Bevestigen",
-    "acknowledgeNotePrompt": "Bevestigingsnotitie (verplicht):",
+    "acknowledgeNotePrompt": "De temperatuur viel buiten het bereik. Leg vast wat er gebeurde voordat deze batch kan worden afgerond.",
+    "actionFailed": "Dat is niet gelukt. Open de batch opnieuw en probeer het nogmaals.",
     "addedFlash": "{{displayId}} toegevoegd",
     "backToBatches": "Terug naar charges",
     "batchCompleteToast": "Charge {{barcode}} voltooid.",
     "cancel": "Annuleren",
+    "coldChainAckPlaceholder": "Wat er gebeurde en wat eraan is gedaan…",
+    "coldChainAckTitle": "Temperatuurafwijking bevestigen",
     "coldChainExcursion": "Koudeketenafwijking gedetecteerd: {{temp}}°C om {{time}}. Voltooiing van de charge is geblokkeerd totdat dit is bevestigd.",
     "completeBatch": "Charge voltooien",
     "completeDisabledTitle": "{{missing}} ontbrekend, {{unexpected}} onverwacht — oplossen of overschrijven",
     "emptyManifest": "Er zijn nog geen items in deze charge gescand.",
+    "errors": {
+      "batchNotFound": "Deze batch bestaat niet meer. Ga terug naar de lijst en open hem opnieuw.",
+      "coldChainUnacknowledged": "Deze batch heeft een niet-bevestigde onderbreking van de koudeketen. Bevestig die of gebruik een overschrijving door een supervisor.",
+      "destinationNotActive": "Items kunnen alleen naar een actieve batch worden verplaatst.",
+      "excursionAlreadyOpen": "Batch {{barcode}} heeft al een niet-bevestigde onderbreking van de koudeketen. Bevestig die eerst.",
+      "itemAlreadyInDestination": "Dit item zit al in de gekozen batch.",
+      "itemNotFound": "Dit item zit niet meer in batch {{barcode}}.",
+      "itemsMissing": "Nog niet uitgescand: {{items}}. Scan ze of gebruik een overschrijving door een supervisor.",
+      "noExcursion": "Batch {{barcode}} heeft geen koudeketenonderbreking om te bevestigen.",
+      "noItemsToTransfer": "Deze batch heeft geen items om over te dragen.",
+      "noRack": "Deze batch heeft geen herbruikbaar rek om vrij te geven.",
+      "notActive": "Batch {{barcode}} is niet meer actief. Hij is mogelijk al afgestemd, overgedragen of gesloten.",
+      "notCytologyProcessing": "Instrumentstatus geldt alleen voor een batch cytologieverwerking.",
+      "notDecal": "Overdracht naar verwerking geldt alleen voor een batch ontkalking / speciale verwerking.",
+      "notReconciling": "Start eerst de afstemming van batch {{barcode}}.",
+      "notStaining": "Dit geldt alleen voor een kleuringsbatch.",
+      "rackCheckedOut": "Rek {{rackId}} zit al in een andere actieve batch. Geef het daar eerst vrij of kies een ander rek.",
+      "rackIdRequired": "Een herbruikbaar rek heeft zijn rek-ID nodig.",
+      "rackNotRegistered": "Rek {{rackId}} is niet geregistreerd. Controleer de ID of registreer het rek eerst.",
+      "sameBatch": "Het item zit al in deze batch. Kies een andere batch.",
+      "sourceNotActive": "Items kunnen alleen uit een actieve batch worden verplaatst.",
+      "unexpectedScans_one": "{{count}} item dat niet bij deze batch hoort is gescand. Los het op of gebruik een overschrijving door een supervisor.",
+      "unexpectedScans_other": "{{count}} items die niet bij deze batch horen zijn gescand. Los ze op of gebruik een overschrijving door een supervisor."
+    },
     "forceCompletedToast": "Charge {{barcode}} geforceerd voltooid met override.",
     "instrumentReports": "Instrument meldt: {{status}}",
     "manifestSection": "Manifest ({{count}})",
@@ -1760,19 +1836,25 @@
     "movedFrom": "verplaatst van {{barcode}}",
     "movedToast": "{{displayId}} verplaatst naar {{barcode}}.",
     "noOtherBatches": "Geen andere actieve charge om naar te verplaatsen.",
+    "notPermitted": "U hebt hiervoor geen toestemming. Vraag het uw beheerder.",
+    "noteLabel": "Notitie",
     "overdueBy": "{{duration}} te laat — doel was {{target}}",
     "overrideAndComplete": "Overschrijven en voltooien",
     "overrideModalText": "{{missing}} item(s) nog ontbrekend, {{unexpected}} onverwachte scan(s). Toch voltooien wordt permanent onder uw naam vastgelegd en vereist een reden.",
     "overrideModalTitle": "Supervisor-override",
     "overrideNote": "De afstemming is overschreven door {{user}} op {{time}} — {{reason}}",
-    "overrideReasonPlaceholder": "Reden (verplicht)",
+    "overrideReasonPlaceholder": "Waarom wordt deze batch met afwijkingen afgerond?",
     "rackReleased": "Rek vrijgegeven",
     "rackReleasedToast": "Rek {{rackId}} vrijgegeven — nu weer beschikbaar voor herbruik.",
     "reagentLotsUsed": "Gebruikte reagens-/oplossingpartijen",
+    "reasonLabel": "Reden",
+    "reasonRequired": "Een reden is vereist.",
     "referral": {
       "delivered": "Afgeleverd bij referentielab — wacht op resultaat.",
       "dispatched": "Verzonden naar referentielab — wacht op transitupdate.",
       "inTransit": "In transit naar referentielab.",
+      "markDelivered": "Markeren als afgeleverd",
+      "markInTransit": "Markeren als onderweg",
       "resultReceived": "Resultaat ontvangen: {{result}}",
       "resultReceivedPdf": "Resultaat ontvangen (PDF):",
       "viewReport": "rapport bekijken"
@@ -1784,6 +1866,11 @@
     "removedToast": "{{displayId}} verwijderd uit charge.",
     "scanHintActive": "Scan de barcode van een cassette of objectglaasje om het aan deze charge toe te voegen. Handsfree — geen klik in een veld nodig.",
     "scanHintReconcile": "Verificatie buiten proces: scan elk fysiek item terwijl u het van de drager verwijdert.",
+    "scanRejected": {
+      "alreadyInBatch": "{{displayId}} zit al in deze batch.",
+      "inOtherActiveBatch": "{{displayId}} zit al in actieve batch {{barcode}}.",
+      "notFound": "‘{{value}}’ komt niet overeen met een cassette of coupe van een casus."
+    },
     "startReconciliation": "Afstemming starten",
     "supervisorOverrideLink": "Supervisor-override…",
     "transferToProcessing": "Overdragen naar verwerking",
@@ -1802,6 +1889,8 @@
     "emptyActive": "Geen actieve batches. Maak er een aan om te beginnen.",
     "engraverMonitorTile": "Graveermonitor",
     "engraverMonitorTitle": "Graveermonitor — realtime status op hoog niveau van graveerapparaten vanuit de Cassette Engine",
+    "equipmentLogTile": "Apparatuurlogboek",
+    "equipmentLogTitle": "Onderhoud en kalibratie van de labapparatuur vastleggen",
     "filterTileTitle": "Filteren op: {{node}}",
     "filterTileTitleActive": "Weergave: {{node}} — klik om te resetten",
     "itemCount_one": "{{count}} item",
@@ -2418,35 +2507,77 @@
   "cancerRegistrySection": {
     "addOverride": "+ Overschrijving toevoegen",
     "cancel": "Annuleren",
+    "detail": {
+      "configurableNote": "De identificatie en het formaat komen uit de openbare beschrijving van het register. Bevestig beide met de eigen specificatie voordat u live gaat.",
+      "demographics": "gekoppeld op naam en geboortedatum",
+      "identifier": "Patiëntidentificatie: {{identifier}}",
+      "jurisdictions": "Geldt in: {{list}}",
+      "wireFormat": "Verzonden als: {{format}}"
+    },
     "enterpriseCard": {
       "title": "Ondernemingsstandaard"
     },
     "facilityCard": {
       "title": "Faciliteitsoverschrijvingen"
     },
+    "goLiveRegistry": "Register",
+    "honoursOptOut": "Dit rechtsgebied erkent het bezwaar van een patiënt tegen melding aan het kankerregister",
+    "honoursOptOutNote": "Laat dit uit waar melding wettelijk verplicht is (de meeste rechtsgebieden): een patiënt met bezwaar wordt toch gemeld, en het auditlogboek vermeldt dat.",
     "noOverrides": "Geen faciliteitsoverschrijvingen — elke faciliteit gebruikt de ondernemingsstandaard.",
+    "notPermitted": "U hebt geen toestemming om de melding aan het kankerregister te wijzigen",
     "registries": {
       "adtGekidGermany": "ADT/GEKID (Duitsland)",
       "aihwAustralia": "AIHW (Australië)",
-      "cosdUk": "COSD (Verenigd Koninkrijk)",
+      "bcrBelgium": "Stichting Kankerregister (België)",
+      "cosdUk": "COSD (Engeland)",
       "cpacCanada": "CPAC (Canada)",
       "incaFrance": "INCa (Frankrijk)",
       "kccrKorea": "KCCR (Korea)",
       "naaccrUs": "NAACCR (Verenigde Staten)",
+      "ncriIreland": "NCRI (Ierland)",
+      "nicrNorthernIreland": "NICR (Noord-Ierland)",
+      "nkrNetherlands": "NKR / IKNL (Nederland)",
       "none": "Geen — geen centrale registratieverplichting",
-      "nzCancerRegistry": "NZ Kankerregister (Nieuw-Zeeland)"
+      "nzCancerRegistry": "NZ Kankerregister (Nieuw-Zeeland)",
+      "phsScotland": "Public Health Scotland (Schotland)"
     },
     "remove": "Verwijderen",
     "save": "Opslaan",
-    "subtitle": "Naar welk echt, nationaal centraal kankerregister de bevestigde chirurgisch-pathologische diagnoses van een faciliteit worden gerapporteerd. Werkelijk gescheiden van cytologieregister-rapportage — een cytologisch screeningresultaat activeert nooit een kankerregisterrapport, alleen een bevestigde chirurgisch-pathologische ondertekening doet dat. Cascade met twee niveaus — ondernemingsstandaard, met een optionele faciliteitsoverschrijving voor laboratoria die rapporteren aan het register van een andere echte jurisdictie.",
+    "saved": "Instellingen kankerregister opgeslagen",
+    "specStatus": {
+      "configurable": "Bevestigen met het register",
+      "verified": "Specificatie geverifieerd"
+    },
+    "subtitle": "Het kankerregister waaraan de bevestigde chirurgisch-pathologische diagnoses van een instelling worden gemeld. Los van de cytologische screeningsregisters: een screeningsresultaat leidt nooit tot een melding aan het kankerregister. Een standaard voor de organisatie, met optionele uitzonderingen per instelling.",
     "title": "Kankerregister-rapportage",
-    "unsavedChange": "Niet-opgeslagen wijziging"
+    "unknownRegistry": "Dat register kent PathScribe niet",
+    "unsavedChange": "Niet-opgeslagen wijziging",
+    "wireFormats": {
+      "cda_cr_acp": "CDA CR-ACP",
+      "cosd_xml": "COSD XML",
+      "hd_s4s_json": "HD-S4S JSON (healthdata.be)",
+      "hl7v2_oru": "HL7 v2 ORU",
+      "naaccr_xml": "NAACCR XML",
+      "obds_xml": "oBDS XML",
+      "palga_protocol": "PALGA-protocol (levert aan de NKR)"
+    }
   },
   "capabilities": {
     "groups": {
       "administration": "Beheer: personeel, rollen en systeem",
+      "autopsy": "Autopsie",
       "billing": "Facturering",
       "casework": "Casuswerk",
+      "configAi": "Configuratie: AI, spraak, acties en macro's",
+      "configBilling": "Configuratie: factuurtabellen",
+      "configCytology": "Configuratie: cytologie",
+      "configIntegrations": "Configuratie: koppelingen en ontvangst",
+      "configLab": "Configuratie: labwoordenlijsten en casusverloop",
+      "configOperations": "Configuratie: printen, etiketten en werkplekken",
+      "configQuality": "Configuratie: uitslagen, verslaglegging en kwaliteit",
+      "configSystem": "Configuratie: beveiliging en systeem",
+      "configTemplates": "Configuratie: protocollen en verslagsjablonen",
+      "messaging": "Berichten",
       "platform": "ForMedrixAI-platformondersteuning",
       "qaCapa": "Kwaliteitsborging: CAPA",
       "qaCytology": "Kwaliteitsborging: Cytologie",
@@ -2458,6 +2589,38 @@
       "supportAccess": "Supporttoegang: ForMedrixAI-support in deze organisatie"
     },
     "items": {
+      "addOnExceptionApproveDestructiveCut": {
+        "description": "Toestaan dat een aanvullende bestelling wordt gesneden uit een blok dat daardoor kan opraken.",
+        "label": "Destructief snijden goedkeuren"
+      },
+      "addOnOrderPlace": {
+        "description": "Hersnijdingen, speciale kleuringen, IHC of moleculaire/externe tests op de blokken van een casus bestellen, en een aanvullende bestelling na een blokuitzondering annuleren of wijzigen.",
+        "label": "Aanvullende bestelling plaatsen"
+      },
+      "assistLisMessageIngest": {
+        "description": "Het LIS nu bevragen, een bericht plakken of mislukte berichten opnieuw proberen. Dit wijzigt casussen en start de AI. Geauditeerd.",
+        "label": "LIS-berichten handmatig verwerken"
+      },
+      "auditErrorResolve": {
+        "description": "Een fout in Auditlogboek → Foutenlogboek als opgelost markeren. Wie en wanneer worden vastgelegd.",
+        "label": "Een fout in het auditlogboek oplossen"
+      },
+      "autopsyBodyRelease": {
+        "description": "De vrijgave van een lichaam aan een uitvaartonderneming of de familie vastleggen, waarmee de bewaring door het mortuarium eindigt.",
+        "label": "Een autopsielichaam vrijgeven"
+      },
+      "batchColdChainExcursionAcknowledge": {
+        "description": "Een temperatuurafwijking op een batch bevestigen, met een notitie, zodat die kan worden afgerond.",
+        "label": "Koudeketenafwijking bevestigen"
+      },
+      "batchReconciliationOverride": {
+        "description": "Een batch als voltooid markeren wanneer items ontbreken of onverwacht zijn, met een reden.",
+        "label": "Batchafstemming toch afronden"
+      },
+      "batchRunAbort": {
+        "description": "Een verwerkings-, kleurings- of verzendbatch afbreken, met een reden.",
+        "label": "Batch afbreken"
+      },
       "billingAppliedCodeCorrect": {
         "description": "De oorspronkelijke kost van een toegepaste factureringscode terugdraaien met een tegoed en de gecorrigeerde code factureren.",
         "label": "Een toegepaste factureringscode corrigeren"
@@ -2486,17 +2649,337 @@
         "description": "Een bewaarblokkade opheffen met een notitie, zodat het materiaal volgens schema kan worden vernietigd.",
         "label": "Bewaarblokkade opheffen"
       },
+      "caseRoutingRun": {
+        "description": "Alle niet-toegewezen casussen in één keer volgens de regels toewijzen. Geauditeerd.",
+        "label": "Niet-toegewezen casussen nu toewijzen"
+      },
+      "configAbnormalTriggersManage": {
+        "description": "Bepalen wat als afwijkende uitslag geldt en de detectie aan- of uitzetten. Geauditeerd.",
+        "label": "Regels voor afwijkende uitslagen beheren"
+      },
+      "configActionGroupsManage": {
+        "description": "Bepalen welke acties elke werkplek toestaat. Geauditeerd.",
+        "label": "Actiegroepen beheren"
+      },
+      "configActionsManage": {
+        "description": "De sneltoetsen en spraakopdrachten voor iedereen wijzigen. Geauditeerd.",
+        "label": "Toetsenbord- en spraakopdrachten beheren"
+      },
+      "configAiBehaviorManage": {
+        "description": "De AI-functies (macroscopie, microscopie en andere) voor iedereen aan- of uitzetten. Geauditeerd.",
+        "label": "AI-functies beheren"
+      },
+      "configAiModelManage": {
+        "description": "Het model instellen waaruit klinische suggesties komen. Geauditeerd.",
+        "label": "Standaard-AI-model kiezen"
+      },
+      "configAiProviderManage": {
+        "description": "De AI-dienst van het lab en de standaardverslagmodus kiezen. Geauditeerd.",
+        "label": "AI-dienst beheren"
+      },
+      "configAssetLocationsManage": {
+        "description": "Toevoegen en bewerken waar materiaal en overledenen worden bewaard. Geauditeerd.",
+        "label": "Opslaglocaties beheren"
+      },
+      "configAssistPollingManage": {
+        "description": "Instellen hoe vaak en waar PathScribe in Assist-modus het LIS bevraagt. Geauditeerd.",
+        "label": "LIS-polling in Assist-modus beheren"
+      },
+      "configBillingCodeImportRun": {
+        "description": "Factuurcodes in bulk importeren of een import terugdraaien. Geauditeerd.",
+        "label": "Factuurcodes importeren"
+      },
+      "configBillingModifiersManage": {
+        "description": "Nieuwe versies van de modifiertabel voorbereiden (goedkeuring nodig). Geauditeerd.",
+        "label": "CPT-modifiers beheren"
+      },
+      "configBillingNcciManage": {
+        "description": "De NCCI-regels van een kwartaal importeren (goedkeuring nodig). Geauditeerd.",
+        "label": "NCCI-regels beheren"
+      },
+      "configBillingRulesManage": {
+        "description": "Versies van factuurregels aanmaken, indienen en buiten gebruik stellen. Geauditeerd.",
+        "label": "Factuurregels beheren"
+      },
+      "configBillingRvuManage": {
+        "description": "Nieuwe versies van de RVU-waarden voorbereiden (goedkeuring nodig). Geauditeerd.",
+        "label": "RVU-tabel beheren"
+      },
+      "configBillingTablesApprove": {
+        "description": "Factuurregels, modifiers, RVU, NCCI en code-imports goedkeuren of afwijzen. Eigen uploads kun je niet goedkeuren. Geauditeerd.",
+        "label": "Factuurtabellen goedkeuren"
+      },
+      "configBillingTriggersManage": {
+        "description": "Bepalen wanneer verrichtingen worden gefactureerd, voor het lab en elke locatie. Geauditeerd.",
+        "label": "Factuurtriggers beheren"
+      },
+      "configCancerRegistryManage": {
+        "description": "Kiezen aan welk kankerregister elke instelling meldt, of resultaten naar het test- of livesysteem gaan en of het rechtsgebied het bezwaar van een patiënt erkent. Geauditeerd.",
+        "label": "Melding aan het kankerregister beheren"
+      },
+      "configCaseFlagsManage": {
+        "description": "De vlaggen toevoegen en bewerken die gebruikers op casussen en specimens kunnen zetten. Geauditeerd.",
+        "label": "Casusvlaggen beheren"
+      },
+      "configCaseMasksManage": {
+        "description": "Instellen hoe casusnummers worden opgebouwd. Geauditeerd.",
+        "label": "Casusnummerformaten beheren"
+      },
+      "configCaseRoutingManage": {
+        "description": "Bepalen welke pool of patholoog een nieuwe casus krijgt. Geauditeerd.",
+        "label": "Casustoewijzingsregels beheren"
+      },
+      "configCassetteColorsManage": {
+        "description": "De kleurcodering van cassettes wijzigen. Geauditeerd.",
+        "label": "Cassettekleuren beheren"
+      },
+      "configCassetteRoutingManage": {
+        "description": "Wijzigen hoe cassettes worden afgedrukt en doorgestuurd. Geauditeerd.",
+        "label": "Cassetteroutering beheren"
+      },
+      "configConcordanceReviewManage": {
+        "description": "De standaardinstelling voor concordantiebeoordeling van het lab instellen. Geauditeerd.",
+        "label": "Concordantiebeoordeling beheren"
+      },
+      "configContainerTypesManage": {
+        "description": "Containers en hun fixatieven toevoegen en bewerken. Geauditeerd.",
+        "label": "Containertypen beheren"
+      },
+      "configContributionSettingsManage": {
+        "description": "Bepalen of pathologen gemiddelden van collega's zien, en de tijdzone van de instelling instellen. Geauditeerd.",
+        "label": "Bijdrage-instellingen beheren"
+      },
+      "configCrosswalkManage": {
+        "description": "Wijzigen hoe binnenkomende specimencodes worden gekoppeld. Geauditeerd.",
+        "label": "Specimencodekoppeling beheren"
+      },
+      "configCytologyCategoriesManage": {
+        "description": "De gynaecologische en niet-gynaecologische diagnostische categorieën toevoegen, bewerken en deactiveren. Geauditeerd.",
+        "label": "Cytologiecategorieën beheren"
+      },
+      "configCytologyComplianceManage": {
+        "description": "Het dagelijkse CLIA-werklastmaximum en de CAP-retrospectieve 5-jaarsbeoordeling in- of uitschakelen voor de organisatie of een instelling. Vastgelegd in het auditlogboek.",
+        "label": "Landspecifieke cytologieregels beheren"
+      },
+      "configCytologyInstrumentationManage": {
+        "description": "De beeldvormings- en preparatie-instrumenten instellen, voor het lab en elke instelling. Geauditeerd.",
+        "label": "Cytologie-instrumenten beheren"
+      },
+      "configCytologyNomenclatureManage": {
+        "description": "Het cytologische verslagsysteem voor het lab en elke instelling kiezen. Geauditeerd.",
+        "label": "Cytologienomenclatuur beheren"
+      },
+      "configCytologyQcRatesManage": {
+        "description": "Het percentage willekeurige herbeoordelingen instellen voor het lab, elke instelling en elke persoon. Geauditeerd.",
+        "label": "QC-herbeoordelingspercentages beheren"
+      },
+      "configCytologyQcRulesManage": {
+        "description": "Bepalen welke uitstrijkjes verplicht herbeoordeeld worden. Geauditeerd.",
+        "label": "Cytologie-QC-regels beheren"
+      },
+      "configCytologyRoutingManage": {
+        "description": "Bepalen waar cytologiecasussen heen gaan, voor het lab en elke instelling. Geauditeerd.",
+        "label": "Cytologierouting beheren"
+      },
+      "configCytologyScreeningStrategyManage": {
+        "description": "De primaire methode voor baarmoederhalsscreening kiezen, voor het lab en elke instelling. Geauditeerd.",
+        "label": "Screeningstrategie beheren"
+      },
+      "configCytologySeverityMappingManage": {
+        "description": "Histologische SNOMED CT-codes koppelen aan de ernstgraden van de cyto-histocorrelatie. Geauditeerd.",
+        "label": "Histologische ernstkoppeling beheren"
+      },
+      "configCytologyWorkloadCapManage": {
+        "description": "De dagelijkse preparatenlimiet instellen voor het lab, elke instelling en elke persoon. Geauditeerd.",
+        "label": "Werklastlimiet voor preparaten beheren"
+      },
+      "configCytotechCompetencyManage": {
+        "description": "Competentiebeoordelingen van cytotechnologen starten en beëindigen. Geauditeerd.",
+        "label": "Competentie van cytotechnologen beheren"
+      },
+      "configDeficiencyTypesManage": {
+        "description": "Typen verslagtekortkomingen en oplossingen toevoegen en bewerken. Geauditeerd.",
+        "label": "Tekortkomingtypen beheren"
+      },
+      "configDelegationTypesManage": {
+        "description": "Bepalen wie namens wie mag handelen. Geauditeerd.",
+        "label": "Delegatietypen beheren"
+      },
+      "configDeliveryRulesManage": {
+        "description": "Bepalen waar verslagen naartoe worden gestuurd. Geauditeerd.",
+        "label": "Verslagbezorgregels beheren"
+      },
       "configDemoDataReset": {
         "description": "De demogegevens van alle testers wissen en de begingegevens herstellen. Alleen in demoversies.",
         "label": "Alle demogegevens resetten"
+      },
+      "configDepartmentsManage": {
+        "description": "Afdelingen en hun bewaaruitzonderingen toevoegen en bewerken. Geauditeerd.",
+        "label": "Afdelingen beheren"
+      },
+      "configDisplayProfilesManage": {
+        "description": "Bepalen wat de wandschermen tonen. Geauditeerd.",
+        "label": "Profielen voor wandschermen beheren"
+      },
+      "configEquipmentManage": {
+        "description": "Apparatuur toevoegen en bewerken en onderhoud en kalibratie vastleggen. Geauditeerd.",
+        "label": "Apparatuur beheren"
+      },
+      "configExternalResourcesManage": {
+        "description": "De links die gebruikers zien toevoegen, bewerken en verwijderen. Geauditeerd.",
+        "label": "Externe links beheren"
+      },
+      "configFacilitiesManage": {
+        "description": "Instellingen, hun rollen, LIS- en factuurinstellingen en hun locaties toevoegen en bewerken. Geauditeerd.",
+        "label": "Instellingen beheren"
       },
       "configFieldRequirementsManage": {
         "description": "Kiezen welke velden elke pagina vereist voordat er kan worden opgeslagen, voor uw organisatie. Vergrendelde velden blijven verplicht.",
         "label": "Verplichte velden beheren"
       },
+      "configFppeManage": {
+        "description": "Gerichte beoordelingen van de beroepspraktijk (FPPE) starten en beëindigen. Geauditeerd.",
+        "label": "FPPE-toewijzingen beheren"
+      },
+      "configGrossingHardwareManage": {
+        "description": "Uitsnijapparaten en hun verbindingen toevoegen en bewerken. Geauditeerd.",
+        "label": "Uitsnijapparatuur beheren"
+      },
+      "configGrossingRoutesManage": {
+        "description": "Bepalen waar specimens worden uitgesneden als de gewone route niet geldt. Geauditeerd.",
+        "label": "Uitzonderingen voor uitsnijroutes beheren"
+      },
+      "configInterfacePreviewView": {
+        "description": "Een uitgaand bericht of factuurexport voor een patiënt of casus bekijken aan de hand van de identificatie. Geauditeerd.",
+        "label": "Interfaceberichten bekijken"
+      },
+      "configIntraopCriticalResultsManage": {
+        "description": "Items toevoegen, wijzigen of deactiveren die een vriescoupe-uitslag als kritiek markeren.",
+        "label": "Woordenboek van kritieke intraoperatieve uitslagen beheren"
+      },
+      "configLabelLayoutsManage": {
+        "description": "Wijzigen wat er op etiketten wordt afgedrukt. Geauditeerd.",
+        "label": "Etiketindelingen beheren"
+      },
+      "configMacrosManage": {
+        "description": "Verslagmacro's van de organisatie en instellingen toevoegen, bewerken en deactiveren. Iedereen beheert zijn eigen macro's. Geauditeerd.",
+        "label": "Gedeelde macro's beheren"
+      },
+      "configMigrationMappingsManage": {
+        "description": "Wijzigen hoe historische gegevens worden geïmporteerd. Geauditeerd.",
+        "label": "Migratiekoppelingen beheren"
+      },
+      "configMolecularControlRulesManage": {
+        "description": "De controles die de platen van elke moleculaire assay nodig hebben en de deckposities waar het monsterrek mag staan toevoegen, wijzigen of verwijderen.",
+        "label": "Controleregels voor moleculaire assays beheren"
+      },
+      "configOrSuiteTerminalsManage": {
+        "description": "Bepalen waar vriescoupe-uitslagen worden getoond. Geauditeerd.",
+        "label": "OK-terminals beheren"
+      },
+      "configParticipationTypesManage": {
+        "description": "Bepalen wie welke verslagen mag ondertekenen. Geauditeerd.",
+        "label": "Deelnametypen beheren"
+      },
+      "configPaymentMappingsManage": {
+        "description": "Betalingstypen per rechtsgebied koppelen. Geauditeerd.",
+        "label": "Betalingskoppelingen beheren"
+      },
+      "configPaymentTypesManage": {
+        "description": "De lijst met betalingstypen toevoegen en bewerken. Geauditeerd.",
+        "label": "Betalingstypen beheren"
+      },
+      "configPhysiciansManage": {
+        "description": "Artsen toevoegen, bewerken, verifiëren en deactiveren. Geauditeerd.",
+        "label": "Artsenlijst beheren"
+      },
+      "configPrintRoutingManage": {
+        "description": "Bepalen welke printer welke afdruktaak krijgt. Geauditeerd.",
+        "label": "Afdrukroutering beheren"
+      },
+      "configPrintSettingsManage": {
+        "description": "De afdrukregels en limieten voor afdrukken op aanvraag wijzigen, voor het lab en elke instelling. Geauditeerd.",
+        "label": "Afdrukinstellingen beheren"
+      },
+      "configPrintersManage": {
+        "description": "Printerprofielen toevoegen, bewerken en verwijderen. Geauditeerd.",
+        "label": "Printers beheren"
+      },
+      "configProcessingProtocolsManage": {
+        "description": "Uitsnij- en verwerkingsprotocollen toevoegen en bewerken, en eerdere versies herstellen. Geauditeerd.",
+        "label": "Verwerkingsprotocollen beheren"
+      },
+      "configProtocolApprove": {
+        "description": "Een synoptisch protocol goedkeuren, wijzigingen vragen of het terugzetten naar concept. Geauditeerd.",
+        "label": "Synoptische protocollen beoordelen"
+      },
+      "configProtocolDraft": {
+        "description": "Concepten van synoptische protocollen opslaan, indienen en verwijderen. Geauditeerd.",
+        "label": "Synoptische protocollen opstellen"
+      },
+      "configProtocolPublish": {
+        "description": "Een goedgekeurd synoptisch protocol in gebruik nemen. Geauditeerd.",
+        "label": "Synoptische protocollen publiceren"
+      },
+      "configProtocolRetire": {
+        "description": "Een synoptisch protocol buiten gebruik stellen, ook een gepubliceerd, of het als concept herstellen. Geauditeerd.",
+        "label": "Synoptische protocollen buiten gebruik stellen"
+      },
+      "configQaTypesManage": {
+        "description": "Typen kwaliteitsactiviteit en supervisie toevoegen en bewerken. De standaardtypen kunnen niet worden uitgezet. Geauditeerd.",
+        "label": "Typen kwaliteitsactiviteit beheren"
+      },
+      "configReagentLotsManage": {
+        "description": "Lots van kleuringsreagentia toevoegen en bewerken. Geauditeerd.",
+        "label": "Reagenslots beheren"
+      },
+      "configRegistryGoLiveManage": {
+        "description": "Of de persoon die de livegang van een register aanvraagt die ook mag goedkeuren, en hoeveel goedkeuringen nodig zijn (zoals bij sjabloonbeoordeling). Geauditeerd.",
+        "label": "Goedkeuringsinstellingen voor livegang van registers beheren"
+      },
+      "configReleaseBufferManage": {
+        "description": "Instellen hoe lang een ondertekend verslag wacht voordat het wordt vrijgegeven. Geauditeerd.",
+        "label": "Vrijgavebuffer beheren"
+      },
+      "configReportAppearanceManage": {
+        "description": "De toegestane lettertypen en de standaardtekststijlen van verslagen kiezen. Geauditeerd.",
+        "label": "Verslagopmaak beheren"
+      },
+      "configReportTemplateManage": {
+        "description": "Verslagindelingen en hun onderdelen aanmaken, bewerken, kopiëren, archiveren en verwijderen. Geauditeerd.",
+        "label": "Verslagsjablonen en -onderdelen bewerken"
+      },
+      "configReportTemplatePublish": {
+        "description": "Een verslagindeling of onderdeel in gebruik nemen. Geauditeerd.",
+        "label": "Verslagsjablonen en -onderdelen publiceren"
+      },
+      "configResearchFeedManage": {
+        "description": "De zoekopdracht van de literatuurfeed wijzigen. Geauditeerd.",
+        "label": "Literatuurfeed beheren"
+      },
+      "configRetentionPolicyManage": {
+        "description": "Instellen hoe lang materiaal en gegevens worden bewaard. Geauditeerd.",
+        "label": "Bewaarbeleid beheren"
+      },
       "configRolesManage": {
         "description": "Rollen in het rollenwoordenboek toevoegen, bewerken en dupliceren, inclusief de machtigingen die elke rol verleent.",
         "label": "Rollen beheren"
+      },
+      "configScanStationsManage": {
+        "description": "Scanstations, hun stappen en printers toevoegen en bewerken. Geauditeerd.",
+        "label": "Scanstations beheren"
+      },
+      "configScreeningRegistryManage": {
+        "description": "Kiezen aan welk baarmoederhalskankerscreeningsregister elke instelling rapporteert, en per register de codekoppelingen instellen en wat wordt vastgehouden in plaats van verzonden. Vastgelegd in het auditlogboek.",
+        "label": "Rapportage aan screeningsregisters beheren"
+      },
+      "configSessionSecurityManage": {
+        "description": "De afmeldtijd bij inactiviteit voor iedereen instellen. Geauditeerd.",
+        "label": "Sessietime-out beheren"
+      },
+      "configSpecimenDictionaryManage": {
+        "description": "Specimentypen en hun standaardwaarden toevoegen en bewerken. Geauditeerd.",
+        "label": "Specimenwoordenlijst beheren"
       },
       "configStaffAccessAssign": {
         "description": "Wijzigen wat een medewerker mag doen of zien: rollen, toegewezen instellingen, toegang tot pediatrie, orchestratie en organisatieoverstijgende QA, en jurisdictiegebonden bevoegdheden.",
@@ -2505,6 +2988,14 @@
       "configStaffEdit": {
         "description": "Personeel toevoegen en gegevens bewerken: naam, contact, licentie, spraak- en spellingvoorkeuren, handtekening, OK-pincode en status.",
         "label": "Personeelsgegevens bewerken"
+      },
+      "configStainDictionaryManage": {
+        "description": "Kleuringen, snijprotocollen, aanvraagmacro's en moleculaire targets toevoegen en bewerken. Geauditeerd.",
+        "label": "Kleuringswoordenlijst beheren"
+      },
+      "configSubspecialtiesManage": {
+        "description": "Subspecialismen en de eraan toegewezen specimentypen toevoegen en bewerken. Geauditeerd.",
+        "label": "Subspecialismen beheren"
       },
       "configSupportAccessApprove": {
         "description": "Een verzoek van ForMedrixAI-support om bij de gegevens van deze organisatie te komen goedkeuren, afwijzen of intrekken.",
@@ -2518,6 +3009,110 @@
         "description": "Alles zien wat ForMedrixAI-support in deze organisatie heeft gedaan, controleren dat het logboek niet is gewijzigd en het exporteren als CSV of JSON.",
         "label": "Support-audit bekijken en exporteren"
       },
+      "configTatTargetsManage": {
+        "description": "Doorlooptijddoelen toevoegen, bewerken en verwijderen. Geauditeerd.",
+        "label": "Doorlooptijddoelen beheren"
+      },
+      "configTemplateGovernanceManage": {
+        "description": "De instellingen voor sjabloonbeoordeling wijzigen: of auteurs hun eigen sjablonen mogen goedkeuren en hoeveel onafhankelijke beoordelaars een sjabloon nodig heeft. Geauditeerd.",
+        "label": "Instellingen voor sjabloonbeoordeling beheren"
+      },
+      "configTemplateRoutingManage": {
+        "description": "Bepalen welk verslagsjabloon een casus krijgt. Geauditeerd.",
+        "label": "Toewijzingsregels voor sjablonen beheren"
+      },
+      "configValidationStudiesManage": {
+        "description": "Methodevalidatiestudies aanmaken, bewerken, indienen, activeren en afsluiten. Geauditeerd.",
+        "label": "Validatiestudies beheren"
+      },
+      "configVendorIntegrationsManage": {
+        "description": "Koppelingen met leveranciers van preparaten, beelden en AI toevoegen en bewerken. Geauditeerd.",
+        "label": "Leverancierskoppelingen beheren"
+      },
+      "configVoiceManage": {
+        "description": "Spraakinvoer voor de hele installatie aan- of uitzetten. Geauditeerd.",
+        "label": "Spraak aan- of uitzetten"
+      },
+      "configWorkstationGroupsManage": {
+        "description": "De QC-modus per werkplek instellen. Geauditeerd.",
+        "label": "Werkplekgroepen beheren"
+      },
+      "cytologyCaseFinalize": {
+        "description": "Een cytologiecasus afsluiten voordat al zijn monsters zijn geautoriseerd, met een reden. Vastgelegd in het auditlogboek; de niet-geautoriseerde monsters worden vermeld en kunnen nog worden geautoriseerd.",
+        "label": "Cytologiecasus vervroegd afsluiten"
+      },
+      "cytologyCtReportSignOut": {
+        "description": "Autorisatie van een negatieve gynaecologische casus door een cytotechnoloog (of volgens de uitzondering voor ervaren cytotechnologen). Verwijder deze uit de rol waar cytotechnologen geen verslagen mogen ondertekenen. Vereist ook de autorisatietoestemming.",
+        "label": "Cytologieverslag autoriseren als cytotechnoloog"
+      },
+      "cytologyFinalDiagnosisSelect": {
+        "description": "Bepalen welke beoordeling de einddiagnose van het monster is, de beoordeling die wordt geautoriseerd. Een beoordeling die een patholoog vereist, kan nog steeds alleen door een patholoog worden gekozen.",
+        "label": "Cytologische einddiagnose kiezen"
+      },
+      "cytologyHistologyCorrelationRecord": {
+        "description": "Vastleggen of een latere biopsie overeenkomt met een cytologische diagnose, of een kandidaat-biopsie afwijzen die niet relevant is.",
+        "label": "Cyto-histologische correlatie vastleggen"
+      },
+      "cytologyQcFlagRemove": {
+        "description": "Een willekeurige of hoogrisico-QC-markering van een cytologisch monster verwijderen. Zolang het gemarkeerd is, kan een cytotechnoloog het niet autoriseren zonder herbeoordeling. Elke verwijdering wordt vastgelegd in het auditlogboek.",
+        "label": "Cytologische QC-markering verwijderen"
+      },
+      "cytologyQcReviewBypass": {
+        "description": "Een casus in de cytologie-QC-wachtrij definitief goedkeuren met een schriftelijke motivering, die in het auditlogboek wordt bewaard.",
+        "label": "Een cytologie-QC-beoordeling overslaan (supervisor)"
+      },
+      "cytologyQcReviewRecord": {
+        "description": "Een casus uit de wachtrij voor cytologie-QC-peerreview nemen en vastleggen of u het eens bent met de primaire interpretatie of een discrepantie hebt gevonden.",
+        "label": "Cytologie-QC-peerreview vastleggen"
+      },
+      "cytologyReportAddend": {
+        "description": "Een addendum vrijgeven dat een ondertekend cytologieverslag aanvult en de diagnose laat staan.",
+        "label": "Een addendum toevoegen aan een ondertekend cytologieverslag"
+      },
+      "cytologyReportCorrect": {
+        "description": "Een gecorrigeerde diagnose voor een ondertekend cytologieverslag vrijgeven. Het oorspronkelijke verslag blijft bewaard en de correctie wordt als correctie verzonden.",
+        "label": "Een ondertekend cytologieverslag corrigeren"
+      },
+      "cytologyReportSignOut": {
+        "description": "Een cytologisch monster autoriseren of vrijgeven voor medeondertekening. Tekenbevoegdheid en de regels voor cytotechnologen en medeondertekening blijven gelden.",
+        "label": "Cytologieverslag autoriseren"
+      },
+      "cytologyRetrospectiveReviewRecord": {
+        "description": "De uitkomst en eventuele corrigerende maatregel van de CAP-retrospectieve 5-jaarsbeoordeling van een eerder negatief cytologisch resultaat vastleggen.",
+        "label": "Retrospectieve 5-jaarsbeoordeling vastleggen"
+      },
+      "cytologyReviewRecord": {
+        "description": "Een screenings- of pathologenbeoordeling van een cytologisch monster opslaan in de cytologiewerkruimte, of uw eigen beoordeling bewerken. Werklastlimieten en selectie voor kwaliteitscontrole blijven gelden.",
+        "label": "Cytologische beoordeling vastleggen"
+      },
+      "cytologyRevisionRequest": {
+        "description": "Een notitie bij de cytologische beoordeling van een ander markeren als herziening nodig. Een cytotechnoloog kan het monster pas autoriseren als de auteur heeft herzien of een patholoog een eigen beoordeling vastlegt.",
+        "label": "Herziening van een cytologische beoordeling vragen"
+      },
+      "equipmentMaintenanceRecord": {
+        "description": "Onderhoud, kalibratie en storingen vastleggen in het servicelogboek van een instrument (Batchbeheer → Apparatuurlogboek). Geauditeerd.",
+        "label": "Onderhoud van apparatuur vastleggen"
+      },
+      "messageSecureEmailSend": {
+        "description": "Een beveiligde e-mail verzenden naar een adres buiten de organisatie.",
+        "label": "Beveiligde e-mail verzenden"
+      },
+      "messageSend": {
+        "description": "Een intern bericht naar andere medewerkers verzenden of erop antwoorden.",
+        "label": "Bericht of antwoord verzenden"
+      },
+      "molecularBatchSupersede": {
+        "description": "Een moleculaire run met een reden intrekken en de vervanging starten (Klonen en vervangen).",
+        "label": "Moleculaire run vervangen"
+      },
+      "patientNationalIdentifierRecord": {
+        "description": "Het nationale zorgidentificatienummer waarop een register zich baseert (NHS-nummer, BSN, IHI en andere) vastleggen of verwijderen. Het controlecijfer wordt gecontroleerd en het resultaat bewaard. Geauditeerd.",
+        "label": "Nationaal identificatienummer van een patiënt vastleggen"
+      },
+      "patientRegistryConsentRecord": {
+        "description": "Het bezwaar van een patiënt tegen melding aan het screeningsprogramma, en aan het kankerregister waar de wet dat toestaat, vastleggen of intrekken. Geauditeerd.",
+        "label": "Registerbezwaar van een patiënt vastleggen"
+      },
       "platformCrossTenantCasesView": {
         "description": "Toegang van PathScribe-ondersteuning tot een casus buiten de eigen organisatie. Elke opening wordt vastgelegd in het auditlogboek.",
         "label": "Casussen van andere organisaties openen (ondersteuning)"
@@ -2525,6 +3120,10 @@
       "platformGoverningBodiesManage": {
         "description": "Kiezen welke inhoud van beroepsorganisaties (CAP, RCPath, ICCR, RCPA) in de synoptische bibliotheek van het platform wordt gesynchroniseerd.",
         "label": "Inhoud van beroepsorganisaties beheren"
+      },
+      "platformSigningRulesManage": {
+        "description": "De nationale ondertekeningsregels voor elk land instellen. Alleen ForMedrixAI-support. Geauditeerd.",
+        "label": "Ondertekeningsregels per land beheren"
       },
       "qaAccessRequestResponseExport": {
         "description": "Toegangsverzoeken van patiënten en de antwoordtijden als CSV downloaden.",
@@ -2582,9 +3181,41 @@
         "description": "Het rapport over discordantie en afstemming als CSV downloaden.",
         "label": "Discordantie en afstemming exporteren"
       },
+      "qaRegistryTransmissionAuditExport": {
+        "description": "Downloaden wat naar screenings- en kankerregisters is verzonden: verzendtijd, de status bij het register en de antwoordcode. Zonder patiëntnamen of patiëntnummers. Geauditeerd.",
+        "label": "Transmissie-audit naar registers exporteren"
+      },
+      "referralTransitStatusUpdate": {
+        "description": "Vastleggen dat een batch die naar een extern laboratorium is gestuurd onderweg of afgeleverd is. De status kan alleen vooruit.",
+        "label": "De transportstatus van een verwijzingsbatch bijwerken"
+      },
+      "registryLiveRegisterApprove": {
+        "description": "Goedkeuren dat een register overgaat van het testsysteem naar het liveregister, met vermelding van uw hoedanigheid en opnieuw ingevoerde inloggegevens. Live zodra de door het lab vereiste goedkeuringen er zijn. Permanent geauditeerd.",
+        "label": "Livegang van een register goedkeuren"
+      },
+      "registryRevisionReview": {
+        "description": "De wijziging door een register van al geaccepteerde gegevens als beoordeeld markeren, zodat ze van de werklijst registeruitzonderingen verdwijnt. De CAPA-afwijking die erbij is aangemaakt, blijft open in kwaliteitsborging. Geauditeerd.",
+        "label": "Registerrevisie als beoordeeld markeren"
+      },
+      "registrySubmissionResend": {
+        "description": "Een vastgehouden, niet afgeleverde, onbeantwoorde of afgewezen inzending opnieuw valideren met de huidige gegevens en opnieuw verzenden (dezelfde inzending, of een nieuwe versie als de gegevens zijn gewijzigd). Geauditeerd.",
+        "label": "Registerinzending opnieuw verzenden"
+      },
+      "registryTestSuiteRun": {
+        "description": "De synthetische testgevallen (alleen fictieve patiënten) naar het testsysteem van een register sturen, alleen op een validatie-instantie. Geauditeerd.",
+        "label": "Testsuite van het register uitvoeren"
+      },
       "reportChangeHistoryExport": {
         "description": "De wijzigingsgeschiedenis van het verslag van een casus (wie welk veld wanneer en op welk werkstation heeft gewijzigd) als CSV downloaden.",
         "label": "Wijzigingsgeschiedenis van het verslag exporteren"
+      },
+      "retentionDisposalReportExport": {
+        "description": "Het afvoerrapport van afgevoerd materiaal downloaden, met de aanvraagnummers van de casussen.",
+        "label": "Afvoerrapport exporteren"
+      },
+      "retentionMaterialDispose": {
+        "description": "Nat weefsel, blokjes of coupes scannen in de afvoerlijst om ze als afgevoerd te markeren zodra de bewaartermijn verstreken is.",
+        "label": "Bewaard materiaal afvoeren"
       },
       "screenAccessionOpen": {
         "description": "Het scherm „Opname” en de tegel op de startpagina zien.",
@@ -2638,6 +3269,10 @@
         "description": "Het scherm „Kwaliteitsborging” en de tegel in „Kwaliteit & Compliance” zien.",
         "label": "„Kwaliteitsborging” openen"
       },
+      "screenRegistryExceptionsOpen": {
+        "description": "Elke registerinzending zien die aandacht nodig heeft: vastgehouden, niet afgeleverd, afgewezen of onbeantwoord.",
+        "label": "Registeruitzonderingen openen"
+      },
       "screenSearchOpen": {
         "description": "Het scherm „Zoeken” en de tegel op de startpagina zien.",
         "label": "„Zoeken” openen"
@@ -2653,6 +3288,14 @@
       "screenWorklistOpen": {
         "description": "Het scherm „Werklijst” en de tegel op de startpagina zien.",
         "label": "„Werklijst” openen"
+      },
+      "surgicalQaReviewRecord": {
+        "description": "Een chirurgische peerreview of een correlatiereview biopsie-resectie vastleggen, of een correlatiekandidaat als niet relevant afwijzen.",
+        "label": "Chirurgische QA-review na aftekenen vastleggen"
+      },
+      "validationApprovalRecord": {
+        "description": "De goedkeuring van een validatiestudie door een commissie vastleggen. Geauditeerd.",
+        "label": "Validatiegoedkeuring vastleggen"
       }
     },
     "notGranted": "Uw rollen bevatten ‘{{capability}}’ niet.",
@@ -2752,11 +3395,6 @@
     "distributionSummary": "Verdeling van ondertekende zaken per categorie · {{total}} totaal",
     "pct": "{{pct}}%",
     "tooltipCasesPct": "{{count}} zaken · {{pct}}%"
-  },
-  "caseNotFound": {
-    "back": "Terug naar werklijst",
-    "subtitle": "Er bestaat geen casus met ID <id>{{id}}</id>",
-    "title": "Casus niet gevonden"
   },
   "casePoolAssignmentSection": {
     "assignmentTimeoutHint": "Hoe lang PathScribe wacht tot het LIS een toewijzing biedt voordat naar een pool wordt gerouteerd. 0 = onmiddellijk routeren.",
@@ -3020,6 +3658,11 @@
     "staffCard": {
       "onCaseBadge": "op casus"
     }
+  },
+  "caseUnavailable": {
+    "back": "Terug",
+    "body": "U hebt geen toegangsrechten voor casus <id>{{id}}</id>.",
+    "title": "Geen toegang"
   },
   "cassetteColorControl": {
     "notYetResolved": "Nog niet opgelost",
@@ -3635,6 +4278,7 @@
     "showInactive": "Inactieve tonen",
     "signOut": "Afmelden",
     "skip": "Overslaan",
+    "unknownUser": "Onbekende gebruiker",
     "yes": "Ja"
   },
   "computeDraftDiff": {
@@ -3673,6 +4317,10 @@
     "saved": "Opgeslagen",
     "subtitle": "Regelt de automatische vergelijking van een voorlopige bevinding (bijv. een vriescoupediagnose) met de bijbehorende definitieve diagnose, en het optionele controlescherm dat bij ondertekening wordt getoond. De patholoog stelt altijd de daadwerkelijke concordantiebepaling vast — deze instellingen bepalen alleen of het systeem helpt dit zichtbaar te maken, nooit of het eigen oordeel van de patholoog vereist is. Dit is de organisatiebrede standaard — individuele uitvoerende laboratoria kunnen deze overnemen of hun eigen waarden definiëren in het bewerkingsvenster van de faciliteitsconfiguratie, en individuele medewerkers kunnen elke instelling bovendien voor zichzelf overschrijven, volgens dezelfde echte cascade Onderneming → Faciliteit → Medewerker die deze app al gebruikt voor cytologie-QC-bemonsteringspercentages.",
     "title": "Concordantiebeoordeling voorlopig vs. definitief"
+  },
+  "configRefusal": {
+    "dismiss": "Sluiten",
+    "message": "Niet opgeslagen: hiervoor is de toestemming ‘{{permission}}’ nodig. Een beheerder kan die toekennen via Configuratie → Personeel → Rollenwoordenboek."
   },
   "configSearchIndex": {
     "entries": {
@@ -3797,6 +4445,9 @@
       "sys-info": {
         "description": "Applicatieversie, AI-provider/model en API-verbindingsstatus voor supportdiagnostiek."
       },
+      "sys-intraop-critical-results": {
+        "description": "Welke vriescoupe-uitslagen als kritieke intraoperatieve uitslagen gelden, zodat de mondelinge melding de operateur of een vastgelegde reden verwacht."
+      },
       "sys-jurisdiction": {
         "description": "Stelt de SNOMED CT-release en ICD-variant in voor de regio van het laboratorium (VS, Canada, VK, Ierland)."
       },
@@ -3848,6 +4499,10 @@
     "noResults": "Geen instellingen gevonden voor \"{{query}}\"",
     "searchAriaLabel": "Configuratie-instellingen doorzoeken",
     "searchPlaceholder": "Instellingen zoeken…"
+  },
+  "configViewOnly": {
+    "message": "Alleen bekijken: voor wijzigingen is de toestemming ‘{{permissions}}’ nodig. Een beheerder kan die toekennen via Configuratie → Personeel → Rollenwoordenboek.",
+    "or": "’ of ‘"
   },
   "configuration": {
     "adminRequiredSub": "Validatiestudies zijn alleen beschikbaar voor beheerders.",
@@ -4370,6 +5025,29 @@
     },
     "title": "Interpretatie en aanbevelingen"
   },
+  "cytologyCompliance": {
+    "features": {
+      "fiveYearLookback": {
+        "help": "(VS, CAP): een nieuwe hooggradige diagnose markeert de negatieve uitstrijkjes van de patiënte uit de afgelopen vijf jaar voor retrospectieve beoordeling.",
+        "label": "CAP-retrospectieve 5-jaarsbeoordeling"
+      },
+      "workloadCap": {
+        "help": "(VS, 42 CFR § 493.1274): stopt de beoordeling van een cytotechnoloog zodra zijn naar rato berekende dagmaximum is bereikt en zet zijn werklijst terug in de pool. De werklast wordt hoe dan ook vastgelegd.",
+        "label": "Dagelijks CLIA-werklastmaximum"
+      }
+    },
+    "notPermitted": "U hebt geen toestemming om landspecifieke regels te wijzigen.",
+    "saved": "Opgeslagen.",
+    "settings": {
+      "auto": "Automatisch (aan in de VS)",
+      "off": "Uit",
+      "on": "Aan"
+    },
+    "subtitle": "Regelgeving die alleen in sommige landen geldt. Automatisch zet deze aan voor een Amerikaans laboratorium en elders uit; een laboratorium kan ze voor de organisatie of één instelling aan- of uitzetten.",
+    "summary": "{{feature}}: {{setting}}",
+    "summarySeparator": "; ",
+    "title": "Landspecifieke regels"
+  },
   "cytologyHistologyCorrelationPrintView": {
     "scopeLine": "Bereik: {{scope}} — Gegenereerd op {{date}}",
     "title": "CYT-QA-04 — Cyto-histologische correlatie- en discrepantiematrix"
@@ -4392,6 +5070,44 @@
       "sfcc": "SFCC (Frankrijk — Frans-gelabeld Bethesda)"
     },
     "title": "Cytologie-nomenclatuursysteem"
+  },
+  "cytologyPdf": {
+    "accession": "Aanvraagnummer: {{accession}}",
+    "addendum": "Addendum",
+    "addendumBanner": "ADDENDUM",
+    "adjunctive": "Aanvullend onderzoek en geïntegreerde uitslagen",
+    "clia": "CLIA/ISO: {{number}}",
+    "collected": "Afgenomen: {{date}}",
+    "computerAssisted": "Computerondersteunde screening: {{value}}",
+    "continuationPage": "Pagina {{page}} van {{total}}",
+    "correctedReport": "GECORRIGEERD VERSLAG",
+    "director": "Directeur: {{name}}",
+    "dob": "Geboortedatum: {{date}}",
+    "generalCategorization": "Algemene categorisering",
+    "hpv": "HPV: {{result}}",
+    "interpretation": "Interpretatie / Diagnostische uitslag",
+    "lmp": "Laatste menstruatie: {{date}}",
+    "metadataSubject": "Cytologieverslag",
+    "metadataTitle": "Cytologieverslag — {{accession}}",
+    "mrn": "Patiëntnummer: {{mrn}}",
+    "no": "Nee",
+    "orderingProvider": "Aanvrager: {{name}}",
+    "patient": "Patiënt",
+    "prepConventional": "Conventioneel",
+    "prepLiquidBased": "Vloeistofbasis",
+    "previouslyReported": "Eerder gerapporteerd als: {{diagnosis}}",
+    "reason": "Reden: {{reason}}",
+    "received": "Ontvangen: {{date}}",
+    "recommendations": "Aanbevelingen en opmerkingen",
+    "roleCytotechnologist": "Cytotechnoloog",
+    "rolePathologist": "Patholoog",
+    "screenedBy": "Gescreend door: {{name}}",
+    "signOff": "Autorisatie",
+    "signedBy": "Geautoriseerd door: {{name}}, {{role}} — {{date}}",
+    "specimenAdequacy": "Adequaatheid van het materiaal",
+    "specimenType": "Type materiaal",
+    "title": "Cytologieverslag — Gynaecologische cervixscreening",
+    "yes": "Ja"
   },
   "cytologyQaTab": {
     "apacPtTable": {
@@ -4576,10 +5292,22 @@
     },
     "transmissionTable": {
       "cytologyResult": "Cytologie-uitslag",
+      "download": "Downloaden",
       "error": "Fout",
       "hpvResult": "HPV-uitslag",
       "mrn": "MRN",
       "noneOnFile": "Er zijn nog geen registeroverdrachten geregistreerd voor dit bereik.",
+      "registryStatus": "Status bij register",
+      "registryStatuses": {
+        "accepted": "Geaccepteerd",
+        "acceptedWithWarnings": "Geaccepteerd met waarschuwingen",
+        "ackOverdue": "Geen antwoord in 72 u",
+        "awaitingAck": "Wacht op antwoord",
+        "rejectedFatal": "Definitief afgewezen",
+        "rejectedRecoverable": "Afgewezen, herstelbaar"
+      },
+      "responseCode": "Antwoordcode",
+      "sentAt": "Verzonden",
       "status": {
         "failed": "Mislukt",
         "header": "Status",
@@ -4619,9 +5347,28 @@
   "cytologyQcQueue": {
     "assignToMeBtn": "Aan mij toewijzen",
     "assignedToOther": "Toegewezen aan een andere beoordelaar",
+    "bypass": {
+      "button": "Supervisor-omzeiling",
+      "message": "De casus wordt zonder QC-beoordeling goedgekeurd, om klinische vertraging te voorkomen. Uw naam en motivering worden in het auditlogboek bewaard.",
+      "reasonLabel": "Motivering",
+      "title": "QC-beoordeling voor deze casus overslaan?"
+    },
+    "caseBarTitle": "Cytologie-QC-peerreview",
     "commentaryLabel": "Opmerking beoordelaar",
     "discrepancyModalTitle": "Afwijking vastleggen",
     "emptyRow": "Geen gevallen in deze wachtrij.",
+    "error": {
+      "failed": "De review kon niet worden opgeslagen. Probeer het opnieuw.",
+      "notPermitted": "U hebt geen toestemming om cytologie-QC-reviews vast te leggen.",
+      "selfReview": "U hebt deze casus afgetekend; een andere patholoog moet hem reviewen."
+    },
+    "escalate": {
+      "button": "Escaleren",
+      "message": "De beoordeling is over de termijn. Ze gaat zonder toewijzing terug naar de wachtrij, zodat een andere beoordelaar ze kan oppakken.",
+      "reasonLabel": "Reden",
+      "title": "Deze achterstallige beoordeling escaleren?"
+    },
+    "openCaseBtn": "Casus openen",
     "pageTitle": "Cytologie QC peer review-wachtrij",
     "primaryCodeLabel": "Primaire diagnosecode",
     "recordConcurrenceBtn": "Overeenstemming vastleggen",
@@ -4745,6 +5492,40 @@
     "subtitle": "Aan welk echt, landelijk centraal register de afgetekende GYN-cytologieresultaten van een laboratorium worden gerapporteerd. Tweeledige cascade — ondernemingsstandaard, met een optionele instellingsoverschrijving voor laboratoria die rapporteren aan het register van een ander echt rechtsgebied.",
     "title": "Cytologisch registerrapportage"
   },
+  "cytologyRevision": {
+    "addendum": {
+      "confirmTitle": "Bevestig uw handtekening om het addendum vrij te geven",
+      "intro": "Een addendum vult het verslag aan. De oorspronkelijke diagnose blijft staan en wordt niet gewijzigd.",
+      "reason": "Reden voor het addendum",
+      "releaseBtn": "Addendum vrijgeven",
+      "text": "Tekst van het addendum",
+      "textPlaceholder": "Wat aan het verslag wordt toegevoegd (bijvoorbeeld een later onderzoeksresultaat)",
+      "title": "Addendum toevoegen"
+    },
+    "addendumBtn": "Addendum toevoegen",
+    "correctBtn": "Diagnose corrigeren",
+    "correction": {
+      "confirmTitle": "Bevestig uw handtekening om de correctie vrij te geven",
+      "intro": "Een correctie vervangt wat eerder is gerapporteerd. Het oorspronkelijke verslag blijft bewaard en het gecorrigeerde verslag wordt als correctie verzonden.",
+      "reason": "Reden voor de correctie",
+      "releaseBtn": "Correctie vrijgeven",
+      "title": "Ondertekende diagnose corrigeren"
+    },
+    "currentlyReported": "Momenteel gerapporteerd als: {{diagnosis}}",
+    "history": {
+      "addendum": "Addendum door {{name}}, {{date}}.",
+      "correction": "Gecorrigeerd door {{name}}, {{date}}.",
+      "reason": "Reden: {{reason}}",
+      "title": "Wijzigingen sinds de ondertekening"
+    },
+    "reasonPlaceholder": "Waarom wordt dit gewijzigd? De reden wordt bij het verslag bewaard.",
+    "toasts": {
+      "addendumReleased": "Addendum vrijgegeven.",
+      "correctionReleased": "Correctie vrijgegeven.",
+      "failed": "Het verslag kon niet worden vrijgegeven. Er is niets gewijzigd.",
+      "notPermitted": "U hebt geen toestemming om dit vrij te geven."
+    }
+  },
   "cytologyRoutingSettingsSection": {
     "routes": {
       "cytologyWorklist": "Werklijst cytologie",
@@ -4757,14 +5538,142 @@
     "assistModeOnly": "Deze casus wordt beheerd door een extern LIS (assistmodus). De gestructureerde cytologiebeoordeling en aftekening in PathScribe zijn alleen beschikbaar voor casussen in orkestratiemodus.",
     "backToWorklist": "Terug naar werklijst",
     "caseTitle": "Casus <accession>{{id}}</accession>",
+    "cisoea": {
+      "adequacy": "A — Adequaatheid",
+      "adequacyOptions": {
+        "satisfactory": "Bevredigend",
+        "suboptimal": "Suboptimaal",
+        "unsatisfactory": "Onbevredigend"
+      },
+      "axes": {
+        "composition": "C — Samenstelling",
+        "endocervical": "E — Endocervicaal epitheel",
+        "inflammation": "I — Inflammatie",
+        "otherEndometrium": "O — Overig / Endometrium",
+        "squamous": "S — Plaveiselepitheel"
+      },
+      "commentRequiredPlaceholder": "Opmerking (verplicht)",
+      "scaleHint": "(0-9)",
+      "selectOption": "— Selecteren —",
+      "subtitle": "Onafhankelijke matrix met 6 componenten (Samenstelling, Inflammatie, Plaveisel, Overig/Endometrium, Endocervicaal, Adequaatheid) — elke as wordt afzonderlijk gescoord, geen enkelvoudige keuze.",
+      "suggestColposcopy": "Suggestie: doorverwijzen voor colposcopie (matige dyskaryose of erger).",
+      "suggestHpvGenotyping": "Suggestie: HPV-genotypering aanbevelen (16/18 vs. andere hoogrisico) om te kiezen tussen colposcopie en herhaalcytologie.",
+      "titleEdit": "Uw CISOE-A-beoordeling bewerken",
+      "titleNew": "Nieuwe CISOE-A-beoordeling registreren"
+    },
+    "codes": {
+      "specimenName": "{{label}}: {{description}}"
+    },
     "codesBtn": "Codes",
+    "concordance": {
+      "agree": "Akkoord",
+      "body": "Voor dit glaasje was er een voltooid AI-screeningresultaat: {{result}}. Komt uw eigen, onafhankelijke bevinding hierboven overeen met dit AI-resultaat?",
+      "disagree": "Niet akkoord",
+      "fovCount_one": "{{count}} door AI gemarkeerd gezichtsveld",
+      "fovCount_other": "{{count}} door AI gemarkeerde gezichtsvelden",
+      "noFurtherReview": "Geen verdere beoordeling",
+      "reviewRecommended": "Beoordeling aanbevolen",
+      "title": "Concordantie van de AI-screening",
+      "withQuintile": "{{triage}} (kwintiel {{group}}/{{total}})"
+    },
+    "confirm": {
+      "discard": "U hebt niet-opgeslagen wijzigingen in deze beoordeling. Ze verwerpen en in plaats daarvan deze laden?",
+      "leave": "U hebt niet-opgeslagen wijzigingen in deze beoordeling. Verlaten zonder op te slaan?"
+    },
     "delegateBtn": "Delegeren",
+    "errors": {
+      "correlationNotPermitted": "U hebt geen toestemming om cyto-histologische correlaties vast te leggen.",
+      "finalDiagnosisNotPermitted": "U hebt geen toestemming om de einddiagnose te kiezen.",
+      "qcFlagRemoveNotPermitted": "U hebt geen toestemming om QC-markeringen te verwijderen.",
+      "retrospectiveNotPermitted": "U hebt geen toestemming om retrospectieve beoordelingen vast te leggen.",
+      "reviewNotPermitted": "U hebt geen toestemming om cytologische beoordelingen vast te leggen.",
+      "saveFailed": "De beoordeling kon niet worden opgeslagen. Probeer het opnieuw."
+    },
     "fiveYearLookback": {
       "subtitle": "(CAP-verplicht — eerdere negatieve resultaten binnen de terugblikperiode)",
       "title": "5-jaars retrospectieve terugblik",
       "viewSlide": "Bekijk zaak"
     },
     "flagsBtn": "Markeringen",
+    "histologyCorrelation": {
+      "body": "Bij deze patiënt was er binnen de opvolgperiode na deze afwijkende cytologie een volgend dossier (<accession>{{caseId}}</accession>). Bevestig dat het de relevante biopsie is voordat u een correlatie registreert.",
+      "confirmBtn": "Bevestigen en registreren",
+      "diagnosis": "Histologische diagnose",
+      "diagnosisPlaceholder": "bv. CIN III op biopt",
+      "manualNote": "Geen SNOMED-codering van dit dossier levert nog een bekende ernstgraad op — voer de histologische diagnose handmatig in na lezing van het verslag.",
+      "notRelevantBtn": "Niet relevant",
+      "outcome": "Uitkomst",
+      "outcomes": {
+        "concordant": "Concordant",
+        "discordant": "Discordant",
+        "major_discrepancy": "Grote discrepantie",
+        "minor_discrepancy": "Kleine discrepantie",
+        "unresolvable": "Niet bepaalbaar"
+      },
+      "recordBtn": "Registreren",
+      "resolvedLine": "Cytologie: <b>{{cytology}}</b> — Histologie (volgens SNOMED-codering): <b>{{histology}}</b> — Uitkomst: <b>{{outcome}}</b>",
+      "resolving": "Bezig met bepalen…",
+      "selectOption": "— selecteren —",
+      "title": "Kandidaat voor cyto-histologische correlatie",
+      "unknownDx": "Onbekend"
+    },
+    "history": {
+      "additional": "Aanvullend:",
+      "adequacy": "Adequaatheid:",
+      "agreement": {
+        "adequacyDiffers": "De beoordeelbaarheid wijkt af van de eerste beoordeling.",
+        "levels": {
+          "exact": "exact",
+          "major_discrepancy": "grote discrepantie",
+          "minor_discrepancy": "kleine discrepantie"
+        },
+        "line": "Overeenstemming met de eerste beoordeling: {{level}}",
+        "subtypes": {
+          "false_negative": "fout-negatief",
+          "false_positive": "fout-positief",
+          "high_grade_skip": "hooggradige sprong"
+        },
+        "withSubtype": "{{level}} ({{subtype}})"
+      },
+      "clone": "Klonen",
+      "ctEligible": "CT-geschikt",
+      "empty": "Nog geen beoordelingen geregistreerd.",
+      "finalTag": "Einddiagnose",
+      "generalCategorization": "Algemene categorisering:",
+      "initial": "Eerste beoordeling",
+      "pathRequired": "Patholoog vereist",
+      "primary": "Primair:",
+      "quotedNotes": "‘{{notes}}’",
+      "recommendations": "Aanbevelingen:",
+      "selectionSeparator": "; ",
+      "selectionWithComment": "{{label}} ({{comment}})",
+      "setAsFinal": "Instellen als definitief",
+      "setAsFinalBlocked": "Alleen een patholoog kan deze beoordeling als einddiagnose selecteren — ze vereist beoordeling door een patholoog vóór ondertekening.",
+      "title": "Beoordelingsgeschiedenis"
+    },
+    "hpv": {
+      "flagLine": "(Vlag: {{flag}})",
+      "genotypeLabel": "Genotype",
+      "genotypes": {
+        "hpv16": "HPV 16",
+        "hpv18Or45": "HPV 18/45",
+        "otherHighRisk": "Ander hoogrisicotype"
+      },
+      "hint": "(moleculair resultaat uit een eerdere stap — alleen lezen)",
+      "label": "HPV-cotest",
+      "none": "Geen cotest geregistreerd.",
+      "notSet": "Niet ingesteld",
+      "notSpecified": "Niet gespecificeerd",
+      "orderedLabel": "Cotest aangevraagd",
+      "reasonLabel": "Reden",
+      "reasons": {
+        "ascus_reflex": "ASC-US-reflextriage",
+        "post_treatment": "Bewaking na behandeling"
+      },
+      "referenceRange": "Referentiebereik",
+      "resultLabel": "Resultaat"
+    },
+    "lmpLabel": "LMP",
     "materialBtn": "Materiaal",
     "materialDrawer": {
       "addCellBlockBtn": "Celblok toevoegen",
@@ -4786,9 +5695,120 @@
       "title": "Cyto-/histo-voorgeschiedenis patient",
       "viewCase": "Bekijk zaak"
     },
+    "patientLine": "{{name}} · MRN {{mrn}}",
+    "patientUnknown": "Onbekende patiënt",
     "printBtn": "Afdrukken",
+    "qc": {
+      "autoHint": "De willekeurige QC-selectie loopt automatisch wanneer de eerste beoordeling wordt opgeslagen.",
+      "flagBtn": "Markeren voor hoogrisico-QC",
+      "flaggedRandom": "Door {{name}} op {{date}} gemarkeerd voor QC via willekeurige selectie.",
+      "flaggedTargeted": "Door {{name}} op {{date}} gemarkeerd voor gerichte hoogrisico-QC.",
+      "label": "Verplichte QC",
+      "removeFlag": "Markering verwijderen",
+      "toastDiscordance": "Geregistreerd — voor deze discordantie is een kwaliteitsafwijking aangemaakt.",
+      "toastHighRisk": "Dit dossier is gemarkeerd voor verplichte QC-beoordeling — de patiënte voldoet aan een of meer standaard hoogrisicocriteria.",
+      "toastRandom": "Dit dossier is willekeurig geselecteerd voor verplichte QC-beoordeling."
+    },
     "requestPeerReviewBtn": "Peer review aanvragen",
     "requestReviewBtn": "Beoord. aanvr.",
+    "retrospective": {
+      "body": "Dit eerdere negatieve cytologieresultaat is gemarkeerd voor verplichte retrospectieve herziening nadat het dossier <accession>{{caseId}}</accession> van deze patiënte een nieuwe HSIL+/AIS/maligne diagnose kreeg, conform de 5-jaarsvereiste van het CAP.",
+      "completeBtn": "Herziening voltooien",
+      "correctiveAction": "Corrigerende maatregel (bijscholing cytotechnoloog, aangepast verslag, enz.)",
+      "correctiveActionPlaceholder": "Vereist bij een niet-negatieve uitkomst in de meeste CAP-geaccrediteerde labo’s",
+      "outcome": "Uitkomst",
+      "outcomes": {
+        "confirmed_negative": "Negatief bevestigd",
+        "interpretation_error": "Interpretatiefout",
+        "sampling_error": "Bemonsteringsfout",
+        "screening_error": "Screeningsfout"
+      },
+      "selectOption": "— selecteren —",
+      "title": "Retrospectieve 5-jaarsherziening vereist"
+    },
+    "reviewForm": {
+      "additional": "Aanvullende interpretaties",
+      "additionalPlaceholder": "Aanvullende interpretaties zoeken…",
+      "adequacy": "Adequaatheid van het staal",
+      "adequacyPlaceholder": "Adequaatheid zoeken…",
+      "generalCategorization": "Algemene categorisering",
+      "generalCategorizationHint": "(woordenboekgestuurd — de algemene Bethesda-categorie)",
+      "multiHint": "(selecteer er zoveel als nodig; elk met een eigen opmerking)",
+      "noneOption": "— Geen —",
+      "notes": "Notities",
+      "primary": "Primaire interpretatie",
+      "primaryHint": "(precies één; met optionele opmerking)",
+      "primaryPlaceholder": "Primaire interpretatie zoeken…",
+      "recommendations": "Aanbevelingen",
+      "recommendationsPlaceholder": "Aanbevelingen zoeken…",
+      "saveAsRole": "Opslaan als {{role}}",
+      "titleEdit": "Uw beoordeling bewerken",
+      "titleNew": "Nieuwe beoordeling registreren",
+      "updateBtn": "Beoordeling bijwerken"
+    },
+    "reviewMode": {
+      "hint": "(CLIA-werklastgewicht)",
+      "label": "Beoordelingsmodus",
+      "options": {
+        "fov_assisted": "FOV-ondersteund, zonder herscreening (0,5 SCU)",
+        "fov_manual_rescreen": "FOV + volledige manuele herscreening (1,5 SCU)",
+        "liquid_nongyn": "Vloeistofgebaseerd niet-gynaecologisch (0,5 SCU)",
+        "primary_manual": "Volledige manuele screening (1,0 SCU)"
+      }
+    },
+    "reviewNotes": {
+      "acknowledge": "Bevestigen",
+      "add": "Notitie toevoegen",
+      "byLine": "{{name}}, {{date}}",
+      "errors": {
+        "notAuthor": "Alleen de auteur van de beoordeling kan deze notitie bevestigen.",
+        "notFound": "Die notitie bestaat niet meer.",
+        "notOpen": "Deze notitie is al bevestigd.",
+        "notPermitted": "U hebt geen toestemming om een herziening te vragen.",
+        "ownReview": "U kunt geen notitie bij uw eigen beoordeling plaatsen. Bewerk deze in plaats daarvan.",
+        "textRequired": "Schrijf eerst de notitie."
+      },
+      "placeholder": "Waar moet de auteur naar kijken?",
+      "requiresRevision": "Herziening vereist",
+      "requiresRevisionOption": "Herziening vereist (een cytotechnoloog kan pas na herziening autoriseren)",
+      "resolvedBy": "Opgelost door de pathologenbeoordeling van {{name}}.",
+      "save": "Notitie opslaan",
+      "saveToRevise": "Bevestigd. Sla uw herziene beoordeling op om deze af te sluiten.",
+      "sectionLabel": "Betreft",
+      "sections": {
+        "additional": "Secundaire interpretaties",
+        "adequacy": "Beoordeelbaarheid",
+        "generalCategorization": "Algemene categorisering",
+        "notes": "Notities",
+        "primary": "Primaire interpretatie",
+        "recommendations": "Aanbevelingen"
+      },
+      "status": {
+        "acknowledged": "Bevestigd",
+        "open": "Open",
+        "resolvedByPathologist": "Opgelost door patholoog",
+        "revised": "Herzien"
+      }
+    },
+    "revise": {
+      "banner": "De beoordeling van {{name}} wordt als uw eigen herzien. Opslaan maakt haar de einddiagnose en opent de handtekening; de beoordeling van {{name}} blijft zoals vastgelegd.",
+      "button": "Herzien en autoriseren",
+      "cancel": "Herziening stoppen"
+    },
+    "role": {
+      "auto": "Automatisch bepaald op basis van de beoordelingsgeschiedenis en uw accountrol.",
+      "editing": "U hebt dit dossier al beoordeeld — u bewerkt hieronder uw eigen beoordeling.",
+      "label": "Uw rol bij deze beoordeling"
+    },
+    "roles": {
+      "pathologist_review": "Beoordeling door patholoog",
+      "post_signout_peer_review_random": "Peer review na ondertekening — Willekeurige selectie",
+      "post_signout_peer_review_targeted": "Peer review na ondertekening — Gericht hoogrisico",
+      "primary_screen": "Primaire screener",
+      "qc_random_selection": "QC — Willekeurige selectie",
+      "qc_targeted_high_risk": "QC — Gericht hoogrisico",
+      "secondary_reviewer": "Tweede beoordelaar"
+    },
     "roseBtn": "ROSE",
     "roseDrawer": {
       "addPassBtn": "Punctie toevoegen",
@@ -4809,6 +5829,34 @@
       "priorEvaluations": "Eerdere ROSE-beoordelingen",
       "recordNew": "Nieuwe beoordeling registreren",
       "saveBtn": "Beoordeling opslaan"
+    },
+    "search": {
+      "commentPlaceholder": "Opmerking (optioneel)",
+      "remove": "Verwijderen"
+    },
+    "specimens": {
+      "finalizeEarly": {
+        "button": "Casus nu afsluiten",
+        "confirm": "Casus afsluiten",
+        "done": "Casus afgesloten. De nog niet geautoriseerde monsters zijn met uw reden vastgelegd.",
+        "errors": {
+          "alreadyComplete": "Alle monsters zijn al geautoriseerd.",
+          "notPermitted": "U hebt geen toestemming om een cytologiecasus vervroegd af te sluiten.",
+          "nothingSignedOut": "Autoriseer eerst minstens één monster.",
+          "reasonRequired": "Geef een reden om nu af te sluiten."
+        },
+        "notice": "Casus op {{date}} afgesloten door {{name}} voordat alle monsters waren geautoriseerd: {{reason}}",
+        "reasonLabel_one": "Waarom nu afsluiten? {{count}} monster is nog niet geautoriseerd.",
+        "reasonLabel_other": "Waarom nu afsluiten? {{count}} monsters zijn nog niet geautoriseerd."
+      },
+      "progress": "{{signed}} van {{total}} monsters geautoriseerd",
+      "status": {
+        "draft": "Concept",
+        "pendingRevision": "Herziening gevraagd",
+        "signedOut": "Geautoriseerd"
+      },
+      "tabLabel": "Monster {{label}}",
+      "tabsLabel": "Cytologische monsters"
     },
     "synopticBtn": "Synoptisch",
     "synopticDrawer": {
@@ -4847,7 +5895,26 @@
       "unvalidatedTermsTitle": "Niet-gevalideerde klinische termen",
       "validationError": "Vul alle vereiste synoptische velden in."
     },
-    "teamBtn": "Team"
+    "teamBtn": "Team",
+    "toasts": {
+      "correlationRecorded": "Cyto-histologische correlatie geregistreerd.",
+      "retrospectiveFlagged_one": "{{count}} eerder negatief cytologieresultaat van deze patiënte gemarkeerd voor verplichte retrospectieve 5-jaarsherziening.",
+      "retrospectiveFlagged_other": "{{count}} eerdere negatieve cytologieresultaten van deze patiënte gemarkeerd voor verplichte retrospectieve 5-jaarsherziening.",
+      "retrospectiveRecorded": "Retrospectieve 5-jaarsherziening geregistreerd."
+    },
+    "versions": {
+      "load": "In formulier laden",
+      "loaded": "Eerdere versie geladen. Sla op om deze te herstellen; de huidige blijft als versie bewaard.",
+      "toggle_one": "{{count}} eerdere versie",
+      "toggle_other": "{{count}} eerdere versies"
+    },
+    "workload": {
+      "approaching": "U nadert uw pro-rata CLIA-screeninglimiet voor deze sessie ({{used}}/{{max}} SCU).",
+      "blockedReason": "U hebt uw pro-rata CLIA-screeninglimiet voor deze sessie bereikt. Dit dossier en uw resterende wachtrij worden toegewezen aan andere beschikbare cytotechnologen.",
+      "escalationReason": "Dit dossier wordt opgeslagen — reeds geregistreerd klinisch werk gaat nooit verloren — maar u zit nu boven uw pro-rata CLIA-screeninglimiet. Uw resterende wachtrij wordt toegewezen aan andere beschikbare cytotechnologen.",
+      "exceeded": "Geblokkeerd — pro-rata CLIA-limiet bereikt ({{used}}/{{max}} SCU).",
+      "reassigned": "Dit dossier is opnieuw toegewezen — uw resterende wachtrij is teruggegeven aan de pool voor andere beschikbare cytotechnologen."
+    }
   },
   "cytologyScreeningStrategySection": {
     "strategies": {
@@ -4859,8 +5926,19 @@
     "title": "Cytologische screeningstrategie"
   },
   "cytologySignOut": {
+    "blockReasons": {
+      "flagged_for_qc": "gemarkeerd voor kwaliteitscontrole",
+      "non_gyn_specimen": "niet-gynaecologisch monster",
+      "pending_author_revision": "herziening gevraagd aan de auteur",
+      "requires_pathologist_review": "beoordeling door patholoog nodig",
+      "unsatisfactory_adequacy": "inadequaat materiaal",
+      "unvalidated_synoptic_translation": "niet-gevalideerde synoptische vertaling"
+    },
     "confirmTitle": "Bevestig uw handtekening om deze casus af te tekenen",
+    "ctNotPermitted": "U hebt geen toestemming om cytologieverslagen als cytotechnoloog te autoriseren. Een patholoog moet dit verslag autoriseren.",
+    "failed": "De autorisatie kon niet worden opgeslagen. Probeer het opnieuw.",
     "finalDiagnosisPathologistOnly": "Alleen een patholoog mag deze beoordeling als einddiagnose kiezen. Ze vereist een beoordeling door een patholoog vóór aftekenen.",
+    "notPermitted": "U hebt geen toestemming om cytologieverslagen te autoriseren.",
     "pathologistRequired": "Aftekenen door een patholoog vereist: {{reasons}}",
     "ready": "Klaar om af te tekenen.",
     "releasedForCountersign": "Casus {{caseId}} vrijgegeven voor medeondertekening",
@@ -4868,11 +5946,14 @@
     "signOut": "Aftekenen",
     "signedOut": "Verslag afgetekend.",
     "signedOutBanner": "Afgetekend door {{name}} op {{date}}.",
-    "signing": "Bezig met aftekenen…"
+    "signing": "Bezig met aftekenen…",
+    "specimenSignedOut_one": "Monster geautoriseerd. Nog {{count}} monster te autoriseren voordat de casus definitief is.",
+    "specimenSignedOut_other": "Monster geautoriseerd. Nog {{count}} monsters te autoriseren voordat de casus definitief is."
   },
   "cytologyTab": {
     "sections": {
       "assistedInstrumentation": "Ondersteunde instrumentatie",
+      "countryRules": "Landspecifieke regels",
       "cytoHistologicCorrelation": "Cyto-histologische correlatie (SNOMED)",
       "dailyWorkloadCap": "Dagelijkse werklastlimiet",
       "nonGynRouting": "Niet-gynaecologische routering",
@@ -5348,6 +6429,19 @@
     },
     "title": "Voorbeeld van factuurexport"
   },
+  "dictionaryWordList": {
+    "addButton": "Toevoegen",
+    "addPlaceholder": "Een woord toevoegen",
+    "addedBy": "Toegevoegd door {{name}}, {{when}}",
+    "refusal": {
+      "empty": "Voer een woord in.",
+      "notAWord": "Er kan maar één woord worden toegevoegd.",
+      "notFound": "Dat woord staat niet in het woordenboek.",
+      "notPermitted": "U hebt geen toestemming om dit woordenboek te wijzigen.",
+      "tooLong": "Dat woord is te lang."
+    },
+    "removeAria": "‘{{word}}’ verwijderen"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "De definitieve categorie wijkt af van de vriescoupe — dit moet worden geregistreerd als een discordantie voordat u kunt doorgaan met ondertekenen.",
     "commentLabel": "Opmerking — verplicht",
@@ -5436,8 +6530,7 @@
   "disposalQueue": {
     "computing": "De actuele wachtrij wordt berekend…",
     "dismissHint": "Tik ergens om te sluiten",
-    "disposedFlash": "{{displayId}} afgevoerd",
-    "eligibleSince": "In aanmerking sinds {{date}}",
+    "disposedFlash": "✓ {{displayId}} afgevoerd",
     "empty": "Er komt momenteel niets in aanmerking voor afvoer op deze locatie.",
     "materialType": {
       "block": "Weefselblok",
@@ -5447,10 +6540,24 @@
     "noStationAllLocations": "Geen scanstation ingesteld — alle locaties worden weergegeven. Stel een station in voor een locatiegebonden wachtrij.",
     "pageSubtitle": "Een echte, berekende lijst van blokken en objectglaasjes die op dit moment daadwerkelijk in aanmerking komen voor afvoer — bewaartermijn verstreken, geen actieve blokkering, nog niet afgevoerd. Scan de barcode van een fysiek item om het af te voeren; alles wat niet overeenkomt wordt onmiddellijk op het scherm afgewezen.",
     "pageTitle": "Afvoerwachtrij",
+    "refusals": {
+      "alreadyDisposed": "{{displayId}} is al afgevoerd op {{date}}.",
+      "noMatch": "‘{{displayId}}’ komt niet overeen met een cassette, coupe of container van een casus.",
+      "notEligible": "{{displayId}} kan pas worden afgevoerd op {{date}}, wanneer de bewaartermijn afloopt.",
+      "notFound": "{{displayId}} is niet gevonden in het casusdossier.",
+      "notPermitted": "U hebt geen toestemming om bewaard materiaal af te voeren.",
+      "notSignedOut": "De casus van {{displayId}} is nog niet geautoriseerd, dus de bewaartermijn is nog niet begonnen.",
+      "onHold": "{{displayId}} kan niet worden afgevoerd: de casus heeft een actieve bewaarblokkade ({{note}}).",
+      "wrongFacility": "{{displayId}} is het laatst op een andere locatie geregistreerd, niet in deze instelling."
+    },
+    "rowDetail": "{{specimen}} · In aanmerking sinds {{date}}",
+    "rowDetailWithLocation": "{{specimen}} · In aanmerking sinds {{date}} · {{location}}",
     "scanHint": "Scan de barcode van een cassette of objectglaasje om het af te voeren. Handsfree — geen klik in een veld nodig.",
     "scopedTo": "Beperkt tot {{facility}}.",
     "sectionLabel": "In aanmerking voor afvoer ({{count}})",
-    "shared": "(gedeeld)"
+    "shared": "(gedeeld)",
+    "sharedSpecimens": "{{specimens}} (gedeeld)",
+    "unknownDate": "een onbekende datum"
   },
   "disposalReport": {
     "columns": {
@@ -5471,6 +6578,7 @@
       "itemId": "Item-ID",
       "location": "Locatie",
       "materialType": "Materiaaltype",
+      "notPermitted": "U hebt geen toestemming om het afvoerrapport te exporteren.",
       "specimen": "Specimen"
     },
     "filters": {
@@ -5504,6 +6612,12 @@
     },
     "fontFamilyLabel": "Lettertypefamilie",
     "fontSizeLabel": "Lettergrootte (px)",
+    "pageSetup": {
+      "hint": "Het papierformaat en de afdrukmarges van het laboratorium, in millimeter. Het sjabloonvoorbeeld opent met deze instellingen.",
+      "marginLabel": "Marge {{side}} (mm)",
+      "pageSizeLabel": "Paginaformaat",
+      "title": "Paginaformaat en marges"
+    },
     "previewText": "Voorbeeld — {{category}}-tekst wordt zo weergegeven, organisatiebreed, tenzij een sjabloon of onderdeel dit overschrijft.",
     "saved": "Opgeslagen",
     "subtitle": "De standaardtekststijl die wordt toegepast op elk rapport binnen de organisatie voor elk van deze drie gebieden, tenzij een specifiek rapportsjabloon zijn eigen stijl instelt (het eigen stijlpaneel van de sjabloonassemblage-editor). Afzonderlijke onderdelen binnen een sjabloon kunnen dit nog steeds overschrijven voor specifieke velden — bijvoorbeeld door de einddiagnose vet en met hoofdletters weer te geven terwijl al het andere op de standaardstijl van de hoofdtekst blijft.",
@@ -5568,9 +6682,20 @@
     "unresolvedSectionTitle": "Dossiers met onopgeloste driftcorrectie"
   },
   "embeddingStation": {
+    "blockStatus": {
+      "cancelled": "Geannuleerd",
+      "damaged": "Beschadigd",
+      "embedded": "Ingebed",
+      "exhausted": "Uitgeput",
+      "grossed": "Gesneden",
+      "lost": "Verloren",
+      "pending": "In afwachting"
+    },
     "comments": {
       "add": "Opmerking toevoegen",
       "empty": "Nog geen opmerkingen.",
+      "label": "Opmerking",
+      "meta": "{{author}} — {{when}}",
       "placeholder": "Voeg een opmerking toe…"
     },
     "context": {
@@ -5607,6 +6732,7 @@
     "hardware": {
       "deviceStatus": "Apparaatstatus",
       "labelPreview": "Etiketvoorbeeld",
+      "noBlock": "Er is geen blok geopend. Scan eerst een cassette.",
       "noPrinter": "Geen printer geconfigureerd",
       "noStation": "Geen scanstation geselecteerd voor dit apparaat — stel er één in via de stationsindicator in de navigatiebalk.",
       "notConfigured": "Dit station is niet geconfigureerd voor echt cassette-etikettendruk.",
@@ -5615,6 +6741,7 @@
       "reprintCassette": "Cassette opnieuw afdrukken",
       "reprintCount": "{{count}}× opnieuw afgedrukt, laatste reden: ",
       "reprintFailed": "Opnieuw afdrukken mislukt — zie het bericht hierboven.",
+      "stationNotFound": "Het scanstation is niet gevonden.",
       "status": {
         "error": "Printfout",
         "offline": "Offline",
@@ -5622,10 +6749,22 @@
       }
     },
     "mold": {
+      "size": {
+        "megaMold": "Megagietmal",
+        "mold15x15": "15 × 15 mm",
+        "mold24x24": "24 × 24 mm",
+        "mold24x30": "24 × 30 mm",
+        "mold7x7": "7 × 7 mm"
+      },
       "title": "Standaard malmaat"
     },
     "orientation": {
       "placeholder": "Vrije tekst voor oriëntatienotities…",
+      "quickFill": {
+        "crossSectionUp": "Dwarsdoorsnede naar boven",
+        "epitheliumDown": "Epitheeloppervlak naar beneden",
+        "onEdge": "Op de rand inbedden"
+      },
       "title": "Oriëntatie-instructies"
     },
     "pageTitle": "Inbedstation",
@@ -5633,12 +6772,27 @@
       "confirm": "Bevestigen",
       "expected": "Verwacht (bij snijden): ",
       "observed": "Waargenomen bij inbedding: ",
+      "observedLabel": "Waargenomen aantal",
       "title": "Verificatie aantal weefselstukjes"
     },
     "reprintReason": {
       "body": "Het opnieuw afdrukken van een cassette-etiket vereist een reden, voor compliance-auditing.",
+      "label": "Reden",
+      "reason": {
+        "fadedBarcode": "Vervaagde barcode",
+        "mechanicalJam": "Mechanische storing",
+        "other": "Anders",
+        "waxBuildup": "Parafine-opbouw"
+      },
+      "reprint": "Opnieuw afdrukken",
       "select": "Selecteer een reden…",
       "title": "Reden vereist"
+    },
+    "scanErrors": {
+      "blockNotFound": "Blok {{block}} is niet gevonden.",
+      "notResolved": "Deze scan komt niet overeen met een casus of blok. Controleer de barcode en probeer het opnieuw.",
+      "specimenNotFound": "Het specimen is niet gevonden in deze casus.",
+      "unsupportedTarget": "Het inbedstation accepteert alleen blokcassettes. Matrix- of celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
     },
     "scanPlaceholder": "Scan of typ een barcode…",
     "scanPrompt": "Scan een cassette-barcode om te beginnen",
@@ -5680,7 +6834,8 @@
       "CASSETTE_SUPPLY_DEPLETED": "Uitgeput",
       "CASSETTE_SUPPLY_LOW": "Laag",
       "COLOR_UNAVAILABLE": "Niet beschikbaar"
-    }
+    },
+    "supplyWarningForColor": "{{color}}: {{state}}"
   },
   "enhancementRequestButton": {
     "enhancementTooltip": "Verbeteringsverzoek indienen",
@@ -5849,11 +7004,29 @@
   },
   "equipmentSection": {
     "addButton": "+ Apparatuur toevoegen",
+    "deck": {
+      "add": "+ Positie toevoegen",
+      "deck": "Deck of vak",
+      "deckPlaceholder": "bijv. Deck 1",
+      "hint": "De posities op het deck van deze analyser en wat elke positie opneemt. Rekbelading biedt alleen passende posities aan; de positie-ID staat op de barcode van de deckpositie (LOC-INST-code-positie).",
+      "none": "Nog geen posities.",
+      "rackType": {
+        "extraction_plate": "Extractieplaat",
+        "reagent_cartridge": "Reagenscartridge",
+        "sample_tube_rack": "Monsterbuizenrek"
+      },
+      "rackTypes": "Neemt op",
+      "remove": "Verwijderen",
+      "slotId": "Positie-ID",
+      "slotIdPlaceholder": "SLOT_A1",
+      "title": "Deckindeling"
+    },
     "emptyRow": "Geen apparatuur voldoet aan het huidige filter.",
     "errors": {
       "codeFormat": "Gebruik alleen letters, cijfers, \"_\" en \"-\".",
       "codeRequired": "Een code is verplicht.",
       "codeTaken": "Een ander apparaat heeft deze code al.",
+      "deckSlotsInvalid": "Elke positie heeft een ID van letters, cijfers of \"_\" nodig (geen dubbele) en minstens één rektype.",
       "facilityRequired": "Kies het uitvoerende laboratorium.",
       "intervalInvalid": "Gebruik een geheel aantal dagen, 1 tot 3650.",
       "kindRequired": "Kies een soort.",
@@ -5917,6 +7090,11 @@
     "subtitle": "Alle apparaten van het laboratorium in één register. Workflowinstellingen (printers, macroscopie-apparatuur) blijven op hun eigen schermen; moleculaire batches gebruiken de actieve analysers.",
     "title": "Apparatuur",
     "wasDue": "Verlopen op {{date}}"
+  },
+  "equipmentServiceLog": {
+    "logEntry": "Registratie toevoegen",
+    "pageSubtitle": "Onderhouds- en kalibratiestatus van elk actief instrument. Leg vast wat u deed met ‘Registratie toevoegen’; apparatuur toevoegen of wijzigen gaat via Configuratie → Systeem → Apparatuur.",
+    "pageTitle": "Apparatuurlogboek"
   },
   "evaluateMicroscopicFinalizeGate": {
     "incompleteSynopticFields": "Het synoptische sjabloon van dit preparaat bevat verplichte velden die nog niet zijn ingevuld.",
@@ -6136,6 +7314,9 @@
       "phone": "Telefoon",
       "placeOfServiceCode": "Plaats-van-dienstcode",
       "placeOfServiceCodeHint": "De echte, actuele CMS-plaats-van-dienstcodeset — weerspiegelt de omgeving waar het monster daadwerkelijk wordt afgenomen, niet de eigen kenmerken van het uitvoerend laboratorium van deze faciliteit.",
+      "reportLanguage": "Verslagtaal",
+      "reportLanguageDefault": "Standaard voor de jurisdictie ({{language}})",
+      "reportLanguageHint": "De taal waarin dit laboratorium zijn verslagen schrijft: de labels, sectiekoppen en datums op de pdf van het verslag. Ze wordt bij de autorisatie met het verslag bewaard, en correcties en addenda behouden haar. De formulering van diagnoses komt uit de woordenboeken.",
       "roles": "Rollen",
       "rolesHint": "Een faciliteit kan elke combinatie van rollen hebben — een ziekenhuis kan bijvoorbeeld zowel een uitvoerend laboratorium als een interne bestelfaciliteit zijn. De tabbladen HL7, Rapportage/Doorlooptijd en AI & prestaties hierboven verschijnen op basis van welke rollen hier zijn aangevinkt.",
       "specimenLabeling": "Monster-/blok-labeling",
@@ -6153,6 +7334,8 @@
       "authTypeApiKey": "API-sleutel",
       "authTypeBasic": "Basis",
       "authTypeNone": "Geen",
+      "consolidateOutboundPdfs": "Eén gecombineerde pdf per casus sturen (het LIS van dit lab neemt één pdf per accessienummer aan)",
+      "consolidateOutboundPdfsNote": "Uit: één pdf per synoptisch verslag, zodat een correctie alleen dat deel vervangt. Aan: alle verslagen van de casus in één pdf, bij elke wijziging opnieuw volledig verzonden; de gestructureerde gegevens gaan nog steeds per verslag. Orchestration-resultaten dragen dan alleen de pdf van het volledige verslag.",
       "credentialConfigured": "Referentie geconfigureerd",
       "credentialConfiguredLabel": "Er is een echte referentie ingericht voor deze verbinding",
       "endpoint": "Eindpunt interface-engine",
@@ -6169,6 +7352,7 @@
       "optional": "Optioneel",
       "outboundChannelOverride": "Overschrijving uitgaand kanaal",
       "outboundChannelOverridePlaceholder": "bijv. een aparte SFTP-map of lokale VPN-listener — optioneel",
+      "outboundDocuments": "Documenten naar het LIS",
       "overrideRouting": "Ondernemingsroutering voor deze faciliteit overschrijven",
       "receivingFacilityId": "ID ontvangende faciliteit (MSH-6)",
       "sendingFacilityId": "ID verzendende faciliteit (MSH-4)",
@@ -6217,6 +7401,11 @@
     },
     "saveChanges": "Wijzigingen opslaan",
     "saved": "Opgeslagen",
+    "spelling": {
+      "empty": "Nog geen woorden toegevoegd voor dit laboratorium.",
+      "intro": "Woorden die de spellingcontrole accepteert in elk verslag voor de casussen van dit laboratorium. Elke wijziging wordt in het auditlogboek vastgelegd.",
+      "title": "Spellingwoordenboek"
+    },
     "tabs": {
       "ai": "AI & prestaties",
       "general": "Algemeen",
@@ -6224,6 +7413,7 @@
       "lisIntegration": "LIS-integratie",
       "locations": "Locaties",
       "reporting": "Rapportage",
+      "spelling": "Spelling",
       "tat": "Doorlooptijd & escalatie"
     },
     "tat": {
@@ -6329,20 +7519,137 @@
         "requestingProvider": "Aanvragende zorgverlener",
         "specimenDescription": "Omschrijving van het specimen"
       },
+      "addOnOrder": {
+        "addOnBlocks": "Blokken",
+        "addOnLines": "Bestelregels",
+        "cuttingInstructions": "Instructies voor de microtoomplek",
+        "exceptionNote": "Uitzonderingsnotitie",
+        "levelDepth": "Niveaudiepte (µm)",
+        "responseNote": "Antwoordnotitie",
+        "sendOutLab": "Referentie- / extern lab"
+      },
+      "batchManagement": {
+        "abortReason": "Reden voor afbreken",
+        "coldChainNote": "Koudeketennotitie",
+        "cytologyStainType": "Kleuring",
+        "decalDuration": "Doelduur",
+        "overrideReason": "Reden voor overschrijven",
+        "protocol": "Protocol",
+        "rackId": "Rek-ID",
+        "referralDestination": "Bestemming referentielab",
+        "referralTestRequested": "Gevraagde test / panel",
+        "stainingReagentLots": "Reagens- / oplossingsloten"
+      },
+      "cytology": {
+        "cisoeaAdequacy": "A — Adequaatheid",
+        "cisoeaComments": "Opmerking bij elke as",
+        "cisoeaComposition": "C — Samenstelling",
+        "cisoeaEndocervical": "E — Endocervicaal epitheel",
+        "cisoeaInflammation": "I — Inflammatie",
+        "cisoeaNotes": "CISOE-A-notities",
+        "cisoeaOtherEndometrium": "O — Overig / endometrium",
+        "cisoeaSquamous": "S — Plaveiselepitheel",
+        "histologyDiagnosis": "Histologische diagnose",
+        "histologyOutcome": "Correlatie-uitkomst",
+        "retroCorrectiveAction": "Corrigerende maatregel",
+        "retroOutcome": "Uitkomst van de retrospectieve herziening",
+        "reviewAdditional": "Aanvullende interpretaties",
+        "reviewAdequacy": "Adequaatheid van het staal",
+        "reviewGeneralCategorization": "Algemene categorisering",
+        "reviewLmp": "Laatste menstruatie",
+        "reviewNotes": "Beoordelingsnotities",
+        "reviewPrimaryComment": "Opmerking bij primaire interpretatie",
+        "reviewPrimaryInterpretation": "Primaire interpretatie",
+        "reviewRecommendations": "Aanbevelingen",
+        "revisionAddendumText": "Tekst van het addendum",
+        "revisionReason": "Reden voor correctie / addendum"
+      },
+      "embedding": {
+        "commentText": "Opmerkingstekst",
+        "moldSize": "Maat van de gietmal",
+        "observedPieceCount": "Waargenomen aantal stukjes",
+        "orientationInstructions": "Oriëntatie-instructies",
+        "reprintReason": "Reden voor opnieuw afdrukken"
+      },
       "grossing": {
         "blocks": "Minstens één blokje",
         "fixationEndedAt": "Eindtijd fixatie",
         "fixativeRatioConfirmed": "Verhouding fixatief/weefsel bevestigd",
         "pieceCount": "Aantal stukjes",
+        "pieceDescription": "Beschrijving van de stukjes",
         "protocol": "Uitsnijprotocol gekoppeld"
       },
+      "intraop": {
+        "dateOfBirth": "Geboortedatum",
+        "facility": "Instelling",
+        "frozenCategory": "Voorlopige categorie",
+        "frozenDiagnosis": "Vriescoupediagnose",
+        "location": "Locatie (zaal)",
+        "mergeCase": "Casus om mee samen te voegen",
+        "mrn": "Patiëntnummer (MRN)",
+        "orNumber": "OK-nummer",
+        "patientConfirmed": "Identiteit van de patiënt bevestigd",
+        "patientName": "Patiëntnaam",
+        "quickGross": "Snelle macroscopie",
+        "specimenLabel": "Preparaatlabel",
+        "surgeon": "Chirurg",
+        "surgeonUnavailableNote": "Chirurg niet beschikbaar: notitie (\"Anders\")",
+        "surgeonUnavailableReason": "Chirurg niet beschikbaar: reden",
+        "touchPrepSkipNote": "Reden voor het overslaan van de touch-prep (\"Anders\")",
+        "verbalReportNote": "Notitie bij de mondelinge melding aan de chirurg",
+        "verbalReportReadBack": "Terugherhaling bevestigd",
+        "verbalReportRecipient": "Ontvangen door",
+        "verbalReportRole": "Functie van de ontvanger"
+      },
+      "messaging": {
+        "messageBody": "Berichttekst",
+        "messageRecipient": "Ontvanger",
+        "messageReply": "Antwoordtekst",
+        "messageSubject": "Onderwerp",
+        "secureEmailBody": "Berichttekst",
+        "secureEmailSubject": "Onderwerp",
+        "secureEmailTo": "E-mailadres van de ontvanger"
+      },
+      "microtomy": {
+        "cancelReason": "Reden voor annulering (afgedrukt glaasje)",
+        "commentText": "Opmerkingstekst",
+        "levelDepth": "Niveaudiepte (µm)",
+        "reprintReason": "Reden voor herdruk",
+        "stainType": "Kleuring"
+      },
+      "molecularBatch": {
+        "aliquotVolume": "Aliquotvolume (µL)",
+        "assayCode": "Test",
+        "assayName": "Testnaam",
+        "controlLotInfo": "Controlelot en vervaldatum",
+        "deckSlot": "Deckpositie",
+        "patientSpecimen": "Monster van de patiëntwell (barcode of accessie)",
+        "reagentLots": "Reagensloten",
+        "supersedeReason": "Reden voor vervanging",
+        "targetInstrument": "Doelinstrument"
+      },
+      "molecularRack": {
+        "assay": "Assay",
+        "deckSlot": "Deckpositie",
+        "instrument": "Instrument",
+        "rackBarcode": "Rekidentificatie / barcode",
+        "sampleMapping": "Monster-ID voor elke bezette positie"
+      },
       "report": {
+        "addOrdersCassetteLabel": "Orders toevoegen: cassettelabel",
+        "addOrdersSpecimen": "Orders toevoegen: preparaat voor het nieuwe blok",
         "addendumNotification": "Gemelde clinicus bij een addendum (wie en hoe)",
         "addendumTitle": "Titel van addendum",
         "amendmentNotification": "Gemelde clinicus bij een grote wijziging (wie en hoe)",
         "anatomicSite": "Anatomische locatie",
         "arrayCassetteLabel": "Cassettelabel",
         "arraySpecimens": "Minstens twee specimens",
+        "autopsyConsentGivenAt": "Toestemming gegeven op",
+        "autopsyConsentScope": "Reikwijdte van de toestemming",
+        "autopsyOrderDate": "Datum van het schriftelijke bevel",
+        "autopsyOrderReference": "Referentie van het schriftelijke bevel",
+        "autopsyReleasedBy": "Vrijgegeven door",
+        "autopsyReleasedTo": "Lichaam vrijgegeven aan",
         "blockCancelReason": "Reden voor het annuleren van een blokje",
         "caseHoldNote": "Notitie bij dossierblokkade",
         "caseHoldReleaseNote": "Opheffingsnotitie bij dossierblokkade",
@@ -6367,9 +7674,14 @@
         "discordanceRootCause": "Grondoorzaak",
         "discordanceRootCauseNote": "Toelichting als de grondoorzaak Overig is",
         "discordanceSeverity": "Klinische impact",
+        "fixationTime": "Fixatietijd (of bevestiging dat die onmogelijk is)",
+        "fixationUnrecoverableComment": "Reden waarom geen fixatietijd mogelijk is",
         "laterality": "Lateraliteit",
         "postSignoutBillingComment": "Opmerking bij de factureringswijziging",
         "postSignoutBillingReason": "Reden van de factureringswijziging",
+        "preAnalyticCollectedAt": "Afnamedatum/-tijd (of administratieve uitzondering)",
+        "preAnalyticOverrideComment": "Motivering van de uitzondering",
+        "preAnalyticReceivedAt": "Ontvangstdatum/-tijd (of administratieve uitzondering)",
         "restainReason": "Reden voor de herkleuring",
         "restainStain": "Kleuring voor de herkleuring",
         "retentionHoldNote": "Notitie bij bewaarblokkade",
@@ -6380,57 +7692,168 @@
         "snomedTypeCode": "SNOMED-monstertype",
         "specimenDescription": "Specimenbeschrijving",
         "specimenLabel": "Preparaatlabel"
+      },
+      "slideDistribution": {
+        "checkoutTarget": "een patholoog, pool of locatie",
+        "courierBagId": "Koerierstransporttas",
+        "exceptionNote": "Uitzonderingsnotitie",
+        "rackId": "Rek-ID",
+        "readingPathologist": "Patholoog of pool",
+        "reprintReason": "Reden voor opnieuw afdrukken",
+        "scannerInstrument": "Scannerinstrument",
+        "slideFolderId": "ID van de glaasjesmap",
+        "slotPosition": "Slotpositie",
+        "trayNumber": "Traynummer"
       }
     },
     "forOrganisation": "Instellingen voor {{organisation}}",
     "groups": {
+      "addOnException": "Blokuitzondering melden",
+      "addOnOrder": "Aanvullende bestelling plaatsen",
+      "addOnResponse": "Antwoord van de patholoog op een uitzondering",
+      "addOrders": "Orders toevoegen: blokjes en hersnedes",
+      "autopsy": "Autopsieformulieren",
+      "batchClose": "Een batch afsluiten",
+      "batchCreate": "Nieuwe container",
       "billingChanges": "Factureringswijzigingen na afsluiting",
       "biopsyArray": "Biopsie-arrays",
       "blockChanges": "Annulering van blokjes en herkleuringen",
       "blocks": "Blokjes",
+      "cassetteReprint": "Cassette-etiket opnieuw afdrukken",
+      "cisoea": "CISOE-A-beoordeling",
       "comments": "Opmerkingen",
       "criticalFindings": "Kritieke bevindingen",
+      "cytologyReview": "Cytologische beoordeling (Bethesda)",
+      "cytologyRevision": "Correctie / addendum",
       "delegation": "Delegatie",
       "discordance": "Afstemming vriescoupe-definitief",
+      "embeddingConfirm": "Inbedding bevestigen",
       "fixation": "Fixatie",
+      "histologyCorrelation": "Cyto-histologische correlatie",
       "holds": "Blokkades",
+      "intraopMerge": "Samenvoegen met een casus",
+      "intraopReport": "Mondelinge melding aan de chirurg",
+      "intraopSession": "Nieuwe sessie",
+      "intraopSpecimen": "Preparaten",
+      "intraopTouchPrep": "Touch-prep",
+      "molecularRackContents": "Het rek en zijn buizen",
+      "molecularRackPlacement": "Het rek op het instrument plaatsen",
+      "molecularRun": "De run",
+      "molecularSupersede": "Klonen en vervangen",
+      "molecularWells": "Wells",
+      "newMessage": "Nieuw bericht",
       "order": "Aanvraag",
       "patient": "Patiënt",
+      "reply": "Antwoord",
+      "retrospective": "Retrospectieve 5-jaarsherziening",
       "revisions": "Wijzigingen en addenda",
+      "scannerLoad": "Routering naar de scanner",
+      "secureEmail": "Beveiligde e-mail",
+      "signoutGates": "Controles vóór ondertekening",
+      "slideCheckout": "Fysieke uitgifte",
+      "slideException": "Uitzonderingen bij glaasjes",
+      "slideLabelReprint": "Glaasjesetiket opnieuw afdrukken",
+      "slideOrders": "Glaasjesopdrachten",
       "specimenDetails": "Specimen toevoegen of bewerken",
       "specimens": "Specimens"
     },
     "hints": {
       "blocksScope": "Gecontroleerd bij elk specimen met een protocol, behalve cytologische preparaten",
+      "controlWellsOnly": "Alleen controle- en kalibratorwells.",
+      "criticalNotSurgeonOnly": "Alleen als een kritieke uitslag naar iemand anders dan de operateur gaat",
+      "cytologyStainingOnly": "Alleen cytologische kleuringsbatches.",
+      "decalOnly": "Alleen ontkalkings- / speciale verwerkingsbatches.",
       "delegationNoteByType": "Een delegatietype kan ook een eigen notitie vereisen (Delegatietypes)",
-      "protocolOff": "Uitgeschakeld: specimens die zonder protocol worden afgerond, gaan naar een tweede beoordeling"
+      "gynOnly": "Alleen getoond voor gynaecologische cytologie.",
+      "matrixBlocksToo": "Gecontroleerd bij elk blok, matrixblokken inbegrepen, wanneer de macroscopie wordt afgerond",
+      "multiSlotOnly": "Alleen als het instrument meer dan één positie voor een monsterrek heeft.",
+      "noAdtMatchOnly": "Alleen gevraagd als de patiënt handmatig wordt ingevoerd (geen ADT-match)",
+      "nonNegativeOnly": "Alleen gevraagd als de uitkomst niet „Negatief bevestigd” is.",
+      "occupiedPositionsOnly": "Alleen bezette posities; het rek heeft minstens één buis nodig.",
+      "otherReasonOnly": "Alleen gevraagd als de reden \"Anders\" is",
+      "patientWellsOnly": "Alleen patiëntwells.",
+      "protocolOff": "Uitgeschakeld: specimens die zonder protocol worden afgerond, gaan naar een tweede beoordeling",
+      "recutLinesOnly": "Alleen hersnijregels.",
+      "referralOnly": "Alleen batches voor externe verwijzing.",
+      "reusableRackOnly": "Alleen herbruikbare rekken.",
+      "sendOutLinesOnly": "Alleen moleculaire/externe regels; ingevuld vanuit de goedgekeurde labs van de test.",
+      "stainingOnly": "Alleen kleuringsbatches.",
+      "withFrozenDiagnosis": "Alleen gevraagd als er een vriescoupediagnose is ingevuld"
     },
     "lockReasons": {
+      "addOnOrderContent": "Een aanvullende bestelling wordt uit gekozen blokken gesneden en vermeldt wat er besteld is.",
       "amendmentNotification": "Bij een gewijzigde diagnose moet worden vastgelegd welke clinicus hoe is geïnformeerd (CAP, RCPath).",
+      "autopsyAuthority": "Het macroscopisch onderzoek is geblokkeerd tot het schriftelijke bevel (medisch-juridische gevallen) of de toestemming (ziekenhuisgevallen met toestemming) in het dossier zit.",
+      "batchCustodyChange": "Een batch afbreken of toch afronden verandert de bewakingsketen, dus de reden wordt vastgelegd.",
+      "batchProtocol": "Een batch legt het gebruikte protocol vast.",
+      "batchStain": "Een cytologische kleuringsbatch wordt bepaald door de kleuring.",
       "billingAudit": "Een factureringswijziging na afsluiting moet de reden vastleggen, zodat kost en tegoed controleerbaar zijn.",
       "billingCodeCorrection": "De correctie factureert de nieuwe code, dus die moet verschillen van de code die wordt gecorrigeerd.",
       "biopsyArray": "Een array plaatst twee of meer specimens in één gelabelde cassette.",
+      "bodyReleaseCustody": "Bewaarketen: bij het vrijgeven van een lichaam moet worden vastgelegd wie het ontving en wie het vrijgaf.",
+      "cassetteReprintReason": "Voor het opnieuw afdrukken van een cassette-etiket is een reden nodig voor de registratie van dubbele etiketten en traceerbaarheid.",
+      "cisoeaMatrix": "CISOE-A scoort elke as onafhankelijk; het resultaat kan niet worden berekend als een as ontbreekt.",
+      "coldChainRecord": "Een bevestigde temperatuurafwijking heeft een notitie nodig voor het koudeketenregister.",
       "commentText": "Een opmerking heeft tekst nodig.",
+      "controlTraceability": "Een controlewell legt lot en vervaldatum vast, zodat een verlopen controle niet kan draaien.",
+      "correlationRecord": "Een correlatieregistratie heeft zowel de histologische diagnose als de uitkomst nodig om bruikbaar te zijn in kwaliteitsrapportage.",
       "criticalResult": "Bij kritieke resultaten moet worden vastgelegd wie hoe en door wie is geïnformeerd (CLIA).",
+      "criticalResultDirect": "Een kritieke uitslag hoort rechtstreeks naar de operateur te gaan; elke uitzondering wordt met reden vastgelegd.",
+      "decalTiming": "De ontkalkingstimer telt af vanaf de doelduur.",
+      "deckPlacement": "Het instrument leest buizen op deckpositie, dus het instrument en de positie van het rek moeten bekend zijn.",
       "delegationRouting": "Bepaalt naar wie het dossier of verslag gaat.",
       "discordanceRecord": "Een vriescoupe die afwijkt van de definitieve diagnose moet worden ingedeeld en toegelicht (CAP, ISO 15189).",
+      "externalAddress": "Een beveiligde e-mail heeft een adres van de ontvanger nodig.",
+      "fixationCompliance": "De CAP/ASCO-richtlijnen voor biomarkers vereisen vóór ondertekening een gedocumenteerde fixatietijd of een bevestigde uitzondering.",
       "holdAccountability": "Een blokkade stopt het werk aan het dossier; bij plaatsen of opheffen wordt de reden vastgelegd.",
+      "intraopMergeTarget": "Een sessie wordt met precies één casus samengevoegd.",
+      "intraopReporting": "De sessie legt de operateur vast. De vriescoupe-uitslag mag aan de chirurg of een bevoegd lid van het operatieteam worden gemeld; wie de uitslag ontving, wordt bij de melding vastgelegd.",
       "materialTraceability": "Wijzigingen aan blokjes en glaasjes moeten traceerbaar zijn: wat en waarom (ISO 15189).",
+      "messageContent": "Een bericht zonder tekst zegt niets.",
+      "messageRouting": "Een bericht kan niet worden verzonden zonder ontvanger.",
+      "molecularRunRecord": "Een moleculaire run legt de test en het gebruikte instrument vast.",
       "orderingProvider": "Laboratoriumregelgeving vereist de naam van de persoon die het onderzoek heeft aangevraagd.",
       "patientIdentification": "Identificeert de patiënt; laboratoriumnormen vereisen minstens twee identificatiegegevens.",
+      "pieceCountVerification": "Het waargenomen aantal stukjes wordt vergeleken met het aantal bij het snijden; een verschil leidt tot een weefseldiscrepantie.",
+      "preAnalyticCompliance": "Accreditatienormen (ISO 15189, CAP/CLIA en gelijkaardige) vereisen afname- en ontvangstdatum, of een gemotiveerde administratieve uitzondering.",
+      "quickGrossGate": "Touch-prep en vriescoupes worden pas gelogd na de snelle macroscopie van het preparaat.",
+      "rackIdentity": "Het rek wordt tijdens de extractie gevolgd via zijn identificatie.",
+      "rackTraceability": "Een herbruikbaar rek wordt gevolgd via zijn ID.",
+      "readBack": "Terugherhaling van de patiëntidentificatie en de diagnose is verplicht.",
       "retentionHold": "Een bewaarblokkade voorkomt dat materiaal wordt vernietigd; bij plaatsen of opheffen wordt de reden vastgelegd.",
+      "retrospectiveOutcome": "Een retrospectieve herziening zonder uitkomst is geen herziening; de uitkomst is wat wordt vastgelegd.",
       "revisionRecord": "Laboratoriumnormen vereisen dat elke wijziging van een afgetekend verslag vastlegt wat er veranderde en waarom.",
       "routing": "Bepaalt waarheen de casus wordt gerouteerd en hoe die wordt gefactureerd.",
+      "sampleMapping": "Elke buis in het rek moet aan zijn monster gekoppeld zijn, zodat elke uitslag naar de patiënt te herleiden is.",
+      "scannerInstrument": "Een glaasje voor scanning wordt ingepland op een benoemde scanner, zodat de scan aan het glaasje kan worden gekoppeld.",
+      "screeningResult": "De primaire interpretatie is het screeningresultaat zelf; zonder kan een beoordeling niet worden opgeslagen.",
+      "sendOutRouting": "Een externe verzending zonder referentielab laat gaten in de koeriers- en trackinglogboeken.",
+      "slideChangeReason": "Voor het opnieuw afdrukken of annuleren van een afgedrukt glaasje is een reden nodig voor de registratie van dubbele etiketten en traceerbaarheid.",
+      "slideOrder": "Een glaasjesopdracht zonder kleuring kan niet worden gesneden of geëtiketteerd.",
       "specimen": "Een casus heeft minstens één omschreven specimen nodig.",
       "specimenDescription": "Elk specimen heeft een beschrijving nodig; die staat in het verslag.",
-      "specimenIdentity": "Identificeert het specimen op labels, blokjes en het verslag."
+      "specimenIdentity": "Identificeert het specimen op labels, blokjes en het verslag.",
+      "supersedeRecord": "Bij het vervangen van een run blijft de reden in beide runregisters staan.",
+      "verbalReportRecord": "Het dossier moet tonen wie de uitslag ontving en in welke functie.",
+      "wellTraceability": "Een patiëntwell moet het monster vermelden, zodat het resultaat herleidbaar is."
     },
+    "neededToCompleteGrossing": "Nodig voordat de macroscopie kan worden afgerond.",
     "noOrganisation": "Uw account is niet aan een organisatie gekoppeld; dit zijn de standaardwaarden en ze kunnen hier niet worden gewijzigd.",
     "page": "Pagina",
     "pages": {
       "accession": "Opname",
+      "addOnOrder": "Aanvullende bestellingen",
+      "batchManagement": "Batchbeheer",
+      "cytology": "Cytologiescreening",
+      "embedding": "Inbedstation",
       "grossing": "Uitsnijden",
-      "report": "Casusverslag"
+      "intraop": "Intraoperatieve consultatie",
+      "messaging": "Berichten",
+      "microtomy": "Microtoomwerkstation",
+      "molecularBatch": "Moleculaire plaatbouwer",
+      "molecularRack": "Moleculaire rekbelading",
+      "report": "Casusverslag",
+      "slideDistribution": "Glaasjesdistributiestation"
     },
     "perBlock": "Gecontroleerd bij elk blokje",
     "perSpecimen": "Gecontroleerd bij elk specimen",
@@ -6456,8 +7879,11 @@
     "header": "Fixatietijd vereist vóór ondertekening",
     "intro": "De onderstaande specimen(s) vereisen een gedocumenteerde fixatietijd (CAP/ASCO-biomarkerrichtlijn) voordat dit dossier kan worden ondertekend. Los elk item op om door te gaan.",
     "specimenRowTitle": "Specimen {{label}} — {{description}}",
+    "timeLabel": "Fixatietijd",
     "unrecoverableBadge": "Bevestigd niet beschikbaar — geen schatting mogelijk",
-    "unrecoverableButton": "Geen tijd of schatting mogelijk — overschrijving"
+    "unrecoverableButton": "Geen tijd of schatting mogelijk — overschrijving",
+    "unrecoverableCommentLabel": "Reden",
+    "unrecoverableCommentPlaceholder": "Waarom geen fixatietijd of schatting mogelijk is"
   },
   "flagConfigPage": {
     "addFlagButton": "+ Label toevoegen",
@@ -6684,12 +8110,8 @@
     "claimBtn": "✋ Dit dossier claimen",
     "defaultPoolName": "MFT-pool",
     "eyebrow": "Pathologierapport",
-    "goBackBtn": "← Terug",
     "lastUpdated": "Laatst bijgewerkt",
-    "loading": "Bezig met laden…",
-    "notFoundCasePrefix": "Dossier",
-    "notFoundCaseSuffix": "kon niet worden gevonden.",
-    "notFoundTitle": "Rapport niet gevonden"
+    "loading": "Bezig met laden…"
   },
   "governingBodiesSection": {
     "addCustomBodyBtn": "Aangepaste instantie toevoegen",
@@ -7108,6 +8530,8 @@
       "description": "Systeemactiviteitslogboeken en audittrail, en de werkwachtrij van kwaliteitsborging — tekortkomingen, afstemming en CAPA-beheer",
       "title": "Kwaliteit & Compliance"
     },
+    "registryExceptionsBadge_one": "{{count}} registeruitzondering",
+    "registryExceptionsBadge_other": "{{count}} registeruitzonderingen",
     "searchTile": {
       "description": "Voltooide en lopende dossiers doorzoeken",
       "title": "Zoeken"
@@ -7298,6 +8722,29 @@
     "title": "interne notities",
     "visibilityLabel": "Zichtbaarheid"
   },
+  "intraopCriticalResults": {
+    "add": "+ Item toevoegen",
+    "addTitle": "Kritieke uitslag toevoegen",
+    "categoriesLabel": "Overeenkomende voorlopige categorieën",
+    "deactivate": "Deactiveren",
+    "descriptionLabel": "Omschrijving",
+    "edit": "Bewerken",
+    "editTitle": "Kritieke uitslag bewerken",
+    "empty": "Geen items.",
+    "inactive": "Inactief",
+    "matchesSummary": "Categorieën: {{categories}} · Termen: {{terms}}",
+    "nameLabel": "Naam",
+    "needsNameAndMatch": "Geef een naam en minstens één term of categorie.",
+    "notPermitted": "U hebt geen toestemming om het woordenboek van kritieke uitslagen te wijzigen.",
+    "reactivate": "Heractiveren",
+    "readOnly": "U kunt dit woordenboek bekijken maar niet wijzigen.",
+    "saveFailed": "De wijziging kon niet worden opgeslagen.",
+    "showInactive": "Inactieve items tonen",
+    "subtitle": "Vriescoupe-uitslagen die de operateur rechtstreeks moeten bereiken. Een preparaat komt overeen via zijn voorlopige categorie of een term in de vriescoupediagnose (ontkennende formuleringen worden genegeerd). Een overeenkomst markeert de mondelinge melding als kritieke uitslag, die de patholoog bevestigt of opheft.",
+    "termsHint": "Eén term of zinsdeel per regel (of gescheiden door komma's). Gezocht als hele woorden, hoofdletterongevoelig.",
+    "termsLabel": "Termen",
+    "title": "Kritieke intraoperatieve uitslagen"
+  },
   "intraopLinkageTab": {
     "entryHeader": "Invoer-ID",
     "loading": "Intraoperatieve koppelingsgegevens worden geladen…",
@@ -7351,9 +8798,9 @@
       "mergeButton": "Mobiele intakegegevens samenvoegen",
       "pendingMatch": "🔒 Koppeling in afwachting",
       "reportNotePlaceholder": "Wat er gezegd is (optioneel) — bijv. marges vrij, vriescoupe in afwachting",
-      "reportToSurgeonButton": "📞 Nu verslag doen aan chirurg",
-      "reportToSurgeonLabel": "Verslag aan chirurg",
-      "verbalReportLabel": "Mondeling verslag aan chirurg — {{time}}"
+      "reportToSurgeonButton": "📞 Mondelinge melding vastleggen",
+      "reportToSurgeonLabel": "Mondelinge melding aan het operatieteam",
+      "verbalReportLabel": "Mondelinge melding — {{time}}"
     },
     "fields": {
       "frozenDiagnosis": "Vriescoupediagnose",
@@ -7463,6 +8910,53 @@
       "specimenLabelPlaceholder": "Preparaat A: linkerborst, marges",
       "specimenSummary_one": " · {{count}} preparaat opgeslagen",
       "specimenSummary_other": " · {{count}} preparaten opgeslagen"
+    },
+    "verbalReport": {
+      "criticalCheckbox": "Kritieke uitslag: rechtstreekse melding aan de operateur verwacht",
+      "criticalMatch": "{{name}} (preparaat {{specimens}})",
+      "criticalSuggested": "Voorgestelde kritieke uitslag",
+      "criticalTag": "Kritieke uitslag",
+      "dictationHint": "Tik hier, dan op de microfoon, en zeg aan wie u het meldde, hun functie en of ze het herhaalden. Of typ het.",
+      "dictationLabel": "Melding dicteren",
+      "dictationPlaceholder": "bv. \"Uitslag gemeld aan dr. Faulkner, operateur. Terugherhaling bevestigd.\"",
+      "directExpected": "Dit is een kritieke uitslag. Rechtstreekse melding aan de operateur wordt verwacht.",
+      "failed": "De mondelinge melding kon niet worden vastgelegd. Controleer de gegevens en probeer het opnieuw.",
+      "fillFromDictation": "Invullen vanuit dictaat",
+      "filledByAi_one": "AI heeft {{count}} veld ingevuld vanuit uw dictaat. Controleer het voor het vastleggen.",
+      "filledByAi_other": "AI heeft {{count}} velden ingevuld vanuit uw dictaat. Controleer ze voor het vastleggen.",
+      "filledByRules_one": "{{count}} veld ingevuld vanuit uw dictaat via trefwoorden (AI niet beschikbaar). Controleer het voor het vastleggen.",
+      "filledByRules_other": "{{count}} velden ingevuld vanuit uw dictaat via trefwoorden (AI niet beschikbaar). Controleer ze voor het vastleggen.",
+      "filling": "Bezig met lezen…",
+      "fromDictation": "Uit dictaat",
+      "nothingFilled": "Er kon niets nieuws uit het dictaat worden ingevuld. Vul de velden hieronder in.",
+      "otherReasonPlaceholder": "Waarom de chirurg niet bereikt kon worden",
+      "otherSuggestions": {
+        "callWithAnotherTeam": "Chirurg in gesprek met een ander team; uitslag gegeven aan het team in de zaal",
+        "leftHospitalCoveringInformed": "Chirurg had het ziekenhuis verlaten; vervangend chirurg geïnformeerd",
+        "unreachableByPhone": "Chirurg niet bereikbaar per telefoon of pieper"
+      },
+      "otherTooShort": "Leg het kort uit, in een paar woorden.",
+      "readBackCheckbox": "Terugherhaling bevestigd: de ontvanger herhaalde de patiëntidentificatie en de diagnose",
+      "readBackTag": "Teruggeherhaald",
+      "reasons": {
+        "SU_DELEGATED": "Chirurg heeft de communicatie gedelegeerd",
+        "SU_EMERGENCY": "Intraoperatief noodgeval",
+        "SU_NOT_IN_ROOM": "Chirurg niet in de operatiekamer",
+        "SU_OTHER": "Anders",
+        "SU_SCRUBBED": "Chirurg in een kritieke operatiestap"
+      },
+      "receivedByPlaceholder": "Typ om te zoeken, of voer een naam in",
+      "roles": {
+        "operating_surgeon": "Operateur",
+        "or_staff": "Aangewezen OK-personeel",
+        "physician_assistant": "Physician assistant",
+        "surgical_fellow": "Fellow chirurgie",
+        "surgical_resident": "Arts-assistent chirurgie"
+      },
+      "suggestedFromDictation": "Genoemd",
+      "summary": "Aan {{name}} ({{role}})",
+      "surgeonUnavailableButton": "Chirurg niet beschikbaar",
+      "unavailableSummary": "Chirurg niet beschikbaar: {{reason}}"
     }
   },
   "jurisdictionNames": {
@@ -8027,6 +9521,8 @@
     "comments": {
       "add": "Opmerking toevoegen",
       "empty": "Nog geen opmerkingen.",
+      "label": "Opmerking",
+      "meta": "{{author}} — {{when}}",
       "placeholder": "Opmerking toevoegen…",
       "printOnLabel": "Deze opmerking afdrukken op het fysieke etiket"
     },
@@ -8079,7 +9575,12 @@
       "allPrinted": "Alle objectglaasjes van dit blok zijn afgedrukt.",
       "batch": "Batch",
       "deviceStatus": "Apparaatstatus",
+      "fit": {
+        "height_overflow": "Bij deze modulegrootte en lettertype-hoogte heeft het glaasjesetiket ongeveer {{required}} mm hoogte nodig, maar het ingestelde vlak is slechts {{face}} mm hoog. De inhoud wordt voorbij de rand van het matte vlak van het glaasje afgedrukt.",
+        "width_overflow": "Bij deze modulegrootte heeft alleen de barcode al ongeveer {{required}} mm breedte nodig, maar het ingestelde vlak is slechts {{face}} mm breed, zodat er geen ruimte voor tekst overblijft."
+      },
       "labelPreview": "Etiketvoorbeeld",
+      "labelSize": "{{width}} mm × {{height}} mm",
       "nextUnprinted": "Volgend niet-afgedrukt objectglaasje:",
       "noPreview": "Selecteer of druk een objectglaasje af om het etiket te bekijken.",
       "noPrinter": "Geen printer geconfigureerd",
@@ -8105,10 +9606,29 @@
       "Printed": "Afgedrukt",
       "Printing": "Wordt afgedrukt…"
     },
+    "reasons": {
+      "damagedSection": "Beschadigde coupe",
+      "jam": "Storing",
+      "misprint": "Misdruk",
+      "orderedInError": "Per vergissing aangevraagd",
+      "other": "Overig",
+      "scratchedGlass": "Bekrast glas",
+      "tissueExhausted": "Weefsel op"
+    },
     "removeReason": {
       "body": "Dit objectglaasje is al afgedrukt — selecteer een reden om het te annuleren.",
       "select": "Selecteer een reden…",
       "title": "Reden vereist"
+    },
+    "scanErrors": {
+      "blockNotFound": "Blok {{label}} niet gevonden.",
+      "blockNotOnCase": "Blok niet gevonden in dit dossier.",
+      "caseNotFound": "Dossier niet gevonden.",
+      "decantNotFound": "Decant {{label}} niet gevonden.",
+      "empty": "Lege scan.",
+      "specimenNotFound": "Staal niet gevonden in het herkende dossier.",
+      "unresolved": "Deze scan leverde geen dossier, blok of decant op — controleer de barcode en probeer opnieuw.",
+      "unsupported": "Dit scandoel (matrixblok/cellblock-cassette of een losse staalscan) wordt op het microtoomwerkstation nog niet ondersteund — scan de barcode van een specifiek blok of decant/vloeistofcontainer."
     },
     "scanPlaceholder": "Scan of typ een barcode…",
     "scanPrompt": "Scan een blok- of decanteer-/vloeistofcontainer-barcode om te beginnen",
@@ -8116,6 +9636,13 @@
     "slideGrid": {
       "addLevel": "+ Niveau",
       "addLevelTitle": "Nog een niveau van precies dezelfde kleuring snijden",
+      "categories": {
+        "cytology": "Cytologie",
+        "ihc": "IHC",
+        "molecular": "Moleculair",
+        "other": "Overig",
+        "special": "Speciale kleuringen"
+      },
       "col": {
         "actions": "Acties",
         "level": "Niveau",
@@ -8126,6 +9653,7 @@
       "control": "Controle",
       "duplicateCount": "×",
       "levelDepth": "µm",
+      "levelShort": "N{{n}}",
       "onLabel": "Op etiket",
       "pairControl": "Koppelen aan controle-objectglaasje",
       "print": "Afdrukken",
@@ -8271,6 +9799,14 @@
     "facilitiesCount_one": "{{count}} instelling",
     "facilitiesCount_other": "{{count}} instellingen",
     "loading": "Modellen worden geladen...",
+    "retire": {
+      "button": "Uit gebruik nemen",
+      "cannotRetireDefault": "Het standaardmodel kan niet uit gebruik worden genomen. Stel eerst een ander model als standaard in.",
+      "confirmMessage": "{{name}} wordt niet meer aangeboden. Resultaten die het al heeft gegeven, blijven ongewijzigd.",
+      "confirmMessagePinned": "{{name}} wordt niet meer aangeboden. Deze instellingen zijn eraan gekoppeld en hebben een ander model nodig: {{facilities}}.",
+      "confirmTitle": "Dit model uit gebruik nemen?",
+      "failed": "Het model kon niet uit gebruik worden genomen."
+    },
     "setDefaultButton": "Als standaard instellen",
     "subtitle": "De AI-modellen die uw organisatie uit de ForMedrixAI-catalogus heeft overgenomen. Status, standaardmodel en aantallen zaken gelden alleen voor uw organisatie.",
     "tableHeaders": {
@@ -8377,17 +9913,27 @@
   },
   "molecularControlRulesPage": {
     "addRequiredControl": "+ Vereiste controle toevoegen",
+    "anySampleRackSlot": "Elke monsterrekpositie",
     "assayCodeRequired": "Testcode is verplicht.",
     "assayLabel": "Test",
     "backToBatches": "← Terug naar batches",
     "cancel": "Annuleren",
     "colActions": "Acties",
     "colAssayCode": "Testcode",
+    "colRackSlots": "Posities voor het monsterrek",
     "colRequiredControls": "Vereiste controles",
+    "controlLine": "{{sampleType}}: {{position}}",
     "delete": "Verwijderen",
+    "deleteConfirmText": "Nieuwe {{assay}}-platen worden niet meer op deze controles gecontroleerd, en de monsterrekken mogen op elke monsterrekpositie.",
+    "deleteConfirmTitle": "Deze controleregel verwijderen?",
     "edit": "Bewerken",
     "editRuleTitle": "Controleregel bewerken",
     "emptyRules": "Nog geen controleregels gedefinieerd.",
+    "errors": {
+      "duplicateAssay": "Deze assay heeft al een regel. Bewerk die.",
+      "notFound": "Deze regel bestaat niet meer.",
+      "notPermitted": "U hebt geen toestemming om moleculaire controleregels te beheren."
+    },
     "fixedAt": "vast op {{position}}",
     "fixedPositionMissingWell": "{{sampleType}} is ingesteld op een vaste positie, maar er is geen putje opgegeven.",
     "fixedPositionOption": "Vaste positie",
@@ -8395,6 +9941,10 @@
     "loading": "Laden…",
     "newRule": "+ Nieuwe regel",
     "newRuleTitle": "Nieuwe controleregel",
+    "noDeckSlots": "Nog geen enkele analyser heeft een deckindeling (Configuratie → Apparatuur).",
+    "positionModeLabel": "Positie",
+    "rackSlotsHint": "Rekbelading biedt voor deze assay alleen deze posities aan. Vink niets aan om elke positie voor een monsterrek toe te staan.",
+    "rackSlotsLabel": "Deckposities voor het monsterrek van deze assay",
     "randomPosition": "willekeurige positie",
     "randomPositionOption": "Willekeurige positie",
     "removeButton": "Verwijderen",
@@ -8402,7 +9952,9 @@
     "saving": "Opslaan…",
     "selectAssayOption": "— selecteer test —",
     "subtitle": "Bepaal welke controles een bepaalde test vereist voordat een batch kan worden aangemaakt, en of elke controle vast is aan een specifiek putje of overal op de plaat mag staan.",
-    "title": "Testcontroleregels"
+    "title": "Testcontroleregels",
+    "wellLabel": "Well",
+    "wellPlaceholder": "A01"
   },
   "molecularOrderQueue": {
     "assayBundled": "st-hpv-reflex (gebundeld)",
@@ -8467,6 +10019,15 @@
     "colTrace": "Traceren",
     "colWell": "Putje",
     "componentLabel": "Component",
+    "componentType": {
+      "CONTROL": "Controle",
+      "DETECTION_REAGENT": "Detectiereagens",
+      "EXTRACTION_BUFFER": "Extractiebuffer",
+      "MASTER_MIX": "Mastermix",
+      "NEGATIVE_CONTROL": "Negatieve controle",
+      "POSITIVE_CONTROL": "Positieve controle",
+      "PRIMER_PROBE": "Primer / probe"
+    },
     "confirmCloneAndSupersede": "Klonen & vervangen bevestigen",
     "confirmDispatch": "Verzending bevestigen",
     "containerBarcodeLabel": "Containerbarcode",
@@ -8478,6 +10039,7 @@
     "creating": "Aanmaken…",
     "deckLocationBarcodeLabel": "Deklocatiebarcode",
     "deckLocationLabel": "🖨️ Deklocatielabel",
+    "deckSlotInvalid": "{{slot}} op {{instrument}} is niet voor een extractieplaat. Kies een van de plaatposities.",
     "deckSlotLabel": "Deksleuf",
     "deckSlotPlaceholder": "bijv. SLOT_A1",
     "dispatchPanelDescription": "Conform §3.4 moeten zowel de doelplaat als de instrumentdeklocatie worden gescand en overeenkomstig bevestigd voordat de uitgaande werklijst wordt verzonden.",
@@ -8488,6 +10050,12 @@
     "expirationLabel": "Vervaldatum",
     "fill": "Vullen",
     "gatingFailure": "⚠️ {{componentType}} ({{lotNumber}}): {{reason}}",
+    "gatingReason": {
+      "expired": "verlopen",
+      "failed_qc": "QC mislukt",
+      "missing_control_lot_info": "controlelot of vervaldatum ontbreekt",
+      "no_qc_signoff": "geen QC-goedkeuring"
+    },
     "genericCloneError": "Onbekende fout bij het klonen van deze batch.",
     "hide": "Verbergen",
     "instrumentAlertMalfunction": "{{name}} heeft een openstaande storing. U kunt het nog steeds kiezen, maar controleer het voordat u deze batch uitvoert.",
@@ -8525,10 +10093,9 @@
     "qcSignedOff": "Goedgekeurd",
     "qcStatusLabel": "QC-status",
     "reagentLotsTitle": "Reagenspartijen",
+    "reasonLabel": "Reden",
     "reasonPlaceholder": "bijv. Specimen in putje A03 verkeerd gescand; opnieuw uitvoeren met gecorrigeerde accessie",
-    "reasonRequiredLabel": "Reden (verplicht)",
     "removeButton": "Verwijderen",
-    "requiredFieldsError": "Testcode, testnaam en doelinstrument zijn allemaal verplicht.",
     "runResultsTitle": "Resultaten van de run",
     "sampleType": {
       "CALIBRATOR": "Calibrator",
@@ -8549,6 +10116,7 @@
     "selectAssayOption": "— selecteer test —",
     "selectInstrumentOption": "— Selecteer een instrument —",
     "specimenLabels": "🖨️ Specimenlabels",
+    "supersedeNotPermitted": "U hebt geen toestemming om een run te vervangen. Vraag het uw beheerder.",
     "supersededBanner": "⚠ Deze batch is op {{date}} vervangen door {{name}} — \"{{reason}}\".",
     "supersededEarlierBatch": "een eerdere, vervangen batch",
     "targetInstrumentLabel": "Doelinstrument",
@@ -8564,22 +10132,78 @@
     "waitingForScan": "📡 Wachten op scan…",
     "waitingScan": "📡 Wachten…",
     "wellHeading": "Putje {{position}}",
+    "wellsMissingSpecimen": "Deze patiëntwells vermelden nog geen monster: {{wells}}.",
     "worklistDispatchedAt": "✓ Werklijst verzonden op {{date}}"
   },
   "molecularRackLoadingPage": {
+    "accessionFor": "Aanvraagnummer voor positie {{position}} ({{barcode}})",
+    "accessionPlaceholder": "Aanvraagnummer",
     "backToRacks": "← Terug naar rekken",
     "cancel": "Annuleren",
     "capacityLabel": "Capaciteit",
     "createRack": "Rek aanmaken",
     "creating": "Aanmaken…",
+    "errors": {
+      "duplicateRackBarcode": "Een ander rek heeft deze barcode al.",
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "instrumentUnavailable": "Dit instrument is geen actieve analyser.",
+      "invalidRackBarcode": "Een rekbarcode heeft 3 tot 40 letters, cijfers, streepjes of underscores.",
+      "notForAssay": "De controleregel van de assay staat het monsterrek niet toe op deze positie.",
+      "placementIncomplete": "Het rek kan pas worden geplaatst als alle verplichte velden zijn ingevuld.",
+      "positionEmpty": "Deze positie bevat geen buis.",
+      "positionNotFound": "Het rek heeft deze positie niet.",
+      "positionOccupied": "Deze positie bevat al een buis. Een positie bevat één buis tegelijk.",
+      "rackNotFound": "Dit rek bestaat niet meer.",
+      "unknownSlot": "Dit instrument heeft deze deckpositie niet.",
+      "wrongRackType": "Deze deckpositie is niet voor een monsterrek."
+    },
     "genericLoadError": "Onbekende fout bij het laden van het specimen in het rek.",
-    "helperText": "Selecteer een lege positie en scan vervolgens een specimenbuisje om het te laden — conform §5.1 wordt hiermee de beweging primary_vial → secondary_rack vastgelegd met de huidige gebruiker en het huidige station.",
+    "helperText": "Selecteer een lege positie en scan dan een monsterbuis om die te laden. Elke lading registreert de verplaatsing van buis naar rek met de huidige gebruiker en werkplek. Zodra elke buis zijn monster-ID heeft, plaatst u het rek hieronder op het instrument.",
     "load": "Laden",
     "loading": "Laden…",
-    "manualEntryPlaceholder": "Specimen-/containerbarcode",
+    "manualEntryPlaceholder": "Buisbarcode",
     "manualEntryPrompt": "⌨️ Werkt scannen niet? Voer specimen-ID handmatig in",
     "newRackTitle": "Nieuw extractierek",
+    "placement": {
+      "assay": "Assay",
+      "assaySlots": "Het monsterrek van deze assay gaat in {{slots}}.",
+      "deckSlot": "Deckpositie",
+      "instrument": "Instrument",
+      "movePlace": "Nieuwe plaatsing vastleggen",
+      "noDeckLayout": "Voor dit instrument is geen deckindeling vastgelegd (Configuratie → Apparatuur).",
+      "noSlotsForAssay": "Geen positie op dit instrument past bij dit rek en deze assay. Controleer de deckindeling en de controleregel van de assay.",
+      "place": "Rek plaatsen",
+      "placed": "Geplaatst op {{instrument}} door {{name}}, {{when}}.",
+      "placedSlot": "Geplaatst op {{instrument}}, positie {{slot}}, door {{name}}, {{when}}.",
+      "placing": "Bezig met plaatsen…",
+      "scanDeck": "Deckpositie scannen",
+      "scanFilled": "Gescand: {{instrument}}, positie {{slot}}.",
+      "scanProblem": {
+        "notDeckBarcode": "Dat is geen deckpositiebarcode. Scan het label van de positie.",
+        "otherInstrument": "Verkeerd instrument: deze positie hoort bij {{instrument}}, niet bij {{chosen}}.",
+        "unknownInstrument": "De deckbarcode noemt {{instrument}}, dat geen actieve analyser is."
+      },
+      "selectAssay": "Selecteer een assay",
+      "selectInstrument": "Selecteer een instrument",
+      "selectSlot": "Selecteer een positie",
+      "singleSlot": "Dit instrument heeft één positie voor een monsterrek, dus er is geen positie nodig.",
+      "slotFlagged": "{{slot}} (hier niet geldig)",
+      "slotOnDeck": "{{slot}} ({{deck}})",
+      "slotProblem": {
+        "notForAssay": "Verkeerde positie: het monsterrek van deze assay hoort niet in {{slot}}. Verplaats het rek.",
+        "unknownSlot": "{{instrument}} heeft geen positie {{slot}}.",
+        "wrongRackType": "Verkeerde positie: {{slot}} op {{instrument}} is niet voor een monsterrek. Verplaats het rek."
+      },
+      "title": "Op instrument plaatsen",
+      "waitingForDeckScan": "Wachten op de barcode van de deckpositie…"
+    },
     "positionEmpty": "Positie {{position}} — leeg",
+    "positionNeedsSampleId": "Positie {{position}}: {{barcode}}, nog geen aanvraagnummer",
+    "positionTube": "Positie {{position}}: {{barcode}} ({{accession}})",
+    "positionsMissingSampleId": "Monster-ID ontbreekt: positie {{positions}}. Klik op een gemarkeerde positie om het aanvraagnummer in te voeren.",
+    "rackBarcodeHint": "Scan of typ de barcode van het rek. Laat leeg om er een te laten aanmaken.",
+    "rackBarcodePlaceholder": "bijv. RK-HPV-0417",
+    "saveAccession": "Opslaan",
     "scanIntoPosition": "📷 Scannen naar positie {{position}}",
     "waitingForScan": "📡 Wachten op scan naar positie {{position}}…"
   },
@@ -8588,9 +10212,18 @@
     "colCreated": "Aangemaakt",
     "colOccupied": "Bezet",
     "colRack": "Rek",
+    "colStatus": "Status",
     "empty": "Nog geen extractierekken.",
     "loading": "Laden…",
     "newRack": "+ Nieuw rek",
+    "occupiedOf": "{{occupied}} / {{capacity}}",
+    "status": {
+      "loading": "Wordt geladen",
+      "needsSampleIds": "Monster-ID's ontbreken",
+      "placed": "Geplaatst"
+    },
+    "statusPlaced": "Op {{instrument}}",
+    "statusPlacedSlot": "Op {{instrument}}, {{slot}}",
     "subtitle": "Fysieke buisrekken met invoerspecimens voorafgaand aan of tijdens lyse/extractie, vóór het laden van de plaat.",
     "title": "Extractierekken"
   },
@@ -8616,6 +10249,39 @@
   "narrativeEditor": {
     "defaultPlaceholder": "Begin narratief rapport…"
   },
+  "nationalIdentifiers": {
+    "help": "Het nummer waarop het register zich baseert, los van het MRN. Het controlecijfer wordt gecontroleerd bij het verlaten van het veld.",
+    "notPermitted": "U hebt geen toestemming om een nationaal identificatienummer vast te leggen",
+    "reasons": {
+      "checksumMismatch": "Het controlecijfer komt niet overeen",
+      "empty": "Voer een waarde in",
+      "noCheckDigit": "Dit nummer heeft geen controlecijfer; het formaat is gecontroleerd",
+      "noRule": "Voor dit nummer is geen controle gedefinieerd",
+      "wrongFormat": "Niet het verwachte formaat voor dit nummer"
+    },
+    "saved": "Nationaal identificatienummer opgeslagen",
+    "status": {
+      "failedChecksum": "Controlecijfer onjuist",
+      "unchecked": "Niet gecontroleerd",
+      "verified": "Geverifieerd"
+    },
+    "systems": {
+      "id_ca_phn": "Provinciaal gezondheidsnummer",
+      "id_ie_ihi": "IHI (Ierland)",
+      "id_ie_ppsn": "PPS-nummer",
+      "mrn_be": "Rijksregisternummer",
+      "mrn_bsn": "BSN",
+      "mrn_chi": "CHI-nummer",
+      "mrn_hc": "H&C-nummer",
+      "mrn_ihi": "IHI (Australië)",
+      "mrn_ins": "INS / NIR",
+      "mrn_krn": "Inwonersregistratienummer",
+      "mrn_kvnr": "KVNR",
+      "mrn_nhi": "NHI-nummer",
+      "mrn_nhs": "NHS-nummer"
+    },
+    "title": "Nationaal identificatienummer"
+  },
   "nav": {
     "accession": "Accession",
     "audit": "Auditlogboek",
@@ -8634,6 +10300,8 @@
     "focusedMode": "Gefocuste modus",
     "messages": "Berichten",
     "messagesUnread": "Berichten, {{count}} ongelezen",
+    "registryExceptions_one": "Registeruitzonderingen: {{count}} inzending vraagt aandacht",
+    "registryExceptions_other": "Registeruitzonderingen: {{count}} inzendingen vragen aandacht",
     "switchBackToFocusedMode": "Terug naar gefocuste modus",
     "systemInfo": {
       "anthropic": "Anthropic",
@@ -8782,6 +10450,13 @@
     "containerCreated": "Container aangemaakt",
     "containerIdentifierMode": "Containeridentificatiemodus",
     "containerType": "Containertype",
+    "containerTypes": {
+      "adHocBatch": "Ad-hocbatch",
+      "archiveTray": "Archiefbak",
+      "decalVessel": "Ontkalkingsvat",
+      "processorBasket": "Weefselprocessormand",
+      "stainingRack": "Kleuringsrek"
+    },
     "continueScanItems": "Doorgaan — Items scannen",
     "disposableLabel": "Wegwerplabel",
     "disposableLabelTitle": "Het systeem genereert een nieuw, eenmalig te gebruiken, tijdgestempeld label",
@@ -8789,6 +10464,7 @@
     "generating": "Bezig met genereren…",
     "hours": "u",
     "minutes": "min",
+    "noReagentLots": "Geen actieve reagensloten in het register.",
     "noReferenceLabConfigured": "Er is momenteel geen instelling geconfigureerd met de rol Referentielaboratorium — voeg er eerst een toe bij de instellingen van faciliteiten.",
     "noStation": "— Geen station —",
     "print": "Afdrukken",
@@ -8800,6 +10476,8 @@
     "rackCheckedOutNoPrint": "Rek {{barcode}} is nu uitgecheckt naar deze batch — geen nieuw label om af te drukken.",
     "rackId": "Rek-ID",
     "rackIdPlaceholder": "Scan of voer in, bijv. {{example}}",
+    "reagentLotLine": "{{reagent}} — {{lot}}",
+    "reagentLots": "Gebruikte reagens- / oplossingsloten",
     "referenceLabDestination": "Bestemming referentielaboratorium",
     "reusableRack": "Herbruikbaar rek",
     "reusableRackTitle": "Gebruik een bestaand, lasergegraveerd herbruikbaar rek — geen nieuw label wordt afgedrukt",
@@ -8808,10 +10486,16 @@
     "selectStainProtocol": "— selecteer kleuringsprotocol —",
     "sessionStarted": "Sessie gestart",
     "solutionType": "Type oplossing",
+    "solutions": {
+      "edta": "EDTA",
+      "nbfFixation": "10% NBF (fixatievenster)",
+      "rapidDecal": "Snelle ontkalking (mierenzuur/HCl)"
+    },
     "stainProtocol": "Kleuringsprotocol",
     "startSession": "Sessie starten",
     "stat": "STAT",
     "stationMismatchWarning": "⚠ {{station}} is normaal een \"{{node}}\"-station — controleer of dit bedoeld is.",
+    "stationWithStage": "{{station}} ({{stage}})",
     "targetDuration": "Doelduur / Waarschuwingstimer",
     "targetWorkstation": "Doelwerkstation",
     "testPanelPlaceholder": "bijv. Foundation Medicine CDx NGS-panel",
@@ -8870,7 +10554,7 @@
     "pinNotRecognized": "Pincode niet herkend.",
     "preliminaryDiagnosis": "Voorlopige diagnose:",
     "preliminaryLabel": "VOORLOPIG: {{diagnosis}}",
-    "readbackConfirmedLabel": "Terugkoppeling van resultaat bevestigd met opererend chirurg",
+    "readbackConfirmedLabel": "Terugherhaling van de mondelinge uitslag bevestigd met het operatieteam",
     "rowMeta": "Monster {{specimenLabel}} · Chirurg: {{surgeon}} · Patholoog: {{pathologist}}",
     "selectTerminal": "— selecteer terminal —",
     "startDemo": "Demo starten",
@@ -9080,7 +10764,7 @@
       "engineUnreachable": "Engine onbereikbaar",
       "unknown": "Onbekend"
     },
-    "lisSyncWarning": "⚠ De echte payload van deze wachtrij (de daadwerkelijke rapporttekst) wordt opgebouwd uit een echte, vluchtige waarde die nergens wordt opgeslagen — deze kan hier later echt niet worden herbouwd. Echte verzending voor dit type vindt onmiddellijk plaats, op het moment dat de payload daadwerkelijk wordt opgebouwd (de eigen ondertekenings-/wijzigingsflow van SynopticReportPage.tsx) — Nu verzenden/Verzending opnieuw proberen zijn hieronder uitgeschakeld in plaats van een onvolledige payload te verzenden.",
+    "heldNoPdf": "Tegengehouden: de pdf van het verslag is nog niet beschikbaar. Het wordt bij een latere poging met de pdf verzonden.",
     "maxExceededSuffix": "(maximum overschreden)",
     "noFailedDispatches": "Geen mislukte verzendingen.",
     "noQueuedMessages": "Geen berichten in wachtrij.",
@@ -9127,6 +10811,7 @@
       "a47PriorNotFound": "Geen tijdelijke patiënt gevonden met id \"{{id}}\".",
       "nullPayloadBothIds": "Pakketgenerator heeft null teruggegeven — controleer beide patiënt-id's.",
       "oruNullPayload": "Pakketgenerator heeft null teruggegeven — controleer of de casus reportingMode \"orchestrator\" heeft en het instantie-id een echt, afgerond synoptisch rapport is.",
+      "oruPdfUnavailable": "Er is geen pdf van het verslag voor deze uitslag; een vrijgave zou het tegenhouden voor een nieuwe poging. Nog niets te bekijken.",
       "patientNotFound": "Geen patiënt gevonden met id \"{{id}}\".",
       "unexpectedError": "Echte, onverwachte fout bij het bouwen van dit pakket."
     },
@@ -9654,6 +11339,18 @@
     "subtitle": "Gevallen waarin het MRN, de naam of de geboortedatum van een nieuwe patiënt gedeeltelijk overeenkwam met een bestaand record — nooit automatisch opgelost, want een verkeerde gok hier betekent dat de geschiedenis van de ene patiënt tegen de zaak van een andere wordt getoond. Elk geval vereist een echte beslissing: bevestigen dat dit werkelijk een nieuwe patiënt is, of samenvoegen met het bestaande record waartoe deze waarschijnlijk behoort.",
     "title": "Patiëntmatch-controle"
   },
+  "patientRegistryDetails": {
+    "caseLabel": "Casus",
+    "loading": "Laden…",
+    "note": "Wijzigingen gelden voor de patiënt, niet alleen voor deze casus, en gaan als demografische update (A08) naar het ziekenhuissysteem. Verstuur een vastgehouden inzending daarna opnieuw.",
+    "partlyRefused": "Gedeeltelijk opgeslagen: voor sommige wijzigingen hebt u geen machtiging.",
+    "refused": "Niet opgeslagen: u hebt geen machtiging om deze patiëntgegevens te wijzigen.",
+    "save": "Opslaan",
+    "saved": "Patiëntgegevens opgeslagen.",
+    "saving": "Opslaan…",
+    "title": "Patiëntidentificaties en bezwaren tegen registers",
+    "unchanged": "Niets gewijzigd."
+  },
   "pendingApprovalSection": {
     "approve": "Goedkeuren",
     "billingRules": {
@@ -9703,6 +11400,7 @@
     "rejectionReasonRequired": "Een echte reden voor afwijzing is verplicht."
   },
   "pendingBatchQueue": {
+    "caseHeading": "{{accession}} — {{items}}",
     "clear": "Wissen",
     "computing": "De actuele wachtrij wordt berekend…",
     "emptyAll": "Er wacht momenteel niets gedrukts om in een charge te worden geladen.",
@@ -9870,6 +11568,7 @@
     "header": "Afname-/ontvangstdatum vereist vóór ondertekening",
     "intro": "Bij de onderstaande preparaat(en) ontbreekt een vereiste pre-analytische datum ({{standardReference}}). Los elke ontbrekende datum op om verder te gaan — voer de werkelijke datum/tijd in, of bevestig dat deze echt niet meer te achterhalen is, waarmee de door dit rechtsgebied aangewezen administratieve uitzondering en een verplichte disclaimer in het rapport worden toegepast.",
     "notRecoverableApply": "Niet te achterhalen — \"{{label}}\" toepassen",
+    "overrideCommentLabel": "Motivering",
     "receivedLabel": "Ontvangen",
     "specimenRowTitle": "Preparaat {{label}} — {{description}}"
   },
@@ -10294,6 +11993,21 @@
       "toggleTopPerf": "Beste presteerder"
     }
   },
+  "profileMenu": {
+    "myDictionary": {
+      "empty": "U hebt nog geen woorden toegevoegd.",
+      "intro": "Woorden die u aan uw eigen spellingwoordenboek hebt toegevoegd. De spellingcontrole accepteert ze alleen in uw verslagen.",
+      "title": "Mijn woordenboek"
+    },
+    "myVoiceCommands": {
+      "empty": "Nog geen geleerde spraakopdrachten.",
+      "intro": "Zinnen die PathScribe van u heeft geleerd toen u bevestigde wat u bedoelde. Verwijder er een als die de verkeerde actie uitvoert.",
+      "removeAria": "‘{{phrase}}’ verwijderen",
+      "runs_one": "Voert ‘{{action}}’ uit · één keer gebruikt",
+      "runs_other": "Voert ‘{{action}}’ uit · {{count}} keer gebruikt",
+      "title": "Mijn spraakopdrachten"
+    }
+  },
   "protocolActions": {
     "archiveConfirm": {
       "body": "{{name}} (v{{version}}) archiveren? Het wordt niet meer aangeboden voor nieuwe verslagen. U kunt het later als concept herstellen.",
@@ -10569,6 +12283,15 @@
       "statusLabel": "Status",
       "teachingCheckboxLabel": "Feedback over onderwijs en onboarding vastleggen"
     },
+    "riskWeights": {
+      "colEffective": "Effectieve steekproef",
+      "colMultiplier": "Gewicht (×)",
+      "colSubspecialty": "Subspecialisme",
+      "hint": "Een gewicht vermenigvuldigt het steekproefpercentage van dit type voor de casussen van dat subspecialisme, tot 100%. Leeg laten voor 1×. Wordt opgeslagen wanneer u een vak verlaat.",
+      "inputAria": "Risicogewicht voor {{name}}",
+      "invalid": "Voer een gewicht in boven 0 en tot 10, of laat het vak leeg.",
+      "title": "Risicogewicht per subspecialisme"
+    },
     "subtitle": "Activiteiten zijn gebaseerd op een van twee echte archetypen — Beoordeling-met-uitkomst (een zaak wordt beoordeeld en beoordeeld, bijv. vriescoupe vs. eindcorrelatie) of Toezicht/Toewijzing (een zorgverlener wordt begeleid over een zaakaantal of periode, bijv. FPPE). Standaardactiviteiten zijn door PathScribe samengesteld voor uw jurisdictie ({{jurisdiction}}) en kunnen hier niet worden gedeactiveerd — dupliceer er een om te personaliseren.",
     "table": {
       "configure": "Configureren",
@@ -10843,11 +12566,15 @@
       "title": "Audit"
     },
     "backToHome": "← Terug naar Start",
-    "pageSubtitle": "Systeemlogboeken en audittrail, en de werkwachtrij van kwaliteitsborging — tekortkomingen, intraoperatieve koppeling, discordantie & afstemming, en CAPA-beheer",
+    "pageSubtitle": "Systeemlogboeken en audittrail, de werkwachtrij van kwaliteitsborging — tekortkomingen, intraoperatieve koppeling, discordantie & afstemming, en CAPA-beheer — en registerinzendingen die aandacht nodig hebben",
     "pageTitle": "Kwaliteit & Compliance",
     "qualityAssuranceTile": {
       "description": "Tekortkomingen, intraoperatieve koppeling, en discordantie- en afstemmingsrapportage",
       "title": "Kwaliteitsborging"
+    },
+    "registryExceptionsTile": {
+      "description": "Registerinzendingen die zijn vastgehouden, niet afgeleverd, afgewezen of nooit beantwoord",
+      "title": "Registeruitzonderingen"
     }
   },
   "qualityTab": {
@@ -11111,6 +12838,341 @@
       "concordance_other": "Overeenstemming: {{rate}}% ({{count}} reconciliaties)",
       "noData": "Geen reconciliaties deze maand"
     }
+  },
+  "registryConsent": {
+    "badge": {
+      "both": "Bezwaar screening en kankerregister",
+      "cancer": "Bezwaar kankerregister",
+      "screening": "Bezwaar screening",
+      "title": "De patiënt heeft bezwaar gemaakt tegen registermelding (geldt voor de patiënt, niet alleen deze casus)"
+    },
+    "cancerOptOut": "Patiënt wil niet gemeld worden aan het kankerregister",
+    "cancerOptOutNote": "Melding aan het kankerregister is in de meeste rechtsgebieden wettelijk verplicht: het rapport wordt toch verzonden, tenzij de configuratie aangeeft dat dit rechtsgebied het bezwaar erkent.",
+    "notPermitted": "U hebt geen toestemming om een registerbezwaar vast te leggen",
+    "screeningOptOut": "Patiënt wil niet gemeld worden aan het bevolkingsonderzoek baarmoederhalskanker",
+    "title": "Registermelding"
+  },
+  "registryExceptions": {
+    "attestationNote": "Vastgehouden omdat de livegang voor deze registers niet is goedgekeurd. Goedkeuring verzendt ze alsnog; dit verzendt ze nu, elk opnieuw gecontroleerd.",
+    "audit": {
+      "done_one": "Transmissie-audit gedownload: {{count}} inzending.",
+      "done_other": "Transmissie-audit gedownload: {{count}} inzendingen.",
+      "download": "Transmissie-audit downloaden",
+      "notPermitted": "U hebt geen machtiging om de transmissie-audit naar registers te exporteren.",
+      "queue": "Transmissie-audit voor",
+      "queues": {
+        "all": "Screening en kanker",
+        "cancer": "Kankerregister",
+        "cytology": "Screening (cytologie)"
+      }
+    },
+    "capa": {
+      "alreadyCaptured": "Voor deze inzending is al een CAPA open",
+      "capture": "Vastleggen als CAPA",
+      "captured": "Gemeld voor CAPA-beoordeling in Kwaliteitsborging",
+      "failed": "De CAPA kon niet worden vastgelegd",
+      "notPermitted": "U hebt hiervoor geen toestemming",
+      "raised": "CAPA open"
+    },
+    "columns": {
+      "actions": "Acties",
+      "case": "Casus",
+      "problem": "Probleem",
+      "registry": "Register",
+      "status": "Status",
+      "when": "Wanneer"
+    },
+    "details": "Details",
+    "emptyAll": "Geen registerinzending heeft aandacht nodig.",
+    "emptyFilter": "Niets in deze groep.",
+    "filters": {
+      "ackOverdue": "Geen antwoord",
+      "all": "Alle",
+      "attestationRequired": "Attestatie vereist",
+      "conflict": "Tegenstrijdige antwoorden",
+      "deliveryFailed": "Niet afgeleverd",
+      "held": "Vastgehouden",
+      "rejectedFatal": "Definitief afgewezen",
+      "rejectedRecoverable": "Afgewezen, herstelbaar",
+      "revisedPostAcceptance": "Herzien na acceptatie"
+    },
+    "hideDetails": "Details verbergen",
+    "kinds": {
+      "ackOverdue": "Geen antwoord in 72 u",
+      "attestationRequired": "Vastgehouden: attestatie vereist",
+      "conflict": "Tegenstrijdige antwoorden",
+      "deliveryFailed": "Niet afgeleverd",
+      "held": "Vastgehouden, niet verzonden",
+      "rejectedFatal": "Definitief afgewezen",
+      "rejectedRecoverable": "Afgewezen, herstelbaar",
+      "revisedPostAcceptance": "Herzien na acceptatie"
+    },
+    "loading": "Laden…",
+    "location": "bij {{location}}",
+    "messageTypes": {
+      "AMENDMENT": "addendum",
+      "CORRECTION": "correctie",
+      "NEW": "nieuw"
+    },
+    "moreFindings_one": "en nog {{count}}",
+    "moreFindings_other": "en nog {{count}}",
+    "noAcknowledgement": "Voor deze inzending is geen bevestiging ontvangen.",
+    "noFindings": {
+      "none": "Geen details opgegeven.",
+      "overdue": "Verzonden; het register heeft 72 uur niet geantwoord."
+    },
+    "openCase": "Casus openen",
+    "outcomeWithDetail": "{{outcome}} {{detail}}",
+    "outcomes": {
+      "newVersion": "Verzonden als versie {{version}} ({{type}}).",
+      "noHeader": "Deze inzending is ouder dan de functie en kan hier niet opnieuw worden verzonden.",
+      "notApplicable": "Niet verzonden:",
+      "notFound": "De inzending is niet gevonden.",
+      "notPermitted": "U hebt geen toestemming om registerinzendingen opnieuw te verzenden.",
+      "resendFailed": "De interface-engine was niet bereikbaar.",
+      "resent": "Opnieuw verzonden als dezelfde inzending.",
+      "stillHeld": "Nog steeds vastgehouden:",
+      "unchanged": "Er is niets veranderd sinds het register het afwees. Corrigeer eerst de gegevens."
+    },
+    "patientDetails": "Patiëntgegevens",
+    "rawAcknowledgement": "Bevestiging zoals ontvangen",
+    "refresh": "Vernieuwen",
+    "resend": "Opnieuw valideren en verzenden",
+    "resendAllDone": "{{resent}} opnieuw verzonden, {{notResent}} niet verzonden",
+    "resendAll_one": "{{count}} opnieuw verzenden",
+    "resendAll_other": "Alle {{count}} opnieuw verzenden",
+    "resending": "Opnieuw verzenden…",
+    "revision": {
+      "markReviewed": "Als beoordeeld markeren",
+      "notFound": "Die inzending is niet meer te vinden.",
+      "notPermitted": "U hebt geen machtiging om registerrevisies als beoordeeld te markeren.",
+      "nothingToReview": "Niets meer te beoordelen voor deze inzending.",
+      "reviewed": "Revisie als beoordeeld gemarkeerd. De CAPA-afwijking blijft open in kwaliteitsborging."
+    },
+    "severities": {
+      "CRITICAL_REJECT": "Afgewezen",
+      "FATAL": "Fataal",
+      "INFORMATIONAL": "Informatie",
+      "WARNING": "Waarschuwing"
+    },
+    "subtitle": "Inzendingen aan het kankerregister en screeningsprogramma's die aandacht nodig hebben. Corrigeer de gegevens, valideer opnieuw en verzend opnieuw.",
+    "test": "TEST",
+    "tier": "niveau {{tier}}",
+    "title": "Registeruitzonderingen",
+    "version": "Versie {{version}} · {{type}}"
+  },
+  "registryGoLive": {
+    "agreement": {
+      "onRecord": "Vastgelegd: {{reference}}, door {{name}} op {{date}}",
+      "pendingNote": "Er gaat niets naar dit register, ook geen testgevallen, tot de overeenkomst (BAA, DUA of die van het register) is vastgelegd.",
+      "placeholder": "Overeenkomstnummer of documentreferentie",
+      "record": "Overeenkomst vastleggen",
+      "reference": "Referentie van de overeenkomst",
+      "title": "Gegevensdelingsovereenkomst"
+    },
+    "approve": "Goedkeuren met mijn inloggegevens",
+    "capacities": {
+      "labDirector": "Laboratoriumdirecteur",
+      "labDirectorDesignee": "Gedelegeerde van de laboratoriumdirecteur",
+      "siteAdministrator": "Sitebeheerder",
+      "title": "Ik keur goed als"
+    },
+    "changeClasses": {
+      "breaking": "ingrijpende wijziging",
+      "editorial": "redactionele wijziging",
+      "initial": "eerste versie",
+      "minor": "kleine wijziging"
+    },
+    "changes": {
+      "item": "{{element}} ({{change}}): {{note}}",
+      "title": "Wat er veranderde in {{version}}"
+    },
+    "checkStatus": {
+      "failed": "Niet voldaan",
+      "notApplicable": "Niet van toepassing",
+      "passed": "Voldaan"
+    },
+    "confirm": {
+      "label": "Goedkeuren",
+      "message": "{{registry}} ontvangt liveresultaten zodra de vereiste goedkeuringen er zijn. Voer uw inloggegevens opnieuw in om goed te keuren.",
+      "title": "Livegang goedkeuren"
+    },
+    "elements": {
+      "codes_additionalInterpretation": "Codes voor aanvullende interpretatie",
+      "codes_adequacy": "Codes voor beoordeelbaarheid",
+      "codes_primaryInterpretation": "Codes voor primaire interpretatie",
+      "codes_recommendation": "Aanbevelingscodes",
+      "demographics": "Demografische gegevens",
+      "diagnosis": "Diagnosecodering",
+      "eligibility": "Meldingsplicht",
+      "identifier": "Patiëntidentificatie",
+      "segments": "Berichtsegmenten",
+      "transport": "Transport"
+    },
+    "governance": {
+      "required": "Vereiste goedkeuringen",
+      "requiredOption_one": "{{count}} goedkeuring",
+      "requiredOption_other": "{{count}} goedkeuringen",
+      "selfApproval": "De aanvrager van de livegang mag die ook goedkeuren",
+      "selfApprovalNote": "Standaard aan, zodat een klein lab met één persoon live kan gaan; het record toont elke hoedanigheid. Zet het uit, of vereis meer goedkeuringen, om iemand anders te vereisen, zoals bij sjabloonbeoordeling.",
+      "title": "Goedkeuringsinstellingen (alle registers)"
+    },
+    "history": {
+      "row": "{{version}}: {{status}}, aangevraagd door {{name}} op {{date}}",
+      "status": {
+        "ended": "beëindigd",
+        "inReview": "wacht op goedkeuring",
+        "live": "live",
+        "withdrawn": "ingetrokken"
+      },
+      "title_one": "Geschiedenis van livegangen ({{count}} record)",
+      "title_other": "Geschiedenis van livegangen ({{count}} records)"
+    },
+    "instance": {
+      "production": "Productie-instantie",
+      "validation": "Validatie-instantie"
+    },
+    "live": {
+      "statement": "Vastgelegde goedkeuring (live sinds {{date}})"
+    },
+    "open": {
+      "approval": "{{name}}, als {{capacities}}, {{date}}",
+      "by": "Aangevraagd door {{name}} op {{date}}, sjabloon {{version}}",
+      "evidence": "Testbewijs: {{reference}}; geaccepteerde synthetische inzendingen: {{count}}",
+      "needsDirector": "Een laboratoriumdirecteur, of een aangewezen gedelegeerde, moet bij de goedkeurders zijn.",
+      "progress": "{{counted}} van {{required}} goedkeuringen",
+      "title": "Livegang aangevraagd"
+    },
+    "outcomes": {
+      "added": "Adapterregel toegevoegd",
+      "alreadyApproved": "U hebt deze aanvraag al goedgekeurd",
+      "alreadyLive": "Al live op het nieuwste sjabloon",
+      "alreadyRequested": "Er wacht al een aanvraag voor livegang op goedkeuring",
+      "approved": "Goedkeuring vastgelegd; meer goedkeuringen nodig",
+      "confirmed_one": "{{count}} lokale wijziging bevestigd",
+      "confirmed_other": "{{count}} lokale wijzigingen bevestigd",
+      "conflictingCapacities": "Kies directeur of gedelegeerde, niet beide",
+      "descriptionRequired": "Beschrijf wat de regel doet",
+      "exported": "Validatierecord geëxporteerd",
+      "imported": "Validatierecord geïmporteerd",
+      "live": "Goedgekeurd: resultaten gaan nu naar het liveregister. {{resent}} vastgehouden resultaten verzonden, {{held}} nog vastgehouden.",
+      "noCapacity": "Kies in welke hoedanigheid u goedkeurt",
+      "notEnoughAccepted": "Het register heeft nog niet genoeg synthetische inzendingen geaccepteerd",
+      "notFound": "De aanvraag is niet meer te vinden",
+      "notInReview": "De aanvraag wacht niet meer op goedkeuring",
+      "notLive": "Dit register is niet live",
+      "notPermitted": "U hebt hiervoor geen toestemming",
+      "notProductionInstance": "Alleen de productie-instantie gaat live",
+      "notValidationInstance": "Alleen een validatie-instantie voert de testsuite uit",
+      "nothingToConfirm": "Niets te beoordelen",
+      "prechecksFailed": "Sommige voorafgaande controles zijn niet voldaan",
+      "ran": "Testsuite naar het testsysteem van het register verzonden",
+      "recorded": "Overeenkomst vastgelegd",
+      "referenceRequired": "Voer de referentie van de overeenkomst in",
+      "registryPending": "Leg eerst de gegevensdelingsovereenkomst vast",
+      "removed": "Adapterregel verwijderd",
+      "requested": "Livegang aangevraagd",
+      "saved": "Goedkeuringsinstellingen opgeslagen",
+      "selfApproval": "U hebt deze livegang aangevraagd; volgens de instellingen moet iemand anders goedkeuren",
+      "stepUpRefused": "De bevestiging van uw inloggegevens is geweigerd; probeer opnieuw",
+      "stopped": "Livemelding gestopt; resultaten worden vastgehouden tot de livegang opnieuw is goedgekeurd",
+      "unknownRegistry": "Dat register kent PathScribe niet",
+      "validationRejected": "Validatierecord geweigerd: {{problems}}",
+      "withdrawn": "Aanvraag voor livegang ingetrokken"
+    },
+    "overlay": {
+      "adapterRule": "{{element}}: {{description}} (gemaakt op {{baseline}})",
+      "adapterTitle": "Lokale regels in de engine-adapter",
+      "add": "Regel toevoegen",
+      "confirm": "Beoordeling bevestigen",
+      "description": "Wat de regel doet",
+      "descriptionPlaceholder": "bv. de instellingscode koppelen aan de sitecode van het register",
+      "element": "Deel van het sjabloon",
+      "kinds": {
+        "adapterRule": "Adapterregel",
+        "codeMapping": "Codekoppeling",
+        "holdRule": "Vasthoudregel"
+      },
+      "needsReview_one": "{{count}} lokale wijziging te beoordelen na een sjabloonupdate",
+      "needsReview_other": "{{count}} lokale wijzigingen te beoordelen na een sjabloonupdate",
+      "noAdapterRules": "Geen vastgelegd",
+      "note": "De eigen wijzigingen van de site bovenop het sjabloon van ForMedrixAI: codekoppelingen, het vasthouden zonder identificatie en lokale regels in de engine-adapter. Een release overschrijft ze nooit; verandert die iets waar ze op steunen, dan worden ze hier gemarkeerd voor beoordeling.",
+      "reviewItem": "{{kind}}, {{element}}: {{detail}} (gemaakt op {{baseline}}; gewijzigd in {{versions}})",
+      "title_one": "Lokale wijzigingen ({{count}})",
+      "title_other": "Lokale wijzigingen ({{count}})"
+    },
+    "prechecks": {
+      "agreementRecorded": "De gegevensdelingsovereenkomst is vastgelegd",
+      "codesMapped": "Elke resultaatcategorie heeft de code van het register",
+      "codesMissing": "({{missing}} zonder code)",
+      "identifierHold": "Resultaten zonder het nationale patiëntnummer worden vastgehouden",
+      "overridesReviewed": "Lokale wijzigingen die een nieuwer sjabloon raakt, zijn beoordeeld ({{count}} te beoordelen)",
+      "specificationConfirmed": "De specificatie van het register is geverifieerd door PathScribe of bevestigd door het lab",
+      "templateCurrent": "Sjabloon {{version}} is de nieuwste gepubliceerde versie",
+      "testEvidence": "De referentie van de testgoedkeuring door het register is vastgelegd",
+      "validationRecord": "Een validatierecord van de validatie-instantie voor {{version}} en deze release (geaccepteerde synthetische inzendingen: {{count}}; minstens {{min}})"
+    },
+    "request": {
+      "reference": "Referentie van de testgoedkeuring door het register",
+      "referencePlaceholder": "Referentie van brief, ticket of e-mail",
+      "specConfirmed": "We hebben codes, identificaties en formaat bevestigd met de specificatie van het register",
+      "submit": "Livegang aanvragen",
+      "title": "Livegang aanvragen"
+    },
+    "states": {
+      "live": "Live",
+      "pending": "In afwachting",
+      "testing": "Wordt getest",
+      "validated": "Gevalideerd"
+    },
+    "status": {
+      "current": "Live, goedgekeurd op sjabloon {{version}}",
+      "expired": "Resultaten vastgehouden sinds {{date}}: sjabloon {{version}} ({{change}}) vereist opnieuw goedkeuring",
+      "reapprovalDue": "Sjabloon {{version}} ({{change}}) is gepubliceerd: keur de livegang opnieuw goed vóór {{date}}, anders worden resultaten vanaf dan vastgehouden",
+      "unapprovedLive": "In afwachting: echte resultaten worden vastgehouden (attestatie vereist) tot de livegang is goedgekeurd"
+    },
+    "stopLive": "Livemelding stoppen",
+    "subtitleProduction": "Dit is de productie-instantie: echte resultaten gaan alleen naar het liveregister, en pas na goedkeuring van de livegang. Tot dan worden ze vastgehouden, nooit naar een testsysteem gestuurd, en bij de goedkeuring alsnog verzonden.",
+    "subtitleValidation": "Dit is een validatie-instantie: ze verstuurt nooit echte patiëntgegevens. Alleen de synthetische testsuite gaat eruit, en alleen naar het testsysteem van het register. Heeft het register die geaccepteerd, exporteer dan het validatierecord en importeer het in productie.",
+    "suite": {
+      "accepted": "Geaccepteerd door het testsysteem van het register op {{version}}: {{count}}",
+      "note": "Fictieve patiënten en resultaten, opgebouwd via dezelfde stappen als echte gevallen, met nationale nummers met een geldig controlecijfer. Echte gevallen worden vanaf deze instantie nooit verzonden.",
+      "results": {
+        "failed": "Mislukt",
+        "held": "Vastgehouden",
+        "sent": "Verzonden"
+      },
+      "run": "Testsuite uitvoeren",
+      "title": "Synthetische testsuite"
+    },
+    "template": "Sjabloon {{version}} ({{change}}, geldig vanaf {{date}})",
+    "title": "Registerkoppeling",
+    "validation": {
+      "chooseFile": "Bestand van het validatierecord",
+      "export": "Validatierecord exporteren",
+      "importNote": "Importeer het record dat is geëxporteerd uit de validatie-instantie met deze release ({{release}}).",
+      "importTitle": "Validatierecord van de validatie-instantie",
+      "imported": "Geïmporteerd: sjabloon {{version}}, release {{release}}, geëxporteerd door {{name}} op {{date}}; geaccepteerd: {{count}}",
+      "lastExported": "Laatst geëxporteerd: sjabloon {{version}}, release {{release}}, {{date}}; geaccepteerd: {{count}}",
+      "stale": "Het geïmporteerde record past niet meer: {{problems}}",
+      "stateNote": {
+        "live": "Live",
+        "pending": "In afwachting: leg de gegevensdelingsovereenkomst vast voordat er iets wordt verzonden",
+        "testing": "Wordt getest: voer de synthetische suite uit tot het testsysteem van het register die accepteert",
+        "validated": "Gevalideerd op het nieuwste sjabloon: neem het validatierecord mee naar productie"
+      }
+    },
+    "validationProblems": {
+      "digestMismatch": "het is na de export gewijzigd",
+      "notEnoughAccepted": "te weinig geaccepteerde testinzendingen",
+      "notFromValidation": "niet van een validatie-instantie",
+      "unreadable": "het bestand is niet leesbaar",
+      "wrongFormat": "geen PathScribe-validatierecord",
+      "wrongRegistry": "voor een ander register",
+      "wrongRelease": "van een andere PathScribe-release",
+      "wrongVersion": "voor een andere sjabloonversie"
+    },
+    "withdraw": "Aanvraag intrekken"
   },
   "releaseBufferBanner": {
     "nonSignerMessage": "<bold>{{status}}</bold> — het terugroepvenster van de ondertekenende patholoog sluit automatisch over <countdown>{{time}}</countdown>.",
@@ -11377,6 +13439,11 @@
     "loadFailedFallback": "Sjabloon laden mislukt",
     "loading": "Synoptisch rapport wordt geladen…",
     "noCaseLoaded": "Geen dossier geladen.",
+    "reevaluation": {
+      "accept": "Nieuwe waarde overnemen",
+      "keep": "De mijne behouden",
+      "suggests": "De bijgewerkte tekst stelt {{value}} voor ({{confidence}}% betrouwbaarheid). Uw waarde behouden of bijwerken?"
+    },
     "sectionTabs": {
       "unverifiedLabel": "{{count}} ongeverifieerd",
       "unverifiedTitle_one": "{{count}} AI-suggestie wacht op controle op dit tabblad",
@@ -11784,6 +13851,73 @@
       "title": "U hebt geen toegang tot dit scherm"
     },
     "noTiles": "Geen van uw rollen geeft u al toegang tot een scherm. Vraag uw beheerder u er een toe te wijzen."
+  },
+  "screeningRegistry": {
+    "coding": {
+      "builtIn": "ingebouwd in PathScribe",
+      "mappingTable": "codekoppeling van het laboratorium",
+      "text": "resultaattekst (codes optioneel)"
+    },
+    "configure": "Configureren",
+    "detail": {
+      "builtInNote": "PathScribe codeert de resultaten voor dit register zelf volgens de programmaspecificatie; er is geen koppeling nodig.",
+      "choose": "Kies een register",
+      "coding": "Resultaatcodering: {{coding}}",
+      "configurableNote": "De engine is gereed; controleer de codes, de identificatie en het bestandsformaat aan de hand van de actuele programmaspecificatie voordat u live gaat.",
+      "identifier": "Patiëntidentificatie: {{identifier}}",
+      "jurisdictions": "Van toepassing in: {{list}}",
+      "mappedReady": "{{mapped}} van {{total}} categorieën gekoppeld. Resultaten worden verzonden.",
+      "mappedWillHold": "{{mapped}} van {{total}} categorieën gekoppeld. Een resultaat met een niet-gekoppelde categorie wordt vastgehouden.",
+      "mrn": "het patiëntnummer",
+      "requireMappedCodes": "Een resultaat vasthouden totdat elke gebruikte categorie een registercode heeft",
+      "requirePatientIdentifier": "Een resultaat vasthouden als de patiënt geen geverifieerd {{identifier}} heeft",
+      "save": "Registerconfiguratie opslaan",
+      "title": "Registerconfiguratie",
+      "wireFormat": "Verzonden als: {{format}}"
+    },
+    "errors": {
+      "notPermitted": "U hebt geen toestemming om de rapportage aan screeningsregisters te wijzigen.",
+      "unknownRegistry": "Dat register is niet bekend in PathScribe."
+    },
+    "fields": {
+      "additionalInterpretation": "Secundair resultaat",
+      "adequacy": "Beoordeelbaarheid",
+      "primaryInterpretation": "Primair resultaat",
+      "recommendation": "Aanbeveling"
+    },
+    "registries": {
+      "belgiumChr": "Cyto-Histo Register (België)",
+      "canadaProvincial": "Provinciaal baarmoederhalskankerscreeningsprogramma (Canada)",
+      "cervicalCheckIreland": "CervicalCheck (Ierland)",
+      "csmsUk": "CSMS (Engeland en Wales)",
+      "franceCrcdc": "Regionaal screeningscentrum CRCDC (Frankrijk)",
+      "germanyOkfe": "Georganiseerde baarmoederhalskankerscreening (Duitsland)",
+      "kncspKccrKorea": "KNCSP / KCCR (Zuid-Korea)",
+      "ncspNewZealand": "NCSP-register (Nieuw-Zeeland)",
+      "ncsrAustralia": "NCSR (Australië)",
+      "nicspNorthernIreland": "NICSP (Noord-Ierland)",
+      "palgaNetherlands": "PALGA (Nederland)",
+      "sccrsScotland": "SCCRS (Schotland)"
+    },
+    "saved": "Opgeslagen.",
+    "specStatus": {
+      "configurable": "Door het laboratorium geconfigureerd",
+      "verified": "Gebouwd volgens de programmaspecificatie"
+    },
+    "subtitle": "Aan welk nationaal of regionaal baarmoederhalskankerscreeningsprogramma elke instelling geautoriseerde gynaecologische cytologie rapporteert, hoe de resultaten worden gecodeerd en wat wordt vastgehouden in plaats van verzonden.",
+    "table": {
+      "category": "Categorie",
+      "code": "Registercode",
+      "display": "Registertekst",
+      "field": "Veld"
+    },
+    "title": "Rapportage aan screeningsregisters",
+    "wireFormats": {
+      "batch_file": "batchbestand",
+      "fhir": "FHIR",
+      "hl7v2_oru": "HL7 v2-resultaat (ORU)",
+      "programme_module": "de eigen module van het programma"
+    }
   },
   "searchPage": {
     "actions": {
@@ -12251,8 +14385,10 @@
     },
     "expandTitle": "Zijbalk uitklappen",
     "instance": {
+      "combinedParts": "Delen {{parts}}",
       "fieldsAnswered_one": "{{count}} veld ingevuld",
       "fieldsAnswered_other": "{{count}} velden ingevuld",
+      "partsCovered": "Gedekte delen",
       "removeReport": "Dit synoptische rapport verwijderen",
       "unverifiedOnReport_one": "{{count}} AI-suggestie op dit rapport nog niet geverifieerd",
       "unverifiedOnReport_other": "{{count}} AI-suggesties op dit rapport nog niet geverifieerd",
@@ -12374,6 +14510,7 @@
   "slideDistribution": {
     "activeSlide": {
       "history": "Bewaringsketen",
+      "historyLine": "{{detail}} — {{time}}",
       "none": "Selecteer een objectglaasje uit de wachtrij of het raster hierboven.",
       "reprintFailed": "Opnieuw afdrukken mislukt — zie het bericht hierboven.",
       "reprintLabel": "Vervangend etiket aanvragen",
@@ -12393,17 +14530,31 @@
       "confirmPhysical": "Fysieke routering bevestigen",
       "courierBagId": "Koerier-transportzak",
       "digital": "Digitale scanner",
+      "doctorName": "Dr. {{name}}",
       "physical": "Fysieke uitgifte",
       "rackId": "Rek-ID",
+      "rackPlaceholder": "bijv. rek 102",
+      "recipient": "Patholoog of pool",
       "scannerInstrument": "Scannerinstrument",
+      "scannerPlaceholder": "bijv. Leica Aperio GT450 nr. 2",
       "searchPlaceholder": "Zoek pathologen of pools…",
       "selectFirst": "Selecteer eerst een objectglaasje uit de wachtrij.",
       "slideFolderId": "Objectglaasjesmap-ID",
+      "slotPlaceholder": "bijv. slot 14",
       "slotPosition": "Slotpositie",
       "title": "Bestemming & toewijzing",
       "trayNumber": "Traynummer"
     },
+    "errors": {
+      "noStation": "Geen scanstation geselecteerd voor dit apparaat — stel er één in via de stationsindicator in de navigatiebalk.",
+      "notConfigured": "Dit station is niet ingesteld voor het afdrukken van glaasjesetiketten.",
+      "notInQueue": "Dit glaasje staat niet meer in de wachtrij.",
+      "profileMissing": "Het geconfigureerde printerprofiel bestaat niet meer.",
+      "stationNotFound": "Het scanstation is niet gevonden."
+    },
     "exceptions": {
+      "note": "Notitie",
+      "notePlaceholder": "Wat er gebeurde (optioneel tenzij verplicht)…",
       "reason": {
         "missingGlass": "Ontbrekend objectglaasje",
         "other": "Overig",
@@ -12411,25 +14562,66 @@
         "unreadableBarcode": "Onleesbare barcode"
       },
       "resolve": "Oplossen",
+      "scanLogLine": "{{reason}} — ‘{{scan}}’ ({{time}})",
       "scanLogTitle": "Onopgeloste scans",
       "title": "Scanuitzonderingenlogboek"
     },
     "pageTitle": "Objectglaasjes-distributiestation",
+    "priority": {
+      "routine": "Routine",
+      "rush": "Spoed",
+      "stat": "STAT"
+    },
     "queue": {
       "count": "{{count}}",
       "empty": "Nog geen objectglaasjes gescand.",
+      "metaLine": "{{stain}} · {{status}}",
       "pool": "Subspecialisme-pool",
       "remove": "Verwijderen uit wachtrij",
       "title": "Werkwachtrij",
       "unassigned": "Niet toegewezen",
       "unrouted": "Nog niet doorgestuurd"
     },
+    "reprintReason": {
+      "body": "Een opnieuw afgedrukt glaasjesetiket kan een duplicaat zijn, dus de reden wordt bewaard in de bewakingsketen van het glaasje.",
+      "label": "Reden",
+      "reason": {
+        "damagedLabel": "Beschadigd etiket",
+        "other": "Anders",
+        "smudgedPrint": "Uitgelopen afdruk",
+        "unreadableBarcode": "Onleesbare barcode"
+      },
+      "reprint": "Opnieuw afdrukken",
+      "select": "Selecteer een reden…",
+      "title": "Reden vereist"
+    },
+    "scanErrors": {
+      "blockNotFound": "Blok {{block}} is niet gevonden.",
+      "noSlides": "Blok {{block}} heeft geen glaasjes om te verdelen.",
+      "notResolved": "Deze scan komt niet overeen met een casus, blok of glaasje. Controleer de barcode en probeer het opnieuw.",
+      "slideNotFound": "Glaasje {{slide}} is niet gevonden.",
+      "specimenNotFound": "Het specimen is niet gevonden in deze casus.",
+      "unsupportedTarget": "Dit station accepteert alleen blok- en glaasjesbarcodes. Matrix- of celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
+    },
     "scanPlaceholder": "Scan of typ een barcode…",
     "scanPrompt": "Scan een objectglaasje- of blok-/cassettebarcode — de wachtrij groeit continu",
     "scanSubmit": "Ga",
     "slots": {
+      "chipTitle": "{{slide}} — {{stain}}",
       "empty": "Nog niets in de wachtrij — scan een objectglaasje om te beginnen.",
       "title": "Batchvoortgang"
+    },
+    "splitWarning": {
+      "differentPhysical": "De glaasjes van dit blok zijn uitgegeven aan verschillende pathologen of locaties.",
+      "differentScanners": "De glaasjes van dit blok zijn op verschillende scanners geladen.",
+      "none": "Alle gerouteerde glaasjes van dit blok gaan naar dezelfde bestemming.",
+      "physicalAndDigital": "De glaasjes van dit blok zijn verdeeld over fysieke uitgifte en digitaal scannen."
+    },
+    "status": {
+      "assigned": "Toegewezen",
+      "checkedOut": "Uitgegeven",
+      "inScanningQueue": "In scanwachtrij",
+      "loadedOnScanner": "Geladen op scanner"
     }
   },
   "snomedCervicalHistologySeverityMappingSection": {
@@ -13007,6 +15199,8 @@
       "controlTissueHint": "Alleen informatief — vult de eigen specimenbeschrijving van de automatisch aangemaakte controle vooraf in. Nooit gevalideerd of afgedwongen; de echte controleweefselkeuze van een run kan afwijken.",
       "controlTissueLabel": "Standaard controleweefsel",
       "controlTissuePlaceholder": "bijv. Tonsil, Borst, Colon (normale mucosa)",
+      "defaultReferenceLabLabel": "Standaardlab",
+      "defaultReferenceLabNone": "Geen standaard (de patholoog kiest)",
       "defaultTargetsHint": "Wordt bij het plaatsen van een nieuwe bestelling gekopieerd en is daar vervolgens vrij bewerkbaar — het wijzigen van deze woordenboekstandaard raakt nooit de eigen doelen van een bestaande bestelling.",
       "defaultTargetsLabel": "Standaarddoelen",
       "descriptionPlaceholder": "Waarvoor deze kleuring wordt gebruikt",
@@ -13036,6 +15230,9 @@
       "qcModeLabel": "QC-handhavingsmodus na uitvoering",
       "qcModeNoOverride": "— Geen overschrijving (werkplekstandaard gebruiken) —",
       "qcSettingsLabel": "KC- en controleglaasje-instellingen",
+      "referenceLabsHint": "Een aanvullende bestelling voor deze test biedt alleen deze labs aan en vult de standaard in. Als er geen is aangevinkt, worden alle actieve referentielabs aangeboden.",
+      "referenceLabsLabel": "Referentielabs goedgekeurd voor deze test",
+      "referenceLabsNone": "Nog geen actieve referentielabs. Voeg er één toe in het instellingenwoordenboek met de rol Referentielab.",
       "removeTargetAria": "{{symbol}} verwijderen",
       "requireControlToggle": "Doelcontroleglaasje vereisen (dwingt de QC-poort af bij ondertekening)",
       "standaloneBillingHint": "Uit (standaard): deze kleuring neemt nog steeds een echte positie in de IHC-reeks van het specimen in voor wat daarna komt — gebruik dit voor een enkel antilichaam dat tegen zijn eigen tarief wordt gefactureerd, maar klinisch nog steeds één echte IHC-kleuring is. Aan: deze kleuring krijgt zelf geen reekstoewijzing en verbruikt geen slot voor een latere kleuring — gebruik dit voor een zelfstandig multiplex-/combinatiepanel zoals \"PIN-4\", dat van oorsprong nooit echt een telbare individuele IHC-kleuring was.",
@@ -13310,13 +15507,43 @@
     }
   },
   "surgicalQaWorklist": {
+    "caseBarTitle": "Chirurgische QA na aftekenen",
     "correlationCandidate": "Kandidaat biopsie-resectiecorrelatie: {{candidateCaseId}}",
     "emptyRow": "Niets in afwachting — elk gemarkeerd dossier en elke correlatiekandidaat is beoordeeld.",
+    "error": {
+      "failed": "De review kon niet worden opgeslagen. Probeer het opnieuw.",
+      "notPermitted": "U hebt geen toestemming om chirurgische QA-reviews vast te leggen."
+    },
     "notRelevantBtn": "Niet relevant",
+    "openCaseBtn": "Casus openen",
     "pageTitle": "Chirurgische QA na ondertekening",
     "peerReviewRandom": "Peer review — Willekeurig",
     "peerReviewTargeted": "Peer review — Gericht",
     "recordReviewBtn": "Beoordeling vastleggen"
+  },
+  "surgicalReportPdf": {
+    "clinician": "Behandelend arts",
+    "confidential": "VERTROUWELIJK — PATHOLOGIEVERSLAG",
+    "dob": "Geboortedatum",
+    "mrn": "Patiëntnummer",
+    "noContent": "Geen inhoud",
+    "noSynopticData": "Geen synoptische gegevens vastgelegd.",
+    "notYetGenerated": "Nog niet gegenereerd",
+    "patient": "Patiënt",
+    "referring": "Verwijzer",
+    "reportTemplate": "Verslagsjabloon: {{name}}",
+    "requiredNotCompleted": "⚠ Verplicht — nog niet ingevuld",
+    "resolvedBy": " (bepaald door {{name}})",
+    "workupAddendum": "Addendum",
+    "workupChanges": "Gewijzigd in deze versie",
+    "workupCorrected": "Gecorrigeerd",
+    "workupDocument": "Document",
+    "workupFinal": "Definitief",
+    "workupParts": "Deel/delen",
+    "workupProtocol": "Protocol",
+    "workupSigned": "Ondertekend",
+    "workupStatus": "Status",
+    "workupVersion": "Versie"
   },
   "synopticComments": {
     "newCommentNote": "— nieuwe opmerking",
@@ -13384,7 +15611,7 @@
       "title": "Niet-opgeslagen wijzigingen"
     },
     "errors": {
-      "notTemplateAuthor": "Voor het opstellen van sjablonen is de rol Template Author vereist.",
+      "notTemplateAuthor": "U hebt geen toestemming om sjablonen op te stellen.",
       "saveFailed": "Opslaan mislukt — probeer het opnieuw",
       "submitFailed": "Indienen mislukt — probeer het opnieuw"
     },
@@ -13403,8 +15630,20 @@
       "noOptionsYet": "Nog geen antwoordopties — klik op + Antwoordoptie toevoegen",
       "optionalBadge": "Optioneel",
       "optionalTag": "(optioneel)",
+      "reportingRoleHint": "Wat dit veld meldt in het gestructureerde resultaat naar het LIS en de registers: een stadium (pT, pN, pM, FIGO) of een bloknummer.",
+      "reportingRoleLabel": "Gemeld als",
+      "reportingRoles": {
+        "block": "Bloknummer",
+        "figo": "FIGO-stadium",
+        "none": "Niets specifieks",
+        "pM": "pM (metastasen op afstand)",
+        "pN": "pN (regionale lymfeklieren)",
+        "pT": "pT (primaire tumor)"
+      },
       "requiredBadge": "Verplicht",
-      "snomedCodedTooltip": "SNOMED gecodeerd"
+      "snomedCodedTooltip": "SNOMED gecodeerd",
+      "unitLabel": "Eenheid",
+      "unitPlaceholder": "bijv. cm"
     },
     "fieldType": {
       "checkboxes": {
@@ -13441,6 +15680,8 @@
       "namePlaceholder": "bijv. CAP colonresectie",
       "nameRequiredError": "Sjabloonnaam is vereist",
       "sourceLabel": "Bron / Overkoepelende instantie",
+      "stagingEditionLabel": "Editie stadiëring",
+      "stagingEditionPlaceholder": "bijv. AJCC 8e editie",
       "title": "Sjabloonmetadata",
       "versionLabel": "Versie",
       "versionPart": {
@@ -13520,16 +15761,20 @@
   },
   "synopticReportPage": {
     "toast": {
+      "authorizationRecorded": "Machtiging vastgelegd",
       "authorizationSaveFailed": "De toestemming kon niet worden opgeslagen. Probeer het opnieuw.",
       "billingCorrectionNotPermitted": "U hebt geen toestemming om een toegepaste factureringscode te corrigeren.",
+      "bodyReleased": "Lichaam vrijgegeven",
       "caseDelegated": "Dossier gedelegeerd.",
       "decantLabelPrintFailed": "Het containeretiket voor decant {{label}} kon niet worden afgedrukt.",
       "draftOverwroteOther": "Concept opgeslagen. Uw versie heeft een gelijktijdige wijziging van iemand anders vervangen.",
       "fixationSaveFailed": "De fixatietijd kon niet worden opgeslagen. Probeer het opnieuw.",
+      "fixationTimeRecorded": "Fixatietijd vastgelegd",
       "grossingTemplateAssignFailed": "Monster toegevoegd, maar het macroscopiesjabloon kon niet automatisch worden toegewezen. Wijs er een toe.",
       "intraopMerged": "Intraoperatieve invoer samengevoegd in {{caseId}}",
       "organRetentionSaveFailed": "Het niveau van orgaanbewaring kon niet worden opgeslagen. Probeer het opnieuw.",
       "pdfFailedPrintingScreen": "De pdf kon niet worden gemaakt ({{error}}). In plaats daarvan wordt het scherm afgedrukt.",
+      "preAnalyticDatesRecorded": "Afname- en ontvangstdatum vastgelegd",
       "preAnalyticSaveFailed": "De pre-analytische data konden niet worden opgeslagen. Probeer het opnieuw.",
       "preliminaryReleaseFailed": "Het voorlopige verslag kon niet worden vrijgegeven.",
       "unknownError": "onbekende fout"
@@ -13636,6 +15881,7 @@
       "governingBodies": "Toezichthoudende organen",
       "grossingHardware": "Macroscopie-apparatuur",
       "grossingRouteOverrides": "Grossing-routeoverrides",
+      "intraopCriticalResults": "Kritieke intraoperatieve uitslagen",
       "jurisdictionPaymentMappings": "Jurisdictiebetalingstoewijzing",
       "labelDesigner": "Labelontwerper",
       "masterPaymentTypes": "Hoofdwoordenboek betalingstypen",
@@ -13937,6 +16183,8 @@
     }
   },
   "templateGovernanceSection": {
+    "notPermitted": "Niet opgeslagen: u hebt geen machtiging om de instellingen voor sjabloonbeoordeling te wijzigen.",
+    "readOnly": "U kunt deze instellingen bekijken; wijzigen vraagt de machtiging \"Instellingen voor sjabloonbeoordeling beheren\".",
     "requiredReviewers": {
       "description": "Aantal goedkeuringen dat een sjabloon nodig heeft voordat het gepubliceerd kan worden, elk van een andere sjabloongoedkeurder, laboratoriumdirecteur of beheerder die niet een van de auteurs is.",
       "label": "Vereiste beoordelaars",
@@ -14268,6 +16516,7 @@
       "bottom": "Onder",
       "heading": "MARGES (mm)",
       "left": "Links",
+      "previewOnlyHint": "Alleen voor dit voorbeeld. Het paginaformaat en de marges van het laboratorium stelt u in via Configuratie → Systeem → Documentstijl.",
       "right": "Rechts",
       "top": "Boven"
     },
@@ -14304,7 +16553,7 @@
       "alreadyApproved": "U hebt dit sjabloon al goedgekeurd. Het heeft de goedkeuring van een andere beoordelaar nodig.",
       "approvalRecorded": "Goedkeuring vastgelegd ({{count}} van {{required}}). Het sjabloon blijft in beoordeling totdat de overige beoordelaars het goedkeuren.",
       "failed": "De wijziging kon niet worden opgeslagen: {{message}}",
-      "notApprover": "Alleen een sjabloongoedkeurder, laboratoriumdirecteur of beheerder kan sjablonen goedkeuren of publiceren.",
+      "notApprover": "U hebt geen toestemming om dit sjabloon goed te keuren, te publiceren of terug te sturen.",
       "notEnoughApprovals": "Dit sjabloon heeft {{count}} van de {{required}} onafhankelijke goedkeuringen die nodig zijn vóór publicatie.",
       "selfApproval": "Dit sjabloon vereist een onafhankelijke beoordeling vóór publicatie. Wijs een beoordelaar toe of vraag goedkeuring aan een laboratoriumdirecteur.",
       "snomedBelowThreshold": "Voor publicatie is minimaal {{threshold}}% SNOMED-dekking nodig. Dit sjabloon heeft {{coverage}}%. Voeg in de editor SNOMED-codes toe aan de velden en dien het opnieuw in voor beoordeling."
@@ -14604,6 +16853,11 @@
       "specimensMissingGrossing_other": "Preparaten {{labels}} hebben nog geen macroscopie ingevoerd — voltooi elk preparaat voordat u Gross afrondt",
       "updateCancelledReasonRequired": "Update geannuleerd — een reden is vereist",
       "updateGrossFailed": "Bijwerken van Gross mislukt — probeer het opnieuw"
+    },
+    "withoutProtocol": {
+      "body_one": "Preparaat {{specimens}} heeft geen protocol en geen macroscopiesjabloon. Bij afronden gaat het naar een tweede beoordeling.",
+      "body_other": "Preparaten {{specimens}} hebben geen protocol en geen macroscopiesjabloon. Bij afronden gaan ze naar een tweede beoordeling.",
+      "title": "Macroscopie afronden zonder protocol of macroscopiesjabloon?"
     }
   },
   "useLisIntegration": {
@@ -15043,11 +17297,7 @@
     },
     "tableRegionLabel": "Werklijstdossiers, schuifbare tabel",
     "tileTitleActive": "Weergegeven: {{label}} — klik om te resetten",
-    "tileTitleInactive": "Filteren op: {{label}}",
-    "toast": {
-      "orchestrationRestricted": "Dit is een Orchestration/Outreach-dossier. U heeft geen Orchestration-toegang — gebruik \"Toegang aanvragen\" vanuit de werklijst om een beheerder te vragen.",
-      "pediatricRestricted": "Dit dossier is beperkt tot pediatrische toegang. U heeft niet de vereiste faciliteitsmachtiging om het te openen — gebruik \"Toegang aanvragen\" vanuit de werklijst om een beheerder te vragen."
-    }
+    "tileTitleInactive": "Filteren op: {{label}}"
   },
   "worklistTable": {
     "abnormalDot": {
@@ -15201,6 +17451,30 @@
       }
     },
     "title": "Werkstationgroepen"
+  },
+  "workupParts": {
+    "aiNote": "De AI weet welke delen dit verslag dekt en stelt er geen tweede verslag met dit protocol voor voor.",
+    "apply": "Toepassen",
+    "modes": {
+      "combined": {
+        "hint": "één protocol voor de hieronder aangevinkte delen",
+        "label": "Gecombineerd"
+      },
+      "independent": {
+        "hint": "alleen dit deel; elk ander deel krijgt een eigen verslag",
+        "label": "Afzonderlijk"
+      }
+    },
+    "noOtherParts": "Deze casus heeft geen andere delen.",
+    "partLabel": "Deel {{part}}: {{description}}",
+    "problems": {
+      "alreadyCovered": "Deel {{part}} heeft al een verslag met dit protocol; combineer vanuit dat verslag.",
+      "notDraft": "Alleen de delen van een conceptverslag kunnen wijzigen; dit verslag is vrijgegeven.",
+      "notFound": "Dit verslag is niet meer te vinden.",
+      "unknownPart": "Deel {{part}} hoort niet bij deze casus."
+    },
+    "subtitle": "Over welke delen het {{protocol}}-verslag rapporteert.",
+    "title": "Gedekte delen"
   },
   "wsiViewer": {
     "mockNotice": "Nagebootste WSI-viewer — er bestaat geen echte beeldserver in deze omgeving. Dit is een echte, eerlijke tijdelijke aanduiding voor de plek waar een echte digitale pathologieviewer het eigen echte objectglaasje van dit preparaat zou weergeven.",

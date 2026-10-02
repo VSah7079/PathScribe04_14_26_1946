@@ -3,6 +3,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { INcciEditService } from './IServiceNcciEdit';
 import type { NcciPtpEditPair, NcciPtpEditImport } from '@/types/billing/NcciPtpEdit';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const IMPORTS_KEY = 'ncci_ptp_edit_imports_v2';
 
@@ -47,7 +48,7 @@ const delay = () => new Promise(r => setTimeout(r, 120));
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockNcciEditService: INcciEditService = {
+const ncciEditServiceUnchecked: INcciEditService = {
   async getAll() {
     await delay();
     const active = load().find(i => i.isActive);
@@ -129,3 +130,9 @@ export const mockNcciEditService: INcciEditService = {
     return ok(rejected);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockNcciEditService: INcciEditService = guardConfigWrites(ncciEditServiceUnchecked, [
+  ['config:billing-tables:approve', ['approveImport', 'rejectImport']],
+  ['config:billing-ncci:manage', ['importQuarter']],
+]);

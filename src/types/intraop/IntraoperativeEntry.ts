@@ -245,7 +245,7 @@ export interface IntraoperativeEntry {
   /** Session-level — a surgeon typically gets one callback summarizing
    *  findings across every specimen from the case, not a separate call
    *  per specimen. */
-  verbalReportLog?: { timestamp: string; note: string };
+  verbalReportLog?: VerbalReportLog;
   status: 'pending' | 'merged';
   /** Set once merged — which real case this session's data was folded into. */
   mergedIntoCaseId?: string;
@@ -296,3 +296,57 @@ export interface MergeResolutionContext {
   wasManualOverride: boolean;
   performedBy: string;
 }
+
+// ─── Verbal report (Batch 399) ────────────────────────────────────────────────
+// Pete (Sep 29): a frozen result may be communicated to the surgeon or an
+// authorized, qualified member of the surgical team; a read-back is
+// mandatory; the record must say who received it, and when. For a critical
+// result, direct communication with the operating surgeon is expected, and a
+// pathologist who couldn't reach the surgeon records why ("Surgeon
+// unavailable"). Records made before Batch 399 have only timestamp and note.
+
+/** Who took the verbal report. */
+export type VerbalReportRecipientRole =
+  | 'operating_surgeon' | 'surgical_resident' | 'surgical_fellow' | 'physician_assistant' | 'or_staff';
+
+export const VERBAL_REPORT_RECIPIENT_ROLES: readonly VerbalReportRecipientRole[] = [
+  'operating_surgeon', 'surgical_resident', 'surgical_fellow', 'physician_assistant', 'or_staff',
+];
+
+export interface VerbalReportLog {
+  /** When it was logged (the system clock, never a time taken from speech). */
+  timestamp: string;
+  note: string;
+  receivedBy?: string;
+  recipientRole?: VerbalReportRecipientRole;
+  /** The recipient repeated the patient identifiers and the diagnosis back. */
+  readBackConfirmed?: boolean;
+  /** The critical-result decision: what the dictionary suggested and what the pathologist decided. */
+  critical?: {
+    flagged: boolean;
+    suggestedIds: string[];
+    suggestedNames: string[];
+  };
+  /** A critical result given to someone other than the operating surgeon: why. */
+  surgeonUnavailable?: { reasonId: string; reasonName: string; note?: string };
+  reportedBy?: { userId: string; userName: string };
+  /** Batch 400: fields proposed from the pathologist's dictation (and which engine), then checked by them. */
+  dictation?: VerbalReportDictationUse;
+}
+
+export interface VerbalReportDictationUse { engine: 'ai' | 'rules'; filledFields: string[] }
+
+/** What the pathologist enters to log a verbal report. */
+export interface VerbalReportInput {
+  receivedBy: string;
+  recipientRole: VerbalReportRecipientRole | '';
+  readBackConfirmed: boolean;
+  critical: boolean;
+  suggestedCriticalIds: string[];
+  suggestedCriticalNames: string[];
+  surgeonUnavailable?: { reasonId: string; reasonName: string; note?: string };
+  note?: string;
+  reportedBy?: { userId: string; userName: string };
+  dictation?: VerbalReportDictationUse;
+}
+

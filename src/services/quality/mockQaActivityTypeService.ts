@@ -31,6 +31,8 @@ import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { IQaActivityTypeService } from './IQaActivityTypeService';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { standardQaTypeChangeRefusal } from './standardQaTypeRules';
 
 const STORAGE_KEY = 'qa_activity_types';
 
@@ -289,7 +291,7 @@ const persist = (data: QaActivityType[]) => storageSet(STORAGE_KEY, data);
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockQaActivityTypeService: IQaActivityTypeService = {
+const qaActivityTypeServiceUnchecked: IQaActivityTypeService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -311,6 +313,8 @@ export const mockQaActivityTypeService: IQaActivityTypeService = {
     const types = load();
     const idx = types.findIndex(t => t.id === id);
     if (idx === -1) return err(`Activity type ${id} not found.`);
+    // Batch 428: a standard type can't be switched off or made custom.
+    { const refusal = standardQaTypeChangeRefusal(types[idx], changes); if (refusal) return err(refusal); }
     const updated = { ...types[idx], ...changes };
     const withUpdate = [...types];
     withUpdate[idx] = updated;
@@ -319,10 +323,15 @@ export const mockQaActivityTypeService: IQaActivityTypeService = {
   },
 
   async deactivate(id) {
-    return mockQaActivityTypeService.update(id, { active: false });
+    return qaActivityTypeServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id) {
-    return mockQaActivityTypeService.update(id, { active: true });
+    return qaActivityTypeServiceUnchecked.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockQaActivityTypeService: IQaActivityTypeService = guardConfigWrites(qaActivityTypeServiceUnchecked, [
+  ['config:qa-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

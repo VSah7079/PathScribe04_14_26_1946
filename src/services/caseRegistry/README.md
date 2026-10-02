@@ -22,6 +22,12 @@ Both `allocateNextCaseNumber` and `previewNextCaseNumber` take a **required** `t
 - **Site-level sequence fragmentation is a real, supported feature, in two independent forms now.** `sitePrefixMap` (prefix substitution only) predates this session — MFT deliberately runs one unified, Trust-wide sequence across all three of its real sites (MRI/WYT/NMGH) rather than forking into per-site counters, and that choice is unchanged. `siteIndependentSequence` (new) is a separate, additive opt-in for a site's own counter, not implied by having a prefix entry — a site can have a custom prefix with no independent sequence (MFT's shape) or the reverse. `originSiteId` is still captured at accessioning and still drives Mode A hardware routing and cassette/slide label sub-headers regardless of either setting. Both remain real, per-organisation/per-site config choices, not capability gaps.
 - **No {SPECIMEN_TYPE} token** — deliberately dropped, per the case-vs-specimen-level numbering decision (see `types/config/CaseMaskConfig.ts`'s own header comment). This folder generates one accession number per *case*, not per specimen.
 
+## Batch 428: Configuration permissions
+
+- `mockCaseMaskService`: `saveMask`, `deleteMask` need `config:case-masks:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

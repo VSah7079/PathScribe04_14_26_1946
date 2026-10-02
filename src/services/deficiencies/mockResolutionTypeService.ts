@@ -3,6 +3,7 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ResolutionType, IResolutionTypeService } from './IDeficiencyService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_RESOLUTION_TYPES: ResolutionType[] = [
   { id: 'res-matched-existing', name: 'Matched to Existing Dictionary Entry', description: 'Accessioner identified the correct existing Specimen Dictionary entry.', status: 'Active' },
@@ -45,7 +46,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockResolutionTypeService: IResolutionTypeService = {
+const resolutionTypeServiceUnchecked: IResolutionTypeService = {
   async getAll() { await delay(); return ok([...TYPES]); },
 
   async add(type) {
@@ -64,6 +65,11 @@ export const mockResolutionTypeService: IResolutionTypeService = {
     return ok({ ...TYPES[idx], ...changes });
   },
 
-  async deactivate(id) { return mockResolutionTypeService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockResolutionTypeService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return resolutionTypeServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return resolutionTypeServiceUnchecked.update(id, { status: 'Active' }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockResolutionTypeService: IResolutionTypeService = guardConfigWrites(resolutionTypeServiceUnchecked, [
+  ['config:deficiency-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

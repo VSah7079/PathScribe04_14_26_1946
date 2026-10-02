@@ -161,6 +161,16 @@ export interface StainType {
    *  see calculateMolecularUnits.ts. */
   billingRule?: CptMappingRule;
   methodology?: MolecularMethodology;
+  /** Batch 403 (Pete: link reference vendors to specific tests so they
+   *  default in; where several are valid, restrict the picker to a
+   *  curated, pre-approved list for that test). Only meaningful when
+   *  category is 'Molecular': the reference labs (Facility ids with the
+   *  reference_lab role) approved to perform this test. An add-on order
+   *  offers only these, and fills in defaultReferenceLabFacilityId (or the
+   *  only one listed). None listed: every active reference lab is offered
+   *  and the pathologist picks one (the lab is required at submission). */
+  referenceLabFacilityIds?: string[];
+  defaultReferenceLabFacilityId?: string;
   /** Rough turnaround estimate — informational only, not a hard TAT rule
    *  (that's TATConfigSection's job, a separate, already-built system;
    *  this is just a per-stain default hint shown at order time). */

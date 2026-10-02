@@ -43,6 +43,8 @@ export function timeFormatForJurisdiction(j: Jurisdiction): '12h' | '24h' {
 
 // ── Date only ─────────────────────────────────────────────────────────────────
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 export function formatDate(iso: string | undefined, locale?: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -51,6 +53,9 @@ export function formatDate(iso: string | undefined, locale?: string): string {
     day:   '2-digit',
     month: '2-digit',
     year:  'numeric',
+    // Batch 391: a date without a time (a date of birth, "1988-04-02") is
+    // midnight UTC; shown in a timezone west of UTC it became the day before.
+    ...(DATE_ONLY.test(iso) ? { timeZone: 'UTC' } : {}),
   });
 }
 
@@ -70,6 +75,18 @@ export function formatDateTime(iso: string | undefined, locale?: string): string
     minute: '2-digit',
     hour12: !is24,
   });
+}
+
+// ── Time only (Batch 402) ─────────────────────────────────────────────────────
+// For same-shift lists (a bench's event history), where the date is today.
+
+export function formatTime(iso: string | undefined, locale?: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const j    = localeToJurisdiction(locale);
+  const is24 = j ? timeFormatForJurisdiction(j) === '24h' : false;
+  return d.toLocaleTimeString(locale ?? 'en-US', { hour: '2-digit', minute: '2-digit', hour12: !is24 });
 }
 
 // ── Long-form date (unambiguous — for reports and audit) ──────────────────────

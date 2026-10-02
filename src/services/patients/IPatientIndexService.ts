@@ -1,3 +1,5 @@
+import type { NationalPatientIdentifier, NationalIdentifierVerification } from '@/types/patient/NationalPatientIdentifier';
+import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
 // src/services/patients/IPatientIndexService.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real Master Patient Index (MPI) — the missing piece found while tracing
@@ -107,6 +109,8 @@ export interface MasterPatientRecord {
   dateOfBirth: string;
   createdAt: string;
   updatedAt: string;
+  /** Batch 418 (SRS v2.1 FR-008.1): the patient's registry opt-outs, mirrored from the case that recorded them. */
+  registryConsent?: PatientRegistryConsent;
   /** Real, per PathScribe Interface Specification v1.2 §2.6 (patient
    *  data minimization) - the real resolveOrCreatePatient() outcome
    *  that first established this identity, persisted here since a
@@ -288,6 +292,12 @@ export interface PatientIdentifier {
    *  yet). */
   source: 'resolution' | 'manual';
   recordedAt: string;
+  /** Batch 417: set when this row is a national identifier (IDENTIFIER_FORMAT_LIBRARY
+   *  id, e.g. 'mrn_nhs') with its check-digit verification. Absent on plain
+   *  source-system crosswalk rows. */
+  system?: string;
+  verificationStatus?: NationalIdentifierVerification;
+  verifiedAt?: string;
 }
 
 export interface IPatientIndexService {
@@ -542,6 +552,14 @@ export interface IPatientIndexService {
    *  (resolveOrCreatePatient) pass source='resolution' explicitly;
    *  defaults to 'manual' for real, direct admin use. */
   addIdentifier(patientId: string, assigningAuthority: string, identifierValue: string, source?: 'resolution' | 'manual'): Promise<PatientIdentifier>;
+  /** Batch 417: record (or replace, one per system) a national identifier with its verification. */
+  recordNationalIdentifier(patientId: string, identifier: NationalPatientIdentifier): Promise<PatientIdentifier>;
+  /** Batch 417: the patient's national identifiers, newest verification first. */
+  listNationalIdentifiers(patientId: string): Promise<NationalPatientIdentifier[]>;
+  /** Batch 425: removes one system's national identifier (a removal made after accessioning). */
+  removeNationalIdentifier(patientId: string, system: string): Promise<void>;
+  /** Batch 418: record (or clear, with undefined) the patient's registry opt-outs. */
+  setRegistryConsent(patientId: string, consent: PatientRegistryConsent | undefined): Promise<void>;
 
   /**
    * Real fix, Phase 3: the actual, missing "update" half of ADT^A08

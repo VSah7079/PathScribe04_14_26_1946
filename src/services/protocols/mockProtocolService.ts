@@ -3,6 +3,7 @@
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { IProtocolService, Protocol } from './IProtocolService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const load = () => storageGet<Protocol[]>('pathscribe_protocols', [
   {
@@ -92,7 +93,7 @@ let PROTOCOLS: Protocol[] = load();
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export const mockProtocolService: IProtocolService = {
+const protocolServiceUnchecked: IProtocolService = {
   async getAll() {
     return ok([...PROTOCOLS]);
   },
@@ -142,3 +143,8 @@ export const mockProtocolService: IProtocolService = {
     return this.update(id, entry.snapshot);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockProtocolService: IProtocolService = guardConfigWrites(protocolServiceUnchecked, [
+  ['config:processing-protocols:manage', ['add', 'update', 'restoreVersion']],
+]);

@@ -103,7 +103,8 @@ describe('writeCaseDraft — standalone function', () => {
       { orchSections: sections, synopticReports: caseData.synopticReports, grossingReports: caseData.grossingReports },
       5,
     );
-    expect(localStorage.getItem('ps_orch_sections_ORCH-TEST-CASE')).toBe(JSON.stringify(sections));
+    // Batch 431: no browser copy; the case record is the only copy.
+    expect(localStorage.getItem('ps_orch_sections_ORCH-TEST-CASE')).toBeNull();
   });
 
   it('writes synopticReports instead, for a CoPilot (Assist-mode) case — the real fix this consolidation exists for', async () => {
@@ -117,7 +118,6 @@ describe('writeCaseDraft — standalone function', () => {
     await writeCaseDraft(caseData, 'LIS-COPILOT-CASE', [makeSection()], 3);
 
     expect(caseRouter.updateCase).toHaveBeenCalledWith('LIS-COPILOT-CASE', { synopticReports: caseData.synopticReports }, 3);
-    // Never touches the orchSections localStorage key for a CoPilot case
     expect(localStorage.getItem('ps_orch_sections_LIS-COPILOT-CASE')).toBeNull();
   });
 
@@ -190,45 +190,23 @@ describe('useOrchestratorDraft — saveDraftInternal', () => {
 });
 
 describe('useOrchestratorDraft — restore on load', () => {
-  it('restores from localStorage, taking priority over caseData even when caseData also has sections', () => {
-    const localSections = [makeSection({ id: 'from-local', text: 'Local edits' })];
-    localStorage.setItem('ps_orch_sections_ORCH-TEST-CASE', JSON.stringify(localSections));
-    const caseData = makeTestCase({ orchSections: [makeSection({ id: 'from-case' })] } as any);
-    const setOrchSections = vi.fn();
-
-    renderHook(() => useOrchestratorDraft(baseParams({ caseData, setOrchSections })));
-
-    expect(setOrchSections).toHaveBeenCalledWith(localSections);
-  });
-
-  it('falls back to caseData.orchSections when localStorage has nothing for this case', () => {
-    const caseSections = [makeSection({ id: 'from-case' })];
+  it('restores from the case record, ignoring an old browser copy left on this workstation (Batch 431)', () => {
+    localStorage.setItem('ps_orch_sections_ORCH-TEST-CASE', JSON.stringify([makeSection({ id: 'stale-browser-copy' })]));
+    const caseSections = [makeSection({ id: 'from-case', text: 'Newer save from another workstation' })];
     const caseData = makeTestCase({ orchSections: caseSections } as any);
     const setOrchSections = vi.fn();
 
     renderHook(() => useOrchestratorDraft(baseParams({ caseData, setOrchSections })));
 
+    expect(setOrchSections).toHaveBeenCalledTimes(1);
     expect(setOrchSections).toHaveBeenCalledWith(caseSections);
   });
 
-  it('does nothing at all when neither localStorage nor caseData has any sections', () => {
+  it('does nothing at all when the case has no sections', () => {
+    localStorage.setItem('ps_orch_sections_ORCH-TEST-CASE', JSON.stringify([makeSection()]));
     const setOrchSections = vi.fn();
     renderHook(() => useOrchestratorDraft(baseParams({ setOrchSections })));
     expect(setOrchSections).not.toHaveBeenCalled();
-  });
-
-  it('falls through to caseData gracefully on malformed JSON in localStorage, rather than crashing', () => {
-    localStorage.setItem('ps_orch_sections_ORCH-TEST-CASE', 'not valid json{{{');
-    const caseSections = [makeSection({ id: 'from-case' })];
-    const caseData = makeTestCase({ orchSections: caseSections } as any);
-    const setOrchSections = vi.fn();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    renderHook(() => useOrchestratorDraft(baseParams({ caseData, setOrchSections })));
-
-    expect(setOrchSections).toHaveBeenCalledWith(caseSections);
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
   });
 
   it('does nothing when there is no caseId at all', () => {

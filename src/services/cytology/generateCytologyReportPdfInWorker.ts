@@ -19,6 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { generateCytologyReportPdfWithAttachments } from './generateCytologyReportPdf';
+import { cytologyPdfLabelsFor } from './cytologyPdfLabelsFor';
 import type { CytologyReportContent } from '@/types/cytology/CytologyReportContent';
 import type { CytologyPdfWorkerRequest, CytologyPdfWorkerResponse } from './generateCytologyReportPdf.worker';
 
@@ -53,8 +54,10 @@ export async function generateCytologyReportPdfInWorker(
   content: CytologyReportContent,
   workerFactory: WorkerFactory = defaultWorkerFactory,
 ): Promise<Uint8Array> {
+  // Batch 391: the wording follows the report's language.
+  const labels = cytologyPdfLabelsFor(content.language);
   if (typeof Worker === 'undefined') {
-    return generateCytologyReportPdfWithAttachments(content);
+    return generateCytologyReportPdfWithAttachments(content, labels);
   }
 
   let worker: Worker;
@@ -88,7 +91,7 @@ export async function generateCytologyReportPdfInWorker(
       worker.terminate();
       reject(new Error(event.message || 'Unknown error generating Cytology PDF in worker.'));
     };
-    const request: CytologyPdfWorkerRequest = { content };
+    const request: CytologyPdfWorkerRequest = { content, labels };
     worker.postMessage(request);
   });
 }

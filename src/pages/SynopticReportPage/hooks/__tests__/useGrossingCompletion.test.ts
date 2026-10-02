@@ -36,9 +36,22 @@ vi.mock('@/services/cases/casePoolAssignmentService', () => ({
   routeCase: vi.fn().mockResolvedValue({ outcome: 'no_match' }),
   routeStatCase: vi.fn().mockResolvedValue({ outcome: 'no_match' }),
 }));
+const { enforce, raiseDeficiency, fieldReqOverrides } = vi.hoisted(() => ({
+  enforce: vi.fn(), raiseDeficiency: vi.fn(), fieldReqOverrides: { current: {} as Record<string, boolean> },
+}));
 vi.mock('@/services', () => ({
   aiBehaviorService: { get: vi.fn().mockResolvedValue({ ok: true, data: { grossEnabled: true } }) },
+  // Batch 398: Gross Complete checks case:grossing:complete and can raise a
+  // "Grossed without protocol" deficiency.
+  authorizationService: { enforce },
+  auditService: { logEvent: vi.fn().mockResolvedValue({}) },
+  specimenDeficiencyService: { raise: raiseDeficiency },
 }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'PA-1', name: 'PA One' } }) }));
+vi.mock('@/hooks/useFieldRequirements', async () => {
+  const rules = await vi.importActual<typeof import('@/services/fieldRequirements/fieldRequirementRules')>('@/services/fieldRequirements/fieldRequirementRules');
+  return { useFieldRequirements: (page: any) => rules.resolveFieldRequirements(page, fieldReqOverrides.current) };
+});
 vi.mock('@/services/templates/templateService', () => ({
   getTemplate: vi.fn().mockResolvedValue({ template: { sections: [{ fields: [{ id: 'f1', label: 'Field 1' }] }] } }),
   listTemplates: vi.fn().mockResolvedValue([{ id: 'tmpl-1', name: 'Template 1', category: 'GI', isDiagnostic: true }]),
@@ -90,6 +103,9 @@ function baseParams(overrides: Partial<Parameters<typeof useGrossingCompletion>[
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  enforce.mockResolvedValue({ allowed: true });
+  raiseDeficiency.mockResolvedValue({ ok: true });
+  fieldReqOverrides.current = {};
   window.prompt = vi.fn().mockReturnValue('Real correction reason');
   const { generateGrossingFieldSuggestionsFromDictation } = await import('@/services/cases/mockCaseService');
   (generateGrossingFieldSuggestionsFromDictation as ReturnType<typeof vi.fn>).mockResolvedValue({});
@@ -608,5 +624,48 @@ describe('useGrossingCompletion — per-specimen Gross Description sections', ()
     expect(mockFn).toHaveBeenCalledTimes(1);
     const specimenIds = mockFn.mock.calls[0][1].map((s: any) => s.specimenId);
     expect(specimenIds).toEqual(['SP-1', 'SP-2']);
+  });
+});
+
+// Batch 398 (PS-359): Gross Complete on the report page applies the
+// organisation's Grossing field requirements and case:grossing:complete.
+describe('useGrossingCompletion — Grossing field requirements (Batch 398)', () => {
+  it('a required rule that isn\'t met stops it, names what\'s missing, and saves nothing', async () => {
+    fieldReqOverrides.current = { pieceCount: true };
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    const showToast = vi.fn();
+    const caseData = makeTestCase({ specimens: [{ id: 'SP-1', label: 'A', blocks: [{ id: 'b1', label: '1' }] }] as any });
+    const { result } = renderHook(() => useGrossingCompletion(baseParams({ caseData, showToast })));
+    await act(async () => { await result.current.handleGrossComplete(); });
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('A1'), 'warning');
+    expect(caseRouter.updateCase).not.toHaveBeenCalled();
+  });
+
+  it('without case:grossing:complete it is refused', async () => {
+    enforce.mockResolvedValue({ allowed: false });
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    const showToast = vi.fn();
+    const { result } = renderHook(() => useGrossingCompletion(baseParams({ showToast })));
+    await act(async () => { await result.current.handleGrossComplete(); });
+    expect(enforce).toHaveBeenCalledWith('case:grossing:complete', expect.objectContaining({ caseId: 'TEST-CASE-GROSS' }));
+    expect(caseRouter.updateCase).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.any(String), 'warning');
+  });
+
+  it('with the protocol rule off, a specimen with no protocol or template asks first, then is routed for secondary review', async () => {
+    fieldReqOverrides.current = { protocol: false };
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    const caseData = makeTestCase({
+      specimens: [{ id: 'SP-1', label: 'A' }, { id: 'SP-2', label: 'B' }] as any,
+      grossingReports: [{ instanceId: 'GR-1', specimenId: 'SP-1', templateId: 'tmpl-1', templateName: 'T1', status: 'draft', answers: {}, createdAt: '', updatedAt: '' }] as any,
+    });
+    const orchSections = [{ id: 'g', sourcePartId: 'std_body_gross', text: 'Combined narrative.' }];
+    const { result } = renderHook(() => useGrossingCompletion(baseParams({ caseData, orchSections })));
+    await act(async () => { await result.current.handleGrossComplete(); });
+    expect(result.current.pendingProtocolConfirmation).toEqual(['B']);
+    expect(caseRouter.updateCase).not.toHaveBeenCalled();
+    await act(async () => { await result.current.confirmGrossCompleteWithoutProtocol(); });
+    expect(caseRouter.updateCase).toHaveBeenCalled();
+    expect(raiseDeficiency).toHaveBeenCalledWith(expect.objectContaining({ specimenId: 'SP-2', deficiencyTypeId: 'def-grossed-without-protocol' }));
   });
 });

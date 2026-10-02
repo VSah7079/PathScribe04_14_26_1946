@@ -36,7 +36,8 @@
  *  in the output PDF regardless of anything this allowlist does.
  *  Adding a new real font here is a real, deliberate decision, not a
  *  silent drift. */
-export const ALLOWED_PRINT_FONTS: readonly string[] = ['helvetica', 'times', 'courier', 'LiberationSans'];
+// Batch 391: Pretendard (embedded, OFL 1.1) for reports in Korean.
+export const ALLOWED_PRINT_FONTS: readonly string[] = ['helvetica', 'times', 'courier', 'LiberationSans', 'Pretendard'];
 
 /** Real, per §1.2.4 — 0.5 inch in millimeters (1in = 25.4mm exactly). */
 export const MIN_PRINT_MARGIN_MM = 12.7;

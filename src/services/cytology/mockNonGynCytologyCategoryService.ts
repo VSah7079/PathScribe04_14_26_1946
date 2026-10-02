@@ -23,6 +23,7 @@
 import type { INonGynCytologyCategoryService, NonGynCytologyCategoryEntry, NonGynCytologySystem, NewNonGynCytologyCategoryEntry } from './INonGynCytologyCategoryService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'nonGynCytologyCategories';
 
@@ -53,7 +54,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = (message: string): ServiceResult<never> => ({ ok: false, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-export const mockNonGynCytologyCategoryService: INonGynCytologyCategoryService = {
+const nonGynCytologyCategoryServiceUnchecked: INonGynCytologyCategoryService = {
   async getAll() {
     await delay();
     return ok([..._cache]);
@@ -93,11 +94,11 @@ export const mockNonGynCytologyCategoryService: INonGynCytologyCategoryService =
   },
 
   async deactivate(id: ID) {
-    return mockNonGynCytologyCategoryService.update(id, { active: false });
+    return nonGynCytologyCategoryServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockNonGynCytologyCategoryService.update(id, { active: true });
+    return nonGynCytologyCategoryServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -110,3 +111,8 @@ export const mockNonGynCytologyCategoryService: INonGynCytologyCategoryService =
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockNonGynCytologyCategoryService: INonGynCytologyCategoryService = guardConfigWrites(nonGynCytologyCategoryServiceUnchecked, [
+  ['config:cytology-categories:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

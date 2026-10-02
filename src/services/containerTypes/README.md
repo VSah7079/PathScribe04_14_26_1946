@@ -20,6 +20,12 @@ Structured container-type dictionary (jar/cassette/slide etc.) — replaces a pr
   lab's own scope (including "both undefined" as its own real scope),
   never against a different lab's own types.
 
+## Batch 428: Configuration permissions
+
+- `mockContainerTypeService`: `create`, `update`, `deactivate`, `reactivate` need `config:container-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

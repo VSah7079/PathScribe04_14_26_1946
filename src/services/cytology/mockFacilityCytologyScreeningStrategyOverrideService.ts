@@ -2,6 +2,7 @@
 import type { IFacilityCytologyScreeningStrategyOverrideService, FacilityCytologyScreeningStrategyOverride } from './IFacilityCytologyScreeningStrategyOverrideService';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'facilityCytologyScreeningStrategyOverrides';
 
@@ -118,7 +119,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockFacilityCytologyScreeningStrategyOverrideService: IFacilityCytologyScreeningStrategyOverrideService = {
+const facilityCytologyScreeningStrategyOverrideServiceUnchecked: IFacilityCytologyScreeningStrategyOverrideService = {
   async getForFacility(facilityId) {
     await delay();
     const record = load().find(r => r.facilityId === facilityId);
@@ -156,3 +157,8 @@ export const mockFacilityCytologyScreeningStrategyOverrideService: IFacilityCyto
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityCytologyScreeningStrategyOverrideService: IFacilityCytologyScreeningStrategyOverrideService = guardConfigWrites(facilityCytologyScreeningStrategyOverrideServiceUnchecked, [
+  ['config:cytology-screening-strategy:manage', ['create', 'update', 'remove']],
+]);

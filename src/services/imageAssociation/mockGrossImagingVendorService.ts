@@ -10,6 +10,7 @@
 import type { IGrossImagingVendorService, GrossImagingVendorEntry, NewGrossImagingVendorEntry } from './IGrossImagingVendorService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'grossImagingVendorDictionary';
 
@@ -43,7 +44,7 @@ const err = (message: string): ServiceResult<never> => ({ ok: false, error: mess
 const delay = () => new Promise(res => setTimeout(res, 30));
 const sorted = (entries: GrossImagingVendorEntry[]) => [...entries].sort((a, b) => a.sortOrder - b.sortOrder);
 
-export const mockGrossImagingVendorService: IGrossImagingVendorService = {
+const grossImagingVendorServiceUnchecked: IGrossImagingVendorService = {
   async getAll() {
     await delay();
     return ok(sorted(_cache));
@@ -80,11 +81,11 @@ export const mockGrossImagingVendorService: IGrossImagingVendorService = {
   },
 
   async deactivate(id: ID) {
-    return mockGrossImagingVendorService.update(id, { active: false });
+    return grossImagingVendorServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockGrossImagingVendorService.update(id, { active: true });
+    return grossImagingVendorServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -97,3 +98,8 @@ export const mockGrossImagingVendorService: IGrossImagingVendorService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockGrossImagingVendorService: IGrossImagingVendorService = guardConfigWrites(grossImagingVendorServiceUnchecked, [
+  ['config:vendor-integrations:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

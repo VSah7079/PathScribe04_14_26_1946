@@ -36,3 +36,7 @@ Phase 21 restructuring.
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `MolecularBatchManagementPage.tsx`: the patient MRN column is tagged.
+
+## Batch 406
+
+The page takes the QC-run service from `@/services` and is off the deployment baseline. Sorting and the specimen-to-run lookup moved to `services/cytology/molecularQcRunLinks.ts`. Run dates follow the user's language.

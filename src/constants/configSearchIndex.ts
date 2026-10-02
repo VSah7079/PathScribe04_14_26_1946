@@ -1,10 +1,17 @@
 /**
  * configSearchIndex.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * Manually-maintained searchable index of Configuration settings, for the
- * search bar on ConfigurationPage. NOT auto-derived from the individual tab
- * components (AITab, SystemTab, etc.) — this needs to be kept in sync by hand
- * whenever a setting is added, renamed, or removed.
+ * Searchable index of Configuration, for the search bar on ConfigurationPage.
+ *
+ * Batch 431 (Pete: "I was searching for Field Requirements, but the system
+ * couldn't find any entries"): the hand-written list below covered about 50
+ * settings, while the System tab alone has 69 sections, so most sections
+ * could not be found. CONFIG_SEARCH_INDEX is now the hand-written entries
+ * (which carry synonyms and descriptions) PLUS one entry for every tab and
+ * for every System, Cytology, Staff and Synoptic Library section, generated from the
+ * same section lists the sidebars use (System/systemSections.ts,
+ * Cytology/cytologySections.ts). A new section is searchable as soon as it's
+ * in its sidebar; configSearchIndex.test.ts checks that every section is.
  *
  * Confidence levels, since this was built from documentation rather than the
  * actual tab component source:
@@ -18,9 +25,29 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { SECTIONS as SYSTEM_SECTIONS, GROUP_LABEL_KEY as SYSTEM_GROUP_LABEL_KEY } from '../components/Config/System/systemSections';
+import { SECTIONS as CYTOLOGY_SECTIONS } from '../components/Config/Cytology/cytologySections';
+
 export type ConfigTabId =
-  | 'ai' | 'protocols' | 'staff' | 'voice' | 'system' | 'cytology'
+  | 'ai' | 'protocols' | 'staff' | 'voice' | 'system' | 'cytology' | 'tat'
   | 'actions' | 'macros' | 'templates' | 'validation' | 'demo';
+
+/** Every Configuration tab, in the page's order (Batch 431: shared with ConfigurationPage). */
+export const CONFIG_TABS: readonly ConfigTabId[] = ['ai', 'protocols', 'staff', 'voice', 'system', 'cytology', 'tat', 'actions', 'macros', 'templates', 'validation', 'demo'];
+
+/** The Staff tab's sub-tabs (Config/Staff/StaffTab.tsx reads ?section=). */
+export const STAFF_SECTIONS: readonly { id: string; labelKey: string }[] = [
+  { id: 'members',       labelKey: 'staffTab.tabs.members' },
+  { id: 'roles',         labelKey: 'staffTab.tabs.roles' },
+  { id: 'credentialing', labelKey: 'staffTab.tabs.credentialing' },
+];
+
+/** The Synoptic Library tab's sections (Config/Protocols/index.tsx reads ?section=). */
+export const PROTOCOL_SECTIONS: readonly { id: string; labelKey: string }[] = [
+  { id: 'active', labelKey: 'activeProtocolsSection.title' },
+  { id: 'review', labelKey: 'templateRenderer.nav.breadcrumbReviewQueue' },
+  { id: 'all',    labelKey: 'allProtocolsSection.title' },
+];
 
 export interface ConfigSearchEntry {
   id: string;
@@ -32,8 +59,12 @@ export interface ConfigSearchEntry {
   /** i18n key for the on-screen description, always
    *  `configSearchIndex.entries.<id>.description` — this index's own
    *  summary wording is never an exact-text match for any other on-screen
-   *  string, so every entry gets its own new key. */
-  descriptionKey: string;
+   *  string, so every entry gets its own new key. Batch 431: generated
+   *  section entries have none; they show their group (contextKey). */
+  descriptionKey?: string;
+  /** Batch 431: where the setting sits, shown when there's no description
+   *  (a System section's group). */
+  contextKey?: string;
   /** Real, internal search-matching data, deliberately left untranslated —
    *  see ConfigSearchBar.tsx's own i18n note. */
   synonyms: string[];
@@ -56,7 +87,7 @@ export interface ConfigSearchEntry {
   section?: string;
 }
 
-export const CONFIG_SEARCH_INDEX: ConfigSearchEntry[] = [
+const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
   // ── AI Behavior tab ────────────────────────────────────────────────────────
   { id: 'ai-provider', labelKey: 'aiProviderSettings.providerLabel', tabId: 'ai', confidence: 'verified',
     descriptionKey: 'configSearchIndex.entries.ai-provider.description',
@@ -102,6 +133,9 @@ export const CONFIG_SEARCH_INDEX: ConfigSearchEntry[] = [
   { id: 'sys-or-suite-terminals', labelKey: 'systemTab.sections.orSuiteTerminals', tabId: 'system', confidence: 'verified', section: 'or_suite_terminals',
     descriptionKey: 'configSearchIndex.entries.sys-or-suite-terminals.description',
     synonyms: ['or dashboard', 'intraoperative dashboard', 'frozen section', 'or suite', 'station identity', 'operating room terminal'] },
+  { id: 'sys-intraop-critical-results', labelKey: 'systemTab.sections.intraopCriticalResults', tabId: 'system', confidence: 'verified', section: 'intraop_critical_results',
+    descriptionKey: 'configSearchIndex.entries.sys-intraop-critical-results.description',
+    synonyms: ['critical result', 'critical value', 'frozen section', 'intraoperative', 'surgeon unavailable', 'read back', 'positive margin'] },
   { id: 'sys-display-profiles', labelKey: 'systemTab.sections.displayProfiles', tabId: 'system', confidence: 'verified', section: 'display_profiles',
     descriptionKey: 'configSearchIndex.entries.sys-display-profiles.description',
     synonyms: ['facility ops dashboard', 'department dashboard', 'wall display', 'kiosk', 'display profile', 'grossing dashboard', 'staining dashboard', 'lab operations dashboard'] },
@@ -275,3 +309,38 @@ export const CONFIG_SEARCH_INDEX: ConfigSearchEntry[] = [
     descriptionKey: 'configSearchIndex.entries.validation-placeholder.description',
     synonyms: ['validation', 'studies'] },
 ];
+
+// ── Batch 431: generated entries ─────────────────────────────────────────────
+// One per tab and per section, unless a hand-written entry already points
+// at the same tab and section (that one has better synonyms).
+
+/** The generated entries (pure; tested). */
+export function generatedConfigSearchEntries(): ConfigSearchEntry[] {
+  const out: ConfigSearchEntry[] = [];
+  for (const tabId of CONFIG_TABS) {
+    out.push({ id: `tab-${tabId}`, labelKey: `configuration.tabs.${tabId}`, tabId, confidence: 'verified', synonyms: [] });
+  }
+  for (const s of SYSTEM_SECTIONS) {
+    out.push({ id: `section-system-${s.id}`, labelKey: s.labelKey, tabId: 'system', section: s.id, confidence: 'verified',
+      contextKey: SYSTEM_GROUP_LABEL_KEY[s.group], synonyms: [s.id.replace(/_/g, ' ')] });
+  }
+  for (const s of CYTOLOGY_SECTIONS) {
+    out.push({ id: `section-cytology-${s.id}`, labelKey: s.labelKey, tabId: 'cytology', section: s.id, confidence: 'verified',
+      synonyms: [s.id.replace(/_/g, ' ')] });
+  }
+  for (const s of STAFF_SECTIONS) {
+    out.push({ id: `section-staff-${s.id}`, labelKey: s.labelKey, tabId: 'staff', section: s.id, confidence: 'verified', synonyms: [] });
+  }
+  for (const s of PROTOCOL_SECTIONS) {
+    out.push({ id: `section-protocols-${s.id}`, labelKey: s.labelKey, tabId: 'protocols', section: s.id, confidence: 'verified', synonyms: [] });
+  }
+  return out;
+}
+
+/** Hand-written entries, then a generated entry for every tab and section they don't already cover. */
+export function buildConfigSearchIndex(handWritten: readonly ConfigSearchEntry[]): ConfigSearchEntry[] {
+  const covered = new Set(handWritten.map(e => `${e.tabId}|${e.section ?? ''}`));
+  return [...handWritten, ...generatedConfigSearchEntries().filter(e => !covered.has(`${e.tabId}|${e.section ?? ''}`))];
+}
+
+export const CONFIG_SEARCH_INDEX: ConfigSearchEntry[] = buildConfigSearchIndex(HAND_WRITTEN_ENTRIES);

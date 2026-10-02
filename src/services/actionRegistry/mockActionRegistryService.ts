@@ -1,6 +1,9 @@
 import { IActionRegistryService, SystemAction } from './IActionRegistryService';
 import { ACTION_MAP, VOICE_CONTEXT } from '../../constants/systemActions';
 import type { VoiceProfileLanguage } from '../../constants/voiceProfiles';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { getPersonalSetting, setPersonalSetting } from '../userSettings/personalSettings';
+import { getSessionUser } from '../auth/caseAccessControl';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Categories always eligible regardless of current context
@@ -1845,6 +1848,56 @@ const SEED_ACTIONS: SystemAction[] = [
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
+  // Batch 383 (PS-359): the two autopsy forms' buttons and the two sign-out
+  // gates' Continue. Each modal listens while it is open.
+  {
+    id: 'AUTOPSY_AUTH_SUBMIT', label: 'Record Autopsy Authorization', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+3', internalKey: ACTION_MAP['case.recordAutopsyAuthorization']?.internalKey ?? 'F19+PS014',
+    voiceTriggers: ['record authorization', 'record autopsy authorization'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer l'autorisation"],
+      de: ['genehmigung erfassen'],
+      nl: ['machtiging vastleggen'],
+      ko: ['승인 기록'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'AUTOPSY_RELEASE_SUBMIT', label: 'Release Autopsy Body', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+4', internalKey: ACTION_MAP['case.releaseAutopsyBody']?.internalKey ?? 'F19+PS015',
+    voiceTriggers: ['release body', 'confirm body release'],
+    voiceTriggersByLanguage: {
+      fr: ['remettre le corps'],
+      de: ['leichnam freigeben'],
+      nl: ['lichaam vrijgeven'],
+      ko: ['시신 인도'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'FIXATIVE_GATE_CONTINUE', label: 'Continue Past Fixation Time Gate', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+5', internalKey: ACTION_MAP['specimen.continueFixativeGate']?.internalKey ?? 'F20+PS011',
+    voiceTriggers: ['continue fixation gate', 'continue fixation time'],
+    voiceTriggersByLanguage: {
+      fr: ['continuer le contrôle de fixation'],
+      de: ['fixierungsprüfung fortsetzen'],
+      nl: ['fixatiecontrole voortzetten'],
+      ko: ['고정 시간 확인 계속'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'PREANALYTIC_GATE_CONTINUE', label: 'Continue Past Collection/Receipt Date Gate', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+6', internalKey: ACTION_MAP['specimen.continuePreAnalyticGate']?.internalKey ?? 'F20+PS012',
+    voiceTriggers: ['continue date gate', 'continue receipt date gate'],
+    voiceTriggersByLanguage: {
+      fr: ['continuer le contrôle des dates'],
+      de: ['datumsprüfung fortsetzen'],
+      nl: ['datumcontrole voortzetten'],
+      ko: ['날짜 확인 계속'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
   {
     id: 'SIGNOUT_NEXT', label: 'Sign Out and Next', category: 'SYNOPTIC',
     shortcut: 'Ctrl+Alt+Shift+O', internalKey: 'F17+PS029',
@@ -2156,6 +2209,20 @@ const SEED_ACTIONS: SystemAction[] = [
       de: ["sichere e-mail", "sichere e-mail senden"],
       nl: ["beveiligde e-mail", "beveiligde e-mail verzenden"],
       ko: ["보안 이메일", "보안 이메일 발송"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 384 (PS-359): the secure email window's Send (the phrase "send secure
+  // email" already opens the window, so this one says "submit").
+  {
+    id: 'SECURE_EMAIL_SUBMIT', label: 'Submit Secure Email', category: VOICE_CONTEXT.MESSAGES,
+    shortcut: 'Ctrl+Alt+Shift+7', internalKey: ACTION_MAP['messages.submitSecureEmail']?.internalKey ?? 'F18+PS025',
+    voiceTriggers: ['submit secure email', 'deliver secure email'],
+    voiceTriggersByLanguage: {
+      fr: ["soumettre l'e-mail sécurisé"],
+      de: ["sichere e-mail absenden"],
+      nl: ["beveiligde e-mail indienen"],
+      ko: ["보안 이메일 제출"],
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
@@ -3253,6 +3320,268 @@ const SEED_ACTIONS: SystemAction[] = [
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
+  // Batch 386 (PS-359): the screening page's four save buttons. Each form
+  // listens while it is on screen and acts exactly as its button does, the
+  // Field Requirements check included.
+  {
+    id: 'CYTOLOGY_SAVE_REVIEW', label: 'Save Cytology Review', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: 'F26+PS012',
+    voiceTriggers: ['save review', 'save cytology review'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer l'évaluation", "enregistrer la lecture"],
+      de: ["befundung speichern", "beurteilung speichern"],
+      nl: ["beoordeling opslaan", "screening opslaan"],
+      ko: ["판독 저장", "검토 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'CYTOLOGY_SAVE_CISOEA', label: 'Save CISOE-A Review', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+B', internalKey: 'F26+PS013',
+    voiceTriggers: ['save cisoe-a review', 'save cisoea'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer la lecture cisoe-a"],
+      de: ["cisoe-a-befundung speichern"],
+      nl: ["cisoe-a-beoordeling opslaan"],
+      ko: ["cisoe-a 판독 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'CYTOLOGY_COMPLETE_RETROSPECTIVE', label: 'Complete Retrospective Review', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+C', internalKey: 'F26+PS014',
+    voiceTriggers: ['complete retrospective review', 'complete review'],
+    voiceTriggersByLanguage: {
+      fr: ["terminer la révision rétrospective"],
+      de: ["retrospektive überprüfung abschließen"],
+      nl: ["retrospectieve beoordeling voltooien"],
+      ko: ["소급 검토 완료"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'CYTOLOGY_RECORD_CORRELATION', label: 'Record Cyto-Histologic Correlation', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+D', internalKey: 'F26+PS015',
+    voiceTriggers: ['record correlation', 'confirm correlation'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer la corrélation"],
+      de: ["korrelation erfassen"],
+      nl: ["correlatie registreren"],
+      ko: ["상관관계 기록"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 388 (PS-359): the Microtomy workstation's comment drawer and slide grid.
+  // Each acts exactly as its button does, checks included.
+  {
+    id: 'MICROTOMY_ADD_COMMENT', label: 'Add Comment (Microtomy)', category: 'MICROTOMY',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: 'F26+PS016',
+    voiceTriggers: ['add comment', 'save comment'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter le commentaire", "enregistrer le commentaire"],
+      de: ["kommentar hinzufügen", "kommentar speichern"],
+      nl: ["opmerking toevoegen", "opmerking opslaan"],
+      ko: ["코멘트 추가", "코멘트 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'MICROTOMY_ADD_STAIN', label: 'Add Stain to Slide Grid', category: 'MICROTOMY',
+    shortcut: 'Ctrl+Alt+Shift+B', internalKey: 'F26+PS017',
+    voiceTriggers: ['add stain', 'add slide'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter la coloration", "ajouter la lame"],
+      de: ["färbung hinzufügen", "objektträger hinzufügen"],
+      nl: ["kleuring toevoegen", "glaasje toevoegen"],
+      ko: ["염색 추가", "슬라이드 추가"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 401 (PS-359): the Embedding station. Each acts exactly as its button
+  // does, Field Requirements included.
+  {
+    id: 'EMBEDDING_CONFIRM_PIECE_COUNT', label: 'Confirm Embedding (Piece Count)', category: 'EMBEDDING',
+    shortcut: 'Ctrl+Alt+Shift+C', internalKey: 'F28+PS001',
+    voiceTriggers: ['confirm count', 'confirm embedding'],
+    voiceTriggersByLanguage: {
+      fr: ["confirmer le nombre", "confirmer l'inclusion"],
+      de: ["anzahl bestätigen", "einbettung bestätigen"],
+      nl: ["aantal bevestigen", "inbedding bevestigen"],
+      ko: ["개수 확인", "포매 확인"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'EMBEDDING_ADD_COMMENT', label: 'Add Comment (Embedding)', category: 'EMBEDDING',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: 'F28+PS002',
+    voiceTriggers: ['add comment', 'save comment'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter le commentaire", "enregistrer le commentaire"],
+      de: ["kommentar hinzufügen", "kommentar speichern"],
+      nl: ["opmerking toevoegen", "opmerking opslaan"],
+      ko: ["코멘트 추가", "코멘트 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 402 (PS-359): the Slide distribution station's two routing buttons.
+  // Each acts exactly as its button does, Field Requirements included, and only
+  // while its destination (physical or digital) is the one on screen.
+  {
+    id: 'SLIDE_DIST_CONFIRM_PHYSICAL', label: 'Confirm Physical Routing (Slide Distribution)', category: 'SLIDE_DISTRIBUTION',
+    shortcut: 'Ctrl+Alt+Shift+P', internalKey: 'F29+PS001',
+    voiceTriggers: ['confirm checkout', 'check out slide'],
+    voiceTriggersByLanguage: {
+      fr: ["confirmer la sortie", "sortir la lame"],
+      de: ["ausgabe bestätigen", "objektträger ausgeben"],
+      nl: ["uitgifte bevestigen", "glaasje uitgeven"],
+      ko: ["반출 확인", "슬라이드 반출"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'SLIDE_DIST_CONFIRM_DIGITAL', label: 'Confirm Scanner Routing (Slide Distribution)', category: 'SLIDE_DISTRIBUTION',
+    shortcut: 'Ctrl+Alt+Shift+D', internalKey: 'F29+PS002',
+    voiceTriggers: ['confirm scanner', 'send to scanner'],
+    voiceTriggersByLanguage: {
+      fr: ["confirmer le scanner", "envoyer au scanner"],
+      de: ["scanner bestätigen", "an scanner senden"],
+      nl: ["scanner bevestigen", "naar scanner sturen"],
+      ko: ["스캐너 확인", "스캐너로 보내기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 403 (PS-359): the Add-On Orders page's Add to Cart and Submit.
+  // Each acts exactly as its button does, Field Requirements included.
+  {
+    id: 'ADD_ON_ADD_TO_ORDER', label: 'Add to Add-On Order', category: 'ADD_ON_ORDER',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: 'F30+PS001',
+    voiceTriggers: ['add to order', 'add to cart'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter à la commande", "ajouter au panier"],
+      de: ["zur bestellung hinzufügen", "zum warenkorb hinzufügen"],
+      nl: ["aan bestelling toevoegen", "aan winkelwagen toevoegen"],
+      ko: ["주문에 추가", "장바구니에 추가"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'ADD_ON_SUBMIT_ORDER', label: 'Submit Add-On Order', category: 'ADD_ON_ORDER',
+    shortcut: 'Ctrl+Alt+Shift+S', internalKey: 'F30+PS002',
+    voiceTriggers: ['submit order', 'submit add-on order'],
+    voiceTriggersByLanguage: {
+      fr: ["soumettre la commande", "soumettre la commande complémentaire"],
+      de: ["bestellung absenden", "zusatzauftrag absenden"],
+      nl: ["bestelling indienen", "aanvullende bestelling indienen"],
+      ko: ["주문 제출", "추가 주문 제출"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 404 (PS-359): New Container's Generate button, Field Requirements
+  // included. The overrides (abort, force-complete, cold-chain acknowledge)
+  // deliberately have no voice command.
+  {
+    id: 'BATCH_CREATE_CONTAINER', label: 'Create Container (Batch Management)', category: 'BATCH_MANAGEMENT',
+    shortcut: 'Ctrl+Alt+Shift+N', internalKey: 'F31+PS001',
+    voiceTriggers: ['create container', 'generate container'],
+    voiceTriggersByLanguage: {
+      fr: ["créer le conteneur", "générer le conteneur"],
+      de: ["behälter erstellen", "behälter erzeugen"],
+      nl: ["container aanmaken", "container genereren"],
+      ko: ["용기 생성", "용기 만들기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 405 (PS-359): the molecular plate builder's Create, Field
+  // Requirements included. Clone & Supersede deliberately has no voice command.
+  {
+    id: 'MOLECULAR_CREATE_PLATE', label: 'Create Plate (Molecular)', category: 'MOLECULAR',
+    shortcut: 'Ctrl+Alt+Shift+N', internalKey: 'F32+PS001',
+    voiceTriggers: ['create plate', 'create batch'],
+    voiceTriggersByLanguage: {
+      fr: ["créer la plaque", "créer le lot"],
+      de: ["platte erstellen", "charge erstellen"],
+      nl: ["plaat aanmaken", "batch aanmaken"],
+      ko: ["플레이트 생성", "배치 생성"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 406: Rack Loading's "Place on instrument", Field Requirements and
+  // deck-slot checks included, exactly as the button.
+  {
+    id: 'MOLECULAR_PLACE_RACK', label: 'Place Rack on Instrument (Molecular)', category: 'MOLECULAR',
+    shortcut: 'Ctrl+Alt+Shift+P', internalKey: 'F32+PS002',
+    voiceTriggers: ['place rack', 'rack on instrument'],
+    voiceTriggersByLanguage: {
+      fr: ["placer le portoir", "portoir sur l'automate"],
+      de: ["rack platzieren", "rack ins gerät"],
+      nl: ["rek plaatsen", "rek op instrument"],
+      ko: ["랙 배치", "장비에 랙 배치"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 397 (PS-359): Add Orders → Blocks / Recut's Add Block, and the Intraop
+  // page's Continue (start the session), the two specimen saves and Merge. Each
+  // acts exactly as its button does, Field Requirements check included.
+  {
+    id: 'ADD_ORDERS_ADD_BLOCK', label: 'Add Block (Add Orders)', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+8', internalKey: 'F20+PS013',
+    voiceTriggers: ['confirm block order', 'save block order'],
+    voiceTriggersByLanguage: {
+      fr: ['confirmer la commande de bloc'],
+      de: ['blockauftrag bestätigen'],
+      nl: ['blokorder bevestigen'],
+      ko: ['블록 주문 확인'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_START_SESSION', label: 'Start Intraop Session (Continue to Specimen)', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+1', internalKey: 'F27+PS001',
+    voiceTriggers: ['continue to specimen', 'start the session'],
+    voiceTriggersByLanguage: {
+      fr: ['continuer vers le prélèvement', 'démarrer la session'],
+      de: ['weiter zum präparat', 'sitzung starten'],
+      nl: ['verder naar het preparaat', 'sessie starten'],
+      ko: ['검체로 계속', '세션 시작'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_SAVE_SPECIMEN_NEXT', label: 'Save Specimen and Next (Intraop)', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+2', internalKey: 'F27+PS002',
+    voiceTriggers: ['save and next specimen', 'next specimen'],
+    voiceTriggersByLanguage: {
+      fr: ['enregistrer et prélèvement suivant', 'prélèvement suivant'],
+      de: ['speichern und nächstes präparat', 'nächstes präparat'],
+      nl: ['opslaan en volgend preparaat', 'volgend preparaat'],
+      ko: ['저장 후 다음 검체', '다음 검체'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_SAVE_SPECIMEN_CLOSE', label: 'Save Specimen and Close Session (Intraop)', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+3', internalKey: 'F27+PS003',
+    voiceTriggers: ['save and close session', 'close and save'],
+    voiceTriggersByLanguage: {
+      fr: ['enregistrer et fermer la session'],
+      de: ['speichern und sitzung schließen'],
+      nl: ['opslaan en sessie sluiten'],
+      ko: ['저장 후 세션 종료'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_MERGE_CONFIRM', label: 'Merge Intraop Session into Case', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+4', internalKey: 'F27+PS004',
+    voiceTriggers: ['merge session', 'confirm merge'],
+    voiceTriggersByLanguage: {
+      fr: ['fusionner la session', 'confirmer la fusion'],
+      de: ['sitzung zusammenführen', 'zusammenführen bestätigen'],
+      nl: ['sessie samenvoegen', 'samenvoegen bevestigen'],
+      ko: ['세션 병합', '병합 확인'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
 
 // ─────────────────────────────────────────────────────────────────────────────
 ];
@@ -3384,7 +3713,11 @@ let currentActionGroupActionIds: Set<string> = new Set();
 const LIVE_ACTIONS: SystemAction[] = loadActions();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Learning layer — persisted to localStorage so mappings survive page refresh
+// Learning layer — persisted so mappings survive page refresh.
+// Batch 432 (Pete: per person): what the system learns from someone's speech
+// belongs to them, like their accent (Batch 430). Kept as a personal setting
+// (services/userSettings/personalSettings.ts); the mappings reload when a
+// different person signs in. The old shared list carries over the first time.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'ps_learned_triggers';
@@ -3422,22 +3755,14 @@ function computeCandidates(transcript: string, actions: SystemAction[]): SystemA
     .map(s => s.action);
 }
 
-// ── localStorage helpers ──────────────────────────────────────────────────
+// ── Storage helpers (per person) ──────────────────────────────────────────
 function loadMappings(): LocalLearnedMapping[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as LocalLearnedMapping[]) : [];
-  } catch {
-    return [];
-  }
+  const saved = getPersonalSetting<LocalLearnedMapping[]>(STORAGE_KEY, []);
+  return Array.isArray(saved) ? saved.filter(m => !!m?.transcript && !!m?.actionId) : [];
 }
 
 function saveMappings(mappings: LocalLearnedMapping[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
-  } catch {
-    // localStorage unavailable — degrade gracefully, in-memory still works
-  }
+  setPersonalSetting(STORAGE_KEY, mappings);
 }
 
 // Sync learnedTriggers from storage into LIVE_ACTIONS so findActionByTrigger
@@ -3450,8 +3775,17 @@ function syncLearnedTriggersToActions(mappings: LocalLearnedMapping[]) {
   }
 }
 
-const learnedMappings: LocalLearnedMapping[] = loadMappings().filter(m => !!m.transcript && !!m.actionId);
-syncLearnedTriggersToActions(learnedMappings);
+const learnedMappings: LocalLearnedMapping[] = [];
+let mappingsOwner: string | undefined | null = null;   // null: not loaded yet
+
+/** Loads the signed-in person's mappings when the person changes. */
+function ensureMappingsForCurrentUser(): void {
+  const owner = getSessionUser()?.id;
+  if (owner === mappingsOwner) return;
+  mappingsOwner = owner;
+  learnedMappings.splice(0, learnedMappings.length, ...loadMappings());
+  syncLearnedTriggersToActions(learnedMappings);
+}
 
 // ── Pending miss window ───────────────────────────────────────────────────
 const pendingMisses: LocalPendingMiss[] = [];
@@ -3459,7 +3793,7 @@ const pendingMisses: LocalPendingMiss[] = [];
 // ─────────────────────────────────────────────────────────────────────────────
 // Service
 // ─────────────────────────────────────────────────────────────────────────────
-export const mockActionRegistryService: IActionRegistryService = {
+const actionRegistryServiceUnchecked: IActionRegistryService = {
 
   getActions: () => LIVE_ACTIONS,
 
@@ -3517,6 +3851,7 @@ onAction: (callback: (actionId: string) => void) => {
     return () => window.removeEventListener('VOICE_ACTION_TRIGGERED', handler);
   },
   findActionByTrigger: (transcript: string, language: VoiceProfileLanguage = 'en'): SystemAction | undefined => {
+    ensureMappingsForCurrentUser();
     const eligible = LIVE_ACTIONS.filter(
       a => a.isActive && (
         GLOBAL_CATEGORIES.has(a.category) ||
@@ -3640,6 +3975,7 @@ onAction: (callback: (actionId: string) => void) => {
   // repeat utterance, or the VoiceMissPrompt UI tap.
   // Stores the transcript as a learned trigger so it fires next time.
   confirmMiss: (missId: string, actionId: string, method: 'shortcut' | 'repeat' | 'manual'): LocalLearnedMapping => {
+    ensureMappingsForCurrentUser();
     // Find and remove from pending window
     const missIdx = pendingMisses.findIndex(m => m.id === missId);
     if (missIdx === -1) {
@@ -3686,15 +4022,17 @@ onAction: (callback: (actionId: string) => void) => {
     window.dispatchEvent(new CustomEvent('VOICE_MAPPING_LEARNED', { detail: { mapping, action } }));
 
     // Execute the action so the user's original intent is carried out
-    if (action) mockActionRegistryService.executeAction(action, miss.transcript);
+    if (action) actionRegistryServiceUnchecked.executeAction(action, miss.transcript);
 
     return mapping;
   },
 
-  getLearnedMappings: () => [...learnedMappings],
+  getLearnedMappings: () => { ensureMappingsForCurrentUser(); return [...learnedMappings]; },
 
   // removeLearnedMapping takes transcript (the unique key) per interface
+  // Batch 432: the person's own list ("My voice commands"), so no capability.
   removeLearnedMapping: (transcript: string) => {
+    ensureMappingsForCurrentUser();
     const t = norm(transcript);
     const idx = learnedMappings.findIndex(m => m.transcript === t);
     if (idx === -1) return;
@@ -3717,3 +4055,8 @@ onAction: (callback: (actionId: string) => void) => {
     return () => window.removeEventListener('VOICE_MISS_RECORDED', h);
   },
 };
+
+/** Batch 428: changing the lab's shortcuts and voice commands needs config:actions:manage. */
+export const mockActionRegistryService: IActionRegistryService = guardConfigWrites(actionRegistryServiceUnchecked, [
+  ['config:actions:manage', ['updateAction']],
+]);

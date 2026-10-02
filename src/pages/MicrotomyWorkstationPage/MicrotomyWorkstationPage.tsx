@@ -39,7 +39,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { printSettingsService } from '@/services';
+import { printSettingsService, actionRegistryService, microtomyCancelMissing } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import type { SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import { resolveSlideLabelFitWarnings } from '@/utils/labels/resolveSlideLabelFitWarnings';
@@ -54,16 +57,23 @@ import HardwarePrintPanel from './components/HardwarePrintPanel';
 import CytologyPanel from './components/CytologyPanel';
 import CommentDrawer from './components/CommentDrawer';
 import BatchProgressModal from './components/BatchProgressModal';
-import { computeNextUnprintedStain, MICROTOMY_CANCEL_REASONS } from '@/utils/microtomyOperations';
+import { computeNextUnprintedStain, MICROTOMY_CANCEL_REASONS, MICROTOMY_REASON_KEYS } from '@/utils/microtomyOperations';
 import '../../pathscribe.css';
 
 const MicrotomyWorkstationPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const microtomyRequirements = useFieldRequirements('microtomy');
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('microtomyWorkstation.pageTitle'), '/workstations/microtomy'); }, [pushCrumb, t]);
 
   const w = useMicrotomyWorkstation();
+
+  // Batch 388: this page has its own voice/keyboard context ("add comment", "add stain").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.MICROTOMY);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
   const [scanInput, setScanInput] = useState('');
   const [labelLayout, setLabelLayout] = useState<SlideLabelLayoutConfig>(DEFAULT_SLIDE_LABEL_LAYOUT);
   const [printer, setPrinter] = useState<PrinterProfile | null>(null);
@@ -166,7 +176,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
           <div className="ps-microtomy-context-bar">
             <span>{t('microtomyWorkstation.context.accession')} <strong data-phi="accession">{w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id}</strong></span>
             <span>{t('microtomyWorkstation.context.patient')} <strong data-phi="name">{`${w.workItem.caseData.patient?.givenNames ?? ''} ${w.workItem.caseData.patient?.familyNames ?? ''}`.trim() || '—'}</strong></span>
-            <span>{t('microtomyWorkstation.context.dob')} <strong data-phi="dob">{w.workItem.caseData.patient?.dateOfBirth ?? '—'}</strong></span>
+            <span>{t('microtomyWorkstation.context.dob')} <strong data-phi="dob">{w.workItem.caseData.patient?.dateOfBirth ? formatDate(w.workItem.caseData.patient.dateOfBirth, i18n.language) : '—'}</strong></span>
             <span>
               {t('microtomyWorkstation.context.specimenBlock')}{' '}
               <strong>{w.workItem.specimen.label}{w.workItem.kind === 'block' ? w.workItem.block.label : w.workItem.decant.label}</strong>
@@ -212,7 +222,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
                 <p className="ps-microtomy-panel-title">{t('microtomyWorkstation.context.priorHistory')}</p>
                 <ul className="ps-microtomy-history-list">
                   {stains.filter(s => s.printedAt).sort((a, b) => (b.printedAt ?? '').localeCompare(a.printedAt ?? '')).map(s => (
-                    <li key={s.id}>{s.stainName} — {new Date(s.printedAt!).toLocaleString()}</li>
+                    <li key={s.id}>{s.stainName} — {formatDateTime(s.printedAt, i18n.language)}</li>
                   ))}
                   {stains.every(s => !s.printedAt) && <li>{t('microtomyWorkstation.context.noHistory')}</li>}
                 </ul>
@@ -238,6 +248,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
                 onOpenComments={stain => setCommentTarget({ scope: 'stain', stain })}
                 onReorder={w.handleReorder}
                 supportsControlPairing={w.workItem.kind === 'block'}
+                requirements={microtomyRequirements}
               />
             </div>
 
@@ -267,9 +278,9 @@ const MicrotomyWorkstationPage: React.FC = () => {
             <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('microtomyWorkstation.removeReason.title')}</div></div>
             <div className="ps-batch-modal-body">
               <p>{t('microtomyWorkstation.removeReason.body')}</p>
-              <select className="ps-microtomy-field-select" defaultValue="" onChange={e => { if (e.target.value) w.confirmPendingRemoval(e.target.value as any); }}>
+              <select className="ps-microtomy-field-select" defaultValue="" onChange={e => { if (e.target.value && microtomyCancelMissing(e.target.value, microtomyRequirements).length === 0) w.confirmPendingRemoval(e.target.value as typeof MICROTOMY_CANCEL_REASONS[number]); }}>
                 <option value="" disabled>{t('microtomyWorkstation.removeReason.select')}</option>
-                {MICROTOMY_CANCEL_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                {MICROTOMY_CANCEL_REASONS.map(r => <option key={r} value={r}>{t(`microtomyWorkstation.reasons.${MICROTOMY_REASON_KEYS[r]}`)}</option>)}
               </select>
             </div>
             <div className="ps-batch-modal-footer">
@@ -284,6 +295,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
           title={commentTarget.scope === 'block' ? t('microtomyWorkstation.context.blockComments') : t('microtomyWorkstation.slideGrid.slideComments')}
           comments={commentComments}
           showPrintToggle={commentTarget.scope === 'stain'}
+          requirements={microtomyRequirements}
           onClose={() => setCommentTarget(null)}
           onSubmit={(text, printsOnLabel) => {
             if (commentTarget.scope === 'block') w.handleAddBlockComment(text);

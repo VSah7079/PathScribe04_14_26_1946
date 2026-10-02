@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { useLocation } from 'react-router';
+import { STAFF_SECTIONS } from '@/constants/configSearchIndex';
 import { useTranslation } from 'react-i18next';
 import { VOICE_PROFILES, type VoiceProfileId } from '../../../constants/voiceProfiles';
 import { SPELLING_LOCALE_ORDER, SPELLING_LOCALES } from '@/services/spellcheck/spellingLocales';
@@ -25,6 +27,7 @@ import {
 const JURISDICTION_CODES = Object.keys(JURISDICTION_LABELS) as Jurisdiction[];
 import { ServiceResult } from '../../../services/types';
 import { Dropdown } from '@/components/Common/Dropdown';
+import ConfigSectionGate from '../ConfigSectionGate';
 
 // i18n note (batch 117): role names (Role.name / StaffUser.roles),
 // subspecialty names (Subspecialty.name), and VOICE_PROFILES' own
@@ -764,9 +767,9 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       </div>
 
       <div data-capture-hide="true" className="ps-st-filter-bar">
-        <input type="text" placeholder={t('staffTab.list.searchPlaceholder')} value={search}
+        <input data-config-nav type="text" placeholder={t('staffTab.list.searchPlaceholder')} value={search}
           onChange={e => setSearch(e.target.value)} className="ps-st-search" />
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+        <select data-config-nav value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
           title={t('staffTab.list.roleFilterTitle')} className="ps-st-role-filter">
           <option value="All">{t('staffTab.list.allRoles')}</option>
           {roles.filter(r => r.name !== 'Physician').map(r => (
@@ -837,7 +840,18 @@ type StaffSubTab = 'members' | 'roles' | 'credentialing';
 
 const StaffTab: React.FC = () => {
   const { t } = useTranslation();
-  const [subTab, setSubTab] = useState<StaffSubTab>('members');
+  // Batch 431: ?section= opens a sub-tab (Configuration search, links).
+  const location = useLocation();
+  const sectionFromAddress = (): StaffSubTab | null => {
+    const section = new URLSearchParams(location.search).get('section');
+    return STAFF_SECTIONS.some(s => s.id === section) ? section as StaffSubTab : null;
+  };
+  const [subTab, setSubTab] = useState<StaffSubTab>(() => sectionFromAddress() ?? 'members');
+  React.useEffect(() => {
+    const section = sectionFromAddress();
+    if (section) setSubTab(section);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the address only
+  }, [location.search]);
   const [roles,  setRoles]  = React.useState<Role[]>(DEFAULT_ROLES);
 
   // Real fix, per direct guidance (Staff member Organized under Role):
@@ -877,8 +891,9 @@ const StaffTab: React.FC = () => {
       {subTab === 'roles'   && <RoleDictionary onRolesChange={setRoles} />}
       {subTab === 'credentialing' && (
         <>
-          <FppeAssignmentsSection />
-          <CytotechCompetencyAssignmentsSection />
+          {/* Batch 429: view only without their capabilities. */}
+          <ConfigSectionGate section="staff:fppe"><FppeAssignmentsSection /></ConfigSectionGate>
+          <ConfigSectionGate section="staff:cytotech-competency"><CytotechCompetencyAssignmentsSection /></ConfigSectionGate>
         </>
       )}
     </div>

@@ -65,6 +65,10 @@ status updates from external reference labs, and outbound delivery
 of referral manifests — tracked by the backend team's own stories,
 not built here.
 
+## Batch 432
+
+`updateTransitStatus` is now used: Batch detail → "Mark in transit" / "Mark delivered". It needs `referral:transit-status:update` and only moves forward; "result received" comes only with the result (`referralTransitRules.ts`, tested).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

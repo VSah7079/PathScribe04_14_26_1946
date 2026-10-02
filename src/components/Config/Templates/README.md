@@ -75,6 +75,14 @@ non-trivial open bug (now fixed — see Notes).
 
   Selected answer options use `ps-tmplr-option-label--selected`. Checked in the browser against the previous look.
 
+## Batch 428: Configuration permissions
+
+`AdminTemplateList.tsx` was deleted (nothing used it). `TemplateRenderer.tsx` is unchanged; its approve, publish, request changes and reset now need the protocol capabilities, checked in `services/templates/templateService.ts`.
+
+## Batch 431
+
+`TemplateRenderer.tsx` saves trial answers through `services/templates/templateReviewWork.ts` and no longer keeps its own copy of the lifecycle state (the template service's status is the one record).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

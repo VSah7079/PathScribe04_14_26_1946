@@ -155,5 +155,27 @@ A message's **config link** (`IMessageService` `configLink`) comes from stored m
 
 `AppShell.tsx`: the case links in the messages drawer (the message's case and case numbers detected in its text) carry `data-phi="accession"`.
 
+## Batch 384 (PS-359): Field Requirements for messaging
+
+- **`AppShell.tsx`:** the New message drawer, the reply box and the Secure email window take what they require from Field Requirements (new `messaging` page): the recipient and the text are locked, the subject is a switch (required by default). Each shows "Still required: …" and stars the required labels. `ComposePanel` and `SecureEmailModal` are now exported so they can be tested.
+- **Voice/keyboard:** "submit secure email" (`SECURE_EMAIL_SUBMIT`, Ctrl+Alt+Shift+7) sends the secure email with the same checks. The drawer's own Send by voice (`MSG_SEND`) already existed; it now applies the same subject check as the button, which it skipped before.
+- A message without a subject shows a translated "(No subject)" in the list.
+- The file uses the action registry through `@/services` and is off the mock-import baseline. It still uses session storage for the drawer, so it stays on the browser-storage baseline.
+- **Still in this file (not moved):** the hard-coded internal recipient list (`INTERNAL_USERS`), the simulated secure-email send, and the drawer's own state handling (the file is 1,700+ lines).
+
+## Batch 385: recipients, the send, and permissions
+
+- **`AppShell.tsx`:** the recipient list is no longer in the file: the drawer loads it with `messageService.listRecipients()` and searches with `searchRecipients` / `findRecipientByName`. The Secure email window's send is `messageService.sendSecureEmail`, not a timer in the component.
+- **Permissions:** Send, Secure email and Reply need `message:internal:send` / `message:secure-email:send` (greyed out with a reason; the service checks again). A refused or failed send now keeps the draft and shows why (before, the draft was cleared either way).
+- **Still in this file:** the drawer's own state handling (the file is 1,700+ lines) and the session storage for the open drawer.
+
+## Batch 431
+
+Applies the signed-in person's language (`usePersonalLanguage`); the messages drawer and "back to messages" use the session flags.
+
+## Batch 432
+
+The profile menu (About panel) has "My dictionary" and "My voice commands" (`components/Profile/`).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

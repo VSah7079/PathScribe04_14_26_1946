@@ -46,6 +46,10 @@ import type { QaDiscordanceSeverity } from '@/types/quality/QaActivityRecord';
 import type { DeficiencyType } from '@/services/deficiencies/IDeficiencyService';
 import { getCurrentJurisdiction } from '@/services/retentionPolicy/RetentionPolicy';
 import { duplicateQaType } from '@/services/duplication/duplicateEntities';
+import SurgicalPeerReviewRiskWeights from './SurgicalPeerReviewRiskWeights';
+
+// Batch 432: the standard Surgical Peer Review activity type (mockQaActivityTypeService.ts).
+const SURGICAL_PEER_REVIEW_TYPE_ID = 'qa-activity-surgical-peer-review';
 
 type QaConfigTab = 'standard' | 'custom';
 type ArchetypeKind = 'review' | 'supervision';
@@ -382,6 +386,10 @@ const ActivityConfigModal: React.FC<{
                   {t('qaConfigurationCenterSection.modal.samplingHint')}
                 </p>
               </div>
+              {/* Batch 432: per-subspecialty risk weights for surgical peer review. */}
+              {draft.entry.id === SURGICAL_PEER_REVIEW_TYPE_ID && (
+                <SurgicalPeerReviewRiskWeights basePercentage={draft.entry.samplingPercentage} />
+              )}
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('qaConfigurationCenterSection.modal.capaTriggerLabel')}</label>
                 <div className="ps-conf-form-row">

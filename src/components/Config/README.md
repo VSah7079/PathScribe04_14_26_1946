@@ -273,6 +273,86 @@ The Equipment register shows a device with an open malfunction or past due in re
 
 Subfolders converted their last inline styles to `pathscribe.css` classes (see each folder's README). Standing rule 1 now holds app-wide, checked by `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 388
+
+System → Field Requirements: a Microtomy workstation page (PS-359).
+
+## Batch 397
+
+Field Requirements lists the Intraop page (see `System/README.md`).
+
+## Batch 399
+
+System gains Intraoperative critical results (see `System/README.md`).
+
+## Batch 406
+
+`System/`: analysers get a deck layout in the equipment editor (`DeckLayoutEditor.tsx`).
+
+## Batch 414
+
+`Cytology/CytologyRegistrySettingsSection.tsx`: screening registry reporting, rebuilt on the registry engine (`services/screeningRegistry/`).
+- It lists all twelve programmes for the enterprise and facility registries.
+- For a chosen registry it shows:
+  - its jurisdictions, national identifier, coding and wire format;
+  - whether it's built from the programme's specification or configured by the lab;
+  - the two hold settings;
+  - a code-mapping table (category, field, registry code, registry text) with "N of M mapped" and whether results will be sent or held.
+- Saves need `config:screening-registry:manage` (greyed without it) and are audited.
+- It now saves to the stores sign-out reads; before, it saved where nothing read.
+- It's off the deployment baseline.
+
+## Batch 415
+
+`Cytology/CytologyComplianceFeaturesSection.tsx` (new, Configuration → Cytology → Country-specific rules):
+- Sets the CLIA workload cap and CAP 5-year lookback to Automatic, On or Off, for the enterprise and per facility.
+- Saves need `config:cytology-compliance:manage` and are audited.
+
+## Batch 419
+
+Cytology → Registry Reporting: each registry's configuration has "Send results to": the programme's test system (default) or its live register. The hold-for-identifier checkbox now says "unless the patient has a verified <identifier>" (it has checked the national identifier since Batch 417; the wording still said MRN).
+
+## Batch 422
+
+System → Cancer Registry Reporting: thirteen registries, test/live, the opt-out rule, permission-checked saves.
+
+## Batch 423
+
+`RegistryGoLive/`: the registry test-to-live gate, used by the screening and cancer registry settings screens.
+
+## Batch 424
+
+`RegistryGoLive/` is now the registry connection panel. It covers the validation and production instances, the synthetic test suite, the validation record and the local overlay.
+
+## Batch 425
+
+System → Template Review now needs `config:template-governance:manage` to change its settings.
+
+## Batch 426
+
+The template editor (`Protocols/`) tags fields for staging and blocks, gives numeric fields a unit, and records the staging edition.
+
+## Batch 428: Configuration permissions
+
+Every Configuration section now checks its own capability in its service (84 of them, one per section, Pete's choice; `docs/architecture/AUTHORIZATION_API.md`). Before, anyone who could open Configuration could change any section.
+- `ConfigRefusalBanner.tsx` (new): when a change is refused, names the missing permission and where an administrator grants it. Shown on the Configuration page, Template Assembly and the Part Builder.
+- **Deleted** (unused copies): `Integrations/CrosswalkSection.tsx` and its `.DELETED.txt` note, `Templates/AdminTemplateList.tsx`, `System/SpecimenCategoriesSection.tsx`, `System/PatientMatchReviewSection.tsx`. Listed in the zip's `DELETED_FILES.txt`.
+- Screens don't grey out controls the person can't use yet; a refused change shows the banner and saves nothing.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+- `ConfigSectionGate.tsx` (new): shows a section view only to someone without its capability. A note names the permission; action buttons and checkboxes are greyed and do nothing; tabs, sub-tabs, search, filters and closing a dialog still work (buttons whose class contains tab, close or search, or marked `data-config-nav`). The rules are in `services/screens/configSectionAccess.ts`. Wrapped around each System and Cytology section, the AI, Actions, TAT, Report Templates, Validation and Synoptic Library tabs, the deployment voice switch and the FPPE and competency panels.
+- Sections that grey their own controls (Staff roles, Support access, Field requirements, registries, governing bodies, intraop critical results, Template review settings, Demo Reset) and the personal ones (Macros) aren't wrapped.
+- Some selects save as soon as they change; in a view-only section they stay usable, and the service refuses the change (the refusal banner shows).
+
+## Batch 430: personal settings per person; view-only fields
+
+`ConfigSectionGate.tsx` also stops changes to fields other than search and filters in a view-only section (Batch 429's gap: a dropdown that saves as soon as it changes). 77 search and filter fields are marked `data-config-nav` so they keep working; other fields are dimmed.
+
+## Batch 431
+
+The Configuration search covers every tab and section (see `Search/README.md`); System and Cytology section lists are data files; Document Style has the lab's page size and margins.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 - **Batch 345:** `Staff/LinkedSignInAccounts.tsx`, a person's linked single-sign-on accounts in Staff → edit, with Unlink (audited). See `Staff/README.md`.
@@ -321,3 +401,24 @@ System → Field Requirements: the Case report page's group 2 (holds, comments, 
 ## Batch 382
 
 System → Field Requirements: the Case report page's group 3, part 1 (frozen-final reconciliation, billing changes after sign-out), PS-359.
+
+## Batch 383
+
+System → Field Requirements: the Case report page's group 3 is finished with two groups, Autopsy forms and Sign-out gates (PS-359).
+
+## Batch 384
+
+System → Field Requirements: a Messaging page for the message drawer, reply box and Secure email window (PS-359).
+
+## Batch 386
+
+System → Field Requirements: a Cytology screening page (PS-359).
+
+## Batch 390
+
+System → Field Requirements: the Cytology page gains a Correction / addendum group (PS-340).
+
+## Batch 403
+
+- System → Field Requirements: an Add-On Orders page.
+- Stain Dictionary: a molecular test lists its approved reference labs and its default lab.

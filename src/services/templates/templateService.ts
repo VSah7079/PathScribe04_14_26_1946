@@ -27,7 +27,7 @@ import { getSessionUser } from '../auth/caseAccessControl';
 import { fromLegacyName, formatFullDisplayName } from '../../utils/personName';
 import { inheritedCopyAttributes } from './protocolLifecycle';
 import {
-  calcTemplateCoverage, canDraftTemplates, decideApprove, decidePublish, isTemplateApprover, withEditor, SNOMED_PUBLISH_THRESHOLD,
+  calcTemplateCoverage, canDraftTemplates, decideApprove, decidePublish, withEditor, SNOMED_PUBLISH_THRESHOLD,
   type TemplateActor,
 } from './templatePublishingRules';
 import { roleIdsForNames } from '../roles/systemRoles';
@@ -163,12 +163,22 @@ async function currentActor(displayName?: string): Promise<TemplateActor | null>
     const staff = users.ok ? users.data.find(u => u.id === session.id) : undefined;
     if (staff && roles.ok) roleIds = roleIdsForNames(staff.roles, roles.data);
   } catch { /* no staff record or catalog: app role only */ }
+  // Batch 428: the person's capabilities decide (the rules fall back to roles only without them).
+  let capabilities: string[] = [];
+  try { capabilities = [...await (await authz()).grantedCapabilities()]; } catch { /* none */ }
   return {
     id: session.id,
     name: displayName ?? resolveOwnerDisplayName(),
     appRole: session.role,
     roleIds,
+    capabilities,
   };
+}
+
+/** Batch 428: the protocol capabilities are checked at each action, audited
+ *  (config:protocol:draft / approve / publish / retire). */
+async function authz() {
+  return (await import('../authorization/defaultAuthorizationService')).authorizationService;
 }
 
 /** Whether the signed-in user may draft templates (Template Author, or
@@ -181,7 +191,8 @@ export async function canCurrentUserDraftTemplates(): Promise<boolean> {
  *  translated text for each code. */
 const GOVERNANCE_MESSAGES: Record<string, string> = {
   NOT_TEMPLATE_AUTHOR:    'Drafting templates requires the Template Author role.',
-  NOT_APPROVER:           'Only a Template Approver, Lab Director or Admin can approve or publish templates.',
+  NOT_APPROVER:           'Approving, publishing or returning a template needs that permission (Template Approver, Lab Director and Admin hold it).',
+  NOT_PERMITTED:          'Retiring or restoring a protocol needs the permission to retire protocols.',
   SELF_APPROVAL:          'This template requires independent review before publication. Please assign a reviewer or request sign-off from a Lab Director.',
   ALREADY_APPROVED:       'You have already approved this template.',
   NOT_ENOUGH_APPROVALS:   'This template does not yet have the required number of independent approvals.',
@@ -383,7 +394,7 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
   await delay(400);
   // PS-63 (Batch 329): drafting is limited to Template Author (Admin inherits).
   const author = await currentActor();
-  if (!canDraftTemplates(author)) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  if (!author || !(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
 
   // â”€â”€ MOCK â”€â”€
   const ts = now();
@@ -428,7 +439,7 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
 // â”€â”€â”€ POST /api/templates/:id/submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function submitForReview(id: string, note?: string): Promise<SubmitResult> {
   await delay(500);
-  if (!canDraftTemplates(await currentActor())) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  if (!(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -452,6 +463,7 @@ export async function submitForReview(id: string, note?: string): Promise<Submit
 // â”€â”€â”€ POST /api/templates/:id/approve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function approveTemplate(id: string, note?: string, reviewedBy?: string): Promise<TransitionResult> {
   await delay(500);
+  if (!(await (await authz()).enforce('config:protocol:approve')).allowed) throw governanceError('NOT_APPROVER');
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -488,6 +500,7 @@ export async function approveTemplate(id: string, note?: string, reviewedBy?: st
 // â”€â”€â”€ POST /api/templates/:id/publish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function publishTemplate(id: string, _note?: string, publishedBy?: string): Promise<TransitionResult> {
   await delay(600);
+  if (!(await (await authz()).enforce('config:protocol:publish')).allowed) throw governanceError('NOT_APPROVER');
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -507,7 +520,6 @@ export async function publishTemplate(id: string, _note?: string, publishedBy?: 
   const predecessor = entry.supersedesId ? registryEntry(entry.supersedesId) : undefined;
   if (predecessor && predecessor.status === 'published') {
     upsertRegistry({ id: predecessor.id, status: 'archived', archivedAt: ts, lastModified: ts.slice(0, 10) });
-    clearReviewerStateOverride(predecessor.id);
     console.info(`[templateService] Archived ${predecessor.name} v${predecessor.version} (superseded by v${entry.version})`);
   }
 
@@ -546,6 +558,10 @@ caseNumber: '',
 // â”€â”€â”€ POST /api/templates/:id/request-changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function requestChanges(id: string, note: string, reviewedBy?: string): Promise<TransitionResult> {
   await delay(500);
+  // Batch 428: a reviewer's decision (it clears the round's approvals).
+  if (!(await (await authz()).enforce('config:protocol:approve')).allowed) throw governanceError('NOT_APPROVER');
+  // Recorded the way an approval is (the reviewer page passes the signed-in person's name).
+  const reviewer = await currentActor(reviewedBy);
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -554,7 +570,7 @@ export async function requestChanges(id: string, note: string, reviewedBy?: stri
   const ts = now();
   upsertRegistry({
     id, status: 'needs_changes', reviewNote: note,
-    reviewedBy: reviewedBy ?? 'Unknown User',
+    reviewedBy: reviewer?.name ?? reviewedBy ?? 'Unknown User',
     reviewedAt: ts,
     lastModified: ts.slice(0, 10),
     approvals: [],
@@ -576,7 +592,15 @@ export async function requestChanges(id: string, note: string, reviewedBy?: stri
 export async function resubmitForReview(id: string, _note?: string): Promise<SubmitResult> {
   await delay(500);
   // The author resubmits; a reviewer may also move it back into review.
-  { const a = await currentActor(); if (!canDraftTemplates(a) && !isTemplateApprover(a)) throw governanceError('NOT_TEMPLATE_AUTHOR'); }
+  {
+    // Batch 428: checked against whichever of the two the person holds.
+    const a = await authz();
+    const granted = await a.grantedCapabilities();
+    const ok = granted.has('config:protocol:draft')
+      ? (await a.enforce('config:protocol:draft')).allowed
+      : (await a.enforce('config:protocol:approve')).allowed;
+    if (!ok) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  }
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -600,7 +624,7 @@ export async function resubmitForReview(id: string, _note?: string): Promise<Sub
 // â”€â”€â”€ DELETE /api/templates/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
   await delay(300);
-  if (!canDraftTemplates(await currentActor())) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  if (!(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
 
   // â”€â”€ MOCK â”€â”€
   const idx = PROTOCOL_REGISTRY.findIndex(p => p.id === id);
@@ -634,36 +658,32 @@ export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
 // keep their content. Restore brings it back as a DRAFT, so it goes through
 // review again before anyone can report with it. Rules:
 // services/templates/protocolLifecycle.ts.
-/** TemplateRenderer.tsx (the reviewer page) keeps its own copy of a
- *  protocol's lifecycle state in localStorage (`ps_state_<id>`) and prefers
- *  it over the registry. Archive/restore/supersede move a protocol
- *  backwards, which nothing could do before, so that copy must be dropped or
- *  a restored draft would still show as 'published' there, with no way back
- *  into review. */
-function clearReviewerStateOverride(id: string): void {
-  try { localStorage.removeItem(`ps_state_${id}`); } catch { /* storage unavailable */ }
-}
+// Batch 431: the reviewer page no longer keeps its own copy of a protocol's
+// lifecycle state (the old `ps_state_<id>` browser value), so archive,
+// restore and supersede have nothing to clear; old copies are removed at
+// start-up (services/browserCleanup/retiredBrowserKeys.ts).
 
 export async function archiveTemplate(id: string): Promise<TransitionResult> {
   await delay(300);
+  // Batch 428: retiring a protocol, even a published one, is its own capability.
+  if (!(await (await authz()).enforce('config:protocol:retire')).allowed) throw governanceError('NOT_PERMITTED');
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   if (entry.status === 'archived') throw { code: 'INVALID_TRANSITION', message: `Template ${id} is already archived` } as ServiceError;
   const ts = now();
   upsertRegistry({ id, status: 'archived', archivedAt: ts, lastModified: ts.slice(0, 10) });
-  clearReviewerStateOverride(id);
   console.info(`[templateService] Archived: ${entry.name}`);
   return { id, status: 'archived', updatedAt: ts };
 }
 
 export async function restoreTemplate(id: string): Promise<TransitionResult> {
   await delay(300);
+  if (!(await (await authz()).enforce('config:protocol:retire')).allowed) throw governanceError('NOT_PERMITTED');
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   if (entry.status !== 'archived') throw { code: 'INVALID_TRANSITION', message: `Template ${id} is not archived` } as ServiceError;
   const ts = now();
   upsertRegistry({ id, status: 'draft', archivedAt: undefined, lastModified: ts.slice(0, 10) });
-  clearReviewerStateOverride(id);
   console.info(`[templateService] Restored to draft: ${entry.name}`);
   return { id, status: 'draft', updatedAt: ts };
 }
@@ -674,6 +694,8 @@ export async function restoreTemplate(id: string): Promise<TransitionResult> {
  *  reviewer page's local copy and the registry never moved.) */
 export async function resetToDraft(id: string): Promise<TransitionResult> {
   await delay(300);
+  // Batch 428: a reviewer's decision (it clears the round's approvals).
+  if (!(await (await authz()).enforce('config:protocol:approve')).allowed) throw governanceError('NOT_APPROVER');
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   if (entry.status === 'published' || entry.status === 'archived') {

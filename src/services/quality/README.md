@@ -32,6 +32,26 @@ Generic services for PS-108's real QA Activity Framework.
 
 - **`discordanceRecord.ts`** (+ `.test.ts`): builds the QA activity record the frozen-versus-final reconciliation modal saves (`buildDiscordanceRecord`), from the organisation's Field Requirements. It returns nothing while a required field is missing. A concordant call stores the categories and diagnoses; a discordant one adds the delta, impact, root cause and comment, and a high impact needs escalation. The modal used to build this itself.
 
+## Batch 396: surgical post-sign-out QA from the report page
+
+- `surgicalQaReview.ts`: listing the items waiting on cases (`buildSurgicalQaRows`), recording a review (the QA activity record, then linking it on the specimen) and dismissing a correlation candidate. These decisions used to be inline in `SurgicalQaWorklistPage.tsx`; the report page now uses them too (`components/QualityAssurance/SurgicalQaCaseBar.tsx`).
+- Recording or dismissing checks **`surgical:qa-review:record`** (high risk), seeded to Pathologist and Fellow, the roles that had the queue.
+- `reviewQueueCounts.ts`: the item counts on the Worklist's two queue tiles (Pete).
+
+## Batch 428: Configuration permissions
+
+- `mockQaSupervisionAssignmentService`: `create`, `graduate` need `config:cytotech-competency:manage`.
+- `mockQaActivityTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:qa-types:manage`.
+- `mockQaSupervisionAssignmentTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:qa-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+`standardQaTypeRules.ts` (new): a standard QA activity or supervision type can't be switched off or made custom. The services refuse it now; before, only the screen hid the control. FPPE and cytotechnologist competency assignments: `config:fppe:manage` / `config:cytotech-competency:manage`.
+
+## Batch 432
+
+Surgical peer review risk weights can now be set: QA Configuration Center → Surgical Post-Sign-Out Peer Review → "Risk weight by subspecialty". Setting or removing one needs `config:qa-types:manage` (the service is guarded). Blank = 1×; a weight is above 0 and up to 10 (`riskWeightInput.ts`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

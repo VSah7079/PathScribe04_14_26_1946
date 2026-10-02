@@ -46,6 +46,8 @@ vi.mock('@contexts/AuthContext', () => ({
 vi.mock('@/hooks/useCapabilities', () => ({
   useCapabilities: () => ({ loading: false, has: () => true, decide: () => null }),
 }));
+// Batch 425: the Quality & Compliance tile's registry exception count reads the registry queues; not under test here.
+vi.mock('@/hooks/useRegistryExceptionCount', () => ({ useRegistryExceptionCount: () => null }));
 vi.mock('@hooks/useLogout', () => ({
   useLogout: () => vi.fn(),
 }));

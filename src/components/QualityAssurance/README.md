@@ -258,6 +258,20 @@ Case numbers and MRNs in these tables and pickers are tagged: `AccessRequestResp
 
 The same context goes on each export `CapabilityButton`. Someone limited to some facilities sees enterprise-wide exports greyed out, with "your facility assignment doesn't cover it", and can export a client scope within their facilities. `CytologyQaTab`'s histology table receives the context as a prop.
 
+## Batch 396
+
+- `SurgicalQaCaseBar.tsx`: on a case's report page, the surgical post-sign-out QA items waiting on it, with Record Review and Not Relevant. Returns to the queue when the last one is done.
+- `SurgicalQaReviewModal.tsx`: the review form in a modal, shared with the queue.
+- `QaReviewMessage.tsx`: why a review action didn't go through.
+
+## Batch 425
+
+The cytology QA tab's registry transmission audit adds three columns: Sent, Registry status and Response code. It also gets a **Download** button (`qa:registry-transmission-audit:export`), with no MRN in the file.
+
+## Batch 432
+
+Access Request Response: pending requests have a Deny button (reason required; the requester gets a message). Denying needs the permission that gives that access: pool `config:staff:edit`; pediatric and Orchestration `config:staff-access:assign`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

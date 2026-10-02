@@ -31,6 +31,48 @@ Optional. Set when an Assist-mode LIS poll created or last refreshed a draft syn
 
 Optional. The spelling language chosen for this one case in the report screens (an id from `services/spellcheck/spellingLocales.ts`); null or absent means "use the default": the assigned pathologist's preference, else the ordering facility's. Saved by the report screens' spelling language control.
 
+## Batch 417
+
+`Patient.nationalIdentifiers?: NationalPatientIdentifier[]` (`types/patient/`): the national healthcare identifiers with their check-digit verification. `mrn` is the lab's own number and is unchanged.
+
+## Batch 418
+
+`Patient.registryConsent?: PatientRegistryConsent` (screening opt-out, cancer registry opt-out, when, by whom). `CytologyRegistryOutboundQueueEntry.errorCode` names the two non-dispatch codes.
+
+## Batch 419
+
+Both registry queue entries carry `submission` (the payload header: id, version, master id, message type, environment, duplicate-retry flag).
+
+## Batch 420
+
+`CytologyRegistryOutboundQueueEntry` and `CancerRegistryOutboundQueueEntry` gain `registryStatus` (what the registry said), `sentAt` and `acknowledgements` (each answer with its raw text).
+
+## Batch 421
+
+Both registry queue entries: `contentHash` (the payload's fingerprint, for telling a resend of the same report from a new version).
+
+## Batch 423
+
+`CytologyRegistryOutboundQueueEntry.errorCode` and `CancerRegistryOutboundQueueEntry.errorCode` gain `REGISTRY_LIVE_NOT_APPROVED`: the registry is set to its live register without a current go-live approval.
+
+## Batch 424
+
+`REGISTRY_LIVE_NOT_APPROVED` entries are their own worklist kind: "Held: attestation required". They are resent in the go-live catch-up or with **Resend all**.
+
+## Batch 425
+
+The registry queue entries (`CytologyRegistryOutboundQueueEntry`, `CancerRegistryOutboundQueueEntry`) gain `registryRevisions[]`: a registry's revisions of data it had accepted. The cancer entry's `errorCode` gains `HOLD_MISSING_MANDATORY_DATA`.
+
+## Batch 426
+
+- `OrderMetadata` gains `placerOrderNumber` and `fillerOrderNumber`.
+- `SynopticReportInstance` gains `reevaluations` (re-evaluated fields waiting for "keep or update?") and `additionalSpecimenIds` (parts one workup covers; no screen sets it yet).
+- `OutboundLisSyncQueueEntry` gains the kind `final`, `workupVersion`, `sentObservations` (for the next correction's change list) and `signer`.
+
+## Batch 427
+
+`OutboundLisSyncQueueEntry.kind` gains `case_pdf` (the case's combined PDF). `SynopticReportInstance.additionalSpecimenIds` is now set from the report sidebar's "Parts covered".
+
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*

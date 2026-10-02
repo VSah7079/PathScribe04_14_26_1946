@@ -36,25 +36,28 @@
 // `batch.instrumentId`/`.assayName`/`.reagentLotNumber`/
 // `.totalSamplesRun` are all real, interface-engine-sourced data —
 // never translated.
+//
+// Batch 406: services from @/services (off the deployment baseline); sorting
+// and the specimen-to-run lookup moved to services/cytology/molecularQcRunLinks.ts;
+// run dates follow the user's language.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { mockMolecularQcRunRecordService } from '@/services/cytology/mockMolecularQcRunRecordService';
+import { molecularQcRunRecordService, qcRunsNewestFirst, specimensByMolecularRun, type QcRunSpecimenLink } from '@/services';
 import type { MolecularQcRunRecord } from '@/services/cytology/IMolecularQcRunRecordService';
 import { caseRouter } from '@/services/cases/CaseRouter';
-
-interface BatchSpecimenLink { caseId: string; accessionNumber?: string; specimenId: string; specimenLabel: string; patientMrn?: string }
+import { formatDate } from '@/utils/formatDate';
 
 const MolecularBatchManagementPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('molecularBatchManagementPage.title'), '/molecular?tab=qc'); }, [pushCrumb, t]);
 
   const [batches, setBatches] = useState<MolecularQcRunRecord[]>([]);
-  const [specimensByRunId, setSpecimensByRunId] = useState<Record<string, BatchSpecimenLink[]>>({});
+  const [specimensByRunId, setSpecimensByRunId] = useState<Record<string, QcRunSpecimenLink[]>>({});
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,28 +65,13 @@ const MolecularBatchManagementPage: React.FC = () => {
     setLoading(true);
     try {
       const [batchesRes, casesRes] = await Promise.all([
-        mockMolecularQcRunRecordService.getAll(),
+        molecularQcRunRecordService.getAll(),
         caseRouter.getAll(),
       ]);
-      const realBatches = batchesRes.ok ? [...batchesRes.data].sort((a, b) => b.runDate.localeCompare(a.runDate)) : [];
-      setBatches(realBatches);
-
-      // Real, reverse lookup: every real specimen across every real
-      // case, grouped by the real molecularRunId the inbound batch
-      // event (processInboundMolecularBatchEvent.ts) already set on
-      // it — this page never assigns that association itself.
-      const grouped: Record<string, BatchSpecimenLink[]> = {};
-      const cases = (casesRes.ok ? casesRes.data : []) as any[];
-      for (const c of cases) {
-        for (const sp of c?.specimens ?? []) {
-          const runId = sp?.cytologyScreening?.molecularRunId;
-          if (!runId) continue;
-          const list = grouped[runId] ?? [];
-          list.push({ caseId: c.id, accessionNumber: c?.accession?.accessionNumber, specimenId: sp.id, specimenLabel: sp.label, patientMrn: c?.patient?.mrn });
-          grouped[runId] = list;
-        }
-      }
-      setSpecimensByRunId(grouped);
+      setBatches(batchesRes.ok ? qcRunsNewestFirst(batchesRes.data) : []);
+      // Real, reverse lookup (services/cytology/molecularQcRunLinks.ts): the
+      // molecularRunId the inbound batch event set; this page never assigns it.
+      setSpecimensByRunId(specimensByMolecularRun(casesRes.ok ? casesRes.data : []));
     } finally {
       setLoading(false);
     }
@@ -126,7 +114,7 @@ const MolecularBatchManagementPage: React.FC = () => {
                       <React.Fragment key={batch.id}>
                         <tr className="ps-conf-tr ps-conf-tr--clickable" onClick={() => setExpandedRunId(isExpanded ? null : batch.id)}>
                           <td className="ps-conf-td">{isExpanded ? '▾' : '▸'}</td>
-                          <td className="ps-conf-td">{new Date(batch.runDate).toLocaleDateString()}</td>
+                          <td className="ps-conf-td">{formatDate(batch.runDate, i18n.language)}</td>
                           <td className="ps-conf-td">{batch.instrumentId}</td>
                           <td className="ps-conf-td">{batch.assayName}</td>
                           <td className="ps-conf-td">{batch.reagentLotNumber}</td>

@@ -50,6 +50,8 @@ export interface AccessRequest {
   resolvedAt?: string;
   resolvedByUserId?: string;
   resolvedByUserName?: string;
+  /** Batch 432: why it was denied (required when denying). */
+  denialReason?: string;
 }
 
 export type NewAccessRequest = Pick<

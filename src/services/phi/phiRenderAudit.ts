@@ -65,6 +65,8 @@ const PATIENT_ID_VARIABLE = /patient(Id|Identifier|Mrn|Number)$/i;
 const DOB = /^(dob|dateOfBirth|birthDate)$/i;
 const MRN = /^(mrn|medicalRecordNumber)$/i;
 const NHS = /^(nhsNumber|nhsNo)$/i;
+// Batch 417: `patient.nationalIdentifiers[0].value`, `identifier.value` in a loop over them, `nationalIdentifierValue`.
+const NATIONAL_IDENTIFIER = /^nationalIdentifiers?$|nationalIdentifier(Value)?$/i;
 // In this app a case's id is its case number, so `caseId` is shown as the accession too.
 const ACCESSION = /^(accession|accessionNumber|accessionNo|fullAccession|caseNumber|caseId|caseRef)$/i;
 
@@ -76,6 +78,7 @@ export function classifyPath(segments: readonly string[]): PhiKind | null {
   if (segments.some(s => DOB.test(s)) || tail.some(s => s === 'age')) return 'dob';
   if (segments.some(s => MRN.test(s)) || PATIENT_ID_VARIABLE.test(segments[segments.length - 1])) return 'mrn';
   if (segments.some(s => NHS.test(s))) return 'nhs';
+  if (segments.some(s => NATIONAL_IDENTIFIER.test(s))) return 'nhs';
   if (segments.some(s => ACCESSION.test(s))) return 'accession';
   if (tail.some(s => CONTACT_FIELD.test(s))) return 'contact';
   if (tail.some(s => INSURANCE_FIELD.test(s))) return 'insurance';

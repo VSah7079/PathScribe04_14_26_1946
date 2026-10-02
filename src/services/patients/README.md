@@ -227,6 +227,27 @@ Real, per direct guidance ("we can setup just the receiving end for now and look
 
 Real, honest scope note carried over from the queue entries this touches: `'SENT'` was declared on the `status` type from the very start but never once actually produced anywhere in this app — `markSent()`, now added to all three real outbound queue services (this folder's own patient-ADT queue, plus `services/reports/`'s result and LIS-sync queues), is the first real code in this whole app that ever calls it.
 
+## Batch 417: national identifiers in the MPI
+
+`PatientIdentifier` rows can now be national identifiers: `system` (the format id), `verificationStatus` and `verifiedAt`. `recordNationalIdentifier(patientId, identifier)` keeps one row per system (the assigning authority is the system id, so `resolveByIdentifier('mrn_nhs', value)` finds a patient by NHS number); `listNationalIdentifiers(patientId)` returns them. Written by `services/patientIdentifiers/recordNationalPatientIdentifier.ts` and `services/hl7/processAdtMessage.ts`.
+
+## Batch 418
+
+`MasterPatientRecord.registryConsent` and `setRegistryConsent(patientId, consent | undefined)`: the patient's registry opt-outs, mirrored from the case that recorded them (`services/registryConsent/`).
+
+## Batch 425 — patient registry details (`patientRegistryDetails.ts`)
+
+- **Intake** from the hospital's system, as the interface engine's JSON (it reads the HL7, PS-331).
+  - `ingestNationalIdentifierEvent` takes `DEMOGRAPHICS_UPDATED` with `nationalIdentifiers[]`. Each value's check digit is run, and one that fails is kept as `failedChecksum`.
+  - `ingestRegistryConsentEvent` takes `REGISTRY_CONSENT_UPDATED`. No research consent.
+
+  Both find the patient in the MPI by the identifier given. They apply to the MPI and every case of the patient, and the newest `updatedAt` wins. Audited without identifier values. No A08 goes back.
+- **Prefill:** `prefillPatientRegistryDetails` gives the Accession page the MPI's identifiers and opt-outs when a known patient is picked.
+- **Editing after accessioning:** `saveCaseRegistryDetails` saves only what changed, through `recordNationalPatientIdentifier` (with `announce`, so an A08 is queued) and `recordPatientRegistryConsent`.
+- **Badge:** `registryOptOutBadge` decides the badge on a case's patient card.
+- `mockPatientIndexService.removeNationalIdentifier`: a removal now comes off the MPI too.
+- Real services: `patientRegistryDetailsDeps.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

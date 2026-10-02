@@ -48,13 +48,19 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import {
-  getOrgDocumentStyleDefault, setOrgDocumentStyleDefault,
-  getOrgHeaderStyleDefault, setOrgHeaderStyleDefault,
-  getOrgFooterStyleDefault, setOrgFooterStyleDefault,
+  getOrgDocumentStyleDefault,
+  getOrgHeaderStyleDefault,
+  getOrgFooterStyleDefault,
 } from './documentStyleConfig';
+import { saveDocumentStyleDefault } from '@/services/reportAppearance/saveDocumentStyle';
 import type { LabelConfig } from '../../../types/template';
 import { Label, TextInput, Toggle, Sel } from '../../TemplateBuilder/TemplateInspector';
 import { labelStyleVars } from '@/utils/labelStyleVars';
+import {
+  PAGE_SIZES, PAGE_SIZE_REGION_KEY, getLabPageSetup, saveLabPageSetup, type Margins, type PageSetup,
+} from '@/services/reportAppearance/pageSetup';
+
+const MARGIN_SIDES: (keyof Margins)[] = ['top', 'right', 'bottom', 'left'];
 
 const FONT_FAMILY_OPTIONS = [
   { value: 'Arial',           label: 'Arial' },
@@ -67,7 +73,6 @@ const FONT_FAMILY_OPTIONS = [
 ];
 
 const GETTERS = { header: getOrgHeaderStyleDefault, body: getOrgDocumentStyleDefault, footer: getOrgFooterStyleDefault };
-const SETTERS = { header: setOrgHeaderStyleDefault, body: setOrgDocumentStyleDefault, footer: setOrgFooterStyleDefault };
 
 const CATEGORY_LABEL_KEY = {
   header: 'documentStyleSection.categories.header',
@@ -81,14 +86,25 @@ const DocumentStyleSection: React.FC = () => {
   const [style, setStyle] = useState<LabelConfig>(() => GETTERS[category]());
   const [saved, setSaved] = useState(true);
 
+  // Batch 431: the lab's page size and margins (Pete: lab policy, not a
+  // personal setting). Saved through the service, which checks
+  // config:report-appearance:manage.
+  const [pageSetup, setPageSetup] = useState<PageSetup>(getLabPageSetup);
+  const updatePageSetup = async (next: PageSetup) => {
+    if (!(await saveLabPageSetup(next))) return;
+    setPageSetup(getLabPageSetup());
+    setSaved(true);
+  };
+
   const switchCategory = (next: 'header' | 'body' | 'footer') => {
     setCategory(next);
     setStyle(GETTERS[next]());
   };
 
-  const update = (next: LabelConfig) => {
+  // Batch 428: saved through the service, which checks config:report-appearance:manage.
+  const update = async (next: LabelConfig) => {
+    if (!(await saveDocumentStyleDefault(category, next))) return;
     setStyle(next);
-    SETTERS[category](next);
     setSaved(true);
   };
 
@@ -159,6 +175,24 @@ const DocumentStyleSection: React.FC = () => {
         >
           {t('documentStyleSection.previewText', { category: t(CATEGORY_LABEL_KEY[category]) })}
         </div>
+      </div>
+
+      <div className="ps-tinsp-stack ps-docstyle__stack ps-docstyle__page-setup">
+        <h3 className="ps-docstyle__page-setup-title">{t('documentStyleSection.pageSetup.title')}</h3>
+        <p className="config-fonts-description">{t('documentStyleSection.pageSetup.hint')}</p>
+        <Label>{t('documentStyleSection.pageSetup.pageSizeLabel')}</Label>
+        <Sel value={pageSetup.pageSizeId} onChange={v => updatePageSetup({ ...pageSetup, pageSizeId: v })}
+          options={PAGE_SIZES.map(p => ({ value: p.id, label: `${p.label} — ${t(PAGE_SIZE_REGION_KEY[p.id])}` }))} fullWidth />
+        {MARGIN_SIDES.map(side => (
+          <React.Fragment key={side}>
+            <Label>{t('documentStyleSection.pageSetup.marginLabel', { side: t(`templatePreviewPanel.margins.${side}`) })}</Label>
+            <TextInput
+              value={String(pageSetup.margins[side])}
+              onChange={v => updatePageSetup({ ...pageSetup, margins: { ...pageSetup.margins, [side]: parseInt(v) || pageSetup.margins[side] } })}
+              placeholder={String(pageSetup.margins[side])}
+            />
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );

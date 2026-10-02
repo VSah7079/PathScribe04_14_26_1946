@@ -12,6 +12,7 @@ import { withSeedFieldBackfill } from '../mockSeedMerge';
 import { mockEquipmentService } from '../equipment/mockEquipmentService';
 import { checkEquipmentLink } from '../equipment/equipmentRules';
 import { EQUIPMENT_LINK_INVALID } from '../equipment/IEquipmentService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const genId = () => `printer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -73,7 +74,7 @@ async function equipmentLinkOk(equipmentId: string | undefined): Promise<boolean
   return checkEquipmentLink(equipmentId, res.ok ? res.data : [], 'label_printer') === null;
 }
 
-export const mockPrinterProfileService: IPrinterProfileService = {
+const printerProfileServiceUnchecked: IPrinterProfileService = {
   async getAll(): Promise<ServiceResult<PrinterProfile[]>> {
     return { ok: true, data: load() };
   },
@@ -106,3 +107,8 @@ export const mockPrinterProfileService: IPrinterProfileService = {
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockPrinterProfileService: IPrinterProfileService = guardConfigWrites(printerProfileServiceUnchecked, [
+  ['config:printers:manage', ['add', 'update', 'remove']],
+]);

@@ -52,6 +52,10 @@ The whole real label-printing architecture: building label data, rendering it, a
 - Dispatch is deliberately layered: pure data-building functions never talk to a printer directly; the `dispatch*`/`print*` functions are the only real I/O boundary. This is why every build function has its own, independent unit test with no print/browser mocking needed.
 - **Real, direct correction**: `qzTrayBridge.ts` itself is no longer an unwired stub — confirmed directly, it now has real, dispatched callers: `printCassetteSlideLabel.ts` (cassette/slide), `printRequisitionAndContainerLabels.ts` (requisition, container, and — per direct follow-up ("Why is the decant label being handled differently?"), a real, direct fix closing a genuine, undiscovered gap — decant, which previously skipped this real path entirely even though its own sibling function already had it), and `printMolecularLabels.ts` (all four molecular label types). `dispatchContainerLabelPrint.ts` and `dispatchNetworkPrintJob.ts` remain real, honest, unwired halves of a real integration path — waiting on the actual Local Bridge Agent / Interface Engine connection respectively. (Batch 347: `dispatchNetworkPrintJob` still only records the job; the API server's `POST /api/print/jobs` is the missing send. The answer path is built.) See `services/printerProfiles/README.md` for the related capability-registry side of this.
 
+## Batch 428: Configuration permissions
+
+Tests only: the label print tests allow Configuration changes in a mocked authorization service (printer and print settings are checked now).
+
 ---
 *See [utils/README.md](../README.md) for how this folder fits the whole utils/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

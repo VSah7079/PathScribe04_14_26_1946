@@ -28,6 +28,12 @@ import { buildReferralManifestPayload } from '../referral/buildReferralManifestP
 import { mockReferralOutboundQueueService } from '../referral/mockReferralOutboundQueueService';
 import { mockReferralTrackingService } from '../referral/mockReferralTrackingService';
 import { caseRouter } from '../cases/CaseRouter';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED, BATCH_ERRORS as E } from './IBatchService';
+import { reconciliationGate } from './batchListView';
+import { batchDemoSeeds } from './batchDemoSeeds';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+export { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED };
 import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import { mockDpVendorService } from '../digitalPathology/mockDpVendorService';
 import { mockAiScreeningResultService } from '../digitalPathology/mockAiScreeningResultService';
@@ -39,8 +45,16 @@ import type {
 
 const STORAGE_KEY = 'batches';
 
+// Batch 404: the demo batches (batchDemoSeeds.ts) are added to a browser's
+// stored batches when missing, once per load, never replacing one.
+let demoSeedsChecked = false;
 function loadBatches(): Batch[] {
-  return storageGet<Batch[]>(STORAGE_KEY, []);
+  const stored = storageGet<Batch[]>(STORAGE_KEY, []);
+  if (demoSeedsChecked) return stored;
+  demoSeedsChecked = true;
+  const { records, added } = withMissingSeedRecords(stored, batchDemoSeeds());
+  if (added > 0) storageSet(STORAGE_KEY, records);
+  return records;
 }
 function saveBatches(batches: Batch[]): void {
   storageSet(STORAGE_KEY, batches);
@@ -263,14 +277,14 @@ export const mockBatchService: IBatchService = {
 
   async getById(id: ID): Promise<ServiceResult<Batch>> {
     const batch = findBatch(loadBatches(), id);
-    if (!batch) return { ok: false, error: `No batch found with id "${id}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     return { ok: true, data: batch };
   },
 
   async getByMasterBarcode(barcode: string): Promise<ServiceResult<Batch>> {
     const normalized = barcode.trim().toUpperCase();
     const batch = loadBatches().find(b => b.masterBarcode.toUpperCase() === normalized);
-    if (!batch) return { ok: false, error: `No batch found for master barcode "${barcode}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     return { ok: true, data: batch };
   },
 
@@ -287,7 +301,7 @@ export const mockBatchService: IBatchService = {
       // different active batch) must stop batch creation entirely,
       // not create an orphaned batch with no real, available rack
       // behind it.
-      if (!draft.rackId?.trim()) return { ok: false, error: 'A rack ID is required for a semi-permanent container.' };
+      if (!draft.rackId?.trim()) return { ok: false, error: E.rackIdRequired };
       masterBarcode = draft.rackId.trim().toUpperCase();
     } else {
       masterBarcode = generateDisposableBarcode(draft.containerType, new Set(batches.map(b => b.masterBarcode.toUpperCase())));
@@ -392,16 +406,16 @@ export const mockBatchService: IBatchService = {
   async addItemByScan(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, fovCount?: number): Promise<AddItemOutcome> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { outcome: 'not-found', reason: `No batch found with id "${batchId}".` };
+    if (!batch) return { outcome: 'not-found', reason: `No batch found with id "${batchId}".`, scanned: scannedValue };
 
     const resolved = await resolveMaterialFromScan(scannedValue);
     if (!resolved) {
-      return { outcome: 'not-found', reason: `"${scannedValue}" doesn't match any real cassette or slide on any case.` };
+      return { outcome: 'not-found', reason: `"${scannedValue}" doesn't match any real cassette or slide on any case.`, scanned: scannedValue };
     }
     const { fullAccession, specimenLetter, displayId } = resolved;
 
     if (batch.items.some(i => i.displayId === displayId)) {
-      return { outcome: 'already-in-batch', reason: `${displayId} is already in this batch.` };
+      return { outcome: 'already-in-batch', reason: `${displayId} is already in this batch.`, displayId };
     }
 
     // Real protocol-validation starting point, per the spec's own
@@ -420,6 +434,7 @@ export const mockBatchService: IBatchService = {
       return {
         outcome: 'in-other-active-batch',
         reason: `${displayId} is already in active batch ${otherActiveBatch.masterBarcode} (${otherActiveBatch.protocol}).`,
+        displayId,
         otherBatchId: otherActiveBatch.id,
         otherMasterBarcode: otherActiveBatch.masterBarcode,
       };
@@ -454,7 +469,7 @@ export const mockBatchService: IBatchService = {
   async removeItem(batchId: ID, itemId: ID, _byUserId: string, byUserName: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     const removedItem = batch.items.find(i => i.id === itemId);
     const updatedBatch: Batch = { ...batch, items: batch.items.filter(i => i.id !== itemId) };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -469,22 +484,22 @@ export const mockBatchService: IBatchService = {
   },
 
   async moveItem(fromBatchId: ID, itemId: ID, toBatchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<{ fromBatch: Batch; toBatch: Batch }>> {
-    if (fromBatchId === toBatchId) return { ok: false, error: 'Source and destination are the same batch.' };
+    if (fromBatchId === toBatchId) return { ok: false, error: E.sameBatch };
     const batches = loadBatches();
     const fromBatch = findBatch(batches, fromBatchId);
-    if (!fromBatch) return { ok: false, error: `No batch found with id "${fromBatchId}".` };
+    if (!fromBatch) return { ok: false, error: E.notFound };
     const toBatch = findBatch(batches, toBatchId);
-    if (!toBatch) return { ok: false, error: `No batch found with id "${toBatchId}".` };
+    if (!toBatch) return { ok: false, error: E.notFound };
 
     // Real, honest guard — see this method's own doc comment
     // (IBatchService.ts) for why both sides must be 'active'.
-    if (fromBatch.status !== 'active') return { ok: false, error: `Source batch ${fromBatch.masterBarcode} is "${fromBatch.status}", not "active" — items can't be moved out of it right now.` };
-    if (toBatch.status !== 'active') return { ok: false, error: `Destination batch ${toBatch.masterBarcode} is "${toBatch.status}", not "active" — items can't be moved into it right now.` };
+    if (fromBatch.status !== 'active') return { ok: false, error: E.sourceNotActive };
+    if (toBatch.status !== 'active') return { ok: false, error: E.destinationNotActive };
 
     const item = fromBatch.items.find(i => i.id === itemId);
-    if (!item) return { ok: false, error: `No item with id "${itemId}" found in batch ${fromBatch.masterBarcode}.` };
+    if (!item) return { ok: false, error: E.itemNotFound };
     if (toBatch.items.some(i => i.displayId === item.displayId)) {
-      return { ok: false, error: `${item.displayId} is already in batch ${toBatch.masterBarcode}.` };
+      return { ok: false, error: E.itemAlreadyInDestination };
     }
 
     const transfer = {
@@ -517,8 +532,8 @@ export const mockBatchService: IBatchService = {
   async startReconciliation(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
-    if (batch.status !== 'active') return { ok: false, error: `Batch is "${batch.status}", not "active" — reconciliation can only start on an active batch.` };
+    if (!batch) return { ok: false, error: E.notFound };
+    if (batch.status !== 'active') return { ok: false, error: E.notActive };
     const updatedBatch: Batch = {
       ...batch,
       status: 'reconciling',
@@ -546,8 +561,8 @@ export const mockBatchService: IBatchService = {
   async scanItemOut(batchId: ID, scannedValue: string, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
-    if (batch.status !== 'reconciling') return { ok: false, error: `Batch is "${batch.status}", not "reconciling" — start reconciliation first.` };
+    if (!batch) return { ok: false, error: E.notFound };
+    if (batch.status !== 'reconciling') return { ok: false, error: E.notReconciling };
 
     const resolved = await resolveMaterialFromScan(scannedValue);
     const displayId = resolved?.displayId ?? scannedValue.trim();
@@ -585,29 +600,19 @@ export const mockBatchService: IBatchService = {
   async completeReconciliation(batchId: ID): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
-    if (batch.status !== 'reconciling') return { ok: false, error: `Batch is "${batch.status}", not "reconciling".` };
+    if (!batch) return { ok: false, error: E.notFound };
+    if (batch.status !== 'reconciling') return { ok: false, error: E.notReconciling };
 
     // Real "Hard Stop Gatekeeper" — per the spec's own words: "cannot
     // be marked Complete... until missing or extra items are
     // reconciled." Enforced here, server-side, not just a disabled
     // button — a caller that somehow bypasses the UI still can't force
     // this through.
-    const missingItems = batch.items.filter(i => i.reconciliationStatus !== 'matched');
-    if (missingItems.length > 0) {
-      return { ok: false, error: `${missingItems.length} item(s) still missing/unscanned: ${missingItems.map(i => i.displayId).join(', ')}. Scan them out or use a supervisor override.` };
-    }
-    if (batch.unexpectedScans.length > 0) {
-      return { ok: false, error: `${batch.unexpectedScans.length} unexpected item(s) scanned that don't belong to this batch: ${batch.unexpectedScans.map(s => s.scannedDisplayId).join(', ')}. Resolve them or use a supervisor override.` };
-    }
-    // Real, per direct follow-up on the RFP-APLIS-2026-GLOBAL Reference
-    // Laboratory Sensor & Cold-Chain Integration gap — "workflow hold
-    // triggers if transit temperature exceeds defined parameters."
-    // Same real "hard stop, supervisor override available" posture as
-    // the two checks immediately above.
-    if (batch.coldChainExcursion && !batch.coldChainExcursion.acknowledgedAt) {
-      return { ok: false, error: `A real cold-chain excursion (${batch.coldChainExcursion.temperatureCelsius}°C, detected ${batch.coldChainExcursion.detectedAt}) has not been acknowledged. Acknowledge it or use a supervisor override.` };
-    }
+    // Batch 408: one rule (services/batches/batchListView.ts), shared with the
+    // Complete button: every item scanned out, nothing unexpected, and (per
+    // the RFP-APLIS-2026-GLOBAL cold-chain gap) no unacknowledged excursion.
+    const gate = reconciliationGate(batch);
+    if (gate.blocker) return { ok: false, error: gate.blocker };
 
     const updatedBatch: Batch = { ...batch, status: 'complete', completedAt: new Date().toISOString() };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -630,11 +635,12 @@ export const mockBatchService: IBatchService = {
   },
 
   async overrideAndComplete(batchId: ID, byUserId: string, byUserName: string, reason: string): Promise<ServiceResult<Batch>> {
-    if (!reason.trim()) return { ok: false, error: 'A reason is required to override a reconciliation discrepancy.' };
+    if (!reason.trim()) return { ok: false, error: BATCH_REASON_REQUIRED };
+    if (!(await authorizationService.enforce('batch:reconciliation:override')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
-    if (batch.status !== 'reconciling') return { ok: false, error: `Batch is "${batch.status}", not "reconciling".` };
+    if (!batch) return { ok: false, error: E.notFound };
+    if (batch.status !== 'reconciling') return { ok: false, error: E.notReconciling };
 
     const updatedBatch: Batch = {
       ...batch,
@@ -661,9 +667,9 @@ export const mockBatchService: IBatchService = {
   async setColdChainExcursion(batchId: ID, readingId: string, temperatureCelsius: number, detectedAt: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     if (batch.coldChainExcursion && !batch.coldChainExcursion.acknowledgedAt) {
-      return { ok: false, error: `Batch ${batch.masterBarcode} already has an unacknowledged cold-chain excursion on file — acknowledge it before recording a new one.` };
+      return { ok: false, error: E.excursionAlreadyOpen };
     }
     const updatedBatch: Batch = { ...batch, coldChainExcursion: { detectedAt, readingId, temperatureCelsius } };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -676,11 +682,12 @@ export const mockBatchService: IBatchService = {
   },
 
   async acknowledgeColdChainExcursion(batchId: ID, byUserId: string, byUserName: string, note: string): Promise<ServiceResult<Batch>> {
-    if (!note.trim()) return { ok: false, error: 'A real note is required to acknowledge a cold-chain excursion.' };
+    if (!note.trim()) return { ok: false, error: BATCH_REASON_REQUIRED };
+    if (!(await authorizationService.enforce('batch:cold-chain-excursion:acknowledge')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
-    if (!batch.coldChainExcursion) return { ok: false, error: `Batch ${batch.masterBarcode} has no real cold-chain excursion on file.` };
+    if (!batch) return { ok: false, error: E.notFound };
+    if (!batch.coldChainExcursion) return { ok: false, error: E.noExcursion };
     const updatedBatch: Batch = {
       ...batch,
       coldChainExcursion: {
@@ -704,9 +711,9 @@ export const mockBatchService: IBatchService = {
   async setCytologyInstrumentStatus(batchId: ID, status): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     if (batch.processingNode !== 'Cytology Processing') {
-      return { ok: false, error: `Batch ${batch.masterBarcode} is a '${batch.processingNode}' batch, not 'Cytology Processing' — instrument status only applies to a ThinPrep processor batch.` };
+      return { ok: false, error: E.notCytologyProcessing };
     }
     const updatedBatch: Batch = { ...batch, cytologyInstrumentStatus: status };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -721,9 +728,9 @@ export const mockBatchService: IBatchService = {
   async setStainingInstrumentStatus(batchId: ID, status): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     if (batch.processingNode !== 'Staining') {
-      return { ok: false, error: `Batch ${batch.masterBarcode} is a '${batch.processingNode}' batch, not 'Staining' — instrument status only applies to a Staining batch.` };
+      return { ok: false, error: E.notStaining };
     }
     const updatedBatch: Batch = { ...batch, stainingInstrumentStatus: status };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -767,9 +774,9 @@ export const mockBatchService: IBatchService = {
   async confirmQcVisualRead(batchId: ID, userId: string, userName: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     if (batch.processingNode !== 'Staining') {
-      return { ok: false, error: `Batch ${batch.masterBarcode} is a '${batch.processingNode}' batch, not 'Staining' — the QC visual read checklist only applies to a Staining batch.` };
+      return { ok: false, error: E.notStaining };
     }
     const updatedBatch: Batch = { ...batch, qcVisualReadConfirmation: { userId, userName, confirmedAt: new Date().toISOString() } };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -782,17 +789,20 @@ export const mockBatchService: IBatchService = {
   },
 
   async abort(batchId: ID, _byUserId: string, byUserName: string, reason: string): Promise<ServiceResult<Batch>> {
+    // Batch 404 (Pete): a reason is always required, and aborting needs its permission.
+    if (!reason.trim()) return { ok: false, error: BATCH_REASON_REQUIRED };
+    if (!(await authorizationService.enforce('batch:run:abort')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
-    const updatedBatch: Batch = { ...batch, status: 'aborted', abortedAt: new Date().toISOString(), abortReason: reason.trim() || `Aborted by ${byUserName}.` };
+    if (!batch) return { ok: false, error: E.notFound };
+    const updatedBatch: Batch = { ...batch, status: 'aborted', abortedAt: new Date().toISOString(), abortReason: reason.trim() };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
     if (updatedBatch.identifierMode === 'semi_permanent' && updatedBatch.linkedRackId) {
       mockHardwareContainerRegistryService.checkIn(updatedBatch.linkedRackId).catch(() => {});
     }
     mockAuditService.logEvent({
       type: 'system', event: 'Batch Aborted',
-      detail: `Batch ${batch.masterBarcode} (${batch.processingNode}, ${batch.items.length} item(s)) aborted. Reason: ${reason.trim() || 'Not specified.'}`,
+      detail: `Batch ${batch.masterBarcode} (${batch.processingNode}, ${batch.items.length} item(s)) aborted. Reason: ${reason.trim()}`,
       user: byUserName, caseId: null, confidence: null,
     }).catch(() => {});
     return { ok: true, data: updatedBatch };
@@ -801,9 +811,9 @@ export const mockBatchService: IBatchService = {
   async releaseRack(batchId: ID, _byUserId: string, byUserName: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     if (batch.identifierMode !== 'semi_permanent' || !batch.linkedRackId) {
-      return { ok: false, error: 'This batch has no semi-permanent hardware rack to release.' };
+      return { ok: false, error: E.noRack };
     }
     const checkInResult = await mockHardwareContainerRegistryService.checkIn(batch.linkedRackId);
     if ('error' in checkInResult) return { ok: false, error: checkInResult.error };
@@ -821,15 +831,15 @@ export const mockBatchService: IBatchService = {
   async transferToProcessing(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<{ fromBatch: Batch; toBatch: Batch }>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
-    if (!batch) return { ok: false, error: `No batch found with id "${batchId}".` };
+    if (!batch) return { ok: false, error: E.notFound };
     if (batch.processingNode !== 'Decal / Special Processing') {
-      return { ok: false, error: `Batch ${batch.masterBarcode} is not a Decal / Special Processing batch — transfer-to-Processing only applies there.` };
+      return { ok: false, error: E.notDecal };
     }
     if (batch.status !== 'active') {
-      return { ok: false, error: `Batch is "${batch.status}", not "active" — it may have already been transferred or closed out.` };
+      return { ok: false, error: E.notActive };
     }
     if (batch.items.length === 0) {
-      return { ok: false, error: 'This batch has no items to transfer.' };
+      return { ok: false, error: E.noItemsToTransfer };
     }
 
     const nowIso = new Date().toISOString();

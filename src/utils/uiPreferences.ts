@@ -53,6 +53,16 @@ export function getSessionFlag(key: string): string | null {
   }
 }
 
+/** Batch 431: sets a per-tab value for this browser session (worklist
+ *  filters, the messages drawer, a blocked pop-up). */
+export function setSessionFlag(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable: lasts until the page reloads */
+  }
+}
+
 export function clearSessionFlag(key: string): void {
   try {
     sessionStorage.removeItem(key);

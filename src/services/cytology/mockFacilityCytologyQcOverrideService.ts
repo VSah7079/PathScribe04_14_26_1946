@@ -2,6 +2,7 @@
 import type { IFacilityCytologyQcOverrideService, FacilityCytologyQcOverride } from './IFacilityCytologyQcOverrideService';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'facilityCytologyQcOverrides';
 
@@ -12,7 +13,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockFacilityCytologyQcOverrideService: IFacilityCytologyQcOverrideService = {
+const facilityCytologyQcOverrideServiceUnchecked: IFacilityCytologyQcOverrideService = {
   async getForFacility(facilityId) {
     await delay();
     const record = load().find(r => r.facilityId === facilityId);
@@ -53,3 +54,8 @@ export const mockFacilityCytologyQcOverrideService: IFacilityCytologyQcOverrideS
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityCytologyQcOverrideService: IFacilityCytologyQcOverrideService = guardConfigWrites(facilityCytologyQcOverrideServiceUnchecked, [
+  ['config:cytology-qc-rates:manage', ['create', 'update', 'remove']],
+]);

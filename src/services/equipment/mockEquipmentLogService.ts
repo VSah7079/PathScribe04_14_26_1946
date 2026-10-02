@@ -12,6 +12,7 @@ import { mockEquipmentService } from './mockEquipmentService';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import type { EquipmentLogEntry, EquipmentLogError, IEquipmentLogService } from './IEquipmentLogService';
 import { addDays, sortLogNewestFirst, validateEquipmentLogEntry } from './equipmentLogRules';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export const EQUIPMENT_LOG_STORAGE_KEY = 'equipment_log';
 
@@ -41,7 +42,7 @@ const load = (): EquipmentLogEntry[] => {
 };
 const fail = (error: EquipmentLogError) => ({ ok: false as const, error });
 
-export const mockEquipmentLogService: IEquipmentLogService = {
+const equipmentLogServiceUnchecked: IEquipmentLogService = {
   async list(equipmentId) {
     const all = load();
     return { ok: true, data: sortLogNewestFirst(equipmentId ? all.filter(x => x.equipmentId === equipmentId) : all) };
@@ -72,3 +73,9 @@ export const mockEquipmentLogService: IEquipmentLogService = {
     return { ok: true, data: created };
   },
 };
+
+/** Batch 428: every change needs its capability (guardConfigWrites). Batch 429 (Pete): recording an
+ *  entry is its own capability, equipment:maintenance:record, held by the bench roles too. */
+export const mockEquipmentLogService: IEquipmentLogService = guardConfigWrites(equipmentLogServiceUnchecked, [
+  ['equipment:maintenance:record', ['add']],
+]);

@@ -126,6 +126,11 @@ export const mockUserService: IUserService = {
     
     MOCK_USERS = MOCK_USERS.map(u => u.id === id ? updatedUser : u);
     persist(MOCK_USERS);
+    // Batch 431: giving the Pediatric or Orchestration flag closes the
+    // person's matching open access requests (services/access/).
+    if ('canViewPediatric' in changes || 'canViewOrchestration' in changes) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
     return ok(updatedUser);
   },
 

@@ -20,11 +20,19 @@
 // (KNCSP/KCCR, CSMS, CervicalCheck, PALGA, NICSP), should a similar
 // jurisdiction-specific transmission audit ever be requested for one
 // of them.
+//
+// Batch 425 (Pete and his developer: "Transmission audit export parity"):
+// adds the registry's lifecycle status, its response code (e.g. AA, AE) and
+// the sent time, and a download (cytologyTransmissionAuditCsvRows) with the
+// same registry columns as the cancer one
+// (services/registrySubmission/registryTransmissionAudit.ts). The download
+// leaves out the MRN, as every QA export does.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { CytologyRegistryOutboundQueueEntry } from '@/types/case/CytologyRegistryOutboundQueueEntry';
 import type { CytologySignOutRecord } from '@/types/cytology/CytologySignOutRecord';
 import type { RegistryId } from '@/services/facilities/IRegistrySettingsService';
+import { latestResponseCode } from '@/services/registrySubmission/registryTransmissionAudit';
 
 export interface CytologyRegistryTransmissionAuditRow {
   caseId: string;
@@ -36,6 +44,10 @@ export interface CytologyRegistryTransmissionAuditRow {
   transmissionTimestamp?: string;
   transmissionStatus: 'QUEUED' | 'SENT' | 'FAILED';
   errorReasonCode?: string;
+  /** Batch 425: the registry's answer (awaitingAck, accepted, rejected…), its response code, and when it was sent. */
+  registryStatus?: string;
+  responseCode?: string;
+  sentAt?: string;
 }
 
 export function resolveCytologyRegistryTransmissionAuditReport(
@@ -56,6 +68,18 @@ export function resolveCytologyRegistryTransmissionAuditReport(
         transmissionTimestamp: e.lastAttemptAt ?? e.queuedAt,
         transmissionStatus: e.status,
         errorReasonCode: e.errorCode,
+        registryStatus: e.registryStatus,
+        responseCode: latestResponseCode(e) || undefined,
+        sentAt: e.sentAt ?? (e.status === 'SENT' ? e.lastAttemptAt : undefined),
       };
     });
+}
+
+/** Batch 425: the download's rows (no MRN: a file leaves the app's access controls). Column names are the file's own. */
+export function cytologyTransmissionAuditCsvRows(rows: CytologyRegistryTransmissionAuditRow[], registryId: string): Record<string, string>[] {
+  return rows.map(r => ({
+    Registry: registryId, Accession_ID: r.accessionNumber, HPV_Result_Code: r.hpvResultCode ?? '', Cytology_Result_Code: r.cytologyResultCode,
+    Queued_Or_Attempted_At: r.transmissionTimestamp ?? '', Sent_At: r.sentAt ?? '', Transmission_Status: r.transmissionStatus,
+    Error_Reason_Code: r.errorReasonCode ?? '', Registry_Status: r.registryStatus ?? '', Response_Code: r.responseCode ?? '',
+  }));
 }

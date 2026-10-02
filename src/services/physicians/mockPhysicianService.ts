@@ -1,6 +1,7 @@
 import { IPhysicianService, Physician } from './IPhysicianService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // firstName/lastName are always mirrored from givenNames/familyNames —
 // see Physician's own doc comments (IPhysicianService.ts) for why both
@@ -110,7 +111,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockPhysicianService: IPhysicianService = {
+export const physicianServiceUnchecked: IPhysicianService = {
   async getAll() {
     await delay();
     return ok([...MOCK_PHYSICIANS]);
@@ -168,11 +169,11 @@ export const mockPhysicianService: IPhysicianService = {
   },
 
   async verify(id) {
-    return mockPhysicianService.update(id, { status: 'Active' });
+    return physicianServiceUnchecked.update(id, { status: 'Active' });
   },
 
   async deactivate(id) {
-    return mockPhysicianService.update(id, { status: 'Inactive' });
+    return physicianServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async findOrCreateByNpi(npi, name) {
@@ -213,7 +214,7 @@ export const mockPhysicianService: IPhysicianService = {
     );
     if (existing) {
       if (clientId && !existing.clientIds.includes(clientId)) {
-        return mockPhysicianService.update(existing.id, { clientIds: [...existing.clientIds, clientId] });
+        return physicianServiceUnchecked.update(existing.id, { clientIds: [...existing.clientIds, clientId] });
       }
       return ok({ ...existing });
     }
@@ -260,7 +261,7 @@ export const mockPhysicianService: IPhysicianService = {
     );
     if (matched) {
       if (clientId && !matched.clientIds.includes(clientId)) {
-        return mockPhysicianService.update(matched.id, { clientIds: [...matched.clientIds, clientId] });
+        return physicianServiceUnchecked.update(matched.id, { clientIds: [...matched.clientIds, clientId] });
       }
       return ok({ ...matched });
     }
@@ -277,3 +278,8 @@ export const mockPhysicianService: IPhysicianService = {
     return ok({ ...newP });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockPhysicianService: IPhysicianService = guardConfigWrites(physicianServiceUnchecked, [
+  ['config:physicians:manage', ['add', 'update', 'verify', 'deactivate']],
+]);

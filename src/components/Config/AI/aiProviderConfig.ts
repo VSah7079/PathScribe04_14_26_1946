@@ -4,7 +4,7 @@
 // resolve the active config at runtime.
 //
 // Priority order (highest wins):
-//   1. User-level override (localStorage, dev/testing only)
+//   1. User-level override (the signed-in person's, dev/testing only; Batch 430)
 //   2. Org-level setting   (fetched from your admin API / Firestore)
 //   3. Environment variable defaults (set at deploy time)
 //
@@ -13,6 +13,9 @@
 // The apiKey field here is only populated in local dev mode where
 // VITE_AI_DEV_MODE=true and VITE_AI_API_KEY is set.
 // ─────────────────────────────────────────────────────────────
+
+import { clearPersonalSetting, getPersonalSetting, setPersonalSetting } from '../../../services/userSettings/personalSettings';
+import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
 
 export type AiProviderId =
   | 'structured_messages'     // Anthropic-shaped: system as a separate field, SSE content_block_delta streaming
@@ -182,22 +185,17 @@ const VALID_PROVIDER_IDS: readonly AiProviderId[] = [
 export function resolveAiConfig(): AiProviderConfig {
   const base = envDefaults();
 
-  // Layer 2: org config (written by your org-bootstrap code after login)
-  try {
-    const orgRaw = localStorage.getItem(ORG_CONFIG_KEY);
-    if (orgRaw) {
-      const org: OrgAiConfig = JSON.parse(orgRaw);
-      Object.assign(base, org);
-    }
-  } catch { /* corrupt storage — fall through */ }
+  // Layer 2: the lab's AI settings (Configuration → AI Behavior, saved by
+  // services/aiConfig/saveAiSettings.ts). Batch 431: kept in the lab settings
+  // store, so every workstation uses the same provider (PS-345: the server).
+  const org = readLabSetting<OrgAiConfig | null>(ORG_CONFIG_KEY, null);
+  if (org && typeof org === 'object') Object.assign(base, org);
 
   // Layer 1: user override (dev/testing only)
   try {
-    const userRaw = localStorage.getItem(USER_OVERRIDE_KEY);
-    if (userRaw) {
-      const user: Partial<AiProviderConfig> = JSON.parse(userRaw);
-      Object.assign(base, user);
-    }
+    // Batch 430: the override is the signed-in person's, not the browser's.
+    const user = getPersonalSetting<Partial<AiProviderConfig> | null>(USER_OVERRIDE_KEY, null);
+    if (user) Object.assign(base, user);
   } catch { /* corrupt storage — fall through */ }
 
   // Real fix, per direct report: "⚠ [PathScribe AI] Unknown provider:
@@ -207,7 +205,7 @@ export function resolveAiConfig(): AiProviderConfig {
   // 'structured_messages' — but that guard only ever applied to the
   // settings screen's own DISPLAY. This function is the one callAi()
   // actually calls, and it had no equivalent validation at all — a
-  // stale or invalid providerId sitting in either localStorage layer
+  // stale or invalid providerId sitting in either saved layer
   // (org or user override) would sail through here untouched, so the
   // settings screen could look completely fine (self-healing on
   // display) while every real AI call still hit the hard error the
@@ -227,7 +225,7 @@ export function resolveAiConfig(): AiProviderConfig {
  * Intended for dev/QA use — admins should configure at org level.
  */
 export function setUserAiConfig(config: Partial<AiProviderConfig>): void {
-  localStorage.setItem(USER_OVERRIDE_KEY, JSON.stringify(config));
+  setPersonalSetting(USER_OVERRIDE_KEY, config);
 }
 
 /**
@@ -235,14 +233,14 @@ export function setUserAiConfig(config: Partial<AiProviderConfig>): void {
  * Call this from your auth bootstrap / org context provider.
  */
 export function setOrgAiConfig(config: OrgAiConfig): void {
-  localStorage.setItem(ORG_CONFIG_KEY, JSON.stringify(config));
+  saveLabSetting(ORG_CONFIG_KEY, config);
 }
 
 /**
  * Clears the user-level override, reverting to org/env defaults.
  */
 export function clearUserAiConfig(): void {
-  localStorage.removeItem(USER_OVERRIDE_KEY);
+  clearPersonalSetting(USER_OVERRIDE_KEY);
 }
 
 /**

@@ -57,4 +57,9 @@ export interface CytologySignOutRecord {
    *  and an addendum — the two fields are mutually exclusive in
    *  practice, though nothing in this type enforces that mechanically. */
   addsToRecordId?: string;
+  /** Batch 390 (PS-340): why a correction or an addendum was released.
+   *  Mandatory on any record carrying amendsRecordId or addsToRecordId
+   *  (the release services refuse an empty one); undefined on every
+   *  original sign-out. Stored as entered: it is data, not interface text. */
+  revisionReason?: string;
 }

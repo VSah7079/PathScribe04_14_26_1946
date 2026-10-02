@@ -14,6 +14,18 @@ Grossing template routing evaluation — TYPES ONLY, deliberately.
 
 - Don't 'fix' this by adding a mockGrossingEvaluationService.ts — that would duplicate real logic that deliberately lives in mockCaseService.ts instead.
 
+## Batch 397: matrix blocks and piece descriptions
+
+`grossingBlocks` lists every block a per-block rule applies to: each specimen's own blocks, then the case's matrix blocks (by their own label). Matrix blocks used to be left out of the piece-count rule. The Grossing field requirements gain `pieceDescription` (optional). `blockGrossingFieldsMissing` gives one block's missing grossing fields for the block editors, which mark them; Complete grossing is what stops on them.
+
+## Batch 398: the case report page's Gross Complete follows the Grossing rules
+
+- `reportGrossComplete.ts`: `checkReportGrossComplete` applies the organisation's Grossing field requirements and `case:grossing:complete` to the report page's Gross Complete / Update Gross (orchestration cases), as `completeGrossing` does on the Grossing screen. Before, that button checked only that each specimen had some grossing entered, and had no permission check.
+- Pete's choice: on the report page a specimen with a **Grossing template report** meets the "Grossing protocol attached" rule (`reportPageProtocolSatisfied`), since that page records grossing on templates. Blocks are still expected only of specimens with an attached protocol.
+- With the protocol rule switched off, specimens with neither ask for confirmation and are routed for secondary review, as on the Grossing screen. An update never asks again.
+- `specimensWithoutGrossEntry`: the page's existing "no grossing entered" rule, moved out of the hook.
+- `grossingCompletion.ts`: the protocol test is now a parameter (`ProtocolSatisfied`, default: an attached protocol), and the deficiency raising is shared (`raiseGrossedWithoutProtocol`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

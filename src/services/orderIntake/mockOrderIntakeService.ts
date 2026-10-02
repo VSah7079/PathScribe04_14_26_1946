@@ -11,6 +11,7 @@ import { mockSpecimenDictionaryService } from '../specimenDictionary/mockSpecime
 import { mockInterfaceExceptionService } from '../interfaceExceptions/mockInterfaceExceptionService';
 import { resolveProviderName } from '../physicians/resolveProviderName';
 import { normalizeOrderCode } from '@/utils/normalizeOrderCode';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
@@ -495,7 +496,7 @@ function findCrosswalkMatch(
   return candidates[0];
 }
 
-export const mockOrderIntakeService: IOrderIntakeService = {
+const orderIntakeServiceUnchecked: IOrderIntakeService = {
 
   async listPendingOrders(params) {
     await delay();
@@ -724,3 +725,8 @@ export const mockOrderIntakeService: IOrderIntakeService = {
     return ok({ ...CROSSWALK[idx] });
   },
 };
+
+/** Batch 428: changing the specimen code crosswalk needs config:crosswalk:manage; order intake itself is unchanged. */
+export const mockOrderIntakeService: IOrderIntakeService = guardConfigWrites(orderIntakeServiceUnchecked, [
+  ['config:crosswalk:manage', ['addCrosswalkEntry', 'updateCrosswalkEntry']],
+]);

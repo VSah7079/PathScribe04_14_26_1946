@@ -28,6 +28,10 @@
 
 import { jsPDF } from 'jspdf';
 import type { CytologyReportContent } from '@/types/cytology/CytologyReportContent';
+import { formatDate, formatDateTime } from '@/utils/formatDate';
+import { reportDateLocale } from '../reports/reportLanguage';
+import { loadPrintFont, printFontLanguageFor, registerPrintFont, type PrintFont } from '../documentRendering/printFonts';
+import { ENGLISH_CYTOLOGY_PDF_LABELS, fillLabel, type CytologyPdfLabels } from './cytologyPdfLabels';
 import { drawBarcodeOnJsPdfDoc } from '@/services/documentRendering/drawBarcodeOnJsPdfDoc';
 import { applyDeterministicPdfMetadata } from '@/services/documentRendering/applyDeterministicPdfMetadata';
 import { applyContinuationPageHeaders, CONTINUATION_HEADER_HEIGHT_MM } from '@/services/documentRendering/applyContinuationPageHeaders';
@@ -75,6 +79,9 @@ export interface CytologyPdfLayoutOut {
   headerLogoRegion?: HeaderLogoRegion;
 }
 
+/** Batch 391: the font family a document is printed in, when not Liberation Sans. */
+const DOC_FONT = new WeakMap<jsPDF, string>();
+
 function addWrappedText(doc: jsPDF, text: string, y: number, opts: { bold?: boolean; size?: number } = {}): number {
   // Real, per PS-276 §1.1.1 gap-closing — the real, embedded font
   // (registered once per doc via registerEmbeddedPrintFont(), called
@@ -82,7 +89,7 @@ function addWrappedText(doc: jsPDF, text: string, y: number, opts: { bold?: bool
   // 'helvetica' reference. jsPDF's own base-14 'helvetica' can never
   // be embedded, by the PDF spec itself; EMBEDDED_PRINT_FONT_FAMILY
   // genuinely is.
-  const fontName = EMBEDDED_PRINT_FONT_FAMILY;
+  const fontName = DOC_FONT.get(doc) ?? EMBEDDED_PRINT_FONT_FAMILY;
   assertAllowedPrintFont(fontName);
   doc.setFont(fontName, opts.bold ? 'bold' : 'normal');
   doc.setFontSize(opts.size ?? 10);
@@ -137,7 +144,14 @@ function addSectionHeader(doc: jsPDF, title: string, y: number): number {
  * deliberately avoided — it would force every existing, plain-preview
  * caller to change for a feature they don't use.
  */
-export function generateCytologyReportPdf(content: CytologyReportContent, layoutOut?: CytologyPdfLayoutOut): jsPDF {
+export function generateCytologyReportPdf(content: CytologyReportContent, layoutOut?: CytologyPdfLayoutOut, labels: CytologyPdfLabels = ENGLISH_CYTOLOGY_PDF_LABELS, printFont?: PrintFont): jsPDF {
+  // Batch 391 (PS-340 follow-up): the wording around the report follows the
+  // report's language (`labels`, from cytologyPdfLabelsFor on the main thread);
+  // dates follow it too. The report's own content prints as stored.
+  const L = labels;
+  const dateLocale = reportDateLocale(content);
+  const day = (iso: string) => formatDate(iso, dateLocale);
+  const dayTime = (iso: string) => formatDateTime(iso, dateLocale);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   // Real, per PS-276 §1.1.1 gap-closing — registers the real, embedded
   // Liberation Sans font program onto this doc instance before any
@@ -145,10 +159,24 @@ export function generateCytologyReportPdf(content: CytologyReportContent, layout
   // applyContinuationPageHeaders' own later pass over this same doc
   // instance both rely on this having already run).
   registerEmbeddedPrintFont(doc);
+  // Batch 391: a report in a language Liberation Sans can't print (Korean)
+  // is printed in the font loaded for it (loadPrintFont).
+  if (printFont) { registerPrintFont(doc, printFont); DOC_FONT.set(doc, printFont.family); }
   let y = MARGIN;
 
-  y = addWrappedText(doc, 'Cytology Report — GYN Cervical Screening', y, { bold: true, size: 14 });
+  y = addWrappedText(doc, L.title, y, { bold: true, size: 14 });
   y += 2;
+
+  // Batch 390 (PS-340): a corrected report or an addendum says so at the top,
+  // with the reason (and, for a correction, what was reported before), so a
+  // reader never mistakes it for the original.
+  if (content.revision) {
+    const r = content.revision;
+    y = addWrappedText(doc, r.kind === 'correction' ? L.correctedReport : L.addendumBanner, y, { bold: true, size: 12 });
+    y = addWrappedText(doc, fillLabel(L.reason, { reason: r.reason }), y, { size: 9 });
+    if (r.kind === 'correction' && r.previouslyReportedAs) y = addWrappedText(doc, fillLabel(L.previouslyReported, { diagnosis: r.previouslyReportedAs }), y, { size: 9 });
+    y += 2;
+  }
 
   // Real, per PS-276 §1.1.3 — a real, scannable Code 128 vector
   // barcode of the accession number, in the header's top-right
@@ -196,58 +224,58 @@ export function generateCytologyReportPdf(content: CytologyReportContent, layout
     // (technical-component-only) report; this just renders whichever
     // of the two real fields actually came back.
     const regLine = [
-      b.directorName ? `Director: ${b.directorName}` : undefined,
-      b.cliaOrIsoNumber ? `CLIA/ISO: ${b.cliaOrIsoNumber}` : undefined,
+      b.directorName ? fillLabel(L.director, { name: b.directorName }) : undefined,
+      b.cliaOrIsoNumber ? fillLabel(L.clia, { number: b.cliaOrIsoNumber }) : undefined,
     ].filter(Boolean).join('   ');
     if (regLine) y = addWrappedText(doc, regLine, y, { size: 8 });
     y += 2;
   }
 
   // §1 Administrative & Patient Identifiers
-  y = addSectionHeader(doc, 'Patient', y);
-  y = addWrappedText(doc, `${content.patientName}${content.patientDateOfBirth ? ` · DOB ${new Date(content.patientDateOfBirth).toLocaleDateString()}` : ''}${content.patientMrn ? ` · MRN ${content.patientMrn}` : ''}`, y);
-  y = addWrappedText(doc, `Accession: ${content.accessionNumber}${content.orderingProvider ? ` · Ordering Provider: ${content.orderingProvider}` : ''}`, y);
-  if (content.specimenCollectedAt) y = addWrappedText(doc, `Collected: ${new Date(content.specimenCollectedAt).toLocaleString()}`, y);
-  if (content.specimenReceivedAt) y = addWrappedText(doc, `Received: ${new Date(content.specimenReceivedAt).toLocaleString()}`, y);
-  if (content.lastMenstrualPeriod) y = addWrappedText(doc, `LMP: ${new Date(content.lastMenstrualPeriod).toLocaleDateString()}`, y);
+  y = addSectionHeader(doc, L.patient, y);
+  y = addWrappedText(doc, [content.patientName, content.patientDateOfBirth ? fillLabel(L.dob, { date: day(content.patientDateOfBirth) }) : '', content.patientMrn ? fillLabel(L.mrn, { mrn: content.patientMrn }) : ''].filter(Boolean).join(' · '), y);
+  y = addWrappedText(doc, [fillLabel(L.accession, { accession: content.accessionNumber }), content.orderingProvider ? fillLabel(L.orderingProvider, { name: content.orderingProvider }) : ''].filter(Boolean).join(' · '), y);
+  if (content.specimenCollectedAt) y = addWrappedText(doc, fillLabel(L.collected, { date: dayTime(content.specimenCollectedAt) }), y);
+  if (content.specimenReceivedAt) y = addWrappedText(doc, fillLabel(L.received, { date: dayTime(content.specimenReceivedAt) }), y);
+  if (content.lastMenstrualPeriod) y = addWrappedText(doc, fillLabel(L.lmp, { date: day(content.lastMenstrualPeriod) }), y);
   y += 2;
 
   // §2 Specimen Type
-  y = addSectionHeader(doc, 'Specimen Type', y);
-  y = addWrappedText(doc, content.specimenTypeDescription + (content.preparationMethod ? ` (${content.preparationMethod})` : ''), y);
+  y = addSectionHeader(doc, L.specimenType, y);
+  y = addWrappedText(doc, content.specimenTypeDescription + (content.preparationMethod ? ` (${content.preparationMethod === 'Liquid-Based' ? L.prepLiquidBased : L.prepConventional})` : ''), y);
   y += 2;
 
   // §3 Specimen Adequacy
-  y = addSectionHeader(doc, 'Specimen Adequacy', y);
+  y = addSectionHeader(doc, L.specimenAdequacy, y);
   for (const line of content.specimenAdequacy) y = addWrappedText(doc, `• ${line}`, y);
   y += 2;
 
   // §4 General Categorization
   if (content.generalCategorization) {
-    y = addSectionHeader(doc, 'General Categorization', y);
+    y = addSectionHeader(doc, L.generalCategorization, y);
     y = addWrappedText(doc, content.generalCategorization, y);
     y += 2;
   }
 
   // §5 Interpretation / Diagnostic Result
-  y = addSectionHeader(doc, 'Interpretation / Diagnostic Result', y);
+  y = addSectionHeader(doc, L.interpretation, y);
   y = addWrappedText(doc, content.primaryInterpretation, y);
   for (const line of content.additionalInterpretations) y = addWrappedText(doc, `• ${line}`, y);
   y += 2;
 
   // §6 Adjunctive Testing & Integrated Results
   if (content.hpvResult || content.computerAssistedScreening) {
-    y = addSectionHeader(doc, 'Adjunctive Testing & Integrated Results', y);
-    if (content.hpvResult) y = addWrappedText(doc, `HPV: ${content.hpvResult}`, y);
+    y = addSectionHeader(doc, L.adjunctive, y);
+    if (content.hpvResult) y = addWrappedText(doc, fillLabel(L.hpv, { result: content.hpvResult }), y);
     if (content.computerAssistedScreening) {
-      y = addWrappedText(doc, `Computer-Assisted Screening: ${content.computerAssistedScreening.used ? 'Yes' : 'No'}${content.computerAssistedScreening.system ? ` (${content.computerAssistedScreening.system})` : ''}`, y);
+      y = addWrappedText(doc, fillLabel(L.computerAssisted, { value: `${content.computerAssistedScreening.used ? L.yes : L.no}${content.computerAssistedScreening.system ? ` (${content.computerAssistedScreening.system})` : ''}` }), y);
     }
     y += 2;
   }
 
   // §7 Educational Notes, Comments, & Sign-Off
   if (content.recommendations.length > 0 || content.educationalNotes) {
-    y = addSectionHeader(doc, 'Recommendations & Comments', y);
+    y = addSectionHeader(doc, L.recommendations, y);
     for (const line of content.recommendations) y = addWrappedText(doc, `• ${line}`, y);
     if (content.educationalNotes) y = addWrappedText(doc, content.educationalNotes, y);
     y += 2;
@@ -268,14 +296,14 @@ export function generateCytologyReportPdf(content: CytologyReportContent, layout
       doc.addPage();
       y = MARGIN + CONTINUATION_HEADER_HEIGHT_MM;
     }
-    y = addSectionHeader(doc, 'Addendum', y);
+    y = addSectionHeader(doc, L.addendum, y);
     y = addWrappedText(doc, content.addendumText, y);
     y += 2;
   }
 
-  y = addSectionHeader(doc, 'Sign-Off', y);
-  if (content.screenedBy) y = addWrappedText(doc, `Screened by: ${content.screenedBy.name}`, y);
-  y = addWrappedText(doc, `Signed by: ${content.signedBy.name}${content.signedBy.isPathologist ? ', Pathologist' : ', Cytotechnologist'} — ${new Date(content.signedAt).toLocaleString()}`, y);
+  y = addSectionHeader(doc, L.signOff, y);
+  if (content.screenedBy) y = addWrappedText(doc, fillLabel(L.screenedBy, { name: content.screenedBy.name }), y);
+  y = addWrappedText(doc, fillLabel(L.signedBy, { name: content.signedBy.name, role: content.signedBy.isPathologist ? L.rolePathologist : L.roleCytotechnologist, date: dayTime(content.signedAt) }), y);
 
   // Real, per PS-277 §1.2.1 — the real, required LAST pass: every real
   // page this report actually ended up with now exists, so "Page X of
@@ -285,6 +313,8 @@ export function generateCytologyReportPdf(content: CytologyReportContent, layout
     doc,
     { patientName: content.patientName, patientMrn: content.patientMrn, accessionNumber: content.accessionNumber },
     { marginMm: MARGIN, pageWidthMm: PAGE_WIDTH },
+    { mrn: L.mrn, accession: L.accession, page: L.continuationPage },
+    DOC_FONT.get(doc),
   );
 
   return doc;
@@ -324,14 +354,16 @@ export function generateCytologyReportPdf(content: CytologyReportContent, layout
  *  imageAssociations' own DPI warnings — a logo that can't be fetched,
  *  or that embeds below the 300 DPI minimum, still leaves the rest of
  *  the real, diagnostic report content completely unaffected. */
-export async function generateCytologyReportPdfWithAttachments(content: CytologyReportContent): Promise<Uint8Array> {
+export async function generateCytologyReportPdfWithAttachments(content: CytologyReportContent, labels: CytologyPdfLabels = ENGLISH_CYTOLOGY_PDF_LABELS): Promise<Uint8Array> {
   const layoutOut: CytologyPdfLayoutOut = {};
-  const doc = generateCytologyReportPdf(content, layoutOut);
+  // Batch 391: load the font the report's language needs (Korean), if any.
+  const printFont = await loadPrintFont(printFontLanguageFor(content));
+  const doc = generateCytologyReportPdf(content, layoutOut, labels, printFont);
   const baseBytes = new Uint8Array(doc.output('arraybuffer'));
   const metadata = {
-    title: `Cytology Report — ${content.accessionNumber}`,
+    title: fillLabel(labels.metadataTitle, { accession: content.accessionNumber }),
     author: content.signedBy.name,
-    subject: 'Cytology Report',
+    subject: labels.metadataSubject,
     timestamp: content.signedAt,
   };
 

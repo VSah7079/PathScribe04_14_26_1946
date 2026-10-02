@@ -28,6 +28,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { NotificationMethod } from '@/types/reports/AmendmentRecord';
+import type { VerbalReportRecipientRole } from '@/types/intraop/IntraoperativeEntry';
 
 export type { NotificationMethod };
 
@@ -77,4 +78,10 @@ export interface CriticalResultNotification {
    *  it (e.g. a secure page or direct LIS flag has no real read-back
    *  step at all), never defaulted to true. */
   readBackConfirmed?: boolean;
+  /** Batch 399: the recipient's role, for an intraoperative verbal report. */
+  recipientRole?: VerbalReportRecipientRole;
+  /** Batch 399: a critical result given to someone other than the operating surgeon, and why. */
+  surgeonUnavailable?: { reasonId: string; reasonName: string; note?: string };
+  /** Batch 399: the pathologist marked the intraoperative result a critical result (the critical-results dictionary suggests; the pathologist decides). */
+  criticalResult?: boolean;
 }

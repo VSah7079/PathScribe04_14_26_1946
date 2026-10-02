@@ -1,0 +1,51 @@
+// src/services/registryConsent/recordPatientRegistryConsent.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 418 (SRS v2.1 FR-008.1). The one way a person records a patient's
+// registry opt-outs: permission checked, written to the case's patient and
+// mirrored to the MPI, audited. Clearing both flags removes the record.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import type { Patient } from '@/types/case/Patient';
+import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface RecordRegistryConsentDeps {
+  enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
+  getCase: (caseId: string) => Promise<{ id: string; patient: Patient } | null | undefined>;
+  updateCase: (caseId: string, patch: { patient: Patient }) => Promise<unknown>;
+  setInMpi: (patientId: string, consent: PatientRegistryConsent | undefined) => Promise<unknown>;
+  logAudit: (event: any) => unknown;
+  now: () => string;
+}
+
+export interface RecordRegistryConsentOutcome {
+  outcome: 'notPermitted' | 'caseNotFound' | 'saved' | 'cleared';
+  consent?: PatientRegistryConsent;
+}
+
+export async function recordPatientRegistryConsent(
+  input: { caseId: string; screeningOptOut: boolean; cancerRegistryOptOut: boolean; source?: PatientRegistryConsent['source'] },
+  user: { id: string; name: string },
+  deps: RecordRegistryConsentDeps,
+): Promise<RecordRegistryConsentOutcome> {
+  const decision = await deps.enforce('patient:registry-consent:record', { caseId: input.caseId });
+  if (!decision.allowed) return { outcome: 'notPermitted' };
+  const c = await deps.getCase(input.caseId);
+  if (!c) return { outcome: 'caseNotFound' };
+
+  const cleared = !input.screeningOptOut && !input.cancerRegistryOptOut;
+  const consent: PatientRegistryConsent | undefined = cleared ? undefined : {
+    screeningOptOut: input.screeningOptOut, cancerRegistryOptOut: input.cancerRegistryOptOut,
+    recordedAt: deps.now(), recordedBy: user.id, source: input.source ?? 'manual',
+  };
+  const { registryConsent: _old, ...rest } = c.patient;
+  const patient: Patient = consent ? { ...rest, registryConsent: consent } : rest;
+  await deps.updateCase(c.id, { patient });
+  if (c.patient.id) await deps.setInMpi(c.patient.id, consent);
+  deps.logAudit({
+    type: 'user', event: cleared ? 'Registry opt-out cleared' : 'Registry opt-out recorded',
+    detail: cleared ? `Case ${c.id}: no registry opt-out` : `Case ${c.id}: screening opt-out ${input.screeningOptOut ? 'yes' : 'no'}, cancer registry opt-out ${input.cancerRegistryOptOut ? 'yes' : 'no'}`,
+    user: user.name || user.id, caseId: c.id, confidence: null,
+  });
+  return cleared ? { outcome: 'cleared' } : { outcome: 'saved', consent };
+}

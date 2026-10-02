@@ -16,6 +16,12 @@
 // direct scan-to-dispose (disposeItemByScan.ts) — no manual container
 // creation, no separate reconciliation pass; each scan is validated
 // against the real, live eligibility rules the instant it happens.
+//
+// Batch 407: disposing needs retention:material:dispose (checked in
+// disposeItemByScan.ts). The red screen shows the refusal in the user's
+// language (disposalQueue.refusals.<code>) with dates formatted for it; item
+// ids (accession-based) are tagged data-phi; the scan-station service comes
+// from @/services, so the page is off the deployment baseline.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -24,17 +30,13 @@ import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { facilityService } from '@/services';
+import { facilityService, scanStationService } from '@/services';
+import { formatDate } from '@/utils/formatDate';
 import { computeDisposalQueue } from '@/services/retentionPolicy/computeDisposalQueue';
 import type { DisposalQueueItem } from '@/services/retentionPolicy/computeDisposalQueue';
 import { disposeItemByScan } from '@/services/retentionPolicy/disposeItemByScan';
 import { playScanBeep, playScanErrorTone } from '@/utils/playScanBeep';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
-
-function formatDate(iso: string): string {
-  try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
-}
 
 // Real, label-key-map — keeps the real DisposalQueueItem['materialType']
 // value (used for filtering/matching elsewhere) untouched, translating
@@ -46,7 +48,7 @@ const MATERIAL_TYPE_LABEL_KEY: Record<DisposalQueueItem['materialType'], string>
 };
 
 const DisposalQueuePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('disposalQueue.pageTitle'), '/batch-management/disposal'); }, [pushCrumb, t]);
   const { user } = useAuth();
@@ -61,7 +63,7 @@ const DisposalQueuePage: React.FC = () => {
   // emphasis ("turns red," not "shows an error") calls for something
   // impossible to miss even if a tech isn't looking directly at a
   // small status line while working hands-free.
-  const [redScreen, setRedScreen] = useState<string | null>(null);
+  const [redScreen, setRedScreen] = useState<{ text: string; hasPatientId: boolean } | null>(null);
   const [lastDisposed, setLastDisposed] = useState<string | null>(null);
   const redScreenTimer = useRef<number | null>(null);
   const successTimer = useRef<number | null>(null);
@@ -71,7 +73,7 @@ const DisposalQueuePage: React.FC = () => {
   // pipeline (useGlobalMaterialScanTracking.ts), not a new concept.
   useEffect(() => {
     if (!stationId) { setFacilityId(undefined); setFacilityName(null); return; }
-    mockScanStationService.getById(stationId).then(res => {
+    scanStationService.getById(stationId).then(res => {
       if (!res.ok) return;
       setFacilityId(res.data.facilityId);
       facilityService.getById(res.data.facilityId).then(fRes => {
@@ -96,16 +98,20 @@ const DisposalQueuePage: React.FC = () => {
     if (result.outcome === 'disposed') {
       playScanBeep();
       setQueue(prev => prev.filter(i => i.displayId !== result.displayId));
-      setLastDisposed(`✓ ${t('disposalQueue.disposedFlash', { displayId: result.displayId })}`);
+      setLastDisposed(t('disposalQueue.disposedFlash', { displayId: result.displayId }));
       if (successTimer.current) window.clearTimeout(successTimer.current);
       successTimer.current = window.setTimeout(() => setLastDisposed(null), 2500);
     } else {
       playScanErrorTone();
-      setRedScreen(result.reason);
+      // Batch 407: the refusal in the user's language, with any date formatted for it.
+      setRedScreen({ text: t(`disposalQueue.refusals.${result.code}`, {
+        displayId: result.values.displayId ?? value, note: result.values.note ?? '',
+        date: result.values.date ? formatDate(result.values.date, i18n.language) : t('disposalQueue.unknownDate'),
+      }), hasPatientId: result.code !== 'notPermitted' });
       if (redScreenTimer.current) window.clearTimeout(redScreenTimer.current);
       redScreenTimer.current = window.setTimeout(() => setRedScreen(null), 4000);
     }
-  }, [facilityId, user?.id, user?.name, t]);
+  }, [facilityId, user?.id, user?.name, t, i18n.language]);
 
   useEffect(() => {
     const listener = (e: Event) => {
@@ -124,7 +130,7 @@ const DisposalQueuePage: React.FC = () => {
       {redScreen && (
         <div className="ps-disposal-redscreen" onClick={() => setRedScreen(null)}>
           <div className="ps-disposal-redscreen-icon">⛔</div>
-          <div className="ps-disposal-redscreen-text">{redScreen}</div>
+          <div className="ps-disposal-redscreen-text" data-phi={redScreen.hasPatientId ? 'accession' : undefined}>{redScreen.text}</div>
           <div className="ps-disposal-redscreen-dismiss">{t('disposalQueue.dismissHint')}</div>
         </div>
       )}
@@ -140,7 +146,7 @@ const DisposalQueuePage: React.FC = () => {
             </p>
           </div>
 
-          {lastDisposed && <div className="ps-batch-flash ps-batch-flash--success">{lastDisposed}</div>}
+          {lastDisposed && <div className="ps-batch-flash ps-batch-flash--success" data-phi="accession">{lastDisposed}</div>}
 
           <div className="ps-batch-scan-hint">📷 {t('disposalQueue.scanHint')}</div>
 
@@ -155,13 +161,14 @@ const DisposalQueuePage: React.FC = () => {
             <div className="ps-batch-manifest">
               {queue.map(item => (
                 <div key={item.key} className="ps-batch-manifest-row">
-                  <span className="ps-batch-manifest-id">{item.displayId}</span>
+                  <span className="ps-batch-manifest-id" data-phi="accession">{item.displayId}</span>
                   <span className="ps-batch-manifest-type">{t(MATERIAL_TYPE_LABEL_KEY[item.materialType])}</span>
                   <span className="ps-batch-manifest-added">
-                    {item.specimenLabel}
-                    {item.specimenLabel.includes(',') && ` ${t('disposalQueue.shared')}`}
-                    {' · '}{t('disposalQueue.eligibleSince', { date: formatDate(item.eligibleSince) })}
-                    {item.lastKnownLocation && <> · {item.lastKnownLocation}</>}
+                    {t(item.lastKnownLocation ? 'disposalQueue.rowDetailWithLocation' : 'disposalQueue.rowDetail', {
+                      specimen: item.specimenLabel.includes(',') ? t('disposalQueue.sharedSpecimens', { specimens: item.specimenLabel }) : item.specimenLabel,
+                      date: formatDate(item.eligibleSince, i18n.language),
+                      location: item.lastKnownLocation,
+                    })}
                   </span>
                 </div>
               ))}

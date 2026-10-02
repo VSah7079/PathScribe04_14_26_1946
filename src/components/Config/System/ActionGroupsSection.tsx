@@ -66,7 +66,7 @@ const ActionGroupModal: React.FC<ActionGroupModalProps> = ({ mode, actionGroup, 
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('actionGroupsSection.modal.actionsLabel')} <span className="ps-conf-required">*</span></label>
-            <input className="ps-conf-input ps-mb-8" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('actionGroupsSection.modal.actionsSearchPlaceholder')} />
+            <input data-config-nav className="ps-conf-input ps-mb-8" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('actionGroupsSection.modal.actionsSearchPlaceholder')} />
             <div className="ps-batch-reagent-lot-list ps-actiongroups__action-list">
               {filteredActions.map(a => {
                 const checked = draft.actionIds.includes(a.id);
@@ -159,7 +159,7 @@ const ActionGroupsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('actionGroupsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <input data-config-nav type="text" placeholder={t('actionGroupsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
       </div>
 
       <div className="ps-conf-table-wrap">

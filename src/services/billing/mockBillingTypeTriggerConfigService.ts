@@ -23,6 +23,7 @@
 import type { ServiceResult } from '../types';
 import type { BillingDictionaryEntry } from './RvuTableVersion';
 import { BILLING_TYPE_DEFAULT_TRIGGER } from './codeMapTable';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export type BillingTypeTriggerMap = Record<BillingDictionaryEntry['billingType'], 'SPECIMEN_GROSSED' | 'CASE_SIGNED_OUT'>;
 
@@ -96,7 +97,7 @@ export interface IBillingTypeTriggerConfigService {
   getSiteIdsWithOverrides(): Promise<ServiceResult<string[]>>;
 }
 
-export const mockBillingTypeTriggerConfigService: IBillingTypeTriggerConfigService = {
+const billingTypeTriggerConfigServiceUnchecked: IBillingTypeTriggerConfigService = {
   async getEffectiveTriggerMap(siteId) {
     const enterprise = readEnterpriseConfig();
     if (!siteId) return ok(enterprise);
@@ -148,3 +149,7 @@ export const mockBillingTypeTriggerConfigService: IBillingTypeTriggerConfigServi
   },
 };
 
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockBillingTypeTriggerConfigService: IBillingTypeTriggerConfigService = guardConfigWrites(billingTypeTriggerConfigServiceUnchecked, [
+  ['config:billing-triggers:manage', ['setTriggerOverride', 'resetToDefault']],
+]);

@@ -8,6 +8,9 @@ const kinds = (code: string, file?: string) => audit(code, file).map(f => `${f.k
 describe('classifyPath', () => {
   it('recognises patient identifiers by their property path', () => {
     expect(classifyPath(['c', 'patient', 'lastName'])).toBe('name');
+    // Batch 417: national identifiers are patient identifiers
+    expect(classifyPath(['c', 'patient', 'nationalIdentifiers', '0', 'value'])).toBe('nhs');
+    expect(classifyPath(['nationalIdentifierValue'])).toBe('nhs');
     expect(classifyPath(['patientName'])).toBe('name');
     expect(classifyPath(['record', 'dateOfBirth'])).toBe('dob');
     expect(classifyPath(['c', 'patient', 'mrn'])).toBe('mrn');

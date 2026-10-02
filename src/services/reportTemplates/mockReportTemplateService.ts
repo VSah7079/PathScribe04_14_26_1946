@@ -12,6 +12,7 @@ import { SectionNode, IfBlockNode, RepeatGroupNode, ParagraphNode, StaticLabelNo
 import { IReportTemplateService } from './IReportTemplateService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ── Well-known template ID constants ─────────────────────────────────────────
 // Imported by TemplateListTab and other consumers to identify the gold standard.
@@ -621,7 +622,7 @@ const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(e: string): ServiceResult<T> => ({ ok: false, error: e });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockReportTemplateService: IReportTemplateService = {
+const reportTemplateServiceUnchecked: IReportTemplateService = {
   async getAll() {
     await delay();
     return ok([...TEMPLATES]);
@@ -747,3 +748,9 @@ export const mockReportTemplateService: IReportTemplateService = {
     return ok({ ...updated });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReportTemplateService: IReportTemplateService = guardConfigWrites(reportTemplateServiceUnchecked, [
+  ['config:report-template:manage', ['create', 'save', 'update', 'clone', 'remove', 'archive']],
+  ['config:report-template:publish', ['publish']],
+]);

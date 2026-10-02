@@ -2,6 +2,7 @@
 import type { IRoutingRuleService, RoutingRule, RoutingRuleType } from './IRoutingRuleService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const KEY     = 'pathscribe_routing_rules_v1';
 
@@ -53,7 +54,7 @@ export function buildRoutingRuleMap(rules: RoutingRule[], performingLabFacilityI
   return map;
 }
 
-export const mockRoutingRuleService: IRoutingRuleService = {
+const routingRuleServiceUnchecked: IRoutingRuleService = {
   async getAll() {
     return ok(load());
   },
@@ -102,3 +103,8 @@ export const mockRoutingRuleService: IRoutingRuleService = {
     return ok(buildRoutingRuleMap(rules, performingLabFacilityId));
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockRoutingRuleService: IRoutingRuleService = guardConfigWrites(routingRuleServiceUnchecked, [
+  ['config:template-routing:manage', ['add', 'update', 'remove']],
+]);

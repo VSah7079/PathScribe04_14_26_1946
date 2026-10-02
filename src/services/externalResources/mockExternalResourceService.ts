@@ -5,6 +5,7 @@ import type {
   ExternalResourceViewerContext,
   IExternalResourceService,
 } from './IExternalResourceService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'pathscribe_external_resources';
 const delay = (ms = 60) => new Promise(res => setTimeout(res, ms));
@@ -62,7 +63,7 @@ function seedDefaults(): ExternalResource[] {
   return seeded;
 }
 
-export const mockExternalResourceService: IExternalResourceService = {
+const externalResourceServiceUnchecked: IExternalResourceService = {
   async listForOrganisation(organisationId: string): Promise<ExternalResource[]> {
     await delay();
     return loadResources().filter(r => r.organisationId === organisationId);
@@ -110,3 +111,8 @@ export const mockExternalResourceService: IExternalResourceService = {
     saveResources(loadResources().filter(r => r.id !== id));
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockExternalResourceService: IExternalResourceService = guardConfigWrites(externalResourceServiceUnchecked, [
+  ['config:external-resources:manage', ['create', 'update', 'remove']],
+], { refuse: 'throw' });

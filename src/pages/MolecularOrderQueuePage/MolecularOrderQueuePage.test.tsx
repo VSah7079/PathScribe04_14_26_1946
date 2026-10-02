@@ -14,12 +14,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 
 const { getAll, enqueue } = vi.hoisted(() => ({ getAll: vi.fn(), enqueue: vi.fn() }));
-vi.mock('@/services/molecularOrders/mockMolecularOrderOutboundQueueService', () => ({
-  mockMolecularOrderOutboundQueueService: { getAll, enqueue },
+// Batch 406: the page takes the queue service from @/services.
+vi.mock('@/services', async () => ({
+  ...(await vi.importActual<typeof import('@/services/molecularOrders/orderQueueView')>('@/services/molecularOrders/orderQueueView')),
+  molecularOrderOutboundQueueService: { getAll, enqueue },
 }));
 
 const { processInboundHpvResultEvent } = vi.hoisted(() => ({ processInboundHpvResultEvent: vi.fn() }));

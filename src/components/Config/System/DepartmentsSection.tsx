@@ -23,12 +23,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { departmentService } from '../../../services';
+import { departmentService, auditService, caseMaskService } from '../../../services';
+import { auditRetentionOverrideBelowFloor } from '../../../services/departments/auditRetentionOverride';
 import { checkDepartmentReferences } from '../../../services/referenceCheck/referenceCheckService';
-import { mockAuditService } from '../../../services/auditlog/mockAuditService';
 import ConfirmModal from '../../Common/ConfirmModal';
 import type { Department } from '../../../services/departments/IDepartmentService';
-import { mockCaseMaskService } from '../../../services/caseRegistry/mockCaseMaskService';
 import type { CaseMask } from '../../../types/config/CaseMask';
 import type { RetainableMaterialType, RetentionOverrideDays } from '../../../services/retentionPolicy/RetentionPolicy';
 import { MATERIAL_TYPE_LABEL, formatRetentionPeriod, getCurrentJurisdiction } from '../../../services/retentionPolicy/RetentionPolicy';
@@ -384,7 +383,7 @@ const DepartmentsSection: React.FC = () => {
       setLoading(false);
     });
     resolveCurrentGoverningBodyFloor(getCurrentJurisdiction()).then(setFloor).catch(() => {});
-    mockCaseMaskService.getAllMasks().then(res => {
+    caseMaskService.getAllMasks().then(res => {
       if (res.ok) {
         setCaseMasksByDeptId(Object.fromEntries(
           res.data.filter(m => m.scopeType === 'department').map(m => [m.scopeId, m])
@@ -435,13 +434,8 @@ const DepartmentsSection: React.FC = () => {
     }
     const saved = await persistSave(draft);
     if (saved && belowFloorFields.length > 0) {
-      // Persisted audit-trail entry — stays English, same convention as
-      // every other real audit-log detail string in this app.
-      mockAuditService.logEvent({
-        type: 'system', event: 'Retention Override Below Floor',
-        detail: `Department "${draft.name}" — ${belowFloorFields.join(', ')} set below the current governing-body floor. Justification: ${justification}`,
-        user: 'super-admin', caseId: null, confidence: null,
-      }).catch(() => {});
+      // Batch 428: written by the service, under the signed-in person (it used to say "super-admin").
+      void auditRetentionOverrideBelowFloor({ departmentName: draft.name, fields: belowFloorFields, justification }, { auditService });
     }
     setModal(null);
   };
@@ -474,9 +468,9 @@ const DepartmentsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('departmentsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-config-nav type="text" placeholder={t('departmentsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('departmentsSection.filters.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

@@ -7,9 +7,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
+import { withSeedFieldBackfill } from '../mockSeedMerge';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 import type {
   IMolecularAssayControlRuleService, MolecularAssayControlRule, NewMolecularAssayControlRule,
 } from './IMolecularAssayControlRuleService';
+import { MOLECULAR_CONTROL_RULE_NOT_PERMITTED, MOLECULAR_CONTROL_RULE_DUPLICATE, MOLECULAR_CONTROL_RULE_NOT_FOUND } from './IMolecularAssayControlRuleService';
+import { normaliseDeckSlotId } from '../equipment/equipmentRules';
 
 const STORE_KEY = 'molecular_assay_control_rules';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -33,11 +37,30 @@ const SEED: MolecularAssayControlRule[] = [
       { sampleType: 'CONTROL_NTC', positionMode: 'fixed', fixedWellPosition: 'A01' },
       { sampleType: 'CONTROL_PTC_HIGH', positionMode: 'fixed', fixedWellPosition: 'A02' },
     ],
+    // Batch 406 (Pete's example): this assay's sample rack goes in Slot A1 or A2.
+    allowedSampleRackSlotIds: ['SLOT_A1', 'SLOT_A2'],
     createdAt: '2026-09-06T15:00:00.000Z',
   },
 ];
 
-const load = (): MolecularAssayControlRule[] => storageGet(STORE_KEY, SEED);
+// Batch 406: the seeded rule's allowed deck slots reach browsers that stored it earlier.
+const load = (): MolecularAssayControlRule[] => {
+  const stored = storageGet(STORE_KEY, SEED);
+  const { records, filled } = withSeedFieldBackfill(stored, SEED, 'allowedSampleRackSlotIds');
+  if (filled > 0) storageSet(STORE_KEY, records);
+  return records;
+};
+
+/** Batch 406 (Pete): changing, adding or deleting a rule needs config:molecular-control-rules:manage. */
+async function permitted(): Promise<boolean> {
+  return (await authorizationService.enforce('config:molecular-control-rules:manage')).allowed;
+}
+/** Slot ids as the equipment stores them (upper case, no blanks or repeats). */
+function tidySlots<T extends { allowedSampleRackSlotIds?: string[] }>(rule: T): T {
+  if (!rule.allowedSampleRackSlotIds) return rule;
+  const ids = rule.allowedSampleRackSlotIds.map(normaliseDeckSlotId).filter(Boolean);
+  return { ...rule, allowedSampleRackSlotIds: [...new Set(ids)] };
+}
 const persist = (data: MolecularAssayControlRule[]) => storageSet(STORE_KEY, data);
 
 export const mockMolecularAssayControlRuleService: IMolecularAssayControlRuleService = {
@@ -53,21 +76,23 @@ export const mockMolecularAssayControlRuleService: IMolecularAssayControlRuleSer
 
   async create(rule: NewMolecularAssayControlRule) {
     await delay();
+    if (!(await permitted())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
     const all = load();
     if (all.some(r => r.assayCode === rule.assayCode)) {
-      return err(`A control rule already exists for assay "${rule.assayCode}" — update it instead of creating a second one.`);
+      return err(MOLECULAR_CONTROL_RULE_DUPLICATE);
     }
-    const created: MolecularAssayControlRule = { ...rule, id: 'rule-' + Date.now(), createdAt: new Date().toISOString() };
+    const created: MolecularAssayControlRule = { ...tidySlots(rule), id: 'rule-' + Date.now(), createdAt: new Date().toISOString() };
     persist([...all, created]);
     return ok(created);
   },
 
   async update(id, patch) {
     await delay();
+    if (!(await permitted())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
     const all = load();
     const idx = all.findIndex(r => r.id === id);
-    if (idx === -1) return err(`No control rule found with id "${id}".`);
-    const updated: MolecularAssayControlRule = { ...all[idx], ...patch };
+    if (idx === -1) return err(MOLECULAR_CONTROL_RULE_NOT_FOUND);
+    const updated: MolecularAssayControlRule = { ...all[idx], ...tidySlots(patch) };
     const next = [...all];
     next[idx] = updated;
     persist(next);
@@ -76,8 +101,9 @@ export const mockMolecularAssayControlRuleService: IMolecularAssayControlRuleSer
 
   async delete(id) {
     await delay();
+    if (!(await permitted())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
     const all = load();
-    if (!all.some(r => r.id === id)) return err(`No control rule found with id "${id}".`);
+    if (!all.some(r => r.id === id)) return err(MOLECULAR_CONTROL_RULE_NOT_FOUND);
     persist(all.filter(r => r.id !== id));
     return ok(undefined);
   },

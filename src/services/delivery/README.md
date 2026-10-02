@@ -20,6 +20,12 @@ Component C of the "Decoupled Dispatch & Print Management System" spec — the D
 - **Closed — stale claim corrected.** This line previously said no admin UI existed. Found, while addressing an external release-readiness review, that this was no longer true and had gone uncorrected: **`components/Config/System/DeliveryRulesSection.tsx`** is a real, wired admin UI (rule table, Add/Edit modal, live Test panel calling `resolveDeliveryAction.ts` directly), registered under `'delivery_rules'` in the System tab. It predates this correction — the README simply never caught up with the actual codebase. `services/printRouting/README.md`'s own equivalent gap for `PrintRoutingRule` is now closed the same way (`PrintRoutingRuleSection.tsx`), copying this file's exact three-part pattern.
 - **This engine itself applies to every real source uniformly** — it runs inside `publishReportReleasedEvent.ts` at the event level, before any source-based branching, so a Cytology or Autopsy release is gated by the same real rules as Surg Path. The one real, remaining Cytology gap is its own complete lack of an amendment mechanism (see `services/cytology/README.md`) — not something this engine itself is missing.
 
+## Batch 428: Configuration permissions
+
+- `mockDeliveryRuleService`: `create`, `update`, `remove` need `config:delivery-rules:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

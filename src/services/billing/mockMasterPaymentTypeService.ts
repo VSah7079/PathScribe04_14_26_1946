@@ -3,6 +3,7 @@ import { IMasterPaymentTypeService } from './IMasterPaymentTypeService';
 import { MasterPaymentType } from '../../types/billing/MasterPaymentType';
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 function ok<T>(data: T): ServiceResult<T> { return { ok: true, data } as any; }
 function err(msg: string): ServiceResult<never> { return { ok: false, error: msg } as any; }
@@ -30,7 +31,7 @@ const STORAGE_KEY = 'pathscribe_master_payment_types';
 const load = () => storageGet<MasterPaymentType[]>(STORAGE_KEY, SEED);
 const persist = (data: MasterPaymentType[]) => storageSet(STORAGE_KEY, data);
 
-export const mockMasterPaymentTypeService: IMasterPaymentTypeService = {
+const masterPaymentTypeServiceUnchecked: IMasterPaymentTypeService = {
   async getAll() {
     return ok(load());
   },
@@ -62,3 +63,8 @@ export const mockMasterPaymentTypeService: IMasterPaymentTypeService = {
     return this.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockMasterPaymentTypeService: IMasterPaymentTypeService = guardConfigWrites(masterPaymentTypeServiceUnchecked, [
+  ['config:payment-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

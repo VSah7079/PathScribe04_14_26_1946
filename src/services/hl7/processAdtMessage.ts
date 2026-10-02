@@ -16,6 +16,18 @@ import { parseAdtMessage, type ParsedAdtMessage } from './adtParser';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockEncounterService } from '../encounters/mockEncounterService';
 import { mockLocationService } from '../locations/mockLocationService';
+import { mockFacilityService } from '../facilities/mockFacilityService';
+import { classifyHl7PatientIdentifier } from '../patientIdentifiers/classifyHl7PatientIdentifier';
+import { normalizeNationalIdentifier, verifyNationalIdentifier } from '../patientIdentifiers/checkDigits';
+import type { Jurisdiction } from '@/types/systemConfig';
+
+/** Batch 417: the lab's jurisdiction, for telling which national identifier an unnamed 'NH' is. Unknown facility: none. */
+async function resolveFacilityJurisdiction(facilityId: string): Promise<Jurisdiction | undefined> {
+  try {
+    const r = await mockFacilityService.getById(facilityId);
+    return r.ok ? (r.data as { jurisdiction?: Jurisdiction }).jurisdiction : undefined;
+  } catch { return undefined; }
+}
 
 export interface ProcessAdtResult {
   eventType: ParsedAdtMessage['eventType'];
@@ -183,6 +195,20 @@ export async function processAdtMessage(raw: string, organisationId: string, fac
         'resolution'
       );
     }
+  }
+
+  // Batch 417 (SRS v2.1 FR-004.3): a PID-3 repetition that is a national
+  // identifier (NHS number, BSN, …) is also recorded as one, its check digit
+  // run, so the registry engines can use it. The lab's jurisdiction settles
+  // which system an unnamed 'NH' / 'NI' identifier is.
+  const jurisdiction = await resolveFacilityJurisdiction(facilityId);
+  for (const identifier of parsed.patient.identifiers) {
+    const system = classifyHl7PatientIdentifier(identifier, jurisdiction);
+    if (!system) continue;
+    const check = verifyNationalIdentifier(system, identifier.identifierValue);
+    await mockPatientIndexService.recordNationalIdentifier(mpiResult.patientId, {
+      system, value: normalizeNationalIdentifier(identifier.identifierValue), verificationStatus: check.status, verifiedAt: new Date().toISOString(), source: 'hl7',
+    });
   }
 
   let encounterId: string | undefined;

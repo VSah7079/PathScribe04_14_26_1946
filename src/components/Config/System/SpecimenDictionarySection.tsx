@@ -463,12 +463,12 @@ const SpecimenDictionarySection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row--3">
-        <input type="text" placeholder={t('specimenDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label={t('specimenDictionarySection.filterByTypeAria')} className="ps-conf-select">
+        <input data-config-nav type="text" placeholder={t('specimenDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <select data-config-nav value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label={t('specimenDictionarySection.filterByTypeAria')} className="ps-conf-select">
           <option value="All">{t('specimenDictionarySection.allTypesOption')}</option>
           {types.map(ty => <option key={ty} value={ty}>{ty}</option>)}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label={t('specimenDictionarySection.filterByStatusAria')} className="ps-conf-select">
+        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label={t('specimenDictionarySection.filterByStatusAria')} className="ps-conf-select">
           <option value="All">{t('specimenDictionarySection.allStatusesOption')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

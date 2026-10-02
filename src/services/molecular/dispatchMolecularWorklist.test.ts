@@ -1,5 +1,8 @@
 // src/services/molecular/dispatchMolecularWorklist.test.ts
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
+// Batch 405: the batch service now reads the authorization service (supersede permission).
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: async () => ({ allowed: true }) } }));
 import { dispatchMolecularWorklist } from './dispatchMolecularWorklist';
 import type { MolecularBatch } from './IMolecularBatchService';
 import type { SessionUser } from '../auth/caseAccessControl';

@@ -30,7 +30,7 @@
 // way — deliberately not a second, parallel QA mechanism.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { HistologyBlock, Specimen, EmbeddingMoldSize, EmbeddingDiscrepancyReason, CassetteReprintReason } from '@/types/case/Specimen';
+import type { HistologyBlock, Specimen, EmbeddingMoldSize, EmbeddingDiscrepancyReason, CassetteReprintReason, BlockStatus } from '@/types/case/Specimen';
 import type { MaterialComment } from '@/types/case/MaterialComment';
 
 export type EmbeddingOperationResult =
@@ -55,8 +55,35 @@ export const EMBEDDING_MOLD_SIZES: readonly EmbeddingMoldSize[] = ['7x7mm', '15x
 /** Real, per the spec's own "Orientation Instructions" examples —
  *  quick-fill suggestions for the free-text orientationInstructions
  *  field, never a closed set the field is restricted to (see that
- *  field's own doc comment on HistologyBlock). */
-export const EMBEDDING_ORIENTATION_QUICK_FILLS: readonly string[] = ['Embed on edge', 'Epithelial surface down', 'Cross-section up'];
+ *  field's own doc comment on HistologyBlock).
+ *  Batch 401: these are locale keys under
+ *  `embeddingStation.orientation.quickFill.*`. The field is free text, so
+ *  a quick fill inserts the phrase in the user's own language. */
+export const EMBEDDING_ORIENTATION_QUICK_FILLS: readonly string[] = ['onEdge', 'epitheliumDown', 'crossSectionUp'];
+
+/** Batch 401: the mold sizes, discrepancy reasons and reprint reasons are
+ *  stored as these English values (block, deficiency and audit records); the
+ *  screen shows them through these locale keys. */
+export const EMBEDDING_MOLD_SIZE_KEYS: Readonly<Record<EmbeddingMoldSize, string>> = {
+  '7x7mm': 'mold7x7', '15x15mm': 'mold15x15', '24x24mm': 'mold24x24', '24x30mm': 'mold24x30', 'Mega Mold': 'megaMold',
+};
+export const EMBEDDING_DISCREPANCY_REASON_KEYS: Readonly<Record<EmbeddingDiscrepancyReason, string>> = {
+  'Missing Tissue/Empty Cassette': 'missingTissue',
+  'Extra Tissue Found': 'extraTissue',
+  'Unopened Cassette/Unprocessed Tissue': 'unopenedCassette',
+  'Damaged Cassette/Broken Hinge': 'damagedCassette',
+};
+export const CASSETTE_REPRINT_REASON_KEYS: Readonly<Record<CassetteReprintReason, string>> = {
+  'Wax Buildup': 'waxBuildup', 'Faded Barcode': 'fadedBarcode', 'Mechanical Jam': 'mechanicalJam', 'Other': 'other',
+};
+export const BLOCK_STATUS_KEYS: Readonly<Record<BlockStatus, string>> = {
+  Pending: 'pending', Grossed: 'grossed', Embedded: 'embedded', Exhausted: 'exhausted', Cancelled: 'cancelled', Lost: 'lost', Damaged: 'damaged',
+};
+
+/** Batch 401: the blocks a split-block group can take in with this one (on the same specimen, not already grouped). */
+export function splitBlockCandidates(specimen: Specimen, blockId: string): HistologyBlock[] {
+  return (specimen.blocks ?? []).filter(b => b.id !== blockId && !b.splitBlockGroupId);
+}
 
 function findBlock(specimen: Specimen, blockId: string): HistologyBlock | undefined {
   return (specimen.blocks ?? []).find(b => b.id === blockId);

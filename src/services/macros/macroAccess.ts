@@ -45,6 +45,23 @@ export function canEditMacro(m: Pick<Macro, 'ownerUserId' | 'performingLabFacili
   return true; // facility macros: as before, anyone with access to this screen
 }
 
+/**
+ * Batch 428: whether a macro change is the person's own business or needs
+ * config:macros:manage. A personal macro is its owner's to change; anything
+ * touching a shared (enterprise or facility) macro, or someone else's
+ * personal one, needs the capability. `before` is the stored macro (absent
+ * for a new one), `after` the result of the change.
+ */
+export function macroChangeNeedsCapability(
+  before: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'> | undefined,
+  after: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'>,
+  userId: string | undefined,
+): boolean {
+  const ownOnly = (m: Pick<Macro, 'ownerUserId' | 'performingLabFacilityId'>) =>
+    macroTierOf(m) === 'personal' && !!userId && m.ownerUserId === userId;
+  return !((before ? ownOnly(before) : true) && ownOnly(after));
+}
+
 export interface MacroGroup {
   tier: MacroTier;
   /** Facility id or owner user id; '' for Enterprise. */

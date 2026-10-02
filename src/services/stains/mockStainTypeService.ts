@@ -1,7 +1,9 @@
 // src/services/stains/mockStainTypeService.ts
 
 import type { ServiceResult, ID } from '../types';
+import { REFERENCE_LAB_IDS } from '../facilities/referenceLabSeeds';
 import type { IStainTypeService, StainType } from './IStainService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 let STAIN_TYPES: StainType[] = [
   { id: 'st-he',    name: 'H&E',                     category: 'Routine',       version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
@@ -32,7 +34,7 @@ let STAIN_TYPES: StainType[] = [
   // 2 real, default targets -> billingRule resolves to 1 unit base +
   // 1 unit add-on (see calculateMolecularUnits.ts's own worked test
   // for this exact case).
-  { id: 'st-her2-fish', name: 'HER2 FISH', category: 'Molecular', methodology: 'FISH_ANATOMIC', description: 'Dual-probe HER2/CEP17 FISH — manual direct count.', defaultTargets: [
+  { id: 'st-her2-fish', name: 'HER2 FISH', category: 'Molecular', referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultReferenceLabFacilityId: REFERENCE_LAB_IDS.summit, methodology: 'FISH_ANATOMIC', description: 'Dual-probe HER2/CEP17 FISH — manual direct count.', defaultTargets: [
       { id: 'mt-erbb2', symbol: 'ERBB2', detail: '17q12', targetType: 'PROBE', active: true },
       { id: 'mt-cep17', symbol: 'CEP17', detail: '17p11.1-q11.1', targetType: 'PROBE', active: true },
     ], billingRule: { billingModel: 'BASE_ADDON', baseCptCode: 'FISH-MANUAL-BASE', addOnCptCode: 'FISH-MANUAL-ADDL', multiplexCptCode: 'FISH-MANUAL-MULTIPLEX' },
@@ -42,7 +44,7 @@ let STAIN_TYPES: StainType[] = [
   // (Default Count: 4)." 4 real, default targets -> billingRule
   // resolves to 1 unit of the real multiplex code (>= the default
   // 3-target threshold), not base+addon stacked.
-  { id: 'st-lymphoma-fish-panel', name: 'Lymphoma FISH Panel', category: 'Molecular', methodology: 'FISH_ANATOMIC', description: 'Order-group FISH panel — specific probe subset selected per clinical indication or preliminary flow/morphology findings.', defaultTargets: [
+  { id: 'st-lymphoma-fish-panel', name: 'Lymphoma FISH Panel', category: 'Molecular', referenceLabFacilityIds: [REFERENCE_LAB_IDS.greatLakes], methodology: 'FISH_ANATOMIC', description: 'Order-group FISH panel — specific probe subset selected per clinical indication or preliminary flow/morphology findings.', defaultTargets: [
       { id: 'mt-igh', symbol: 'IGH', detail: '14q32', targetType: 'PROBE', active: true },
       { id: 'mt-bcl2', symbol: 'BCL2', detail: '18q21', targetType: 'PROBE', active: true },
       { id: 'mt-myc', symbol: 'MYC', detail: '8q24', targetType: 'PROBE', active: true },
@@ -117,11 +119,18 @@ let STAIN_TYPES: StainType[] = [
   // current Block/StainOrder shape has no separate concept for this;
   // flagged honestly rather than silently mislabeled.
   { id: 'st-uranyl-lead', name: 'Uranyl Acetate / Lead Citrate', category: 'Other', description: 'Electron microscopy contrast staining, not a light-microscopy stain.', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Batch 403 (Pete): send-out tests linked to the demo reference labs
+  // (services/facilities/referenceLabSeeds.ts). HER2 FISH (above) has two
+  // approved labs and a default; the Lymphoma FISH Panel one lab (it fills
+  // in); the NGS panel two labs and no default (the pathologist picks from
+  // those two); MSI by PCR none (every reference lab is offered).
+  { id: 'st-ngs-solid-tumor', name: 'NGS Solid Tumor Panel', category: 'Molecular', methodology: 'NGS_PANEL', description: 'Targeted DNA/RNA panel for solid tumours — send-out.', referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultTurnaroundHours: 240, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-msi-pcr', name: 'MSI by PCR', category: 'Molecular', methodology: 'PCR_SINGLE', description: 'Microsatellite instability by PCR — send-out.', defaultTurnaroundHours: 120, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
 ];
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export const mockStainTypeService: IStainTypeService = {
+const stainTypeServiceUnchecked: IStainTypeService = {
   async getAll() {
     return ok([...STAIN_TYPES]);
   },
@@ -145,3 +154,8 @@ export const mockStainTypeService: IStainTypeService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockStainTypeService: IStainTypeService = guardConfigWrites(stainTypeServiceUnchecked, [
+  ['config:stain-dictionary:manage', ['add', 'update']],
+]);

@@ -262,14 +262,14 @@ const ContainerTypesSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('containerTypesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-config-nav type="text" placeholder={t('containerTypesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('containerTypesSection.filters.statusAll')}</option>
           <option value="Active">{t('containerTypesSection.filters.statusActive')}</option>
           <option value="Inactive">{t('containerTypesSection.filters.statusInactive')}</option>
         </select>
-        <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('containerTypesSection.filters.labAll')}</option>
           <option value="Global">{t('containerTypesSection.filters.labGlobalOnly')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

@@ -108,6 +108,42 @@ PAYLOAD = {
 }
 
 
+def test_labels_follow_the_report_language():
+    print("test_labels_follow_the_report_language")
+    german = dict(PAYLOAD, labels={
+        'patient': 'Patient', 'mrn': 'Patienten-Nr.', 'dob': 'Geburtsdatum', 'referring': 'Einsender',
+        'clinician': 'Behandelnder Arzt', 'reportTemplate': 'Befundvorlage: {{name}}',
+        'resolvedBy': ' (ermittelt durch {{name}})', 'confidential': 'VERTRAULICH — PATHOLOGIEBEFUND',
+    })
+    text = main.build_report_text(german)
+    check("Patienten-Nr.: " in text and "MRN:" not in text, "case header labels in the report language")
+    check("VERTRAULICH — PATHOLOGIEBEFUND" in text and "CONFIDENTIAL" not in text, "footer in the report language")
+    check("Befundvorlage: " in text, "template caption in the report language")
+    check(main.build_report_pdf(german)[:4] == b'%PDF', "the PDF builds with the labels")
+    partial = main.build_report_text(dict(PAYLOAD, labels={'mrn': 'Patiëntnummer'}))
+    check("Patiëntnummer: " in partial and "Patient: " in partial, "a missing label falls back to English")
+
+
+def test_korean_report_uses_pretendard():
+    print("test_korean_report_uses_pretendard")
+    korean = dict(PAYLOAD, language='ko', labels={'patient': '환자', 'mrn': '환자번호', 'confidential': '기밀 — 병리 보고서'})
+    pdf = main.build_report_pdf(korean)
+    check(pdf[:4] == b'%PDF', "a Korean report builds")
+    check(b'Pretendard' in pdf, "a Korean report embeds Pretendard")
+    latin = main.build_report_pdf(PAYLOAD)
+    check(b'Pretendard' not in latin, "a Latin report does not")
+    hangul_name = dict(PAYLOAD, caseHeader=dict(PAYLOAD['caseHeader'], patient='김민지'))
+    check(b'Pretendard' in main.build_report_pdf(hangul_name), "a Korean name in an English report is printed in Pretendard too")
+    check(len(pdf) < 400_000, "only the glyphs used are embedded (%d bytes)" % len(pdf))
+    check(main._font() == 'Helvetica', "the font choice does not leak past the report")
+
+
+def test_placeholder_wording_follows_labels():
+    print("test_placeholder_wording_follows_labels")
+    text = main.build_report_text(dict(PAYLOAD, labels={'notYetGenerated': 'Noch nicht erstellt', 'noContent': 'Kein Inhalt', 'noSynopticData': 'Keine Synoptikdaten erfasst.', 'requiredNotCompleted': '⚠ Pflichtfeld — noch nicht ausgefüllt'}))
+    check("Not yet generated" not in text and "No content" not in text, "no English placeholder wording when labels are given")
+
+
 def test_pdf_path_unchanged():
     print("test_pdf_path_unchanged")
     pdf_bytes = main.build_report_pdf(PAYLOAD)
@@ -134,6 +170,37 @@ def test_text_path_every_node_type():
     check("Adult patient." in text and "Pediatric patient." not in text, "if-block picked the correct branch")
     check("A: 1" in text and "B: 2" in text, "column-layout flattened correctly")
     check("CONFIDENTIAL" in text, "footer line present")
+
+
+def test_one_workup_pdf():
+    """Batch 426: one synoptic workup as its own PDF/text, with no report layout (an Assist case)."""
+    payload = {
+        "caseHeader": {"accession": "S26-4416", "patient": "Doe, Jane", "mrn": "MRN1"},
+        "synopticAnswers": [{"fieldId": "size", "fieldLabel": "Tumor size", "displayValue": "3.5 cm"}],
+        "workup": {"parts": ["A", "B"], "protocol": "Colon Resection", "protocolVersion": "4.2.0.0", "status": "CORRECTED",
+                   "version": 2, "signedBy": "Dr A", "signedAt": "2026-10-01 11:21", "documentId": "PSR-S26-4416-i1-V2",
+                   "changes": [{"label": "Tumor size", "from": "3.0 cm", "to": "3.5 cm"}]},
+    }
+    pdf = main.build_report_pdf(payload)
+    check(pdf[:4] == b"%PDF", "a one-workup payload renders a PDF")
+    text = main.build_report_text(payload)
+    check("Part(s): A, B" in text, "the workup's parts are listed")
+    check("Status: Corrected" in text and "Version: 2" in text, "status and version are shown")
+    check("Tumor size" in text and "3.5 cm" in text, "the workup's synoptic answers are in the body")
+    check("Tumor size: 3.0 cm → 3.5 cm" in text, "a correction lists what changed")
+    check("Document: PSR-S26-4416-i1-V2" in text, "the document id is printed")
+
+
+def test_combined_workups_pdf():
+    """Batch 427: every workup of a case in one PDF (a site that takes one PDF per accession)."""
+    w = lambda proto, size: {"parts": ["A"], "protocol": proto, "status": "FINAL", "version": 1, "documentId": "PSR-S1-CASE-V1",
+                             "synopticAnswers": [{"fieldId": "s", "fieldLabel": "Tumor size", "displayValue": size}]}
+    payload = {"caseHeader": {"accession": "S1"}, "workups": [w("Colon Resection", "3.5 cm"), w("Liver Biopsy", "0.8 cm")]}
+    check(main.build_report_pdf(payload)[:4] == b"%PDF", "a combined payload renders one PDF")
+    text = main.build_report_text(payload)
+    check(text.index("Colon Resection") < text.index("Liver Biopsy"), "the workups follow one another in order")
+    check("3.5 cm" in text and "0.8 cm" in text, "each workup has its own answers")
+    check(text.count("Document: PSR-S1-CASE-V1") == 2, "both name the one case document")
 
 
 def _make_request(body: dict):
@@ -328,8 +395,13 @@ def test_receive_interface_message_storage_failure_returns_clean_500():
 
 
 if __name__ == '__main__':
+    test_labels_follow_the_report_language()
+    test_korean_report_uses_pretendard()
+    test_placeholder_wording_follows_labels()
     test_pdf_path_unchanged()
     test_text_path_every_node_type()
+    test_one_workup_pdf()
+    test_combined_workups_pdf()
     test_entrypoint_default_is_pdf()
     test_entrypoint_explicit_pdf_same_as_default()
     test_entrypoint_text_format()

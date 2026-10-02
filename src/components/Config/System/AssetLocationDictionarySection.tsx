@@ -193,14 +193,14 @@ const AssetLocationDictionarySection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <button className={tab === 'dictionary' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('dictionary')}>{t('assetLocationDictionarySection.tabs.dictionary')}</button>
-        <button className={tab === 'occupancy' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('occupancy')}>{t('assetLocationDictionarySection.tabs.occupancy')}</button>
+        <button data-config-nav className={tab === 'dictionary' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('dictionary')}>{t('assetLocationDictionarySection.tabs.dictionary')}</button>
+        <button data-config-nav className={tab === 'occupancy' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('occupancy')}>{t('assetLocationDictionarySection.tabs.occupancy')}</button>
       </div>
 
       {tab === 'dictionary' && (
         <>
           <div className="ps-conf-form-row">
-            <input type="text" placeholder={t('assetLocationDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+            <input data-config-nav type="text" placeholder={t('assetLocationDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
           </div>
           <div className="ps-conf-table-wrap">
             <div className="ps-conf-table-scroll">

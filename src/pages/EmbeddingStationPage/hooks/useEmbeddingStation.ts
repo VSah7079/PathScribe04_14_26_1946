@@ -26,14 +26,24 @@
 // existing deficiency landing in the real, existing QA working queue
 // (QualityAssurancePage.tsx) supervisors already monitor — not a new,
 // separate paging/notification channel this pass doesn't build.
+//
+// Batch 401 (PS-359): Confirm, Add comment and Reprint check the
+// organisation's Field Requirements (page "embedding",
+// services/fieldRequirements/embeddingChecks.ts) here, so the button, the
+// voice command and the foot pedal are all held to the same rule. Messages
+// the page shows are returned as locale keys (embeddingStation.*), and the
+// scan station comes from @/services rather than the mock directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { printerProfileService, printSettingsService, specimenDeficiencyService, specimenDictionaryService } from '@/services';
+import {
+  printerProfileService, printSettingsService, scanStationService, specimenDeficiencyService, specimenDictionaryService,
+  embeddingCommentMissing, embeddingConfirmMissing, embeddingReprintMissing, parseObservedPieceCount,
+} from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { printCassetteLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 // Real, deliberate reuse: setBlockAlertFlags is a genuinely generic
@@ -52,6 +62,20 @@ import {
   resolveSplitBlockGroupStatus, recordCassetteReprint, addEmbeddingBlockComment, resolveEmbeddingAlertBadges,
 } from '@/utils/embeddingOperations';
 
+/** A message for the page to show: a locale key and its values. */
+export interface EmbeddingMessage { key: string; values?: Record<string, string> }
+
+/** The outcome of a Confirm, Add comment or Reprint (flat: strictNullChecks is off). */
+export interface EmbeddingActionResult {
+  ok: boolean;
+  /** Field Requirements still unmet (field ids), when that is why it stopped. */
+  missing?: string[];
+  /** A message to show, when something else stopped it. */
+  message?: EmbeddingMessage;
+  /** A printer's own error text, shown as given. */
+  printerMessage?: string;
+}
+
 export interface EmbeddingWorkItem {
   caseData: Case;
   specimen: Specimen;
@@ -63,7 +87,8 @@ export function useEmbeddingStation() {
   const { effectiveStationId } = useEffectiveScanStation();
 
   const [workItem, setWorkItem] = useState<EmbeddingWorkItem | null>(null);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<EmbeddingMessage | null>(null);
+  const requirements = useFieldRequirements('embedding');
   const [dictionaryType, setDictionaryType] = useState<{ type?: string; procedure?: string }>({});
   const versionRef = useRef(0);
 
@@ -85,33 +110,18 @@ export function useEmbeddingStation() {
    *  barcode auto-opens the corresponding embedding record and locks
    *  the workspace to that block." See this file's own header for the
    *  real, deliberate MatrixBlock scope cut. */
-  const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true } | { ok: false; message: string }> => {
+  const resolveScan = useCallback(async (rawScanValue: string): Promise<EmbeddingActionResult> => {
     setScanError(null);
-    if (!rawScanValue.trim()) return { ok: false, message: 'Empty scan.' };
+    if (!rawScanValue.trim()) return { ok: false };
+    const fail = (message: EmbeddingMessage): EmbeddingActionResult => { setScanError(message); return { ok: false, message }; };
     const resolved = await resolveMaterialFromScan(rawScanValue);
-    if (!resolved) {
-      const message = 'That scan didn’t resolve to a real case or block — check the barcode and try again.';
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (!resolved) return fail({ key: 'embeddingStation.scanErrors.notResolved' });
     const { caseData, specimenLetter, target } = resolved;
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
-    if (!specimen) {
-      const message = 'Specimen not found on the resolved case.';
-      setScanError(message);
-      return { ok: false, message };
-    }
-    if (target.level !== 'block' && target.level !== 'slide') {
-      const message = 'This scan target (a matrix/cell-block cassette, a decant, or a bare specimen scan) isn’t supported at the Embedding Station yet — scan a specific block/cassette barcode.';
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (!specimen) return fail({ key: 'embeddingStation.scanErrors.specimenNotFound' });
+    if (target.level !== 'block' && target.level !== 'slide') return fail({ key: 'embeddingStation.scanErrors.unsupportedTarget' });
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
-    if (!block) {
-      const message = `Block ${specimen.label}${target.blockNumber} not found.`;
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (!block) return fail({ key: 'embeddingStation.scanErrors.blockNotFound', values: { block: `${specimen.label}${target.blockNumber}` } });
     versionRef.current = (caseData as unknown as { version?: number }).version ?? 0;
     setWorkItem({ caseData, specimen, block });
     void loadDictionaryType(specimen.specimenDictionaryEntryId);
@@ -155,11 +165,29 @@ export function useEmbeddingStation() {
    *  bench page, and the pathologist-facing BlockStainEditorModal.tsx)
    *  raise the exact same real QA record, never two different shapes
    *  for the same real event. */
-  const handleConfirmPieceCount = useCallback(async (observedCount: number) => {
-    if (!workItem) return;
-    const expected = workItem.block.pieceCount;
-    const result = confirmPieceCount(workItem.specimen, workItem.block.id, observedCount);
-    if (!result.ok) return;
+  //
+  // Batch 401: `observedCountText` is the observed-count field's text (the
+  // pedal passes the expected count). `orientationInstructions`, when given,
+  // is the orientation box's current text, saved in the same update, so a
+  // Confirm clicked straight after typing neither misses it nor overwrites it.
+  const handleConfirmPieceCount = useCallback(async (
+    observedCountText: string | number, orientationInstructions?: string,
+  ): Promise<EmbeddingActionResult> => {
+    if (!workItem) return { ok: false };
+    if (workItem.block.status === 'Embedded') return { ok: false };
+    const block = workItem.block;
+    const orientation = orientationInstructions ?? block.orientationInstructions ?? '';
+    const missing = embeddingConfirmMissing({ observedCount: observedCountText, moldSize: block.moldSize, orientationInstructions: orientation }, requirements);
+    if (missing.length > 0) return { ok: false, missing };
+    const observedCount = parseObservedPieceCount(observedCountText);
+    const expected = block.pieceCount;
+    let specimen = workItem.specimen;
+    if (orientationInstructions !== undefined && orientationInstructions !== (block.orientationInstructions ?? '')) {
+      const withOrientation = setMoldAndOrientation(specimen, block.id, { orientationInstructions });
+      if (withOrientation.ok) specimen = withOrientation.specimen;
+    }
+    const result = confirmPieceCount(specimen, block.id, observedCount);
+    if (!result.ok) return { ok: false };
     await persist(workItem.caseData, result.specimen);
     if (typeof expected === 'number' && expected !== observedCount) {
       specimenDeficiencyService.raise({
@@ -171,7 +199,8 @@ export function useEmbeddingStation() {
         raisedBy: actor.id,
       }).catch(err => console.error('[EmbeddingStation] Failed to raise Tissue Discrepancy deficiency:', err));
     }
-  }, [workItem, persist, actor.id]);
+    return { ok: true };
+  }, [workItem, persist, actor.id, requirements]);
 
   /** Real, per the spec's own "Discrepancy Reporting: one-touch buttons
    *  ... Audit Triggers: a flagged discrepancy halts the block
@@ -226,11 +255,15 @@ export function useEmbeddingStation() {
 
   const splitBlockGroupStatus = workItem ? resolveSplitBlockGroupStatus(workItem.specimen, workItem.block.id) : null;
 
-  const handleAddComment = useCallback(async (text: string) => {
-    if (!workItem) return;
+  const handleAddComment = useCallback(async (text: string): Promise<EmbeddingActionResult> => {
+    if (!workItem) return { ok: false };
+    const missing = embeddingCommentMissing(text, requirements);
+    if (missing.length > 0) return { ok: false, missing };
     const result = addEmbeddingBlockComment(workItem.specimen, workItem.block.id, text, actor.id, actor.name);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist, actor]);
+    if (!result.ok) return { ok: false };
+    await persist(workItem.caseData, result.specimen);
+    return { ok: true };
+  }, [workItem, persist, actor, requirements]);
 
   /** Real, per the spec's own Right Panel: resolves the actual,
    *  configured printer/gtin/layout for the CURRENT station — the
@@ -239,14 +272,14 @@ export function useEmbeddingStation() {
    *  cassettes (same real cassetteSlidePrinterProfileId station
    *  field covers both — see ScanStation's own doc comment). */
   const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string; layout: CassetteLabelLayoutConfig } | { error: string }> => {
-    if (!effectiveStationId) return { error: 'No scan station selected for this device — set one from the NavBar station indicator.' };
-    const stationRes = await mockScanStationService.getById(effectiveStationId);
-    if (!stationRes.ok) return { error: 'Scan station not found.' };
+    if (!effectiveStationId) return { error: 'embeddingStation.hardware.noStation' };
+    const stationRes = await scanStationService.getById(effectiveStationId);
+    if (!stationRes.ok) return { error: 'embeddingStation.hardware.stationNotFound' };
     if (!stationRes.data.supportsPrinting || !stationRes.data.cassetteSlidePrinterProfileId) {
-      return { error: 'This station isn’t configured for real cassette-label printing — check Scan Stations config.' };
+      return { error: 'embeddingStation.hardware.notConfigured' };
     }
     const printerRes = await printerProfileService.getById(stationRes.data.cassetteSlidePrinterProfileId);
-    if (!printerRes.ok || !printerRes.data) return { error: 'The configured printer profile no longer exists — check Scan Stations config.' };
+    if (!printerRes.ok || !printerRes.data) return { error: 'embeddingStation.hardware.profileMissing' };
     const settingsRes = await printSettingsService.get();
     const gtin = settingsRes.ok ? settingsRes.data.gs1Gtin : '';
     const layout = settingsRes.ok ? settingsRes.data.cassetteLabelLayout : DEFAULT_CASSETTE_LABEL_LAYOUT;
@@ -260,37 +293,36 @@ export function useEmbeddingStation() {
    *  cumulative count), then dispatches the actual real print through
    *  the identical GS1/ZPL path this app's own cassette printing
    *  already uses everywhere else. */
-  const handleReprintCassette = useCallback(async (reason: CassetteReprintReason) => {
-    if (!workItem) return { ok: false, message: 'No block selected.' };
+  const handleReprintCassette = useCallback(async (reason: CassetteReprintReason | ''): Promise<EmbeddingActionResult> => {
+    if (!workItem) return { ok: false, message: { key: 'embeddingStation.hardware.noBlock' } };
+    const missing = embeddingReprintMissing(reason, requirements);
+    if (missing.length > 0) return { ok: false, missing };
     // Real, per this codebase's own established gotcha (see
     // services/reports/README.md / microtomyOperations.ts's own
     // markStainPrintResult): strictNullChecks: false means a
     // discriminated union doesn't reliably narrow on `if (!x.ok)`
     // either — handled explicitly with `if (recorded.ok) {...}` instead.
-    const recorded = recordCassetteReprint(workItem.specimen, workItem.block.id, reason, actor.id);
-    if (!recorded.ok) {
-      const failureMessage: string = (recorded as { ok: false; error: string }).error;
-      return { ok: false, message: failureMessage };
-    }
+    const recorded = recordCassetteReprint(workItem.specimen, workItem.block.id, reason as CassetteReprintReason, actor.id);
+    if (!recorded.ok) return { ok: false, message: { key: 'embeddingStation.hardware.noBlock' } };
     const specimen = await persist(workItem.caseData, recorded.specimen);
     const block = specimen.blocks?.find(b => b.id === workItem.block.id);
-    if (!block) return { ok: false, message: 'Block not found after persisting reprint reason.' };
+    if (!block) return { ok: false, message: { key: 'embeddingStation.hardware.noBlock' } };
 
     const ctx = await getPrinterContext();
-    if ('error' in ctx) return { ok: false, message: ctx.error };
+    if ('error' in ctx) return { ok: false, message: { key: ctx.error } };
     const fullAccession = workItem.caseData.accession?.fullAccession ?? workItem.caseData.id;
     const patientName = `${workItem.caseData.patient.givenNames ?? ''} ${workItem.caseData.patient.familyNames ?? ''}`.trim();
     const result = await printCassetteLabel(
       { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, cassetteId: `${fullAccession}-${specimen.label}${block.label}`, patientName, tissueDescription: block.tissueDescription },
       ctx.printer, ctx.gtin, ctx.layout,
     );
-    return result.ok ? { ok: true } : { ok: false, message: (result as { ok: false; message: string }).message };
-  }, [workItem, persist, getPrinterContext, actor.id]);
+    return result.ok ? { ok: true } : { ok: false, printerMessage: (result as { ok: false; message: string }).message };
+  }, [workItem, persist, getPrinterContext, actor.id, requirements]);
 
   const alertBadges = workItem ? resolveEmbeddingAlertBadges(workItem.block, dictionaryType.type, dictionaryType.procedure) : [];
 
   return {
-    workItem, scanError, resolveScan, clearWorkItem,
+    workItem, scanError, resolveScan, clearWorkItem, requirements,
     alertBadges, splitBlockGroupStatus,
     handleConfirmPieceCount, handleFlagDiscrepancy, handleSetMoldAndOrientation, handleSetAlertFlags, handleGroupSplitBlocks,
     handleAddComment, handleReprintCassette,

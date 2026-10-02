@@ -79,6 +79,19 @@ Per Pete: drafting is locked to **Template Author**, Admin inherits it, and the 
 
   `templateService.archive.test.ts` now signs in an admin before saving.
 
+## Batch 425 — saving the template review settings needs a capability
+
+`saveTemplateGovernanceWithAudit` checks `config:template-governance:manage` before storing anything, and returns `{ ok, settings }`. Without it, nothing is stored or audited. The capability is in the administration group, so Admin starts with it. Before Batch 425 anyone who could open Configuration could change these settings, including the Lab Director; a Lab Director now needs it granted in the Role Dictionary. The API server checks it again on its save endpoint (PS-345).
+
+## Batch 428: Configuration permissions
+
+Synoptic protocols: drafting, reviewing (approve, request changes, reset), publishing and retiring are capabilities (`config:protocol:draft` / `approve` / `publish` / `retire`), checked in `templateService.ts`. The rules (`templatePublishingRules.ts`) read the person's capabilities; the built-in roles decide only for an actor built without them. An app-level "admin" no longer stands in for the roles. Before, retiring a published protocol, requesting changes and resetting had no check.
+
+## Batch 431: template review work
+
+- `templateReviewWork.ts` (new) keeps a reviewer's trial answers and the comments on a template's questions (same keys as before). Production (PS-345): saved with the template version, visible to every reviewer.
+- The reviewer page no longer keeps its own copy of a template's lifecycle state; the template service's status is the one record. So archive, restore and supersede no longer clear that copy (`clearReviewerStateOverride` removed). Old copies are removed at start-up (`services/browserCleanup/`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -27,6 +27,7 @@ import {
   joinAdoptedModels, joinModel, findAdoption, adoptModel, applyDefault,
   applyModelChanges, isVoiceModel, starterAdoptions, migrateLegacyModels,
 } from './modelAdoption';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export const ADOPTIONS_STORAGE_KEY = 'pathscribe_model_adoptions';
 /** The pre-PS-58 unscoped list. Read once, migrated, then removed. */
@@ -167,7 +168,7 @@ export function loadOrInitAdoptionStore(): AdoptionStore {
   return store;
 }
 
-export const mockModelService: IModelService = createModelService({
+const modelServiceUnchecked: IModelService = createModelService({
   catalog: GLOBAL_MODEL_CATALOG,
   getOrganisationId: () => getSessionUser()?.organisationId,
   getUserId: () => getSessionUser()?.id,
@@ -176,3 +177,8 @@ export const mockModelService: IModelService = createModelService({
   today: () => new Date().toISOString().slice(0, 10),
   delay: () => new Promise(r => setTimeout(r, 80)),
 });
+
+/** Batch 428: choosing, adopting, changing or retiring the lab's AI models needs config:ai-model:manage. */
+export const mockModelService: IModelService = guardConfigWrites(modelServiceUnchecked, [
+  ['config:ai-model:manage', ['setDefault', 'update', 'retire', 'adopt']],
+]);

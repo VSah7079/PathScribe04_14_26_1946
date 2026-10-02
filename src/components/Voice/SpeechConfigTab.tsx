@@ -30,7 +30,8 @@ const SpeechConfigTab: React.FC = () => {
   useEffect(() => {
     const loadMacros = async () => {
       try {
-        const data = await macroService.getMacros();
+        // Batch 430: the person's own macros and the shared ones, not other people's.
+        const data = await macroService.getMacrosForCurrentUser();
         setVoiceMacros(data);
       } catch (error) {
         console.error("Failed to fetch macros:", error);
@@ -45,7 +46,8 @@ const SpeechConfigTab: React.FC = () => {
   const handleAddMacro = async () => {
     const newMacroData = { spoken: "", written: "", isActive: true };
     try {
-      const id = await macroService.addMacro(newMacroData);
+      // Batch 430: a macro added here is the person's own (shared ones need config:macros:manage).
+      const id = await macroService.addPersonalMacro(newMacroData);
       const newMacro = { ...newMacroData, id };
       setVoiceMacros(prev => [newMacro, ...prev]);
       setEditingId(id);
@@ -89,8 +91,8 @@ const SpeechConfigTab: React.FC = () => {
           return { spoken: spoken || "New Macro", written: written || "", isActive: true };
         });
 
-        await macroService.bulkImport(newMacrosRaw);
-        const refreshedData = await macroService.getMacros();
+        await macroService.importPersonalMacros(newMacrosRaw);
+        const refreshedData = await macroService.getMacrosForCurrentUser();
         setVoiceMacros(refreshedData);
       } catch (err) {
         alert(t('speechConfigTab.csvFormatAlert'));
@@ -181,7 +183,7 @@ const SpeechConfigTab: React.FC = () => {
       <div className="sct-toolbar">
         <div className="sct-search-wrap">
           <Search size={14} className="sct-search-icon" />
-          <input
+          <input data-config-nav
             type="text"
             placeholder={t('speechConfigTab.searchPlaceholder')}
             value={searchTerm}
@@ -190,7 +192,7 @@ const SpeechConfigTab: React.FC = () => {
           />
         </div>
 
-        <select
+        <select data-config-nav
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
           className="sct-status-select"

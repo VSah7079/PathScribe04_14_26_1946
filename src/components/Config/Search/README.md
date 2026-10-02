@@ -48,6 +48,14 @@ original tab-only navigation, a real result rather than nothing.
   `SystemSection` id in `Config/System/index.tsx`, or it'll silently
   fall back to tab-only navigation again.
 
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+Results come from the full index (every tab and section, see `constants/README.md`). A generated section result shows its group (System) instead of a description. Choosing a result passes the section in the address too, so Cytology, Staff and Synoptic Library open on it.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

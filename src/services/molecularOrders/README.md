@@ -21,6 +21,10 @@
 - `MolecularOrderPayload` vs `InstrumentOrderPayload` are a real discriminated union on `eventType` — `caseId` is undefined for an `'order.instrument'` entry, since a processor run is a real, physical batch of vials, not a single case (same real reasoning as `services/batches/`'s own `BatchItem` design).
 - All three triggers are fire-and-forget (`.catch(console.error)`) — a real queueing failure here must never block accessioning, result ingestion, or batch creation from succeeding.
 
+## Batch 406
+
+`orderQueueView.ts` holds the Molecular Order Queue page's ordering (newest first) and payload check, moved out of the page. The page takes the queue service from `@/services`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

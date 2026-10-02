@@ -27,6 +27,8 @@ interface SidebarProps {
   activeReportInstanceId?: string;
   onSelectReport?: (instanceId: string, specimenId: string, reportType: 'grossing' | 'microscopic' | 'synoptic') => void;
   onDeleteReport?: (instanceId: string) => void;
+  /** Batch 427: opens "Parts covered" for a draft synoptic workup. */
+  onEditWorkupParts?: (instanceId: string) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   /**
@@ -110,6 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeReportInstanceId,
   onSelectReport,
   onDeleteReport,
+  onEditWorkupParts,
   collapsed = false,
   onToggleCollapse,
   pendingProtocolChanges,
@@ -416,6 +419,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 ? ((inst as any).status === 'draft' ? t('sidebar.microscopic.draftUnsaved') : (inst as any).text?.trim() ? t('sidebar.microscopic.saved') : t('sidebar.microscopic.savedBlank'))
                                 : inst.templateName}
                             </div>
+                            {/* Batch 427: a combined workup names every part it covers. */}
+                            {((inst as any).additionalSpecimenIds ?? []).length > 0 && (
+                              <div className="ps-syn-instance-parts">
+                                {t('sidebar.instance.combinedParts', { parts: [specimen.id, ...(inst as any).additionalSpecimenIds].map((id: string) => (caseData?.specimens ?? []).find((sp: any) => sp.id === id)?.label ?? id).join(' + ') })}
+                              </div>
+                            )}
                             <div
                               className={`ps-syn-instance-meta${unverifiedCount > 0 ? ' ps-syn-instance-meta--unverified' : ''}`}
                               title={unverifiedCount > 0 ? t('sidebar.instance.unverifiedOnReport', { count: unverifiedCount }) : undefined}
@@ -426,6 +435,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                           </div>
                           <StatusDot status={instDot} />
+                          {/* Batch 427: which parts this workup covers (Independent / Combined). */}
+                          {inst.reportType === 'synoptic' && inst.instanceId !== '__legacy__' && onEditWorkupParts && (inst as any).status === 'draft' && (
+                            <button type="button" className="ps-btn-icon ps-syn-parts-btn"
+                              onClick={e => { e.stopPropagation(); onEditWorkupParts(inst.instanceId); }}
+                              title={t('sidebar.instance.partsCovered')} aria-label={t('sidebar.instance.partsCovered')}>⧉</button>
+                          )}
                           {/* Real fix (PS-315 — "Trash-can icon is
                               almost invisible next to the synoptic
                               report, compared to the codes"): root

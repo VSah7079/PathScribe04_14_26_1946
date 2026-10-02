@@ -440,7 +440,7 @@ const RvuCodeMapSection: React.FC = () => {
       {/* ── Older versions — collapsed by default, never deleted ── */}
       {olderVersions.length > 0 && (
         <div className="ps-rvu-older-wrap">
-          <button className="ps-conf-btn-row" onClick={() => setShowOlder(s => !s)}>
+          <button data-config-nav className="ps-conf-btn-row" onClick={() => setShowOlder(s => !s)}>
             {showOlder ? '▾' : '▸'} {t('rvuCodeMapSection.olderVersions.toggle', { count: olderVersions.length })}
           </button>
           {showOlder && (

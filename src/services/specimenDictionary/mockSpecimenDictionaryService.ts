@@ -5,6 +5,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ISpecimenDictionaryService } from './ISpecimenDictionaryService';
 import type { SpecimenEntry } from './specimenTypes';
 import starterData from '../../../scripts/terminology-sources/specimens-starter.json';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Starter data seed ────────────────────────────────────────────────────────
 // Moved here from useSpecimenDictionary.tsx (June 2026) — same seed data,
@@ -166,7 +167,7 @@ let DICTIONARY: SpecimenEntry[] = load();
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockSpecimenDictionaryService: ISpecimenDictionaryService = {
+const specimenDictionaryServiceUnchecked: ISpecimenDictionaryService = {
   async getAll() {
     await delay();
     return ok([...DICTIONARY]);
@@ -232,3 +233,8 @@ export const mockSpecimenDictionaryService: ISpecimenDictionaryService = {
     return ok({ ...newEntry });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSpecimenDictionaryService: ISpecimenDictionaryService = guardConfigWrites(specimenDictionaryServiceUnchecked, [
+  ['config:specimen-dictionary:manage', ['addEntries', 'updateEntries']],
+]);

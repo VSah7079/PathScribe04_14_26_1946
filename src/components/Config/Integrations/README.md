@@ -45,6 +45,10 @@ the full account of where things went and why, not just a 404.
 - `RvuCodeMapSection.tsx` and `BillingDictionarySection.tsx` were never here — always stayed in `Config/System/` directly, billing/coding rules rather than external-system connectivity.
 - **HL7/FHIR Segment Mapping deliberately has no nav entry anywhere** — confirmed directly: PS-81 built the real provider-resolution engine, never an admin UI for it. Not an oversight if it's missing when this file is next read.
 
+## Batch 428: Configuration permissions
+
+`CrosswalkSection.tsx` and its `.DELETED.txt` note were removed at last (nothing imported them; the live screen is `System/CrosswalkSection.tsx`). Editing the crosswalk now needs `config:crosswalk:manage`.
+
 ---
 *See [components/Config/README.md](../README.md) if one exists for how this folder fits the whole Config/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

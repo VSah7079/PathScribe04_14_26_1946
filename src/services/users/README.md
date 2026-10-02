@@ -28,6 +28,10 @@ New seed staff record `PATH-SJ-001` (Dr. Sarah Johnson, Pathologist, ORG-DVMC). 
 
 Staff records for the four bench demo users (ACC-001, HT-001, CT-001, MT-001) and for Michelle Nimmo (PATH-MN-001, Pathologist + Admin). Michelle's sign-in had no staff record, so she held no role. `USERS_VERSION` is 11.
 
+## Batch 431
+
+Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

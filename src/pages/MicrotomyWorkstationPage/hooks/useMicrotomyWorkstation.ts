@@ -20,11 +20,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { printerProfileService, printSettingsService, stainTypeService } from '@/services';
+import { printerProfileService, printSettingsService, scanStationService, stainTypeService } from '@/services';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
@@ -62,6 +62,7 @@ function levelLabelFor(stains: StainOrder[], stainId: string): string {
 }
 
 export function useMicrotomyWorkstation() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { effectiveStationId } = useEffectiveScanStation();
 
@@ -98,17 +99,17 @@ export function useMicrotomyWorkstation() {
    *  specimen-level scope cut. */
   const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true } | { ok: false; message: string }> => {
     setScanError(null);
-    if (!rawScanValue.trim()) return { ok: false, message: 'Empty scan.' };
+    if (!rawScanValue.trim()) return { ok: false, message: t('microtomyWorkstation.scanErrors.empty') };
     const resolved = await resolveMaterialFromScan(rawScanValue);
     if (!resolved) {
-      const message = 'That scan didn’t resolve to a real case, block, or decant — check the barcode and try again.';
+      const message = t('microtomyWorkstation.scanErrors.unresolved');
       setScanError(message);
       return { ok: false, message };
     }
     const { caseData, specimenLetter, target } = resolved;
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
     if (!specimen) {
-      const message = 'Specimen not found on the resolved case.';
+      const message = t('microtomyWorkstation.scanErrors.specimenNotFound');
       setScanError(message);
       return { ok: false, message };
     }
@@ -118,7 +119,7 @@ export function useMicrotomyWorkstation() {
     if (target.level === 'block' || target.level === 'slide') {
       const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
       if (!block) {
-        const message = `Block ${specimen.label}${target.blockNumber} not found.`;
+        const message = t('microtomyWorkstation.scanErrors.blockNotFound', { label: `${specimen.label}${target.blockNumber}` });
         setScanError(message);
         return { ok: false, message };
       }
@@ -129,7 +130,7 @@ export function useMicrotomyWorkstation() {
     if (target.level === 'decant' || target.level === 'decant_slide') {
       const decant = (specimen.decants ?? []).find(d => d.label === target.decantLabel);
       if (!decant) {
-        const message = `Decant ${specimen.label}${target.decantLabel} not found.`;
+        const message = t('microtomyWorkstation.scanErrors.decantNotFound', { label: `${specimen.label}${target.decantLabel}` });
         setScanError(message);
         return { ok: false, message };
       }
@@ -138,25 +139,25 @@ export function useMicrotomyWorkstation() {
       return { ok: true };
     }
 
-    const message = 'This scan target (matrix block/cell-block cassette, or a bare specimen scan) isn’t supported at the Microtomy Workstation yet — scan a specific block or decant/fluid container barcode.';
+    const message = t('microtomyWorkstation.scanErrors.unsupported');
     setScanError(message);
     return { ok: false, message };
-  }, []);
+  }, [t]);
 
   /** Real, direct, non-scan selection — per the spec's own "Block
    *  selection from queue." Loads a specific case + selects a block
    *  by id, same real work-item shape as a scan resolution. */
   const selectBlockDirectly = useCallback(async (caseId: string, specimenId: string, blockId: string): Promise<{ ok: true } | { ok: false; message: string }> => {
     const caseData = await caseRouter.getCase(caseId);
-    if (!caseData) return { ok: false, message: 'Case not found.' };
+    if (!caseData) return { ok: false, message: t('microtomyWorkstation.scanErrors.caseNotFound') };
     const specimen = (caseData.specimens ?? []).find(sp => sp.id === specimenId);
     const block = specimen?.blocks?.find(b => b.id === blockId);
-    if (!specimen || !block) return { ok: false, message: 'Block not found on this case.' };
+    if (!specimen || !block) return { ok: false, message: t('microtomyWorkstation.scanErrors.blockNotOnCase') };
     versionRef.current = (caseData as unknown as { version?: number }).version ?? 0;
     setWorkItem({ kind: 'block', caseData, specimen, block });
     setBatchSelection(new Set());
     return { ok: true };
-  }, []);
+  }, [t]);
 
   /** Real, per the spec's own bench workflow — a tech finishes one
    *  block/decant and scans the next; this clears the current work
@@ -203,7 +204,7 @@ export function useMicrotomyWorkstation() {
    *  already established and proved working. */
   const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string; layout: SlideLabelLayoutConfig } | { error: string }> => {
     if (!effectiveStationId) return { error: 'No scan station selected for this device — set one from the NavBar station indicator.' };
-    const stationRes = await mockScanStationService.getById(effectiveStationId);
+    const stationRes = await scanStationService.getById(effectiveStationId);
     if (!stationRes.ok) return { error: 'Scan station not found.' };
     if (!stationRes.data.supportsPrinting || !stationRes.data.cassetteSlidePrinterProfileId) {
       return { error: 'This station isn’t configured for real slide-label printing — check Scan Stations config.' };
