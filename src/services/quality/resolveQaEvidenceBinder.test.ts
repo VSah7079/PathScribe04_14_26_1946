@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { resolveQaEvidenceBinder } from './resolveQaEvidenceBinder';
+import { describe, it, expect, vi } from 'vitest';
+import { resolveQaEvidenceBinder, qaEvidenceBinderCsvRows, qaEvidenceBinderExportFilename } from './resolveQaEvidenceBinder';
+import { exportQaReport } from '@/services/qualityAssurance/qaExport';
+import { parseCsv } from '@/utils/csv';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
 
@@ -82,5 +84,72 @@ describe('resolveQaEvidenceBinder', () => {
     );
     expect(report.entries[0].activityTypeId).toBe('qa-activity-frozen-final');
     expect(report.entries[0].totalRecords).toBe(2);
+  });
+});
+
+// PS-121 (Batch 451): the Inspection Mode tab's one-click binder export.
+describe('Inspection Mode binder CSV export (PS-121)', () => {
+  const binder = () => resolveQaEvidenceBinder([
+    rec({ id: 'a', caseId: 'S26-0001', specimenId: 'A', outcome: 'discordant', severity: 'high', recordedAt: '2026-09-19T00:00:00.000Z', recordedBy: { userId: 'u1', userName: 'Dr. One' } }),
+    rec({ id: 'b', caseId: 'S26-0002', outcome: 'concordant', recordedAt: '2026-09-18T00:00:00.000Z', recordedBy: { userId: 'u2', userName: 'Dr. Two' } }),
+    rec({ id: 'c', activityTypeId: 'qa-activity-custom-noJurisdiction', caseId: 'S26-0003', outcome: 'discordant', severity: 'low', recordedAt: '2026-09-17T00:00:00.000Z' }),
+  ], activityTypes, 24, NOW);
+
+  it('one row per record across every activity type, with the regulatory basis, outcome, CAPA threshold and reviewer, in English', () => {
+    expect(qaEvidenceBinderCsvRows(binder())).toEqual([
+      {
+        'Activity Type': 'Frozen vs Final Correlation',
+        'Regulatory Basis': 'United States: CAP AP Checklist / CLIA interpretive QA requirements | England & Wales (NHS): UKAS ISO 15189 — interpretive audits, discrepancy documentation',
+        Case: 'S26-0001', Specimen: 'A', Outcome: 'Discordant', Severity: 'high', 'Meets CAPA Threshold': 'Yes',
+        Recorded: '2026-09-19T00:00:00.000Z', Reviewer: 'Dr. One',
+      },
+      {
+        'Activity Type': 'Frozen vs Final Correlation',
+        'Regulatory Basis': 'United States: CAP AP Checklist / CLIA interpretive QA requirements | England & Wales (NHS): UKAS ISO 15189 — interpretive audits, discrepancy documentation',
+        Case: 'S26-0002', Specimen: 'Case-level', Outcome: 'Concordant', Severity: '—', 'Meets CAPA Threshold': 'No',
+        Recorded: '2026-09-18T00:00:00.000Z', Reviewer: 'Dr. Two',
+      },
+      {
+        'Activity Type': 'Site-Specific Grossing QA', 'Regulatory Basis': 'No jurisdiction configured',
+        Case: 'S26-0003', Specimen: 'Case-level', Outcome: 'Discordant', Severity: 'low', 'Meets CAPA Threshold': 'No',
+        Recorded: '2026-09-17T00:00:00.000Z', Reviewer: 'Dr. Test',
+      },
+    ]);
+  });
+
+  it('carries no patient name, MRN or date of birth column', () => {
+    const columns = Object.keys(qaEvidenceBinderCsvRows(binder())[0]);
+    expect(columns.some(c => /patient|mrn|birth|dob/i.test(c))).toBe(false);
+  });
+
+  it('names the file after the window and the day', () => {
+    expect(qaEvidenceBinderExportFilename(24, NOW)).toBe('qa-inspection-evidence-binder-24mo-2026-09-20.csv');
+  });
+
+  it('exporting checks qa:inspection-evidence:export for all facilities and delivers every binder row as CSV', async () => {
+    const enforce = vi.fn(async () => ({ allowed: true as const }));
+    const deliver = vi.fn();
+    const record = vi.fn(async () => undefined);
+    const rows = qaEvidenceBinderCsvRows(binder());
+    const res = await exportQaReport('qa:inspection-evidence:export', rows, qaEvidenceBinderExportFilename(24, NOW),
+      { authorization: { enforce } as never, deliver, record }, { allFacilities: true });
+    expect(res).toEqual({ ok: true, rowCount: 3 });
+    expect(enforce).toHaveBeenCalledWith('qa:inspection-evidence:export', { allFacilities: true });
+    const [filename, csv] = deliver.mock.calls[0] as [string, string];
+    expect(filename).toBe('qa-inspection-evidence-binder-24mo-2026-09-20');
+    const parsed = parseCsv(csv);
+    expect(parsed.map(r => r.Case)).toEqual(['S26-0001', 'S26-0002', 'S26-0003']);
+    expect(parsed[0]['Regulatory Basis']).toContain('England & Wales (NHS): UKAS ISO 15189');
+  });
+
+  it('without qa:inspection-evidence:export the export is refused and no file is made', async () => {
+    const enforce = vi.fn(async () => ({ allowed: false as const, reason: 'missingCapability' }));
+    const deliver = vi.fn();
+    const record = vi.fn(async () => undefined);
+    const res = await exportQaReport('qa:inspection-evidence:export', qaEvidenceBinderCsvRows(binder()), 'x.csv',
+      { authorization: { enforce } as never, deliver, record }, { allFacilities: true });
+    expect(res).toEqual({ ok: false, reason: 'notPermitted' });
+    expect(deliver).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
   });
 });

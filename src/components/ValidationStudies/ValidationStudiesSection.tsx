@@ -5,6 +5,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router';
+import { VALIDATION_SECTIONS } from '@/constants/configSearchIndex';
+import { pickConfigSection } from '@/utils/configSectionParam';
 import { useTranslation, Trans } from 'react-i18next';
 import '@/pathscribe.css';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
@@ -23,8 +26,10 @@ import type { ReportTemplate }         from '@/types/reportPart';
 import type { AIModel }                from '@/services/models/IModelService';
 import { computeValidationStudyGrade } from '@/services/validationStudies/computeValidationStudyGrade';
 import { ModelStoreModal } from './ModelStoreModal';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
-type SubTab = 'studies' | 'dashboard' | 'reports';
+type SubTab = (typeof VALIDATION_SECTIONS)[number]['id'];
+const SUBTAB_IDS = VALIDATION_SECTIONS.map(s => s.id);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -858,7 +863,11 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
     // Print-friendly report in new window
     const html = buildReportHtml(study, stats, caseCount, grade, avgEditRatio);
     const win  = window.open('', '_blank');
-    if (win) { win.document.write(html); win.document.close(); win.print(); }
+    if (win) {
+      win.document.write(html); win.document.close(); win.print();
+      // PS-282 (Batch 437): audited.
+      void recordDocumentOutput({ action: 'print', document: 'validation-study-report', documentId: study.id, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
+    }
 
     // Real fix: the grade shown here was always computed live and never
     // actually recorded anywhere on the study itself — meaning nothing
@@ -1016,7 +1025,10 @@ const SUBTAB_LABEL_KEY: Record<SubTab, string> = {
 
 const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperAdmin = false }) => {
   const { t } = useTranslation();
-  const [subTab,     setSubTab]     = useState<SubTab>('studies');
+  // Batch 449: Configuration search can open an inner tab directly (?section=).
+  const location = useLocation();
+  const [subTab,     setSubTab]     = useState<SubTab>(() => pickConfigSection(location.search, SUBTAB_IDS));
+  useEffect(() => { setSubTab(pickConfigSection(location.search, SUBTAB_IDS)); }, [location.search]);
   const [studies,    setStudies]    = useState<ValidationStudy[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [physicians, setPhysicians] = useState<Physician[]>([]);
@@ -1091,7 +1103,7 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
       </div>
 
       <div className="ps-sub-tab-group">
-        {(['studies','dashboard','reports'] as SubTab[]).map(tab => (
+        {SUBTAB_IDS.map(tab => (
           <button key={tab} onClick={() => setSubTab(tab)} className={`ps-sub-tab-btn${subTab === tab ? ' active' : ''}`}>
             {t(SUBTAB_LABEL_KEY[tab])}
           </button>

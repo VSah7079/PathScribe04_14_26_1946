@@ -43,6 +43,24 @@ async function draft(id: string, sections: never, author = AUTHOR, roles = ['Tem
 }
 
 describe('templateService review governance (PS-63)', () => {
+  it('Batch 463b: refuses review while a Mohs stage question takes its default histology from a missing or non-choice question', async () => {
+    const svc = await import('./templateService');
+    await giveRoles(AUTHOR, ['Template Author']);
+    signIn(AUTHOR, 'pathologist');
+    const sections = (source: string) => [{ id: 's1', title: 'S', fields: [
+      { id: 'tt', label: 'Tumour type', type: 'dropdown', required: false, options: [{ id: 'bcc', label: 'BCC', snomed: '', icd: '' }], icd: '', snomed: '' },
+      { id: 'note', label: 'Note', type: 'text', required: false, options: [], icd: '', snomed: '' },
+      { id: 'm', label: 'Mohs stages', type: 'spatialStageCanvas', required: true, options: [], icd: '', snomed: '', defaultHistologyFieldId: source },
+    ] }] as never;
+    const tpl = (source: string) => ({ id: 'gov-mohs', name: 'Governance Mohs', source: 'Custom', version: '1.0.0', category: 'SKIN', sections: sections(source) });
+    await svc.saveDraft(tpl('gone'));
+    await expect(svc.submitForReview('gov-mohs')).rejects.toMatchObject({ code: 'MOHS_HISTOLOGY_SOURCE' });
+    await svc.saveDraft(tpl('note'));
+    await expect(svc.resubmitForReview('gov-mohs')).rejects.toMatchObject({ code: 'MOHS_HISTOLOGY_SOURCE' });
+    await svc.saveDraft(tpl('tt'));
+    await expect(svc.submitForReview('gov-mohs')).resolves.toMatchObject({ status: 'in_review' });
+  });
+
   it('records who edited a template and refuses to let them approve it', async () => {
     const svc = await draft('gov-self', coded(5, 5), AUTHOR, ['Template Author', 'Template Approver']);
     const { PROTOCOL_REGISTRY } = await import('@/components/Config/Protocols/protocolShared');

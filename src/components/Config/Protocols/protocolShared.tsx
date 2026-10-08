@@ -187,13 +187,13 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'breast_invasive', name: 'Generic Template — Breast Invasive',
     category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 44, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 47, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'breast_dcis_resection', name: 'Generic Template — Breast Dcis Resection',
     category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 20, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 23, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
@@ -205,13 +205,13 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'prostate_needle_biopsy', name: 'Generic Template — Prostate Needle Biopsy',
     category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 35, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'colon_resection', name: 'Generic Template — Colon Resection',
     category: 'COLON', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 46, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 52, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
@@ -220,10 +220,32 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
+  // Batch 463: PathScribe's own Mohs synoptic (stage maps). Labs copy and customise it like any other.
+  {
+    id: 'mohs_micrographic_surgery', name: 'PathScribe — Mohs Micrographic Surgery',
+    category: 'SKIN', version: '1.0.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 15, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-10-05', owner: 'System',
+  },
+  // Batch 465: PathScribe's head and neck synoptics (oral cavity map; neck levels map). Modular: a composite
+  // resection carries both on one case. Labs copy and customise them like any other.
+  {
+    id: 'oral_cavity_resection', name: 'PathScribe — Oral Cavity Resection',
+    category: 'HEAD_NECK', version: '1.0.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 17, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-10-05', owner: 'System',
+  },
+  {
+    id: 'neck_dissection', name: 'PathScribe — Neck Dissection',
+    category: 'HEAD_NECK', version: '1.0.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-10-05', owner: 'System',
+  },
   {
     id: 'kidney_resection', name: 'Generic Template — Kidney Resection',
     category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 25, snomedPct: 0, icdPct: 0,
+    // Batch 466: 25 + the renal map questions ("Anatomical map (PathScribe)"); Batch 466b: + non-standard margins.
+    status: 'published', fields: 36, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
@@ -253,7 +275,7 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'prostate_resection', name: 'Generic Template — Prostate Resection',
     category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 28, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 33, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
@@ -265,19 +287,19 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'breast_surgical_excision', name: 'Generic Template — Breast Surgical Excision',
     category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 96, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 99, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'colorectal_resection_b', name: 'Generic Template — Colorectal Resection B',
     category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 45, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'colorectal_local_excision', name: 'Generic Template — Colorectal Local Excision',
     category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 40, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
@@ -289,13 +311,13 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   {
     id: 'prostate_biopsy', name: 'Generic Template — Prostate Biopsy',
     category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 45, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 46, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'prostate_radical_prostatectomy', name: 'Generic Template — Prostate Radical Prostatectomy',
     category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 38, snomedPct: 0, icdPct: 0,
+    status: 'published', fields: 43, snomedPct: 0, icdPct: 0,
     lastModified: '2026-07-25', owner: 'System',
   },
   {
@@ -722,7 +744,7 @@ export const BuildCustomiseModal: React.FC<{
             {/* Search */}
             <div className="ps-pshare-search-wrap">
               <span className="ps-pshare-search-icon">🔍</span>
-              <input data-config-nav
+              <input data-dirty-ignore data-config-nav
                 type="text"
                 placeholder={t('protocolShared.buildModal.searchPlaceholder')}
                 value={search}

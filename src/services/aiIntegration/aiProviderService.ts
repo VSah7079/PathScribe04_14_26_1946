@@ -19,7 +19,6 @@
 
 import {
   resolveAiConfig,
-  isDevMode,
   type AiProviderConfig,
   type AiProviderId,
 } from '@/components/Config/AI/aiProviderConfig';
@@ -70,15 +69,11 @@ function buildChatCompletionsRequest(cfg: AiProviderConfig, opts: AiCallOptions)
 }
 
 function buildChatCompletionsManagedRequest(cfg: AiProviderConfig, opts: AiCallOptions): { url: string; headers: Record<string, string>; body: object } {
-  const devMode = isDevMode() && !!cfg.apiKey;
-  const url = devMode
-    ? `${cfg.managedEndpoint}/openai/deployments/${cfg.managedDeploymentName}/chat/completions?api-version=2024-02-15-preview`
-    : `${cfg.proxyUrl}/azure/chat/completions`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (devMode) headers['api-key'] = cfg.apiKey!;
+  // Batch 444: always through the proxy, which holds the endpoint,
+  // deployment and key. The browser never calls the resource directly.
   return {
-    url,
-    headers,
+    url: `${cfg.proxyUrl ?? '/api/ai'}/azure/chat/completions`,
+    headers: { 'Content-Type': 'application/json' },
     body: {
       max_tokens: opts.maxTokens ?? cfg.maxTokens ?? 1000,
       messages: [
@@ -104,14 +99,10 @@ function buildModelGatewayRequest(cfg: AiProviderConfig, opts: AiCallOptions): {
 }
 
 function buildCustomRequest(cfg: AiProviderConfig, opts: AiCallOptions): { url: string; headers: Record<string, string>; body: object } {
-  const devMode = isDevMode() && !!cfg.apiKey;
-  const base    = cfg.customEndpoint ?? cfg.proxyUrl ?? '/api/ai/custom';
-  const url     = devMode ? `${base}/chat/completions` : `${cfg.proxyUrl}/custom/chat/completions`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (devMode && cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+  // Batch 444: always through the proxy, which holds the endpoint and key.
   return {
-    url,
-    headers,
+    url: `${cfg.proxyUrl ?? '/api/ai'}/custom/chat/completions`,
+    headers: { 'Content-Type': 'application/json' },
     body: {
       model:      cfg.modelId,
       max_tokens: opts.maxTokens ?? cfg.maxTokens ?? 1000,
@@ -131,12 +122,9 @@ function buildStructuredContentRequest(cfg: AiProviderConfig, opts: AiCallOption
   // injected - deliberately NOT constructing the colon-bearing URL here,
   // same reasoning as that proxy config's own comment (it confuses
   // Vite's proxy router if built client-side).
-  const devMode = isDevMode() && !!cfg.apiKey;
-  const url = devMode
-    ? `https://generativelanguage.googleapis.com/v1beta/models/${cfg.modelId}:generateContent?key=${cfg.apiKey}`
-    : `${cfg.proxyUrl}/gemini/generate?model=${cfg.modelId}`;
+  // Batch 444: always through the proxy; the key is added server-side.
   return {
-    url,
+    url: `${cfg.proxyUrl ?? '/api/ai'}/gemini/generate?model=${encodeURIComponent(cfg.modelId)}`,
     headers: { 'Content-Type': 'application/json' },
     body: {
       contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],

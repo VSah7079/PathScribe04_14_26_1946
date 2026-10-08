@@ -42,6 +42,14 @@ Subfolders converted their last inline styles to `pathscribe.css` classes (see e
 
 - **`Comments/`, `Delegate/`:** Field Requirements checks and voice commands (PS-359). Delegating needs `case:delegation:create`.
 
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`Comments/`: comment modal tests (PS-312).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`useSynopticFlags.ts` builds the Flag Manager's view with `services/flags/caseFlagView.ts` (no `as any`) and reaches its services through `@/services` (PS-57).
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

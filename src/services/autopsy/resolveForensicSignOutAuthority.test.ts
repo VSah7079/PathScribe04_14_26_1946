@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveForensicSignOutAuthority } from './resolveForensicSignOutAuthority';
 
 const appointment = (over = {}) => ({ type: 'MEDICOLEGAL_APPOINTMENT', issuingBody: 'OCME', jurisdiction: 'US' as const, effectiveDate: '2024-01-01', ...over });
-const base = { caseAuthority: 'medicolegal_forensic' as const, jurisdiction: 'US' as const, asOfDate: '2026-09-25' };
+const base = { caseAuthority: 'statutory_judicial' as const, jurisdiction: 'US' as const, asOfDate: '2026-09-25' };
 
 describe('resolveForensicSignOutAuthority', () => {
   it('does not apply to hospital-consented autopsies', () => {

@@ -116,6 +116,10 @@ is pure logic (no React) bridging the editor to the AI orchestrator.
 
 `PathScribeEditor`: Korean typed in any approved font is drawn in Pretendard (`'Pretendard Variable'` after the chosen font in the stack), since none of the approved fonts has Hangul. The same font prints Korean report PDFs. The approved-font list itself is unchanged.
 
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`findingHighlightExtension.ts` (PS-323): detected critical findings are highlighted in the narrative editor using ProseMirror decorations, the same mechanism as the spell check. The highlight is never part of the document, so `getHTML()` and the saved report are unchanged. It is recomputed on every edit and disappears when its words are deleted. `PathScribeEditor` and `NarrativeEditor` take `highlightFindings`. Tests are in `__tests__/findingHighlightExtension.test.ts`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

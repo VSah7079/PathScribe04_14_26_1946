@@ -78,7 +78,8 @@ export function detectIdentifierType(val: string, enabledFormats: IdentifierForm
 }
 
 export type IdentifierApplicationResult =
-  | { action: 'navigate'; path: string }
+  /** Batch 446: the case to open (by reference address), never an address built here. */
+  | { action: 'openCase'; caseId: string; specimen?: string }
   | { action: 'setFilters'; patientName: string; hospitalId: string; patientId: string; accessionNo: string;
       /** Batch 350: a requisition, external order or referral number
        *  (CaseSearchCriteria.orderNo). It used to fill accessionNo, which is
@@ -110,14 +111,11 @@ export function resolveIdentifierApplication(
     const pipeAcc = val.match(/ACC:([^|]+)/);
     if (pipeAcc) {
       const specMatch = val.match(/SPEC:([^|]+)/);
-      return {
-        action: 'navigate',
-        path: specMatch ? `/case/${pipeAcc[1]}/synoptic?specimen=${specMatch[1]}` : `/case/${pipeAcc[1]}/synoptic`,
-      };
+      return specMatch ? { action: 'openCase', caseId: pipeAcc[1], specimen: specMatch[1] } : { action: 'openCase', caseId: pipeAcc[1] };
     }
     // 1D slide — extract accession (e.g. S26-4200 from S26-4200-A1-1)
     const oneD = val.match(/^([A-Za-z]{1,3}\d{2}-\d{4,6})/i);
-    if (oneD) return { action: 'navigate', path: `/case/${oneD[1]}/synoptic` };
+    if (oneD) return { action: 'openCase', caseId: oneD[1] };
     return { action: 'setFilters', patientName: '', hospitalId: '', patientId: '', accessionNo: val.trim(), orderNo: '', anyIdentifier: '' };
   }
 

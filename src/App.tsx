@@ -66,6 +66,7 @@ const MolecularControlRulesPage = lazy(() => import("./pages/MolecularBatchPage/
 const MockInterfaceEnginePage = lazy(() => import("./pages/MockInterfaceEnginePage/MockInterfaceEnginePage"));
 const QualityAssurancePage = lazy(() => import("./pages/QualityAssurancePage"));
 const BatchManagementPage = lazy(() => import("./pages/BatchManagement/BatchManagementPage"));
+const WsiScanBatchesPage = lazy(() => import("./pages/BatchManagement/WsiScanBatchesPage"));
 const DisposalQueuePage = lazy(() => import("./pages/BatchManagement/DisposalQueuePage"));
 const DisposalReportPage = lazy(() => import("./pages/BatchManagement/DisposalReportPage"));
 const PendingBatchQueuePage = lazy(() => import("./pages/BatchManagement/PendingBatchQueuePage"));
@@ -244,6 +245,7 @@ const App: React.FC = () => (
                           <Route path="/batch-management/disposal-report" element={<ScreenGate screen="batchManagement"><DisposalReportPage /></ScreenGate>} />
                           <Route path="/batch-management/pending-load" element={<ScreenGate screen="batchManagement"><PendingBatchQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/engraver-monitor" element={<ScreenGate screen="batchManagement"><EngraverMonitorPage /></ScreenGate>} />
+                          <Route path="/batch-management/wsi-scan" element={<ScreenGate screen="batchManagement"><WsiScanBatchesPage /></ScreenGate>} />
                           {/* Batch 429: the bench staff record equipment maintenance and calibration here. */}
                           <Route path="/batch-management/equipment-log" element={<ScreenGate screen="batchManagement"><EquipmentServiceLogPage /></ScreenGate>} />
                           <Route path="/workstations/microtomy" element={<ScreenGate screen="microtomy"><MicrotomyWorkstationPage /></ScreenGate>} />

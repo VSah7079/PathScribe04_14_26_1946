@@ -37,6 +37,7 @@ import { protocolActions, buildProtocolExport } from '@/services/templates/proto
 import { getTemplate, archiveTemplate, restoreTemplate } from '@/services/templates/templateService';
 import { downloadJson } from '@/utils/downloadJson';
 import { formatDateLong } from '@/utils/formatDate';
+import { recordExport } from '@/services';
 
 // Reuses the protocolShared.lifecycle.* keys LifecycleBadge renders, so the
 // tracker's step labels match the badge wording.
@@ -98,6 +99,8 @@ export const ProtocolRowActions: React.FC<{ protocol: Protocol; from: 'all' | 'a
   const handleExport = () => run(async () => {
     const detail = await getTemplate(p.id);
     const { filename, data } = buildProtocolExport({ ...detail, supersedesId: p.supersedesId }, detail.template, new Date().toISOString());
+    // PS-282 (Batch 437): audited.
+    void recordExport('synoptic-protocol', { filename, rowCount: 1, format: 'json' });
     downloadJson(filename, data);
   }, 'protocolActions.errors.exportFailed');
 

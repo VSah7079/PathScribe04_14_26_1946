@@ -66,5 +66,17 @@ Batch 368 (PS-353): the report change log. It records who changed what on a case
 
 `canExportChangeLog(role)` is removed.
 
+## Batch 437 (PS-282)
+
+`exportChangeLog` records the shared `DOCUMENT_EXPORTED` entry (document `report-change-history`) instead of its own wording.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-353)
+
+`recordCaseChange.test.ts`: each change entry records the workstation (device lock, else the user's home station) and the save time.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`changeHistoryView` in `reportChangeRules.ts`: newest first, filter by area (PS-353).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

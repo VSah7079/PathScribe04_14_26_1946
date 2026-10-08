@@ -30,6 +30,7 @@
 import { caseRouter } from '../cases/CaseRouter';
 import { resolveIsFinalStatus } from '../reportTemplates/TemplateRoutingService';
 import { publishReportReleasedEvent } from './publishReportReleasedEvent';
+import { updateCaseWithRetry } from '../cases/caseWrite';
 
 export interface ReleasePreliminaryReportResult {
   ok: boolean;
@@ -93,14 +94,24 @@ export async function releasePreliminaryReport(
   // per direct guidance, the case stays in whatever in-progress/
   // unverified state it was already in.
   if (dispatchedCount > 0) {
+    // PS-71 (Batch 458): the attestation is applied to the case as read for
+    // the save (not the copy read before the dispatch), with its version;
+    // on a conflict it is re-applied to the newer case, so a diagnostic
+    // change saved meanwhile is kept. A lasting conflict is logged and,
+    // like any other failure here, never masks the dispatch.
+    const preliminaryRecordedAt = new Date().toISOString();
     try {
-      await caseRouter.updateCase(caseId, {
+      const r = await updateCaseWithRetry(caseId, current => ({
         diagnostic: {
-          ...caseData.diagnostic,
+          ...current.diagnostic,
           reviewerRole: releasingUser.role ?? 'Pathologist',
-          preliminaryRecordedAt: new Date().toISOString(),
+          preliminaryRecordedAt,
         },
-      } as any);
+      } as any), {
+        getCase: id => caseRouter.getCase(id),
+        updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),
+      });
+      if (r.ok === false) console.error(`[PS-71] Preliminary attestation for ${caseId} not saved (${r.reason}).`);
     } catch {
       // Real, deliberate: the dispatch itself already succeeded and
       // is the real, meaningful outcome of this action — a failure to

@@ -20,7 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { mockMolecularOrderOutboundQueueService } from '../molecularOrders/mockMolecularOrderOutboundQueueService';
 import type { HpvResultEventPayload } from '@/types/events/HpvResultEventPayload';
 
@@ -70,40 +70,36 @@ export async function processInboundHpvResultEvent(payload: HpvResultEventPayloa
     return { messageId: payload.messageId, outcome: 'case-not-found', reason: `No case found for '${lookupId}'.` };
   }
 
-  const specimens = (caseData.specimens as any[]) ?? [];
-  const targetSpecimen = specimens.find(sp => sp.label === payload.specimenLetter);
-  if (!targetSpecimen) {
+  // PS-71 (Batch 458): the specimen change is rebuilt from the newest case
+  // on every try (updateCaseWithRetryOrThrow), so a concurrent edit to
+  // another specimen is kept. Replaces the old "force through" retry that
+  // re-saved the stale specimens array without a version. If every try
+  // conflicts, the ConcurrencyConflictError propagates and the messageId is
+  // NOT marked processed, so the sender's redelivery applies it.
+  let targetSpecimen: any;
+  const write = await updateCaseWithRetryOrThrow(caseData.id, current => {
+    const specimens = (current.specimens as any[]) ?? [];
+    targetSpecimen = specimens.find(sp => sp.label === payload.specimenLetter);
+    if (!targetSpecimen) return null;
+    const updatedSpecimens = specimens.map(sp =>
+      sp.label === payload.specimenLetter
+        ? {
+            ...sp,
+            cytologyScreening: {
+              ...sp.cytologyScreening,
+              hpvResult: payload.hrHpvResult,
+              hpvAbnormalFlag: payload.abnormalFlag,
+              hpvReferenceRange: payload.referenceRange,
+              hpvGenotypeDetail: payload.genotypeDetail,
+              hpvOrderReason: payload.orderReason,
+            },
+          }
+        : sp
+    );
+    return { specimens: updatedSpecimens } as any;
+  }, caseRouter);
+  if (!write.ok) {
     return { messageId: payload.messageId, outcome: 'specimen-not-found', reason: `Case ${caseData.id} has no specimen '${payload.specimenLetter}'.` };
-  }
-
-  const updatedSpecimens = specimens.map(sp =>
-    sp.label === payload.specimenLetter
-      ? {
-          ...sp,
-          cytologyScreening: {
-            ...sp.cytologyScreening,
-            hpvResult: payload.hrHpvResult,
-            hpvAbnormalFlag: payload.abnormalFlag,
-            hpvReferenceRange: payload.referenceRange,
-            hpvGenotypeDetail: payload.genotypeDetail,
-            hpvOrderReason: payload.orderReason,
-          },
-        }
-      : sp
-  );
-
-  try {
-    await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
-  } catch (e) {
-    // Real, deliberate "force through" posture — same reasoning as
-    // processBlockExceptionEvent.ts's own: the real molecular result
-    // already exists at the sending system regardless of a local
-    // version conflict.
-    if (e instanceof ConcurrencyConflictError) {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
-    } else {
-      throw e;
-    }
   }
 
   processedMessageIds.add(payload.messageId);

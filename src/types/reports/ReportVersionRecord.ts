@@ -26,6 +26,9 @@
 //   - record a SHA-256 of the PDF's bytes when the version is created,
 //     and check it on retrieval, so a swapped file is detected (encryption
 //     keeps it private; the hash shows it is unchanged).
+//     Partly superseded (Batch 461): the mock now records pdfSha256 (and the
+//     organ-map images' hashes) at creation; checking it on retrieval is
+//     still for the API server.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PatientEncounterSnapshot } from './PatientEncounterSnapshot';
@@ -74,4 +77,13 @@ export interface ReportVersionRecord {
    *  encounter lookup failed at capture time (never blocks the real
    *  sign-out itself on this - see mockReportVersionService.ts). */
   patientEncounterSnapshot?: PatientEncounterSnapshot;
+
+  /** Batch 461: the organ-map images in the report when this version was
+   *  made, each with the SHA-256 of its SVG (and PNG), so the signed-out
+   *  image is locked and a changed one is detectable. Captured by
+   *  mockReportVersionService.create() from the case. */
+  organMapFigures?: import('@/services/organMapping/organMapFigures').OrganMapFigureVersion[];
+  /** Batch 461: SHA-256 of pdfBase64 when there is one (the hash point above,
+   *  in the mock; the API server hashes the stored file's bytes). */
+  pdfSha256?: string;
 }

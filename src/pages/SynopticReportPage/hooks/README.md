@@ -207,3 +207,67 @@ The AI synoptic suggestions and the narrative-from-answers call read `PathScribe
 ## Batch 431
 
 `useOrchestratorDraft.ts`: the AI draft sections are saved to and loaded from the case only; the browser copy is gone (a copy left on one workstation could override a newer save made at another).
+
+## Batch 433
+
+`useSignOutWorkflow.ts`: the billing deficiency severity map covers the new `MISSING_CHARGE` and `POST_SIGNOUT_CORRECTION` types.
+
+## Batch 439
+
+- `usePeerReview.ts`: the case's peer review status and the possible reviewers.
+- `checkPeerReviewAndMismatch.ts`: the mismatch check (once per case: a recorded decision ends it) and the peer-review gate, for `useSignOutWorkflow.ts`, which runs both after the stain QC gate in `handleSignOutConfirm` and `finalizeCase`.
+
+## Batch 445
+
+`useSpecimenBlockManagement.ts` marks unsaved sections by id (`blocks`, `blockEdit`, `triageChecklist`, …) instead of English labels.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+See `../README.md` (Batch 450): logic moved to services and new tests for PS-57, PS-141, PS-274, PS-275, PS-317, PS-318, PS-324.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+New `useCaseMaterialStore.ts`. `useSpecimenBlockManagement`: `handleAddDecant` (which takes an optional parent decant), `handleUpdateDecant` and the new `handleDeleteDecant` go through the material store and return `materialStore`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`useSignOutWorkflow.ts`: once the sign-out has landed, a ticked "follow-up expected" box marks the case (`markFollowUpExpectedLive`). If that fails, a warning says why (`followUpMarkFailureKey`), and the sign-out still stands.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`useSpecimenBlockManagement`: the nine force-writes now go through `persistBlockChange` (`services/material/blockCaseChanges.ts`). `useOrchestratorDraft`: `writeCaseDraft` requires the version.
+
+## Batch 458 — PS-71 (continued)
+
+`useOrchestratorDraft`: draft saves merge section by section onto a newer save (`saveDraftParts`); the merge base can be owned by the page (`draftBaseRef`) so the browser copy carries it.
+
+## Batch 458 — PS-71 (review before saving over someone else's save)
+
+`useOrchestratorDraft`: with `onMergeReview`, a draft save that meets someone else's save in other parts stops for the person's review instead of saving the merge. With `pendingPartsRef`, a stopped instant change goes with the next draft save.
+
+## Batch 460
+
+`checkStainQcGate.ts` and `useLisIntegration.ts` use each slide's printed level (`services/material/slideLevels.ts`), not its position, so a reordered slide's staining batch and LIS steps are still found.
+
+## Batch 461
+
+- `useOrganMap.ts`: the anatomical map companion. Loads the active synoptic's map context (template, binding, the facility's colours), works the map out from the synoptic answers on every render, and inserts or removes the report image (`insertOrganMapFigure` / `removeOrganMapFigure`, which check `report:organ-map:insert`). Decisions stay in `services/organMapping/`.
+- `useSignOutWorkflow.ts`, `useLisIntegration.ts`: pass the case's parts to `resolveAnswers` (results grid text).
+
+## Batch 463
+
+`useOrganMap.ts`: the panel state comes from `organMapReportState` ('auto' for maps that are always in the report).
+
+## Batch 463b
+
+`useSignOutWorkflow.ts`: sign-out stops when a Mohs positive sector has no block or one beyond Blocks cut (`findMohsBlockGaps`): up front and in finalize (Assist), and in `handleSignOutConfirm` (Orchestration sign-out and a resident's release), where the stale-map gate now runs too.
+
+## Batch 466d
+
+`useSignOutWorkflow.ts`: sign-out asks before going on (a warning, not a block) when a synoptic's map records invasive carcinoma and its margins aren't all reported (`findInvasiveMarginGaps`). This is at the modal and pre-check gates.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+`useSignOutWorkflow`: an answer that still differs from its molecular result asks first, as a warning, at both sign-out entry points (`services/molecularOrders/molecularSignOutCheck.ts`).

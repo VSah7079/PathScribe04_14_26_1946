@@ -8,6 +8,8 @@ import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
 import { useSpellCheckContext } from '../SpellCheck/SpellCheckContext';
 import { SpellCheckMenu, type SpellMenuRequest } from '../SpellCheck/SpellCheckMenu';
 import { createSpellCheckExtension, requestSpellRecheck } from '../SpellCheck/spellCheckExtension';
+import { createFindingHighlightExtension, requestFindingHighlightRefresh } from './findingHighlightExtension';
+import type { FindingHighlightTarget } from '@/services/clinical/findingHighlight';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
@@ -85,6 +87,10 @@ export interface PathScribeEditorProps {
   // parent (e.g. via utils/uiPreferences or the user profile) and passed back in on mount.
   tabWidthChars?: number;
   onTabWidthChange?: (chars: number) => void;
+  /** Batch 452 (PS-323): detected critical findings to highlight in the
+   *  text. Drawn as decorations only (findingHighlightExtension.ts); the
+   *  editor's HTML is never changed. */
+  highlightFindings?: readonly FindingHighlightTarget[];
 }
 
 // ─── THEME CONTEXT ────────────────────────────────────────────────────────────
@@ -640,6 +646,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
     allowThemeToggle = false,
     tabWidthChars = DEFAULT_TAB_WIDTH_CHARS,
     onTabWidthChange,
+    highlightFindings,
   },
   ref
 ) => {
@@ -721,6 +728,20 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
     []
   );
 
+  // ── Critical-finding highlights (PS-323, Batch 452) ─────────────────────
+  // Read through a ref for the same reason as the spell check above.
+  const findingsRef = useRef<readonly FindingHighlightTarget[]>(highlightFindings ?? []);
+  findingsRef.current = highlightFindings ?? [];
+  const tRef = useRef(t);
+  tRef.current = t;
+  const findingExtension = React.useMemo(
+    () => createFindingHighlightExtension({
+      getFindings: () => findingsRef.current,
+      describe: f => tRef.current('findingHighlight.title', { term: f.term, severity: tRef.current(`findingHighlight.severity.${f.severity.toLowerCase()}`) }),
+    }),
+    []
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ underline: false, paragraph: false }),
@@ -731,7 +752,7 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
       Table.configure({ resizable: true }),
       TableRow, TableHeader, TableCell,
       macroExtension, tabExtension, FormatMarksExtension, placeholderExtension,
-      spellExtension,
+      spellExtension, findingExtension,
     ],
     content,
     editable: !readOnly,
@@ -763,6 +784,10 @@ const PathScribeEditor = forwardRef<PathScribeEditorHandle, PathScribeEditorProp
   useEffect(() => {
     requestSpellRecheck(editor?.view);
   }, [editor, spellActive, spell?.locale, spell?.revision]);
+
+  useEffect(() => {
+    requestFindingHighlightRefresh(editor?.view);
+  }, [editor, highlightFindings]);
 
   // Keep the module-level ref in sync with state, and force ProseMirror to
   // recompute decorations immediately (decorations() only re-runs when the

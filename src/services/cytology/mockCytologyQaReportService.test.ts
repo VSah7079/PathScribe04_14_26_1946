@@ -30,6 +30,7 @@ describe('mockCytologyQaReportService — real, per direct follow-up ("mimicking
       mockCytologyQaReportService.getDirectedHighRiskRescreeningReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getCtVsPathologistCorrelationReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getPostSignOutPeerReviewCorrelationReport({ level: 'enterprise' }),
+      mockCytologyQaReportService.getPrimaryVsFinalDiagnosisReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getCtStatisticalComparisonReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getAscusHpvReflexReport({ level: 'enterprise' }),
       mockCytologyQaReportService.getWorkloadTrackingReport({ level: 'enterprise' }),

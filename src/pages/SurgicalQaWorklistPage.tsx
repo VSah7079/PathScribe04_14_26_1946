@@ -35,9 +35,9 @@
 // force the pathologist to go to 2 screens"). Each row can also open the
 // case's report, which has the same buttons.
 
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import '../pathscribe.css';
 import { useSurgicalQaReview } from '@/hooks/useSurgicalQaReview';
 import { SurgicalQaReviewModal } from '@/components/QualityAssurance/SurgicalQaReviewModal';
@@ -46,7 +46,7 @@ import type { SurgicalQaRow } from '@/services/quality/surgicalQaReview';
 
 const SurgicalQaWorklistPage: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const { rows, busy, message, activityTypeFor, record, dismiss } = useSurgicalQaReview();
   const [activeRow, setActiveRow] = useState<SurgicalQaRow | null>(null);
   const activeType = activeRow ? activityTypeFor(activeRow) : undefined;
@@ -75,7 +75,7 @@ const SurgicalQaWorklistPage: React.FC = () => {
               )}
             </div>
             <div className="ps-qcqueue-row-actions">
-              <button className="ps-conf-btn-secondary" onClick={() => navigate(`/report/${encodeURIComponent(row.caseId)}`, { state: { returnTo: '/worklist?view=surgicalQa' } })}>
+              <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(row.caseId, 'report', { state: { returnTo: '/worklist?view=surgicalQa' } })}>
                 {t('surgicalQaWorklist.openCaseBtn')}
               </button>
               <button className="ps-conf-btn-primary" onClick={() => setActiveRow(row)}>{t('surgicalQaWorklist.recordReviewBtn')}</button>

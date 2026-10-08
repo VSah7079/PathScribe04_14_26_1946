@@ -16,6 +16,7 @@ import type {
   FieldOption,
 } from '@/components/Config/Protocols/SynopticEditor';
 import type { TemplateDetail } from '@/services/templates/templateService';
+import { mustHaveFields, type MustHaveFields } from '@/services/templates/aiSynthesisStatus';
 import { getTemplateCached, listTemplatesCached } from '@/services/templates/templateService';
 import { filterAutopsyTemplateToActiveSections } from '@/services/autopsy/filterAutopsyTemplateToActiveSections';
 import { calculateAutopsyBodyMassIndex } from '@/services/autopsy/calculateAutopsyBodyMassIndex';
@@ -25,6 +26,18 @@ import { aiBehaviorService } from '@/services';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { matchSourceText } from '@/utils/sourceTextMatching';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
+import { MohsStagesInput } from '@/components/OrganMap/MohsStagesInput';
+import { applyAnswerPatch, mohsDefaultHistology, type AnswerPatchOrUpdate } from '@/services/templates/mohsStages';
+import { BUILT_IN_ORGAN_MAP_SCHEME } from '@/services/organMapping/organMapScheme';
+import { loadOrganMapContext, loadOrganMapScheme, type OrganMapContext } from '@/services/organMapping/organMapLive';
+import { derivedFieldIds } from '@/services/organMapping/organMapDerived';
+import { molecularFieldNotice } from '@/services/templates/molecularResultBinding';
+import { derivedMarginAnswers } from '@/services/organMapping/organMapDerivedAnswers';
+import type { OrganMapScheme } from '@/services/organMapping/organMapTypes';
+import {
+  clearSynopticFieldAnswers, computedSumPatch, partGridCellHasProblem, partGridCountProblems, partGridKey, partGridRowHeading, sumFieldState, sumOfTotal, wholeNumberFieldProblem, fieldExceedsProblem, partGridRowsForField, partGridRowsOf, synopticFieldAnswered, synopticFieldComplete, synopticFieldMissing, type PartGridColumn, type PartGridRow,
+} from '@/services/templates/partGrid';
+import { shownSynopticFields } from '@/services/templates/synopticEntryChecks';
 
 
 
@@ -89,15 +102,89 @@ interface FieldRowProps {
   /** Batch 426: a newer AI suggestion for a field the pathologist had set, waiting for "keep or update?". */
   reevaluation?: PendingReevaluation;
   onReevaluation?: (fieldId: string, choice: 'keep' | 'accept') => void;
+  /** Batch 461: a results grid question reads its cells from all the answers, one row per part. */
+  answers?: Record<string, string | string[]>;
+  gridRows?: PartGridRow[];
+  /** Batch 463: the Mohs stage question — its colours, default histology and how its changes are applied. */
+  mohs?: { scheme: OrganMapScheme; defaultHistology?: string; onPatch: (patch: AnswerPatchOrUpdate) => void };
+  /** Batch 465b: a hand-entered total's grid total, shown beside it. */
+  sumTotal?: number;
+  /** Batch 466b: calculated from the organ map's margin questions (locked). */
+  derivedFromMap?: boolean;
+  /** Batch 467: this question was answered from an in-house molecular result, or the result differs from the answer. */
+  molecular?: { assayName: string; orderId: string; delta?: { resultLabel: string; onAccept: () => void } };
+  /** Batch 466b: this count is above the question it can't exceed (the two values). */
+  exceeds?: { value: number; limit: number };
 }
+
+/** Batch 461: the results grid (one row per part of the case). Each cell is an ordinary answer. */
+const PartGridInput: React.FC<{
+  field: EditorField; rows: PartGridRow[]; answers: Record<string, string | string[]>;
+  onChange: (id: string, v: string | string[]) => void;
+}> = ({ field, rows, answers, onChange }) => {
+  const { t } = useTranslation();
+  const columns: PartGridColumn[] = field.columns ?? [];
+  if (rows.length === 0) return <div className="ps-syn-partgrid-empty">{t('rightSynopticPanel.partGrid.noParts')}</div>;
+  const rowHeading = partGridRowHeading(field as never);
+  // Batch 465b (Pete): a count above the column it can't exceed (nodes positive > examined) is shown on its row.
+  const problems = partGridCountProblems(field as never, answers, rows);
+  return (
+    <div className="ps-syn-partgrid-wrap">
+      <table className="ps-syn-partgrid">
+        <thead>
+          <tr>
+            <th scope="col">{rowHeading ?? t('rightSynopticPanel.partGrid.partColumn')}</th>
+            {columns.map(c => <th key={c.id} scope="col">{c.unit ? t('rightSynopticPanel.partGrid.columnWithUnit', { label: c.label, unit: c.unit }) : c.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.id}>
+              <th scope="row" className="ps-syn-partgrid-part" title={row.description}>{row.label}</th>
+              {columns.map(c => {
+                const key = partGridKey(field.id, row.id, c.id);
+                const v = answers[key];
+                const value = Array.isArray(v) ? '' : String(v ?? '');
+                const label = t('rightSynopticPanel.partGrid.cellLabel', { part: row.label, column: c.label });
+                const wrong = partGridCellHasProblem(problems, row.id, c.id);
+                return (
+                  <td key={c.id}>
+                    {c.type === 'dropdown' ? (
+                      <select className="ps-syn-input ps-syn-partgrid-input" value={value} aria-label={label} onChange={e => onChange(key, e.target.value)}>
+                        <option value="">{t('rightSynopticPanel.partGrid.select')}</option>
+                        {(c.options ?? []).map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                      </select>
+                    ) : (
+                      <input type="number" min={0} step={c.wholeNumber ? 1 : undefined} className={`ps-syn-input ps-syn-partgrid-input ps-syn-partgrid-input--numeric${wrong ? ' ps-syn-partgrid-input--problem' : ''}`} value={value} aria-label={label} aria-invalid={wrong || undefined} onChange={e => onChange(key, e.target.value)} />
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {problems.map(p => (
+        <p key={`${p.rowId}-${p.columnId}`} className="ps-syn-partgrid-problem" role="alert">
+          {p.kind === 'notWhole'
+            ? t('synopticChecks.rowNotWhole', { row: p.rowLabel, column: p.columnLabel, value: p.entered })
+            : t('synopticChecks.rowExceeds', { row: p.rowLabel, column: p.columnLabel, value: p.value, limit: p.limitLabel, limitValue: p.limit })}
+        </p>
+      ))}
+    </div>
+  );
+};
 
 const FieldRow: React.FC<FieldRowProps> = ({
   field, value, onChange, aiSuggestion, onVerify, onLabelClick,
   isActive = false, aiAttempted = false,
   belowThreshold = false, belowThresholdConf, belowThresholdSource,
   isPulsing = false, fieldRef, onFieldFocus, sourceNotFound = false, reevaluation, onReevaluation,
+  answers, gridRows, mohs, sumTotal, derivedFromMap = false, exceeds, molecular,
 }) => {
   const { t } = useTranslation();
+  const sumState = sumFieldState(field, sumTotal);
+  const notWhole = wholeNumberFieldProblem(field as never, { [field.id]: value as string });
   const strVal = (value ?? '') as string;
   const arrVal = Array.isArray(value) ? value as string[] : [];
   const ai = aiSuggestion;
@@ -105,7 +192,9 @@ const FieldRow: React.FC<FieldRowProps> = ({
   const isHighConf = conf >= 85;
   const isMedConf  = conf >= 50 && conf < 85;
   const vStatus = ai?.verification ?? 'unverified';
-  const hasValue = Array.isArray(value) ? value.length > 0 : (value ?? '') !== '';
+  const hasValue = field.type === 'partGrid' || field.type === 'spatialStageCanvas'
+    ? synopticFieldComplete(field, answers ?? {})
+    : Array.isArray(value) ? value.length > 0 : (value ?? '') !== '';
   const isManualEntry = !ai && !belowThreshold && aiAttempted && hasValue;
 
   const confBadgeClass =
@@ -249,12 +338,31 @@ const FieldRow: React.FC<FieldRowProps> = ({
           // (Q1.1) \u2014 read-only so a real user can't enter a value
           // that would just get silently overwritten the next time
           // weight or height changes.
-          disabled={field.id === 'body_mass_index'}
-          className="ps-syn-input ps-syn-input--numeric"
+          disabled={field.id === 'body_mass_index' || sumState === 'calculated'}
+          // Batch 466 (Pete): a node count is a whole number, 0 or more.
+          min={field.wholeNumber ? 0 : undefined}
+          step={field.wholeNumber ? 1 : undefined}
+          aria-invalid={notWhole !== undefined || undefined}
+          className={`ps-syn-input ps-syn-input--numeric${notWhole !== undefined ? ' ps-syn-partgrid-input--problem' : ''}`}
         />
       )}
+      {field.type === 'numeric' && notWhole !== undefined && (
+        <p className="ps-syn-partgrid-problem" role="alert">{t('synopticChecks.notWholeHint', { value: notWhole })}</p>
+      )}
+      {field.type === 'numeric' && notWhole === undefined && exceeds && (
+        <p className="ps-syn-partgrid-problem" role="alert">{t('synopticChecks.fieldExceedsHint', { value: exceeds.value, limitValue: exceeds.limit })}</p>
+      )}
+      {/* Batch 465b: a total from its grid — calculated once the grid has counts, else entered by hand; an
+          override total is entered by hand with the grid's total beside it. */}
+      {field.type === 'numeric' && sumState && (
+        <div className="ps-syn-field-hint">
+          {sumState === 'calculated' ? t('synopticChecks.calculatedHint')
+            : sumState === 'open' ? t('synopticChecks.calculatedWhenFilled')
+              : sumTotal === undefined ? t('synopticChecks.gridEmptyHint') : t('synopticChecks.gridTotalHint', { total: sumTotal })}
+        </div>
+      )}
       {field.type === 'dropdown' && (
-        <select value={strVal} onChange={e => onChange(field.id, e.target.value)} className="ps-syn-input" aria-label={field.label}>
+        <select value={strVal} onChange={e => onChange(field.id, e.target.value)} className="ps-syn-input" aria-label={field.label} disabled={derivedFromMap}>
           <option value="">{t('rightSynopticPanel.fieldRow.selectPlaceholder')}</option>
           {field.options?.map((o: FieldOption) => (
             <option key={o.id} value={o.id}>{o.label}</option>
@@ -265,7 +373,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
         <div className="ps-syn-options-list">
           {field.options?.map((o: FieldOption) => (
             <label key={o.id} className="ps-syn-option-label">
-              <input type="radio" name={field.id} checked={strVal === o.id} onChange={() => onChange(field.id, o.id)} className="ps-syn-option-input" />
+              <input type="radio" name={field.id} checked={strVal === o.id} onChange={() => onChange(field.id, o.id)} className="ps-syn-option-input" disabled={derivedFromMap} />
               {o.label}
             </label>
           ))}
@@ -284,11 +392,30 @@ const FieldRow: React.FC<FieldRowProps> = ({
                   onChange(field.id, Array.from(next));
                 }}
                 className="ps-syn-option-input"
+                disabled={derivedFromMap}
               />
               {o.label}
             </label>
           ))}
         </div>
+      )}
+
+      {/* Batch 466b (Pete): a generic margin question calculated from the map's margin questions. */}
+      {derivedFromMap && <div className="ps-syn-field-hint">{t('synopticChecks.derivedFromMapHint')}</div>}
+      {/* Batch 467 (Pete): an answer from an in-house molecular result, or the "engine delta" — the result differs. */}
+      {molecular && !molecular.delta && <div className="ps-syn-field-hint">{t('molecularOrders.synoptic.fromResult', { assay: molecular.assayName, order: molecular.orderId })}</div>}
+      {molecular?.delta && (
+        <div className="ps-syn-molecular-delta" role="status">
+          <span className="ps-syn-molecular-delta-tag">{t('molecularOrders.synoptic.deltaTag')}</span>
+          <span>{t('molecularOrders.synoptic.deltaText', { assay: molecular.assayName, order: molecular.orderId, result: molecular.delta.resultLabel })}</span>
+          <button type="button" className="ps-syn-molecular-delta-btn" onClick={molecular.delta.onAccept}>{t('molecularOrders.synoptic.useResult')}</button>
+        </div>
+      )}
+      {field.type === 'partGrid' && (
+        <PartGridInput field={field} rows={gridRows ?? []} answers={answers ?? {}} onChange={onChange} />
+      )}
+      {field.type === 'spatialStageCanvas' && mohs && (
+        <MohsStagesInput fieldId={field.id} answers={answers ?? {}} scheme={mohs.scheme} defaultHistology={mohs.defaultHistology} onPatch={mohs.onPatch} />
       )}
 
       {strVal && field.type === 'dropdown' && (
@@ -530,11 +657,14 @@ interface RightSynopticPanelProps {
    * still genuinely used elsewhere (report drafting, verification).
    */
   onAiSuggestionsUpdate?: (suggestions: Record<string, AiSuggestion>) => void;
+  /** PS-329 (Batch 437): the template's Must Have fields for the answers so
+   *  far, so the report header's AI badge counts only those. */
+  onMustHaveFieldsUpdate?: (fields: MustHaveFields | null) => void;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPanelProps>(
-  ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', activeSpecimenId, onReportInstanceChange, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate }, ref) => {
+  ({ caseData: initialCaseData, activeReportInstanceId, activeReportType = 'synoptic', activeSpecimenId, onReportInstanceChange, onCaseUpdate, scrollToField, onScrollComplete, onHighlight, highlightNotFound, computationalResults, onAiSuggestionsUpdate, onMustHaveFieldsUpdate }, ref) => {
   const { t } = useTranslation();
 
   // Real fix, found via a direct audit: same as HeaderBar.tsx — this
@@ -618,6 +748,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       }
     });
   }, []);
+
+  // ── PS-329: the template's Must Have fields, for the header's AI badge ─────
+  useEffect(() => {
+    onMustHaveFieldsUpdate?.(mustHaveFields(templateDetail?.template, answers));
+  }, [templateDetail, answers, onMustHaveFieldsUpdate]);
 
   // ── Propagate answer changes to parent ────────────────────────────────────
   useEffect(() => {
@@ -725,7 +860,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       const all: { fieldId: string; sectionId: string }[] = [];
       for (const sec of templateDetail.template.sections.filter((s: any) => isVisible(s.visibleWhen, answers)))
         for (const f of sec.fields)
-          if (isVisible(f.visibleWhen, answers) && !answers[f.id])
+          if (isVisible(f.visibleWhen, answers) && !synopticFieldComplete(f, answers))
             all.push({ fieldId: f.id, sectionId: sec.id });
       if (!all.length) return;
       const cur = all.findIndex(x => x.fieldId === lastJumpedFieldId.current);
@@ -736,7 +871,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       const all: { fieldId: string; sectionId: string }[] = [];
       for (const sec of templateDetail.template.sections.filter((s: any) => isVisible(s.visibleWhen, answers)))
         for (const f of sec.fields)
-          if (f.required && isVisible(f.visibleWhen, answers) && !answers[f.id])
+          if (isVisible(f.visibleWhen, answers) && synopticFieldMissing(f, answers))
             all.push({ fieldId: f.id, sectionId: sec.id });
       if (!all.length) return;
       const cur = all.findIndex(x => x.fieldId === lastJumpedFieldId.current);
@@ -823,10 +958,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       templateDetail.template.sections.forEach((sec: any) => {
         if (!isVisible(sec.visibleWhen, answers)) return;
         sec.fields.forEach((f: any) => {
-          if (!f.required || !isVisible(f.visibleWhen, answers)) return;
-          const val = answers[f.id];
-          const isEmpty = !val || (Array.isArray(val) ? val.length === 0 : val.toString().trim() === '');
-          if (isEmpty) missing.push({ sectionId: sec.id, sectionTitle: sec.title, fieldId: f.id, fieldLabel: f.label });
+          if (!isVisible(f.visibleWhen, answers)) return;
+          if (synopticFieldMissing(f, answers)) missing.push({ sectionId: sec.id, sectionTitle: sec.title, fieldId: f.id, fieldLabel: f.label });
         });
       });
       return missing;
@@ -857,7 +990,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
         templateDetail.template.sections.forEach((sec: any) => {
           sec.fields.forEach((f: any) => {
             if (!finalSuggestions[f.id]) {
-              const hasVal = Array.isArray(answers[f.id]) ? (answers[f.id] as string[]).length > 0 : !!(answers[f.id]);
+              const hasVal = synopticFieldAnswered(f, answers);
               if (hasVal) missed++; else notFound++;
             }
           });
@@ -904,11 +1037,11 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
 
     for (const sec of templateDetail.template.sections) {
       if (!isVisible(sec.visibleWhen, answers)) continue;
-      const hasUnanswered = sec.fields.some((f: any) => f.required && isVisible(f.visibleWhen, answers) && !answers[f.id]);
+      const hasUnanswered = sec.fields.some((f: any) => isVisible(f.visibleWhen, answers) && synopticFieldMissing(f, answers));
       if (hasUnanswered) {
         setActiveSectionId(sec.id);
         setTimeout(() => {
-          const firstReqField = sec.fields.find((f: any) => f.required && isVisible(f.visibleWhen, answers) && !answers[f.id]);
+          const firstReqField = sec.fields.find((f: any) => isVisible(f.visibleWhen, answers) && synopticFieldMissing(f, answers));
           if (firstReqField) {
             const el = fieldRefs.current[firstReqField.id];
             if (el) {
@@ -1121,8 +1254,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
         else delete next.body_mass_index;
       }
       templateDetail?.template.sections.forEach((sec: EditorSection) => {
-        if (!isVisible(sec.visibleWhen, next)) sec.fields.forEach((f: EditorField) => delete next[f.id]);
-        else sec.fields.forEach((f: EditorField) => { if (!isVisible(f.visibleWhen, next)) delete next[f.id]; });
+        if (!isVisible(sec.visibleWhen, next)) sec.fields.forEach((f: EditorField) => clearSynopticFieldAnswers(f, next));
+        else sec.fields.forEach((f: EditorField) => { if (!isVisible(f.visibleWhen, next)) clearSynopticFieldAnswers(f, next); });
       });
       return next;
     });
@@ -1172,6 +1305,62 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
       return nextSuggestions;
     });
   }, [templateDetail, caseData, activeReportInstanceId, aiSuggestions, user]);
+
+  // Batch 463: a change of several answers at once (the Mohs stage question), then the same clean-up as setAnswer.
+  const applyPatch = useCallback((patch: AnswerPatchOrUpdate) => {
+    setAnswers(prev => {
+      const next = applyAnswerPatch(prev, patch) as Record<string, string | string[]>;
+      templateDetail?.template.sections.forEach((sec: EditorSection) => {
+        if (!isVisible(sec.visibleWhen, next)) sec.fields.forEach((f: EditorField) => clearSynopticFieldAnswers(f, next));
+        else sec.fields.forEach((f: EditorField) => { if (!isVisible(f.visibleWhen, next)) clearSynopticFieldAnswers(f, next); });
+      });
+      return next;
+    });
+  }, [templateDetail]);
+
+  // Batch 465b (Pete): totals calculated from their grid (the neck's nodes positive and examined), kept in step
+  // whatever changed the answers — typing, an AI suggestion confirmed or auto-inserted, the report loading. Only
+  // the questions shown are filled (a hidden total stays cleared).
+  useEffect(() => {
+    const sections = templateDetail?.template.sections;
+    if (!sections) return;
+    const patch = computedSumPatch(shownSynopticFields(sections as never, answers) as never, answers, partGridRowsOf(caseData?.specimens));
+    if (Object.keys(patch).length) setAnswers(prev => ({ ...prev, ...patch }));
+  }, [answers, templateDetail, caseData?.specimens]);
+
+  // Batch 463: the facility's map colours, for the Mohs stage canvas.
+  const [mapScheme, setMapScheme] = useState<OrganMapScheme>(BUILT_IN_ORGAN_MAP_SCHEME);
+  const mapFacilityId = initialCaseData?.order?.facilityId ?? null;
+  useEffect(() => {
+    let cancelled = false;
+    void loadOrganMapScheme(mapFacilityId).then(r => { if (!cancelled) setMapScheme(r.scheme); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [mapFacilityId]);
+
+  // Batch 466b (Pete: derive the form from the map): the template's generic margin questions follow the map's
+  // margin questions — calculated whatever changed the answers, and locked.
+  const [mapContext, setMapContext] = useState<OrganMapContext | null>(null);
+  const mapTemplateId = templateDetail?.template.id;
+  useEffect(() => {
+    let cancelled = false;
+    // A new template: the old one's binding never applies to its answers.
+    setMapContext(null);
+    if (!mapTemplateId) return;
+    void loadOrganMapContext({ templateId: mapTemplateId, facilityId: mapFacilityId }).then(c => { if (!cancelled) setMapContext(c); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [mapTemplateId, mapFacilityId]);
+  const currentMapContext = mapContext && mapContext.template?.id === mapTemplateId ? mapContext : null;
+  const derivedIds = derivedFieldIds(currentMapContext?.binding);
+  useEffect(() => {
+    const sections = templateDetail?.template.sections;
+    if (!sections || !currentMapContext?.binding?.derived) return;
+    const patch = derivedMarginAnswers({
+      binding: currentMapContext.binding, answers, fields: shownSynopticFields(sections as never, answers) as never,
+      scheme: currentMapContext.scheme.scheme, thresholds: currentMapContext.scheme.thresholds, rows: partGridRowsOf(caseData?.specimens),
+    });
+    // Through applyPatch, so questions that depend on the margin status are shown or cleared as usual.
+    if (Object.keys(patch).length) applyPatch(patch);
+  }, [answers, templateDetail, currentMapContext, caseData?.specimens, applyPatch]);
 
   // ── handleVerify ──────────────────────────────────────────────────────────
   const handleVerify = useCallback((fieldId: string, v: 'verified' | 'disputed') => {
@@ -1305,6 +1494,14 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
 
   // ── Derived values ────────────────────────────────────────────────────────
   const template = templateDetail.template;
+  // Batch 467: questions answered from (or differing from) an in-house molecular result (services/templates).
+  const molecularInstance = getActiveReports(caseData).find(r => r.instanceId === activeReportInstanceId) as SynopticReportInstance | undefined;
+  const molecularFieldState = (fieldId: string): FieldRowProps['molecular'] => {
+    const n = molecularFieldNotice(template as never, answers, molecularInstance?.resultSources, fieldId);
+    if (!n) return undefined;
+    const delta = n.delta;
+    return { assayName: n.assayName, orderId: n.orderId, ...(delta ? { delta: { resultLabel: delta.resultLabel, onAccept: () => setAnswer(fieldId, delta.answer) } } : {}) };
+  };
   const visibleSections = template.sections.filter((s: EditorSection) => isVisible(s.visibleWhen, answers));
   const activeSection = visibleSections.find((s: EditorSection) => s.id === activeSectionId) ?? visibleSections[0];
 
@@ -1312,8 +1509,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
   visibleSections.forEach((s: EditorSection) => s.fields.forEach((f: EditorField) => {
     if (!isVisible(f.visibleWhen, answers)) return;
     total++;
-    const has = answers[f.id] !== undefined && answers[f.id] !== '' &&
-      !(Array.isArray(answers[f.id]) && (answers[f.id] as string[]).length === 0);
+    const has = synopticFieldComplete(f, answers);
     if (has) answered++;
     if (f.required) { reqTotal++; if (has) reqAnswered++; }
     // "Unverified" here means genuinely reviewable: an AI suggestion
@@ -1323,6 +1519,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
     // there's nothing to review.
     if (aiSuggestions[f.id] && aiSuggestions[f.id].verification === 'unverified') unverifiedCount++;
   }));
+
+  const gridRows = partGridRowsOf(caseData.specimens);
 
   // ── Section fields renderer ───────────────────────────────────────────────
   const SectionFields = (sec: EditorSection) => (
@@ -1339,6 +1537,13 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               field={f}
               value={answers[f.id] ?? ''}
               onChange={setAnswer}
+              answers={f.type === 'partGrid' || f.type === 'spatialStageCanvas' ? answers : undefined}
+              mohs={f.type === 'spatialStageCanvas' ? { scheme: mapScheme, defaultHistology: mohsDefaultHistology(template, f, answers), onPatch: applyPatch } : undefined}
+              gridRows={f.type === 'partGrid' ? partGridRowsForField(f as never, gridRows) : undefined}
+              derivedFromMap={derivedIds.includes(f.id)}
+              molecular={molecularFieldState(f.id)}
+              exceeds={fieldExceedsProblem(f as never, answers)}
+              sumTotal={f.sumOf ? sumOfTotal(f as never, template.sections.flatMap((s: EditorSection) => s.fields) as never, answers, gridRows) : undefined}
               // Previously: `aboveThreshold ? sug : undefined` — stripped
               // the suggestion entirely for low-confidence fields, which
               // also strips the Confirm/Override buttons (they're gated on
@@ -1348,7 +1553,8 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               // warning badge. Pass the suggestion through unconditionally
               // so low-confidence fields get the warning badge AND the
               // Confirm/Override buttons together, not instead of them.
-              aiSuggestion={sug}
+              // Batch 466b: a question calculated from the map takes no AI suggestion (it can't be confirmed or overridden).
+              aiSuggestion={derivedIds.includes(f.id) ? undefined : sug}
               belowThreshold={!!belowThresh}
               belowThresholdConf={belowThresh ? sug!.confidence : undefined}
               belowThresholdSource={belowThresh ? sug!.source : undefined}
@@ -1450,7 +1656,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               const all: { fieldId: string; sectionId: string }[] = [];
               for (const sec of visibleSections)
                 for (const f of sec.fields)
-                  if (isVisible(f.visibleWhen, answers) && !answers[f.id])
+                  if (isVisible(f.visibleWhen, answers) && !synopticFieldComplete(f, answers))
                     all.push({ fieldId: f.id, sectionId: sec.id });
               if (!all.length) return;
               const cur = all.findIndex(x => x.fieldId === lastJumpedFieldId.current);
@@ -1466,7 +1672,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
               const all: { fieldId: string; sectionId: string }[] = [];
               for (const sec of visibleSections)
                 for (const f of sec.fields)
-                  if (f.required && isVisible(f.visibleWhen, answers) && !answers[f.id])
+                  if (isVisible(f.visibleWhen, answers) && synopticFieldMissing(f, answers))
                     all.push({ fieldId: f.id, sectionId: sec.id });
               if (!all.length) return;
               const cur = all.findIndex(x => x.fieldId === lastJumpedFieldId.current);
@@ -1521,7 +1727,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
             <div className="ps-syn-section-tabs">
               {visibleSections.map((sec: EditorSection) => {
                 const isActive = sec.id === (activeSectionId || visibleSections[0]?.id);
-                const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && answers[f.id]).length;
+                const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && synopticFieldComplete(f, answers)).length;
                 const secTotal = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers)).length;
                 // Real fix, per direct report: this tab button previously
                 // showed only the confirmed-answer count, with zero
@@ -1588,7 +1794,7 @@ const RightSynopticPanel = forwardRef<RightSynopticPanelHandle, RightSynopticPan
                 {sec.title}
               </h4>
               {(() => {
-                const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && answers[f.id]).length;
+                const secAnswered = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers) && synopticFieldComplete(f, answers)).length;
                 const secTotal    = sec.fields.filter((f: EditorField) => isVisible(f.visibleWhen, answers)).length;
                 const secUnverified = sec.fields.filter((f: EditorField) =>
                   isVisible(f.visibleWhen, answers) &&

@@ -52,6 +52,82 @@ Before, anyone who could open Configuration could change this; now each change i
 
 Surgical peer review risk weights can now be set: QA Configuration Center → Surgical Post-Sign-Out Peer Review → "Risk weight by subspecialty". Setting or removing one needs `config:qa-types:manage` (the service is guarded). Blank = 1×; a weight is above 0 and up to 10 (`riskWeightInput.ts`).
 
+## Batch 438 (PS-144 to PS-148): the CAPA recommendation engine
+
+Pete (Oct 2): PathScribe recommends a CAPA; a QA lead confirms it (which opens and assigns the CAPA) or dismisses it with a reason. Nothing opens a CAPA by itself any more.
+
+- `capaRecommendationRules.ts` (pure) decides:
+  - `qaRecordRecommendation`: what a QA review with an outcome recommends. Consensus reached → nothing. Reviewers unresolved → always. Otherwise the activity type's severities, as before. A discordance from the after-sign-out peer review is its own source (`post-signout-discordance`, PS-148).
+  - `findLinkTarget`: a new event that belongs to a live recommendation (pending, or confirmed with its CAPA still open) is linked to it, not added. A clinically significant correction links to a discordance on the same case; the same deficiency type on the same specimen links to the earlier one. A dismissed one never absorbs a new event.
+  - `decisionProblem`, `capaComment`, `capaOwnerOptions`, `capaQueueOrder`.
+- `capaRecommendationService.ts`: `recommend`, `confirm` (owner required; raises an open deficiency with `assignedTo` and `capaRecommendationId`), `dismiss` (reason required). Confirm and dismiss check `qa:capa-recommendation:decide`. Audit events `CAPA_RECOMMENDED`, `CAPA_RECOMMENDATION_LINKED`, `CAPA_RECOMMENDATION_CONFIRMED`, `CAPA_RECOMMENDATION_DISMISSED`.
+- `mockCapaRecommendationService.ts`: the browser's copy (`pathscribe_capa_recommendations`), with two demo recommendations.
+- `mockQaActivityRecordService.ts`: the PS-134 auto-raise is gone; a qualifying review now recommends. It no longer imports the deficiency service.
+- Tests: `capaRecommendationService.test.ts`, including a regression guard (Pete's watch-item 1): no file but the engine raises a deficiency of a recommend-only type, and the QA record service can't import the deficiency service.
+
+## Batch 439 (PS-144, PS-145, PS-148)
+
+**Peer review before sign-out (PS-144).** Pete (Oct 2): triggered by a first-time malignancy judged from the patient's prior cases; a different pathologist reviews; consensus reached recommends no CAPA, unresolved recommends one; the sign-out gate is configurable and off by default.
+- `peerReviewRules.ts` (pure, `peerReviewRules.test.ts`):
+  - `firstTimeMalignancy`: malignant now (the pathologist's confirmed finding), no prior case of the patient (or a confirmed same-person identity) malignant, and no known malignancy in the order's clinical history (`MAL_STAGE`) or indication. `statesMalignancy` ignores negated and tentative mentions ("negative for carcinoma", "rule out lymphoma").
+  - `peerReviewerOptions`: active staff holding the Pathologist role (matched by name to the role catalog), never the signer.
+  - The request, read, resolution, withdraw and override checks; `peerReviewState` / `peerReviewBlocksSignOut`; `peerReviewGateOn` (department, then performing lab, then organisation; off by default); `qaRecordForCompletedReview`.
+- `peerReviewService.ts` / `mockPeerReviewService.ts`: request, the reviewer's read, the consensus step, withdraw, and the urgent-care override (owed within 24 hours). Checks `case:peer-review:request`, `case:peer-review:record`, `case:peer-review:override`; audited. A completed review writes a "Pre-Sign-Out Peer Review" QA record (the reviewer records it; the signer is `reviewedPathologist`), and the CAPA engine recommends from an unresolved one.
+- `mockPeerReviewSettingsService.ts`: where the gate is on; `config:peer-review:manage`; every change audited (`PEER_REVIEW_GATE_CHANGED`).
+- `peerReviewStatus.ts` / `peerReviewStatusLive.ts`: one case's state, read by both the report page's banner and the sign-out gate. The gate's facility is the performing lab, from the ordering facility (or the enterprise facility that lists the case's tenant).
+
+**Recommendations (PS-145, PS-148).** `capaRecommendationRules.qaRecordRecommendation` now also:
+- recommends source `clinical-mismatch` for an unresolved "Clinical-Pathologic Correlation" record;
+- treats any record made after release (`postSignOut`) as `post-signout-discordance`, and honours a rule's `postSignOutOnly` (the outside-consult type).
+
+**Activity types.** Three new standard types: Pre-Sign-Out Peer Review, Clinical-Pathologic Correlation, Outside Consult Correlation. `mockQaActivityTypeService` now adds standard types missing from a browser's stored list (`withMissingSeedRecords`).
+
+**Correction to this README's Notes (stale since Batch 438):** `capaTriggerRule` no longer auto-raises a deficiency. Since Batch 438 every trigger recommends a CAPA, which the QA lead confirms (opening it) or dismisses with a reason. The Notes paragraph above that says "auto-raises a real SpecimenDeficiency" describes the PS-134 behaviour Batch 438 replaced.
+
+## Batch 441
+
+`capaTriggerSummary.ts` (`capaTriggerSummary.test.ts`) gives the QA Configuration Center's CAPA Trigger column its content: severities, deficiency type, and "after release only". The screen now has the checkbox for `capaTriggerRule.postSignOutOnly` (PS-148, an earlier open item), and shows severities and jurisdictions translated.
+
+## Batch 442: discordance patterns over time, set per site (PS-147)
+
+Pete (Oct 2): "Hardcoding a global numeric threshold or fixed time window … is an anti-pattern for enterprise laboratory software." Every threshold is a site setting.
+
+- **`qaTrendRules.ts`** (pure, `qaTrendRules.test.ts`):
+  - **Policy.** `DEFAULT_QA_TREND_POLICY` uses the developer's numbers as editable defaults: 3 months, 20 reviews, 3 majors or 10%, major = high. `effectiveQaTrendPolicy` (a lab's own, else the organisation's); `qaTrendPolicyProblem` (validation); `withLabQaTrendPolicy` and `toggledMajorSeverity` (screen helpers); `qaTrendPolicyChange` (English audit text).
+  - **Patterns.** `qaTrendCandidates` groups completed reviews per pathologist (records naming `reviewedPathologist`) and per specimen type (whoever read it), per performing lab, judged by that lab's policy; `trendTrigger` checks the minimum, then count or rate. `newQaTrendRecommendations`: one open recommendation per subject and lab. A concluded one isn't raised again on the same majors, only when a new major discordance arrives (a bug found in the browser check).
+  - **Decisions.** `qaTrendDecisionProblem` and `applyQaTrendDecision`: start a review; conclude with a CAPA only after a review, with a note; dismiss with a reason. `qaTrendQueueOrder` and `qaTrendPendingCount` for the list.
+- **`mockQaTrendPolicyService.ts`**: the settings. Checks `config:qa-trend-policy:manage`, validates, and audits (`QA_TREND_POLICY_CHANGED`).
+- **`qaTrendService.ts`** (`createQaTrendService`, `qaTrendService.test.ts`): `list` and `evaluate` need `qa:pathologist-trend:view`; `decide` needs `qa:pathologist-trend:decide`. Audited as `QA_TREND_RECOMMENDED` and `QA_TREND_DECIDED`. `qaTrendServiceLive.ts` resolves each record's performing lab and specimen type.
+- **`surgicalQaReview.ts`**: a retrospective peer review now records `reviewedPathologist` (the case's primary, else its assignee; `reviewedPathologistOf`), so it counts toward the pathologist pattern. Correlations don't.
+
+## Batch 444
+
+`capaRecommendationService.test.ts`: the "only the engine raises these" guard compared paths with `/deficiencies/`, so on Windows (backslashes) it flagged `mockDeficiencyTypeService.ts`. Paths are now normalised to forward slashes. Found by Pete running the suite on Windows; a test fault, not a product one.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`qaEvidenceBinderCsvRows` / `qaEvidenceBinderExportFilename` in `resolveQaEvidenceBinder.ts`; no patient columns (PS-121).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+- `biopsyResectionCorrelationSettings.ts` (new): the surgical biopsy-to-resection window, set per enterprise, jurisdiction and facility (`config:biopsy-resection-correlation:manage`). `getEffectiveBiopsyResectionRule(facilityId)` resolves it.
+- `resolveSurgicalBiopsyToResectionCorrelationCandidates.ts`: the window is a rule, not a fixed 180 days. `DEFAULT_BIOPSY_RESECTION_RULE` is 180 days from collection, falling back to receipt and then sign-out. A plain number still works and means days from receipt.
+- `applySurgicalPostSignOutQa.ts` passes the collected, received and sign-out dates and the facility's rule.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`resolveSurgicalBiopsyToResectionCorrelationCandidates.ts` exports `resolveSiteMatchStatus`, so follow-up tracking (`services/followUp/`) applies the same site rule when deciding whether a resection arrived.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+The FPPE seed `qa-supervision-seed-003` made Oliver Pemberton (Manchester) Pete's supervisor. It is now Michelle Nimmo, supervised by Pete, both at Desert Valley. `demoBaseline.test.ts` checks Pete is nobody's FPPE supervisee and each seeded name matches its id.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Surgical post-sign-out QA and QA review saves are versioned (`applySurgicalQaAdditions`). A lasting conflict is logged and never blocks sign-out.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

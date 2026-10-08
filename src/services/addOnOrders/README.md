@@ -15,6 +15,10 @@
 
 Placing an order on two blocks of the same specimen used to start each block from the case as first loaded, so the second save dropped the first block's new orders. Blocks now build on each other before a single save.
 
+## Batch 467 — In-house molecular orders
+
+A molecular line has a routing (in-house or send-out). Only a send-out line needs its reference lab. After an order is saved, each molecular slide order it made becomes a molecular order (`molecularOrderRequests` → the engine's ingest). Tests added.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

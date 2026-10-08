@@ -199,6 +199,10 @@ export interface PrintSettingsConfig {
    *  honest, separate follow-up in that file's own header rather than
    *  silently left unmentioned. */
   slideLabelLayout: SlideLabelLayoutConfig;
+  /** PS-282 (Batch 437): ask for a reason whenever a report that was
+   *  printed before is printed again; the reason goes in the audit entry.
+   *  Optional so settings saved before Batch 437 read as off. */
+  requireReprintReason?: boolean;
 }
 
 export const DEFAULT_PRINT_SETTINGS_CONFIG: PrintSettingsConfig = {
@@ -220,6 +224,7 @@ export const DEFAULT_PRINT_SETTINGS_CONFIG: PrintSettingsConfig = {
   gs1Gtin: '',
   cassetteLabelLayout: DEFAULT_CASSETTE_LABEL_LAYOUT,
   slideLabelLayout: DEFAULT_SLIDE_LABEL_LAYOUT,
+  requireReprintReason: false,
 };
 
 export interface IPrintSettingsService {

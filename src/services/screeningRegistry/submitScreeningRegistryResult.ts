@@ -34,6 +34,7 @@ import { consentExclusionMessage, evaluateRegistryConsent } from '../registryCon
 import { latestRegistryTemplateVersion, registryTemplateHistory } from '../registryGoLive/registryTemplateVersions';
 import type { RegistrySendGate } from '../registryGoLive/registrySendGate';
 import { buildRegistrySubmissionHeader, registryContentHash, type PriorRegistrySubmission, type RegistrySubmissionHeader, type RegistrySubmissionKind } from '../registrySubmission/registrySubmissionHeader';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -52,7 +53,9 @@ export interface ScreeningRegistrySubmitDeps {
   logAudit: (event: any) => unknown;
   /** Batch 424: send, hold or skip on this instance (registrySendGate.ts). */
   sendGate: (registryId: string) => Promise<RegistrySendGate>;
-  updateCase: (caseId: string, patch: Record<string, unknown>) => Promise<unknown>;
+  /** PS-71 (Batch 458): the eligibility flag is saved against the case as read, with its version. */
+  getCase: (caseId: string) => Promise<any | null | undefined>;
+  updateCase: (caseId: string, patch: Record<string, unknown>, expectedVersion: number) => Promise<unknown>;
   now: () => Date;
   newId: () => string;
 }
@@ -164,15 +167,21 @@ export async function submitScreeningRegistryResult(input: ScreeningRegistrySubm
   // The registry's case-level flag (CSMS: no reason for study), once per case, on the first submission only.
   const flag = definition.eligibilityFlag;
   if (input.kind === 'signOut' && flag?.when === 'missingReasonForStudy' && !order?.reasonForStudy) {
-    const existingFlags = caseData.caseFlags ?? [];
-    if (!existingFlags.some((f: any) => f.flagDefinitionId === flag.flagDefinitionId && !f.deletedAt)) {
-      await deps.updateCase(caseData.id, {
-        caseFlags: [...existingFlags, {
-          id: 'registry-elig-' + deps.newId(), flagDefinitionId: flag.flagDefinitionId, appliedAt: deps.now().toISOString(),
-          appliedBy: 'system', source: 'system', deletedAt: null, deletedBy: null,
-        }],
-      });
-    }
+    // PS-71 (Batch 458): the flag list is rebuilt from the case as read for
+    // the save, with its version, so a flag someone else added in between is
+    // kept; nothing is written if the flag is already there.
+    const newFlag = {
+      id: 'registry-elig-' + deps.newId(), flagDefinitionId: flag.flagDefinitionId, appliedAt: deps.now().toISOString(),
+      appliedBy: 'system', source: 'system', deletedAt: null, deletedBy: null,
+    };
+    await updateCaseWithRetryOrThrow(caseData.id, current => {
+      const existingFlags: any[] = (current as any).caseFlags ?? [];
+      if (existingFlags.some((f: any) => f.flagDefinitionId === flag.flagDefinitionId && !f.deletedAt)) return null;
+      return { caseFlags: [...existingFlags, newFlag] } as any;
+    }, {
+      getCase: deps.getCase,
+      updateCase: async (id, updates, expectedVersion) => { await deps.updateCase(id, updates as Record<string, unknown>, expectedVersion); },
+    });
   }
   return { outcome: 'sent', queueId: queued.data.id, submission };
 }

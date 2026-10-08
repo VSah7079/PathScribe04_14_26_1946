@@ -203,8 +203,9 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
   // separate limitation of the demo data layer — this gate is what a
   // real patient-master-index lookup would also need to enforce before
   // ever considering an MRN a safe match; see
-  // backend-requirements-concurrency-security.md for the production
-  // version of this requirement.
+  // the API server's patient-matching rules for the production version of
+  // this requirement (docs/architecture/CASE_PRIVACY_MODEL.md, PS-345; the
+  // backend-requirements document once cited here was never written, PS-40).
   //
   // Real fix: also requires a real patientId now - without one, there's
   // no real MPI identity to query real history by at all. Cases created

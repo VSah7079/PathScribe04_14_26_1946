@@ -61,5 +61,18 @@ Chromium, dev server, with the OR board open twice and the Intraop Queue.
 - **Authentication:** since Batch 343 (PS-60) `liveUpdateService.ts` passes `accessTokenFactory: getAccessToken` (`services/auth/accessTokenSource.ts`), so SSO users connect with their access token. Demo password sessions and OR terminals have none yet (terminal device tokens are still to come); the hub must refuse unauthenticated connections (spec §4).
 - **Runtime configuration:** `VITE_LIVE_UPDATES_HUB_URL` is fixed at build time.
 
+## Batch 435 — WSI scan batch changes
+
+A third kind of event, `WsiScanBatchChanged` (ids only: batch, change, lab), keeps Batch Management → Slide scanning current:
+- `liveUpdateContract.ts`: `HUB_WSI_SCAN_BATCH_CHANGED`, `WsiScanBatchChangedEvent`, `parseWsiScanBatchChangedEvent`.
+- `ILiveUpdateService.subscribeWsiScanBatches`, on both transports. The SignalR one keeps the connection open for it and sends no scope.
+- `localLiveUpdateService.publishWsiScanBatchChange`. `digitalPathology/mockWsiScanBatchService.ts` publishes after every write: loaded, sent, send failed, a slide's status, unloaded.
+
+The hub side is `docs/architecture/LIVE_UPDATES_SIGNALR.md` §11. Tests are in `liveUpdates.test.ts`.
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

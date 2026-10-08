@@ -1,6 +1,6 @@
 {
   "id": "colorectal_resection_b",
-  "name": "Generic Template \u2014 Colorectal Resection B",
+  "name": "Generic Template — Colorectal Resection B",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -1025,6 +1025,176 @@
           "icd": "",
           "options": [],
           "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "psmap_rectal_resection",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_rec_quadrants",
+          "label": "Rectal tumour position (for the map)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_rec_quadrants_anterior",
+              "label": "Anterior",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_quadrants_left",
+              "label": "Left lateral",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_quadrants_posterior",
+              "label": "Posterior",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_quadrants_right",
+              "label": "Right lateral",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_quadrants_circumferential",
+              "label": "Circumferential",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "Where the tumour lies around the rectum, as seen in the specimen."
+        },
+        {
+          "id": "psmap_rec_crmMm",
+          "label": "Circumferential (radial) margin: closest distance (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "Judged by the site’s CRM rule (≤ 1.0 mm involved unless the site sets another).",
+          "unit": "mm"
+        },
+        {
+          "id": "psmap_rec_crmQuadrant",
+          "label": "Where the CRM is closest",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_rec_crmQuadrant_anterior",
+              "label": "Anterior",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_crmQuadrant_left",
+              "label": "Left lateral",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_crmQuadrant_posterior",
+              "label": "Posterior",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_crmQuadrant_right",
+              "label": "Right lateral",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_rec_tmePlane",
+          "label": "Plane of mesorectal excision",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_rec_tmePlane_mesorectal",
+              "label": "Mesorectal plane (complete)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_tmePlane_intramesorectal",
+              "label": "Intramesorectal plane (nearly complete)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_tmePlane_muscularisPropria",
+              "label": "Muscularis propria plane (incomplete)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_rec_reflection",
+          "label": "Tumour and the peritoneal reflection",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_rec_reflection_above",
+              "label": "Above",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_reflection_at",
+              "label": "At (straddling)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_rec_reflection_below",
+              "label": "Below",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_rec_distalMarginMm",
+          "label": "Distal margin: distance of tumour (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm"
         }
       ]
     },

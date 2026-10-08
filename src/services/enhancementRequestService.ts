@@ -13,8 +13,10 @@
 
 const CONFIG_KEY = 'ps_enhancement_config_v1';
 
+import { mockFeedbackSettingsService, type IFeedbackSettingsService } from './feedback/mockFeedbackSettingsService';
+import { isCaseAddressReference } from './caseAddresses/caseAddresses';
 import { sendEmail }                                        from './communications/notificationService';
-import { supportPageOf }                                    from './supportReferences/supportTicketRules';
+import { supportPageOf, caseNumbersIn, findIdentifiersInText, replaceIdentifiers, type IdentifierInText } from './supportReferences/supportTicketRules';
 import { mockSupportReferenceService }                      from './supportReferences/mockSupportReferenceService';
 import type { ISupportReferenceService }                    from './supportReferences/ISupportReferenceService';
 import type { ICaseService }                                from './cases/ICaseService';
@@ -34,8 +36,9 @@ export type RequestPriority = 'Low' | 'Medium' | 'High';
 export interface EnhancementRequestConfig {
   mode:              RoutingMode;
   emailRecipients:   string[];       // enhancement request recipients
-  qaEmailRecipients: string[];       // QA feedback recipients (VITE_QA_EMAIL)
-  qaAdminCc:         string[];       // admin cc for QA submissions (VITE_QA_ADMIN_CC)
+  /** Batch 447: from Configuration → System → Feedback (feedback/), not a build setting. */
+  qaEmailRecipients: string[];       // QA feedback recipients
+  qaAdminCc:         string[];       // admin cc for QA submissions
   qaEnabled:         boolean;        // show QA feedback button in nav
   emailConfirmation: boolean;
   portalUrl:         string;
@@ -87,19 +90,29 @@ export function loadEnhancementConfig(): EnhancementRequestConfig {
     emailRecipients:   import.meta.env.VITE_ENHANCEMENT_EMAIL
                          ? [import.meta.env.VITE_ENHANCEMENT_EMAIL as string]
                          : [],
-    // QA / testing feedback — QA team + admin cc
-    qaEmailRecipients: import.meta.env.VITE_QA_EMAIL
-                         ? [import.meta.env.VITE_QA_EMAIL as string]
-                         : [],
-    qaAdminCc:         import.meta.env.VITE_QA_ADMIN_CC
-                         ? [import.meta.env.VITE_QA_ADMIN_CC as string]
-                         : [],
-    qaEnabled:         import.meta.env.VITE_QA_ENABLED === 'true',
+    // QA / testing feedback: filled from the feedback settings when sending
+    // (loadEnhancementConfigForSubmit), Batch 447.
+    qaEmailRecipients: [],
+    qaAdminCc:         [],
+    qaEnabled:         false,
     emailConfirmation: true,
     portalUrl:         '',
     portalApiKey:      '',
     portalProjectKey:  '',
   };
+}
+
+/**
+ * Batch 447: the configuration to send with, the QA recipients and button
+ * taken from Configuration → System → Feedback.
+ */
+export async function loadEnhancementConfigForSubmit(
+  settings: Pick<IFeedbackSettingsService, 'get' | 'qaButtonShown'> = mockFeedbackSettingsService,
+): Promise<EnhancementRequestConfig> {
+  const base = loadEnhancementConfig();
+  const [r, shown] = await Promise.all([settings.get(), settings.qaButtonShown()]);
+  if (r.ok === false) return base;
+  return { ...base, qaEmailRecipients: r.data.qaRecipients, qaAdminCc: r.data.qaAdminCc, qaEnabled: shown };
 }
 
 export function saveEnhancementConfig(config: EnhancementRequestConfig): void {
@@ -120,7 +133,11 @@ export async function captureMetadata(
   deps: { supportReferenceService: ISupportReferenceService; pathname: string } = { supportReferenceService: mockSupportReferenceService, pathname: window.location.pathname },
 ): Promise<EnhancementRequestPayload['metadata']> {
   const page = supportPageOf(deps.pathname);
-  const caseRef = page.caseId ? await deps.supportReferenceService.forRecord('case', page.caseId) : null;
+  // Batch 446: case pages are addressed by the reference already; an old
+  // accession address still gets its reference looked up.
+  const caseRef = !page.caseId ? null
+    : isCaseAddressReference(page.caseId) ? { ok: true as const, data: { ref: page.caseId } }
+    : await deps.supportReferenceService.forRecord('case', page.caseId);
   const ua = navigator.userAgent;
   const browser = /Edg/.test(ua)     ? 'Edge'
     : /Chrome/.test(ua)  ? 'Chrome'
@@ -164,6 +181,24 @@ export async function supportReferencesForCaseNumbers(
   return out;
 }
 
+/**
+ * Batch 450 (PS-349, moved from EnhancementRequestModal.tsx): the warning's
+ * "replace case numbers" choice. Each typed case number PathScribe holds is
+ * replaced by its support reference in the title and description; the rest
+ * of the text is checked again, and `remaining` is what still needs a warning
+ * (null when nothing identifying is left).
+ */
+export async function replaceCaseNumbersWithReferences(
+  input: { title: string; description: string; found: readonly IdentifierInText[] },
+  deps: { caseService: Pick<ICaseService, 'getCase'>; supportReferenceService: ISupportReferenceService },
+): Promise<{ title: string; description: string; replacedCount: number; remaining: IdentifierInText[] | null }> {
+  const refs = await supportReferencesForCaseNumbers(caseNumbersIn(input.found), deps);
+  const title = replaceIdentifiers(input.title, refs);
+  const description = replaceIdentifiers(input.description, refs);
+  const remaining = findIdentifiersInText(`${title}\n${description}`);
+  return { title, description, replacedCount: refs.size, remaining: remaining.length > 0 ? remaining : null };
+}
+
 // ─── Submission ───────────────────────────────────────────────────────────────
 
 const delay = (ms = 800) => new Promise(res => setTimeout(res, ms));
@@ -188,7 +223,7 @@ async function submitViaEmail(
   const cc   = isQA ? config.qaAdminCc         : [];
 
   if (to.length === 0) {
-    console.warn('[enhancementRequestService] No recipients configured — check VITE_ENHANCEMENT_EMAIL / VITE_QA_EMAIL');
+    console.warn('[enhancementRequestService] No recipients configured — check VITE_ENHANCEMENT_EMAIL, or the QA recipients in Configuration → System → Feedback');
     return { success: false, error: 'No recipients configured.' };
   }
 

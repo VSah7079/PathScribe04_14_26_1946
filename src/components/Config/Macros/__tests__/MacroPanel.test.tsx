@@ -69,7 +69,7 @@ afterEach(() => {
 
 function renderPanel(setDirty = vi.fn()) {
   render(
-    <ConfigDirtyGuardContext.Provider value={{ setDirty }}>
+    <ConfigDirtyGuardContext.Provider value={{ setDirty, report: () => {}, guard: (a: () => void) => a() }}>
       <MacroPanel approvedFonts={['Arial']} />
     </ConfigDirtyGuardContext.Provider>
   );
@@ -98,7 +98,7 @@ describe('MacroPanel — PS-128 real dirty-state reporting', () => {
   it('reports clean again on unmount, so a stale dirty flag never outlives the tab that set it', async () => {
     const setDirty = vi.fn();
     const { unmount } = render(
-      <ConfigDirtyGuardContext.Provider value={{ setDirty }}>
+      <ConfigDirtyGuardContext.Provider value={{ setDirty, report: () => {}, guard: (a: () => void) => a() }}>
         <MacroPanel approvedFonts={['Arial']} />
       </ConfigDirtyGuardContext.Provider>
     );

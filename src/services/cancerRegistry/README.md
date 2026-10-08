@@ -167,6 +167,16 @@ Each registry definition lists its `mandatoryFields`:
 
 The case's sign-out is never held (Pete's answer). This replaces Batch 422's rule that an unusable identifier didn't hold a cancer report. The check runs after the send gate, so a validation instance still never queues a real case. The synthetic test suite's cancer cases meet every registry's list (tested). The lists are to be confirmed against each registry's specification at sign-off, like the identifiers.
 
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`cancerRegistryDemoSeed.ts`: six NAACCR (test) submissions. Registry Exceptions shows S26-4405 (rejected: laterality missing), S26-4490 (acknowledgement overdue) and S26-4633 (revised by the registry after acceptance). S26-4412 (with a correction) and S26-4630 are accepted and appear only in the transmission audit download. Resend on a seeded exception answers that Metro General no longer reports to a registry, because Metro General has no registry configured (an earlier decision to seed none; not changed).
+
+## Batch 457 — Metro General cancer registry, Molecular Order Queue seed
+
+Pete: yes, give Metro General a cancer registry. `mockFacilityCancerRegistryOverrideService` now starts with `CANCER_REGISTRY_DEMO_OVERRIDES`: Metro General (c1) reports to `naaccr_us`. Superseded: the earlier "deliberately no seed" decision in that file. S26-4405 (8500/2) and S26-4490 (8500/3) now carry an ICD-O code, a primary diagnosis and an issue date (`mockCaseService.ts`, `MOCK_VERSION` 51).
+
+Resend on those exceptions now rebuilds the submission and stops at the instance rule: the demo is a validation instance (`VITE_APP_ENV` not `production`), which never sends a real case to a registry (`registryGoLive/registrySendGate.ts`). That rule is correct and unchanged. A successful send is shown through the go-live steps (agreement, then the synthetic test suite). Test: `demoReset/demoBaseline457.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

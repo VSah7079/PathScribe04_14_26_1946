@@ -15,6 +15,12 @@ PathScribe-owned internal event contracts for the LIS/middleware integration sea
 
 - Each inbound payload has a corresponding `process<X>Event.ts` ingestion function in `services/hl7/` — same idempotent-on-`messageId` pattern across all of them — **except `EngraverStatusEventPayload.ts`**, which is device-scoped rather than case-scoped and has no frontend "Sim" trigger or `process*Event.ts` counterpart at all; it's ingested entirely backend-side (`api/webhooks/engine/engraver-status.ts` + `upsertEngraverStatus.ts` — see that folder's own README).
 
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- `MolecularWorklistPayload` and `MolecularRunResultsPayload`: `order_id` on sample wells and results.
+- `ReferralManifestEventPayload.molecularOrders`.
+- `ReferralResultEventPayload.orderResults`.
+
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*

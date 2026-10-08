@@ -12,7 +12,7 @@
 // Mirrors the same real bulk-upload pattern RvuCodeMapSection.tsx
 // already established for its own generic CMS RVU spreadsheet import -
 // not a new pattern invented here. Wholesale replace on import, not
-// versioned/append-only - see mockNcciEditService.ts's own comment for
+// versioned/append-only - see ncciEditService.ts's own comment for
 // why.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -20,8 +20,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { parseCsv, toCsv, downloadCsv, isCsvFile, readFileAsText } from '@/utils/csv';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockNcciEditService } from '@/services/billing/mockNcciEditService';
-import { parseNcciUploadRows } from '@/services/billing/ncciEditUtils';
+import { ncciEditService } from '@/services';
+import { parseNcciUploadRows, ncciUploadTemplateRows, NCCI_UPLOAD_TEMPLATE_FILENAME } from '@/services/billing/ncciEditUtils';
 import type { NcciPtpEditPair, NcciPtpEditImport } from '@/types/billing/NcciPtpEdit';
 
 // Real, persisted modifier-indicator values ('0'/'1'/'9') stay as the
@@ -33,10 +33,6 @@ const MODIFIER_LABEL_KEY: Record<NcciPtpEditPair['modifierIndicator'], string> =
   '1': 'ncciEditRulesSection.modifierLabels.canBypass',
   '9': 'ncciEditRulesSection.modifierLabels.doesNotApply',
 };
-
-const TEMPLATE_EXAMPLE_ROWS = [
-  { 'Column 1': '88305', 'Column 2': '88300', 'Modifier Indicator': '0', 'Effective Date': '2026-01-01', 'Deletion Date': '' },
-];
 
 /** Real, per direct follow-up: "why do I always have to use a CSV
  *  file to correct a single entry" - a real, single-pair edit modal,
@@ -97,9 +93,9 @@ const NcciEditRulesSection: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAll = () => {
-    mockNcciEditService.getAll().then(res => { if (res.ok) setPairs(res.data); });
-    mockNcciEditService.getCurrentImport().then(res => { if (res.ok) setCurrentImport(res.data); });
-    mockNcciEditService.getAllImports().then(res => { if (res.ok) setPendingCount(res.data.filter(i => i.approvalStatus === 'PENDING_APPROVAL').length); });
+    ncciEditService.getAll().then(res => { if (res.ok) setPairs(res.data); });
+    ncciEditService.getCurrentImport().then(res => { if (res.ok) setCurrentImport(res.data); });
+    ncciEditService.getAllImports().then(res => { if (res.ok) setPendingCount(res.data.filter(i => i.approvalStatus === 'PENDING_APPROVAL').length); });
   };
   useEffect(() => { loadAll(); }, []);
 
@@ -113,7 +109,7 @@ const NcciEditRulesSection: React.FC = () => {
   const handleSaveEntry = async (pair: NcciPtpEditPair) => {
     setBusy(true);
     const newPairs = pairs.map(p => p.id === pair.id ? pair : p);
-    const res = await mockNcciEditService.importQuarter(
+    const res = await ncciEditService.importQuarter(
       newPairs.map(({ id, ...rest }) => rest),
       `Manual edit — ${pair.columnOneCode}/${pair.columnTwoCode}`,
       user?.id ?? 'unknown',
@@ -150,13 +146,13 @@ const NcciEditRulesSection: React.FC = () => {
   };
 
   const handleDownloadTemplate = () => {
-    downloadCsv('NcciPtpEditTemplate.csv', toCsv(TEMPLATE_EXAMPLE_ROWS));
+    downloadCsv(NCCI_UPLOAD_TEMPLATE_FILENAME, toCsv(ncciUploadTemplateRows()));
   };
 
   const handleApplyUpload = () => {
     if (!uploadPreview || uploadPreview.length === 0 || !quarterVersion.trim()) return;
     setBusy(true);
-    mockNcciEditService.importQuarter(uploadPreview, quarterVersion.trim(), user?.id ?? 'unknown')
+    ncciEditService.importQuarter(uploadPreview, quarterVersion.trim(), user?.id ?? 'unknown')
       .then(() => { setUploadPreview(null); setUploadProblems([]); setQuarterVersion(''); loadAll(); })
       .finally(() => setBusy(false));
   };

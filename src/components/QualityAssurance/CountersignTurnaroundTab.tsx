@@ -17,9 +17,9 @@
 // its color matches exactly; the pending tile's amber highlight reuses
 // the `.ps-qa-tile--warning`/`--value--warning` pair added in batch 161.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { countersignService, auditService } from '@/services';
@@ -34,7 +34,7 @@ const hoursBetween = (a: string, b: string) => (new Date(b).getTime() - new Date
 
 export const CountersignTurnaroundTab: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [records, setRecords] = useState<CountersignRecord[]>([]);
   const [caseClientById, setCaseClientById] = useState<Record<string, string | undefined>>({});
@@ -189,7 +189,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
           <tbody>
             {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={4}>{t('countersignTurnaroundTab.noPendingMessage')}</td></tr>}
             {pending.map(r => (
-              <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+              <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => void openCasePage(r.caseId, 'synoptic')}>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                 <td className="ps-conf-td">{r.residentName}</td>
                 <td className="ps-conf-td">{new Date(r.releasedAt).toLocaleString()}</td>
@@ -214,7 +214,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
           <tbody>
             {countersigned.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{t('countersignTurnaroundTab.noCountersignedMessage')}</td></tr>}
             {countersigned.map(r => (
-              <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+              <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => void openCasePage(r.caseId, 'synoptic')}>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                 <td className="ps-conf-td">{r.residentName}</td>
                 <td className="ps-conf-td">{r.attendingName}</td>

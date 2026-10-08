@@ -17,11 +17,17 @@ export interface ScanStationDraftValidationInput {
   cassetteSlidePrinterProfileId?: string;
 }
 
+/**
+ * Batch 444: each error is a code the screen translates
+ * (scanStationsSection.errors.<code>), not English text.
+ */
+export type ScanStationDraftError = 'nameRequired' | 'barcodeRequired' | 'facilityRequired' | 'printerProfileRequired';
+
 export interface ScanStationDraftValidationErrors {
-  name?: string;
-  barcodeCode?: string;
-  facilityId?: string;
-  cassetteSlidePrinterProfileId?: string;
+  name?: ScanStationDraftError;
+  barcodeCode?: ScanStationDraftError;
+  facilityId?: ScanStationDraftError;
+  cassetteSlidePrinterProfileId?: ScanStationDraftError;
 }
 
 /**
@@ -32,14 +38,14 @@ export interface ScanStationDraftValidationErrors {
 export function validateScanStationDraft(draft: ScanStationDraftValidationInput): ScanStationDraftValidationErrors {
   const errors: ScanStationDraftValidationErrors = {};
 
-  if (!draft.name.trim()) errors.name = 'Required';
+  if (!draft.name.trim()) errors.name = 'nameRequired';
 
   // Real, deliberate validation — a station's barcodeCode is what a
   // real, printed physical label encodes (STATION:GROSSING-03); an
   // empty one would mean a real label could never be generated for
   // this station at all.
   if (!draft.barcodeCode.trim()) {
-    errors.barcodeCode = 'Required — this is what a printed station label encodes';
+    errors.barcodeCode = 'barcodeRequired';
   }
 
   // Real, per direct guidance: facilityId genuinely had no validation
@@ -49,7 +55,7 @@ export function validateScanStationDraft(draft: ScanStationDraftValidationInput)
   // real dropdown with no default selection, this is a real, live
   // rule, not a no-op.
   if (!draft.facilityId.trim()) {
-    errors.facilityId = 'Required — which real performing lab this station physically sits in';
+    errors.facilityId = 'facilityRequired';
   }
 
   // Real, deliberate validation, per direct follow-up: "support both
@@ -57,7 +63,7 @@ export function validateScanStationDraft(draft: ScanStationDraftValidationInput)
   // supporting printing with no real target printer profile isn't
   // actually printable — never let this silently save as if it were.
   if (draft.supportsPrinting && !draft.cassetteSlidePrinterProfileId?.trim()) {
-    errors.cassetteSlidePrinterProfileId = 'Required when Supports Printing is on';
+    errors.cassetteSlidePrinterProfileId = 'printerProfileRequired';
   }
 
   return errors;

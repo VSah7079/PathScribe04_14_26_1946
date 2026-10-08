@@ -1313,3 +1313,223 @@ Pete asked whether the READMEs were all up to date. They weren't: `RegistryExcep
 ## Batch 432
 
 Audit Log: Resolve on open errors. Cytology QC queue: Escalate and Supervisor bypass. Batch detail: referral transit status.
+
+## Batch 433
+
+`QualityAssurancePage.tsx` → Financials:
+- **Start correction** (needs `billing:applied-code:correct`) opens the billing correction dialog for any case, without a deficiency.
+- Resolving a billing deficiency as "code corrected" or "charge reversed" continues to the dialog with that deficiency; the deficiency resolves only when the correction saves. The old inline CPT and reason fields are gone, and nothing is resolved when the correction fails.
+- Raising a deficiency from the Code Review Pool asks which charge it's about, or "a charge is missing".
+- New tab **Charges awaiting approval** (`components/Billing/ChargeApprovalQueue.tsx`).
+- A link to a pillar (`?pillar=financials`, the breadcrumb) opens that pillar's first tab; it used to open an empty page.
+
+`SynopticReportPage.tsx`: sign-out charges and credits wait as `PENDING_APPROVAL` when the lab requires approval.
+
+## Batch 434
+
+- `BatchManagement/WsiScanBatchesPage.tsx`: Slide scanning (WSI scan batches).
+- `SlideDistributionStationPage/`: the scanner comes from the Equipment register.
+- `CytologyQcQueuePage.tsx`: Assign to Me and the verdict buttons show only with `cytology:qc-review:record`, and Assign to Me is not offered to the person who signed the case out.
+- `QualityAssurancePage.tsx`: through `components/Billing/ChargeApprovalQueue.tsx`, the approval queue names the lab for every case.
+
+## Batch 435
+
+- `BatchManagement/WsiScanBatchesPage.tsx`: live updates.
+- `MockInterfaceEnginePage/`: the "Answer for the slide scanner" switch, and the banner and subtitle now cover every interface message.
+
+## Batch 436
+
+`MolecularWorkcenterPage/`: instrument names and localised dates (PS-326).
+
+## Batch 437
+
+- `ConfigurationPage.tsx` (PS-128) knows about unsaved changes anywhere on the page and tells the app-wide guard, so the logo, breadcrumbs, nav bar, header search and Sign Out ask first. Closing or reloading the browser tab gets the browser's own warning.
+- `AuditLogPage.tsx`, `BillingLogsSection.tsx`, `SearchPage.tsx`, `ContributionDashboardPage.tsx` (PS-282, PS-357): exports are checked and audited.
+- **Fixed:** the Audit Log showed every time shifted by the viewer's UTC offset (stored UTC times were read as local).
+
+## Batch 438
+
+- `ConfigurationPage.tsx`: asks "Discard unsaved changes?" before a dialog with edits closes from its backdrop or Escape (Keep editing / Discard changes). A dialog that doesn't close on Escape stays unsaved after Discard.
+- `QualityAssurancePage.tsx`: CAPA Engine → **Recommended** (first tile, with the pending count). Confirmed CAPAs show their owner in Operations.
+
+## Batch 439
+
+Report page: peer review banner, the clinical-pathologic mismatch check and the peer-review gate at sign-out. Worklist: a Peer Review tile.
+
+## Batch 440
+
+The Cytology Workspace's QC / Rescreen tile is an unassigned, shared queue, and the workspace's text is translated. The main Worklist has a Cytology Review tile for positive GYN cases waiting for a pathologist. See `CytologyWorklistPage/README.md` and `WorklistPage/README.md`.
+
+## Batch 441
+
+The Cytology Worklist page now only renders (its logic is in `services/cytology/cytologyWorklist*.ts`). The Case Team modal saves through `services/cases/saveCaseTeam.ts`.
+
+## Batch 442
+
+`QualityAssurancePage.tsx`: the CAPA pillar gains the **Discordance Patterns** tile (PS-147), shown only to holders of `qa:pathologist-trend:view`.
+
+## Batch 444
+
+`SynopticReportPage.tsx`: the PDF endpoint setting is read by name (it was one of the reads that copied every `VITE_` variable into the bundle). Its remaining English is the next batch.
+
+## Batch 445
+
+- `SynopticReportPage/`: translated, with a guard test. Dates of birth now use the shared helper.
+- `FullReportPage.tsx`: "Last updated" shows a formatted date and time in the user's language instead of the raw timestamp.
+
+## Batch 446
+
+Every case link opens the case by reference (`useOpenCase`), and every case page reads its case with `useRouteCaseId`:
+- the report editor (`synopticLoader`);
+- grossing;
+- the full report;
+- the cytology screening page;
+- Add-On Orders (`?case=`);
+- the demo EMR window (`/mock-emr?case=`; it used to be opened with `?patientId=<MRN>`).
+
+The cytology patient-history links are buttons now.
+
+## Batch 448
+
+`LoginPage.tsx`: after a temporary password, a "choose your own password" step (new + confirm), then sign-in continues with the new one. "Forgot password?" now says to ask an administrator to reset it from the Staff screen.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+SynopticReportPage, WorklistPage and MolecularBatchPage: decisions moved into services and tested (PS-141, PS-235, PS-236, PS-305, PS-307, PS-309, PS-317, PS-318).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+Molecular plate builder, Label Designer, Cytology, Accession, comments and the report page: screen tests and logic moved to services; the plate grid now draws wells in their positions.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+Contribution Dashboard (PS-57): the Quality Flags tile now also lists flags applied to the pathologist's cases and specimens. Each is named from the flag catalogue by `flagDefinitionId`, and its colour follows the catalogue's severity. Its row text is translated: it used to be English built in `contributionDashboardCalculations.ts`.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+- `CytologyWorklistPage/`: decant save conflicts are shown.
+- `MicrotomyWorkstationPage/`: decants go through the atomic save.
+- `SynopticReportPage/`: the Microscopic entry panel highlights findings.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+- `QualityAssurancePage.tsx`: a new Operations tab, Follow-up not received. Its tile counts the follow-ups that need attention.
+- `WorklistPage/` and `CytologyWorklistPage/`: Follow-up tiles.
+- `SynopticReportPage/`: "follow-up expected" at sign-out.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`LoginPage.tsx` shows the lockout warning and the lock's minutes (`signInRefusalNotice`), and the change-at-sign-in form shows the new password errors.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Report page: Edit Conflict dialog. Accession, Cytology worklist and screening: conflicts shown.
+
+## Batch 459 — PS-152 discordance report, follow-up after sign-out
+
+- Quality Assurance → Cytology has a "Primary vs Final Diagnosis" report: each case's primary screen compared with the review chosen as its Final Diagnosis (PS-152).
+- A signed-out surgical case can be marked "follow-up expected" from the report page's action bar, not only in the sign-out modal.
+- Stale README notes corrected (cytology correction and addendum, autopsy authorization form).
+
+## Batch 460
+
+- **Cytology Workspace:** Billing drawer with full billing review.
+- **Microtomy:**
+  - matrix blocks;
+  - saves that never overwrite someone else's change;
+  - fixed slide levels and batch print order;
+  - read-only charges with a full-review switch.
+- **Label Designer:** drag-resize and the label edge.
+- **Report page:** billing handlers moved to shared services.
+- **Embedding:** clearer matrix-block message.
+
+## Batch 461
+
+Report page: the anatomical map companion beside the synoptic (prostate), drawn from the synoptic answers, with an optional "Insert into report" snapshot. See `SynopticReportPage/README.md`.
+
+## Batch 463
+
+SynopticReportPage: the Mohs stage question in the synoptic; Mohs stage maps always in the report.
+
+## Batch 463b
+
+SynopticReportPage: the Mohs block gate at sign-out (Assist and Orchestration).
+
+## Batch 465b
+
+`SynopticReportPage/`: node counts checked at draft save and sign-out; totals calculated from the levels grid.
+
+## Batch 466
+
+`SynopticReportPage/`: whole-number node counts.
+
+## Batch 466b
+
+`SynopticReportPage/`: generic margin questions follow the map; question-level count limits.
+
+## Batch 466d
+
+`SynopticReportPage`: a sign-out warning for invasive carcinoma with margins unreported.
+
+## Batch 467 — In-house molecular orders
+
+Molecular Workcenter: new Order Queue tab. Add-on orders: in-house or send-out for molecular tests. Synoptic: molecular result notices and deltas.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- **Order Queue:** choosing a reference lab, and the reference-lab statuses.
+- **Plate Builder:** shows which order is in each well.
+
+## Batch 468 — Autopsy: consent-scope enforcement, forensic chain-of-custody
+
+- **AccessionPage:** no behavior change; the organ display-label map moved out to its own shared file.
+- **SynopticReportPage:** a consent-scope warning banner, a retention-tier refusal toast, and (forensic cases) a chain-of-custody log with a "Record Custody Transfer" form.
+- **Sign-out:** warns about answers that differ from their molecular result.
+- **Mock Interface Engine:** the instrument's results.
+
+## Batch 469 — Autopsy: toxicology, organ-retention disposal, consent narrowing/revocation (PS-261 follow-up)
+
+- **SynopticReportPage:** a toxicology order/result log with order and per-order result forms (any autopsy case); an organ-retention disposal panel (HTA-governed jurisdictions only, tier set beyond "none"); a consent narrowing/revocation panel (hospital-consented cases) that seeds its draft from the case's current consent record on open. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 471 — Autopsy: toxicology cancellation, organ-retention detail, consent reinstatement (PS-261 follow-up)
+
+- **SynopticReportPage:** a "Cancel Order" action and reason form on each open toxicology order; a new organ-retention detail panel (recipient/location, HTA-governed jurisdictions only) between the tier select and the disposal panel; a "Reinstate Consent" action and form, shown once status isn't `'active'`. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 472 — Autopsy: capability-greying, retention-tier reason, punctuation sweep (PS-261 follow-up)
+
+- **SynopticReportPage:** all eight autopsy action buttons (order/result/cancel toxicology, record retention detail, record disposal, record custody transfer, narrow/revoke consent, reinstate consent) now grey out ahead of a click when the signed-in user lacks the capability, via `CapabilityButton`; a plain reason text field beside the `organRetentionTier` select; two pre-existing hard-coded-punctuation lines (custody "received by," consent status note) fixed. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 473 — Autopsy case-type key migration (PS-261 follow-up)
+
+No behavior change. **SynopticReportPage** and **AccessionPage** both reference `caseAuthority`'s renamed forensic-path value, `'medicolegal_forensic'` → `'statutory_judicial'`. See [services/autopsy/README.md](../services/autopsy/README.md).
+
+## Batch 475 — Autopsy Module 3: toxicology specimen barcode & chain-of-custody link (PS-261 follow-up)
+
+**SynopticReportPage:** the toxicology order form gets a required specimen barcode; the existing forensic-only custody log gets an optional link to a specific toxicology specimen, and each order shows its own linked custody entries. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 474 — Two non-autopsy quick fixes (PS-359)
+
+- **SynopticReportPage:** `useGrossingCompletion.ts`'s re-finalize correction-reason capture moves from a blocking `window.prompt()` to the app's `ReasonPromptModal`. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+- **MolecularWorkcenterPage:** the batch summary table now flags a batch whose target instrument has an open malfunction or is past due for maintenance/calibration, reusing the same rule and row styling as the Equipment register. See [MolecularWorkcenterPage/README.md](./MolecularWorkcenterPage/README.md).
+
+## Batch 476 — Autopsy Module 4: unified case timeline (PS-261 follow-up)
+
+**SynopticReportPage:** a new "Case Timeline" section merges every dated autopsy event on file (forensic orders, consent, custody transfers, toxicology, organ retention/disposal, ancillary hold, PAD/FAD signing, addenda) into one newest-first list, read-only, no new capability. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 477 — Autopsy worklist badges (PS-261 follow-up, Module 5)
+
+**WorklistPage:** the existing Autopsy branch tab's rows now show case authority, an active ancillary hold, PAD/FAD signed, and a TAT/SLA tooltip, via a new badges component in `components/Worklist/`. Pete's own scoping call — extend the existing branch tab + grouping rather than build a second screen. See [WorklistPage/README.md](./WorklistPage/README.md).
+
+## Batch 478 — Autopsy Module 6: gross-exam gate override, per-organ tagging (PS-261 follow-up)
+
+**SynopticReportPage:** the gate-blocked banner gains a capability-gated "Override & Sign {tier}" button — the authorization gate is now a real hard stop in `signAutopsyReport.ts`, not just a banner condition, and overriding it is audited (new `autopsy:gross-exam-gate:override`, nobody by default). A new "Organ Tags" section records per-organ gross-exam findings (new `autopsy:organ-tag:record`, seeded to the grossing roles). Both new event kinds show in the existing Case Timeline. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 479 — fix: gate-blocked banner text translated, not literal English (PS-261 follow-up)
+
+**SynopticReportPage:** the Batch 478 gate-blocked banner's summary line now translates the gate's own `blockedReasons` through `t()` and `formatList()` instead of showing raw English. See [SynopticReportPage/README.md](./SynopticReportPage/README.md).
+
+## Batch 481 — Structured Inking Module 2: grossing-screen UI for margins/ink (PS-359 follow-up)
+
+**GrossingScreenPage:** a new "Margins & Ink Applications" section per specimen — lists every recorded margin (on the specimen or a block) with its full ink history, plus inline "+ Add margin" / "+ Add ink application" forms, capability-gated (`grossing:margin-ink:record`), wired to Batch 480's `recordMarginInkApplication.ts`. See [GrossingScreenPage/README.md](./GrossingScreenPage/README.md).

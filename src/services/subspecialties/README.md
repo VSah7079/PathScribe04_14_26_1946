@@ -48,6 +48,10 @@ Who belongs to a subspecialty (`assignUser` / `removeUser`) is part of the staff
 
 Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
 
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`DEMO_POOL_MEMBERS` (the demo pathologists and the fellow) join every surgical pool. A stored list gets them once (marker `pathscribe_subspecialties_demo_members`), without losing an administrator's own changes.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

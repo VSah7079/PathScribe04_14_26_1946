@@ -24,6 +24,13 @@
 // plainly: this still does not replace any of this app's own
 // existing, hardcoded, already-tested render functions — a saved
 // layout here does not yet drive real print output.
+//
+// Batch 460 (PS-245): fields are resized by dragging handles on the
+// selected field, and every placement, move, resize and typed number is
+// kept inside the label's physical edge (services/labelDesigner/
+// labelFieldGeometry.ts). A layout with a field past the edge is flagged,
+// can be fitted in one click, and is refused on save. A moved field keeps
+// the point where it was grabbed (before, its corner jumped to the pointer).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -31,7 +38,8 @@ import { useTranslation, Trans } from 'react-i18next';
 import '../../pathscribe.css';
 import { labelLayoutService } from '@/services';
 import { facilityService } from '@/services';
-import { generateBarcodeSvg } from '../../utils/labels/generateBarcodeSvg';
+// PS-256 (Batch 451): the canvas's defensive barcode wrapper lives in utils/labels/safeBarcodeSvg.ts.
+import { safeBarcodeSvg } from '../../utils/labels/safeBarcodeSvg';
 import { buildLabelLayoutZpl } from '../../services/labelDesigner/buildLabelLayoutZpl';
 import {
   LABEL_TYPES, LABEL_TYPE_DISPLAY_NAMES, LABEL_TYPE_DEFAULT_SIZE_MM, LABEL_FIELD_CATALOG,
@@ -39,18 +47,16 @@ import {
 } from '../../services/labelDesigner/ILabelLayoutService';
 import type { Facility } from '../../services/facilities/IFacilityService';
 import type { LabelType, LabelLayoutField } from '../../services/labelDesigner/ILabelLayoutService';
+import {
+  PX_PER_MM, RESIZE_HANDLES, pxToMm, moveFieldTo, resizeFieldFromHandle, applyInspectorEdit, clampFieldToLabel, fieldsOutOfBounds,
+  LABEL_LAYOUT_OUT_OF_BOUNDS, type ResizeHandle,
+} from '../../services/labelDesigner/labelFieldGeometry';
 
 // Real, per this file's own header — this app's own established
 // default dpi for ZPL export elsewhere (buildRequisitionStickerSheetZpl.ts).
 const EXPORT_DPI = 203;
 
-// Real, per this file's own header — a fixed, real screen scale for
-// the canvas (pixels per real mm). Chosen so a real, small block label
-// (25.4mm) and a real, large requisition sheet (101.6mm) both render
-// at a real, usable on-screen size without a separate zoom control —
-// a real, later refinement, not required for this first, working
-// slice.
-const PX_PER_MM = 4;
+// The canvas scale (PX_PER_MM) lives in labelFieldGeometry.ts with the rest of the canvas maths.
 
 // Real, per this file's own header — real, illustrative sample values
 // for the live preview, keyed by field key. Not real case data (no
@@ -68,21 +74,26 @@ const SAMPLE_VALUES: Record<string, string> = {
   deckLocationLabel: 'LOC-INST-PANTHER_02-SLOT_A1', deckSlot: 'SLOT_A1',
 };
 
+/** Batch 460: a millimetre box that applies its number on Enter or when it
+ *  loses focus, so a half-typed value ("1" on the way to "15") isn't
+ *  clamped while the person is still typing. */
+const MmInput: React.FC<{ value: number; step?: number; className: string; onCommit: (n: number) => void }> = ({ value, step, className, onCommit }) => {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => { setDraft(String(value)); }, [value]);
+  const commit = () => {
+    const n = Number(draft);
+    if (draft.trim() === '' || !Number.isFinite(n)) { setDraft(String(value)); return; }
+    onCommit(n);
+  };
+  return (
+    <input className={className} type="number" step={step} value={draft}
+      onChange={e => setDraft(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') commit(); }} />
+  );
+};
+
 function newField(fieldKey: string, xMm: number, yMm: number): LabelLayoutField {
   return { id: 'field-' + Date.now() + Math.random().toString(36).slice(2, 6), fieldKey, xMm, yMm, widthMm: 20, heightMm: 6, fontSizeMm: 2.6 };
-}
-
-/** Real, per this file's own header — a real, defensive wrapper
- *  around generateBarcodeSvg.ts: this is a live, interactive canvas,
- *  not a test, so a genuinely invalid sample payload must never throw
- *  and break the whole render — falls back to an honest, visible
- *  placeholder message instead. */
-function safeBarcodeSvg(payload: string, symbology: 'code128' | 'datamatrix', errorText: string): string {
-  try {
-    return generateBarcodeSvg(payload, symbology);
-  } catch {
-    return `<div class="ps-designer-barcode-error">${errorText}</div>`;
-  }
 }
 
 const LabelDesignerPage: React.FC = () => {
@@ -141,32 +152,57 @@ const LabelDesignerPage: React.FC = () => {
     e.dataTransfer.setData('application/x-pathscribe-new-field', fieldKey);
   };
 
+  // Batch 460: where inside the field it was grabbed, so it doesn't jump on drop.
   const handlePlacedFieldDragStart = (e: React.DragEvent, fieldId: string) => {
-    e.dataTransfer.setData('application/x-pathscribe-move-field', fieldId);
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    e.dataTransfer.setData('application/x-pathscribe-move-field', JSON.stringify({ fieldId, grabXPx: e.clientX - box.left, grabYPx: e.clientY - box.top }));
   };
+  const labelSize = { widthMm, heightMm };
 
   const handleCanvasDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const dropXMm = (e.clientX - rect.left) / PX_PER_MM;
-    const dropYMm = (e.clientY - rect.top) / PX_PER_MM;
-
     const newFieldKey = e.dataTransfer.getData('application/x-pathscribe-new-field');
-    const movedFieldId = e.dataTransfer.getData('application/x-pathscribe-move-field');
+    const moved = e.dataTransfer.getData('application/x-pathscribe-move-field');
 
     if (newFieldKey) {
-      const field = newField(newFieldKey, Math.max(0, dropXMm), Math.max(0, dropYMm));
+      const field = moveFieldTo(newField(newFieldKey, 0, 0), pxToMm(e.clientX - rect.left), pxToMm(e.clientY - rect.top), labelSize);
       setFields(prev => [...prev, field]);
       setSelectedFieldId(field.id);
-    } else if (movedFieldId) {
-      setFields(prev => prev.map(f => (f.id === movedFieldId ? { ...f, xMm: Math.max(0, dropXMm), yMm: Math.max(0, dropYMm) } : f)));
+    } else if (moved) {
+      const { fieldId, grabXPx = 0, grabYPx = 0 } = JSON.parse(moved) as { fieldId: string; grabXPx?: number; grabYPx?: number };
+      const xMm = pxToMm(e.clientX - rect.left - grabXPx);
+      const yMm = pxToMm(e.clientY - rect.top - grabYPx);
+      setFields(prev => prev.map(f => (f.id === fieldId ? moveFieldTo(f, xMm, yMm, labelSize) : f)));
     }
   };
 
   const updateSelectedField = (patch: Partial<LabelLayoutField>) => {
-    setFields(prev => prev.map(f => (f.id === selectedFieldId ? { ...f, ...patch } : f)));
+    setFields(prev => prev.map(f => (f.id === selectedFieldId ? applyInspectorEdit(f, patch, labelSize) : f)));
   };
+
+  // Batch 460: drag-resize. The pointer is captured by the handle; each move
+  // resizes from where the drag started (the opposite edge stays put).
+  const resizeRef = useRef<{ fieldId: string; handle: ResizeHandle; startX: number; startY: number; start: LabelLayoutField } | null>(null);
+  const handleResizeStart = (e: React.PointerEvent, field: LabelLayoutField, handle: ResizeHandle) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    resizeRef.current = { fieldId: field.id, handle, startX: e.clientX, startY: e.clientY, start: field };
+  };
+  const handleResizeMove = (e: React.PointerEvent) => {
+    const r = resizeRef.current;
+    if (!r) return;
+    const next = resizeFieldFromHandle(r.start, r.handle, pxToMm(e.clientX - r.startX), pxToMm(e.clientY - r.startY), labelSize);
+    setFields(prev => prev.map(f => (f.id === r.fieldId ? next : f)));
+  };
+  const handleResizeEnd = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    resizeRef.current = null;
+  };
+  const outsideIds = new Set(fieldsOutOfBounds(fields, labelSize));
+  const fitAllToLabel = () => setFields(prev => prev.map(f => clampFieldToLabel(f, labelSize)));
 
   const removeSelectedField = () => {
     setFields(prev => prev.filter(f => f.id !== selectedFieldId));
@@ -187,7 +223,8 @@ const LabelDesignerPage: React.FC = () => {
     try {
       const effectiveFacilityId = allowsOverride ? (facilityId || undefined) : undefined;
       const res = await labelLayoutService.save({ labelType, facilityId: effectiveFacilityId, widthMm, heightMm, fields });
-      setSaveMessage(res.ok ? (effectiveFacilityId ? t('labelDesignerPage.saveMessages.facilityOverrideSaved') : t('labelDesignerPage.saveMessages.enterpriseDefaultSaved')) : 'error' in res ? res.error : t('labelDesignerPage.saveMessages.unknownError'));
+      setSaveMessage(res.ok ? (effectiveFacilityId ? t('labelDesignerPage.saveMessages.facilityOverrideSaved') : t('labelDesignerPage.saveMessages.enterpriseDefaultSaved'))
+        : 'error' in res ? (res.error === LABEL_LAYOUT_OUT_OF_BOUNDS ? t('labelDesignerPage.saveMessages.outOfBounds') : res.error) : t('labelDesignerPage.saveMessages.unknownError'));
     } finally {
       setSaving(false);
     }
@@ -280,10 +317,11 @@ const LabelDesignerPage: React.FC = () => {
                   <div
                     key={f.id}
                     draggable
-                    onDragStart={e => { e.stopPropagation(); handlePlacedFieldDragStart(e, f.id); }}
+                    onDragStart={e => { e.stopPropagation(); if (resizeRef.current) { e.preventDefault(); return; } handlePlacedFieldDragStart(e, f.id); }}
                     onClick={e => { e.stopPropagation(); setSelectedFieldId(f.id); }}
                     title={def?.displayName ?? f.fieldKey}
-                    className={`ps-designer-field${isSelected ? ' ps-designer-field--selected' : ''}`}
+                    data-field-id={f.id}
+                    className={`ps-designer-field${isSelected ? ' ps-designer-field--selected' : ''}${outsideIds.has(f.id) ? ' ps-designer-field--outside' : ''}`}
                     style={{
                       '--field-x': `${f.xMm * PX_PER_MM}px`, '--field-y': `${f.yMm * PX_PER_MM}px`,
                       '--field-w': `${f.widthMm * PX_PER_MM}px`, '--field-h': `${f.heightMm * PX_PER_MM}px`,
@@ -303,11 +341,33 @@ const LabelDesignerPage: React.FC = () => {
                     ) : (
                       SAMPLE_VALUES[f.fieldKey] ?? f.fieldKey
                     )}
+                    {isSelected && RESIZE_HANDLES.map(h => (
+                      <span
+                        key={h}
+                        role="presentation"
+                        draggable={false}
+                        data-handle={h}
+                        title={t('labelDesignerPage.resizeHandleTooltip')}
+                        className={`ps-designer-handle ps-designer-handle--${h}`}
+                        onDragStart={e => { e.preventDefault(); e.stopPropagation(); }}
+                        onClick={e => e.stopPropagation()}
+                        onPointerDown={e => handleResizeStart(e, f, h)}
+                        onPointerMove={handleResizeMove}
+                        onPointerUp={handleResizeEnd}
+                        onPointerCancel={handleResizeEnd}
+                      />
+                    ))}
                   </div>
                 );
               })}
             </div>
             <p className="ps-canvas-caption">{t('labelDesignerPage.canvasCaption', { width: widthMm, height: heightMm })}</p>
+            {outsideIds.size > 0 && (
+              <div className="ps-designer-bounds-warning" role="alert">
+                ⚠ {t('labelDesignerPage.outOfBoundsWarning', { count: outsideIds.size })}
+                <button type="button" className="ps-btn-small" onClick={fitAllToLabel}>{t('labelDesignerPage.fitToLabelButton')}</button>
+              </div>
+            )}
           </div>
 
           {/* Inspector */}
@@ -317,15 +377,15 @@ const LabelDesignerPage: React.FC = () => {
             {selectedField && (
               <>
                 <label className="ps-label">{t('labelDesignerPage.field.x')}</label>
-                <input className="ps-input-dark ps-w-full-mb-8" type="number" value={selectedField.xMm} onChange={e => updateSelectedField({ xMm: Number(e.target.value) })} />
+                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.xMm} onCommit={n => updateSelectedField({ xMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.y')}</label>
-                <input className="ps-input-dark ps-w-full-mb-8" type="number" value={selectedField.yMm} onChange={e => updateSelectedField({ yMm: Number(e.target.value) })} />
+                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.yMm} onCommit={n => updateSelectedField({ yMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.width')}</label>
-                <input className="ps-input-dark ps-w-full-mb-8" type="number" value={selectedField.widthMm} onChange={e => updateSelectedField({ widthMm: Number(e.target.value) })} />
+                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.widthMm} onCommit={n => updateSelectedField({ widthMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.height')}</label>
-                <input className="ps-input-dark ps-w-full-mb-8" type="number" value={selectedField.heightMm} onChange={e => updateSelectedField({ heightMm: Number(e.target.value) })} />
+                <MmInput className="ps-input-dark ps-w-full-mb-8" value={selectedField.heightMm} onCommit={n => updateSelectedField({ heightMm: n })} />
                 <label className="ps-label">{t('labelDesignerPage.field.fontSize')}</label>
-                <input className="ps-input-dark ps-w-full ps-mb-14" type="number" step={0.1} value={selectedField.fontSizeMm} onChange={e => updateSelectedField({ fontSizeMm: Number(e.target.value) })} />
+                <MmInput className="ps-input-dark ps-w-full ps-mb-14" step={0.1} value={selectedField.fontSizeMm} onCommit={n => updateSelectedField({ fontSizeMm: n })} />
                 <button className="ps-btn-small" onClick={removeSelectedField}>{t('labelDesignerPage.removeFieldButton')}</button>
               </>
             )}

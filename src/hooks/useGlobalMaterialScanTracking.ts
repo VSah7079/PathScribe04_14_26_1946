@@ -38,6 +38,7 @@
 // system existed.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router';
 import { processMaterialLocationEvent } from '@/services/hl7/processMaterialLocationEvent';
@@ -48,6 +49,7 @@ import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import type { ResolvedScanTarget } from '@/utils/resolveMaterialFromScan';
 import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { updateCaseWithRetryOrThrow } from '@/services/cases/caseWrite';
 import { mockAuditService } from '@/services/auditlog/mockAuditService';
 import { slideIdentifier, matrixSlideIdentifier } from '@/types/labels/LabelData';
 import { useCurrentScanStation } from './useCurrentScanStation';
@@ -79,7 +81,7 @@ export const MATERIAL_SCAN_UPDATED_EVENT = 'PATHSCRIBE_MATERIAL_SCAN_UPDATED';
  *  dispatch/write failure here must never block the tech's own
  *  physical scan from having already happened.
  */
-async function processMicrotomyScan(
+export async function processMicrotomyScan(
   fullAccession: string,
   specimenLetter: string | undefined,
   target: ResolvedScanTarget,
@@ -103,19 +105,25 @@ async function processMicrotomyScan(
       if (pendingIndexes.length === 0) return;
 
       await Promise.all(pendingIndexes.map(({ s, i }) => {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(s, i);
         const slideId = slideIdentifier(fullAccession, specimen.label, block.label, level);
         return dispatchSlideLabel({ fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: s.stainName, slideId }).catch(() => {});
       }));
 
-      const updatedSpecimens = (caseData.specimens ?? []).map((sp: Case['specimens'][number]) => sp.id !== specimen.id ? sp : {
-        ...sp,
-        blocks: (sp.blocks ?? []).map(b => b.id !== block.id ? b : {
-          ...b,
-          stains: (b.stains ?? []).map(s => s.status === 'Pending Cut' ? { ...s, status: 'Cut & Placed' as const } : s),
+      // PS-71 (Batch 458): marked on the newest copy of the case and saved
+      // with its version (updateCaseWithRetryOrThrow), so a concurrent
+      // change elsewhere on the case is kept. Only the slides whose labels
+      // were just engraved are marked (by id), never a slide added since.
+      const engraved = new Set(pendingIndexes.map(({ s }) => s.id));
+      await updateCaseWithRetryOrThrow(caseData.id, current => ({
+        specimens: (current.specimens ?? []).map((sp: Case['specimens'][number]) => sp.id !== specimen.id ? sp : {
+          ...sp,
+          blocks: (sp.blocks ?? []).map(b => b.id !== block.id ? b : {
+            ...b,
+            stains: (b.stains ?? []).map(s => s.status === 'Pending Cut' && engraved.has(s.id) ? { ...s, status: 'Cut & Placed' as const } : s),
+          }),
         }),
-      });
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
+      }), caseRouter);
       mockAuditService.logEvent({
         type: 'system', event: 'Slides Engraved at Microtomy',
         detail: `${pendingIndexes.length} real slide${pendingIndexes.length === 1 ? '' : 's'} engraved for ${specimen.label}${block.label} at microtomy.`,
@@ -131,16 +139,19 @@ async function processMicrotomyScan(
       if (pendingIndexes.length === 0) return;
 
       await Promise.all(pendingIndexes.map(({ s, i }) => {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(s, i);
         const slideId = matrixSlideIdentifier(fullAccession, matrixBlock.label, level);
         return dispatchSlideLabel({ fullAccession, specimenLabel: matrixBlock.label, blockLabel: matrixBlock.label, level, stainName: s.stainName, slideId }).catch(() => {});
       }));
 
-      const updatedMatrixBlocks = (caseData.matrixBlocks ?? []).map(m => m.id !== matrixBlockId ? m : {
-        ...m,
-        slides: (m.slides ?? []).map(s => s.status === 'Pending Cut' ? { ...s, status: 'Cut & Placed' as const } : s),
-      });
-      await caseRouter.updateCase(caseData.id, { matrixBlocks: updatedMatrixBlocks });
+      // PS-71 (Batch 458): same as the block branch above, on matrixBlocks.
+      const engraved = new Set(pendingIndexes.map(({ s }) => s.id));
+      await updateCaseWithRetryOrThrow(caseData.id, current => ({
+        matrixBlocks: (current.matrixBlocks ?? []).map(m => m.id !== matrixBlockId ? m : {
+          ...m,
+          slides: (m.slides ?? []).map(s => s.status === 'Pending Cut' && engraved.has(s.id) ? { ...s, status: 'Cut & Placed' as const } : s),
+        }),
+      }), caseRouter);
       mockAuditService.logEvent({
         type: 'system', event: 'Slides Engraved at Microtomy',
         detail: `${pendingIndexes.length} real slide${pendingIndexes.length === 1 ? '' : 's'} engraved for matrix block ${matrixBlock.label} at microtomy.`,
@@ -204,7 +215,9 @@ async function processGrossingScan(
     // SynopticReportPage.tsx's own existing listener already handles
     // this generically (re-fetch + toast), no new listener needed.
     window.dispatchEvent(new CustomEvent(MATERIAL_SCAN_UPDATED_EVENT, {
-      detail: { caseId: caseData.id, targetDescription: `${specimenLetter} (${hydrated.length} cassette${hydrated.length === 1 ? '' : 's'} resolved)`, stationName: 'Grossing' },
+      // Batch 445: the count travels as a number; the report page words
+      // the toast in the user's language.
+      detail: { caseId: caseData.id, targetDescription: specimenLetter, stationName: 'Grossing', resolvedCassettes: hydrated.length },
     }));
   } catch (e) {
     console.error('[Grossing] Failed to hydrate placeholder blocks:', e);

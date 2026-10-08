@@ -450,6 +450,158 @@ Configuration search covers every section; per-person language and worklist sort
 
 New `Profile/` (My dictionary, My voice commands) and `Common/ReasonPromptModal.tsx`; Resolve, Retire, Escalate, Supervisor bypass, Deny, transit status and risk-weight screens for actions nothing called before.
 
+## Batch 433
+
+- `Billing/`: `BillingCorrectionDialog.tsx` and `ChargeApprovalQueue.tsx` (Quality Assurance → Financials).
+- `Profile/BiometricSigningModal.tsx`, `Config/System/BiometricPolicyCard.tsx`: biometric signing.
+- `FacilityDictionary/`: the "Charges need billing approval" setting.
+
+## Batch 434
+
+`Billing/ChargeApprovalQueue.tsx`: names the performing lab for every case, or says it isn't known.
+
+## Batch 436
+
+- `Search/CaseSearchBar.tsx`: result chips show the case's flags (PS-101).
+- `PatientHistory/`, `QualityAssurance/`: corrected document citations (PS-40).
+
+## Batch 437
+
+- `Config/`: unsaved changes are noticed across the whole page (PS-128).
+- `Common/`: warnings that show over a dialog; `CapabilityButton` titles.
+- `NavBar/`, `Search/`: through the unsaved-changes guard.
+- Several prints are now audited (PS-282).
+
+## Batch 438
+
+Quality Assurance → CAPA Engine → Recommended; Configuration → System → Revision Reasons; audit times on the drift tab and support lookup read as UTC.
+
+## Batch 439
+
+`PeerReview/` (new): the peer review forms. External consult: opinions and their assessment. Configuration: Peer Review Before Sign-Out.
+
+## Batch 440
+
+`Worklist/WorklistTable.tsx` takes `interceptOpen`, for a filter that opens its cases its own way (the Worklist's Cytology Review tile). See `Worklist/README.md`.
+
+## Batch 441
+
+Configuration: the Role Dictionary locks pathologist types for the Cytotechnologist role, and the QA Configuration Center gains the "after release only" CAPA switch (`Config/README.md`).
+
+## Batch 442
+
+Quality Assurance → CAPA → Discordance Patterns, and Configuration → System → Discordance Trend Policy (PS-147).
+
+## Batch 444
+
+No key in the browser: the AI Provider screen's developer key field and the top bar's direct vendor check are gone. Scan Stations is translated.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 447
+
+Configuration → System → Feedback, and the top bar's QA button follows it.
+
+## Batch 448
+
+Staff → edit → Sign-in password (`Config/Staff/StaffSignInPassword.tsx`).
+
+## Batch 449
+
+Configuration search reaches every inner tab; the Report Templates and Validation Studies screens open the one named in the address.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+Config/System, EnhancementRequest and QualityAssurance: logic moved to services, and new tests (PS-38, PS-129, PS-216, PS-217, PS-349).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+QualityAssurance, Config (System, Staff), Common and Worklist: screen tests and logic moved to services (PS-48, PS-90, PS-121, PS-130, PS-133, PS-155, PS-204, PS-233, PS-355).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+Editor: inline critical-finding highlights (PS-323). Config: the Correlation window section (PS-156) and visible Modifier Dictionary upload errors.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`Config/`: a Biopsy-to-resection correlation settings section, built from the cytology correlation-window screen.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+- `QualityAssurance/`: the Follow-up not received tab.
+- `Config/System/`: Follow-up tracking settings.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`Config/System/DemoResetTab.tsx`: Full Reset only.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Pool claim modal: losing a claim race is shown.
+
+## Batch 459 — PS-152 discordance report, follow-up after sign-out
+
+- Quality Assurance → Cytology has a "Primary vs Final Diagnosis" report: each case's primary screen compared with the review chosen as its Final Diagnosis (PS-152).
+- A signed-out surgical case can be marked "follow-up expected" from the report page's action bar, not only in the sign-out modal.
+- Stale README notes corrected (cytology correction and addendum, autopsy authorization form).
+
+## Batch 460
+
+`Billing/CaseBillingReview.tsx`: the billing review panel and its prompts, for the Cytology Workspace and Microtomy.
+
+## Batch 461
+
+New folder `OrganMap/`: the anatomical map companion on the report page (`OrganMapPanel`, `OrganMapSvg`). The map is drawn from the synoptic answers and has no Save of its own.
+
+## Batch 463
+
+`OrganMap/`: the Mohs stage canvas and stage question. `Config/`: Mohs field type, template, bindings and colours preview.
+
+## Batch 463b
+
+`OrganMap/`: the Mohs block selector and problem flags. `Config/`: the default-histology setting and its refusal message.
+
+## Batch 464
+
+Organ maps: colorectal drawing; Configuration: margin rules and colorectal bindings.
+
+## Batch 465
+
+Organ maps: head and neck drawing, outline halos; Configuration: oral margin rules, neck bindings, `HEAD_NECK` category.
+
+## Batch 465b
+
+Organ maps: two-layer outline halo. Configuration: oral rule conflict warnings.
+
+## Batch 466
+
+Configuration: kidney margin rules and renal previews.
+
+## Batch 466b
+
+Configuration: derived margin questions and editor count settings.
+
+## Batch 466c
+
+- **`Config/Protocols/SynopticEditor`:** builds "unless" / "or also when" conditions and the checked hand-entered total.
+- **`Config/System/OrganMapsSection`:** an adenoma-at-margin option for the colorectal polyp. (Replaced in Batch 466d by margins per component.)
+
+## Batch 466d
+
+**`Config/System/OrganMapsSection`:** margin questions are bound per component, with a review notice for bindings saved before this batch.
+
+## Batch 467 — In-house molecular orders
+
+`Config/`: the Synoptic Editor's molecular result binding and the Stain Dictionary's in-house labs.
+
+## Batch 468 — Autopsy: consent-scope enforcement, forensic chain-of-custody
+
+`Autopsy/AutopsyAuthorizationCompletionForm.tsx`: two new structured consent-scope controls (excluded organs, retention permitted) — see that folder's own README.
+
 ---
 *Tracking: `PRIORITY_FIXES.md` was retired 2026-08-19 — its open items are
 Jira PS-57 to PS-71, so `PRIORITY_FIXES.md #N` citations throughout these
@@ -553,3 +705,11 @@ Several component folders now take their services from `@/services` instead of m
 
 - **`Config/System/StainDictionarySection`:** reference labs linked to molecular tests.
 - **`Config/System/FieldRequirementsSection`:** an Add-On Orders page (from the catalog).
+
+## Batch 473 — Autopsy case-type key migration
+
+No behavior change. `Autopsy/AutopsyAuthorizationCompletionForm.tsx` references `caseAuthority`'s renamed forensic-path value, `'medicolegal_forensic'` → `'statutory_judicial'`. See `services/autopsy/README.md`.
+
+## Batch 477 — Autopsy worklist badges (PS-261 follow-up, Module 5)
+
+**`Worklist/`:** new `AutopsyWorklistBadges.tsx`, rendered in both `WorklistTable.tsx`'s table row (Status cell) and its card layout — case authority, an active ancillary hold, PAD/FAD signed, and a TAT/SLA tooltip for the existing Autopsy branch tab's rows. See `Worklist/README.md` and `services/autopsy/README.md`.

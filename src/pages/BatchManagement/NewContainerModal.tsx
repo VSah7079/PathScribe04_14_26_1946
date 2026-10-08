@@ -48,6 +48,7 @@ import type { DecalSolutionType } from '@/services/batches/DecalBatch';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { DEFAULT_PRINT_SETTINGS_CONFIG } from '@/services/printSettings/IPrintSettingsService';
 import type { PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 interface Props {
   onClose: () => void;
@@ -568,7 +569,11 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
             </div>
             <div className="ps-batch-modal-footer">
               {createdBatch.identifierMode !== 'semi_permanent' && (
-                <button className="ps-btn-secondary" onClick={() => window.print()}>🖨️ {t('newContainerModal.print')}</button>
+                <button className="ps-btn-secondary" onClick={() => {
+                  // PS-282 (Batch 437): audited.
+                  void recordDocumentOutput({ action: 'print', document: 'container-label', documentId: createdBatch.masterBarcode, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
+                  window.print();
+                }}>🖨️ {t('newContainerModal.print')}</button>
               )}
               <button className="ps-btn-primary" onClick={() => onCreated(createdBatch)}>{t('newContainerModal.continueScanItems')}</button>
             </div>

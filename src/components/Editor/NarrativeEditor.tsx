@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import PathScribeEditor from './PathScribeEditor';
 import type { PathScribeEditorHandle } from './PathScribeEditorRef';
+import type { FindingHighlightTarget } from '@/services/clinical/findingHighlight';
 
 export interface NarrativeEditorProps {
   value: string;
@@ -18,6 +19,8 @@ export interface NarrativeEditorProps {
   // ── User-configurable tab width — see PathScribeEditor for full docs ─────
   tabWidthChars?: number;
   onTabWidthChange?: (chars: number) => void;
+  /** Batch 452 (PS-323): critical findings to highlight; see PathScribeEditor. */
+  highlightFindings?: readonly FindingHighlightTarget[];
 }
 
 const NarrativeEditor = React.forwardRef<PathScribeEditorHandle, NarrativeEditorProps>((
@@ -33,6 +36,7 @@ const NarrativeEditor = React.forwardRef<PathScribeEditorHandle, NarrativeEditor
     theme = 'light',
     tabWidthChars,
     onTabWidthChange,
+    highlightFindings,
   },
   ref,
 ) => {
@@ -59,6 +63,7 @@ const NarrativeEditor = React.forwardRef<PathScribeEditorHandle, NarrativeEditor
         theme={theme}
         tabWidthChars={tabWidthChars}
         onTabWidthChange={onTabWidthChange}
+        highlightFindings={highlightFindings}
       />
     </div>
   );

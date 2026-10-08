@@ -213,7 +213,30 @@ const SEED_DEFICIENCY_TYPES: DeficiencyType[] = [
   {
     id: 'def-peer-review-discordance', name: 'Post-Sign-Out Peer Review Discordance', status: 'Active', level: 'case',
     description: 'A second pathologist\'s independent post-sign-out peer review of a surgical case reached a materially different diagnosis than the original sign-out. Real, open CAPA record — not merely a logged review history entry.',
-  },  // Batch 379 (PS-359, Pete): an organisation that switches off "Grossing
+  },
+  // Batch 438 (PS-146): a released amendment or correction whose reason the
+  // lab marks clinically significant (Configuration → Revision Reasons).
+  // Opened only when a QA lead confirms the CAPA recommendation.
+  {
+    id: 'def-clinically-significant-revision', name: 'Clinically Significant Report Revision', status: 'Active', level: 'case',
+    description: 'A released report was amended or corrected for a reason the lab marks clinically significant: the original report may have affected clinical management. Opened when a QA lead confirms the CAPA recommendation.',
+  },
+  // Batch 438 (PS-145, PS-144): the CAPA types the next triggers open as.
+  {
+    id: 'def-clinical-pathologic-mismatch', name: 'Clinical/Pathologic Mismatch', status: 'Active', level: 'case',
+    description: 'The microscopic finding contradicts the pre-operative clinical history or the frozen-section impression, and the discrepancy was not resolved. Opened when a QA lead confirms the CAPA recommendation.',
+  },
+  {
+    id: 'def-unresolved-peer-disagreement', name: 'Unresolved Peer Review Disagreement', status: 'Active', level: 'case',
+    description: 'A pre-sign-out peer review disagreement reached no consensus, even after escalation. Opened when a QA lead confirms the CAPA recommendation.',
+  },
+  // Batch 439 (PS-148): an outside consultant's major disagreement with a
+  // report already released.
+  {
+    id: 'def-outside-consult-discordance', name: 'Outside Consult Major Discordance', status: 'Active', level: 'case',
+    description: 'An outside consultant\'s opinion disagrees materially with a report that was already released. Opened when a QA lead confirms the CAPA recommendation.',
+  },
+  // Batch 379 (PS-359, Pete): an organisation that switches off "Grossing
   // protocol attached" in Field Requirements can complete grossing on a
   // specimen with no protocol, after a confirmation. Each such specimen gets
   // one of these, left open, so it reaches the QA deficiency queue for

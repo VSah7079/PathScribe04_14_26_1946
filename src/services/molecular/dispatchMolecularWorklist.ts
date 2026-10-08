@@ -128,6 +128,10 @@ export async function dispatchMolecularWorklist(
   }
 
   await mockMolecularBatchService.updateByUuid(batch.batchUuid, { worklistDispatchedAt: new Date().toISOString() });
+  // Batch 467: the plate's in-house orders are now running (WORKLIST_DISPATCHED). Loaded lazily: the order engine
+  // reads the batch service too.
+  const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');
+  await molecularOrderEngine.onWorklistDispatched(batch.batchUuid);
 
   return { dispatched: true, payload };
 }

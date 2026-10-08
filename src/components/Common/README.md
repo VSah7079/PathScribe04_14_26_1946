@@ -257,6 +257,15 @@ It reads `hooks/useCapabilities.ts` and decides nothing itself. The service behi
 
 `ReasonPromptModal.tsx` (new): a confirmation that needs a written reason (QC escalate, supervisor bypass, denying an access request).
 
+## Batch 437
+
+- `ConfirmModal` takes `aboveDialogs`, and `LogoutWarningModal` always uses it: the unsaved-changes and sign-out warnings show over an open editor dialog (`.ps-overlay--above-dialogs`).
+- `CapabilityButton` takes a `title` for when the action is allowed (a refusal shows why instead).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`CapabilityButton.test.tsx`: greyed out with its tooltip when the capability is missing (PS-355).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

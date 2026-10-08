@@ -48,6 +48,12 @@ interface CaseSignOutModalProps {
    *  own "+Code" button already uses (Piece 1), reused here rather than
    *  duplicated. */
   onAssignBaseCode?: (specimenId: string, specimenIndex: number) => void;
+  /** Batch 454: "a follow-up specimen is expected". Shown only when the
+   *  page passes onFollowUpExpectedChange: the report page (surgical
+   *  sign-out; cytology signs out in the Cytology Workspace) does so when
+   *  the signer holds case:follow-up:expect. */
+  followUpExpected?: boolean;
+  onFollowUpExpectedChange?: (value: boolean) => void;
 }
 
 const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
@@ -55,6 +61,7 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
   onClose, onConfirm, onReject,
   isCountersign, residentName, countersignFeedback, onCountersignFeedbackChange,
   specimens, matrixBlocks = [], onAssignBaseCode,
+  followUpExpected, onFollowUpExpectedChange,
 }) => {
   const { t } = useTranslation();
   // Real fix, Piece 3: same self-contained data-fetch pattern this
@@ -184,6 +191,16 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {onFollowUpExpectedChange && (
+          <div className="ps-conf-form-field ps-signout-followup-field">
+            <label className="ps-modal-dark-label ps-signout-followup-label">
+              <input type="checkbox" checked={!!followUpExpected} onChange={e => onFollowUpExpectedChange(e.target.checked)} />
+              {t('caseSignOutModal.followUpExpectedLabel')}
+            </label>
+            <p className="ps-modal-dark-hint">{t('caseSignOutModal.followUpExpectedHint')}</p>
           </div>
         )}
 

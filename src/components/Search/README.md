@@ -72,5 +72,17 @@
 
 The identifier search reads `patient.nationalIdentifiers[].value` as well as the MRN (and still the old `nhsNumber` / `chiNumber` / `ihiNumber` fields on records from before).
 
+## Batch 436 (PS-101)
+
+`CaseSearchBar.tsx` takes its result chips from `services/caseSearch/searchHitFlags.ts`, with the flag definitions from `flagService`. The Manchester demo orders (MFT26-8801/8803/8805) now name their ordering facility, so those cases resolve to a lab.
+
+## Batch 437 (PS-128)
+
+Opening a case from the header search goes through the unsaved-changes guard: with unsaved Configuration, Accession or report changes, the page asks first.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

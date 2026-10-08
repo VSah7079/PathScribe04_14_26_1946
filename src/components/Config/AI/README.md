@@ -11,9 +11,9 @@ everything else is UI over it.
 
 - **`aiProviderConfig.ts`** — Defines supported providers and per-provider
   model lists. 3-tier resolution: user override (localStorage, dev-only) →
-  org setting → env default. API keys never live in the browser in
-  production — routed through `/api/ai-proxy`; only populated locally when
-  `VITE_AI_DEV_MODE=true`. **Real rename, this pass:** `AiProviderId`
+  org setting → env default. API keys never live in the browser, in any
+  build: every call goes through the `/api/ai/…` proxy routes (Batch 444
+  removed the old `VITE_AI_DEV_MODE` direct-call path and the dev key field). **Real rename, this pass:** `AiProviderId`
   values (an internal type, never shown to users) are now named for their
   real request/response protocol shape rather than the vendor —
   `structured_messages` (Anthropic-shaped), `chat_completions` (OpenAI-
@@ -118,6 +118,15 @@ The AI tab is view only without any of the three AI capabilities. The Orchestrat
 ## Batch 431
 
 The lab's AI provider settings (`aiProviderConfig.ts`) and the orchestrator default (`orchestratorModeConfig.ts`) are kept in the lab settings store.
+
+## Batch 437
+
+AI Provider Settings reports unsaved changes (PS-128). Fixed: on opening, the form replaced the saved model with the provider's first model before anyone touched it.
+
+## Batch 444
+
+- `aiProviderConfig.ts`: `apiKey`, `VITE_AI_API_KEY`, `VITE_AI_DEV_MODE` and `isDevMode()` are removed. A personal override saved before this batch that still holds a key has it dropped from storage when it's next read.
+- `AiProviderSettings.tsx`: the "Dev API Key" field and the "Dev mode — direct API calls" flag are removed, along with their locale keys and CSS.
 
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*

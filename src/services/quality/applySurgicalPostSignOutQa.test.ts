@@ -187,4 +187,35 @@ describe('applySurgicalPostSignOutQa', () => {
     const updatedCyto = await caseRouter.getCase(cytoCaseId);
     expect(updatedCyto?.specimens?.[0]?.surgicalPeerReview?.biopsyToResectionCandidates ?? []).toHaveLength(0);
   });
+
+  // PS-71 (Batch 458): the flag is saved with the version of the case it was
+  // built from; a save landing in between is kept, the flag re-applied to it.
+  it('PS-71: a concurrent save on the case is kept and the flag is re-applied to the newer version', async () => {
+    const caseId = makeId('S26-SURGQA-PS71');
+    await seedCase({ id: caseId, specimens: [{ id: 'sp1', label: 'A', description: 'Breast core' } as any] });
+    storageSet('intraop_entries', [
+      makeIntraopEntry({
+        mergedIntoCaseId: caseId, status: 'merged',
+        specimens: [{ id: 's1', specimenLabel: 'A', arrivalTimestamp: '2026-01-01T00:00:00.000Z', milestones: [], preparations: [], frozenCategory: 'malignant' } as any],
+      }),
+    ]);
+    const realUpdate = caseRouter.updateCase.bind(caseRouter);
+    let interfered = false;
+    const spy = vi.spyOn(caseRouter, 'updateCase').mockImplementation(async (id, updates, expectedVersion) => {
+      if (!interfered) {
+        interfered = true;
+        const now = await caseRouter.getCase(id);
+        await realUpdate(id, { specimens: (now!.specimens ?? []).map(sp => ({ ...sp, description: 'Breast core (edited)' })) } as any, now!.version ?? 0);
+      }
+      return realUpdate(id, updates, expectedVersion);
+    });
+
+    await applySurgicalPostSignOutQa(caseId);
+
+    expect(spy.mock.calls.length).toBe(2); // the stale save was refused, then re-applied
+    expect(spy.mock.calls.every(c => typeof c[2] === 'number')).toBe(true);
+    const updated = await caseRouter.getCase(caseId);
+    expect(updated?.specimens?.[0]?.description).toBe('Breast core (edited)');
+    expect(updated?.specimens?.[0]?.surgicalPeerReview?.postSignOutPeerReviewFlag?.reason).toBe('targeted_high_risk');
+  });
 });

@@ -23,6 +23,7 @@
 // exactly as the button. A reprint reason is checked the same way.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StainOrder } from '@/types/case/Specimen';
@@ -157,7 +158,7 @@ const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
                   />
                 </td>
               )}
-              <td>{t('microtomyWorkstation.slideGrid.levelShort', { n: idx + 1 })}{stain.levelDepthMicrons ? ` (${stain.levelDepthMicrons}µm)` : ''}</td>
+              <td>{t('microtomyWorkstation.slideGrid.levelShort', { n: slideLevelOf(stain, idx).slice(1) })}{stain.levelDepthMicrons ? ` (${stain.levelDepthMicrons}µm)` : ''}</td>
               <td>
                 {stain.stainName}
                 {stain.isControlSlide && <span className="ps-microtomy-control-badge">{t('microtomyWorkstation.slideGrid.control')}</span>}

@@ -132,6 +132,8 @@ export interface MolecularWell {
    *  Undefined for a well with no real specimen scanned in yet, never
    *  a fabricated empty array standing in for "nothing happened." */
   movementHistory?: MolecularMovementRecord[];
+  /** Batch 467: the in-house molecular order this sample well runs (services/molecularOrders/). */
+  orderId?: string;
 }
 
 // ── Reagent kit / lot tracking ──────────────────────────────────────

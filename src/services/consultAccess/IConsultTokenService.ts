@@ -98,6 +98,15 @@ export interface ConsultOpinion {
   signedStatus: ConsultOpinionSignedStatus;
   opinionText: string;
   submittedAt: string;
+  /** Batch 439 (PS-148): the pathologist's assessment of this opinion against
+   *  the case, recorded once (see outsideConsultRules.ts). */
+  assessment?: import('./outsideConsultRules').OutsideConsultAssessment;
+  assessmentNote?: string;
+  assessedBy?: { userId: string; userName: string };
+  assessedAt?: string;
+  /** The report was already released when assessed (a major discordance then recommends a CAPA). */
+  assessedAfterRelease?: boolean;
+  qaRecordId?: string;
 }
 
 export type NewConsultOpinion = Omit<ConsultOpinion, 'id' | 'submittedAt'>;
@@ -122,6 +131,11 @@ export interface IConsultTokenService {
   recordAccess(id: ID): Promise<ServiceResult<ConsultToken>>;
   submitOpinion(draft: NewConsultOpinion): Promise<ServiceResult<ConsultOpinion>>;
   getOpinionsByCaseId(caseId: string): Promise<ServiceResult<ConsultOpinion[]>>;
+  /** Batch 439 (PS-148): the pathologist assesses a signed opinion against
+   *  the case (agrees / minor difference / major discordance), once. Needs
+   *  case:outside-consult:assess. Writes an "Outside Consult Correlation" QA
+   *  record; a major discordance on a released report recommends a CAPA. */
+  assessOpinion(id: ID, input: { assessment: import('./outsideConsultRules').OutsideConsultAssessment; note?: string }): Promise<ServiceResult<ConsultOpinion>>;
 }
 
 export function resolveConsultTokenStatus(t: Pick<ConsultToken, 'isActive' | 'expiresAt'>): ConsultTokenStatus {

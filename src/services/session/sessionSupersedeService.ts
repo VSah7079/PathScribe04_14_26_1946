@@ -16,8 +16,8 @@
 // Explicitly scoped to same-browser/same-device. True cross-device session
 // invalidation (a phone and a laptop, or two different browsers) needs a
 // real shared backend to signal across — see
-// backend-requirements-concurrency-security.md's cross-device session
-// item. This is the real, working subset of the problem that doesn't need
+// the API server's session work (PS-345; the backend-requirements document
+// once cited here was never written, PS-40). This is the real, working subset of the problem that doesn't need
 // that.
 // ─────────────────────────────────────────────────────────────────────────────
 

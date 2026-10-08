@@ -45,6 +45,8 @@ export interface AddOnLineValues {
   orderKind: 'recut' | 'special_stain' | 'ihc' | 'molecular';
   levelDepthMicrons?: number | string | null;
   sendOutReferenceLabFacilityId?: string | null;
+  /** Batch 467: a molecular line run in-house names no reference lab. */
+  molecularRouting?: 'IN_HOUSE' | 'SEND_OUT';
 }
 
 const orderGroup = (requirements: readonly ResolvedFieldRequirement[]) => inGroup(requirements, 'addOnOrder');
@@ -66,7 +68,7 @@ export interface AddOnSubmitValues {
 /** Submitting the order. */
 export function addOnSubmitMissing(values: AddOnSubmitValues, requirements: readonly ResolvedFieldRequirement[]): string[] {
   const recuts = values.lines.filter(l => l.orderKind === 'recut');
-  const sendOuts = values.lines.filter(l => l.orderKind === 'molecular');
+  const sendOuts = values.lines.filter(l => l.orderKind === 'molecular' && l.molecularRouting !== 'IN_HOUSE');
   return missingRequiredFields(orderGroup(requirements), {
     addOnBlocks: values.blockIds.length > 0 ? 'yes' : '',
     addOnLines: values.lines.length > 0 ? 'yes' : '',

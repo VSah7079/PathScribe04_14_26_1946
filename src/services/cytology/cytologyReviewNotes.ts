@@ -55,7 +55,8 @@ export async function addCytologyReviewNote(
     section: input.section, text, requiresRevision: input.requiresRevision,
     by: { userId: input.user.id, userName: input.user.name }, at: deps.now().toISOString(), status: 'open',
   };
-  await patchCytologyScreening(input.caseData, input.specimenId, { reviewNotes: [...notesOf(input.specimen), note] }, deps);
+  // PS-71 (Batch 458): built from the specimen as saved, so a note someone else added in between is kept.
+  await patchCytologyScreening(input.caseData, input.specimenId, sp => ({ reviewNotes: [...notesOf(sp), note] }), deps);
   if (input.requiresRevision) {
     deps.logAudit({
       type: 'user', event: 'Cytology review revision requested',
@@ -76,9 +77,10 @@ export async function acknowledgeCytologyReviewNote(
   if (note.reviewAuthorId !== input.user.id) return 'notAuthor';
   if (note.status !== 'open') return 'notOpen';
   const at = deps.now().toISOString();
-  await patchCytologyScreening(input.caseData, input.specimenId, {
-    reviewNotes: notesOf(input.specimen).map(n => (n.id === note.id ? { ...n, status: 'acknowledged', acknowledgedAt: at } : n)),
-  }, deps);
+  // PS-71 (Batch 458): built from the specimen as saved.
+  await patchCytologyScreening(input.caseData, input.specimenId, sp => ({
+    reviewNotes: notesOf(sp).map(n => (n.id === note.id ? { ...n, status: 'acknowledged', acknowledgedAt: at } : n)),
+  }), deps);
   return 'acknowledged';
 }
 

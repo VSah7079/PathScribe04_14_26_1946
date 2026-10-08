@@ -4,7 +4,7 @@ import type { Specimen, HistologyBlock, StainOrder } from '@/types/case/Specimen
 import type { StainType } from '@/services/stains/IStainService';
 import { resolveFieldRequirements } from '../fieldRequirements/fieldRequirementRules';
 import { placeAddOnOrders, respondToAddOnException, flagAddOnException, markAddOnBlockRetrieved } from './addOnOrderActions';
-import { resolveSendOutLabChoices } from '@/utils/addOnOrderOperations';
+import { resolveSendOutLabChoices, withDefaultSendOutLab, resolveAddOnRouting } from '@/utils/addOnOrderOperations';
 
 const reqs = (over: Record<string, boolean> = {}) => resolveFieldRequirements('addOnOrder', over);
 const actor = { id: 'path-1', name: 'Dr. Chen' };
@@ -69,6 +69,51 @@ describe('placeAddOnOrders (Batch 403)', () => {
     const d = deps();
     const r = await placeAddOnOrders({ caseData: theCase(), blockIds: ['b1'], lines: [{ stainType: he, orderKind: 'recut' }], submission, actor, requirements: reqs({ levelDepth: true, cuttingInstructions: true }) }, d);
     expect(r.missing).toEqual(['levelDepth', 'cuttingInstructions']);
+  });
+});
+
+describe('Batch 467: in-house molecular lines', () => {
+  const egfr = { id: 'st-egfr', name: 'EGFR PCR', category: 'Molecular', active: true, inHouseFacilityIds: ['lab-a'] } as unknown as StainType;
+
+  it('an in-house line needs no reference lab, is routed to the in-house queue and becomes a molecular order', async () => {
+    const d = { ...deps(), ingestMolecularOrders: vi.fn(async () => ({ refused: [] as unknown[] })) };
+    const input = { caseData: theCase(), blockIds: ['b1'], submission, actor, requirements: reqs({ sendOutLab: false }), performingLabFacilityId: 'lab-a' };
+    const r = await placeAddOnOrders({ ...input, lines: [{ stainType: egfr, orderKind: 'molecular', molecularRouting: 'IN_HOUSE' }] }, d);
+    expect(r.ok).toBe(true);
+    const order = r.specimens![0].blocks![0].stains.find(s => s.stainName === 'EGFR PCR')!;
+    expect(order.routedQueueLabel).toBe('Molecular In-House Queue');
+    const requests = (d.ingestMolecularOrders.mock.calls[0] as unknown as [unknown[]])[0];
+    expect(requests).toEqual([expect.objectContaining({ caseId: 'S26-9', accession: 'S26-9', blockId: 'b1', assayTarget: 'st-egfr', routing: 'IN_HOUSE', performingLabFacilityId: 'lab-a', stainOrderId: order.id, orderedBy: 'path-1' })]);
+  });
+
+  it('a send-out molecular line still needs its lab, and routes to the send-out queue', async () => {
+    const d = deps();
+    const input = { caseData: theCase(), blockIds: ['b1'], submission, actor, requirements: reqs({ sendOutLab: false }) };
+    expect(await placeAddOnOrders({ ...input, lines: [{ stainType: egfr, orderKind: 'molecular', molecularRouting: 'SEND_OUT' }] }, d)).toEqual({ ok: false, missing: ['sendOutLab'] });
+    expect(resolveAddOnRouting('molecular', 'Molecular', 'SEND_OUT').queueLabel).toBe('Reference/Send-Out Lab Queue');
+  });
+
+  it('refuses an in-house line where the case\'s lab doesn\'t run the test, saving nothing', async () => {
+    const d = { ...deps(), ingestMolecularOrders: vi.fn(async () => ({ refused: [] as unknown[] })) };
+    const r = await placeAddOnOrders({ caseData: theCase(), blockIds: ['b1'], submission, actor, requirements: reqs(), performingLabFacilityId: 'lab-b', lines: [{ stainType: egfr, orderKind: 'molecular', molecularRouting: 'IN_HOUSE' }] }, d);
+    expect(r).toEqual({ ok: false, inHouseNotAvailable: ['EGFR PCR'] });
+    expect(d.saveSpecimens).not.toHaveBeenCalled();
+  });
+
+  it('a refused or failed ingest is reported, never turned into a failed placement (no resubmit, no duplicate slides)', async () => {
+    const input = { caseData: theCase(), blockIds: ['b1'], submission, actor, requirements: reqs(), performingLabFacilityId: 'lab-a', lines: [{ stainType: egfr, orderKind: 'molecular' as const, molecularRouting: 'IN_HOUSE' as const }] };
+    const refusing = { ...deps(), ingestMolecularOrders: vi.fn(async () => ({ refused: [{}] as unknown[] })) };
+    expect(await placeAddOnOrders(input, refusing)).toMatchObject({ ok: true, molecularNotQueued: 1 });
+    const throwing = { ...deps(), ingestMolecularOrders: vi.fn(async () => { throw new Error('down'); }) };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await placeAddOnOrders(input, throwing)).toMatchObject({ ok: true, molecularNotQueued: 1 });
+    spy.mockRestore();
+    expect(throwing.saveSpecimens).toHaveBeenCalledTimes(1);
+  });
+
+  it('a new line starts in-house only where the performing lab runs the test', () => {
+    expect(withDefaultSendOutLab({ stainType: egfr, orderKind: 'molecular' }, [], 'lab-a').molecularRouting).toBe('IN_HOUSE');
+    expect(withDefaultSendOutLab({ stainType: egfr, orderKind: 'molecular' }, [], 'lab-b').molecularRouting).toBe('SEND_OUT');
   });
 });
 

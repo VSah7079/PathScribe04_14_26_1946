@@ -25,6 +25,43 @@
 
 `orderQueueView.ts` holds the Molecular Order Queue page's ordering (newest first) and payload check, moved out of the page. The page takes the queue service from `@/services`.
 
+## Batch 457 — Metro General cancer registry, Molecular Order Queue seed
+
+Pete: "Molecular Order Queue is still empty. Please add some seed data." `molecularOrderDemoSeed.ts` is the queue's starting content (made on first read and stored, so it returns after a Full Reset):
+- S26-5001, S26-5002, S26-4650, S26-4651: high-risk HPV screen, sent.
+- S26-5002: the reflex genotyping order its positive result triggered (`hpv_reflex_genotyping`), sent.
+- S26-4652: failed, `DISPATCH_UNREACHABLE` twice (Panther 2 middleware), which is why its rack (`molecular/molecularDemoSeed.ts`) is still waiting.
+
+S26-5003 is left for the page's own demo panel. The page is read-only: it lists the queue but has no Retry button.
+
+## Batch 467 — In-house molecular orders (Pete's engine spec v1.1.0)
+
+The in-house molecular order queue and plate binding engine. Contract: `docs/architecture/MOLECULAR_ORDERS_API.md`.
+
+- `molecularOrderTypes.ts`: order statuses (ORDERED, QUEUED, PLATE_ASSIGNED, IN_RUN, RESULTED, CANCELLED), routing (IN_HOUSE, SEND_OUT), the order, the actions, refusal codes and the queue view.
+- `molecularRouting.ts`: which routings an order may take for a test at a performing lab (in-house only where the test's `inHouseFacilityIds` lists the lab).
+- `molecularPlateOrchestrator.ts`: binding orders to a draft plate's free wells, in row order, never on a control position the assay's control rule fixes; all or nothing; unbinding.
+- `molecularOrderEngine.ts`: every state change and all audit events. Ingest from add-on orders, the queue view, actions (assign, remove, cancel, re-route), dispatch to IN_RUN, results to RESULTED, and filling the bound synoptic question. A signed-out case is never changed; an addendum draft is opened instead.
+  - Capabilities: `molecular:order:assign-plate` (assign/remove) and `molecular:order:cancel` (cancel/re-route).
+  - Re-validation: a queued in-house order whose lab no longer runs the test asks to be re-routed and can't go on a plate.
+- `molecularOrderEngineLive.ts`: the engine on today's mock services, and `simulateMolecularRunResults` (demo only).
+- `mockMolecularOrderStore.ts`: stored orders (`molecular_orders_v1`), seeds MO-2026-0467-01 (S26-4493 EGFR PCR, in-house, queued) and MO-2026-0403-01 (S26-4401 HER2 FISH, send-out to Summit).
+- Tests: `molecularOrderEngine.test.ts`, `molecularPlateAndRouting.test.ts`.
+
+The older outbound order queue (`IMolecularOrderOutboundQueueService`, HPV) is unchanged.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- **Send-out orders.** `onReferralDispatched` takes the send-out orders a referral batch carries to `IN_RUN` ("At the reference lab"). `onSendOutResults` applies a reference lab's coded results: by order id, or by accession and test when exactly one order fits, with an identity check. A report with no coded result gives the outcome `reportOnly`.
+- **Choosing a lab.** `SET_SEND_OUT_LAB` chooses a queued send-out order's lab, from the test's approved labs or any active reference lab. It has its own capability, `molecular:order:set-lab`, and audit event `MOLECULAR_ORDER_LAB_SET`. This closes "no default lab".
+- **Sending.** A referral batch carries an order only when the order's chosen lab is the batch's destination, the batch's requested test names its test, and its accession and specimen are in the batch.
+- **Status-guarded writes.** `update` re-reads each order at save time and saves only if its status is still the expected one.
+- **One result path.** In-house and send-out results share it (`applyResult`). An instrument's echoed `order_id` must match the order.
+- **New `molecularSignOutCheck.ts`.** Answers still differing from their molecular result are a sign-out warning.
+- **Live engine.** `simulateSendOutResult` (demo) goes through the real referral result processing.
+- **Seed.** MO-2026-0467-02: MFT26-8801 MSI by PCR, send-out, no lab chosen.
+- **Tests.** New: `molecularSignOutCheck.test.ts`. Send-out, lab choice and re-route cases added to `molecularOrderEngine.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

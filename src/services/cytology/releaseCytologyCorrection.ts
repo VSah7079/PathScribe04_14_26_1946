@@ -132,6 +132,20 @@ export async function releaseCytologyCorrection(
   if (!createRes.ok) return { ok: false, error: 'Could not create the corrected sign-out record.' };
   const newRecord = createRes.data;
 
+  // Batch 438 (PS-146): a cytology correction changes the diagnosis (its
+  // reason is free text, not a dictionary code), so it always recommends a
+  // CAPA for the QA lead to confirm or dismiss. Linked to a discordance
+  // already recommended for the case (PS-148). Never blocks the release.
+  try {
+    const { mockCapaRecommendationService } = await import('../quality/mockCapaRecommendationService');
+    await mockCapaRecommendationService.recommend({
+      caseId, specimenId, source: 'clinical-correction', deficiencyTypeId: 'def-clinically-significant-revision',
+      sourceRecordId: newRecord.id, summary: 'Released a cytology diagnosis correction (Correct diagnosis).', createdBy: correctingUser.id,
+    });
+  } catch (e) {
+    console.error('[releaseCytologyCorrection] Failed to recommend a CAPA for the correction:', e);
+  }
+
   await publishReportReleasedEvent({
     caseId,
     instanceId: newRecord.id,

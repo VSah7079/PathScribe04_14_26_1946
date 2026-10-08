@@ -45,7 +45,8 @@ async function buildDeps(): Promise<AssistPollDeps> {
     loadQueue: () => mockLisStagingQueueService.load(),
     saveQueue: q => mockLisStagingQueueService.save(q),
     getCase: id => mockCaseService.getCase(id),
-    updateCase: (id, updates) => mockCaseService.updateCase(id, updates),
+    // PS-71 (Batch 458): forwards the version the worker built the save from.
+    updateCase: (id, updates, expectedVersion) => mockCaseService.updateCase(id, updates, expectedVersion),
     listDiagnosticTemplates: async () =>
       (await templateModule.listTemplates('published'))
         .filter(t => t.isDiagnostic !== false)

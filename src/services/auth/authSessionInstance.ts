@@ -23,13 +23,36 @@ import { createAuthSession } from './authSession';
 import { readSessionProfile, writeSessionProfile } from './sessionProfile';
 import { createSsoClient, type ISsoClient } from './sso/ssoClient';
 import { setAccessTokenSource } from './accessTokenSource';
+import { browserSignInLockStore } from './signInLockout';
 import { createSignerConfirmation, type SigningLockState } from './signerConfirmation';
 import { createSignatureGate } from './signatureEvidence';
 import { mockSignatureRecordService } from '../signatures/mockSignatureRecordService';
 
 const isProduction = !!import.meta.env.PROD;
 
-export const authConfig = resolveAuthConfig(import.meta.env as unknown as Record<string, string | undefined>, isProduction);
+// Batch 444: each setting is read by its full name. Passing `import.meta.env`
+// as an object made Vite copy every VITE_ variable in .env into the browser
+// bundle, whatever it held (envExposure.guard.test.ts).
+const AUTH_ENV: Record<string, string | undefined> = {
+  VITE_AUTH_MODE: import.meta.env.VITE_AUTH_MODE,
+  VITE_AUTH_MICROSOFT_AUTHORITY: import.meta.env.VITE_AUTH_MICROSOFT_AUTHORITY,
+  VITE_AUTH_MICROSOFT_CLIENT_ID: import.meta.env.VITE_AUTH_MICROSOFT_CLIENT_ID,
+  VITE_AUTH_MICROSOFT_API_SCOPE: import.meta.env.VITE_AUTH_MICROSOFT_API_SCOPE,
+  VITE_AUTH_MICROSOFT_SCOPES: import.meta.env.VITE_AUTH_MICROSOFT_SCOPES,
+  VITE_AUTH_MICROSOFT_LINK_BY_EMAIL: import.meta.env.VITE_AUTH_MICROSOFT_LINK_BY_EMAIL,
+  VITE_AUTH_GOOGLE_AUTHORITY: import.meta.env.VITE_AUTH_GOOGLE_AUTHORITY,
+  VITE_AUTH_GOOGLE_CLIENT_ID: import.meta.env.VITE_AUTH_GOOGLE_CLIENT_ID,
+  VITE_AUTH_GOOGLE_API_SCOPE: import.meta.env.VITE_AUTH_GOOGLE_API_SCOPE,
+  VITE_AUTH_GOOGLE_SCOPES: import.meta.env.VITE_AUTH_GOOGLE_SCOPES,
+  VITE_AUTH_GOOGLE_LINK_BY_EMAIL: import.meta.env.VITE_AUTH_GOOGLE_LINK_BY_EMAIL,
+  VITE_AUTH_OIDC_AUTHORITY: import.meta.env.VITE_AUTH_OIDC_AUTHORITY,
+  VITE_AUTH_OIDC_CLIENT_ID: import.meta.env.VITE_AUTH_OIDC_CLIENT_ID,
+  VITE_AUTH_OIDC_API_SCOPE: import.meta.env.VITE_AUTH_OIDC_API_SCOPE,
+  VITE_AUTH_OIDC_SCOPES: import.meta.env.VITE_AUTH_OIDC_SCOPES,
+  VITE_AUTH_OIDC_LINK_BY_EMAIL: import.meta.env.VITE_AUTH_OIDC_LINK_BY_EMAIL,
+};
+
+export const authConfig = resolveAuthConfig(AUTH_ENV, isProduction);
 for (const problem of authConfig.problems) console.error(`[auth] ${problem}`);
 
 const API_ENV_VAR = 'VITE_API_BASE_URL';
@@ -48,12 +71,36 @@ const verifyDemoCredentials = import.meta.env.VITE_AUTH_MODE !== 'sso'
   ? async (email: string, password: string) => (await import('./demo/demoAccounts')).verifyDemoCredentials(email, password)
   : null;
 
+// Batch 448: passwords set from the Staff screen, checked first at sign-in.
+const verifyStaffPassword = verifyDemoCredentials
+  ? async (email: string, password: string) => (await import('../staffPasswords/mockStaffPasswordService')).mockStaffPasswordService.verify(email, password)
+  : null;
+const demoAccountFor = async (staffId: string) => (await import('./demo/demoAccounts')).DEMO_ACCOUNTS.find(a => a.id === staffId);
+
+// Batch 456: the sign-in lockout (signInLockout.ts) and the name the audit
+// gives an email that belongs to an account.
+const accountNameFor = async (email: string): Promise<string | null> => {
+  const wanted = email.trim().toLowerCase();
+  if (!wanted) return null;
+  if (verifyDemoCredentials) {
+    const account = (await import('./demo/demoAccounts')).DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === wanted);
+    if (account) return account.name;
+  }
+  const staff = await mockUserService.getAll();
+  const person = staff.ok ? staff.data.find(s => (s.email ?? '').trim().toLowerCase() === wanted) : undefined;
+  return person ? [person.firstName, person.lastName].filter(Boolean).join(' ') || person.id : null;
+};
+
 let ssoClient: ISsoClient | null = null;
 const getSsoClient = () => (ssoClient ??= createSsoClient(authConfig.providers, { origin: window.location.origin }));
 
 export const authSession = createAuthSession({
   config: authConfig,
   verifyDemoCredentials,
+  verifyStaffPassword,
+  demoAccountFor,
+  signInLocks: browserSignInLockStore,
+  accountNameFor,
   ssoClient: getSsoClient,
   apiBaseUrl,
   userService: mockUserService,

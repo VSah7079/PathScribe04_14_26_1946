@@ -18,13 +18,10 @@
 // anything about audit logging itself.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockServiceChargeService } from './mockServiceChargeService';
-import { reverseServiceCharge, buildCorrectedServiceCharge } from './resolveServiceCharge';
 import type { PostSignoutChangeContext } from './resolveServiceCharge';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
-import { resolveRequireBillingApprovalForCase } from './shouldRequireBillingApproval';
-import { caseRouter } from '@/services/cases/CaseRouter';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { applyBillingCorrection } from './billingCorrection';
 
 export interface ServiceChargeCorrectionResult {
   original: ServiceChargeRecord;
@@ -56,44 +53,24 @@ export async function correctServiceCharge(
   caseId: string,
   originalChargeId: string,
   correctedCptCode: string,
-  correctedBy: string,
+  _correctedBy: string,
   postSignoutContext?: PostSignoutChangeContext
 ): Promise<{ ok: true; data: ServiceChargeCorrectionResult } | { ok: false; error: string; notPermitted?: true }> {
-  if (!(await enforceAppliedCodeCorrection(caseId))) {
-    return { ok: false, error: 'Correcting an applied billing code needs the billing:applied-code:correct permission', notPermitted: true };
+  // Batch 433: one engine for every billing correction (billingCorrection.ts).
+  // The report page passes a reason only after sign-out (before, it's
+  // drafting); it records an audit entry, not a deficiency.
+  const res = await applyBillingCorrection({
+    caseId,
+    correction: { kind: 'changeCode', chargeId: originalChargeId, newCptCode: correctedCptCode },
+    reason: postSignoutContext,
+    requireReason: false,
+    recordDeficiency: false,
+    updateCaseCoding: false,
+  });
+  if (res.ok === false) {
+    if (res.error === 'NOT_PERMITTED') return { ok: false, error: 'Correcting an applied billing code needs the billing:applied-code:correct permission', notPermitted: true };
+    if (res.error === 'CHARGE_NOT_FOUND') return { ok: false, error: `No real charge record found with id ${originalChargeId} on case ${caseId}` };
+    return { ok: false, error: res.error };
   }
-  const chargesRes = await mockServiceChargeService.getChargesForCase(caseId);
-  if (chargesRes.ok === false) {
-    const chargesError: string = chargesRes.error;
-    return { ok: false, error: chargesError };
-  }
-
-  const original = chargesRes.data.find(c => c.id === originalChargeId);
-  if (!original) return { ok: false, error: `No real charge record found with id ${originalChargeId} on case ${caseId}` };
-
-  // Real, per direct guidance's own Feature Specification refinement
-  // ("Opt-in Core"): same real gate as
-  // recordChargeTransaction/recordCreditTransaction
-  // (SynopticReportPage.tsx) - preserves today's exact behavior
-  // unless the performing lab has explicitly opted in.
-  const caseData = await caseRouter.getCase(caseId);
-  const requiresApproval = await resolveRequireBillingApprovalForCase(caseData?.originHospitalId);
-
-  const credit = reverseServiceCharge(original, correctedBy, undefined, postSignoutContext);
-  if (requiresApproval) {
-    credit.approvalStatus = 'DRAFT';
-    credit.draftedBy = correctedBy;
-    credit.draftedAt = new Date().toISOString();
-  }
-  await mockServiceChargeService.saveCharge(credit);
-
-  const corrected = buildCorrectedServiceCharge(original, correctedCptCode, correctedBy, undefined, postSignoutContext);
-  if (requiresApproval) {
-    corrected.approvalStatus = 'DRAFT';
-    corrected.draftedBy = correctedBy;
-    corrected.draftedAt = new Date().toISOString();
-  }
-  await mockServiceChargeService.saveCharge(corrected);
-
-  return { ok: true, data: { original, credit, corrected } };
+  return { ok: true, data: { original: res.data.original!, credit: res.data.credit!, corrected: res.data.charge! } };
 }

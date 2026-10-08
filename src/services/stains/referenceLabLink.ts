@@ -23,3 +23,13 @@ export function normalizeReferenceLabLink(
   if (category !== 'Molecular' || ids.length === 0) return { referenceLabFacilityIds: undefined, defaultReferenceLabFacilityId: undefined };
   return { referenceLabFacilityIds: ids, defaultReferenceLabFacilityId: defaultId && ids.includes(defaultId) ? defaultId : undefined };
 }
+
+/** Batch 467: the labs that can run a molecular test in-house — the active facilities with the performing_lab role. */
+export function activePerformingLabs<F extends { roles: readonly string[]; status: string }>(facilities: readonly F[]): F[] {
+  return facilities.filter(f => f.roles.includes('performing_lab') && f.status === 'Active');
+}
+/** Batch 467: the stored in-house labs for a test: none unless it is a molecular test with labs ticked. */
+export function normalizeInHouseLabs(category: StainType['category'], ids: readonly string[]): Pick<StainType, 'inHouseFacilityIds'> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  return { inHouseFacilityIds: category === 'Molecular' && unique.length ? unique : undefined };
+}

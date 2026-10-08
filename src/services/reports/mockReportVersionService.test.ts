@@ -324,3 +324,46 @@ describe('mockReportVersionService.create — real, per direct guidance: the ORU
     vi.restoreAllMocks();
   });
 });
+
+describe('Batch 461: the report version keeps the inserted organ maps and the PDF, hashed', () => {
+  it('stores this synoptic’s figures with SHA-256 of the SVG and PNG, and the PDF’s SHA-256', async () => {
+    const { sha256Hex } = await import('../registrySubmission/sha256');
+    vi.spyOn(caseRouter, 'getCase').mockResolvedValue({
+      organMapFigures: [
+        { id: 'f1', instanceId: 'inst-1', mapType: 'prostateSectors', svg: '<svg/>', pngDataUrl: 'data:image/png;base64,QQ==', fingerprint: 'fp', insertedAt: '', insertedBy: 'u', insertedByName: 'U' },
+        { id: 'f2', instanceId: 'inst-2', mapType: 'prostateBiopsy', svg: '<svg x/>', fingerprint: 'fp2', insertedAt: '', insertedBy: 'u', insertedByName: 'U' },
+      ],
+    } as any);
+    const r = await mockReportVersionService.create({
+      caseId: 'CASE-MAP-1', instanceId: 'inst-1', mode: 'orchestration', trigger: 'initial_signout', pdfBase64: 'JVBERi0=',
+      createdBy: { userId: 'user-1', userName: 'Dr. Smith' },
+    } as any);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.organMapFigures).toEqual([expect.objectContaining({ instanceId: 'inst-1', svgSha256: sha256Hex('<svg/>'), pngSha256: sha256Hex('data:image/png;base64,QQ==') })]);
+    expect(r.data.pdfSha256).toBe(sha256Hex('JVBERi0='));
+  });
+});
+
+describe('Batch 463: a Mohs report version keeps the stage maps drawn at sign-out, never a stored copy', () => {
+  it('draws the automatic map from the answers as signed, replacing anything stored for that synoptic', async () => {
+    const { mockCaseService } = await import('../cases/mockCaseService');
+    const c = (await mockCaseService.getCase('S26-4463'))!;
+    vi.spyOn(caseRouter, 'getCase').mockResolvedValue({
+      ...c,
+      organMapFigures: [{ id: 'old', instanceId: 'S26-4463-SP-1_mohs_001', mapType: 'mohsStages', svg: '<svg old/>', fingerprint: 'outdated', insertedAt: '', insertedBy: 'u', insertedByName: 'U' }],
+    } as any);
+    const r = await mockReportVersionService.create({
+      caseId: 'S26-4463', instanceId: 'S26-4463-SP-1_mohs_001', mode: 'assist', trigger: 'initial_signout',
+      createdBy: { userId: 'user-1', userName: 'Dr. Smith' },
+    } as any);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.organMapFigures).toHaveLength(1);
+    const [fig] = r.data.organMapFigures!;
+    expect(fig).toMatchObject({ instanceId: 'S26-4463-SP-1_mohs_001', mapType: 'mohsStages' });
+    expect(fig.svg).not.toBe('<svg old/>');
+    expect(fig.fingerprint).not.toBe('outdated');
+    expect(fig.svgSha256).toHaveLength(64);
+  });
+});

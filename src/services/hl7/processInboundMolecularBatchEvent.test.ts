@@ -5,6 +5,7 @@ const { getCase, updateCase } = vi.hoisted(() => ({ getCase: vi.fn(), updateCase
 vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getCase, updateCase } }));
 
 import { processInboundMolecularBatchEvent, _resetProcessedMolecularBatchMessageIdsForTests } from './processInboundMolecularBatchEvent';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import type { MolecularBatchResultEventPayload } from '@/types/events/MolecularBatchResultEventPayload';
 
 const CASE_1 = { id: 'S26-6001-CYT-001', specimens: [{ id: 'S26-6001-SP-1', label: 'A', cytologyScreening: {} }] };
@@ -91,5 +92,17 @@ describe('processInboundMolecularBatchEvent — real, per direct guidance ("usin
       specimens: [{ accessionNumber: 'S26-6001-CYT-001', specimenLetter: 'Z' }],
     }));
     expect(result.specimenResults?.[0].outcome).toBe('specimen-not-found');
+  });
+
+  it('PS-71 (Batch 458): on a conflict, the run ID is applied to the newer case so the other person\'s change survives', async () => {
+    const stale = { ...CASE_1, version: 5 };
+    const newer = { ...CASE_1, version: 6, specimens: [{ ...CASE_1.specimens[0], cytologyScreening: { screenerNote: 'theirs' } }] };
+    getCase.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(newer);
+    updateCase.mockRejectedValueOnce(new ConcurrencyConflictError(CASE_1.id, 5, 6));
+    const result = await processInboundMolecularBatchEvent(payload());
+    expect(result.specimenResults?.[0].outcome).toBe('applied');
+    const [, patch, version] = updateCase.mock.calls[1];
+    expect(version).toBe(6);
+    expect(patch.specimens[0].cytologyScreening).toMatchObject({ screenerNote: 'theirs', molecularRunId: result.runId });
   });
 });

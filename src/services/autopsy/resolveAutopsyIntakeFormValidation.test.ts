@@ -23,14 +23,14 @@ describe('resolveAutopsyIntakeFormValidation', () => {
   });
 
   it('a real forensic case additionally requires a real authority type and a real, logged verbal order', () => {
-    const result = resolveAutopsyIntakeFormValidation(baseForm({ jurisdiction: 'US', caseAuthority: 'medicolegal_forensic' }));
+    const result = resolveAutopsyIntakeFormValidation(baseForm({ jurisdiction: 'US', caseAuthority: 'statutory_judicial' }));
     expect(result.valid).toBe(false);
     expect(result.missingFieldIds).toEqual(['authorityType', 'verbalOrderReceivedAt', 'verbalOrderReceivedFrom']);
   });
 
   it('a real, complete forensic intake (jurisdiction, authority type, and a real logged verbal order) is valid \u2014 the real written order is never required at this stage', () => {
     const result = resolveAutopsyIntakeFormValidation(baseForm({
-      jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', authorityType: 'coroner',
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', authorityType: 'coroner',
       verbalOrderReceivedAt: '2026-09-01T02:15:00Z', verbalOrderReceivedFrom: 'On-call Deputy Coroner',
     }));
     expect(result.valid).toBe(true);

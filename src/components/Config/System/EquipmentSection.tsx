@@ -270,12 +270,12 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
       </div>
 
       <div className="ps-conf-form-row--3">
-        <input data-config-nav type="text" className="ps-conf-search" placeholder={t('equipmentSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
-        <select data-config-nav className="ps-conf-select" aria-label={t('equipmentSection.kindFilterLabel')} value={kindFilter} onChange={e => setKindFilter(e.target.value as 'All' | EquipmentKind)}>
+        <input data-dirty-ignore data-config-nav type="text" className="ps-conf-search" placeholder={t('equipmentSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
+        <select data-dirty-ignore data-config-nav className="ps-conf-select" aria-label={t('equipmentSection.kindFilterLabel')} value={kindFilter} onChange={e => setKindFilter(e.target.value as 'All' | EquipmentKind)}>
           <option value="All">{t('equipmentSection.kindFilterAll')}</option>
           {EQUIPMENT_KINDS.map(k => <option key={k} value={k}>{t(`equipmentKinds.${k}`)}</option>)}
         </select>
-        <select data-config-nav className="ps-conf-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'All' | Equipment['status'])}>
+        <select data-dirty-ignore data-config-nav className="ps-conf-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'All' | Equipment['status'])}>
           <option value="All">{t('equipmentSection.statusFilterAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

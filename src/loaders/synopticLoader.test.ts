@@ -19,6 +19,12 @@ vi.mock('../services/cases/CaseRouter', () => ({
 vi.mock('../services', () => ({
   facilityService: { getById: vi.fn() },
 }));
+// Batch 446: the address carries a case reference. These tests pass the case
+// id itself, so the reference lookup is a pass-through here; the reference
+// handling has its own tests (services/caseAddresses/).
+vi.mock('../services/caseAddresses/caseAddressesInstance', () => ({
+  caseAddresses: { caseIdOf: vi.fn(async (p: string) => ({ caseId: p, legacy: false })), addressOf: vi.fn() },
+}));
 
 import { caseRouter } from '../services/cases/CaseRouter';
 import { facilityService } from '../services';

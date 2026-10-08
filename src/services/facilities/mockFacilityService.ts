@@ -109,7 +109,7 @@ async function ensureDefaultCatchAllPool(facility: Facility): Promise<void> {
 const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   {
     id: 'c1', name: 'Metro General Hospital',   assigningAuthority: 'MGH',  address: '100 Main St',      phone: '555-2001', fax: '555-2002', email: 'lab@metrogeneral.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: 18,   authorizedPediatricPathologistIds: [],
     // Academic centre — tight SLAs negotiated in contract
     tatFirstTouchHours: 4,  tatTotalHours: 24,
@@ -117,7 +117,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c2', name: 'Riverside Medical Center', assigningAuthority: 'RMC',  address: '200 River Rd',     phone: '555-2003', fax: '555-2004', email: 'lab@riverside.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Community hospital — standard 2-day TAT
     tatFirstTouchHours: 8,  tatTotalHours: 48,
@@ -125,7 +125,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c3', name: 'Northside Clinic',         assigningAuthority: 'NSC',  address: '300 North Ave',    phone: '555-2005', fax: '555-2006', email: 'lab@northside.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Small clinic — no custom targets, inherits system defaults
     tatFirstTouchHours: null, tatTotalHours: null,
@@ -133,7 +133,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c4', name: 'Westview Surgery Center',  assigningAuthority: 'WSC',  address: '400 West Blvd',    phone: '555-2007', fax: '555-2008', email: 'lab@westview.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Surgical centre — rapid intra-op consults expected
     tatFirstTouchHours: 6,  tatTotalHours: 36,
@@ -141,7 +141,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c5', name: 'Eastpark Oncology',        assigningAuthority: 'EPO',  address: '500 East Park Dr', phone: '555-2009', fax: '555-2010', email: 'lab@eastpark.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Inactive', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Oncology centre — fast first touch, 24h total
     tatFirstTouchHours: 4,  tatTotalHours: 24,
@@ -635,10 +635,26 @@ if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
 // administrator changed.
 const load = () => {
   const stored = storageGet<Facility[] | null>('pathscribe_facilities', null);
-  const { records, added } = withMissingSeedRecords(stored ?? SEED_FACILITIES, REFERENCE_LAB_SEEDS);
-  if (added > 0) storageSet('pathscribe_facilities', records);
+  const { records: withRefLabs, added } = withMissingSeedRecords(stored ?? SEED_FACILITIES, REFERENCE_LAB_SEEDS);
+  // Batch 441: Desert Valley's US ordering clients (c1–c5) named no
+  // performing lab, so their cases had none (the peer-review gate, among
+  // others, couldn't be set for them). A stored copy still without one gets
+  // Desert Valley Medical Center; one an administrator set is kept.
+  const { records, filled } = withDemoClientPerformingLab(withRefLabs);
+  if (added > 0 || filled) storageSet('pathscribe_facilities', records);
   return records;
 };
+const DESERT_VALLEY_CLIENT_IDS = new Set(['c1', 'c2', 'c3', 'c4', 'c5']);
+/** Batch 441. Exported for its test. */
+export function withDemoClientPerformingLab(records: Facility[]): { records: Facility[]; filled: boolean } {
+  let filled = false;
+  const out = records.map(f => {
+    if (!DESERT_VALLEY_CLIENT_IDS.has(f.id) || f.performingLabFacilityId) return f;
+    filled = true;
+    return { ...f, performingLabFacilityId: 'c-ent-dvmc' };
+  });
+  return { records: filled ? out : records, filled };
+}
 const persist = (data: Facility[]) => storageSet('pathscribe_facilities', data);
 let MOCK_FACILITIES: Facility[] = load();
 

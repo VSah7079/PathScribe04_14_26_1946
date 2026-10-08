@@ -85,7 +85,7 @@ async function tryDispatchContainerLabelViaHardwareBridge(data: ContainerLabelDa
     textLines: [data.patientName, data.mrn, `${data.fullAccession}-${data.specimenLabel}`],
     dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm,
   });
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'container-label', documentId: `${data.fullAccession}-${data.specimenLabel}`, caseId: data.fullAccession });
   return result.ok;
 }
 
@@ -113,7 +113,7 @@ async function tryDispatchRequisitionSheetViaHardwareBridge(data: RequisitionSti
   if (printer.bridgeType !== 'qz_tray') return false;
 
   const zpl = buildRequisitionStickerSheetZpl(data, preset.widthMm, preset.heightMm, printer.dpi);
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'requisition-label', documentId: data.fullAccession, caseId: data.fullAccession });
   return result.ok;
 }
 
@@ -122,7 +122,7 @@ export async function printRequisitionLabel(caseData: Case): Promise<boolean> {
   const data: RequisitionStickerSheetData = { ...buildRequisitionLabelData(caseData), ...DEFAULT_REQUISITION_STICKER_COUNTS };
   if (await tryDispatchRequisitionSheetViaHardwareBridge(data, preset)) return true;
   const html = buildRequisitionStickerSheetHtml(data, preset);
-  return printLabels([html], preset, `Requisition — ${caseData.accession.fullAccession}`);
+  return printLabels([html], preset, `Requisition — ${caseData.accession.fullAccession}`, { document: 'requisition-label', documentId: caseData.accession.fullAccession, caseId: caseData.accession.fullAccession });
 }
 
 export async function printContainerLabel(caseData: Case, specimen: Pick<Specimen, 'label' | 'description' | 'blocks'>): Promise<boolean> {
@@ -130,7 +130,7 @@ export async function printContainerLabel(caseData: Case, specimen: Pick<Specime
   if (await tryDispatchContainerLabelViaHardwareBridge(data)) return true;
   const preset = await resolveContainerPreset();
   const html = buildContainerLabelHtml(data, preset);
-  return printLabels([html], preset, `Container Label — ${caseData.accession.fullAccession}-${specimen.label}`);
+  return printLabels([html], preset, `Container Label — ${caseData.accession.fullAccession}-${specimen.label}`, { document: 'container-label', documentId: `${caseData.accession.fullAccession}-${specimen.label}`, caseId: caseData.accession.fullAccession });
 }
 
 export async function printAllContainerLabels(caseData: Case, specimens: Pick<Specimen, 'label' | 'description' | 'blocks'>[]): Promise<boolean> {
@@ -147,7 +147,7 @@ export async function printAllContainerLabels(caseData: Case, specimens: Pick<Sp
   }
   const preset = await resolveContainerPreset();
   const htmlFragments = allData.map(d => buildContainerLabelHtml(d, preset));
-  return printLabels(htmlFragments, preset, `Container Labels — ${caseData.accession.fullAccession}`);
+  return printLabels(htmlFragments, preset, `Container Labels — ${caseData.accession.fullAccession}`, { document: 'container-label', documentId: caseData.accession.fullAccession, caseId: caseData.accession.fullAccession });
 }
 
 /** Real, direct fix, per direct follow-up ("Why is the decant label
@@ -182,7 +182,7 @@ async function tryDispatchDecantContainerLabelViaHardwareBridge(data: DecantCont
     textLines: [data.patientName, data.mrn, `${data.fullAccession}-${data.specimenLabel}${data.decantLabel}`],
     dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm,
   });
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'decant-container-label', documentId: `${data.fullAccession}-${data.specimenLabel}${data.decantLabel}`, caseId: data.fullAccession });
   return result.ok;
 }
 
@@ -203,5 +203,5 @@ export async function printDecantContainerLabel(
   if (await tryDispatchDecantContainerLabelViaHardwareBridge(data)) return true;
   const preset = await resolveContainerPreset();
   const html = buildDecantContainerLabelHtml(data, preset);
-  return printLabels([html], preset, `Decant Container Label — ${caseData.accession.fullAccession}-${specimenLabel}${decant.label}`);
+  return printLabels([html], preset, `Decant Container Label — ${caseData.accession.fullAccession}-${specimenLabel}${decant.label}`, { document: 'decant-container-label', documentId: `${caseData.accession.fullAccession}-${specimenLabel}${decant.label}`, caseId: caseData.accession.fullAccession });
 }

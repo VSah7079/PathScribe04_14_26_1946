@@ -41,6 +41,7 @@ import { toast } from 'react-toastify';
 import { PhiToastMessage } from '@/components/Common/PhiToastMessage';
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { updateCaseWithRetry, type CaseWriteDeps } from '@/services/cases/caseWrite';
 import { ORCH_ID_PREFIX, isOrchCaseId, formatOrchCaseId } from '@/services/cases/reportingModeRouting';
 import {
   evaluateGrossingTemplateAssignment, facilityService, departmentService, userService, clinicalHistoryDictionaryService,
@@ -60,6 +61,7 @@ import type { Case, GrossingReportInstance } from '@/types/case/Case';
 import type { RecordedClinicalHistoryEntry, ClinicalHistoryCategoryCode } from '@/types/clinicalHistory/RecordedClinicalHistoryEntry';
 import ClinicalHistoryEntryPanel from './ClinicalHistory/ClinicalHistoryEntryPanel';
 import { resolveAccessionValidation, type AccessionValidationResult } from '@/services/accessioning/resolveAccessionValidation';
+import { resolveAccessionSpecimenCytologyScreening, contactBleedingFromChoice, type ContactBleedingChoice } from '@/services/accessioning/resolveAccessionSpecimenCytologyScreening';
 import { resolveOutboundMolecularAssaysForProtocol } from '@/utils/resolveOutboundMolecularAssaysForProtocol';
 import type { HistologyBlock, Specimen } from '@/types/case/Specimen';
 import { generateDefaultMaterial } from '@/utils/generateDefaultMaterial';
@@ -142,6 +144,7 @@ import { resolveSpecimenEntryMatchesCategory } from '@/services/specimenDictiona
 import type { AutopsyOrganCode } from '@/types/autopsy/AutopsyOrganCode';
 import { AUTOPSY_ORGAN_TO_SECTION } from '@/types/autopsy/AutopsyOrganCode';
 import { classifyAutopsyOrganCodeFromSiteText } from '@/services/autopsy/classifyAutopsyOrganCodeFromSiteText';
+import { AUTOPSY_ORGAN_LABEL_KEY } from './autopsyOrganLabelKeys';
 import { formatConsentingRelativePriorityHint } from '@/services/autopsy/formatConsentingRelativePriorityHint';
 
 /** Real, UI-presentation-only grouping for the Autopsy organ picker
@@ -175,29 +178,9 @@ const AUTOPSY_ORGAN_PICKER_GROUPS: { sectionId: string; titleKey: string; organs
   }));
 })();
 
-const AUTOPSY_ORGAN_LABEL_KEY: Record<AutopsyOrganCode, string> = {
-  brain: 'accessionPage.autopsy.organLabel.brain', pituitary: 'accessionPage.autopsy.organLabel.pituitary',
-  eyes: 'accessionPage.autopsy.organLabel.eyes', spinal_cord: 'accessionPage.autopsy.organLabel.spinalCord',
-  thyroid: 'accessionPage.autopsy.organLabel.thyroid', parathyroid: 'accessionPage.autopsy.organLabel.parathyroid',
-  larynx_trachea: 'accessionPage.autopsy.organLabel.larynxTrachea',
-  heart: 'accessionPage.autopsy.organLabel.heart', pericardium: 'accessionPage.autopsy.organLabel.pericardium',
-  aorta: 'accessionPage.autopsy.organLabel.aorta', major_vessels: 'accessionPage.autopsy.organLabel.majorVessels',
-  right_lung: 'accessionPage.autopsy.organLabel.rightLung', left_lung: 'accessionPage.autopsy.organLabel.leftLung',
-  pleura: 'accessionPage.autopsy.organLabel.pleura',
-  tracheobronchial_tree: 'accessionPage.autopsy.organLabel.tracheobronchialTree',
-  esophagus: 'accessionPage.autopsy.organLabel.esophagus', stomach: 'accessionPage.autopsy.organLabel.stomach',
-  duodenum: 'accessionPage.autopsy.organLabel.duodenum', small_intestine: 'accessionPage.autopsy.organLabel.smallIntestine',
-  large_intestine: 'accessionPage.autopsy.organLabel.largeIntestine', appendix: 'accessionPage.autopsy.organLabel.appendix',
-  liver: 'accessionPage.autopsy.organLabel.liver', gallbladder_biliary: 'accessionPage.autopsy.organLabel.gallbladderBiliary',
-  pancreas: 'accessionPage.autopsy.organLabel.pancreas', peritoneum_omentum: 'accessionPage.autopsy.organLabel.peritoneumOmentum',
-  right_kidney: 'accessionPage.autopsy.organLabel.rightKidney', left_kidney: 'accessionPage.autopsy.organLabel.leftKidney',
-  adrenal_glands: 'accessionPage.autopsy.organLabel.adrenalGlands', bladder: 'accessionPage.autopsy.organLabel.bladder',
-  ureters: 'accessionPage.autopsy.organLabel.ureters', prostate: 'accessionPage.autopsy.organLabel.prostate',
-  uterus_adnexa: 'accessionPage.autopsy.organLabel.uterusAdnexa', testes: 'accessionPage.autopsy.organLabel.testes',
-  spleen: 'accessionPage.autopsy.organLabel.spleen', lymph_nodes: 'accessionPage.autopsy.organLabel.lymphNodes',
-  bone_marrow: 'accessionPage.autopsy.organLabel.boneMarrow', skin_subcutis: 'accessionPage.autopsy.organLabel.skinSubcutis',
-  musculoskeletal_specimen: 'accessionPage.autopsy.organLabel.musculoskeletalSpecimen',
-};
+// Batch 468: moved to its own file (autopsyOrganLabelKeys.ts, imported
+// above) so SynopticReportPage.tsx's consent-scope warning banner can
+// reuse the same label keys instead of defining a second, divergent map.
 
 // ── Local form types ────────────────────────────────────────────────────────
 
@@ -586,7 +569,8 @@ const AccessionPage: React.FC = () => {
   // that can only ever be a real, manual, collection-time observation
   // — see CytologyScreeningRecord.persistentContactBleedingAtCollection's
   // own doc comment (types/case/Specimen.ts).
-  const [persistentContactBleedingAtCollection, setPersistentContactBleedingAtCollection] = useState(false);
+  // Batch 452: Yes / No / Not recorded, so an explicit "no" is kept.
+  const [contactBleedingChoice, setContactBleedingChoice] = useState<ContactBleedingChoice>('');
   const [reasonForStudy, setReasonForStudy] = useState<'' | 'nhs_programme_invited' | 'private_or_opportunistic'>('');
   const [mrn, setMrn] = useState('');
   // Batch 417: the patient's national identifiers (NHS number, BSN…), by system id; saved after the case exists.
@@ -2083,17 +2067,10 @@ const AccessionPage: React.FC = () => {
           externalId: s.externalId.trim() || undefined,
           externalIdSource: s.externalIdSource.trim() || undefined,
           specimenFlags: [],
-          // Real, per direct follow-up closing PS-211's own remaining
-          // gap: the one real half of
-          // CytologyHighRiskFactors.abnormalExamFindings that can
-          // only ever be a real, manual, collection-time observation.
-          // Applied per real, cytology/FNA-relevant specimen — the
-          // same real entry.type check cytologyRelevant above already
-          // uses — never attached to a non-cytology specimen in the
-          // same accession batch.
-          cytologyScreening: (entry?.type === 'Cytology' || entry?.type === 'FNA') && persistentContactBleedingAtCollection
-            ? { persistentContactBleedingAtCollection: true }
-            : undefined,
+          // The persistent contact bleeding observation, on each
+          // cytology/FNA specimen only (Batch 451, PS-212:
+          // services/accessioning/resolveAccessionSpecimenCytologyScreening.ts).
+          cytologyScreening: resolveAccessionSpecimenCytologyScreening(entry?.type, contactBleedingFromChoice(contactBleedingChoice)),
           ...(await generateDefaultMaterial(entry, `${caseId}-SP-${s.label}`, selectedFacility?.specimenLabelStyle, stainTypes, protocols, fullAccession, s.label, priority)),
           // kept alongside the record (not part of Specimen's own shape)
           // purely to feed evaluateGrossingTemplateAssignment below —
@@ -2384,11 +2361,13 @@ const AccessionPage: React.FC = () => {
         if (!value.trim()) continue;
         const r = await recordNationalPatientIdentifier({ caseId: newCase.id, system, value }, { id: user?.id ?? '', name: user?.name ?? '' }, recordNationalPatientIdentifierDeps);
         if (r.outcome === 'notPermitted') toast.warning(t('nationalIdentifiers.notPermitted'));
+        else if (r.outcome === 'conflict') toast.warning(t('accessionPage.toast.caseChangedNotSaved'));
       }
       // Batch 418: the registry opt-outs, the same way.
       if (registryConsent.screeningOptOut || registryConsent.cancerRegistryOptOut) {
         const r = await recordPatientRegistryConsent({ caseId: newCase.id, ...registryConsent }, { id: user?.id ?? '', name: user?.name ?? '' }, recordPatientRegistryConsentDeps);
         if (r.outcome === 'notPermitted') toast.warning(t('registryConsent.notPermitted'));
+        else if (r.outcome === 'conflict') toast.warning(t('accessionPage.toast.caseChangedNotSaved'));
       }
 
       // Real, per the uploaded spec's own User Story 5, Acceptance
@@ -2473,6 +2452,22 @@ const AccessionPage: React.FC = () => {
       //    specimen with the default. A specimen already touched keeps
       //    whatever it has, even if the AI would have routed it
       //    differently.
+      // PS-71 (Batch 458): the follow-up writes below run after the case was
+      // created, some of them seconds later (the AI refinement) and in
+      // parallel with each other, by which time someone may have opened the
+      // case. Each is a versioned write built from the newest case
+      // (updateCaseWithRetry), so none of them overwrites the others or a
+      // grossing change made meanwhile.
+      const caseWriteDeps: CaseWriteDeps = {
+        getCase: id => caseRouter.getCase(id),
+        updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),
+      };
+      const setOrderingPhysician = (physicianId: string) => updateCaseWithRetry(
+        newCase.id,
+        current => ({ order: { ...current.order, orderingPhysicianId: physicianId } }),
+        caseWriteDeps,
+      ).then(r => { if (r.ok === false && r.reason === 'conflict') console.error('[Accession] Ordering physician link not saved: the case kept changing.'); });
+
       async function refineGrossingTemplatesInBackground() {
         try {
           const templateModule = await import('@/services/templates/templateService');
@@ -2501,8 +2496,6 @@ const AccessionPage: React.FC = () => {
             routingOverrides,
           });
 
-          const latestCase = await caseRouter.getCase(caseId);
-          if (!latestCase) return; // genuinely gone — nothing real left to refine
 
           // Real feature, per direct follow-up: "Do we capture failed
           // template association? That might be a good quality
@@ -2514,13 +2507,20 @@ const AccessionPage: React.FC = () => {
           // header comment and Case.ts's own
           // GrossingReportInstance.templateAssignmentOutcome for the
           // full design.
-          const { reports: refinedReports, anyTemplateChanged, anyDataChanged } = applyGrossingRefinement(
-            latestCase.grossingReports ?? [],
-            evalResult.assignments,
-          );
-
-          if (anyDataChanged) {
-            await caseRouter.updateCase(caseId, { grossingReports: refinedReports });
+          // PS-71 (Batch 458): applied to the newest case and saved with its
+          // version (was: an unversioned updateCase of a copy read earlier).
+          // A specimen someone started grossing meanwhile stays untouched,
+          // because the refinement is recomputed from what is saved now.
+          let anyTemplateChanged = false;
+          const refined = await updateCaseWithRetry(caseId, current => {
+            const r = applyGrossingRefinement(current.grossingReports ?? [], evalResult.assignments);
+            anyTemplateChanged = r.anyTemplateChanged;
+            return r.anyDataChanged ? { grossingReports: r.reports } : null;
+          }, caseWriteDeps);
+          if (refined.ok === false && refined.reason === 'notFound') return; // genuinely gone — nothing real left to refine
+          if (refined.ok === false && refined.reason === 'conflict') {
+            console.error('[Accession] Grossing Template refinement not saved: the case kept changing.');
+            anyTemplateChanged = false;
           }
           if (anyTemplateChanged) {
             const lowConfidenceCount = evalResult.assignments.filter(a => a.belowThreshold).length;
@@ -2551,14 +2551,11 @@ const AccessionPage: React.FC = () => {
           // a real evaluation was attempted and genuinely failed.
           console.error('Background Grossing Template refinement failed:', e);
           try {
-            const latestCase = await caseRouter.getCase(caseId);
-            if (latestCase?.grossingReports?.length) {
-              const failedReports = markGrossingRefinementFailed(
-                latestCase.grossingReports,
-                e instanceof Error ? e.message : String(e),
-              );
-              await caseRouter.updateCase(caseId, { grossingReports: failedReports });
-            }
+            // PS-71 (Batch 458): versioned, built from the newest case.
+            const reason = e instanceof Error ? e.message : String(e);
+            await updateCaseWithRetry(caseId, current => current.grossingReports?.length
+              ? { grossingReports: markGrossingRefinementFailed(current.grossingReports, reason) }
+              : null, caseWriteDeps);
           } catch (persistErr) {
             console.error('Also failed to persist the Grossing Template refinement failure itself:', persistErr);
           }
@@ -2611,17 +2608,17 @@ const AccessionPage: React.FC = () => {
       // to resolve. Only falls back to string-based resolution when
       // the field holds free text the user typed without ever
       // selecting a real match (a genuinely new/outside physician).
+      //
+      // PS-71 (Batch 458): setOrderingPhysician spreads the NEWEST saved
+      // order (not the creation-time newCase.order) and saves with its
+      // version, so it can't undo the refinement write running alongside.
       if (selectedProvider) {
-        caseRouter.updateCase(newCase.id, {
-          order: { ...newCase.order, orderingPhysicianId: selectedProvider.id },
-        }).catch(console.error);
+        setOrderingPhysician(selectedProvider.id).catch(console.error);
       } else if (requestingProvider.trim()) {
         resolveProviderName(requestingProvider.trim(), 'requesting', clientId)
           .then(resolved => {
             if (resolved.ok && resolved.data) {
-              return caseRouter.updateCase(newCase.id, {
-                order: { ...newCase.order, orderingPhysicianId: resolved.data.physician.id },
-              });
+              return setOrderingPhysician(resolved.data.physician.id);
             }
           })
           .catch(console.error);
@@ -3067,11 +3064,15 @@ const AccessionPage: React.FC = () => {
                           <input id="accession-iud" className="ps-input-dark" value={iudOrContraceptionUse} onChange={e => setIudOrContraceptionUse(e.target.value)} placeholder={t('accessionPage.cytology.iudPlaceholder')} />
                         </div>
                       </div>
-                      <label className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
-                        <input type="checkbox" checked={persistentContactBleedingAtCollection}
-                          onChange={e => setPersistentContactBleedingAtCollection(e.target.checked)} />
-                        {t('accessionPage.cytology.persistentBleeding')}
-                      </label>
+                      <div className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
+                        <label className="ps-label" htmlFor="accession-contact-bleeding">{t('accessionPage.cytology.persistentBleeding')}</label>
+                        <select id="accession-contact-bleeding" className="ps-input-dark" value={contactBleedingChoice}
+                          onChange={e => setContactBleedingChoice(e.target.value as ContactBleedingChoice)}>
+                          <option value="">{t('accessionPage.cytology.persistentBleedingNotRecorded')}</option>
+                          <option value="yes">{t('common.yes')}</option>
+                          <option value="no">{t('common.no')}</option>
+                        </select>
+                      </div>
                     </>
                   )}
 
@@ -3121,13 +3122,13 @@ const AccessionPage: React.FC = () => {
                       <label className="ps-label">{t('accessionPage.autopsy.caseAuthority')}</label>
                       <select className="ps-conf-select" value={autopsyForm.caseAuthority} onChange={e => setAutopsyForm({ ...autopsyForm, caseAuthority: e.target.value as AutopsyCaseAuthority })}>
                         <option value="">{t('accessionPage.common.selectEllipsisDots')}</option>
-                        <option value="medicolegal_forensic">{t('accessionPage.autopsy.authorityMedicolegal')}</option>
+                        <option value="statutory_judicial">{t('accessionPage.autopsy.authorityMedicolegal')}</option>
                         <option value="hospital_consented">{t('accessionPage.autopsy.authorityHospitalConsented')}</option>
                       </select>
                     </div>
                   </div>
 
-                  {autopsyForm.caseAuthority === 'medicolegal_forensic' && (
+                  {autopsyForm.caseAuthority === 'statutory_judicial' && (
                     <div className="ps-accession-specimen-row-3col ps-accession-specimen-row-3col--spaced-10">
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.authorityType')}</label>

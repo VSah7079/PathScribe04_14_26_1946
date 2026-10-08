@@ -27,6 +27,14 @@ modal with PHI-redacted screenshot capture.
 - **Identifier check:** before sending, the title and description are checked for case numbers, MRNs and other identifiers, using every format PathScribe knows. The user can replace case numbers with support references, edit the text, or send anyway.
 - **Styling:** the submit button's inline opacity became a class.
 
+## Batch 447
+
+Sending uses `loadEnhancementConfigForSubmit()`, which takes the QA recipients and cc from Configuration → System → Feedback.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-349)
+
+The warn-before-sending decision and case-number replacement come from `services/supportReferences/supportTicketRules.ts`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

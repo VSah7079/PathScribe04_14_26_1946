@@ -116,3 +116,20 @@ All four pages take their services from `@/services`, and the three that were st
 ## Batch 407
 
 Found clicking through in the browser: Rack Loading's placement lists are now the same width (`.ps-rack-placement-grid .ps-input-dark`), and its instructions have space below them (`.ps-rack-loading-help`). Everything else in Batch 406 behaved as described.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-235, PS-236)
+
+Scan-to-well movement records come from `services/molecular/plateWellScan.ts`, and the dispatch panel's checks from `services/molecular/molecularDispatchPanel.ts`. **Open:** the clone-and-supersede handler still builds the user's name by hand, and the dispatched banner's date isn't locale-formatted.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`MolecularPlateBuilderPage.test.tsx`: well panel, auto-fill, scan-in, Create Batch blocked with reasons, view-only batches and their label buttons, dispatch panel and timestamp, Trace, aliquot volume (PS-229, PS-231, PS-235, PS-236, PS-246). Auto-fill and empty-plate logic moved to `services/molecular/plateBuilderWells.ts`.
+
+**Bug fixed:** the grid drew wells in list order, so a column-major auto-fill showed A01, B01 … across the top row, and an existing batch (which stores only its assigned wells) packed them together. The grid now draws by position (`plateGridWells`). The results table's accession cell is now tagged `data-phi`. **Open:** the trace's movement line has hard-coded English and unlocalised dates, and a control well's Trace shows nothing.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+Plate Builder:
+- A well holding an in-house order has a corner mark and a tooltip naming the order.
+- On a saved plate, a filled well can be selected to see its sample, accession, order or control (read-only).
+- The tooltip text is now locale templates; it used to be joined in code.

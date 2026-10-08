@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { recordNationalPatientIdentifier, withNationalIdentifier, type RecordNationalIdentifierDeps } from './recordNationalPatientIdentifier';
 import type { Patient } from '@/types/case/Patient';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 
 function deps(allowed = true, patient: Patient | null = { id: 'PAT-1', firstName: 'A', lastName: 'B', mrn: '100001' }) {
   const updates: any[] = []; const mpi: any[] = []; const audits: any[] = [];
@@ -81,5 +82,42 @@ describe('recordNationalPatientIdentifier (Batch 417)', () => {
     expect(withNationalIdentifier(list, 'a', null)).toEqual([]);
     expect(list).toHaveLength(1);
     expect(withNationalIdentifier(undefined, 'b', { system: 'b', value: '2', verificationStatus: 'unchecked' })).toHaveLength(1);
+  });
+});
+
+describe('recordNationalPatientIdentifier — PS-71 (Batch 458) versioned save', () => {
+  it('on a conflict, sets the identifier on the newer patient so an identifier added meanwhile survives', async () => {
+    const other = { system: 'mrn_other', value: 'X1', verificationStatus: 'unchecked' as const };
+    const stale = { id: 'C-1', version: 1, patient: { id: 'PAT-1', firstName: 'A', lastName: 'B' } as Patient };
+    const newer = { id: 'C-1', version: 2, patient: { ...stale.patient, nationalIdentifiers: [other] } as Patient };
+    const reads = [stale, stale, newer];
+    const saves: Array<[any, number]> = []; const mpi: any[] = []; const audits: any[] = [];
+    const d: RecordNationalIdentifierDeps = {
+      enforce: async () => ({ allowed: true }),
+      getCase: async () => reads.shift() ?? newer,
+      updateCase: async (_id, patch, v) => { saves.push([patch, v]); if (v === 1) throw new ConcurrencyConflictError('C-1', 1, 2); },
+      recordInMpi: async (patientId, identifier) => { mpi.push({ patientId, identifier }); },
+      logAudit: e => audits.push(e),
+      now: () => '2026-10-04T00:00:00.000Z',
+    };
+    const r = await recordNationalPatientIdentifier({ caseId: 'C-1', system: 'mrn_nhs', value: '9434765919' }, { id: 'u', name: 'U' }, d);
+    expect(r.outcome).toBe('saved');
+    expect(saves.map(([, v]) => v)).toEqual([1, 2]);
+    expect(saves[1][0].patient.nationalIdentifiers.map((i: any) => i.system)).toEqual(['mrn_other', 'mrn_nhs']);
+    expect(mpi).toHaveLength(1);
+  });
+
+  it('when every try conflicts: outcome conflict, and no MPI write or audit claiming it saved', async () => {
+    const mpi: any[] = []; const audits: any[] = [];
+    const d: RecordNationalIdentifierDeps = {
+      enforce: async () => ({ allowed: true }),
+      getCase: async () => ({ id: 'C-1', version: 1, patient: { id: 'PAT-1', firstName: 'A', lastName: 'B' } as Patient }),
+      updateCase: async () => { throw new ConcurrencyConflictError('C-1', 1, 2); },
+      recordInMpi: async (patientId, identifier) => { mpi.push({ patientId, identifier }); },
+      logAudit: e => audits.push(e),
+      now: () => '2026-10-04T00:00:00.000Z',
+    };
+    expect((await recordNationalPatientIdentifier({ caseId: 'C-1', system: 'mrn_nhs', value: '9434765919' }, { id: 'u', name: 'U' }, d)).outcome).toBe('conflict');
+    expect(mpi).toEqual([]); expect(audits).toEqual([]);
   });
 });

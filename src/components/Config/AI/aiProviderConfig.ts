@@ -8,10 +8,10 @@
 //   2. Org-level setting   (fetched from your admin API / Firestore)
 //   3. Environment variable defaults (set at deploy time)
 //
-// Keys NEVER live in the browser in production. The browser sends
-// requests to /api/ai-proxy, which injects the key server-side.
-// The apiKey field here is only populated in local dev mode where
-// VITE_AI_DEV_MODE=true and VITE_AI_API_KEY is set.
+// Keys NEVER live in the browser, in any build (Batch 444). The
+// browser calls the proxy routes under /api/ai, which add the key
+// server-side: vite.config.ts in development, the PathScribe API
+// server in production (docs/architecture/AI_PROXY.md).
 // ─────────────────────────────────────────────────────────────
 
 import { clearPersonalSetting, getPersonalSetting, setPersonalSetting } from '../../../services/userSettings/personalSettings';
@@ -99,12 +99,6 @@ export interface AiProviderConfig {
   customEndpoint?: string;
 
   /**
-   * LOCAL DEV ONLY — populated from VITE_AI_API_KEY when
-   * VITE_AI_DEV_MODE=true. Never set this in production.
-   */
-  apiKey?: string;
-
-  /**
    * In production, all AI calls are routed through your backend proxy
    * so the real API key never reaches the browser.
    * Set VITE_AI_PROXY_URL to your proxy base, e.g. '/api/ai'
@@ -122,8 +116,8 @@ export interface AiProviderConfig {
 //   VITE_AI_PROVIDER=structured_messages   # structured_messages | chat_completions | chat_completions_managed | model_gateway | structured_content | mock | custom
 //   VITE_AI_MODEL=claude-sonnet-4-6
 //   VITE_AI_PROXY_URL=/api/ai
-//   VITE_AI_DEV_MODE=true          # enables direct browser→API calls
-//   VITE_AI_API_KEY=sk-ant-...     # only used when DEV_MODE=true
+//   (keys: AI_API_KEY, GEMINI_API_KEY, … with NO VITE_ prefix; read
+//    only by the proxy. See docs/architecture/AI_PROXY.md.)
 //   VITE_AI_MANAGED_ENDPOINT=https://...
 //   VITE_AI_MANAGED_DEPLOYMENT=...
 //   VITE_AI_GATEWAY_REGION=us-east-1
@@ -131,13 +125,11 @@ export interface AiProviderConfig {
 
 function envDefaults(): AiProviderConfig {
   const providerId = (import.meta.env.VITE_AI_PROVIDER ?? 'structured_messages') as AiProviderId;
-  const isDevMode  = import.meta.env.VITE_AI_DEV_MODE === 'true';
 
   return {
     providerId,
     modelId:              import.meta.env.VITE_AI_MODEL ?? PROVIDER_MODELS[providerId]?.[0]?.id ?? 'claude-sonnet-4-6',
     proxyUrl:             import.meta.env.VITE_AI_PROXY_URL ?? '/api/ai',
-    apiKey:               isDevMode ? (import.meta.env.VITE_AI_API_KEY ?? '') : undefined,
     managedDeploymentName:import.meta.env.VITE_AI_MANAGED_DEPLOYMENT,
     managedEndpoint:      import.meta.env.VITE_AI_MANAGED_ENDPOINT,
     gatewayRegion:        import.meta.env.VITE_AI_GATEWAY_REGION ?? 'us-east-1',
@@ -195,7 +187,13 @@ export function resolveAiConfig(): AiProviderConfig {
   try {
     // Batch 430: the override is the signed-in person's, not the browser's.
     const user = getPersonalSetting<Partial<AiProviderConfig> | null>(USER_OVERRIDE_KEY, null);
-    if (user) Object.assign(base, user);
+    if (user) {
+      // Batch 444: an override saved before keys left the browser may still
+      // hold one. It's never used; drop it from storage too.
+      const { apiKey, ...rest } = user as Partial<AiProviderConfig> & { apiKey?: string };
+      if (apiKey !== undefined) setPersonalSetting(USER_OVERRIDE_KEY, rest);
+      Object.assign(base, rest);
+    }
   } catch { /* corrupt storage — fall through */ }
 
   // Real fix, per direct report: "⚠ [PathScribe AI] Unknown provider:
@@ -243,10 +241,3 @@ export function clearUserAiConfig(): void {
   clearPersonalSetting(USER_OVERRIDE_KEY);
 }
 
-/**
- * Returns true when running in local dev mode with direct API access.
- * Production must always use the proxy.
- */
-export function isDevMode(): boolean {
-  return import.meta.env.VITE_AI_DEV_MODE === 'true';
-}

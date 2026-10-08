@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
-import { withSeedFieldBackfill } from '../mockSeedMerge';
+import { withMissingSeedRecords, withSeedFieldBackfill } from '../mockSeedMerge';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import type {
   IMolecularAssayControlRuleService, MolecularAssayControlRule, NewMolecularAssayControlRule,
@@ -16,6 +16,8 @@ import { MOLECULAR_CONTROL_RULE_NOT_PERMITTED, MOLECULAR_CONTROL_RULE_DUPLICATE,
 import { normaliseDeckSlotId } from '../equipment/equipmentRules';
 
 const STORE_KEY = 'molecular_assay_control_rules';
+const LATE_SEED_KEY = 'molecular_assay_control_rules_seed_467';
+const LATE_SEED_IDS = ['rule-467-egfr'];
 const ok = <T>(data: T) => ({ ok: true as const, data });
 const err = (message: string) => ({ ok: false as const, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
@@ -41,13 +43,27 @@ const SEED: MolecularAssayControlRule[] = [
     allowedSampleRackSlotIds: ['SLOT_A1', 'SLOT_A2'],
     createdAt: '2026-09-06T15:00:00.000Z',
   },
+  {
+    // Batch 467: the in-house EGFR mutation PCR — a no-template control and a mutation-positive control, fixed.
+    id: 'rule-467-egfr',
+    assayCode: 'st-egfr-pcr',
+    requiredControls: [
+      { sampleType: 'CONTROL_NTC', positionMode: 'fixed', fixedWellPosition: 'A01' },
+      { sampleType: 'CONTROL_PTC_HIGH', positionMode: 'fixed', fixedWellPosition: 'A02' },
+    ],
+    createdAt: '2026-10-06T15:00:00.000Z',
+  },
 ];
 
 // Batch 406: the seeded rule's allowed deck slots reach browsers that stored it earlier.
 const load = (): MolecularAssayControlRule[] => {
   const stored = storageGet(STORE_KEY, SEED);
-  const { records, filled } = withSeedFieldBackfill(stored, SEED, 'allowedSampleRackSlotIds');
-  if (filled > 0) storageSet(STORE_KEY, records);
+  // Batch 467: a rule seeded later (the EGFR PCR one) reaches browsers that stored the rules earlier — once, so a
+  // rule an admin deletes afterwards stays deleted.
+  const late = storageGet<boolean>(LATE_SEED_KEY, false) ? { records: stored, added: 0 } : withMissingSeedRecords(stored, SEED.filter(r => LATE_SEED_IDS.includes(r.id)));
+  if (!storageGet<boolean>(LATE_SEED_KEY, false)) storageSet(LATE_SEED_KEY, true);
+  const { records, filled } = withSeedFieldBackfill(late.records, SEED, 'allowedSampleRackSlotIds');
+  if (filled > 0 || late.added > 0) storageSet(STORE_KEY, records);
   return records;
 };
 

@@ -14,6 +14,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { CYTOLOGY_COMPLIANCE_FEATURES, type CytologyComplianceSettings, type CytologyFeatureSetting } from '@/services/cytology/cytologyComplianceFeatures';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const K = 'cytologyCompliance';
 const SETTINGS: CytologyFeatureSetting[] = ['auto', 'on', 'off'];
@@ -27,6 +28,8 @@ const CytologyComplianceFeaturesSection: React.FC = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [adding, setAdding] = useState<{ facilityId: string; settings: CytologyComplianceSettings } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(adding !== null);
 
   const refresh = () => {
     cytologyComplianceFeaturesService.get().then(r => { setEnterprise(r.data.enterprise); setFacilitySettings(r.data.facilities); });

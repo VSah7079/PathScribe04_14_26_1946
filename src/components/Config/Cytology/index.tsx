@@ -33,18 +33,22 @@ import CytologyNomenclatureSettingsSection from './CytologyNomenclatureSettingsS
 import CytologyRegistrySettingsSection from './CytologyRegistrySettingsSection';
 import CytologyRoutingSettingsSection from './CytologyRoutingSettingsSection';
 import CytologyScreeningStrategySection from './CytologyScreeningStrategySection';
+import CytologyHistologyCorrelationSection from './CytologyHistologyCorrelationSection';
 import CytologyWorkloadCapSettingsSection from './CytologyWorkloadCapSettingsSection';
 import CytologyComplianceFeaturesSection from './CytologyComplianceFeaturesSection';
 import CytologyInstrumentationSection from './CytologyInstrumentationSection';
 import NonGynCytologyCategoriesSection from './NonGynCytologyCategoriesSection';
 import ConfigSectionGate from '../ConfigSectionGate';
 import { SECTIONS, type CytologyConfigSection } from './cytologySections';
+import { useConfigNavigationGuard } from '../configDirtyGuardContext';
 
 // Batch 431: the section list lives in ./cytologySections.ts (shared with the
 // Configuration search).
 export type { CytologyConfigSection } from './cytologySections';
 
 const CytologyTab: React.FC = () => {
+  // PS-128 (Batch 437): moving to another section asks first when something is unsaved.
+  const guardNav = useConfigNavigationGuard();
   const { t } = useTranslation();
   const location = useLocation();
   const [active, setActive] = useState<CytologyConfigSection>(() => {
@@ -70,6 +74,7 @@ const CytologyTab: React.FC = () => {
       case 'cytology_workload_cap': return <CytologyWorkloadCapSettingsSection />;
       case 'cytology_instrumentation': return <CytologyInstrumentationSection />;
       case 'snomed_histology_severity_mapping': return <SnomedCervicalHistologySeverityMappingSection />;
+      case 'cytology_histology_correlation': return <CytologyHistologyCorrelationSection />;
       default: return null;
     }
   };
@@ -80,7 +85,7 @@ const CytologyTab: React.FC = () => {
         {SECTIONS.map(s => (
           <button
             key={s.id}
-            onClick={() => { setActive(s.id); resetConfigScroll(); }}
+            onClick={() => guardNav(() => { setActive(s.id); resetConfigScroll(); })}
             className={`ps-confsys-nav-btn${active === s.id ? ' ps-confsys-nav-btn--active' : ''}`}
           >
             {s.emoji} {t(s.labelKey)}

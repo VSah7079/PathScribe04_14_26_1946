@@ -40,6 +40,14 @@ Both forms now take what they need from the organisation's Field Requirements (p
 - Their generic "please complete the fields" messages are gone (`autopsyAuthCompletion.validationError`, `autopsyBodyRelease.validationError`); "Still required" names the fields.
 - New tests: `AutopsyAuthorizationCompletionForm.test.tsx` (3), `AutopsyBodyReleaseForm.test.tsx` (4).
 
+## Batch 468 — consent-scope fields
+
+`AutopsyAuthorizationCompletionForm.tsx` gained two structured consent-scope controls, alongside the existing free-text consent-scope field: **Excluded Organs** (comma-separated, parsed against the real `AutopsyOrganCode` vocabulary, unrecognized tokens silently dropped — `parseAutopsyOrganCodeList()`) and a **Retention of tissue/organs is permitted** checkbox (defaults checked). Neither is a Field Requirement — consent can be unconstrained — but both are now real, machine-enforced fields read by `services/autopsy/resolveAutopsyConsentScopeViolation.ts`, not decoration. See that folder's README.
+
+## Batch 473 — Case-type key migration
+
+No behavior change. `AutopsyAuthorizationCompletionForm.tsx`/`.test.tsx` and `AutopsyBodyReleaseForm.test.tsx` updated for `caseAuthority`'s renamed forensic-path value, `'medicolegal_forensic'` → `'statutory_judicial'`. See `services/autopsy/README.md`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md if this folder's overall PURPOSE changes.*

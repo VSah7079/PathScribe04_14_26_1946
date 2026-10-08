@@ -134,14 +134,14 @@ const ParticipationTypesSection: React.FC = () => {
 
       {/* Search + filter */}
       <div className="ps-participationtypes__filters">
-        <input data-config-nav
+        <input data-dirty-ignore data-config-nav
           type="text"
           placeholder={t('participationTypesSection.searchPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="ps-routingrules__search-input"
         />
-        <select data-config-nav value={filter} onChange={e => setFilter(e.target.value as any)}
+        <select data-dirty-ignore data-config-nav value={filter} onChange={e => setFilter(e.target.value as any)}
           className="ps-conf-select">
           <option value="all">{t('participationTypesSection.filterAll')}</option>
           <option value="active">{t('common.active')}</option>

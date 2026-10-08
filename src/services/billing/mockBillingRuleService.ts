@@ -307,3 +307,7 @@ export const mockBillingRuleService: IBillingRuleService = guardConfigWrites(bil
   ['config:billing-rules:manage', ['createVersion', 'submitForApproval', 'retireVersion']],
   ['config:billing-tables:approve', ['approveVersion', 'rejectVersion']],
 ]);
+
+/** Batch 455: the seeded versions, so a demo Full Reset can put them back to
+ *  their seeded state (services/demoReset/demoReset.ts). */
+export const BILLING_RULE_SEED_VERSIONS: readonly BillingRuleVersion[] = SEED_VERSIONS;

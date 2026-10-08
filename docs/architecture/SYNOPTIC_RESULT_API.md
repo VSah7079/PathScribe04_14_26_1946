@@ -83,6 +83,7 @@ Rules:
   - **Choice fields** send the answer labels. `value_code` is the chosen answer's SNOMED CT code. A multi-select sends `value` as an array and `value_codes` instead of `value_code`.
   - **Numeric fields** send `value` and `unit` (the field's unit), with no value code.
   - **`block_id`** is set for a field tagged with the role `block`.
+  - **Mohs stage question** (`spatialStageCanvas`, Batch 463): one observation per stage, `field_id` `<field>__s<n>`, value `clear` or `residual tumour`; and one per positive sector, `field_id` `<field>__s<n>__<sector>` (`c12`…`c11`, `deep`), value its histology (and `perineural invasion` when present), `block_id` its block letter. Details in `ORGAN_MAPPING_API.md` §4.
   - **`overridden`** is true when the pathologist's answer differs from the AI's suggestion or they disputed it. **`ai_suggested`** is true when the AI suggested anything for the field.
 - **Patient context is MRN and encounter only.** Name and birth date stay out; the accession and MRN bind the record.
 - **Order numbers.**

@@ -28,7 +28,7 @@
 - Built with `useTranslation()` from the start — every visible string goes through the `microtomyWorkstation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). `Home.tsx` did not have any i18n before this change; only the new tile's strings (`home.microtomyTile.*`) were converted — the rest of that file is untouched, same precedent as `GrossingScreenPage.tsx`'s nav button inside the not-yet-converted `SynopticReportPage.tsx`.
 - Control-slide pairing (`pairedControlSlideId`/`isControlSlide`) is a deliberate, separate, same-block sibling-slide mechanism — genuinely different from the existing `shouldAutoAppendControl.ts` (a batch/QC-level synthetic-control-CASE mechanism). Reconciling the two is a future design question, not resolved here.
 - `processMicrotomyScan` (pre-existing, in `useGlobalMaterialScanTracking.ts`) already auto-dispatches the honest stub `dispatchSlideLabel` for every Pending-Cut stain when a block is scanned at a "Microtomy / Sectioning" station, regardless of the station's real `supportsPrinting` flag. This page is deliberately the first real place the actual GS1/ZPL `printSlideLabel` path gets used — the two print paths were NOT reconciled in this pass; that stub keeps running exactly as before.
-- Deliberate scope cuts for this pass (ticket is Autopsy-module-scale): no `MatrixBlock`/specimen-level scan resolution, schematic (non-decodable) label preview, no `buildSlideZplTemplate.ts` rewiring to the new layout config, no action-registry/voice wiring, no admin editor UI for `SlideLabelLayoutConfig`.
+- Deliberate scope cuts for this pass (ticket is Autopsy-module-scale): no specimen-level scan resolution (MatrixBlock support superseded this cut in Batch 460), schematic (non-decodable) label preview, no `buildSlideZplTemplate.ts` rewiring to the new layout config, no action-registry/voice wiring, no admin editor UI for `SlideLabelLayoutConfig`.
 - **Real fix (foot-pedal follow-up, Sep 2026):** foot-pedal support was originally disclaimed here as out of browser reach — re-verified and found incorrect. `useFootPedal.ts` (Gamepad API + keyboard-emulation capture, already working for `SynopticReportPage.tsx`'s dictation controls) is now wired into this page: Pedal 2 fires the real `handlePrintNext()` — PS-284's own named "Print/Etch Next... physical foot pedal integration" trigger. Configured per-workstation at Config → System → Voice → Foot Pedal.
 
 
@@ -57,6 +57,45 @@
 - **Checked and already translated:** `CytologyPanel`, `BatchProgressModal` and the page itself. What remains English is stored data: the print-failure text on a slide, the block status, and the tissue and specimen descriptions.
 - **Not gated:** the decant fields (volume, appearance, yield) save as typed and the print buttons have no required fields, so there is nothing for Field Requirements to hold back there.
 - **Tests:** `components/microtomyPanels.test.tsx`; the guard test now also covers the two components.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`hooks/useMicrotomyWorkstation.ts`: when a save changes only decants, each change goes through the atomic, versioned save (`applyDecantChangeLive`) and publishes `MATERIAL_DECANTED`. Any other change saves as before. The decision is `decantOnlyUpdates` in `services/material/materialTree.ts`.
+
+## Batch 460 — Matrix blocks, saving, slide order, billing
+
+**Matrix blocks.** Scanning a matrix block (`S26-4404-M1`) or one of its slides opens it like a block.
+- The left panel lists its cores (position and specimen).
+- Add stain, levels, remove, print, reprint, reorder, comments and alert flags all work.
+- A slide added here targets every core; billing still waits for the pathologist to confirm which cores were evaluated.
+- It's saved to `Case.matrixBlocks`, through a one-block view (`utils/microtomyOperations.ts` `matrixBlockAsSpecimenView`).
+- Before this batch, the scan stopped at "Specimen not found".
+
+**Saving (PS-71).** Every change is an operation, re-applied to the newest case if someone saved first (`updateCaseWithRetry`).
+- The app-wide scan tracker writes to the case on the same scan, so this happened routinely.
+- Before, a conflicting save was only logged, and the tech's change was lost while the screen showed it.
+- A save that still fails shows a red message and reloads the block.
+
+**Slide order.**
+- A slide's level is its printed one, so reordering never changes which slide a barcode means.
+- A removed level is never reused.
+- Batch prints follow the grid order, not the order the slides were ticked.
+
+**Billing (Pete: read-only by default).** The Billing box lists each slide's codes, status and warnings. "$ Full billing review" (needs `billing:applied-code:review`) opens the full panel.
+- See `services/billing/README.md` (Batch 460) for the User and Admin Guide.
+- Files: `hooks/useMicrotomyBilling.ts`, `components/MicrotomyBillingPanel.tsx`.
+
+**Strings.** The printer-setup errors that were English in the hook are now translated.
+
+**Still open:**
+- The two print paths (this page and the global tracker's placeholder labels) are still not reconciled.
+- Embedding and Slide Distribution still don't take matrix blocks (Embedding now says so instead of "specimen not found").
+
+**Batch 460, after independent review:**
+- A label is printed only after its "Printing" mark (or a reprint's reason) is saved.
+- A slide removed meanwhile isn't printed.
+- A decant conflict reloads the block.
+- Billing charges only orchestration cases, as on the report page, and the charge status refreshes after each charge.
 
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*

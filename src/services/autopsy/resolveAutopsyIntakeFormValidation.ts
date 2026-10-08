@@ -41,7 +41,7 @@ export function resolveAutopsyIntakeFormValidation(form: AutopsyIntakeFormState)
   if (!form.jurisdiction) missingFieldIds.push('jurisdiction');
   if (!form.caseAuthority) missingFieldIds.push('caseAuthority');
 
-  if (form.caseAuthority === 'medicolegal_forensic') {
+  if (form.caseAuthority === 'statutory_judicial') {
     if (!form.authorityType.trim()) missingFieldIds.push('authorityType');
     if (!form.verbalOrderReceivedAt) missingFieldIds.push('verbalOrderReceivedAt');
     if (!form.verbalOrderReceivedFrom.trim()) missingFieldIds.push('verbalOrderReceivedFrom');

@@ -27,6 +27,7 @@ import { mockFacilityService } from '../../../services/facilities/mockFacilitySe
 import type { NonGynCytologyRouting } from '../../../services/cytology/ICytologyRoutingSettingsService';
 import type { FacilityCytologyRoutingOverride } from '../../../services/cytology/IFacilityCytologyRoutingOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const ROUTES: { id: NonGynCytologyRouting; labelKey: string }[] = [
   { id: 'surgical_pathology_worklist', labelKey: 'cytologyRoutingSettingsSection.routes.surgicalPathologyWorklist' },
@@ -41,6 +42,8 @@ const CytologyRoutingSettingsSection: React.FC = () => {
   const [facilityOverrides, setFacilityOverrides] = useState<FacilityCytologyRoutingOverride[]>([]);
   const [addingFacility, setAddingFacility] = useState<{ facilityId: string; routing: NonGynCytologyRouting } | null>(null);
   const [saving, setSaving] = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(enterpriseDraft !== savedEnterprise || addingFacility !== null);
 
   const refresh = () => {
     mockCytologyRoutingSettingsService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.nonGynCytologyRouting); setSavedEnterprise(r.data.nonGynCytologyRouting); } });

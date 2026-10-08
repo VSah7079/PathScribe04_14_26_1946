@@ -13,8 +13,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
-  LIVE_UPDATES_CONTRACT_VERSION, parseIntraopChangedEvent, parsePrintJobStatusEvent,
-  type IntraopChangedEvent, type IntraopScope, type PrintJobStatusEvent,
+  LIVE_UPDATES_CONTRACT_VERSION, parseIntraopChangedEvent, parsePrintJobStatusEvent, parseWsiScanBatchChangedEvent,
+  type IntraopChangedEvent, type IntraopScope, type PrintJobStatusEvent, type WsiScanBatchChangedEvent,
 } from './liveUpdateContract';
 import { createDuplicateFilter, eventMatchesScope, type LiveConnectionState } from './liveUpdatePolicy';
 import type { ILiveUpdateService, LiveUpdateSubscription } from './ILiveUpdateService';
@@ -32,6 +32,8 @@ export interface LocalLiveUpdateService extends ILiveUpdateService {
   publish(change: Omit<IntraopChangedEvent, 'v' | 'eventId' | 'occurredAt'> & { eventId?: string; occurredAt?: string }): IntraopChangedEvent;
   /** What the API server will do when the interface engine reports on a print job. */
   publishPrintJobStatus(result: Omit<PrintJobStatusEvent, 'v' | 'eventId' | 'occurredAt'> & { eventId?: string; occurredAt?: string }): PrintJobStatusEvent;
+  /** Batch 434: what the API server will do after a WSI scan batch write. */
+  publishWsiScanBatchChange(change: Omit<WsiScanBatchChangedEvent, 'v' | 'eventId' | 'occurredAt'> & { eventId?: string; occurredAt?: string }): WsiScanBatchChangedEvent;
 }
 
 let counter = 0;
@@ -46,6 +48,7 @@ export function createLocalLiveUpdateService(deps: {
     (typeof BroadcastChannel === 'undefined' ? null : (new BroadcastChannel(name) as unknown as ChannelLike)));
   const subscribers = new Map<number, { scope: IntraopScope; onEvent: (e: IntraopChangedEvent) => void }>();
   const printSubscribers = new Map<number, (e: PrintJobStatusEvent) => void>();
+  const wsiSubscribers = new Map<number, (e: WsiScanBatchChangedEvent) => void>();
   const isNew = createDuplicateFilter();
   let nextId = 1;
   let channel: ChannelLike | null | undefined;
@@ -65,6 +68,13 @@ export function createLocalLiveUpdateService(deps: {
     }
   };
 
+  const deliverWsi = (event: WsiScanBatchChangedEvent) => {
+    if (!isNew(event.eventId)) return;
+    for (const onEvent of [...wsiSubscribers.values()]) {
+      try { onEvent(event); } catch (e) { console.error('[liveUpdates] scan-batch subscriber failed:', e); }
+    }
+  };
+
   const ensureChannel = () => {
     if (channel !== undefined) return channel;
     try { channel = channelFactory(LOCAL_CHANNEL_NAME); } catch { channel = null; }
@@ -73,7 +83,9 @@ export function createLocalLiveUpdateService(deps: {
         const e = parseIntraopChangedEvent(ev.data);
         if (e) { deliver(e); return; }
         const p = parsePrintJobStatusEvent(ev.data);
-        if (p) deliverPrint(p);
+        if (p) { deliverPrint(p); return; }
+        const w = parseWsiScanBatchChangedEvent(ev.data);
+        if (w) deliverWsi(w);
       };
     }
     return channel;
@@ -92,6 +104,12 @@ export function createLocalLiveUpdateService(deps: {
       const id = nextId++;
       printSubscribers.set(id, onEvent);
       return { unsubscribe: () => { printSubscribers.delete(id); } };
+    },
+    subscribeWsiScanBatches(onEvent): LiveUpdateSubscription {
+      ensureChannel();
+      const id = nextId++;
+      wsiSubscribers.set(id, onEvent);
+      return { unsubscribe: () => { wsiSubscribers.delete(id); } };
     },
     getState: (): LiveConnectionState => 'local',
     onStateChange: () => () => {},
@@ -117,6 +135,17 @@ export function createLocalLiveUpdateService(deps: {
       deliverPrint(event);
       // Other windows of this browser hear it too; only the one that sent
       // the job knows it and acts on it.
+      try { ensureChannel()?.postMessage(event); } catch { /* another window may be closing */ }
+      return event;
+    },
+    publishWsiScanBatchChange(change) {
+      const event: WsiScanBatchChangedEvent = {
+        ...change,
+        v: LIVE_UPDATES_CONTRACT_VERSION,
+        eventId: change.eventId ?? newEventId(),
+        occurredAt: change.occurredAt ?? now().toISOString(),
+      };
+      deliverWsi(event);
       try { ensureChannel()?.postMessage(event); } catch { /* another window may be closing */ }
       return event;
     },

@@ -49,6 +49,7 @@
 // participant's own, individual retention clock, never the earliest.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { getCurrentJurisdiction } from './RetentionPolicy';
 import type { RetainableMaterialType } from './RetentionPolicy';
@@ -188,7 +189,7 @@ export async function computeDisposalQueue(facilityId: string | undefined): Prom
 
         for (let i = 0; i < (block.stains ?? []).length; i++) {
           const slide = block.stains![i];
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(slide, i);
           const slideDisplayId = slideIdentifier(fullAccession, specimen.label, block.label, level);
           const slideItem = await evaluateItem(
             c, [specimen.label], [specimen.specimenDictionaryEntryId], 'slide',
@@ -218,7 +219,7 @@ export async function computeDisposalQueue(facilityId: string | undefined): Prom
 
         for (let i = 0; i < (decant.stains ?? []).length; i++) {
           const slide = decant.stains![i];
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(slide, i);
           const decantSlideDisplayId = decantSlideIdentifier(fullAccession, specimen.label, decant.label, level);
           const decantSlideItem = await evaluateItem(
             c, [specimen.label], [specimen.specimenDictionaryEntryId], 'slide',
@@ -253,7 +254,7 @@ export async function computeDisposalQueue(facilityId: string | undefined): Prom
 
       for (let i = 0; i < (matrixBlock.slides ?? []).length; i++) {
         const slide = matrixBlock.slides[i];
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const matrixSlideDisplayId = matrixSlideIdentifier(fullAccession, matrixBlock.label, level);
         const matrixSlideItem = await evaluateItem(
           c, participantLabels, participantCategoryIds, 'slide',

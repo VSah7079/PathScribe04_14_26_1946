@@ -14,6 +14,7 @@ export const submitCytologyRevisionToRegistryDeps: CytologyRevisionRegistryDeps 
   dispatchInterfaceMessage: d.dispatchInterfaceMessage,
   logAudit: d.logAudit,
   sendGate: d.sendGate,
+  getCase: d.getCase,
   updateCase: d.updateCase,
   now: d.now,
   newId: d.newId,

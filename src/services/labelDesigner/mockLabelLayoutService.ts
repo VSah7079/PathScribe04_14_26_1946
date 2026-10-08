@@ -11,6 +11,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { LABEL_TYPE_ALLOWS_FACILITY_OVERRIDE, resolveLabelLayoutForFacility } from './ILabelLayoutService';
 import type { ILabelLayoutService, LabelLayout, LabelType } from './ILabelLayoutService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { fieldsOutOfBounds, LABEL_LAYOUT_OUT_OF_BOUNDS } from './labelFieldGeometry';
 
 const STORE_KEY = 'label_designer_layouts';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -33,6 +34,8 @@ const labelLayoutServiceUnchecked: ILabelLayoutService = {
     if (layout.facilityId && !LABEL_TYPE_ALLOWS_FACILITY_OVERRIDE[layout.labelType]) {
       return err(`"${layout.labelType}" is a real, locked Enterprise-standard label type — facility-level overrides are not allowed for it.`);
     }
+    // Batch 460 (PS-245): a field past the label's physical edge would print off the label.
+    if (fieldsOutOfBounds(layout.fields ?? [], layout).length > 0) return err(LABEL_LAYOUT_OUT_OF_BOUNDS);
     const all = load();
     const idx = all.findIndex(l => l.labelType === layout.labelType && l.facilityId === layout.facilityId);
     const saved: LabelLayout = {

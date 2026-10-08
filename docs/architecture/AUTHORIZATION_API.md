@@ -2,7 +2,7 @@
 
 **Status:** phases 1 and 2 built in the browser (Batches 369 and 370;
 PS-355, PS-356); phase 3, the remaining real permissions, is being added
-screen by screen (88 capabilities as of Batch 425, Oct 1, 2026: see
+screen by screen (232 capabilities as of Batch 480, Oct 7, 2026; this said 88, as of Batch 425, until Batch 467b corrected it: see
 [the capability catalog](#capability-catalog-system-capabilities) below). The
 API server part described here is phase 4 (PS-358) and is not built yet.
 
@@ -103,7 +103,14 @@ Endpoints so far:
 | Place or release a case hold or retention hold | `case:hold:place` / `case:hold:release` / `case:retention-hold:place` / `case:retention-hold:release`, with the case's facility (Batch 381) |
 | Delegate a case | `case:delegation:create`, with the case's facility (Batch 381) |
 | Correct an applied billing code | `billing:applied-code:correct` (Batch 382) |
+| Approve, decline, override, add or delete a case's billing codes (report page, Cytology Workspace, Microtomy) | `billing:applied-code:review` (Batch 460) |
+| Insert, replace or remove a case's anatomical map image in the report | `report:organ-map:insert`, with the case's facility (Batch 461) |
+| Change organ-map colours, patterns and thresholds (enterprise, jurisdiction, facility) / a template's map question bindings | `config:organ-map-scheme:manage` (with the facility for a facility layer) / `config:organ-map-bindings:manage` (Batch 461; thresholds Batches 462, 464, 465, 466) |
 | Release an autopsy body | `autopsy:body:release` (Batch 383) |
+| Record a forensic autopsy chain-of-custody transfer | `autopsy:custody:transfer` (Batch 468) |
+| Narrow or revoke a hospital next-of-kin autopsy consent | `autopsy:consent:manage` (Batch 469) |
+| Record disposal of retained organs/tissue | `autopsy:retention-disposal:record` (Batch 469) |
+| Order postmortem toxicology / record its result | `autopsy:toxicology:order` / `autopsy:toxicology:result` (Batch 469) |
 | Send an internal message / a secure email | `message:internal:send` / `message:secure-email:send` (Batch 385) |
 | Correct or add to a signed-out cytology report | `cytology:report:correct` / `cytology:report:addend` (Batch 390) |
 | Record a cytology QC or surgical QA review verdict | `cytology:qc-review:record` / `surgical:qa-review:record` (Batch 396) |
@@ -112,6 +119,9 @@ Endpoints so far:
 | Approve destructive cutting of a block | `add-on:exception:approve-destructive-cut` (Batch 403) |
 | Complete a reconciliation with discrepancies; abort a batch; acknowledge a cold-chain excursion | `batch:reconciliation:override` / `batch:run:abort` / `batch:cold-chain-excursion:acknowledge` (Batch 404) |
 | Supersede a molecular run (clone and retire the original) | `molecular:batch:supersede` (Batch 405) |
+| Put in-house molecular orders on a plate, or take one off (Order Queue) | `molecular:order:assign-plate` (Batch 467) |
+| Cancel an in-house molecular order, or re-route it to send-out | `molecular:order:cancel` (Batch 467) |
+| Choose or change a queued send-out molecular order's reference lab | `molecular:order:set-lab` (Batch 467b) |
 | Add, change or delete a molecular assay control rule (its controls and the deck slots its sample rack may use) | `config:molecular-control-rules:manage` (Batch 406) |
 | Dispose of retained material (scan on the Disposal Queue) | `retention:material:dispose`, with the station's facility (Batch 407) |
 | Export the disposal (waste-tracking) report | `retention:disposal-report:export`, with the report's facility or all facilities (Batch 407) |
@@ -158,13 +168,14 @@ code.
   must check the same capability on each section's endpoints.
 
 <!-- capability-catalog:start -->
-### Administration: staff, roles and system (16)
+### Administration: staff, roles and system (17)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
 | `config:roles:manage` | Manage roles. | high | Admin | `roles/roleAdministration.ts` |
 | `config:staff:edit` | Edit staff records. | high | Admin | `staff/staffAdministration.ts`, `subspecialties/mockSubspecialtyService.ts` |
 | `config:staff-access:assign` | Assign roles and access to staff. Requires `config:staff:edit`. | high | Admin | `auth/linkedAccounts.ts`, `staff/staffAdministration.ts` |
+| `config:staff-password:manage` | Manage staff sign-in passwords. Requires `config:staff:edit`. | high | Admin | `staffPasswords/mockStaffPasswordService.ts` |
 | `config:demo-data:reset` | Reset all demo data. | high | Admin | `demoReset/demoReset.ts` |
 | `config:field-requirements:manage` | Manage field requirements. | high | Admin | `fieldRequirements/fieldRequirementService.ts` |
 | `config:intraop-critical-results:manage` | Manage the intraoperative critical results dictionary. | high | Admin | `intraop/mockIntraopCriticalResultService.ts` |
@@ -210,7 +221,7 @@ code.
 | `config:voice:manage` | Turn voice on or off. | high | Admin, Lab Director | `systemConfig/systemConfigChangeChecks.ts` |
 | `config:macros:manage` | Manage shared macros. | high | Admin, Lab Director | `macros/mockMacroService.ts`, `voicemacro/mockVoiceMacroService.ts` |
 
-### Configuration: cytology (9)
+### Configuration: cytology (12)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -218,6 +229,9 @@ code.
 | `config:cytology-nomenclature:manage` | Manage cytology nomenclature. | high | Admin, Lab Director | `cytology/mockCytologyNomenclatureSettingsService.ts`, `cytology/mockFacilityCytologyNomenclatureOverrideService.ts` |
 | `config:cytology-routing:manage` | Manage cytology routing. | high | Admin, Lab Director | `cytology/mockCytologyRoutingSettingsService.ts`, `cytology/mockFacilityCytologyRoutingOverrideService.ts` |
 | `config:cytology-screening-strategy:manage` | Manage the screening strategy. | high | Admin, Lab Director | `cytology/mockCytologyScreeningStrategyService.ts`, `cytology/mockFacilityCytologyScreeningStrategyOverrideService.ts` |
+| `config:cytology-histology-correlation:manage` | Manage the cyto-histo correlation window (Batch 452, PS-156). | high | Admin, Lab Director | `cytology/mockCytologyHistologyCorrelationSettingsService.ts` |
+| `config:biopsy-resection-correlation:manage` | Manage the surgical biopsy-to-resection correlation window (Batch 453, PS-324). | high | Admin, Lab Director | `quality/biopsyResectionCorrelationSettings.ts` |
+| `config:follow-up-tracking:manage` | Manage follow-up tracking: the warning period, whether staff may email the ordering clinician, and that email's wording (Batch 454). | high | Admin, Lab Director | `followUp/followUpSettings.ts` |
 | `config:cytology-instrumentation:manage` | Manage cytology instruments. | high | Admin, Lab Director | `cytology/mockCytologyInstrumentationService.ts`, `cytology/mockFacilityCytologyInstrumentationOverrideService.ts` |
 | `config:cytology-qc-rates:manage` | Manage QC rescreen rates. | high | Admin, Lab Director | `cytology/mockCytologyQcSettingsService.ts`, `cytology/mockFacilityCytologyQcOverrideService.ts`, `cytology/mockStaffCytologyQcOverrideService.ts` |
 | `config:cytology-workload-cap:manage` | Manage the slide workload cap. | high | Admin, Lab Director | `cytology/mockCytologyWorkloadCapSettingsService.ts`, `cytology/mockFacilityCytologyWorkloadCapOverrideService.ts` |
@@ -247,7 +261,7 @@ code.
 | `config:asset-locations:manage` | Manage storage locations. | high | Admin, Lab Director | `assetLocation/mockAssetLocationDictionaryService.ts` |
 | `config:case-masks:manage` | Manage case number formats. | high | Admin, Lab Director | `caseRegistry/mockCaseMaskService.ts` |
 
-### Configuration: results, reporting and quality (11)
+### Configuration: results, reporting and quality (14)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -257,6 +271,9 @@ code.
 | `config:abnormal-triggers:manage` | Manage abnormal result rules. | high | Admin, Lab Director | `abnormalDetection/mockAbnormalTriggerRuleService.ts`, `systemConfig/systemConfigChangeChecks.ts` |
 | `config:concordance-review:manage` | Manage concordance review. | high | Admin, Lab Director | `qualitySettings/mockConcordanceReviewSettingsService.ts` |
 | `config:qa-types:manage` | Manage QA activity types. | high | Admin, Lab Director | `quality/mockQaActivityTypeService.ts`, `quality/mockQaSupervisionAssignmentTypeService.ts`, `quality/mockSurgicalPeerReviewRiskWeightService.ts` |
+| `config:revision-reasons:manage` | Manage revision reasons. | high | Admin, Lab Director | `reasons/mockReasonDictionaryService.ts` |
+| `config:peer-review:manage` | Manage the peer-review sign-out gate. | high | Admin, Lab Director | `quality/mockPeerReviewSettingsService.ts` |
+| `config:qa-trend-policy:manage` | Manage the discordance trend policy. | high | Admin, Lab Director | `quality/mockQaTrendPolicyService.ts` |
 | `config:validation-studies:manage` | Manage validation studies. | high | Admin, Lab Director | `validationStudies/mockValidationStudyService.ts` |
 | `validation:approval:record` | Record validation approval. | high | Admin, Lab Director | `validationStudies/mockValidationStudyService.ts` |
 | `config:retention-policy:manage` | Manage the retention policy. | high | Admin, Lab Director | `retention/retentionPolicyService.ts` |
@@ -307,26 +324,32 @@ code.
 | `config:payment-types:manage` | Manage payment types. | high | Admin, Lab Director | `billing/mockMasterPaymentTypeService.ts` |
 | `config:payment-mappings:manage` | Manage payment mappings. | high | Admin, Lab Director | `billing/mockJurisdictionPaymentMappingService.ts` |
 
-### Configuration: security and system (5)
+### Configuration: security and system (9)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
-| `config:session-security:manage` | Manage session timeout. | high | Admin, Lab Director | `session/mockSessionTimeoutService.ts` |
+| `config:session-security:manage` | Manage session timeout. | high | Admin, Lab Director | `biometric/mockBiometricService.ts`, `session/mockSessionTimeoutService.ts` |
 | `config:report-appearance:manage` | Manage report appearance. | high | Admin, Lab Director | `reportAppearance/pageSetup.ts`, `reportAppearance/saveDocumentStyle.ts`, `systemConfig/systemConfigChangeChecks.ts` |
 | `config:contribution-settings:manage` | Manage contribution settings. | high | Admin, Lab Director | `systemConfig/systemConfigChangeChecks.ts` |
 | `config:external-resources:manage` | Manage external links. | high | Admin, Lab Director | `externalResources/mockExternalResourceService.ts` |
 | `config:research-feed:manage` | Manage the research feed. | high | Admin, Lab Director | `research/mockResearchFeedConfigService.ts` |
+| `config:feedback:manage` | Manage feedback settings. | high | Admin, Lab Director | `feedback/mockFeedbackSettingsService.ts` |
+| `config:organ-map-scheme:manage` | Manage organ-map colours, patterns and legend wording, and their thresholds (the breast close-margin distance, Batch 462; the malignant-polyp and rectal CRM involved-margin rules, a distance and an operator each, Batch 464; the oral cavity involved- and close-margin rules, Batch 465; the kidney parenchymal and soft tissue involved-margin rules, Batch 466), for the enterprise, a jurisdiction or a facility (Batch 461). | high | Admin, Lab Director | `organMapping/organMapConfig.ts` |
+| `config:organ-map-bindings:manage` | Manage which of a synoptic template's questions feed its organ map, and what each answer means (Batch 461); and which of its generic margin questions the map calculates (Batch 466b). | high | Admin, Lab Director | `organMapping/organMapConfig.ts` |
+| `config:inking-validation-mode:manage` | Manage a site's inking validation mode (`WARN_ONLY`, the default, or `STRICT_ENFORCE`) for structured-inking sign-out checks (Batch 480). | high | Admin, Lab Director | `grossing/inkingSiteSettings.ts` |
 
-### Case work (31)
+### Case work (52)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
 | `case:grossing:complete` | Complete grossing. | high | Pathologist, Fellow, Resident, PA | `grossing/grossingCompletion.ts`, `grossing/reportGrossComplete.ts` |
+| `grossing:margin-ink:record` | Record a margin's ink application during grossing (creating the margin on its first application, or appending a further one), and mark the margin examined (Batch 480). | standard | Pathologist, Fellow, Resident, PA | `grossing/recordMarginInkApplication.ts` |
 | `case:hold:place` | Place a case hold. | high | Every case-access role; hospital roles with case access | `cases/caseHolds.ts` |
 | `case:hold:release` | Release a case hold. | high | Every case-access role; hospital roles with case access | `cases/caseHolds.ts` |
 | `case:retention-hold:place` | Place a retention hold. | high | Every case-access role; hospital roles with case access | `cases/caseHolds.ts` |
 | `case:retention-hold:release` | Release a retention hold. | high | Every case-access role; hospital roles with case access | `cases/caseHolds.ts` |
 | `case:delegation:create` | Delegate a case. | high | Every case-access role; hospital roles with case access | `delegations/mockDelegationService.ts` |
+| `case:team:manage` | Change a case's team. | high | Every case-access role; hospital roles with case access | `cases/saveCaseTeam.ts` |
 | `patient:national-identifier:record` | Record a patient's national identifier. | high | Every case-access role; hospital roles with case access | `patientIdentifiers/recordNationalPatientIdentifier.ts` |
 | `patient:registry-consent:record` | Record a patient's registry opt-out. | high | Every case-access role; hospital roles with case access | `registryConsent/recordPatientRegistryConsent.ts` |
 | `cytology:report:correct` | Correct a signed-out cytology report. | high | Pathologist | `cytology/releaseCytologyCorrection.ts` |
@@ -343,27 +366,58 @@ code.
 | `cytology:qc-review:record` | Record a cytology QC peer review. | high | Pathologist, Fellow | `cytologyQc/mockCytologyQcCaseAssignmentService.ts` |
 | `cytology:qc-review:bypass` | Bypass a cytology QC review (supervisor). | high | None | `cytologyQc/mockCytologyQcCaseAssignmentService.ts` |
 | `surgical:qa-review:record` | Record a surgical post-sign-out QA review. | high | Pathologist, Fellow | `quality/surgicalQaReview.ts` |
+| `case:peer-review:request` | Ask for a peer review before sign-out. | high | Pathologist, Fellow | `quality/peerReviewService.ts` |
+| `case:peer-review:record` | Record a peer review. | high | Pathologist | `quality/peerReviewService.ts` |
+| `case:peer-review:override` | Sign out ahead of a required peer review. | high | Pathologist | `quality/peerReviewService.ts` |
+| `case:clinical-mismatch:record` | Decide a clinical-pathologic mismatch. | high | Pathologist, Fellow | `clinical/clinicalMismatchDecision.ts` |
+| `case:outside-consult:assess` | Assess an outside consult opinion. | high | Pathologist, Fellow | `consultAccess/mockConsultTokenService.ts` |
+| `cytology:pathologist-review:take` | Take a positive GYN cytology case for review. | high | Pathologist, Fellow | `cytology/cytologyQueuesLive.ts` |
 | `add-on:order:place` | Place an add-on order. | high | Pathologist, Fellow, Resident; hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
 | `add-on:exception:approve-destructive-cut` | Approve destructive cutting. | high | Pathologist, Fellow, Resident; hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
 | `batch:reconciliation:override` | Complete a batch reconciliation anyway. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `batches/mockBatchService.ts` |
 | `batch:run:abort` | Abort a batch. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `batches/mockBatchService.ts` |
 | `batch:cold-chain-excursion:acknowledge` | Acknowledge a cold-chain excursion. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `batches/mockBatchService.ts` |
 | `referral:transit-status:update` | Update a referral batch’s transit status. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `referral/mockReferralTrackingService.ts` |
+| `wsi:scan-batch:load` | Load a WSI scan batch. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `digitalPathology/wsiScanBatchWorkflow.ts` |
+| `wsi:scan-batch:send` | Send a WSI scan batch to the scanner. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `digitalPathology/wsiScanBatchWorkflow.ts` |
+| `wsi:scan-batch:unload` | Unload a WSI scan batch. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `digitalPathology/wsiScanBatchWorkflow.ts` |
 | `retention:material:dispose` | Dispose of retained material. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `retentionPolicy/disposeItemByScan.ts` |
+| `case:decant:delete` | Remove a decant from the material tree (Batch 452). | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `material/caseMaterialService.ts` |
+| `case:follow-up:expect` | Mark a signed-out surgical case "follow-up specimen expected" (Batch 454). | standard | Pathologist, Fellow | `followUp/followUpActions.ts` |
+| `case:edit-conflict:override` | Overwrite on the Edit Conflict dialog: save this session's changes over a newer version someone else saved (Batch 458, PS-71). | high | Pathologist, Admin, Lab Director | `cases/caseWrite.ts` |
+| `report:organ-map:insert` | Insert the anatomical map (drawn from the synoptic answers) into the report as a snapshot, insert it again, or remove it; refused once the report is signed out (Batch 461). | standard | Pathologist, Fellow, Resident | `organMapping/organMapFigures.ts` |
 | `retention:disposal-report:export` | Export the disposal report. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `retentionPolicy/exportDisposalReport.ts` |
+| `search:case-results:export` | Export case search results. Requires `screen:search:open`. | high | Every case-access role, Lab Director; hospital roles with case access | `printing/exportGate.ts` |
+| `contribution:trainee-case-reference:export` | Export my trainee case log. Requires `screen:my-contributions:open`. | high | Pathologist, Fellow, Resident, PA, Lab Director; hospital roles with case access | `printing/exportGate.ts` |
+| `contribution:case-mix-summary:export` | Export my case-mix progress. Requires `screen:my-contributions:open`. | high | Pathologist, Fellow, Resident, PA, Lab Director; hospital roles with case access | `printing/exportGate.ts` |
 | `molecular:batch:supersede` | Supersede a molecular run. | high | Molecular Technologist; hospital roles with case access | `molecular/mockMolecularBatchService.ts` |
+| `molecular:order:assign-plate` | Put queued in-house molecular orders on a draft plate, or take one off (Batch 467). Requires `screen:molecular:open`. | standard | Molecular Technologist; hospital roles with case access | `molecularOrders/molecularOrderEngine.ts` |
+| `molecular:order:cancel` | Cancel an in-house molecular order (and its add-on slide order), or re-route it to send-out when its lab no longer runs the test in-house (Batch 467). Requires `screen:molecular:open`. | high | Molecular Technologist; hospital roles with case access | `molecularOrders/molecularOrderEngine.ts` |
+| `molecular:order:set-lab` | Choose or change the reference lab a queued send-out molecular order goes to: one of the test's approved labs, or any active reference lab when it has none (Batch 467b). Requires `screen:molecular:open`. | standard | Molecular Technologist; hospital roles with case access | `molecularOrders/molecularOrderEngine.ts` |
 
-### Billing (1)
+### Billing (3)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
-| `billing:applied-code:correct` | Correct an applied billing code. | high | Every case-access role, Admin, Lab Director, QA Reviewer; hospital roles with case access or configuration access | `billing/correctServiceCharge.ts` |
+| `billing:applied-code:correct` | Correct an applied billing code. | high | Every case-access role, Admin, Lab Director, QA Reviewer; hospital roles with case access or configuration access | `billing/billingCorrection.ts`, `billing/correctServiceCharge.ts` |
+| `billing:applied-code:review` | Review a case's billing codes: approve, decline, override, add and delete (each charges or credits the case). | high | Same as `billing:applied-code:correct` | `billing/caseBillingCharges.ts` (`enforceBillingReview`) |
+| `billing:charge:approve` | Approve charges. | high | None | `billing/chargeApproval.ts` |
 
-### Autopsy (1)
+### Autopsy (11)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
 | `autopsy:body:release` | Release an autopsy body. | high | Every case-access role; hospital roles with case access | `autopsy/releaseAutopsyBody.ts` |
+| `autopsy:custody:transfer` | Record a forensic autopsy case's chain-of-custody transfer (body, evidence, or personal effects). | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyCustodyTransfer.ts` |
+| `autopsy:consent:manage` | Narrow or revoke an already-granted hospital next-of-kin consent (never widens it back). | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyConsentStatusChange.ts` |
+| `autopsy:consent:reinstate` | Restore an already-narrowed or revoked hospital next-of-kin consent, with a required note. A separate capability from `autopsy:consent:manage` — narrowing and reinstating are opposite-direction actions. | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyConsentReinstatement.ts` |
+| `autopsy:retention-disposal:record` | Record how and when retained organs/tissue were disposed of. | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyOrganRetentionDisposal.ts` |
+| `autopsy:retention-detail:record` | Record who holds retained organs/tissue and where, while retention is ongoing (distinct from disposal). | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyOrganRetentionDetail.ts` |
+| `autopsy:toxicology:order` | Order a postmortem toxicology test on a specimen. | standard | Every case-access role; hospital roles with case access | `autopsy/orderAutopsyToxicology.ts` |
+| `autopsy:toxicology:result` | Record the result of an ordered postmortem toxicology test. | high | Every case-access role; hospital roles with case access | `autopsy/recordAutopsyToxicologyResult.ts` |
+| `autopsy:toxicology:cancel` | Cancel a still-pending postmortem toxicology order, with a reason. | high | Every case-access role; hospital roles with case access | `autopsy/cancelAutopsyToxicologyOrder.ts` |
+| `autopsy:gross-exam-gate:override` | Sign a PAD/FAD despite a blocked authorization gate (missing legal order, or revoked consent), with a required reason. Every override is logged (`AutopsyCaseDetails.gateOverrides`, and the audit trail). | high | None — an administrator assigns it, same as `cytology:qc-review:bypass` | `autopsy/signAutopsyReport.ts` |
+| `autopsy:organ-tag:record` | Record a per-organ gross-exam finding (normal, abnormal, or not examined), with an optional note. | standard | GROSSERS (Pathologist, Fellow, Resident, PA) | `autopsy/recordAutopsyOrganTag.ts` |
 
 ### Messaging (2)
 
@@ -378,13 +432,14 @@ code.
 |---|---|---|---|---|
 | `report:change-history:export` | Export report change history. | high | Admin, QA Reviewer | `reportChangeLog/exportChangeLog.ts` |
 
-### Quality assurance: Operations (9)
+### Quality assurance: Operations (10)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
 | `qa:deficiencies:export` | Export deficiencies. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:intraop-linkage:export` | Export frozen section linkage. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:reconciliation:export` | Export discordance and reconciliation. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
+| `qa:follow-up:export` | Export the Follow-up not received list (Batch 454). | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:countersign-turnaround:export` | Export countersign turnaround. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:fppe-tracking:export` | Export credentialing review (FPPE). | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:drift-correction:export` | Export post-final drift corrections. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
@@ -398,11 +453,16 @@ code.
 |---|---|---|---|---|
 | `qa:cytology-histology-correlation:export` | Export cytology–histology correlation. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 
-### Quality assurance: CAPA (1)
+### Quality assurance: CAPA (6)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
 | `qa:management-reviews:export` | Export management reviews. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
+| `qa:capa-recommendation:decide` | Confirm or dismiss CAPA recommendations. Requires `screen:quality-assurance:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `quality/mockCapaRecommendationService.ts` |
+| `qa:follow-up:record` | Close a follow-up with an outcome, or reopen it (Batch 454). | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `followUp/followUpActions.ts` |
+| `qa:follow-up-clinician:email` | Email the ordering clinician about a follow-up that is due soon or overdue, where the facility allows it; never automatic (Batch 454). | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `followUp/followUpClinicianEmail.ts` |
+| `qa:pathologist-trend:view` | View discordance patterns. Requires `screen:quality-assurance:open`. | high | Lab Director | `quality/qaTrendService.ts` |
+| `qa:pathologist-trend:decide` | Decide a discordance pattern. Requires `qa:pathologist-trend:view`. | high | Lab Director | `quality/qaTrendService.ts` |
 
 ### Quality assurance: Financials (1)
 
@@ -410,7 +470,7 @@ code.
 |---|---|---|---|---|
 | `qa:billing-deficiencies:export` | Export billing deficiencies. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 
-### Quality assurance: Dashboard, inspection and enterprise (4)
+### Quality assurance: Dashboard, inspection and enterprise (9)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -418,6 +478,11 @@ code.
 | `audit:error:resolve` | Resolve an Audit Log error. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `auditlog/mockAuditService.ts` |
 | `qa:inspection-evidence:export` | Export inspection evidence binder. Requires `qa:activity-dashboard:export`. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
 | `qa:enterprise-rollup:export` | Export enterprise rollup. | high | Admin, QA Reviewer | `qualityAssurance/qaExport.ts` (via `exportQaReport`) |
+| `audit:audit-log:export` | Export the Audit Log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
+| `audit:error-log:export` | Export the Error Log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
+| `audit:interface-log:export` | Export the Interface Log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
+| `audit:qa-log:export` | Export the Quality Assurance log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
+| `audit:billing-log:export` | Export the Billing Log. Requires `screen:audit-log:open`. | high | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `printing/exportGate.ts` |
 
 ### Screens: what each role can open (18)
 
@@ -431,7 +496,7 @@ code.
 | `screen:cytology-qc-queue:open` | Open Cytology QC Peer Review Queue. | standard | Pathologist, Fellow; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:surgical-qa-worklist:open` | Open Surgical Post-Sign-Out QA. | standard | Pathologist, Fellow; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:my-contributions:open` | Open My Contribution. | standard | Pathologist, Fellow, Resident, PA, Lab Director; hospital roles with case access | `screens/screenAccess.ts` |
-| `screen:batch-management:open` | Open Batch Management. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:batch-management:open` | Open Batch Management. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist, Admin; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:cytology-workspace:open` | Open Cytology Workspace. | standard | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:microtomy:open` | Open Microtomy Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:embedding:open` | Open Embedding Workspace. | standard | PA, Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
@@ -491,6 +556,14 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `cytology/mockFacilityCytologyQcOverrideService.ts` | create, update, remove | `config:cytology-qc-rates:manage` |
 | `cytology/mockFacilityCytologyRoutingOverrideService.ts` | create, update, remove | `config:cytology-routing:manage` |
 | `cytology/mockFacilityCytologyScreeningStrategyOverrideService.ts` | create, update, remove | `config:cytology-screening-strategy:manage` |
+| `cytology/mockCytologyHistologyCorrelationSettingsService.ts` (settings) | update, reset | `config:cytology-histology-correlation:manage` |
+| `cytology/mockCytologyHistologyCorrelationSettingsService.ts` (facility overrides) | set, remove | `config:cytology-histology-correlation:manage` |
+| `quality/biopsyResectionCorrelationSettings.ts` (settings) | update, reset | `config:biopsy-resection-correlation:manage` |
+| `quality/biopsyResectionCorrelationSettings.ts` (facility overrides) | set, remove | `config:biopsy-resection-correlation:manage` |
+| `followUp/followUpSettings.ts` (settings) | update, reset | `config:follow-up-tracking:manage` |
+| `followUp/followUpSettings.ts` (facility overrides) | set, remove | `config:follow-up-tracking:manage` |
+| `organMapping/organMapConfig.ts` (colour layers) | save, remove a layer | `config:organ-map-scheme:manage` (facility layer: with that facility) |
+| `organMapping/organMapConfig.ts` (bindings) | save, remove | `config:organ-map-bindings:manage` |
 | `cytology/mockFacilityCytologyWorkloadCapOverrideService.ts` | create, update, remove | `config:cytology-workload-cap:manage` |
 | `cytology/mockNonGynCytologyCategoryService.ts` | add, update, deactivate, reactivate, remove | `config:cytology-categories:manage` |
 | `cytology/mockSnomedCervicalHistologySeverityMappingService.ts` | add, update, remove | `config:cytology-severity-mapping:manage` |
@@ -590,6 +663,158 @@ These actions had a service method but nothing called it; Batch 432 added the sc
 | Personal spelling word remove | same, `removePersonal` | the owner only (no capability) |
 | Learned voice commands (list, remove) | `actionRegistry/mockActionRegistryService.ts` | the person's own (personal setting, no capability) |
 
+## Billing corrections and charge approval (Batch 433, PS-345)
+
+Pete: every billing correction after sign-out goes through one engine, needs a
+reason, is audited, and can be made without opening the case; charges can wait
+for a billing-office approval, set per enterprise with facility overrides.
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Correct billing for a case: change a CPT code or modifier, reverse a charge, add a missing charge (credit and rebill; reason and comment required; one audit entry; resolves the billing deficiency it came from, or records a resolved `POST_SIGNOUT_CORRECTION` one) | `billing/billingCorrection.ts` `applyBillingCorrection` (the report page's own code change goes through it too, via `correctServiceCharge.ts`) | `billing:applied-code:correct` for the case |
+| Review a case's billing codes from the billing panel (report page, Cytology Workspace, Microtomy full review): approve, decline, override, add, delete; each change charges, credits or is audited | `billing/caseBillingCharges.ts` (`recordCaseCharge`, `recordCaseCredit`), with the coding changes in `billing/caseBillingCoding.ts` | `billing:applied-code:review` for the case |
+| Approve, reject (reason required), hold, release a charge awaiting approval | `billing/chargeApproval.ts` `decideCharge` | `billing:charge:approve` for the charge's performing lab (nobody holds it by default); the person who drafted the charge can't approve or reject it |
+| Whether a facility's charges wait for approval | `Facility.requireBillingApproval` (enterprise on/off; a lab unset follows its enterprise) | saving a facility (`config:facilities:manage`) |
+
+Server notes:
+
+- The correction is one transaction: the credit, the new charge, the
+  deficiency update and the audit row commit together. The engine refuses a
+  charge already reversed, so a retried request can't credit twice.
+- `PENDING_APPROVAL` and `HOLD` charges are never sent to the billing system;
+  approval moves a charge to `APPROVED` for the next outbound sweep.
+- The four-eyes rule is enforced on the server, not only in the browser.
+
+## WSI scan batches and corrections to Batch 433 (Batch 434, PS-345)
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Load slides from the scanning queue onto a slide scanner as a batch | `digitalPathology/wsiScanBatchWorkflow.ts` `loadScanBatch` | `wsi:scan-batch:load` for the scanner's lab (Equipment register `facilityId`) |
+| Send the batch manifest to the scanner (interface engine, transaction `WSI_SCAN_MANIFEST`) | same, `sendScanBatch` | `wsi:scan-batch:send` for the scanner's lab |
+| Unload a batch (every slide has its result, or it was never sent); slides not scanned successfully go back to the queue | same, `unloadScanBatch` | `wsi:scan-batch:unload` for the scanner's lab |
+| Approve, reject, hold, release a charge | `billing/chargeApproval.ts` `decideCharge` | `billing:charge:approve` for the charge's performing lab, now also found for legacy tenant ids (`facilities/resolveCasePerformingLab.ts`); a charge whose lab can't be found is refused (`LAB_UNKNOWN`) instead of being checked with no facility |
+
+Server notes:
+
+- Loading a batch, linking each slide (`StainOrder.wsiScanBatchId`, status `Loaded on Scanner`) and the audit row are one transaction; a slide already in a batch can't be loaded again.
+- The batch is `scanning` only after the interface engine accepts the manifest. A refused or unreachable send leaves it `loaded` with `sendError`, and it can be sent again.
+- Inbound scan status (`WsiScanStatusUpdateEventPayload`) moves a scanning batch to `completed` (or `failed` when any slide failed) once every slide has its outcome; unloading sets `unloaded`.
+- A billing correction also updates the case's own coding (specimen and block `coding.cpt`) in the same transaction, except the report page's own code change, which saves the case itself.
+- Each batch write publishes `WsiScanBatchChanged` on the live hub after the commit (`LIVE_UPDATES_SIGNALR.md` §11).
+- Admin opens Batch Management (`screen:batch-management:open`, Batch 434 follow-up) but doesn't start with the scan-batch actions.
+- The engine's routing list for every outbound transaction, `WSI_SCAN_MANIFEST` included, is `docs/architecture/INTERFACE_TRANSACTIONS.md`.
+
+## Exports and the print/export audit (Batch 437, PS-282, PS-357)
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Export Audit Log → Audit Log / Error Log / Interface Log / Quality Assurance / Billing Log as CSV | `printing/exportGate.ts` `beginExport` | `audit:audit-log:export`, `audit:error-log:export`, `audit:interface-log:export`, `audit:qa-log:export`, `audit:billing-log:export` (each needs `screen:audit-log:open`) |
+| Export case search results | `caseSearch/createCaseSearchService.ts` `exportRows` | `search:case-results:export` (refused: `EXPORT_NOT_PERMITTED`, no rows) |
+| Export the trainee case log / the case-mix progress summary (My Contributions) | `printing/exportGate.ts` `beginExport` | `contribution:trainee-case-reference:export`, `contribution:case-mix-summary:export` |
+
+Server notes:
+
+- Every print, reprint, preview print, stored-PDF open and export writes one audit row (`printing/documentOutputAudit.ts`): event `DOCUMENT_PRINTED`, `DOCUMENT_REPRINTED`, `DOCUMENT_PREVIEW_PRINTED`, `DOCUMENT_RENDERED`, `DOCUMENT_EXPORTED` or `DOCUMENT_FAXED`; the person (or `SYSTEM`); the accession; and document, id, version, destination, status (`success`, `failed`, `pending`), time in UTC with the local offset, reason, format and row count. The server writes the same row for the same actions, and for every file it renders or sends itself.
+- An export is checked before the file is built; a refusal builds nothing.
+- A report printed before is a reprint. When the performing lab's print settings ask for it (`requireReprintReason`), a reprint needs a reason, kept in the row.
+- Configuration exports (dictionaries, crosswalks, the physician list, protocol files) are audited but have no capability of their own: the Configuration screen and section already decide who sees the data.
+
+## CAPA recommendations and revision reasons (Batch 438, PS-144 to PS-148)
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Confirm a CAPA recommendation (opens the CAPA, assigned to the chosen owner) | `quality/capaRecommendationService.ts` `confirm` | `qa:capa-recommendation:decide` (needs `screen:quality-assurance:open`) |
+| Dismiss a CAPA recommendation (reason required) | `quality/capaRecommendationService.ts` `dismiss` | `qa:capa-recommendation:decide` |
+| Mark a surgical case "follow-up expected" at sign-out | `followUp/followUpActions.ts` `markFollowUpExpected` | `case:follow-up:expect` |
+| Overwrite a newer version after an edit conflict | `cases/caseWrite.ts` `overwriteAfterConflict` | `case:edit-conflict:override` |
+| Record a follow-up's outcome (closes it) / reopen it | `followUp/followUpActions.ts` `recordFollowUpDisposition` / `reopenFollowUp` | `qa:follow-up:record` |
+| Email the ordering clinician about a follow-up (reviewed, then sent) | `followUp/followUpClinicianEmail.ts` `emailOrderingClinician` | `qa:follow-up-clinician:email` |
+| Add, edit, deactivate or reactivate a revision reason, including its "clinically significant" switch | `reasons/mockReasonDictionaryService.ts` (via `guardConfigWrites`) | `config:revision-reasons:manage` |
+
+Server notes:
+
+- Nothing opens a CAPA by itself (Pete, Oct 2). The server records a recommendation when a QA review finds a discordance its rule names (unless the reviewers reached consensus), when reviewers can't agree, when a peer review after sign-out finds a discordance, and when an amendment or correction is released for a reason marked clinically significant. Every cytology diagnosis correction recommends, because its reason is free text.
+- A recommendation for a problem that already has a live one (pending, or confirmed with its CAPA still open) is linked to it, not added: a correction after a discordance on the same case links to the discordance; the same deficiency type on the same specimen links to the earlier one. A dismissed one never absorbs a new event.
+- Confirming needs an owner; dismissing needs a reason. A decided recommendation can't be decided again (`NOT_PENDING`).
+- Audit events: `CAPA_RECOMMENDED`, `CAPA_RECOMMENDATION_LINKED`, `CAPA_RECOMMENDATION_CONFIRMED` (with the CAPA's id and owner), `CAPA_RECOMMENDATION_DISMISSED` (with the reason).
+- Endpoints: `GET /api/quality/capa-recommendations`, `POST /api/quality/capa-recommendations/{id}/confirm` `{ assignedTo, note? }`, `POST /api/quality/capa-recommendations/{id}/dismiss` `{ reason }`. Recording is server-side only; there is no client endpoint to create one.
+
+## Peer review before sign-out, clinical-pathologic mismatch, outside consults (Batch 439, PS-144, PS-145, PS-148)
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Ask for a peer review; withdraw it; record the consensus as the signing pathologist | `quality/peerReviewService.ts` `request`, `withdraw`, `resolve` | `case:peer-review:request` |
+| Record the independent read; record the consensus as the reviewer | `quality/peerReviewService.ts` `recordRead`, `resolve` | `case:peer-review:record` |
+| Sign out ahead of a required review for urgent care | `quality/peerReviewService.ts` `override` | `case:peer-review:override` |
+| Decide a clinical-pathologic mismatch suggestion | `clinical/clinicalMismatchDecision.ts` | `case:clinical-mismatch:record` |
+| Assess an outside consultant's opinion | `consultAccess/mockConsultTokenService.ts` `assessOpinion` | `case:outside-consult:assess` |
+| Change where the peer-review gate is on (organisation, facility, department) | `quality/mockPeerReviewSettingsService.ts` `save` (via `guardConfigWrites`) | `config:peer-review:manage` |
+
+Server notes:
+
+- **First-time malignancy** (Pete, Oct 2) is judged from the patient's prior cases, across every identity confirmed to be the same person: none malignant (a confirmed Malignant finding, or a diagnosis stating an established malignancy, not a negated or tentative mention), and no known malignancy in the order's clinical history (category `MAL_STAGE`) or indication. Rules: `services/quality/peerReviewRules.ts`.
+- **The reviewer** is a different, active pathologist; the server refuses the signer as reviewer (`REVIEWER_IS_SIGNER`) and a second open request for the case (`ALREADY_REQUESTED`). Only the reviewer records the read (`NOT_REVIEWER`); either pathologist records the consensus (`NOT_A_PARTY` otherwise).
+- **The gate** is off by default. The most specific setting wins: department (the case's subspecialty), then the facility that signs it out (the performing lab, resolved from the ordering facility), then the organisation. With it on, sign-out is refused while a first-time malignancy has no completed review (or while a requested review is open), unless an urgent-care override is recorded (reason `immediate-surgery`, `immediate-treatment`, or `other-urgent-care` with a note). An override leaves the review owed within 24 hours.
+- **QA records.** A completed review writes a "Pre-Sign-Out Peer Review" record: concordant, or discordant with `consensus` `consensus-reached` / `unresolved`; `recordedBy` is the reviewer and `reviewedPathologist` the signer (PS-147 will trend on this). A mismatch decision writes "Clinical-Pathologic Correlation". An outside consult assessment writes "Outside Consult Correlation" with `postSignOut` set when the report was already released (`finalized` or `closed`).
+- **CAPA** is always a recommendation (Pete): an unresolved disagreement → `unresolved-disagreement`; an unresolved mismatch → `clinical-mismatch`; a major outside-consult discordance on a released report → `post-signout-discordance`. Consensus reached, a resolved mismatch, or a discordance found before release recommend nothing.
+- **The mismatch check** sends only narrative and clinical text to the AI provider, never patient identifiers. The server should run it, not the browser.
+- Audit events: `PEER_REVIEW_REQUESTED`, `PEER_REVIEW_READ_RECORDED`, `PEER_REVIEW_RESOLVED`, `PEER_REVIEW_WITHDRAWN`, `PEER_REVIEW_OVERRIDDEN`, `PEER_REVIEW_GATE_CHANGED`, `CLINICAL_MISMATCH_DECIDED`, `consult.opinion.assessed`.
+- Endpoints: `GET /api/cases/{id}/peer-review`, `POST /api/cases/{id}/peer-review` `{ reviewerId, trigger, note? }`, `POST /api/peer-reviews/{id}/read` `{ agrees, diagnosis?, severity?, notes? }`, `POST /api/peer-reviews/{id}/resolve` `{ result, consensusDiagnosis?, note? }`, `POST /api/peer-reviews/{id}/withdraw` `{ reason }`, `POST /api/cases/{id}/peer-review/override` `{ reason, note? }`, `GET/PUT /api/config/peer-review-gate`, `POST /api/cases/{id}/clinical-mismatch` `{ kind, source, confidence?, decision, note? }`, `POST /api/consult-opinions/{id}/assessment` `{ assessment, note? }`.
+
+## GYN cytology QC queue and pathologist review tray (Batch 440, PS-271)
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Record a QC rescreen | `cytology/saveCytologyReview.ts` | `cytology:review:record` (existing), plus the rule below |
+| Take a positive GYN case for pathologist review | `cytology/cytologyQueuesLive.ts` `takeCytologyReview` | `cytology:pathologist-review:take` |
+
+Server notes:
+
+- **QC / Rescreen queue** (Pete, Oct 2): an unassigned, shared queue: every QC-flagged GYN specimen (random or targeted high-risk) still waiting for its rescreen, across every case the viewer may open, not only the cases assigned to them. A specimen the viewer did the primary screen on stays in their queue, marked as theirs, and the server refuses a new QC rescreen recorded by the person who did the primary screen (`QC_BY_PRIMARY_SCREENER`). A pathologist doing the QC records it as the QC role (when the QC flag is pending and no screen has asked for a pathologist yet). Rules: `services/cytology/cytologyQueues.ts`.
+- **Cytology Review tray**: a GYN specimen whose primary, QC or secondary screen asked for pathologist review, with no pathologist review recorded and the case not signed out (`finalized`, `closed`, `pending-release`). Listed to holders of the capability while no pathologist is on the case (`open`), and afterwards only to the pathologist on it (`mine`). No auto-assignment.
+- **Taking** makes the caller the case's primary participant; the cytotechnologist stays on the case as `cytotechnologist` (a cytotech who was primary, possible before Batch 441, is demoted to `cytotechnologist`, never to the co-signer slot). A cytotech is never counted as the case's pathologist; with no participants list, `order.assignedTo` decides. Refused with `ALREADY_TAKEN` when another pathologist is on the case and `NOT_AWAITING` when the case no longer needs a pathologist; the server must make the take atomic so two pathologists can't both take one case. A QC rescreen that finds an abnormality follows the same route; no discrepancy is recorded automatically.
+- Audit event: `CYTOLOGY_REVIEW_TAKEN`.
+- Endpoints: `GET /api/cytology/qc-queue`, `GET /api/cytology/review-tray`, `POST /api/cases/{id}/cytology-review/take`.
+
+## Cytotechnologists and pathologist slots; the case team (Batch 441)
+
+Pete (Oct 2): "Cytotechs can not be selected for Pathologist roles."
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Change a case's team (Case Team) | `cases/saveCaseTeam.ts` | `case:team:manage` (every role that could open a case report) |
+| Delegate a case or a synoptic | `delegations/mockDelegationService.ts` | `case:delegation:create` (existing), plus the rule below |
+| Change a role's participation types | `roles/roleAdministration.ts` | `config:roles:manage` (existing), plus the rule below |
+
+Server notes:
+
+- **The rule** (`participationTypes/cytotechParticipationRules.ts`): staff whose roles include Cytotechnologist and none of Pathologist, Resident or Fellow may not hold a pathologist participation type: `primary`, `attending`, `resident`, `frozen`, `second_opinion`, `consultant`, `provisional_hire`, or any type that can finalize. This holds whatever the role catalog lists.
+- **Refusals:** a case-team save with such a participant (`cytotechPathologistType`, naming the person and type); a delegation to such a person, since every delegation puts its recipient in a pathologist slot (`recipientIsCytotechnologist`); a save of the Cytotechnologist role listing a pathologist type (`cytotechPathologistType`).
+- **Pool claims:** a cytotech claiming a pool case holds `cytotechnologist`, never the `primary` fallback. The built-in Cytotechnologist role lists `cytotechnologist`; stored catalogs with an empty list are filled.
+- **Demotion:** when a new primary is set, a cytotech who held `primary` becomes `cytotechnologist`, not `attending`.
+- Endpoint: `PUT /api/cases/{id}/team` `{ participants }`.
+
+## Discordance patterns over time (Batch 442, PS-147)
+
+Pete (Oct 2): thresholds are each site's to set, not constants in code.
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Change the discordance trend policy (organisation; any performing lab's own) | `quality/mockQaTrendPolicyService.ts` `save` (via `guardConfigWrites`) | `config:qa-trend-policy:manage` (Admin, Lab Director) |
+| See the patterns (and run the evaluation) | `quality/qaTrendService.ts` `list`, `evaluate` | `qa:pathologist-trend:view` (Lab Director) |
+| Start a review, conclude it with a CAPA, or dismiss | `quality/qaTrendService.ts` `decide` | `qa:pathologist-trend:decide` (Lab Director) |
+
+Server notes:
+
+- **Policy** (`QaTrendPolicy`): `pathologistTrendEnabled`, `specimenTypeTrendEnabled`, `rollingWindowMonths` (1–36), `minSampleSize` (≥1), `majorSeverities` (of `low`/`medium`/`high`), `countThreshold` (0 = off), `rateThresholdPercent` (0–100, 0 = off; not both 0), `action` (`review-task` | `notify-only`). Organisation default, overridden per performing lab. Defaults: 3 months, 20 reviews, `high`, 3 majors or 10%, `review-task`. Changes audited `QA_TREND_POLICY_CHANGED`.
+- **What counts:** completed QA reviews (outcome concordant or discordant) in the window. A major discordance is a discordant review at a major severity. Each review is judged by the policy of the lab that performed its case (the ordering facility's performing lab).
+- **Two patterns:** per pathologist (records naming `reviewedPathologist`: pre-sign-out peer review, outside consult, and from Batch 442 retrospective surgical peer review, which names the case's primary) and per specimen type (the reviewed specimen's dictionary entry, whoever read it). Grouped per subject and performing lab.
+- **Trigger:** at least `minSampleSize` reviews and either test crossed. One open recommendation per subject and lab (`recommended`, `noted` or `under-review`).
+- **Never a CAPA by itself:** `review-task` → `recommended` (waits for a decision); `notify-only` → `noted`. The Lab Director starts a review (`under-review`), then concludes with `capa-opened` (note required) or dismisses (reason required). Audited `QA_TREND_RECOMMENDED`, `QA_TREND_DECIDED`.
+- **Who sees it:** holders of `qa:pathologist-trend:view` only; the reviewed pathologist doesn't hold it by default. Return 403 to anyone else.
+- **When to evaluate:** the mock evaluates when the list opens. The server should evaluate after each QA record is saved, and notify the holders of the view capability for a new `recommended` one.
+- Endpoints: `GET/PUT /api/config/qa-trend-policy`, `GET /api/qa/trends`, `POST /api/qa/trends/{id}/decision` `{ kind: 'start-review' | 'open-capa' | 'dismiss', note? }`.
+
 ## Support access (Batch 372)
 
 The hospital controls whether ForMedrixAI support reaches its data. The browser
@@ -628,6 +853,31 @@ version is `src/services/supportAccess/`; the server must do the following.
    optional tenant webhook.
 5. **Export** as CSV, JSON (with the chain check) and PDF, columns
    `Timestamp | Support agent name | Originating IP | Originating country | Ticket ID | Action taken | Case IDs | Detail`.
+
+## Anatomical maps (Batch 461)
+
+The maps beside the synoptic (prostate in Batch 461; the other organs follow)
+are drawn from the synoptic answers; the map stores nothing of its own. The
+full contract is `docs/architecture/ORGAN_MAPPING_API.md`.
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Insert the map into the report (a snapshot in print colours, SVG and PNG), insert it again, or remove it; refused when the report is signed out, pending release or pending countersign; audited | `organMapping/organMapFigures.ts` (`insertOrganMapFigure`, `removeOrganMapFigure`) | `report:organ-map:insert` for the case |
+| Save or remove a colour layer (enterprise, jurisdiction, facility), with its thresholds (Batch 462: breast close margin, 0.1–10 mm; Batch 464: polyp and CRM involved margins, 0–10 mm with ≤, < or =; Batch 465: oral involved 0–10 mm and close 0–20 mm, each with an operator, validated with what the layer inherits — close above involved — strictly, Batch 465b — with conflicts a save leaves in lower layers returned as warnings and audited, "=" only with 0 mm); validated (hex colour, a pattern for every colour but "no tumour" and "not sampled", wording ≤ 40); audited before → after | `organMapping/organMapConfig.ts` `saveOrganMapSchemeLayer` | `config:organ-map-scheme:manage` (facility layer: with that facility) |
+| Save or remove a template's map binding (Batch 466b: with the generic margin questions it calculates); validated against the template; audited | `organMapping/organMapConfig.ts` `saveOrganMapBinding` | `config:organ-map-bindings:manage` |
+
+## Structured Inking, Module 1 (Batch 480, PS-359)
+
+Margin/ink data model, recording and the severity engine only this batch (no
+grossing-screen UI yet, no ink-colour admin palette yet — see
+`src/services/grossing/README.md`'s own Batch 480 entry).
+
+| Action | Service (mock) | Check |
+|---|---|---|
+| Record a margin's first ink application (creating the margin) or append a further ink application to an existing margin, never overwriting a prior application or renaming/re-orienting the margin; audited | `grossing/recordMarginInkApplication.ts` | `grossing:margin-ink:record` |
+| Change a site's `inking_validation_mode` (`WARN_ONLY`, the default, or `STRICT_ENFORCE`) | `grossing/inkingSiteSettings.ts` `setInkingValidationMode` | `config:inking-validation-mode:manage`. `group: 'configSystem'`, so granted to Admin and Lab Director by default via `CONFIG_SECTIONS` — not "nobody by default" |
+
+`resolveInkingValidationSeverity.ts` is read-only resolution logic (no capability of its own, same as `resolveAutopsyGrossExaminationGate.ts`): it blocks sign-out on a Severity 2 issue only when the site's mode is `STRICT_ENFORCE`, and would always block on a Severity 3 issue (not yet triggerable this batch).
 
 ## What the browser does
 

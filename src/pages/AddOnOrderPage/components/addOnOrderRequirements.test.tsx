@@ -14,8 +14,9 @@ const { listeners } = vi.hoisted(() => ({ listeners: [] as Array<(id: string) =>
 vi.mock('@/services', async () => {
   const rules = await vi.importActual<typeof import('@/services/fieldRequirements/fieldRequirementRules')>('@/services/fieldRequirements/fieldRequirementRules');
   const checks = await vi.importActual<typeof import('@/services/fieldRequirements/addOnOrderChecks')>('@/services/fieldRequirements/addOnOrderChecks');
+  const routing = await vi.importActual<typeof import('@/services/molecularOrders/molecularRouting')>('@/services/molecularOrders/molecularRouting');
   return {
-    ...rules, ...checks,
+    ...rules, ...checks, ...routing,
     actionRegistryService: { onAction: (cb: (id: string) => void) => { listeners.push(cb); return () => { listeners.splice(listeners.indexOf(cb), 1); }; } },
   };
 });

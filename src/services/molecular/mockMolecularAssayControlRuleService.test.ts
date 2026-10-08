@@ -20,8 +20,8 @@ describe('mockMolecularAssayControlRuleService — real, per §3.2 Dynamic Contr
     const res = await mockMolecularAssayControlRuleService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.data).toHaveLength(1);
-      expect(res.data[0].assayCode).toBe('st-hpv-highrisk-screen');
+      // Batch 467 adds the EGFR PCR rule (NTC A01, positive control A02).
+      expect(res.data.map(r => r.assayCode)).toEqual(['st-hpv-highrisk-screen', 'st-egfr-pcr']);
       expect(res.data[0].requiredControls).toHaveLength(2);
     }
   });
@@ -61,6 +61,13 @@ describe('mockMolecularAssayControlRuleService — real, per §3.2 Dynamic Contr
     const res = await mockMolecularAssayControlRuleService.update('rule-001', { requiredControls: [{ sampleType: 'CONTROL_NTC', positionMode: 'random' }] });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data.requiredControls).toHaveLength(1);
+  });
+
+  it('a deleted seeded rule stays deleted (Batch 467: the later seed arrives only once)', async () => {
+    const { mockMolecularAssayControlRuleService } = await import('./mockMolecularAssayControlRuleService');
+    await mockMolecularAssayControlRuleService.delete('rule-467-egfr');
+    const res = await mockMolecularAssayControlRuleService.getByAssayCode('st-egfr-pcr');
+    expect(res.ok && res.data).toBeNull();
   });
 
   it('delete correctly removes a real rule', async () => {

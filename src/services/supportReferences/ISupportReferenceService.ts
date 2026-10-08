@@ -39,4 +39,11 @@ export interface ISupportReferenceService {
    * looking one up reveals which record it names.
    */
   resolve(ref: string, actor: { id: string; name: string }): Promise<ServiceResult<SupportReference>>;
+  /**
+   * Batch 446: the record a page address names (`/case/SR-7K2Q-9MXD/synoptic`).
+   * Exact canonical form only, and only for the given kind. Not audited
+   * here: opening the record is checked and audited by the record's own
+   * service, and the person already holds the address.
+   */
+  recordIdFor(ref: string, kind: SupportReferenceKind): Promise<ServiceResult<string>>;
 }

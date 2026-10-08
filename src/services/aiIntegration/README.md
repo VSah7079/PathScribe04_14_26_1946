@@ -26,6 +26,19 @@ Every method here now returns `ServiceResult` from `services/types.ts` (`{ ok: t
 
 **Still open, disclosed:** `refineTranscript` (dictation clean-up) chooses its spelling the same way the retired check did: British English only when the jurisdiction's spelling locale starts with `en-GB`, American English otherwise. Australian, Canadian and non-English jurisdictions therefore get American spelling in dictation clean-up. Not changed here.
 
+## Batch 444
+
+- `aiProviderService.ts`: the managed, custom and Gemini request builders always use the proxy (`{proxyUrl}/azure/chat/completions`, `/custom/chat/completions`, `/gemini/generate?model=`). The direct-to-vendor branches, which sent `api-key` / `Authorization` from the browser or put the Gemini key in the URL, are removed.
+- `aiProxyStatus.ts` (new): `checkAiProxyStatus()` asks `GET /api/ai/anthropic/v1/models` and `GET /api/ai/gemini/models` whether they answer. It replaces the top bar's System Info check, which called api.anthropic.com from the browser with `VITE_AI_API_KEY`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-105, PS-131, PS-275)
+
+`PathScribeAIService.test.ts`: every finding-detection request carries the negation instruction; narrative generation from synoptic answers. **Open:** negation is prompt-only; a negated finding the model wrongly returns still reaches the Critical Findings modal.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`aiReportTools.ts`: which AI tool buttons the report page shows (PS-274, PS-275).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

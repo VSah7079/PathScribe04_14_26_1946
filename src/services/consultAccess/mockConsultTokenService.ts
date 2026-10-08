@@ -11,12 +11,23 @@ import type {
 import { resolveConsultTokenStatus } from './IConsultTokenService';
 import { computeDefaultConsultTokenExpiry } from './computeDefaultConsultTokenExpiry';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { readSessionProfile } from '../auth/sessionProfile';
+import { assessmentProblem, outsideConsultQaRecord, reportReleased } from './outsideConsultRules';
+import { demoConsultTokens } from './consultDemoSeed';
 
 const TOKENS_KEY = 'consult_tokens';
 const OPINIONS_KEY = 'consult_opinions';
 
-const loadTokens    = (): ConsultToken[]   => storageGet<ConsultToken[]>(TOKENS_KEY, []);
 const persistTokens  = (data: ConsultToken[]) => storageSet(TOKENS_KEY, data);
+// Batch 456: nothing stored yet (first run, or after a Full Reset) → the demo
+// link (consultDemoSeed.ts), stored at once so its generated token stays put.
+const loadTokens = (): ConsultToken[] => {
+  const stored = storageGet<ConsultToken[] | null>(TOKENS_KEY, null);
+  if (stored) return stored;
+  const seeded = demoConsultTokens(generateOpaqueToken);
+  persistTokens(seeded);
+  return seeded;
+};
 const loadOpinions   = (): ConsultOpinion[] => storageGet<ConsultOpinion[]>(OPINIONS_KEY, []);
 const persistOpinions = (data: ConsultOpinion[]) => storageSet(OPINIONS_KEY, data);
 
@@ -161,5 +172,55 @@ export const mockConsultTokenService: IConsultTokenService = {
 
   async getOpinionsByCaseId(caseId: string): Promise<ServiceResult<ConsultOpinion[]>> {
     return { ok: true, data: loadOpinions().filter(o => o.caseId === caseId) };
+  },
+
+  // Batch 439 (PS-148): see IConsultTokenService.assessOpinion.
+  async assessOpinion(id, input) {
+    const opinion = loadOpinions().find(o => o.id === id);
+    if (!opinion) return { ok: false, error: 'NOT_FOUND' };
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('case:outside-consult:assess', { caseId: opinion.caseId })).allowed) return { ok: false, error: 'NOT_PERMITTED' };
+    const problem = assessmentProblem(opinion, input.assessment, input.note);
+    if (problem) return { ok: false, error: problem };
+
+    const { caseRouter } = await import('../cases/CaseRouter');
+    const caseData = await caseRouter.getCase(opinion.caseId).catch(() => undefined);
+    const released = reportReleased(caseData?.status);
+    const profile = readSessionProfile();
+    const actor = { userId: profile?.id ?? 'unknown', userName: profile?.name || profile?.id || 'unknown' };
+    const signer = caseData?.finalizedBy ?? caseData?.diagnostic?.finalizedBy;
+    const { mockQaActivityRecordService } = await import('../quality/mockQaActivityRecordService');
+    const qa = await mockQaActivityRecordService.create(outsideConsultQaRecord({
+      caseId: opinion.caseId,
+      caseType: caseData?.specimens?.[0]?.description || opinion.caseId,
+      subspecialtyId: caseData?.subspecialtyId,
+      caseDiagnosis: caseData?.diagnostic?.primaryDiagnosis,
+      consultant: opinion.consultantIdentifier,
+      opinionText: opinion.opinionText,
+      assessment: input.assessment,
+      note: input.note,
+      released,
+      actor,
+      ...(signer ? { signedOutBy: { userId: signer, userName: signer } } : {}),
+    })).catch(() => null);
+
+    const updated: ConsultOpinion = {
+      ...opinion,
+      assessment: input.assessment,
+      ...(input.note?.trim() ? { assessmentNote: input.note.trim() } : {}),
+      assessedBy: actor,
+      assessedAt: new Date().toISOString(),
+      assessedAfterRelease: released,
+      ...(qa?.ok ? { qaRecordId: qa.data.id } : {}),
+    };
+    persistOpinions(loadOpinions().map(o => (o.id === id ? updated : o)));
+    const tokenRecord = loadTokens().find(t => t.id === opinion.tokenId);
+    logConsultAuditEvent(
+      'consult.opinion.assessed',
+      `External consult opinion from consultant="${opinion.consultantIdentifier}" assessed: ${input.assessment}${released ? ' (report already released)' : ''}.${input.note?.trim() ? ` ${input.note.trim()}` : ''}`,
+      actor.userId,
+      tokenRecord?.scope.caseAccessionNumber ?? null,
+    );
+    return { ok: true, data: updated };
   },
 };

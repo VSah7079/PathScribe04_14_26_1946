@@ -1,7 +1,8 @@
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
-import { useNavigate, useSearchParams } from 'react-router';
+import {useSearchParams} from 'react-router';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getFacilityDateParts, getFacilityMidnightUtc } from '@/utils/facilityTime';
@@ -34,7 +35,7 @@ import {
 import { mockPatientIndexService } from '../services/patients/mockPatientIndexService';
 import { listOrganisations } from '../services/organisation/organisationService';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/mockQaActivityTypeService';
-import { formatAuditTimestamp } from '../utils/formatDate';
+import { formatAuditTimestamp, parseStoredUtc } from '../utils/formatDate';
 import { downloadCSV, buildMetaHeader } from '../utils/csvExport';
 import BillingLogsSection from './BillingLogsSection';
 import OutboundDlqSection from './OutboundDlqSection';
@@ -45,6 +46,7 @@ import CriticalAlertAuditSection from './CriticalAlertAuditSection';
 import SupportReferenceChip from '../components/Support/SupportReferenceChip';
 import SupportReferenceLookup from '../components/Support/SupportReferenceLookup';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { beginExport } from '@/services';
 
 type ActiveTab = 'audit' | 'errors' | 'interfaces' | 'quality' | 'financial' | 'criticalAlerts';
 
@@ -156,8 +158,9 @@ interface QualityRecord {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Batch 437: stored audit times are UTC (see utils/formatDate.ts parseStoredUtc).
 function parseDateStr(ts: string): Date {
-  return new Date(ts.replace(' ', 'T'));
+  return parseStoredUtc(ts);
 }
 
 function getDateThreshold(range: string, timezone: string): Date | null {
@@ -181,24 +184,30 @@ function getDateThreshold(range: string, timezone: string): Date | null {
   return null;
 }
 
-function exportAuditCSV(rows: AuditLog[], requestedBy: string, filters: Record<string, string>) {
+async function exportAuditCSV(rows: AuditLog[], requestedBy: string, filters: Record<string, string>) {
+  // PS-282 + PS-357 (Batch 437): checked (audit:audit-log:export) and audited.
+  const filename = `pathscribe-audit-log-${new Date().toISOString().slice(0,10)}.csv`;
+  if (!(await beginExport('audit-log', { filename, rowCount: rows.length }))) return;
   const esc = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const meta = buildMetaHeader('Audit Log', requestedBy, filters, rows.length);
   const data = [
     ['ID', 'Timestamp', 'Type', 'Event', 'Detail', 'Actioned By', 'Accession No.', 'AI Confidence'].join(','),
     ...rows.map(r => [r.id, r.timestamp, r.type, r.event, r.detail, r.user, r.caseId ?? '', r.confidence ?? ''].map(esc).join(','))
   ];
-  downloadCSV(meta + data.join('\n'), `pathscribe-audit-log-${new Date().toISOString().slice(0,10)}.csv`);
+  downloadCSV(meta + data.join('\n'), filename);
 }
 
-function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<string, string>) {
+async function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<string, string>) {
+  // PS-282 + PS-357 (Batch 437): checked (audit:error-log:export) and audited.
+  const filename = `pathscribe-error-log-${new Date().toISOString().slice(0,10)}.csv`;
+  if (!(await beginExport('error-log', { filename, rowCount: rows.length }))) return;
   const esc = (v: string | number | boolean | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const meta = buildMetaHeader('Error Log', requestedBy, filters, rows.length);
   const data = [
     ['ID', 'Timestamp', 'Severity', 'Code', 'Message', 'Source', 'Accession No.', 'Resolved'].join(','),
     ...rows.map(r => [r.id, r.timestamp, r.severity, r.code, r.message, r.source, r.caseId ?? '', r.resolved].map(esc).join(','))
   ];
-  downloadCSV(meta + data.join('\n'), `pathscribe-error-log-${new Date().toISOString().slice(0,10)}.csv`);
+  downloadCSV(meta + data.join('\n'), filename);
 }
 
 // Real, per direct request: "reduce the search bar in the audit log so
@@ -208,14 +217,17 @@ function exportErrorCSV(rows: ErrorLog[], requestedBy: string, filters: Record<s
 // posture (sourcePatientIdentifier/targetPatientIdentifier only —
 // never a raw name, MRN, or DOB — matching exactly what the real,
 // on-screen table already shows, never anything more).
-function exportInterfaceCSV(rows: InterfaceException[], requestedBy: string, filters: Record<string, string>) {
+async function exportInterfaceCSV(rows: InterfaceException[], requestedBy: string, filters: Record<string, string>) {
+  // PS-282 + PS-357 (Batch 437): checked (audit:interface-log:export) and audited.
+  const filename = `pathscribe-interface-log-${new Date().toISOString().slice(0,10)}.csv`;
+  if (!(await beginExport('interface-log', { filename, rowCount: rows.length }))) return;
   const esc = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const meta = buildMetaHeader('Interface Log', requestedBy, filters, rows.length);
   const data = [
     ['ID', 'Timestamp', 'Event Type', 'Reason', 'Source Patient', 'Target Patient', 'Status'].join(','),
     ...rows.map(r => [r.id, r.createdAt, r.eventType, r.reason, r.sourcePatientIdentifier ?? '', r.targetPatientIdentifier ?? '', r.status].map(esc).join(','))
   ];
-  downloadCSV(meta + data.join('\n'), `pathscribe-interface-log-${new Date().toISOString().slice(0,10)}.csv`);
+  downloadCSV(meta + data.join('\n'), filename);
 }
 
 // Same compliance-notice/meta-header convention as the other two exports
@@ -229,7 +241,10 @@ function exportInterfaceCSV(rows: InterfaceException[], requestedBy: string, fil
 // document on its own — the notice/filter/requester header makes clear
 // what it is and how it was scoped, the same way the audit/error
 // exports already do.
-function exportQualityCSV(rows: QualityRecord[], requestedBy: string, filters: Record<string, string>) {
+async function exportQualityCSV(rows: QualityRecord[], requestedBy: string, filters: Record<string, string>) {
+  // PS-282 + PS-357 (Batch 437): checked (audit:qa-log:export) and audited.
+  const filename = `pathscribe-quality-assurance-log-${new Date().toISOString().slice(0,10)}.csv`;
+  if (!(await beginExport('qa-log', { filename, rowCount: rows.length }))) return;
   const esc = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const meta = buildMetaHeader('Quality Assurance Log', requestedBy, filters, rows.length);
   const data = [
@@ -238,7 +253,7 @@ function exportQualityCSV(rows: QualityRecord[], requestedBy: string, filters: R
       r.id, GROUP_LABELS[r.group], r.date, r.caseId ?? '', r.specimen ?? '', r.detail, r.statusLabel, r.user ?? '',
     ].map(esc).join(','))
   ];
-  downloadCSV(meta + data.join('\n'), `pathscribe-quality-assurance-log-${new Date().toISOString().slice(0,10)}.csv`);
+  downloadCSV(meta + data.join('\n'), filename);
 }
 
 // UNIQUE_USERS is derived from loaded data — see useMemo below
@@ -281,7 +296,7 @@ function getSeverityBadge(sev: string, t: (key: string) => string): { className:
 // ── Component ────────────────────────────────────────────────────────────────
 const AuditLogPage: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const { config } = useSystemConfig();
 
   const [isLoaded,        setIsLoaded]        = useState(false);
@@ -712,7 +727,7 @@ const AuditLogPage: React.FC = () => {
           <SupportReferenceLookup
             initialRef={searchParams.get('supportRef') ?? undefined}
             data={{ auditLogs, errorLogs, interfaceExceptions }}
-            onOpenCase={caseId => navigate(`/case/${caseId}/synoptic`)}
+            onOpenCase={caseId => void openCasePage(caseId, 'synoptic')}
           />
 
           {/* ── AUDIT TAB ── */}
@@ -779,13 +794,13 @@ const AuditLogPage: React.FC = () => {
                     header stay in English, same "exported data stays
                     English" convention as every other export on this
                     page (and this whole sweep). */}
-                <button onClick={() => exportAuditCSV(
+                <CapabilityButton capability="audit:audit-log:export" onClick={() => { void exportAuditCSV(
                     filteredAuditLogs,
                     requestedByLabel,
                     { 'Type': typeFilter, 'Patient Management Only': patientManagementOnly ? 'Yes' : 'No', 'User': userFilter, 'Date Range': dateRange === 'custom' ? `${dateFrom} to ${dateTo}` : dateRange, 'Search': searchQuery }
-                  )} className="ps-auditlog-export-btn">
+                  ); }} className="ps-auditlog-export-btn">
                   {t('auditLog.shared.exportCsv')}
-                </button>
+                </CapabilityButton>
               </div>
 
               {/* Table */}
@@ -809,7 +824,7 @@ const AuditLogPage: React.FC = () => {
                         <div className="ps-auditlog-cell-event">{log.event}<SupportReferenceChip kind="auditEntry" recordId={log.id} /></div>
                         <div className="ps-auditlog-cell-detail" data-phi="true">{log.detail}</div>
                         <div className="ps-auditlog-cell-user">{log.user}</div>
-                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => navigate(`/case/${log.caseId}/synoptic`)}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
+                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => void openCasePage(log.caseId, 'synoptic')}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
                       </div>
                     );
                   })}
@@ -850,13 +865,13 @@ const AuditLogPage: React.FC = () => {
                   </div>
                   <input type="text" value={errorSearch} onChange={e => setErrorSearch(e.target.value)} placeholder={t('auditLog.errorTab.searchPlaceholder')} className="ps-auditlog-select ps-auditlog-search-input" />
                 </div>
-                <button onClick={() => exportErrorCSV(
+                <CapabilityButton capability="audit:error-log:export" onClick={() => { void exportErrorCSV(
                     filteredErrorLogs,
                     requestedByLabel,
                     { 'Severity': errorSeverity, 'Status': errorResolved, 'Search': errorSearch }
-                  )} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
+                  ); }} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
                   {t('auditLog.shared.exportCsv')}
-                </button>
+                </CapabilityButton>
               </div>
 
               {/* Error Table */}
@@ -880,7 +895,7 @@ const AuditLogPage: React.FC = () => {
                         <div className="ps-auditlog-cell-code">{log.code}<SupportReferenceChip kind="errorEntry" recordId={log.id} /></div>
                         <div className="ps-auditlog-cell-detail" data-phi="true">{log.message}</div>
                         <div className="ps-auditlog-cell-user">{log.source}</div>
-                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => navigate(`/case/${log.caseId}/synoptic`)}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
+                        <div>{log.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => void openCasePage(log.caseId, 'synoptic')}>{log.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
                         <div className="ps-auditlog-cell-status">
                           <span
                             className={`ps-auditlog-status-badge ${log.resolved ? 'ps-auditlog-status-badge--resolved' : 'ps-auditlog-status-badge--open'}`}
@@ -965,13 +980,13 @@ const AuditLogPage: React.FC = () => {
                     this page — this was the one real gap; the other
                     three tabs already had this, Interface Log never
                     did. */}
-                <button onClick={() => exportInterfaceCSV(
+                <CapabilityButton capability="audit:interface-log:export" onClick={() => { void exportInterfaceCSV(
                     filteredInterfaceExceptions,
                     requestedByLabel,
                     { 'Status': interfaceStatus, 'Search': interfaceSearch }
-                  )} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
+                  ); }} className="ps-auditlog-export-btn ps-auditlog-export-btn--danger">
                   {t('auditLog.shared.exportCsv')}
-                </button>
+                </CapabilityButton>
                 {/* Real feature, per direct confirmation, building
                     Phase B of the "Interface Exception & Case-Binding
                     Module." Deliberately restricted (isAdmin only) —
@@ -1107,7 +1122,7 @@ const AuditLogPage: React.FC = () => {
                     plain English (GROUP_LABELS, not the translated
                     GROUP_LABEL_KEY), same "exported data stays
                     English" convention as every other export here. */}
-                <button onClick={() => exportQualityCSV(
+                <CapabilityButton capability="audit:qa-log:export" onClick={() => { void exportQualityCSV(
                     filteredQualityLogs,
                     requestedByLabel,
                     {
@@ -1116,9 +1131,9 @@ const AuditLogPage: React.FC = () => {
                       'Date Range': qualityDateRange === 'custom' ? `${qualityDateFrom} to ${qualityDateTo}` : qualityDateRange,
                       'Search': qualitySearch,
                     },
-                  )} className="ps-auditlog-export-btn">
+                  ); }} className="ps-auditlog-export-btn">
                   {t('auditLog.shared.exportCsv')}
-                </button>
+                </CapabilityButton>
               </div>
 
               {/* Table */}
@@ -1136,7 +1151,7 @@ const AuditLogPage: React.FC = () => {
                   ) : filteredQualityLogs.map((r) => (
                     <div key={r.id} className="ps-auditlog-row ps-auditlog-row--quality">
                       <div className="ps-auditlog-cell-time">{formatAuditTimestamp(r.date)}</div>
-                      <div>{r.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>{r.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
+                      <div>{r.caseId ? <span className="ps-auditlog-case-link" data-phi="accession" onClick={() => void openCasePage(r.caseId, 'synoptic')}>{r.caseId}</span> : <span className="ps-auditlog-case-dash">—</span>}</div>
                       <div>{r.specimen ?? <span className="ps-auditlog-case-dash">—</span>}</div>
                       <div className="ps-auditlog-cell-detail" data-phi="true">{r.detail}</div>
                       <div>

@@ -31,7 +31,7 @@ Status, beside the transport status on each queue entry (`registryStatus`): `awa
 
 | File | What it does |
 |---|---|
-| `registryExceptions.ts` | Which submissions are exceptions: `held`, `deliveryFailed` (retries stopped), `rejectedRecoverable`, `rejectedFatal`, `ackOverdue`, `conflict` (accepted, then a different answer). Only the latest version of each result shows; consent exclusions, accepted, waiting and still-retrying submissions never do. Rows carry the findings and the raw acknowledgement. `registryLabelKey`, `registryExceptionCaseRoute`. Pure. |
+| `registryExceptions.ts` | Which submissions are exceptions: `held`, `deliveryFailed` (retries stopped), `rejectedRecoverable`, `rejectedFatal`, `ackOverdue`, `conflict` (accepted, then a different answer). Only the latest version of each result shows; consent exclusions, accepted, waiting and still-retrying submissions never do. Rows carry the findings and the raw acknowledgement. `registryLabelKey`, `registryExceptionCaseView` (Batch 446: the case and view, not an address). Pure. |
 | `registryExceptionsService.ts` | The worklist's load: the 72-hour escalation, then the rows. |
 | `resendRegistrySubmission.ts` | "Re-validate and resend", `registry:submission:resend`. Rebuilds from today's data. Still held → nothing queued, the reasons come back. Same content (`registryContentHash`): the registry rejected it → refused (`unchanged`); otherwise the same submission again, same id, `isDuplicateRetry`. Changed content → a new version through the normal path (NEW if the registry holds no accepted version, else CORRECTION / AMENDMENT). Audited either way. |
 | `rebuildRegistrySubmission.ts` | The rebuild: a cytology entry through `prepareScreeningRegistrySubmission`, a cancer entry through `prepareCancerRegistrySubmission`. Reports when the case, the result, the registry or eligibility has gone. |
@@ -76,6 +76,10 @@ Status, beside the transport status on each queue entry (`registryStatus`): `awa
   No patient identifiers. `exportRegistryTransmissionAudit` (in `registryExceptionsService.ts`) checks `qa:registry-transmission-audit:export`.
 - **Organisation scope.** `loadRegistryExceptionsForUser` and `countRegistryExceptionsForUser` keep only the cases the signed-in user can see. The case router's own filter does this, so it covers organisation and facilities. The count feeds the nav and tile badges. The go-live catch-up still uses the unscoped load.
 - A cancer report held for missing mandatory data (`HOLD_MISSING_MANDATORY_DATA`, `services/cancerRegistry/cancerRegistryMandatoryData.ts`) is a `held` row; a resend re-checks it.
+
+## Batch 446
+
+`registryExceptionCaseView(row)` (was `registryExceptionCaseRoute`) returns the case and view, not an address. The screen opens it by reference.
 
 ---
 *When this folder's contents change meaningfully, update THIS file.*

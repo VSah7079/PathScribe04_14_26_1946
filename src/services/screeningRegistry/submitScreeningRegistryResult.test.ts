@@ -3,6 +3,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { submitScreeningRegistryResult, type ScreeningRegistrySubmitDeps } from './submitScreeningRegistryResult';
 import { submitCytologyRevisionToRegistry } from './submitCytologyRevisionToRegistry';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 
 function makeDeps(over: Partial<ScreeningRegistrySubmitDeps> = {}, environment?: 'test' | 'production') {
   const queue: any[] = [];
@@ -18,6 +19,7 @@ function makeDeps(over: Partial<ScreeningRegistrySubmitDeps> = {}, environment?:
     dispatchInterfaceMessage: vi.fn(async () => ({ ok: true })),
     logAudit: vi.fn(),
     sendGate: async () => ({ action: 'send' as const, environment: environment ?? 'test' }),
+    getCase: async () => undefined,
     updateCase: vi.fn(async () => undefined),
     now: () => new Date('2026-09-30T00:00:00.000Z'),
     newId: () => 'id',
@@ -93,5 +95,40 @@ describe('submitScreeningRegistryResult (Batch 419)', () => {
     };
     expect((await submitCytologyRevisionToRegistry({ caseData, signOutRecordId: 'so2', kind: 'correction', isGynCytology: true, categories: [] }, revisionDeps)).outcome).toBe('sent');
     expect((await submitCytologyRevisionToRegistry({ caseData, signOutRecordId: 'missing', kind: 'correction', isGynCytology: true, categories: [] }, revisionDeps)).outcome).toBe('recordNotFound');
+  });
+});
+
+// PS-71 (Batch 458): the CSMS eligibility flag is saved with the version of the
+// case it was built from; a stale save is rebuilt from the newer case.
+describe('submitScreeningRegistryResult — versioned eligibility flag (PS-71)', () => {
+  const csms = { getRegistrySettings: async () => ({ enterprise: { registryId: 'csms_uk' }, facility: null }) };
+  const run = (deps: ScreeningRegistrySubmitDeps) => submitScreeningRegistryResult({ caseData, record: record('so1', '2026-09-30T10:00:00Z'), review, categories: [], isGynCytology: true, kind: 'signOut' }, deps);
+
+  it('a flag someone else added in between is kept, and the CSMS flag is added to their version', async () => {
+    let stored: any = { ...caseData, version: 3, caseFlags: [] };
+    const updateCase = vi.fn(async (_id: string, patch: Record<string, unknown>, v: number) => {
+      if (v !== stored.version) throw new ConcurrencyConflictError('C1', v, stored.version);
+      stored = { ...stored, ...patch, version: stored.version + 1 };
+    });
+    let first = true;
+    const getCase = vi.fn(async () => {
+      const snapshot = { ...stored };
+      if (first) { first = false; stored = { ...stored, version: 4, caseFlags: [{ id: 'theirs', flagDefinitionId: 'other', deletedAt: null }] }; }
+      return snapshot;
+    });
+    const { deps } = makeDeps({ ...csms, getCase, updateCase });
+    expect((await run(deps)).outcome).toBe('sent');
+    expect(updateCase).toHaveBeenCalledTimes(2);
+    expect(updateCase.mock.calls[0][2]).toBe(3);
+    expect(updateCase.mock.calls[1][2]).toBe(4);
+    expect(stored.caseFlags.map((f: any) => f.id)).toEqual(['theirs', 'registry-elig-id']);
+  });
+
+  it('nothing is written when the newer case already carries the flag', async () => {
+    const updateCase = vi.fn(async () => undefined);
+    const getCase = async () => ({ ...caseData, version: 1, caseFlags: [{ id: 'x', flagDefinitionId: 'f36', deletedAt: null }] });
+    const { deps } = makeDeps({ ...csms, getCase, updateCase });
+    expect((await run(deps)).outcome).toBe('sent');
+    expect(updateCase).not.toHaveBeenCalled();
   });
 });

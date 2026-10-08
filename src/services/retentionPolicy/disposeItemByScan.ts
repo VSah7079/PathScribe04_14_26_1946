@@ -27,8 +27,10 @@
 // (disposalQueue.refusals.<code>); `reason` stays as English text for logs.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isSlideAtLevel, stainAtLevel, stainIndexAtLevel } from '../material/slideLevels';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { updateCaseWithRetryOrThrow } from '@/services/cases/caseWrite';
 import { mockAuditService } from '@/services/auditlog/mockAuditService';
 import { authorizationService } from '@/services/authorization/defaultAuthorizationService';
 import { getCurrentJurisdiction } from './RetentionPolicy';
@@ -130,7 +132,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     if (!specimen || !decant) {
       return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
-    const decantSlide = target.level === 'decant_slide' ? decant.stains?.find((_, i) => `L${i + 1}` === target.slideLevel) : undefined;
+    const decantSlide = target.level === 'decant_slide' ? stainAtLevel(decant.stains, target.slideLevel) : undefined;
     if (target.level === 'decant_slide' && !decantSlide) {
       return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
@@ -147,7 +149,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     if (!specimen || !block) {
       return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
-    const slide = target.level === 'slide' ? block.stains?.find((_, i) => `L${i + 1}` === target.slideLevel) : undefined;
+    const slide = target.level === 'slide' ? stainAtLevel(block.stains, target.slideLevel) : undefined;
     if (target.level === 'slide' && !slide) {
       return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
     }
@@ -175,7 +177,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
       };
     } else {
       materialType = 'slide';
-      matrixSlideIndex = Number(target.slideLevel.replace(/^L/i, '')) - 1;
+      matrixSlideIndex = stainIndexAtLevel(matrixBlock.slides, target.slideLevel);
       const matrixSlide = (matrixBlock.slides ?? [])[matrixSlideIndex];
       if (!matrixSlide) {
         return refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
@@ -217,72 +219,106 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
 
   const nowIso = new Date().toISOString();
 
-  // Real, immutable update — only the one matching real record
-  // changes; everything else in the case's own tree is passed through
-  // unchanged.
-  const updates: Partial<Case> = {};
-  if (target.level === 'specimen') {
-    updates.specimens = caseData.specimens?.map(s => {
-      if (s.label !== specimenLetter) return s;
-      return { ...s, disposedAt: nowIso, disposedBy: byUserId };
-    });
-  } else if (target.level === 'decant' || target.level === 'decant_slide') {
-    updates.specimens = caseData.specimens?.map(s => {
-      if (s.label !== specimenLetter) return s;
-      return {
-        ...s,
-        decants: s.decants?.map((d): Decant => {
-          if (d.label !== decant!.label) return d;
-          if (target.level === 'decant') {
-            return { ...d, disposedAt: nowIso, disposedBy: byUserId };
-          }
-          return {
-            ...d,
-            stains: d.stains?.map((st, i): StainOrder => {
-              if (`L${i + 1}` !== target.slideLevel) return st;
-              return { ...st, disposedAt: nowIso, disposedBy: byUserId };
-            }),
-          };
-        }),
-      };
-    });
-  } else if (target.level === 'block' || target.level === 'slide') {
-    updates.specimens = caseData.specimens?.map(s => {
-      if (s.label !== specimenLetter) return s;
-      return {
-        ...s,
-        blocks: s.blocks?.map((b): HistologyBlock => {
-          if (b.label !== target.blockNumber) return b;
-          if (target.level === 'block') {
-            return { ...b, disposedAt: nowIso, disposedBy: byUserId };
-          }
-          return {
-            ...b,
-            stains: b.stains?.map((st, i): StainOrder => {
-              if (`L${i + 1}` !== target.slideLevel) return st;
-              return { ...st, disposedAt: nowIso, disposedBy: byUserId };
-            }),
-          };
-        }),
-      };
-    });
-  } else {
-    updates.matrixBlocks = caseData.matrixBlocks?.map((m): MatrixBlock => {
-      if (m.id !== matrixBlock!.id) return m;
-      if (target.level === 'matrix_block') {
-        return { ...m, disposedAt: nowIso, disposedBy: byUserId };
-      }
-      return {
-        ...m,
-        slides: (m.slides ?? []).map((s, i): StainOrder => {
-          if (i !== matrixSlideIndex) return s;
-          return { ...s, disposedAt: nowIso, disposedBy: byUserId };
-        }),
-      };
-    });
-  }
+  const buildUpdates = (c: Case): Partial<Case> => {
+    // Real, immutable update — only the one matching real record
+    // changes; everything else in the case's own tree is passed through
+    // unchanged.
+    const updates: Partial<Case> = {};
+    if (target.level === 'specimen') {
+      updates.specimens = c.specimens?.map(s => {
+        if (s.label !== specimenLetter) return s;
+        return { ...s, disposedAt: nowIso, disposedBy: byUserId };
+      });
+    } else if (target.level === 'decant' || target.level === 'decant_slide') {
+      updates.specimens = c.specimens?.map(s => {
+        if (s.label !== specimenLetter) return s;
+        return {
+          ...s,
+          decants: s.decants?.map((d): Decant => {
+            if (d.label !== decant!.label) return d;
+            if (target.level === 'decant') {
+              return { ...d, disposedAt: nowIso, disposedBy: byUserId };
+            }
+            return {
+              ...d,
+              stains: d.stains?.map((st, i): StainOrder => {
+                if (!isSlideAtLevel(st, i, target.slideLevel)) return st;
+                return { ...st, disposedAt: nowIso, disposedBy: byUserId };
+              }),
+            };
+          }),
+        };
+      });
+    } else if (target.level === 'block' || target.level === 'slide') {
+      updates.specimens = c.specimens?.map(s => {
+        if (s.label !== specimenLetter) return s;
+        return {
+          ...s,
+          blocks: s.blocks?.map((b): HistologyBlock => {
+            if (b.label !== target.blockNumber) return b;
+            if (target.level === 'block') {
+              return { ...b, disposedAt: nowIso, disposedBy: byUserId };
+            }
+            return {
+              ...b,
+              stains: b.stains?.map((st, i): StainOrder => {
+                if (!isSlideAtLevel(st, i, target.slideLevel)) return st;
+                return { ...st, disposedAt: nowIso, disposedBy: byUserId };
+              }),
+            };
+          }),
+        };
+      });
+    } else {
+      updates.matrixBlocks = c.matrixBlocks?.map((m): MatrixBlock => {
+        if (m.id !== matrixBlock!.id) return m;
+        if (target.level === 'matrix_block') {
+          return { ...m, disposedAt: nowIso, disposedBy: byUserId };
+        }
+        return {
+          ...m,
+          slides: (m.slides ?? []).map((s, i): StainOrder => {
+            if (i !== matrixSlideIndex) return s;
+            return { ...s, disposedAt: nowIso, disposedBy: byUserId };
+          }),
+        };
+      });
+    }
+    return updates;
+  };
 
-  await caseRouter.updateCase(caseData.id, updates);
+  // The disposal date already on this item in a given copy of the case.
+  const disposedOn = (c: Case): string | undefined => {
+    if (target.level === 'matrix_block' || target.level === 'matrix_slide') {
+      const m = c.matrixBlocks?.find(x => x.id === matrixBlock!.id);
+      return target.level === 'matrix_block' ? m?.disposedAt : (m?.slides ?? [])[matrixSlideIndex!]?.disposedAt;
+    }
+    const sp = c.specimens?.find(s => s.label === specimenLetter);
+    if (target.level === 'specimen') return sp?.disposedAt;
+    if (target.level === 'decant' || target.level === 'decant_slide') {
+      const d = sp?.decants?.find(x => x.label === decant!.label);
+      return target.level === 'decant' ? d?.disposedAt : stainAtLevel(d?.stains, target.slideLevel)?.disposedAt;
+    }
+    const b = sp?.blocks?.find(x => x.label === target.blockNumber);
+    return target.level === 'block' ? b?.disposedAt : stainAtLevel(b?.stains, target.slideLevel)?.disposedAt;
+  };
+
+  // PS-71 (Batch 458): the disposal is applied to the newest copy of the
+  // case and saved with its version (updateCaseWithRetryOrThrow), so a
+  // concurrent change to other material on the case is kept. Each try
+  // re-checks the two things that can change in the seconds since the scan
+  // (a hold set, or another tech disposing the same item) on that newest
+  // copy. A final conflict throws, as any failed save already did.
+  let refusal: DisposeItemOutcome | undefined;
+  const write = await updateCaseWithRetryOrThrow(caseData.id, current => {
+    refusal = undefined;
+    const hold = (current.retentionHolds ?? []).find(h => h.active);
+    if (hold) { refusal = refuse('onHold', `${displayId} cannot be disposed — this case has an active retention hold: ${hold.note}`, { displayId, note: hold.note }); return null; }
+    const already = disposedOn(current);
+    if (already) { refusal = refuse('alreadyDisposed', `${displayId} was already disposed on ${already.slice(0, 10)}.`, { displayId, date: already }); return null; }
+    return buildUpdates(current);
+  }, caseRouter);
+  if (!write.ok) return refusal ?? refuse('notFound', `${displayId} couldn't be located in its own case record.`, { displayId });
 
   mockAuditService.logEvent({
     type: 'system', event: 'Specimen Material Disposed',

@@ -1,22 +1,28 @@
 // src/pages/MicrotomyWorkstationPage/hooks/useMicrotomyWorkstation.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per PS-284 (Microtomy Workstation). Same real optimistic-
-// update + real persistence shape as useGrossingScreen.ts (wraps
-// microtomyOperations.ts's pure functions), plus the real print
-// dispatch pattern already proven in useSpecimenBlockManagement.ts's
-// own attemptPrintedLabel (station -> printer profile -> gtin/layout
-// from printSettingsService -> printCassetteSlideLabel.ts). Nothing
-// here reinvents that pipeline — it reuses it directly for the first
-// time from a REAL, dedicated print-control surface, rather than the
-// one "Reprint" button buried in BlockStainEditorModal.tsx.
+// PS-284 (Microtomy Workstation). Wraps microtomyOperations.ts's pure
+// functions with saving, plus the slide-label print dispatch already used by
+// useSpecimenBlockManagement.ts (station → printer profile → gtin/layout from
+// printSettingsService → printCassetteSlideLabel.ts).
 //
-// Real, deliberate scope cut, stated plainly rather than silently:
-// this resolves a scanned/selected BLOCK or DECANT only — a shared
-// MatrixBlock (cassette spanning multiple specimens) and a bare
-// specimen-level scan are not yet supported here. PS-284's own spec
-// text is framed entirely around "Block barcode scan" and the
-// Cytology/Decant panel; matrix-block support is real, separate,
-// follow-up work, not attempted in this pass.
+// What a scan resolves to: a block, a decant, or (Batch 460) a matrix block
+// (a cassette shared by several specimens, Case.matrixBlocks[]). A matrix
+// block is worked through a one-block view (matrixBlockAsSpecimenView), so
+// every block operation applies to it unchanged; its save writes
+// Case.matrixBlocks. Superseded: this header used to say matrix blocks were
+// "not yet supported here". A bare specimen-level scan is still refused.
+//
+// Saving (Batch 460, PS-71): every change is an operation, re-applied to the
+// newest copy of the case when someone else saved first (updateCaseWithRetry),
+// never written over their change. Before, a conflicting save was only logged
+// and the tech's change was lost while the screen showed it as saved (the
+// app-wide scan tracker also writes to the case on the same scan). A save
+// that still fails says so on screen and reloads the work item. A change to
+// decant slides only still goes through the atomic decant save (Batch 453).
+//
+// Slide levels (Batch 460): the level printed on a label is the one fixed in
+// the slide's displayId (services/material/slideLevels.ts), not its position,
+// and batch prints follow the grid's order.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useRef } from 'react';
@@ -24,7 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { printerProfileService, printSettingsService, scanStationService, stainTypeService } from '@/services';
+import { printerProfileService, printSettingsService, scanStationService, stainTypeService, slideLevelOf, updateCaseWithRetry, caseWriteDeps } from '@/services';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
@@ -33,18 +39,25 @@ import type { SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSett
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, StainOrder } from '@/types/case/Specimen';
 import type { Decant } from '@/types/case/Material';
+import type { MatrixBlock } from '@/types/case/MatrixBlock';
+import { decantOnlyUpdates } from '@/services/material/materialTree';
+import { applyDecantChangeLive } from '@/services/material/caseMaterialService';
+import { materialEventBus } from '@/services/material/materialEvents';
 import type { StainType } from '@/services/stains/IStainService';
 import type { CytologyPrepSuggestion } from '@/services/cytology/computeCytologyPrepSuggestions';
 import {
   addMicrotomyStain, removeMicrotomyStain, markStainPrinting, markStainPrintResult,
   reprintMicrotomyStain, reorderBlockStains, updateStainComment, updateBlockComment,
   setBlockAlertFlags, updateDecantCytologyFields, applyCytologyPrepSuggestions,
-  addDecantStain, removeDecantStain, computeNextUnprintedStain,
-  type MicrotomyCancelReason, MICROTOMY_REPRINT_REASONS,
+  addDecantStain, removeDecantStain, computeNextUnprintedStain, stainsInGridOrder,
+  markDecantStainPrinting, markDecantStainPrintResult,
+  microtomyViewOf, microtomyCaseUpdates,
+  type MicrotomyCancelReason, type MicrotomyOperationResult, type MicrotomyTarget, MICROTOMY_REPRINT_REASONS,
 } from '@/utils/microtomyOperations';
 
+/** A matrix block is worked as kind 'block' through its view, with `matrixBlock` set. */
 export type MicrotomyWorkItem =
-  | { kind: 'block'; caseData: Case; specimen: Specimen; block: HistologyBlock }
+  | { kind: 'block'; caseData: Case; specimen: Specimen; block: HistologyBlock; matrixBlock?: MatrixBlock }
   | { kind: 'decant'; caseData: Case; specimen: Specimen; decant: Decant };
 
 export type PrintMode = 'on_demand' | 'batch';
@@ -56,9 +69,32 @@ export interface BatchProgressEntry {
   message?: string;
 }
 
-function levelLabelFor(stains: StainOrder[], stainId: string): string {
-  const idx = stains.findIndex(s => s.id === stainId);
-  return `L${idx + 1}`;
+type Op = (specimen: Specimen) => MicrotomyOperationResult;
+
+function targetOf(item: MicrotomyWorkItem): MicrotomyTarget {
+  if (item.kind === 'decant') return { kind: 'decant', specimenId: item.specimen.id, decantId: item.decant.id };
+  if (item.matrixBlock) return { kind: 'matrix', matrixBlockId: item.matrixBlock.id };
+  return { kind: 'block', specimenId: item.specimen.id, blockId: item.block.id };
+}
+
+/** The work item for `target` on a copy of the case (null when it's gone). */
+function workItemFrom(caseData: Case, target: MicrotomyTarget): MicrotomyWorkItem | null {
+  const view = microtomyViewOf(caseData, target);
+  if (!view) return null;
+  if (target.kind === 'decant') {
+    const decant = view.decants?.find(d => d.id === target.decantId);
+    return decant ? { kind: 'decant', caseData, specimen: view, decant } : null;
+  }
+  const blockId = target.kind === 'matrix' ? target.matrixBlockId : target.blockId;
+  const block = view.blocks?.find(b => b.id === blockId);
+  if (!block) return null;
+  const matrixBlock = target.kind === 'matrix' ? (caseData.matrixBlocks ?? []).find(m => m.id === target.matrixBlockId) : undefined;
+  return { kind: 'block', caseData, specimen: view, block, ...(matrixBlock ? { matrixBlock } : {}) };
+}
+
+function withView(item: MicrotomyWorkItem, view: Specimen): MicrotomyWorkItem {
+  const caseData = { ...item.caseData, ...microtomyCaseUpdates(item.caseData, view) } as Case;
+  return workItemFrom(caseData, targetOf(item)) ?? item;
 }
 
 export function useMicrotomyWorkstation() {
@@ -68,6 +104,7 @@ export function useMicrotomyWorkstation() {
 
   const [workItem, setWorkItem] = useState<MicrotomyWorkItem | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [printMode, setPrintMode] = useState<PrintMode>('on_demand');
   const [batchSelection, setBatchSelection] = useState<Set<string>>(new Set());
   const [batchProgress, setBatchProgress] = useState<BatchProgressEntry[] | null>(null);
@@ -82,227 +119,190 @@ export function useMicrotomyWorkstation() {
     if (res.ok) setStainTypes(res.data.filter(s => s.active));
   }, []);
 
-  // Real default print mode — per PrintSettingsConfig.defaultPrintBehavior
-  // (services/printSettings/), same real config On-Demand/Batch already
-  // governs elsewhere in this app; the page's own header switcher can
-  // still override it per session, per the spec's own "Global header
-  // mode switcher."
+  // Default print mode from PrintSettingsConfig.defaultPrintBehavior; the
+  // header switcher can still change it for the session.
   const loadDefaultPrintMode = useCallback(async () => {
     const res = await printSettingsService.get();
     if (res.ok) setPrintMode(res.data.defaultPrintBehavior);
   }, []);
 
-  /** Real, per the spec's own "auto-selects first unprinted slide on
-   *  Block barcode scan or Block selection from queue." Resolves a
-   *  raw scanned value to a real block or decant work item — see this
-   *  file's own header for the real, deliberate matrix-block/
-   *  specimen-level scope cut. */
+  const startWork = useCallback((item: MicrotomyWorkItem) => {
+    versionRef.current = item.caseData.version ?? 0;
+    setWorkItem(item);
+    setSaveError(null);
+    setBatchSelection(new Set());
+  }, []);
+
+  /** A scanned block, decant or matrix block (or one of their slides) becomes the work item. */
   const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true } | { ok: false; message: string }> => {
     setScanError(null);
+    const fail = (message: string) => { setScanError(message); return { ok: false as const, message }; };
     if (!rawScanValue.trim()) return { ok: false, message: t('microtomyWorkstation.scanErrors.empty') };
     const resolved = await resolveMaterialFromScan(rawScanValue);
-    if (!resolved) {
-      const message = t('microtomyWorkstation.scanErrors.unresolved');
-      setScanError(message);
-      return { ok: false, message };
-    }
+    if (!resolved) return fail(t('microtomyWorkstation.scanErrors.unresolved'));
     const { caseData, specimenLetter, target } = resolved;
-    const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
-    if (!specimen) {
-      const message = t('microtomyWorkstation.scanErrors.specimenNotFound');
-      setScanError(message);
-      return { ok: false, message };
+
+    // Batch 460: a matrix block has no specimen letter, so it is checked first
+    // (before, it fell through to "specimen not found").
+    if (target.level === 'matrix_block' || target.level === 'matrix_slide') {
+      const item = workItemFrom(caseData, { kind: 'matrix', matrixBlockId: target.matrixBlockId });
+      if (!item) return fail(t('microtomyWorkstation.scanErrors.matrixBlockNotFound'));
+      startWork(item);
+      return { ok: true };
     }
 
-    versionRef.current = (caseData as unknown as { version?: number }).version ?? 0;
+    const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
+    if (!specimen) return fail(t('microtomyWorkstation.scanErrors.specimenNotFound'));
 
     if (target.level === 'block' || target.level === 'slide') {
       const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
-      if (!block) {
-        const message = t('microtomyWorkstation.scanErrors.blockNotFound', { label: `${specimen.label}${target.blockNumber}` });
-        setScanError(message);
-        return { ok: false, message };
-      }
-      setWorkItem({ kind: 'block', caseData, specimen, block });
-      setBatchSelection(new Set());
+      if (!block) return fail(t('microtomyWorkstation.scanErrors.blockNotFound', { label: `${specimen.label}${target.blockNumber}` }));
+      startWork({ kind: 'block', caseData, specimen, block });
       return { ok: true };
     }
     if (target.level === 'decant' || target.level === 'decant_slide') {
       const decant = (specimen.decants ?? []).find(d => d.label === target.decantLabel);
-      if (!decant) {
-        const message = t('microtomyWorkstation.scanErrors.decantNotFound', { label: `${specimen.label}${target.decantLabel}` });
-        setScanError(message);
-        return { ok: false, message };
-      }
-      setWorkItem({ kind: 'decant', caseData, specimen, decant });
-      setBatchSelection(new Set());
+      if (!decant) return fail(t('microtomyWorkstation.scanErrors.decantNotFound', { label: `${specimen.label}${target.decantLabel}` }));
+      startWork({ kind: 'decant', caseData, specimen, decant });
       return { ok: true };
     }
+    return fail(t('microtomyWorkstation.scanErrors.unsupported'));
+  }, [t, startWork]);
 
-    const message = t('microtomyWorkstation.scanErrors.unsupported');
-    setScanError(message);
-    return { ok: false, message };
-  }, [t]);
-
-  /** Real, direct, non-scan selection — per the spec's own "Block
-   *  selection from queue." Loads a specific case + selects a block
-   *  by id, same real work-item shape as a scan resolution. */
+  /** A block chosen directly (not scanned). */
   const selectBlockDirectly = useCallback(async (caseId: string, specimenId: string, blockId: string): Promise<{ ok: true } | { ok: false; message: string }> => {
     const caseData = await caseRouter.getCase(caseId);
     if (!caseData) return { ok: false, message: t('microtomyWorkstation.scanErrors.caseNotFound') };
-    const specimen = (caseData.specimens ?? []).find(sp => sp.id === specimenId);
-    const block = specimen?.blocks?.find(b => b.id === blockId);
-    if (!specimen || !block) return { ok: false, message: t('microtomyWorkstation.scanErrors.blockNotOnCase') };
-    versionRef.current = (caseData as unknown as { version?: number }).version ?? 0;
-    setWorkItem({ kind: 'block', caseData, specimen, block });
-    setBatchSelection(new Set());
+    const item = workItemFrom(caseData, { kind: 'block', specimenId, blockId });
+    if (!item) return { ok: false, message: t('microtomyWorkstation.scanErrors.blockNotOnCase') };
+    startWork(item);
     return { ok: true };
-  }, [t]);
+  }, [t, startWork]);
 
-  /** Real, per the spec's own bench workflow — a tech finishes one
-   *  block/decant and scans the next; this clears the current work
-   *  item and any batch/selection state without touching real data. */
+  /** The tech finished this block or decant; nothing is changed. */
   const clearWorkItem = useCallback(() => {
     setWorkItem(null);
     setScanError(null);
+    setSaveError(null);
     setBatchSelection(new Set());
     setBatchProgress(null);
   }, []);
 
-  const persist = useCallback(async (caseData: Case, updatedSpecimen: Specimen): Promise<Specimen> => {
-    const updatedSpecimens = (caseData.specimens ?? []).map(sp => sp.id === updatedSpecimen.id ? updatedSpecimen : sp);
-    const updatedCaseData = { ...caseData, specimens: updatedSpecimens };
-    setWorkItem(prev => {
-      if (!prev) return prev;
-      if (prev.kind === 'block') {
-        const block = updatedSpecimen.blocks?.find(b => b.id === prev.block.id);
-        return block ? { kind: 'block', caseData: updatedCaseData, specimen: updatedSpecimen, block } : prev;
-      }
-      const decant = updatedSpecimen.decants?.find(d => d.id === prev.decant.id);
-      return decant ? { kind: 'decant', caseData: updatedCaseData, specimen: updatedSpecimen, decant } : prev;
-    });
+  /** Applies `op` to the work item and saves it. Returns the work item as
+   *  saved, or (saved: false) as it is now after a failed save; null when the
+   *  operation itself refused. A caller never prints for an unsaved change. */
+  const persistOp = useCallback(async (item: MicrotomyWorkItem, op: Op): Promise<{ item: MicrotomyWorkItem; saved: boolean } | null> => {
+    const local = op(item.specimen);
+    if (!local.ok) return null;
+    const shown = withView(item, local.specimen);
+    setWorkItem(shown);
+    const target = targetOf(item);
     try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }, versionRef.current);
-      versionRef.current += 1;
+      // Batch 453: a change to decant slides only goes through the atomic,
+      // versioned decant save, announced as MATERIAL_DECANTED.
+      const decantUpdates = target.kind !== 'matrix' ? decantOnlyUpdates(item.specimen as never, local.specimen as never) : null;
+      if (decantUpdates && decantUpdates.length > 0) {
+        for (const u of decantUpdates) {
+          const result = await applyDecantChangeLive(item.caseData.id, { kind: 'update', decantId: u.decantId, patch: u.patch }, versionRef.current);
+          if (result.ok === false) throw new Error(`decant:${result.error}`);
+          versionRef.current = result.version;
+          materialEventBus.publish({ type: 'MATERIAL_DECANTED', caseId: item.caseData.id, change: result.change, decant: result.event });
+        }
+        return { item: shown, saved: true };
+      }
+      let base: Case | null = null;
+      const r = await updateCaseWithRetry(item.caseData.id, current => {
+        const view = microtomyViewOf(current, target);
+        const res = view ? op(view) : null;
+        if (!res || !res.ok) return null;
+        base = current;
+        return microtomyCaseUpdates(current, res.specimen);
+      }, caseWriteDeps);
+      if (r.ok && base) {
+        versionRef.current = r.version;
+        const saved = workItemFrom({ ...(base as Case), ...r.updates, version: r.version } as Case, target);
+        if (saved) { setWorkItem(saved); setSaveError(null); return { item: saved, saved: true }; }
+        return { item: shown, saved: true };
+      }
+      setSaveError(t(`microtomyWorkstation.saveFailed.${r.ok === false && r.reason === 'conflict' ? 'conflict' : 'notApplied'}`));
     } catch (e) {
-      // Real, honest simplification vs. useGrossingScreen.ts's own full
-      // concurrency-conflict reload modal: this bench page is scoped to
-      // one, single physical block/decant at a time and the real,
-      // expected case is one tech at one bench — a genuine write
-      // collision here is logged, not silently hidden, but doesn't
-      // block the tech's own next action. Worth the fuller modal as a
-      // real follow-up if multi-tech contention on the same block turns
-      // out to be a real, common scenario in the field.
-      console.error('[MicrotomyWorkstation] Failed to persist:', e);
+      console.error('[MicrotomyWorkstation] Failed to save:', e);
+      setSaveError(t(`microtomyWorkstation.saveFailed.${String((e as Error)?.message ?? '').includes('conflict') ? 'conflict' : 'notApplied'}`));
     }
-    return updatedSpecimen;
-  }, []);
+    // Not saved: show the case as it is now, so the tech can redo the change.
+    const latest = await caseRouter.getCase(item.caseData.id).catch(() => null);
+    const reloaded = latest ? workItemFrom(latest, target) : null;
+    if (reloaded) { versionRef.current = latest!.version ?? 0; setWorkItem(reloaded); return { item: reloaded, saved: false }; }
+    return { item: shown, saved: false };
+  }, [t]);
 
-  /** Real, per the spec's own Right Panel: resolves the actual,
-   *  configured printer/gtin/layout for the CURRENT station — same
-   *  real chain useSpecimenBlockManagement.ts's own attemptPrintedLabel
-   *  already established and proved working. */
+  /** The station's slide printer, gtin and label layout. */
   const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string; layout: SlideLabelLayoutConfig } | { error: string }> => {
-    if (!effectiveStationId) return { error: 'No scan station selected for this device — set one from the NavBar station indicator.' };
+    if (!effectiveStationId) return { error: t('microtomyWorkstation.hardware.noStation') };
     const stationRes = await scanStationService.getById(effectiveStationId);
-    if (!stationRes.ok) return { error: 'Scan station not found.' };
+    if (!stationRes.ok) return { error: t('microtomyWorkstation.hardware.stationNotFound') };
     if (!stationRes.data.supportsPrinting || !stationRes.data.cassetteSlidePrinterProfileId) {
-      return { error: 'This station isn’t configured for real slide-label printing — check Scan Stations config.' };
+      return { error: t('microtomyWorkstation.hardware.notConfigured') };
     }
     const printerRes = await printerProfileService.getById(stationRes.data.cassetteSlidePrinterProfileId);
-    if (!printerRes.ok || !printerRes.data) return { error: 'The configured printer profile no longer exists — check Scan Stations config.' };
+    if (!printerRes.ok || !printerRes.data) return { error: t('microtomyWorkstation.hardware.profileMissing') };
     const settingsRes = await printSettingsService.get();
     const gtin = settingsRes.ok ? settingsRes.data.gs1Gtin : '';
     const layout = settingsRes.ok ? settingsRes.data.slideLabelLayout : DEFAULT_SLIDE_LABEL_LAYOUT;
     return { printer: printerRes.data, gtin, layout };
-  }, [effectiveStationId]);
+  }, [effectiveStationId, t]);
 
-  /** Real, single-slide dispatch: Pending -> Printing (persisted
-   *  immediately, so a batch progress UI reflects "in flight"
-   *  honestly) -> Printed/Failed. Returns the final, real specimen
-   *  snapshot so a caller looping over several slides can thread it
-   *  forward without racing this hook's own async state. */
-  const dispatchAndRecordPrint = useCallback(async (
-    caseData: Case, specimen: Specimen, parentKind: 'block' | 'decant', parentId: string, stains: StainOrder[], stain: StainOrder,
-  ): Promise<{ ok: boolean; specimen: Specimen; message?: string }> => {
-    const printingResult = parentKind === 'block'
-      ? markStainPrinting(specimen, parentId, stain.id)
-      : (() => {
-          // Decant slides reuse the same pure state-machine functions,
-          // which are block-shaped — real, minimal adapter: treat the
-          // decant's own stains array as a synthetic single-block view.
-          const updatedStains = stains.map(s => s.id !== stain.id ? s : { ...s, printStatus: 'Printing' as const, printFailureReason: undefined });
-          return { ok: true as const, specimen: { ...specimen, decants: (specimen.decants ?? []).map(d => d.id !== parentId ? d : { ...d, stains: updatedStains }) } };
-        })();
-    if (!printingResult.ok) return { ok: false, specimen, message: 'error' in printingResult ? printingResult.error : 'Could not start print.' };
-    let current = await persist(caseData, printingResult.specimen);
+  /** One slide: Pending → Printing (saved, so progress is honest) →
+   *  Printed/Failed. Returns the work item to carry into the next slide. */
+  const dispatchAndRecordPrint = useCallback(async (item: MicrotomyWorkItem, stainId: string): Promise<{ ok: boolean; item: MicrotomyWorkItem; message?: string }> => {
+    const parentId = item.kind === 'block' ? item.block.id : item.decant.id;
+    const printing: Op = sp => (item.kind === 'block' ? markStainPrinting(sp, parentId, stainId) : markDecantStainPrinting(sp, parentId, stainId));
+    const marked = await persistOp(item, printing);
+    // Nothing is printed unless "Printing" was saved (a stale or refused change prints nothing).
+    if (!marked || !marked.saved) return { ok: false, item: marked?.item ?? item, message: t('microtomyWorkstation.hardware.couldNotStart') };
+    const afterPrinting = marked.item;
 
+    const stains = afterPrinting.kind === 'block' ? afterPrinting.block.stains : afterPrinting.decant.stains;
+    const idx = stains.findIndex(s => s.id === stainId);
+    const stain = stains[idx];
     const ctx = await getPrinterContext();
-    const level = levelLabelFor(stains, stain.id);
-    const slideId = stain.displayId ?? `${specimen.label}${parentId}-${level}`;
+    const level = slideLevelOf(stain ?? {}, Math.max(idx, 0));
+    const parentLabel = afterPrinting.kind === 'block' ? afterPrinting.block.label : afterPrinting.decant.label;
+    const slideId = stain?.displayId ?? `${afterPrinting.specimen.label}${parentLabel}-${level}`;
     const outcome = 'error' in ctx
       ? { ok: false as const, message: ctx.error }
       : await printSlideLabel(
-          { fullAccession: caseData.accession?.fullAccession ?? caseData.id, specimenLabel: specimen.label, blockLabel: parentKind === 'block' ? (workItemBlockLabel(current, parentId) ?? '') : (workItemDecantLabel(current, parentId) ?? ''), level, stainName: stain.stainName, slideId },
+          { fullAccession: afterPrinting.caseData.accession?.fullAccession ?? afterPrinting.caseData.id, specimenLabel: afterPrinting.specimen.label, blockLabel: parentLabel, level, stainName: stain?.stainName ?? '', slideId },
           ctx.printer, ctx.gtin,
         ).then(r => (r.ok ? { ok: true as const } : { ok: false as const, message: (r as { ok: false; message: string }).message }));
 
-    const finalResult = parentKind === 'block'
-      ? markStainPrintResult(current, parentId, stain.id, outcome, actor.id)
-      : (() => {
-          const updatedStains = (current.decants ?? []).find(d => d.id === parentId)!.stains.map(s => s.id !== stain.id ? s : (
-            outcome.ok
-              ? { ...s, printStatus: 'Printed' as const, printedAt: new Date().toISOString(), printedBy: actor.id, printFailureReason: undefined }
-              : { ...s, printStatus: 'Failed' as const, printFailureReason: outcome.message }
-          ));
-          return { ok: true as const, specimen: { ...current, decants: (current.decants ?? []).map(d => d.id !== parentId ? d : { ...d, stains: updatedStains }) } };
-        })();
-    if (!finalResult.ok) return { ok: false, specimen: current, message: 'error' in finalResult ? finalResult.error : 'Could not record print result.' };
-    current = await persist(caseData, finalResult.specimen);
-    return { ok: outcome.ok, specimen: current, message: outcome.ok ? undefined : outcome.message };
-  }, [persist, getPrinterContext, actor.id]);
+    const result: Op = sp => (afterPrinting.kind === 'block'
+      ? markStainPrintResult(sp, parentId, stainId, outcome, actor.id)
+      : markDecantStainPrintResult(sp, parentId, stainId, outcome, actor.id));
+    const final = await persistOp(afterPrinting, result);
+    return { ok: outcome.ok, item: final?.item ?? afterPrinting, message: outcome.ok ? undefined : outcome.message };
+  }, [persistOp, getPrinterContext, actor.id, t]);
 
-  function workItemBlockLabel(specimen: Specimen, blockId: string): string | undefined {
-    return specimen.blocks?.find(b => b.id === blockId)?.label;
-  }
-  function workItemDecantLabel(specimen: Specimen, decantId: string): string | undefined {
-    return specimen.decants?.find(d => d.id === decantId)?.label;
-  }
-
-  /** Real, per the spec's own On-Demand "Print/Etch Next." */
+  /** On-Demand "Print/Etch Next". */
   const handlePrintNext = useCallback(async () => {
     if (!workItem) return;
     const stains = workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
     const next = computeNextUnprintedStain(stains);
-    if (!next) return;
-    const parentId = workItem.kind === 'block' ? workItem.block.id : workItem.decant.id;
-    await dispatchAndRecordPrint(workItem.caseData, workItem.specimen, workItem.kind, parentId, stains, next);
+    if (next) await dispatchAndRecordPrint(workItem, next.id);
   }, [workItem, dispatchAndRecordPrint]);
 
-  /** Real, per the spec's own "Print Selected" (on-demand, one row)
-   *  and Batch "select-all/partial multi-select... Print Batch." Runs
-   *  sequentially (not in parallel) so the real-time progress modal
-   *  reflects one real, physical print job completing before the
-   *  next begins — matching how a single physical printer actually
-   *  works, not simulating false concurrency. */
+  /** "Print Selected" and Batch "Print Batch": one slide after another (one
+   *  physical printer), in the grid's order (Batch 460: not the order ticked). */
   const handlePrintSelected = useCallback(async (stainIds: string[]) => {
     if (!workItem || stainIds.length === 0) return;
     const stains = workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
-    const parentId = workItem.kind === 'block' ? workItem.block.id : workItem.decant.id;
-    const ordered = stainIds.map(id => stains.find(s => s.id === id)).filter((s): s is StainOrder => !!s);
-
+    const ordered = stainsInGridOrder(stains, stainIds);
     setBatchProgress(ordered.map(s => ({ stainId: s.id, stainName: s.stainName, status: 'pending' })));
-
-    let caseData = workItem.caseData;
-    let specimen = workItem.specimen;
+    let item = workItem;
     for (const stain of ordered) {
       setBatchProgress(prev => prev?.map(e => e.stainId === stain.id ? { ...e, status: 'printing' } : e) ?? prev);
-      const currentStains = workItem.kind === 'block'
-        ? specimen.blocks?.find(b => b.id === parentId)?.stains ?? stains
-        : specimen.decants?.find(d => d.id === parentId)?.stains ?? stains;
-      const result = await dispatchAndRecordPrint(caseData, specimen, workItem.kind, parentId, currentStains, stain);
-      specimen = result.specimen;
-      caseData = { ...caseData, specimens: (caseData.specimens ?? []).map(sp => sp.id === specimen.id ? specimen : sp) };
+      const result = await dispatchAndRecordPrint(item, stain.id);
+      item = result.item;
       setBatchProgress(prev => prev?.map(e => e.stainId === stain.id ? { ...e, status: result.ok ? 'printed' : 'failed', message: result.message } : e) ?? prev);
     }
   }, [workItem, dispatchAndRecordPrint]);
@@ -314,41 +314,43 @@ export function useMicrotomyWorkstation() {
     if (!workItem) return;
     const fullAccession = workItem.caseData.accession?.fullAccession ?? workItem.caseData.id;
     if (workItem.kind === 'block') {
-      const result = addMicrotomyStain(workItem.specimen, workItem.block.id, stainType, fullAccession, options);
-      if (result.ok) await persist(workItem.caseData, result.specimen);
+      const blockId = workItem.block.id;
+      await persistOp(workItem, sp => addMicrotomyStain(sp, blockId, stainType, fullAccession, options));
     } else {
-      const result = addDecantStain(workItem.specimen, workItem.decant.id, stainType, fullAccession, options.preparationMethod);
-      if (result.ok) await persist(workItem.caseData, result.specimen);
+      const decantId = workItem.decant.id;
+      await persistOp(workItem, sp => addDecantStain(sp, decantId, stainType, fullAccession, options.preparationMethod));
     }
-  }, [workItem, persist]);
+  }, [workItem, persistOp]);
 
-  /** Real, per direct follow-up: the spec's own Add Stain Quick-Picker
-   *  category list ("Special Stains, IHC, Levels/Recuts, Controls")
-   *  includes ordering another LEVEL of a stain already on this block
-   *  — a real, distinct action from picking a brand-new stain type,
-   *  since "Levels/Recuts" isn't itself a real StainType.category
-   *  (SectioningProtocol already owns "how deep/how many levels" as
-   *  its own, separate real dimension — see IStainService.ts's own
-   *  header). This is the direct, one-click version: cut another
-   *  level of the EXACT SAME stain already sitting in this row,
-   *  reusing the same real duplicate/level-depth machinery as the
-   *  general picker rather than a second, parallel mechanism. */
+  /** Another level of a stain already on this block or decant (the Quick-Picker's
+   *  "Levels/Recuts", which isn't a StainType category of its own). */
   const handleAddLevelOfExistingStain = useCallback(async (stain: StainOrder, levelDepthMicrons?: number) => {
     if (!workItem) return;
     const fullAccession = workItem.caseData.accession?.fullAccession ?? workItem.caseData.id;
-    const matchedType = stainTypes.find(t => t.name === stain.stainName);
+    const matchedType = stainTypes.find(st => st.name === stain.stainName);
     const stainTypeForRecut: StainType = matchedType ?? ({
       id: `adhoc-${stain.stainName}`, name: stain.stainName, category: 'Other',
       active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
     } as StainType);
     if (workItem.kind === 'block') {
-      const result = addMicrotomyStain(workItem.specimen, workItem.block.id, stainTypeForRecut, fullAccession, { levelDepthMicrons, duplicateCount: 1 });
-      if (result.ok) await persist(workItem.caseData, result.specimen);
+      const blockId = workItem.block.id;
+      await persistOp(workItem, sp => addMicrotomyStain(sp, blockId, stainTypeForRecut, fullAccession, { levelDepthMicrons, duplicateCount: 1 }));
     } else {
-      const result = addDecantStain(workItem.specimen, workItem.decant.id, stainTypeForRecut, fullAccession, stain.preparationMethod);
-      if (result.ok) await persist(workItem.caseData, result.specimen);
+      const decantId = workItem.decant.id;
+      await persistOp(workItem, sp => addDecantStain(sp, decantId, stainTypeForRecut, fullAccession, stain.preparationMethod));
     }
-  }, [workItem, persist, stainTypes]);
+  }, [workItem, persistOp, stainTypes]);
+
+  const performRemoveStain = useCallback(async (stainId: string, reason?: MicrotomyCancelReason) => {
+    if (!workItem) return;
+    if (workItem.kind === 'block') {
+      const blockId = workItem.block.id;
+      await persistOp(workItem, sp => removeMicrotomyStain(sp, blockId, stainId, reason));
+    } else {
+      const decantId = workItem.decant.id;
+      await persistOp(workItem, sp => removeDecantStain(sp, decantId, stainId, reason));
+    }
+  }, [workItem, persistOp]);
 
   const requestRemoveStain = useCallback((stainId: string) => {
     if (!workItem) return;
@@ -362,15 +364,7 @@ export function useMicrotomyWorkstation() {
     }
     void performRemoveStain(stainId);
     return 'removed' as const;
-  }, [workItem]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const performRemoveStain = useCallback(async (stainId: string, reason?: MicrotomyCancelReason) => {
-    if (!workItem) return;
-    const result = workItem.kind === 'block'
-      ? removeMicrotomyStain(workItem.specimen, workItem.block.id, stainId, reason)
-      : removeDecantStain(workItem.specimen, workItem.decant.id, stainId, reason);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+  }, [workItem, performRemoveStain]);
 
   const confirmPendingRemoval = useCallback(async (reason: MicrotomyCancelReason) => {
     if (!pendingRemoval) return;
@@ -381,58 +375,61 @@ export function useMicrotomyWorkstation() {
   const cancelPendingRemoval = useCallback(() => setPendingRemoval(null), []);
 
   const handleReprint = useCallback(async (stainId: string, reason: typeof MICROTOMY_REPRINT_REASONS[number]) => {
-    if (!workItem || workItem.kind !== 'block') return; // Real scope note: reprint reasons are spec'd for the block slide grid; a decant slide reuses removeDecantStain's own reason gate instead.
-    const result = reprintMicrotomyStain(workItem.specimen, workItem.block.id, stainId, reason, actor.id);
-    if (!result.ok) return;
-    const specimen = await persist(workItem.caseData, result.specimen);
-    const stain = specimen.blocks?.find(b => b.id === workItem.block.id)?.stains.find(s => s.id === stainId);
-    if (stain) {
-      const stains = specimen.blocks?.find(b => b.id === workItem.block.id)?.stains ?? [];
-      await dispatchAndRecordPrint(workItem.caseData, specimen, 'block', workItem.block.id, stains, stain);
-    }
-  }, [workItem, persist, dispatchAndRecordPrint, actor.id]);
+    if (!workItem || workItem.kind !== 'block') return; // A decant slide uses removeDecantStain's reason gate instead.
+    const blockId = workItem.block.id;
+    const saved = await persistOp(workItem, sp => reprintMicrotomyStain(sp, blockId, stainId, reason, actor.id));
+    // The reprint reason and count are saved before a duplicate label is printed.
+    if (saved?.saved) await dispatchAndRecordPrint(saved.item, stainId);
+  }, [workItem, persistOp, dispatchAndRecordPrint, actor.id]);
 
   const handleReorder = useCallback(async (orderedStainIds: string[]) => {
     if (!workItem || workItem.kind !== 'block') return;
-    const result = reorderBlockStains(workItem.specimen, workItem.block.id, orderedStainIds);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    const blockId = workItem.block.id;
+    await persistOp(workItem, sp => reorderBlockStains(sp, blockId, orderedStainIds));
+  }, [workItem, persistOp]);
 
   // ── Comments ─────────────────────────────────────────────────────────────
   const handleAddStainComment = useCallback(async (stainId: string, text: string, printsOnLabel: boolean) => {
     if (!workItem || workItem.kind !== 'block') return;
-    const result = updateStainComment(workItem.specimen, workItem.block.id, stainId, text, printsOnLabel, actor);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist, actor]);
+    const blockId = workItem.block.id;
+    await persistOp(workItem, sp => updateStainComment(sp, blockId, stainId, text, printsOnLabel, actor));
+  }, [workItem, persistOp, actor]);
 
   const handleAddBlockComment = useCallback(async (text: string) => {
     if (!workItem || workItem.kind !== 'block') return;
-    const result = updateBlockComment(workItem.specimen, workItem.block.id, text, actor);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist, actor]);
+    const blockId = workItem.block.id;
+    await persistOp(workItem, sp => updateBlockComment(sp, blockId, text, actor));
+  }, [workItem, persistOp, actor]);
 
   const handleSetAlertFlags = useCallback(async (flags: { tinyTissue?: boolean; fragile?: boolean; requiresDecal?: boolean }) => {
     if (!workItem || workItem.kind !== 'block') return;
-    const result = setBlockAlertFlags(workItem.specimen, workItem.block.id, flags);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    const blockId = workItem.block.id;
+    await persistOp(workItem, sp => setBlockAlertFlags(sp, blockId, flags));
+  }, [workItem, persistOp]);
 
   // ── Cytology / Decant panel ──────────────────────────────────────────────
   const handleUpdateCytologyFields = useCallback(async (fields: { totalVolumeMl?: number; appearance?: Decant['appearance']; yieldPelletSize?: Decant['yieldPelletSize'] }) => {
     if (!workItem || workItem.kind !== 'decant') return;
-    const result = updateDecantCytologyFields(workItem.specimen, workItem.decant.id, fields);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    const decantId = workItem.decant.id;
+    await persistOp(workItem, sp => updateDecantCytologyFields(sp, decantId, fields));
+  }, [workItem, persistOp]);
 
   const handleApplyPrepSuggestions = useCallback(async (suggestions: CytologyPrepSuggestion[]) => {
     if (!workItem || workItem.kind !== 'decant') return;
     const fullAccession = workItem.caseData.accession?.fullAccession ?? workItem.caseData.id;
-    const result = applyCytologyPrepSuggestions(workItem.specimen, workItem.decant.id, suggestions, fullAccession);
-    if (result.ok) await persist(workItem.caseData, result.specimen);
-  }, [workItem, persist]);
+    const decantId = workItem.decant.id;
+    await persistOp(workItem, sp => applyCytologyPrepSuggestions(sp, decantId, suggestions, fullAccession));
+  }, [workItem, persistOp]);
+
+  /** Batch 460: the case as saved by the billing panel (full review). */
+  const adoptSavedCase = useCallback((caseData: Case) => {
+    if (!workItem) return;
+    const next = workItemFrom(caseData, targetOf(workItem));
+    if (next) { versionRef.current = caseData.version ?? versionRef.current; setWorkItem(next); }
+  }, [workItem]);
 
   return {
-    workItem, scanError, resolveScan, selectBlockDirectly, clearWorkItem,
+    workItem, scanError, saveError, resolveScan, selectBlockDirectly, clearWorkItem,
     printMode, setPrintMode, loadDefaultPrintMode,
     batchSelection, setBatchSelection, batchProgress, clearBatchProgress,
     stainTypes, loadStainTypes,
@@ -441,6 +438,8 @@ export function useMicrotomyWorkstation() {
     handleReprint, handleReorder,
     handleAddStainComment, handleAddBlockComment, handleSetAlertFlags,
     handleUpdateCytologyFields, handleApplyPrepSuggestions,
+    adoptSavedCase,
     effectiveStationId, actor,
   };
 }
+

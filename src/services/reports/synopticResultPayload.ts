@@ -38,6 +38,9 @@
 // nobody has set is null, never guessed.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { partGridKey, partGridRowValues, partGridRowsForField, partGridRowsOf, type PartGridColumn } from '../templates/partGrid';
+import { readMohsStages } from '../templates/mohsStages';
+
 export const SYNOPTIC_PAYLOAD_SCHEMA_VERSION = '1.0.0';
 
 /** Template fields can be tagged with what they report (Batch 426). */
@@ -179,6 +182,39 @@ export function buildSynopticResultPayload(input: BuildSynopticResultInput): Syn
   const observations: SynopticObservation[] = [];
   const staging: SynopticResultPayloadV1['staging'] = { ajcc_edition: template?.ajccEdition || null, pT: null, pN: null, pM: null, figo: null };
   for (const field of fields) {
+    // Batch 461: a results grid stores one answer per cell; each answered cell is its own
+    // observation (field_id = the cell's answer key; the label names the question, part and column).
+    if (field.type === 'partGrid') {
+      for (const row of partGridRowsForField(field as never, partGridRowsOf((caseData.specimens ?? []).map(sp => ({ id: sp.id, label: sp.label ?? sp.id }))))) {
+        const values = partGridRowValues(field as never, row.id, answers);
+        for (const col of (field as { columns?: PartGridColumn[] }).columns ?? []) {
+          const cell = values[col.id];
+          if (cell === undefined) continue;
+          observations.push({
+            field_id: partGridKey(field.id, row.id, col.id),
+            label: `${field.label} / ${row.label} / ${col.label}`,
+            value: col.type === 'dropdown' ? (col.options?.find(o => o.id === cell)?.label ?? cell) : cell,
+            unit: col.unit || null, block_id: null, snomed: null, overridden: false, ai_suggested: false,
+          });
+        }
+      }
+      continue;
+    }
+    // Batch 463: a Mohs stage question: each positive sector is an observation
+    // (field_id stage and sector; value its block, histology, perineural invasion), and each stage's result.
+    if (field.type === 'spatialStageCanvas') {
+      for (const st of readMohsStages(field.id, answers)) {
+        observations.push({ field_id: `${field.id}__s${st.number}`, label: `${field.label} / stage ${st.number}`, value: st.clear ? 'clear' : 'residual tumour', unit: null, block_id: null, snomed: null, overridden: false, ai_suggested: false });
+        for (const p of st.positive) {
+          observations.push({
+            field_id: `${field.id}__s${st.number}__${p.sectorId}`, label: `${field.label} / stage ${st.number} / ${p.sectorId === 'deep' ? 'deep' : `${p.sectorId.slice(1)} o'clock peripheral`}`,
+            value: [p.histology ?? 'tumour', ...(p.perineural ? ['perineural invasion'] : [])].join('; '),
+            unit: null, block_id: p.block ?? null, snomed: null, overridden: false, ai_suggested: false,
+          });
+        }
+      }
+      continue;
+    }
     const raw = answers[field.id];
     if (isEmpty(raw)) continue;
     const { value, codes } = resolveValue(field, raw!);

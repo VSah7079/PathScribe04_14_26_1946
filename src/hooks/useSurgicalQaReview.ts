@@ -24,7 +24,8 @@ const DEPS: SurgicalQaReviewDeps = {
   enforce: (cap, ctx) => authorizationService.enforce(cap as any, ctx as any),
   createRecord: rec => qaActivityRecordService.create(rec),
   getCase: id => caseRouter.getCase(id),
-  updateCase: (id, updates) => caseRouter.updateCase(id, updates),
+  // PS-71 (Batch 458): forwards the version the change was built from.
+  updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),
 };
 
 export type SurgicalQaMessage = 'notPermitted' | 'failed' | null;

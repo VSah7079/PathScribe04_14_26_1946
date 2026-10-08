@@ -21,7 +21,10 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import type { Case } from '@/types/case/Case';
-import { consultTokenService } from '@/services';
+import { consultTokenService, outsideConsultAssessmentProblem, OUTSIDE_CONSULT_ASSESSMENTS, type OutsideConsultAssessment } from '@/services';
+import type { ConsultOpinion } from '@/services/consultAccess/IConsultTokenService';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDateTime } from '@/utils/formatDate';
 import type { ConsultToken } from '@/services/consultAccess/IConsultTokenService';
 import { resolveConsultTokenStatus } from '@/services/consultAccess/IConsultTokenService';
 import { computeDefaultConsultTokenExpiry } from '@/services/consultAccess/computeDefaultConsultTokenExpiry';
@@ -48,7 +51,6 @@ function flattenSlides(c: Case): SlideOption[] {
   return out;
 }
 
-const STATUS_COLOR: Record<string, string> = { Active: '#10b981', Expired: '#f59e0b', Revoked: '#ef4444' };
 // The real status value (used for the color lookup above, and as the
 // underlying data) stays untouched; only the displayed badge text is
 // translated via this label-key map — same pattern as WorklistPage's
@@ -71,8 +73,71 @@ const DisclosureBanner: React.FC = () => {
   );
 };
 
+/**
+ * Batch 439 (PS-148): the opinions consultants sent back, and the
+ * pathologist's assessment of each against the case (agrees / minor
+ * difference / major discordance), once. A major discordance on a report
+ * already released recommends a CAPA to the QA lead (outsideConsultRules.ts).
+ */
+const OpinionCard: React.FC<{ opinion: ConsultOpinion; onAssessed: () => void }> = ({ opinion, onAssessed }) => {
+  const { t, i18n } = useTranslation();
+  const [assessment, setAssessment] = useState<OutsideConsultAssessment | ''>('');
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const K = 'externalConsultAccessModal.opinions';
+
+  const submit = async () => {
+    const problem = outsideConsultAssessmentProblem(opinion, assessment || undefined, note);
+    if (problem) { setError(t(`${K}.errors.${problem}`)); return; }
+    const res = await consultTokenService.assessOpinion(opinion.id, { assessment: assessment as OutsideConsultAssessment, note });
+    if (res.ok === false) { setError(t(`${K}.errors.${res.error}`, { defaultValue: t(`${K}.errors.failed`) })); return; }
+    onAssessed();
+  };
+
+  return (
+    <div className="eca-token-card eca-opinion-card">
+      <div className="eca-token-identifier">{opinion.consultantIdentifier}</div>
+      <div className="eca-token-meta">
+        {t(`${K}.submitted`, { date: formatDateTime(opinion.submittedAt, i18n.language) })} · {t(`${K}.signedStatus.${opinion.signedStatus}`)}
+        {opinion.diagnosticCategory ? ` · ${opinion.diagnosticCategory}` : ''}
+      </div>
+      <p className="eca-opinion-text">{opinion.opinionText}</p>
+      {opinion.assessment ? (
+        <div className={`eca-opinion-assessed eca-opinion-assessed--${opinion.assessment}`}>
+          {t(`${K}.assessedLine`, { assessment: t(`${K}.assessments.${opinion.assessment}`), name: opinion.assessedBy?.userName ?? '', date: formatDateTime(opinion.assessedAt, i18n.language) })}
+          {opinion.assessment === 'major-discordance' && <div>{t(opinion.assessedAfterRelease ? `${K}.capaRecommended` : `${K}.beforeRelease`)}</div>}
+          {opinion.assessmentNote && <div className="eca-token-meta">{opinion.assessmentNote}</div>}
+        </div>
+      ) : opinion.signedStatus === 'Signed' ? (
+        <div className="eca-opinion-assess">
+          <div className="fm-eyebrow">{t(`${K}.assessLabel`)}</div>
+          <div className="eca-scope-row">
+            {OUTSIDE_CONSULT_ASSESSMENTS.map(a => (
+              <button key={a} className={`eca-scope-btn${assessment === a ? ' eca-scope-btn--active' : ''}`} onClick={() => setAssessment(a)}>
+                {t(`${K}.assessments.${a}`)}
+              </button>
+            ))}
+          </div>
+          {assessment && assessment !== 'agrees' && (
+            <textarea className="ps-modal-dark-input rrm-textarea" rows={2} placeholder={t(`${K}.notePlaceholder`)} value={note} onChange={e => setNote(e.target.value)} aria-label={t(`${K}.noteLabel`)} />
+          )}
+          {error && <div className="eca-issue-error">{error}</div>}
+          <div className="eca-form-actions">
+            <CapabilityButton capability="case:outside-consult:assess" context={{ caseId: opinion.caseId }} className="eca-submit-btn" onClick={() => { void submit(); }}>
+              {t(`${K}.assessButton`)}
+            </CapabilityButton>
+          </div>
+        </div>
+      ) : (
+        <div className="eca-token-meta">{t(`${K}.draftOnly`)}</div>
+      )}
+    </div>
+  );
+};
+
 const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({ isOpen, caseData, currentUserId, currentUserName, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [opinions, setOpinions] = useState<ConsultOpinion[]>([]);
   const [view, setView] = useState<'list' | 'issue' | 'created'>('list');
   const [tokens, setTokens] = useState<ConsultToken[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +159,9 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
     consultTokenService.getByCaseId(caseData.id).then(res => {
       if (res.ok) setTokens(res.data.slice().sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()));
       setLoading(false);
+    });
+    consultTokenService.getOpinionsByCaseId(caseData.id).then(res => {
+      if (res.ok) setOpinions(res.data.slice().sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)));
     });
   };
 
@@ -208,25 +276,20 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                               {tok.scope.slideIds?.length
                                 ? t('externalConsultAccessModal.slideCount', { count: tok.scope.slideIds.length })
                                 : t('externalConsultAccessModal.fullCase')}
-                              {' · '}{t('externalConsultAccessModal.issuedAt', { date: new Date(tok.issuedAt).toLocaleString() })}
-                              {' · '}{t('externalConsultAccessModal.expiresAt', { date: new Date(tok.expiresAt).toLocaleString() })}
+                              {' · '}{t('externalConsultAccessModal.issuedAt', { date: formatDateTime(tok.issuedAt, i18n.language) })}
+                              {' · '}{t('externalConsultAccessModal.expiresAt', { date: formatDateTime(tok.expiresAt, i18n.language) })}
                             </div>
                             {tok.accessCount > 0 && (
                               <div className="eca-token-viewed">
                                 {t('externalConsultAccessModal.viewedCount', {
                                   count: tok.accessCount,
-                                  last: tok.lastAccessedAt ? new Date(tok.lastAccessedAt).toLocaleString() : '—',
+                                  last: formatDateTime(tok.lastAccessedAt, i18n.language),
                                 })}
                               </div>
                             )}
                           </div>
                           <div className="eca-token-actions">
-                            <span
-                              className="eca-status-badge"
-                              style={{
-                                '--eca-status-color': STATUS_COLOR[status],
-                              } as React.CSSProperties}
-                            >
+                            <span className={`eca-status-badge eca-status-badge--${status.toLowerCase()}`}>
                               {t(STATUS_LABEL_KEY[status] ?? status)}
                             </span>
                             {status === 'Active' && (
@@ -240,6 +303,13 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                 </div>
               )}
             </>
+          )}
+
+          {view === 'list' && opinions.length > 0 && (
+            <section className="eca-opinions">
+              <div className="fm-eyebrow">{t('externalConsultAccessModal.opinions.heading', { count: opinions.length })}</div>
+              {opinions.map(o => <OpinionCard key={o.id} opinion={o} onAssessed={loadTokens} />)}
+            </section>
           )}
 
           {view === 'issue' && (
@@ -262,12 +332,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                     <button
                       key={m}
                       onClick={() => setScopeMode(m)}
-                      className="eca-scope-btn"
-                      style={{
-                        '--eca-scope-border': scopeMode === m ? 'rgba(16,185,129,0.6)' : 'rgba(255,255,255,0.1)',
-                        '--eca-scope-bg':     scopeMode === m ? 'rgba(16,185,129,0.15)' : 'transparent',
-                        '--eca-scope-color':  scopeMode === m ? '#34d399' : '#64748b',
-                      } as React.CSSProperties}
+                      className={`eca-scope-btn${scopeMode === m ? ' eca-scope-btn--active' : ''}`}
                     >
                       {m === 'full' ? t('externalConsultAccessModal.fullCaseOption') : t('externalConsultAccessModal.specificSlidesOption')}
                     </button>
@@ -294,14 +359,14 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
 
               <div className="eca-expiry-note">
                 {t('externalConsultAccessModal.defaultLifespan')}{' '}
-                {t('externalConsultAccessModal.expiresAround')} <strong className="rrm-strong">{previewExpiry.toLocaleString()}</strong>.
+                {t('externalConsultAccessModal.expiresAround')} <strong className="rrm-strong">{formatDateTime(previewExpiry.toISOString(), i18n.language)}</strong>.
               </div>
 
               {issueError && <div className="eca-issue-error">{issueError}</div>}
 
               <div className="eca-form-actions">
                 <button onClick={() => setView('list')} className="rrm-cancel-btn">{t('externalConsultAccessModal.back')}</button>
-                <button onClick={handleIssue} disabled={issuing} className="eca-submit-btn" style={{ '--eca-submit-cursor': issuing ? 'default' : 'pointer' } as React.CSSProperties}>
+                <button onClick={handleIssue} disabled={issuing} className="eca-submit-btn">
                   {issuing ? t('externalConsultAccessModal.issuing') : t('externalConsultAccessModal.issueLink')}
                 </button>
               </div>

@@ -22,7 +22,7 @@ import AutopsyAuthorizationCompletionForm from './AutopsyAuthorizationCompletion
 
 afterEach(() => { cleanup(); listeners.length = 0; scope.required = false; });
 
-const forensic = { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false }, forensicAuthorization: { verbalOrderReceivedFrom: 'Coroner', verbalOrderReceivedAt: '2026-09-01T01:00' } } as any;
+const forensic = { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, forensicAuthorization: { verbalOrderReceivedFrom: 'Coroner', verbalOrderReceivedAt: '2026-09-01T01:00' } } as any;
 const consented = { jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false }, hospitalConsent: { consentingRelativeName: 'A. Doe', consentingRelativeRelationship: 'Spouse' } } as any;
 
 async function open(details: any) {
@@ -56,6 +56,29 @@ describe('AutopsyAuthorizationCompletionForm and Field Requirements (Batch 383)'
     expect(submit().disabled).toBe(false);
     fireEvent.click(submit());
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('Batch 468: excluded organs and retention permitted are optional — submitting with neither touched still passes an active, unrestricted consent through', async () => {
+    const onSubmit = await open(consented);
+    fill('autopsy-auth-consent-at', '2026-09-02T10:00');
+    fill('autopsy-auth-consent-scope', 'Full autopsy');
+    fireEvent.click(submit());
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const updated = onSubmit.mock.calls[0][0];
+    expect(updated.hospitalConsent.excludedOrgans).toEqual([]);
+    expect(updated.hospitalConsent.retentionPermitted).toBe(true);
+  });
+
+  it('Batch 468: entering excluded organs and unchecking retention-permitted carries both through to the updated case', async () => {
+    const onSubmit = await open(consented);
+    fill('autopsy-auth-consent-at', '2026-09-02T10:00');
+    fill('autopsy-auth-consent-scope', 'Diagnostic tissue only');
+    fill('autopsy-auth-excluded-organs', 'brain, heart');
+    fireEvent.click(document.getElementById('autopsy-auth-retention-permitted')!);
+    fireEvent.click(submit());
+    const updated = onSubmit.mock.calls[0][0];
+    expect(updated.hospitalConsent.excludedOrgans).toEqual(['brain', 'heart']);
+    expect(updated.hospitalConsent.retentionPermitted).toBe(false);
   });
 
   it('"record authorization" submits only when nothing is missing', async () => {

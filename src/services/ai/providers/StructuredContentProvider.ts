@@ -29,7 +29,6 @@ import type {
   AIStreamCallback,
   AIConnectionTest,
 } from '../IAIProvider';
-import { isDevMode } from '@/components/Config/AI/aiProviderConfig';
 
 const DEFAULT_MAX_TOKENS = 1024;
 
@@ -43,19 +42,14 @@ export class StructuredContentProvider implements IAIProvider {
   readonly modelId:     string;
   readonly displayName: string;
 
-  private devApiKey?: string;
-
-  constructor(modelId: string, devApiKey?: string) {
+  // Batch 444: always through the proxy, which adds the key server-side.
+  constructor(modelId: string) {
     this.modelId     = modelId;
     this.displayName = `Google (Gemini) · ${modelId}`;
-    this.devApiKey   = devApiKey;
   }
 
   private buildUrl(): string {
-    const devMode = isDevMode() && !!this.devApiKey;
-    return devMode
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${this.modelId}:streamGenerateContent?alt=sse&key=${this.devApiKey}`
-      : `/api/ai/gemini/stream?model=${this.modelId}`;
+    return `/api/ai/gemini/stream?model=${this.modelId}`;
   }
 
   /** Real fix, found while wiring voice dictation through this
@@ -72,10 +66,7 @@ export class StructuredContentProvider implements IAIProvider {
    *  is not critical" — exactly what this should have been doing. */
   async generate(request: AIGenerationRequest): Promise<AIGenerationResult> {
     const startMs = Date.now();
-    const devMode = isDevMode() && !!this.devApiKey;
-    const url = devMode
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${this.modelId}:generateContent?key=${this.devApiKey}`
-      : `/api/ai/gemini/generate?model=${this.modelId}`;
+    const url = `/api/ai/gemini/generate?model=${this.modelId}`;
 
     const response = await fetch(url, {
       method:  'POST',
@@ -181,10 +172,7 @@ export class StructuredContentProvider implements IAIProvider {
       // Non-streaming generateContent for a quick, simple connectivity
       // check - deliberately not the streaming endpoint, since a
       // pass/fail test doesn't need incremental tokens.
-      const devMode = isDevMode() && !!this.devApiKey;
-      const url = devMode
-        ? `https://generativelanguage.googleapis.com/v1beta/models/${this.modelId}:generateContent?key=${this.devApiKey}`
-        : `/api/ai/gemini/generate?model=${this.modelId}`;
+      const url = `/api/ai/gemini/generate?model=${this.modelId}`;
 
       const response = await fetch(url, {
         method:  'POST',

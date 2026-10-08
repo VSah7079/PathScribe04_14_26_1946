@@ -235,19 +235,19 @@ const FlagConfigPage: React.FC = () => {
       {/* ── Filters ── */}
       {!reviewingAutoCreated && (
         <div className="ps-flagcfg-filters-row">
-          <input data-config-nav
+          <input data-dirty-ignore data-config-nav
             type="text"
             placeholder={t('flagConfigPage.searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="ps-conf-search ps-flagcfg-search--flex"
           />
-          <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+          <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
             <option value="All">{t('flagConfigPage.statusFilter.all')}</option>
             <option value="Active">{t('common.active')}</option>
             <option value="Inactive">{t('common.inactive')}</option>
           </select>
-          <select data-config-nav value={levelFilter} onChange={e => setLevelFilter(e.target.value as any)} className="ps-conf-select">
+          <select data-dirty-ignore data-config-nav value={levelFilter} onChange={e => setLevelFilter(e.target.value as any)} className="ps-conf-select">
             <option value="All">{t('flagConfigPage.levelFilter.all')}</option>
             <option value="Case">{t(LEVEL_LABEL_KEY.Case)}</option>
             <option value="Specimen">{t(LEVEL_LABEL_KEY.Specimen)}</option>

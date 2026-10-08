@@ -1,9 +1,11 @@
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation, Trans } from 'react-i18next';
 import { buildPoolGroupRows, splitPoolRowsByUrgency, computeRestrictedPoolKeys, type PoolDividerRow, type SubspecialtyForRestrictionCheck } from './poolGrouping';
 import { buildAmendmentGroupRows, type AmendmentDividerRow } from './amendmentGrouping';
 import { buildAutopsyGroupRows, type AutopsyDividerRow } from './autopsyGrouping';
+import AutopsyWorklistBadges from './AutopsyWorklistBadges';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
 import { storageGet, storageSet } from '@/services/mockStorage';
@@ -81,6 +83,8 @@ interface WorklistTableProps {
   /** 'search' when inside SearchPage, 'worklist' otherwise */
   navSource?: 'search' | 'worklist';
   onPoolCaseClick?: (caseId: string, summary: string) => void;
+  /** Batch 440: a filter that opens its cases its own way (the Cytology Review tray). Returns true when it handled the click. */
+  interceptOpen?: (caseId: string) => boolean;
   selectedIndex?: number;
   selectedCaseId?: string | null;
   onRowSelect?: (index: number, id: string) => void;
@@ -496,6 +500,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   onBeforeNavigate,
   navSource = 'worklist',
   onPoolCaseClick,
+  interceptOpen,
   selectedIndex: _selectedIndex,
   selectedCaseId = null,
   onRowSelect,
@@ -511,6 +516,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const { user } = useAuth();
   const { config } = useSystemConfig();
   const { reloadInbox } = useMessaging();
@@ -1092,12 +1098,12 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       setCaseOpenedFrom(navSource);
       onBeforeNavigate?.(id);
       if (activeFilter === 'informalreview') {
-        navigate(`/report/${id}`, {
+        void openCasePage(id, 'report', {
           state: { fromFilter: activeFilter, openInternalNotes: true },
         });
         return;
       }
-      navigate(`/case/${id}/synoptic`, {
+      void openCasePage(id, 'synoptic', {
         state: { 
           // Pass the IDs so the case view can implement "Next/Prev"
           worklistCaseIds: finalCases.map((c) => c.id) 
@@ -1156,6 +1162,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
         return;
       }
 
+      if (interceptOpen?.(id)) return;
+
       // Pool cases open the claim modal instead of navigating
       if ((c as any)?.status === 'pool' && onPoolCaseClick) {
         const summary = c?.specimens?.[0]?.description ?? c?.specimens?.[0]?.label ?? '';
@@ -1183,7 +1191,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       prefetchTemplateData(templateId);
       openCase(id);
     },
-    [cases, openCase, onRowSelect, onPoolCaseClick, isOrchRestricted, isPedRestricted, user, clientThresholds]
+    [cases, openCase, onRowSelect, onPoolCaseClick, interceptOpen, isOrchRestricted, isPedRestricted, user, clientThresholds]
   );
 // ─────────────────────────────────────────────────────────────────────────────
   // DISPLAY ROW GENERATION (Dividers + Virtualization)
@@ -1628,6 +1636,18 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         </div>
                       )}
 
+                      {/* Batch 477 (PS-261 follow-up, Module 5) — same
+                          real autopsy badges as the table row's Status
+                          cell, shown here too so the card layout (used
+                          below 1024px) doesn't silently lack them.
+                          Renders nothing for a non-autopsy case. */}
+                      {!isRestricted(c) && (c as any).autopsy && (
+                        <div className="wl-card__body-full">
+                          <div className="wl-card__field-label">{t('worklistTable.autopsy.fieldLabel')}</div>
+                          <AutopsyWorklistBadges autopsy={(c as any).autopsy} />
+                        </div>
+                      )}
+
                       {/* Flags — full width, only if present. Unlike
                           specimens (which truncate their description text
                           via max-width+ellipsis), flag chips previously had
@@ -2037,6 +2057,13 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         lastRevisionType={c.lastRevisionType}
                         reportBreakdown={getReportBreakdown(c)}
                       />
+                      {/* Batch 477 (PS-261 follow-up, Module 5) — real
+                          autopsy state at a glance: case authority,
+                          an active ancillary hold, PAD/FAD signed,
+                          and the jurisdiction's TAT/SLA target as a
+                          tooltip. Renders nothing for a non-autopsy
+                          case. */}
+                      <AutopsyWorklistBadges autopsy={(c as any).autopsy} />
                     </td>
                   </tr>
                 );

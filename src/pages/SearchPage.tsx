@@ -21,6 +21,7 @@ type CodeModalSystem = 'snomed' | 'icd' | 'SNOMED' | 'ICD-10' | 'ICD-11' | 'ICD-
 //     list; flags are chosen by id.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useOpenCase } from '@/hooks/useOpenCase';
 import { useFillViewportHeight } from '@/hooks/useFillViewportHeight';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -80,6 +81,7 @@ import {
 } from '../utils/search/searchSession';
 import { suggestSpecimens } from '../utils/search/suggestSpecimens';
 import { filterLookup, groupLookup } from '../utils/search/lookupFilter';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
 
 // ─── Picker option shapes ───────────────────────────────────────────────────
 
@@ -675,6 +677,7 @@ const CodeLookupContent: React.FC<{
 const SearchPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate     = useNavigate();
+  const openCasePage = useOpenCase();
   const { user }      = useAuth();
   const { pushCrumb } = useBreadcrumb();
   const { dictionary: specimenDictionary } = useSpecimenDictionary();
@@ -803,7 +806,7 @@ const SearchPage: React.FC = () => {
     const type = detectIdentifierType(val, enabledFormats);
     setDetectedType(type);
     const result = resolveIdentifierApplication(val, type, enabledFormats, legacyFormats.accessionPattern);
-    if (result.action === 'navigate') { navigate(result.path); return; }
+    if (result.action === 'openCase') { void openCasePage(result.caseId, 'synoptic', result.specimen ? { query: { specimen: result.specimen } } : undefined); return; }
     setDraft(d => applyIdentifierToDraft(d, val, result));
   };
 
@@ -1024,7 +1027,8 @@ const SearchPage: React.FC = () => {
         );
         if (res.data.truncated) setExportNotice(t('searchPage.export.truncated', { count: res.data.rows.length, total: res.data.total }));
       } else {
-        setExportNotice(t('searchPage.export.failed'));
+        // Batch 437 (PS-357): refused without search:case-results:export.
+        setExportNotice(res.error === 'EXPORT_NOT_PERMITTED' ? t('searchPage.export.notPermitted') : t('searchPage.export.failed'));
       }
     } catch {
       setExportNotice(t('searchPage.export.failed'));
@@ -1091,7 +1095,7 @@ const SearchPage: React.FC = () => {
     const openSelected = () => {
       if (selectedResultIndex >= 0 && resultList[selectedResultIndex]) {
         setCaseOpenedFrom('search');
-        navigate(`/case/${resultList[selectedResultIndex].id}/synoptic`);
+        void openCasePage(resultList[selectedResultIndex].id, 'synoptic');
       }
     };
     const clearSearch = () => { handleClear(); setSelectedResultIndex(-1); };
@@ -1660,12 +1664,12 @@ const SearchPage: React.FC = () => {
                   </label>
                 )}
                 {resultPage && resultPage.total>0 && (
-                  <button
-                    type="button"
+                  <CapabilityButton
+                    capability="search:case-results:export"
                     onClick={()=>void handleExportCSV()}
                     disabled={isExporting}
                     className="ps-searchpage-export-btn"
-                  >{isExporting ? t('searchPage.export.exporting') : t('searchPage.summary.exportCsv')}</button>
+                  >{isExporting ? t('searchPage.export.exporting') : t('searchPage.summary.exportCsv')}</CapabilityButton>
                 )}
                 {/* Real, per direct guidance (gap #6): only when a result row is selected. */}
                 {selectedResultIndex>=0 && results?.[selectedResultIndex] && (

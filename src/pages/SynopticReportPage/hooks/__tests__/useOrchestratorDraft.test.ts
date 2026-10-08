@@ -21,14 +21,14 @@ import { renderHook, act, cleanup } from '@testing-library/react';
 // Initializes the real i18next instance so t() resolves to actual English
 // text at test time — this hook's "Draft saved" toast is now i18n-driven,
 // and several assertions below require exact-text equality.
-import '@/i18n/config';
+import i18n from '@/i18n/config';
 import { useOrchestratorDraft, writeCaseDraft } from '../useOrchestratorDraft';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
 import type { Case } from '@/types/case/Case';
 import type { OrchestratorSection } from '../../components/OrchestratorSectionEditor';
 
 vi.mock('@/services/cases/CaseRouter', () => ({
-  caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined) },
+  caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined), getCase: vi.fn() },
 }));
 vi.mock('@/services/cases/reportingModeRouting', () => ({
   isOrchCaseId: (id: string | undefined) => !!id?.startsWith('ORCH-'),
@@ -121,11 +121,11 @@ describe('writeCaseDraft — standalone function', () => {
     expect(localStorage.getItem('ps_orch_sections_LIS-COPILOT-CASE')).toBeNull();
   });
 
-  it('passes expectedVersion through as undefined when omitted — the real "force overwrite" contract handleConcurrencyForceSave depends on', async () => {
-    const { caseRouter } = await import('@/services/cases/CaseRouter');
-    const caseData = makeTestCase();
-    await writeCaseDraft(caseData, 'ORCH-TEST-CASE', [makeSection()]);
-    expect(caseRouter.updateCase).toHaveBeenCalledWith('ORCH-TEST-CASE', expect.anything(), undefined);
+  it('PS-71 (Batch 458): the draft fields by mode, shared with the Edit Conflict overwrite', async () => {
+    const { caseDraftUpdates } = await import('../useOrchestratorDraft');
+    const orch = { ...makeTestCase(), reportingMode: 'orchestrator' } as any;
+    expect(Object.keys(caseDraftUpdates(orch, [makeSection()])).sort()).toEqual(['grossingReports', 'orchSections', 'synopticReports']);
+    expect(Object.keys(caseDraftUpdates({ ...orch, reportingMode: 'assist' }, [makeSection()]))).toEqual(['synopticReports']);
   });
 });
 
@@ -158,13 +158,39 @@ describe('useOrchestratorDraft — saveDraftInternal', () => {
     expect(saved).toBe(true);
   });
 
+  it('Batch 465b (Pete): a grid count above its limit (nodes positive > examined) stops the save, saying why', async () => {
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    const showToast = vi.fn(); const clearDirty = vi.fn();
+    const caseData = makeTestCase({ synopticReports: [{ instanceId: 'SR-N', templateId: 'neck_dissection', answers: { psmap_nd_levels__R_IIa__positive: '3', psmap_nd_levels__R_IIa__examined: '2' } }] } as never);
+    const { result } = renderHook(() => useOrchestratorDraft(baseParams({ caseData, showToast, clearDirty })));
+    expect(await act(async () => result.current.saveDraftInternal())).toBe(false);
+    expect(caseRouter.updateCase).not.toHaveBeenCalled();
+    expect(clearDirty).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('Right level IIa'), 'error');
+  });
+
+  it('Batch 465b: a total that differs from its grid asks first; going back stops the save, continuing saves', async () => {
+    const answers = { psmap_nd_levels__R_IIa__positive: '1', psmap_nd_levels__R_IIa__examined: '6', nd_total_examined: '9' };
+    const caseData = makeTestCase({ synopticReports: [{ instanceId: 'SR-N', templateId: 'neck_dissection', answers }] } as never);
+    const no = vi.fn().mockResolvedValue(false);
+    const r1 = renderHook(() => useOrchestratorDraft(baseParams({ caseData, confirmWarnings: no })));
+    expect(await act(async () => r1.result.current.saveDraftInternal())).toBe(false);
+    expect(no.mock.calls[0][0]).toContain('Total nodes examined');
+    const yes = vi.fn().mockResolvedValue(true);
+    const r2 = renderHook(() => useOrchestratorDraft(baseParams({ caseData, confirmWarnings: yes })));
+    expect(await act(async () => r2.result.current.saveDraftInternal())).toBe(true);
+  });
+
   it('on a real ConcurrencyConflictError, surfaces the conflict modal, returns false, and does NOT clear dirty state or discard the local draft', async () => {
     const { caseRouter } = await import('@/services/cases/CaseRouter');
     vi.mocked(caseRouter.updateCase).mockRejectedValueOnce(new ConcurrencyConflictError('ORCH-TEST-CASE', 1, 9));
+    // Batch 458: the dialog opens only when the other person changed the same section.
+    const loaded = makeTestCase();
+    vi.mocked((caseRouter as any).getCase).mockResolvedValue({ ...loaded, version: 9, orchSections: [{ ...makeSection(), text: 'THEIRS' }] });
     const setConcurrencyConflict = vi.fn();
     const clearDirty = vi.fn();
     const discardDraft = vi.fn();
-    const { result } = renderHook(() => useOrchestratorDraft(baseParams({ setConcurrencyConflict, clearDirty, discardDraft })));
+    const { result } = renderHook(() => useOrchestratorDraft(baseParams({ caseData: { ...loaded, orchSections: [makeSection()] } as any, orchSections: [{ ...makeSection(), text: 'MINE' }], setConcurrencyConflict, clearDirty, discardDraft })));
 
     const saved = await act(async () => result.current.saveDraftInternal());
 
@@ -172,6 +198,39 @@ describe('useOrchestratorDraft — saveDraftInternal', () => {
     expect(saved).toBe(false);
     expect(clearDirty).not.toHaveBeenCalled();
     expect(discardDraft).not.toHaveBeenCalled();
+  });
+
+  it('Batch 458: someone else saved a different part: the draft is merged onto theirs and saved, no dialog', async () => {
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    vi.mocked(caseRouter.updateCase).mockReset().mockRejectedValueOnce(new ConcurrencyConflictError('ORCH-TEST-CASE', 1, 9)).mockResolvedValue(undefined);
+    const loaded = makeTestCase();
+    vi.mocked((caseRouter as any).getCase).mockResolvedValue({ ...loaded, version: 9, orchSections: [makeSection()], participants: [{ staffId: 'TECH' }] });
+    const setConcurrencyConflict = vi.fn();
+    const showToast = vi.fn();
+    const setCaseData = vi.fn();
+    const { result } = renderHook(() => useOrchestratorDraft(baseParams({ caseData: { ...loaded, orchSections: [makeSection()] } as any, orchSections: [{ ...makeSection(), text: 'MINE' }], setConcurrencyConflict, showToast, setCaseData })));
+    expect(await act(async () => result.current.saveDraftInternal())).toBe(true);
+    expect(setConcurrencyConflict).not.toHaveBeenCalled();
+    const second = vi.mocked(caseRouter.updateCase).mock.calls[1];
+    expect(second[2]).toBe(9);
+    expect((second[1] as any).orchSections[0].text).toBe('MINE');
+    // The message names what the other person changed (Pete: is the user shown the update?).
+    expect(showToast).toHaveBeenCalledWith(i18n.t('useOrchestratorDraft.toast.draftSavedMergedParts', { parts: i18n.t('synopticReportPage.concurrency.parts.participants') }));
+    expect(setCaseData).toHaveBeenCalled();
+  });
+
+  it('Batch 458 (Pete: "an option to abort or accept"): with review on, someone else\'s save elsewhere stops for the person; nothing saved', async () => {
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    vi.mocked(caseRouter.updateCase).mockReset().mockRejectedValueOnce(new ConcurrencyConflictError('ORCH-TEST-CASE', 1, 9)).mockResolvedValue(undefined);
+    const loaded = makeTestCase();
+    vi.mocked((caseRouter as any).getCase).mockResolvedValue({ ...loaded, version: 9, orchSections: [makeSection()], participants: [{ staffId: 'TECH' }] });
+    const onMergeReview = vi.fn(); const clearDirty = vi.fn(); const setConcurrencyConflict = vi.fn();
+    const { result } = renderHook(() => useOrchestratorDraft(baseParams({ caseData: { ...loaded, orchSections: [makeSection()] } as any, orchSections: [{ ...makeSection(), text: 'MINE' }], onMergeReview, clearDirty, setConcurrencyConflict })));
+    expect(await act(async () => result.current.saveDraftInternal())).toBe(false);
+    expect(vi.mocked(caseRouter.updateCase)).toHaveBeenCalledTimes(1);
+    expect(onMergeReview).toHaveBeenCalledWith(expect.objectContaining({ version: 9, theirsChanged: expect.arrayContaining(['participants']), mineChanged: ['orchSections'] }));
+    expect(clearDirty).not.toHaveBeenCalled();
+    expect(setConcurrencyConflict).not.toHaveBeenCalled();
   });
 
   it('on any OTHER failure, deliberately still clears dirty state and shows "Draft saved" — documented pre-existing behavior, not silently changed by this consolidation', async () => {

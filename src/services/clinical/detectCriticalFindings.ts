@@ -26,6 +26,7 @@ import { callAi } from '@/services/aiIntegration/aiProviderService';
 import type { SyntheticCodingTerm } from '../abnormalDetection/IAbnormalTriggerRuleService';
 import type { ServiceResult } from '../types';
 import type { AbnormalSeverity } from '../abnormalDetection/IAbnormalTriggerRuleService';
+import { partitionNegatedFindings } from './negatedFindingCheck';
 
 export interface CriticalFindingFlag {
   /** The real term/phrase the model flagged, e.g. "invasive carcinoma". */
@@ -68,13 +69,22 @@ export interface CriticalFindingFlag {
 
 export interface CriticalFindingDetectionResult {
   flags: CriticalFindingFlag[];
+  /** Batch 452 (PS-131, PS-105): findings the model returned that the
+   *  code-side negation check (negatedFindingCheck.ts) dropped because the
+   *  narrative negates the term everywhere it appears ("no evidence of
+   *  carcinoma"). Kept here, not silently discarded, so a caller or test can
+   *  see what was suppressed. */
+  negated: CriticalFindingFlag[];
 }
 
 /** Real, per direct guidance's own PS-105 scope - scans real,
  *  already-entered narrative text for critical/abnormal findings a
- *  pathologist may need to communicate urgently. Negation-aware by
- *  prompt design (flags "high-grade dysplasia", not "no evidence of
- *  high-grade dysplasia" - PS-105's own stated example), covering the
+ *  pathologist may need to communicate urgently. Negation-aware twice
+ *  over: the prompt asks the model not to flag negated terms, and since
+ *  Batch 452 every narrative flag is re-checked in code against the
+ *  narrative itself (negatedFindingCheck.ts) and dropped when the term is
+ *  negated wherever it appears (flags "high-grade dysplasia", not "no
+ *  evidence of high-grade dysplasia" - PS-105's own stated example), covering the
  *  same real high-severity term categories PS-105 names (malignant,
  *  carcinoma, melanoma, acid-fast bacilli, organ rejection) without
  *  hard-coding a fixed keyword list, since real pathology narrative
@@ -90,7 +100,7 @@ export async function detectCriticalFindings(
   caseText: { gross: string; microscopic: string; ancillary: string }
 ): Promise<ServiceResult<CriticalFindingDetectionResult>> {
   if (!caseText.gross.trim() && !caseText.microscopic.trim() && !caseText.ancillary.trim()) {
-    return { ok: true, data: { flags: [] } };
+    return { ok: true, data: { flags: [], negated: [] } };
   }
 
   try {
@@ -125,13 +135,18 @@ Rules:
     // three real, offered values, and always clamp confidence to a
     // genuine 0-100 range rather than trusting the model's own number.
     const validSeverities: AbnormalSeverity[] = ['Abnormal', 'Critical', 'Malignant'];
-    const flags: CriticalFindingFlag[] = rawFlags
-      .filter((f: any) => validSeverities.includes(f?.severity))
+    const validFields = ['gross', 'microscopic', 'ancillary'];
+    const valid: CriticalFindingFlag[] = rawFlags
+      .filter((f: any) => validSeverities.includes(f?.severity) && typeof f?.term === 'string' && f.term.trim() && validFields.includes(f?.sourceField))
       .map((f: any) => ({
         ...f,
+        sourceQuote: typeof f.sourceQuote === 'string' ? f.sourceQuote : '',
         confidence: Math.max(0, Math.min(100, Number(f.confidence) || 0)),
       }));
-    return { ok: true, data: { flags } };
+    // Batch 452 (PS-131, PS-105): don't rely on the prompt alone - re-read
+    // the narrative and drop a flag whose term it negates everywhere.
+    const { kept, negated } = partitionNegatedFindings(valid, caseText);
+    return { ok: true, data: { flags: kept, negated } };
   } catch (error: any) {
     return { ok: false, error: error?.message ?? 'Critical finding detection failed' };
   }

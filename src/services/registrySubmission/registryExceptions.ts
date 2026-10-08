@@ -137,7 +137,11 @@ export function registryLabelKey(queue: RegistryQueueName, registryId: string, s
   return registryId && registryId !== 'none' ? `cancerRegistrySection.registries.${registryId.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())}` : undefined;
 }
 
-/** Where "Open case" goes: the Cytology Workspace for a screening submission, the report for a cancer one. */
-export function registryExceptionCaseRoute(row: Pick<RegistryExceptionRow, 'queue' | 'caseId'>): string {
-  return row.queue === 'cytology' ? `/cytology-worklist/${encodeURIComponent(row.caseId)}` : `/case/${encodeURIComponent(row.caseId)}/synoptic`;
+/**
+ * Where "Open case" goes: the Cytology Workspace for a screening submission,
+ * the report for a cancer one. Batch 446: the case and view, not an address;
+ * the screen opens it through useOpenCase, which addresses it by reference.
+ */
+export function registryExceptionCaseView(row: Pick<RegistryExceptionRow, 'queue' | 'caseId'>): { caseId: string; view: 'cytology' | 'synoptic' } {
+  return { caseId: row.caseId, view: row.queue === 'cytology' ? 'cytology' : 'synoptic' };
 }

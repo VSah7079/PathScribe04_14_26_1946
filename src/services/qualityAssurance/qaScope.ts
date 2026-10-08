@@ -25,9 +25,12 @@ export type QaScope =
 /** Real Case shape is untyped `any` at this layer (matches the loose
  *  typing caseRouter.getAll() already returns elsewhere in this
  *  codebase) — only the fields this needs. */
-export function caseMatchesScope(c: { order?: { clientId?: string }; originHospitalId?: string }, scope: QaScope): boolean {
+export function caseMatchesScope(c: { order?: { clientId?: string; facilityId?: string }; originHospitalId?: string }, scope: QaScope): boolean {
   if (scope.level === 'enterprise') return true;
-  if (scope.level === 'client') return c?.order?.clientId === scope.clientId;
+  // Batch 436 (PS-356): a client is the case's ordering facility
+  // (order.facilityId, the id QaScopeSwitcher offers). This read
+  // order.clientId, which no case has, so a client scope matched nothing.
+  if (scope.level === 'client') return (c?.order?.facilityId ?? c?.order?.clientId) === scope.clientId;
   const org = getOrganisationByHospitalId(c?.originHospitalId ?? '');
   return org?.id === scope.organisationId;
 }

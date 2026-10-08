@@ -24,6 +24,7 @@ import { findDuplicate } from '../../../utils/validateUnique';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { duplicateProcessingProtocol } from '@/services/duplication/duplicateEntities';
+import { recordExport } from '@/services';
 
 type Draft = Omit<Protocol, 'id' | 'version' | 'updatedBy' | 'updatedAt'>;
 
@@ -302,7 +303,7 @@ const StainMultiSelect: React.FC<{
           ))}
         </div>
       )}
-      <input data-config-nav
+      <input data-dirty-ignore data-config-nav
         className="ps-conf-input"
         placeholder={t('protocolDictionarySection.stainSelect.searchPlaceholder')}
         value={query}
@@ -763,7 +764,10 @@ const ProtocolDictionarySection: React.FC = () => {
   const [importInvalidPathwayCounts, setImportInvalidPathwayCounts] = useState<Set<string>>(new Set());
 
   const handleDownloadProtocols = () => {
-    downloadCsv('ProtocolDictionary.csv', toCsv(protocolsToRows(protocols, stainTypes)));
+    const rows = protocolsToRows(protocols, stainTypes);
+    // PS-282 (Batch 437): audited.
+    void recordExport('protocol-dictionary', { filename: 'ProtocolDictionary.csv', rowCount: rows.length });
+    downloadCsv('ProtocolDictionary.csv', toCsv(rows));
   };
 
   const handleProtocolFileUpload = async (file: File) => {
@@ -905,7 +909,7 @@ const ProtocolDictionarySection: React.FC = () => {
           render a pointless single-option dropdown. */}
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('protocolDictionarySection.labFilter.allLabs')}</option>
             <option value="Global">{t('protocolDictionarySection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

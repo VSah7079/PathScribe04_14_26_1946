@@ -26,6 +26,10 @@ The Action Registry tab is view only without `config:actions:manage`; the catego
 
 Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
 
+## Batch 437
+
+The shortcut editor reports unsaved changes (a recorded shortcut is set by key presses, which the page can't see) (PS-128). The registry CSV export is audited (PS-282).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

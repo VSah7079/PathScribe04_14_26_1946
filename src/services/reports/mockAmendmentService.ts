@@ -414,6 +414,26 @@ export const mockAmendmentService: IAmendmentService = {
       status: 'released',
     };
     persist(records);
+    // Batch 438 (PS-146): a clinically significant amendment or correction
+    // recommends a CAPA (linked to a discordance already found on the case,
+    // PS-148). Never blocks the release.
+    await recommendCapaForRevision(records[idx]);
     return ok({ ...records[idx] });
   },
 };
+
+async function recommendCapaForRevision(record: AmendmentRecord): Promise<void> {
+  if (record.type === 'addendum' || !record.reasonId) return;
+  try {
+    const [{ mockReasonDictionaryService }, { revisionRecommendation }, { mockCapaRecommendationService }] = await Promise.all([
+      import('../reasons/mockReasonDictionaryService'), import('../reasons/revisionReasonRules'), import('../quality/mockCapaRecommendationService'),
+    ]);
+    const category = record.type === 'correction' ? 'CORRECTION' : 'AMENDMENT';
+    const reasons = await mockReasonDictionaryService.getAll(category);
+    const reason = reasons.ok ? reasons.data.find(r => r.id === record.reasonId) : undefined;
+    const input = revisionRecommendation(record, reason, record.authoringPathologist?.userId ?? 'system');
+    if (input) await mockCapaRecommendationService.recommend(input);
+  } catch (e) {
+    console.error('[mockAmendmentService] Failed to recommend a CAPA for a released revision:', e);
+  }
+}

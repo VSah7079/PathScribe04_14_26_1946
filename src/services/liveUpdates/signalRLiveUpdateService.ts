@@ -24,8 +24,8 @@
 
 import { HubConnectionBuilder, LogLevel, type IRetryPolicy } from '@microsoft/signalr';
 import {
-  HUB_INTRAOP_CHANGED, HUB_PRINT_JOB_STATUS, HUB_SET_INTRAOP_SCOPE, parseIntraopChangedEvent, parsePrintJobStatusEvent,
-  type IntraopChangedEvent, type IntraopScope, type PrintJobStatusEvent, type SetIntraopScopeResult,
+  HUB_INTRAOP_CHANGED, HUB_PRINT_JOB_STATUS, HUB_SET_INTRAOP_SCOPE, HUB_WSI_SCAN_BATCH_CHANGED, parseIntraopChangedEvent, parsePrintJobStatusEvent, parseWsiScanBatchChangedEvent,
+  type IntraopChangedEvent, type IntraopScope, type PrintJobStatusEvent, type SetIntraopScopeResult, type WsiScanBatchChangedEvent,
 } from './liveUpdateContract';
 import {
   combineScopes, createDuplicateFilter, eventMatchesScope, nextRetryDelayMs, sameScope,
@@ -75,7 +75,8 @@ export function createSignalRLiveUpdateService(deps: SignalRLiveUpdateDeps): ILi
 
   const subscribers = new Map<number, { scope: IntraopScope; onEvent: (e: IntraopChangedEvent) => void }>();
   const printSubscribers = new Map<number, (e: PrintJobStatusEvent) => void>();
-  const subscriberCount = () => subscribers.size + printSubscribers.size;
+  const wsiSubscribers = new Map<number, (e: WsiScanBatchChangedEvent) => void>();
+  const subscriberCount = () => subscribers.size + printSubscribers.size + wsiSubscribers.size;
   const stateListeners = new Set<(s: LiveConnectionState) => void>();
   const resyncListeners = new Set<() => void>();
   const isNew = createDuplicateFilter();
@@ -99,7 +100,7 @@ export function createSignalRLiveUpdateService(deps: SignalRLiveUpdateDeps): ILi
 
   const pushScope = async (force = false) => {
     if (!connection || state !== 'live') return;
-    // A connection open only for print results has no intraop scope to send.
+    // A connection open only for print results (or scan batches) has no intraop scope to send.
     if (!sentScope && subscribers.size === 0) return;
     const scope = currentScope();
     if (!force && sentScope && sameScope(scope, sentScope)) return;
@@ -156,6 +157,13 @@ export function createSignalRLiveUpdateService(deps: SignalRLiveUpdateDeps): ILi
         try { onEvent(event); } catch (e) { log('print-result subscriber failed', e); }
       }
     });
+    connection.on(HUB_WSI_SCAN_BATCH_CHANGED, (raw: unknown) => {
+      const event = parseWsiScanBatchChangedEvent(raw);
+      if (!event || !isNew(event.eventId)) return;
+      for (const onEvent of [...wsiSubscribers.values()]) {
+        try { onEvent(event); } catch (e) { log('scan-batch subscriber failed', e); }
+      }
+    });
     connection.onreconnecting(() => { sentScope = null; setState('reconnecting'); });
     connection.onreconnected(() => { void onConnected(); });
     connection.onclose(() => { sentScope = null; if (!stopping) scheduleRestart(); });
@@ -206,6 +214,17 @@ export function createSignalRLiveUpdateService(deps: SignalRLiveUpdateDeps): ILi
       return {
         unsubscribe: () => {
           if (!printSubscribers.delete(id)) return;
+          closeSoonIfUnused();
+        },
+      };
+    },
+    subscribeWsiScanBatches(onEvent): LiveUpdateSubscription {
+      const id = nextId++;
+      wsiSubscribers.set(id, onEvent);
+      ensureOpen();
+      return {
+        unsubscribe: () => {
+          if (!wsiSubscribers.delete(id)) return;
           closeSoonIfUnused();
         },
       };

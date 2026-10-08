@@ -1,3 +1,4 @@
+import { caseAddresses } from '@/services';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Case } from '@/types/case/Case';
@@ -9,7 +10,9 @@ import { PoolClaimModal } from '@/components/Worklist/PoolClaimModal';
 import EMRSidecarDrawer from './EMRSidecarDrawer';
 import { useCompanionWindow } from '@/hooks/useCompanionWindow';
 import { resolveIsFinalStatus } from '@/services/reportTemplates/TemplateRoutingService';
-import { reportReleaseService } from '@/services';
+import { reportReleaseService, type FollowUpMarkOffer } from '@/services';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDate } from '@/utils/formatDate';
 
 
 interface BottomActionBarProps {
@@ -35,6 +38,11 @@ interface BottomActionBarProps {
    *  correction or addition on demand. Shown in the same slot Sign Out
    *  occupies before finalization — mutually exclusive with it. */
   onRequestAmendment?: () => void;
+  /** Batch 459: after sign-out, mark the case "follow-up specimen expected"
+   *  (case:follow-up:expect), or show the existing mark. The page loads the
+   *  offer from loadFollowUpMarkOffer; this bar only renders it. */
+  followUpOffer?: FollowUpMarkOffer;
+  onMarkFollowUp?: () => void;
   /** CoPilot-specific print action — Orchestration's print button lives
    *  inside the full report preview panel, which is Orchestration-only
    *  (relies on narrative sections that don't exist for CoPilot). This
@@ -121,6 +129,8 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onSignOut,
   onReleasePreliminary,
   onRequestAmendment,
+  followUpOffer,
+  onMarkFollowUp,
   onPrint,
   onOpenReprints,
   
@@ -137,7 +147,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onGrossComplete,
   synopticFitPending = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -230,16 +240,17 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   // otherwise just close the embedded drawer fallback, which is safe by
   // construction (see EMRSidecarDrawer.tsx's key={patientId}).
   useEffect(() => {
-    if (isEmrWindowOpen) {
-      const mrn = caseData?.patient?.mrn ?? '100004';
-      openCompanion(`${window.location.origin}/mock-emr?patientId=${mrn}`);
+    if (isEmrWindowOpen && caseData?.id) {
+      // Batch 446: addressed by the case reference, never the MRN.
+      void caseAddresses.addressOf(caseData.id, 'emr').then(address => { if (address) openCompanion(`${window.location.origin}${address}`); });
     }
     setEmrOpen(false);
   }, [caseData?.id, caseData?.patient?.mrn, isEmrWindowOpen, openCompanion]);
 
   const handleLaunchEMR = async () => {
-    const mrn = caseData?.patient?.mrn ?? '100004';
-    const targetUrl = `${window.location.origin}/mock-emr?patientId=${mrn}`;
+    const address = caseData?.id ? await caseAddresses.addressOf(caseData.id, 'emr') : null;
+    if (!address) { setEmrOpen(true); return; }
+    const targetUrl = `${window.location.origin}${address}`;
     // Dev-only testing shortcut: append ?forceEmrFallback=1 to the URL
     // to skip straight to the embedded drawer without even attempting
     // openCompanion(). Useful for quickly iterating on the drawer's UI
@@ -509,6 +520,22 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           >
             ✏️ {t('bottomActionBar.amendment.label')}
           </ActionButton>
+        )}
+        {followUpOffer?.kind === 'offer' && onMarkFollowUp && (
+          <CapabilityButton
+            capability="case:follow-up:expect"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--follow-up"
+            title={t('bottomActionBar.followUp.markTitle')}
+            onClick={onMarkFollowUp}
+          >
+            🔁 {t('bottomActionBar.followUp.markLabel')}
+          </CapabilityButton>
+        )}
+        {followUpOffer?.kind === 'marked' && (
+          <span className="ps-bab-follow-up-marked" title={t('bottomActionBar.followUp.markedTitle', { name: followUpOffer.expectation.markedByName })}>
+            🔁 {t('bottomActionBar.followUp.marked', { date: formatDate(followUpOffer.expectation.window.endsAt, i18n.language) })}
+          </span>
         )}
       </div>
     </div>

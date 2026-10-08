@@ -39,6 +39,24 @@ export function notifyConfigRefused(capability: string): void {
   for (const l of listeners) { try { l(capability); } catch { /* a screen's problem, not the save's */ } }
 }
 
+// ── Saves, for the unsaved-changes guard ─────────────────────────────────────
+// Batch 437 (PS-128): a configuration write that went through tells the
+// Configuration page, which then forgets edits made in open dialogs (a dialog
+// that saves and stays open is no longer "unsaved").
+type WrittenListener = () => void;
+const writtenListeners = new Set<WrittenListener>();
+export function onConfigWritten(listener: WrittenListener): () => void {
+  writtenListeners.add(listener);
+  return () => { writtenListeners.delete(listener); };
+}
+function notifyConfigWritten(): void {
+  for (const l of writtenListeners) { try { l(); } catch { /* a screen's problem, not the save's */ } }
+}
+/** Whether a guarded write's result means it went through (pure). */
+export function writeSucceeded(result: unknown): boolean {
+  return !(result && typeof result === 'object' && (result as { ok?: unknown }).ok === false);
+}
+
 /** Whether an error is a Configuration refusal (for actions that throw it). */
 export function isConfigRefusal(e: unknown): boolean {
   return e instanceof Error && e.message === CONFIG_NOT_PERMITTED;
@@ -95,7 +113,9 @@ export function guardConfigWrites<T extends object>(service: T, rules: ConfigWri
           if (options.refuse === 'throw') throw new Error(CONFIG_NOT_PERMITTED);
           return { ok: false, error: CONFIG_NOT_PERMITTED };
         }
-        return value.apply(target, args);
+        const result = await value.apply(target, args);
+        if (writeSucceeded(result)) notifyConfigWritten();
+        return result;
       };
     },
   });

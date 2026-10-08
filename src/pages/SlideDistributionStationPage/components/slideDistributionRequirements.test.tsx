@@ -25,6 +25,7 @@ import { resolveFieldRequirements } from '@/services/fieldRequirements/fieldRequ
 import type { SlideQueueItem } from '../hooks/useSlideDistributionStation';
 import type { PhysicalAssignment, ScannerAssignment } from '@/utils/slideDistributionOperations';
 import DestinationControlPanel, { type DestinationMode } from './DestinationControlPanel';
+import type { Equipment } from '@/services/equipment/IEquipmentService';
 import ScanCenterPanel from './ScanCenterPanel';
 import SlideLabelReprintModal from './SlideLabelReprintModal';
 
@@ -45,12 +46,15 @@ const item = (over: Partial<SlideQueueItem['stain']> = {}): SlideQueueItem => ({
 const people = [{ id: 'u1', firstName: 'Ana', lastName: 'Chen' }] as never[];
 const pools = [{ id: 'derm', name: 'Dermatopathology' }] as never[];
 
+// Batch 434: the scanner comes from the Equipment register.
+const SCANNERS = [{ id: 'eq-gt450', code: 'GT450', name: 'Aperio GT450', kind: 'slide_scanner', facilityId: 'f', status: 'Active' }] as Equipment[];
+
 function destination(mode: DestinationMode, over: Record<string, boolean> = {}) {
   const physical = vi.fn<(a: PhysicalAssignment) => void>();
   const digital = vi.fn<(a: ScannerAssignment) => void>();
   render(
     <DestinationControlPanel
-      activeItem={item()} pathologists={people} subspecialties={pools} defaultRouting={{}}
+      activeItem={item()} pathologists={people} subspecialties={pools} scanners={SCANNERS} defaultRouting={{}}
       onAssignPhysical={physical} onAssignScanner={digital} feedback={null}
       mode={mode} onModeChange={noop} requirements={reqs(over)}
     />,

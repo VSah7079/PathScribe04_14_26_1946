@@ -22,14 +22,16 @@ interface CytologySlideOverDrawerProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  /** Batch 460: a wide drawer (the billing review panel needs two columns). */
+  wide?: boolean;
 }
 
-const CytologySlideOverDrawer: React.FC<CytologySlideOverDrawerProps> = ({ isOpen, title, onClose, children }) => {
+const CytologySlideOverDrawer: React.FC<CytologySlideOverDrawerProps> = ({ isOpen, title, onClose, children, wide }) => {
   if (!isOpen) return null;
   return (
     <>
       <div className="ps-drawer-backdrop" onClick={onClose} />
-      <div className="ps-drawer ps-cytology-slideover">
+      <div className={`ps-drawer ps-cytology-slideover${wide ? ' ps-cytology-slideover--wide' : ''}`}>
         <div className="ps-drawer-header">
           <h2 className="ps-cytology-slideover-title">{title}</h2>
           <button onClick={onClose} className="ps-research-close">✕</button>

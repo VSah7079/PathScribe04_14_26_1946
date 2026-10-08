@@ -7,6 +7,7 @@
 
 import { registrySendGateCheck } from '../registryGoLive/registryGoLiveDeps';
 import type { CytologySignOutDeps } from './signOutCytologyCase';
+import { getEffectiveHistologyCorrelationRule } from './cytologyHistologyCorrelationLive';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { signatureGate } from '../auth/authSessionInstance';
 import { getSessionUser } from '../auth/caseAccessControl';
@@ -43,7 +44,9 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
   getActiveSupervisionAssignment: (activityTypeId, userId, subspecialtyId) =>
     mockQaSupervisionAssignmentService.getActiveAssignmentForUser(activityTypeId, userId, subspecialtyId).then(r => (r.ok ? r.data : null)),
   releaseForCountersign: input => mockCountersignService.release(input as any),
-  updateCase: (caseId, patch) => caseRouter.updateCase(caseId, patch as any),
+  // PS-71 (Batch 458): saves carry the version the change was built from.
+  getCase: caseId => caseRouter.getCase(caseId),
+  updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   getAllCases: () => caseRouter.getAll() as any,
   getUserEmail: async userId => {
     const res = await mockUserService.getById(userId).catch(() => null);
@@ -88,6 +91,8 @@ export const signOutCytologyCaseDeps: CytologySignOutDeps = {
     getByCaseId: caseId => mockCytologyRegistryOutboundQueueService.getByCaseId(caseId) as any,
   },
   dispatchInterfaceMessage: (queueId, kind, payload) => dispatchInterfaceMessage(queueId, kind as any, payload) as any,
+  // Batch 452 (PS-156): the configured correlation window.
+  getHistologyCorrelationRule: facilityId => getEffectiveHistologyCorrelationRule(facilityId),
   now: () => new Date(),
   newId: () => crypto.randomUUID(),
 };

@@ -14,7 +14,7 @@ Two jobs:
 ## Notes
 
 - NOTE: services/authorization/ (a similarly-named, EMPTY folder) was found and deleted during the July 2026 review — don't recreate it without a real reason; auth/ is the real, single home for this concern.
-- **This module's own documented caveat still applies to the cross-tenant QA fix above**: it's a real, correctly-shaped decision, but it's still a client-side check — a modified client can bypass it. The actual security boundary needs server-side query enforcement (see `backend-requirements-concurrency-security.md` §11) — what's built here models the correct shape for the backend team to match, same as every other access decision in this file.
+- **This module's own documented caveat still applies to the cross-tenant QA fix above**: it's a real, correctly-shaped decision, but it's still a client-side check — a modified client can bypass it. The actual security boundary needs server-side query enforcement (the API server's job: `docs/architecture/CASE_PRIVACY_MODEL.md`, PS-345; the backend-requirements document once cited here was never written, PS-40) — what's built here models the correct shape for the backend team to match, same as every other access decision in this file.
 
 ## Batch 328 (PS-63), reverted in Batch 329
 
@@ -140,6 +140,50 @@ The new signing action `registry-go-live` (audit text "registry live register ap
 ## Batch 428: Configuration permissions
 
 Unlinking a sign-in account (`linkedAccounts.ts`) needs `config:staff-access:assign`, like the rest of a staff member's access (it used to skip the staff check).
+
+## Batch 444
+
+`authSessionInstance.ts` passes `resolveAuthConfig` an explicit object of the 16 `VITE_AUTH_*` settings, each read by name. It used to pass `import.meta.env` itself, which made Vite copy every `VITE_` variable in `.env` (the demo passwords included) into the production bundle.
+
+## Batch 448
+
+`authSession.signInWithPassword` checks a password set from the Staff screen first (`verifyStaffPassword`).
+- **A built-in demo account** keeps its own profile and app role.
+- **Anyone else** (the demo Lab Director, a site without single sign-on) gets the app role their staff roles give, as single sign-on does (`deriveSessionRole`). No role means no access.
+- **Must-change passwords:** the result is `'password_change_required'` and no session starts.
+- **Wiring:** `authSessionInstance.ts` adds `verifyStaffPassword` and `demoAccountFor`.
+
+`demo/demoAccounts.ts`: the built-in passwords are only the starting ones.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`demo/demoAccounts.ts` has seven new built-in sign-ins:
+
+| Name | Role | Staff id |
+|---|---|---|
+| Dr. Rachel Okafor | Lab Director | LD-001 |
+| Dr. James Okafor | Resident | 2 |
+| Dr. Lucas Moreau | Fellow | FEL-001 |
+| Nadia Rahman | Cytotechnologist | CT-002 |
+| Hannah Price | Template Author | TA-001 |
+| Dr. Samuel Osei | Template Approver | TAP-001 |
+| Grace Liu | QA Reviewer | QA-001 |
+
+Each has its own salt and the demo@pathscribe.ai password. The hashes were made with `scripts/auth/hash-demo-password.mjs` logic on the command line; the password itself is in no file.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+**Sign-in lockout** (Pete: "Add the sign-in lockout"), `signInLockout.ts`:
+- 5 failed password sign-ins in a row for one email lock it for 15 minutes (`SIGN_IN_LOCK_POLICY`, the same numbers and counting as `SIGNING_LOCK_POLICY`).
+- Counted per email typed, whether or not it is an account. While locked the password isn't checked. A correct password clears the count.
+- `authSession.signInWithPassword` now returns a `SignInRefusal` (`invalid` with the attempts left, or `locked` with the time) when it has a lock store; `authSessionInstance.ts` wires the browser store (`pathscribe_sign_in_locks`, under the mock prefix, so Full Reset clears it).
+- Audited: "Sign-in failed", "Sign-in locked", "Sign-in refused" (attempt while locked). The audit names the account (`accountNameFor`) or says "Unknown email"; it never records what was typed.
+- `signInRefusalNotice` picks the sign-in screen's message: plain "incorrect" until the last try, then a warning, then the minutes left.
+- Server contract: `docs/architecture/AUTHENTICATION_OIDC.md` §4a. The browser lock holds only in that browser.
+
+**Correction:** Batch 455 said a password set on the Staff screen for Grace Liu (QA Reviewer only) would not sign her in. That was wrong: `profileForStaffSignIn` uses her built-in demo account's role first. Tested in `authSession.test.ts`. Only someone with no built-in account whose only role is QA Reviewer gets no app role.
+
+Tests: `signInLockout.test.ts`, and the lockout block in `authSession.test.ts`.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

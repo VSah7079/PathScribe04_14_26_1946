@@ -23,6 +23,7 @@
 // it's resolvable — no change needed there, only here.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { mockBatchService } from '@/services/batches/mockBatchService';
 import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
 import { mockWorkstationGroupService } from '@/services/workstationGroups/mockWorkstationGroupService';
@@ -68,7 +69,7 @@ export async function checkStainQcGate(caseData: Case): Promise<StainQcGateBlock
   for (const specimen of caseData.specimens ?? []) {
     for (const block of specimen.blocks ?? []) {
       (block.stains ?? []).forEach((stain, index) => {
-        const level = `L${index + 1}`;
+        const level = slideLevelOf(stain, index);
         const slideId = slideIdentifier(caseData.accession.fullAccession, specimen.label, block.label, level);
         const batch = stainingBatches.find(b => (b.items ?? []).some(i => i.displayId === slideId));
         if (!batch) return;

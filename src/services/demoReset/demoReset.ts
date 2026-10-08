@@ -7,17 +7,17 @@
 //
 //   resetAllDemoData(deps)  every tester's demo data. Needs the capability
 //                           config:demo-data:reset (checked and audited).
-//   executeUserReset(id)    only the signed-in user's own hospital's data;
-//                           no capability, since it touches nothing of
-//                           anyone else's.
+//                           (Batch 455: the per-user reset was removed; see below.)
 //
-// Both refuse to run unless IS_MOCK_BACKEND: a real database is never reset
+// It refuses to run unless IS_MOCK_BACKEND: a real database is never reset
 // from the browser. The key lists are what DemoResetTab.auditTest.ts
 // checks against every storage key in src/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { IS_MOCK_BACKEND } from '../index';
 import type { IAuthorizationService } from '../authorization/authorizationService';
+import { BILLING_RULE_SEED_VERSIONS } from '../billing/mockBillingRuleService';
+import { MODIFIER_DICTIONARY_SEED_VERSIONS } from '../billing/mockModifierDictionaryService';
 
 export const DEMO_RESET_CAPABILITY = 'config:demo-data:reset';
 
@@ -58,6 +58,34 @@ export const DELIBERATELY_NOT_RESET: Record<string, string> = {
   billing_code_import_jobs_v1: 'the import-job ledger for billing_rule_versions_v1 (PS-89) — it must stay in step with the rules it created and supports their rollback, so it is kept with them.',
 };
 
+/**
+ * Batch 455 (demo baseline): the billing rule and modifier dictionaries are
+ * kept through a Full Reset (above), but their SEEDED records go back to their
+ * seeded state, so the pending approvals they come with can be demoed again.
+ * Records anyone created (new versions, uploads) are kept as they are.
+ */
+export function restoreSeedRecords<T>(stored: readonly T[], seeds: readonly T[], keyOf: (record: T) => string): T[] {
+  const seedKeys = new Set(seeds.map(keyOf));
+  return [...seeds.map(s => JSON.parse(JSON.stringify(s)) as T), ...stored.filter(r => !seedKeys.has(keyOf(r)))];
+}
+
+const SEEDED_KEPT_DICTIONARIES: readonly { key: string; seeds: readonly unknown[]; keyOf: (r: any) => string }[] = [ // eslint-disable-line @typescript-eslint/no-explicit-any
+  { key: 'billing_rule_versions_v1', seeds: BILLING_RULE_SEED_VERSIONS, keyOf: r => `${r.billingCode}@${r.version}` },
+  { key: 'modifier_dictionary_versions_v1', seeds: MODIFIER_DICTIONARY_SEED_VERSIONS, keyOf: r => r.id },
+];
+
+function restoreSeededDictionaries(cleared: string[]): void {
+  for (const { key, seeds, keyOf } of SEEDED_KEPT_DICTIONARIES) {
+    const storageKey = `${MOCK_PREFIX}${key}`;
+    const raw = localStorage.getItem(storageKey);
+    if (raw === null) continue; // never stored: the service starts from its seed anyway
+    let stored: unknown[] = [];
+    try { stored = JSON.parse(raw); } catch { stored = []; }
+    localStorage.setItem(storageKey, JSON.stringify(restoreSeedRecords(Array.isArray(stored) ? stored : [], seeds, keyOf)));
+    cleared.push(`${storageKey} (seeded versions restored)`);
+  }
+}
+
 /** A key that survives a Full Reset: named in DELIBERATELY_NOT_RESET, bare or under MOCK_PREFIX. */
 export function keptThroughReset(storageKey: string): boolean {
   const bare = storageKey.startsWith(MOCK_PREFIX) ? storageKey.slice(MOCK_PREFIX.length) : storageKey;
@@ -96,9 +124,13 @@ export const VERSIONED_KEYS = [
   'cytologyQcSettings_seed_version', 'facilityRegistryOverrides_seed_version',
   'facilityCytologyNomenclatureOverrides_seed_version', 'facilityCytologyRegistryOverrides_seed_version',
   'facilityCytologyScreeningStrategyOverrides_seed_version',
+  // Batch 442: written straight to localStorage, so the prefix sweep missed it.
+  'pathscribe_deficiency_types_version',
 ];
 
 export const SETTINGS_KEYS = [
+  // Batch 442: the concordance review settings, written straight to localStorage.
+  'pathscribe_concordance_review_org_config',
   'specimen_dictionary',
   'container_types',
   'reagent_lots',
@@ -107,6 +139,7 @@ export const SETTINGS_KEYS = [
   'pathscribe_delegation_types_v2',
   'pathscribe_internal_notes_v2',
   'pathscribe_subspecialties',
+  'pathscribe_subspecialties_demo_members', // Batch 455: the demo pathologists' pool membership marker
   'pathscribe_report_templates',
   'pathscribe_participation_types_v2', // the real, canonical key (services/participationTypes/mockParticipationTypeService.ts)
   'pathscribe_participation_types',    // orphaned old key from ParticipationTypesSection.tsx's now-removed separate local list -- included so any stale leftover data gets cleared too
@@ -313,6 +346,15 @@ export const SETTINGS_KEYS = [
 ];
 
 export const CASE_KEYS = [
+  // Batch 442: found by the widened scan in DemoResetTab.coverage.test.ts —
+  // written straight to localStorage, so the pathscribe_mock_ sweep missed
+  // them: the used-signature memory (signatures reset with their cases) and
+  // the interface engine's dispatch outcomes. The trend recommendations go
+  // through storageGet (already swept) but are listed like the other KEY
+  // constants.
+  'pathscribe_signature_used',
+  'pathscribe_interface_engine_dispatch_outcomes',
+  'pathscribe_qa_trend_recommendations',
   'cases', // CRITICAL FIX: was 'ps_cases', which mockCaseService.ts never actually wrote to — Demo Reset had never actually been clearing primary case data
   'orch_cases_v3',
   // Batch 345: signature records belong to the cases they sign, so they
@@ -468,28 +510,6 @@ export const STATE_KEYS = [
   'ps_preview_window_geometry', 'worklistSort',
 ];
 
-// Hospital → user mapping (mirrors mockCaseService USER_HOSPITAL_MAP)
-export const HOSPITAL_MAP: Record<string, string> = {
-  'PATH-001':    'HOSP-001',   // Pete Nimmo — US demo
-  'PATH-UK-001': 'HOSP-MFT',  // Paul Carter   — UK
-  'PATH-UK-002': 'HOSP-MFT',
-  'PATH-US-001': 'HOSP-MPA',  // Amber Fehrs-Battey — US
-  'PATH-US-002': 'HOSP-HFHS',  // J. Mark Tuthill
-  'PATH-RB-001': 'HOSP-RB',    // Rossana Babakhani
-};
-
-/** Read current user id from localStorage session */
-export function getCurrentUserId(): string | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.id ?? parsed?.userId ?? null;
-  } catch {
-    return null;
-  }
-}
-
 /** Full reset — clears all mock data for all users */
 function executeFullReset(): string[] {
   // Real, critical, defense-in-depth safety check — per direct
@@ -547,6 +567,9 @@ function executeFullReset(): string[] {
     .filter(k => RUNTIME_KEY_PREFIXES.some(p => k.startsWith(p)))
     .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
 
+  // Batch 455: put the seeded billing and modifier versions back (pending approvals included).
+  restoreSeededDictionaries(cleared);
+
   sessionStorage.clear();
   return cleared;
 }
@@ -554,60 +577,12 @@ function executeFullReset(): string[] {
 /** Key families built at run time (per case, per template, per part). */
 export const RUNTIME_KEY_PREFIXES: readonly string[] = ['ps_rpart_', 'ps_orch_sections_', 'ps_answers_', 'ps_comments_', 'ps_state_'];
 
-/**
- * Partial reset — removes only the current user's cases from the mock case
- * store, then forces a version bump so their cases re-seed from defaults.
- * Other users' work is preserved.
- */
-export function executeUserReset(userId: string): string[] {
-  // Same real, critical, defense-in-depth guard as executeFullReset —
-  // see that function's own comment for the full reasoning.
-  if (!IS_MOCK_BACKEND) {
-    throw new Error('Demo Reset is disabled — this app is connected to a real, non-mock backend. Refusing to risk deleting real customer data.');
-  }
-  const cleared: string[] = [];
-  const hospitalId = HOSPITAL_MAP[userId];
-
-  // Load and filter the cases store
-  const casesKey = `${MOCK_PREFIX}cases`;
-  const raw = localStorage.getItem(casesKey);
-  if (raw) {
-    try {
-      const cases = JSON.parse(raw);
-      const filtered = cases.filter(
-        (c: any) => c.originHospitalId !== hospitalId && c.hospitalId !== hospitalId
-      );
-      if (filtered.length !== cases.length) {
-        localStorage.setItem(casesKey, JSON.stringify(filtered));
-        cleared.push(`${casesKey} (removed ${cases.length - filtered.length} cases)`);
-      }
-    } catch {
-      // If corrupt, remove the whole store — it will re-seed
-      localStorage.removeItem(casesKey);
-      cleared.push(casesKey);
-    }
-  }
-
-  // Clear the cases version so the full seed re-runs on next load
-  // (seed data is additive — it won't duplicate cases already present)
-  localStorage.removeItem('pathscribe_mock_cases_version');
-  cleared.push('pathscribe_mock_cases_version (version reset)');
-
-  // Real fix — same gap as executeFullReset above, scoped correctly
-  // here: only this user's own marker, since other testers' sessions
-  // must survive a "my data only" reset.
-  const ownActiveSessionKey = `${ACTIVE_SESSION_KEY_PREFIX}${userId}`;
-  if (localStorage.getItem(ownActiveSessionKey) !== null) {
-    localStorage.removeItem(ownActiveSessionKey);
-    cleared.push(ownActiveSessionKey);
-  }
-
-  // Clear any user-specific session state
-  sessionStorage.clear();
-  cleared.push('sessionStorage');
-
-  return cleared;
-}
+// Batch 455: executeUserReset ("My data only") was removed. It cleared the
+// cases version marker, so mockCaseService re-seeded every LIS case for every
+// tester (the hospital filter did nothing), and it left orchestrator cases,
+// signatures, amendments, drafts, cytology reviews, QC assignments,
+// delegations, charges and claims as they were, out of step with the fresh
+// cases. The Full Reset below is the one reset.
 
 export type FullResetResult = { ok: true; cleared: string[] } | { ok: false; reason: 'notPermitted' };
 

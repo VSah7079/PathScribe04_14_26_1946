@@ -9,7 +9,7 @@ export type CytologyConfigSection =
   | 'cytology_categories' | 'cytology_qc_settings' | 'snomed_histology_severity_mapping'
   | 'cytology_nomenclature' | 'cytology_registry' | 'cytology_routing'
   | 'cytology_screening_strategy' | 'cytology_workload_cap' | 'cytology_instrumentation'
-  | 'non_gyn_cytology_categories' | 'cytology_compliance_features';
+  | 'non_gyn_cytology_categories' | 'cytology_compliance_features' | 'cytology_histology_correlation';
 
 export const SECTIONS: { id: CytologyConfigSection; emoji: string; labelKey: string }[] = [
   { id: 'cytology_categories', emoji: '🧫', labelKey: 'cytologyCategoriesSection.title' },
@@ -23,5 +23,6 @@ export const SECTIONS: { id: CytologyConfigSection; emoji: string; labelKey: str
   { id: 'cytology_workload_cap', emoji: '📊', labelKey: 'cytologyTab.sections.dailyWorkloadCap' },
   { id: 'cytology_instrumentation', emoji: '🖥️', labelKey: 'cytologyTab.sections.assistedInstrumentation' },
   { id: 'snomed_histology_severity_mapping', emoji: '🧬', labelKey: 'cytologyTab.sections.cytoHistologicCorrelation' },
+  { id: 'cytology_histology_correlation', emoji: '⏱️', labelKey: 'cytologyTab.sections.correlationWindow' },
 ];
 

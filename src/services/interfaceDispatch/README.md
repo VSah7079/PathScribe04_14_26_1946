@@ -16,5 +16,18 @@ Anything else is refused as `DISPATCH_REJECTED`, with the reason stored on the q
 
 **Correction:** the first line of this README now names the engine correctly. It is ForMedrixAI's, shipped with PathScribe; a site's own engine is used only when the site insists.
 
+## Batch 434
+
+`InterfaceTransactionType` gains `WSI_SCAN_MANIFEST`: a WSI scan batch's manifest (`services/digitalPathology/wsiScanBatchWorkflow.ts`). The engine adapter needs a route for it (PS-331).
+
+## Batch 435
+
+- `interfaceTransactions.guard.test.ts`: `InterfaceTransactionType`, `docs/architecture/INTERFACE_TRANSACTIONS.md` (the engine's routing list, PS-331) and `functions/main.py` must list the same types.
+- The development receiver had stopped at `ORDER_CREATED`; it now accepts all of them.
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

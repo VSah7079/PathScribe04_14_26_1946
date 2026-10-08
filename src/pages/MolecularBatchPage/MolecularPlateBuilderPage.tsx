@@ -43,7 +43,7 @@ import { useNavigate, useParams } from 'react-router';
 import '../../pathscribe.css';
 import { resolveMolecularReagentLotGating } from '../../services/molecular/resolveMolecularReagentLotGating';
 import { resolveMolecularControlRequirementValidation } from '../../services/molecular/resolveMolecularControlRequirementValidation';
-import { generateWellPositionsInOrder } from '../../services/molecular/resolveMolecularBarcodes';
+import { emptyPlateWells, autoPopulatePlateWells, plateGridWells, plateWellTitle } from '../../services/molecular/plateBuilderWells';
 import {
   MOLECULAR_PLATE_LAYOUTS, MOLECULAR_REAGENT_COMPONENT_TYPES, MOLECULAR_SAMPLE_TYPES,
 } from '../../services/molecular/IMolecularBatchService';
@@ -70,9 +70,10 @@ import { getFacilityIsoDate } from '../../utils/facilityTime';
 import { MOLECULAR_BATCH_INSTRUMENT_UNAVAILABLE, MOLECULAR_BATCH_WELL_SPECIMEN_MISSING, MOLECULAR_BATCH_NOT_PERMITTED, MOLECULAR_BATCH_DECK_SLOT_INVALID } from '../../services/molecular/IMolecularBatchService';
 import { formatList } from '../../utils/formatList';
 import { workcenterTabForStatus } from '../MolecularWorkcenterPage/MolecularWorkcenterPage';
-import { resolveMolecularMovementRecord } from '../../services/molecular/resolveMolecularMovementRecord';
+import { resolvePlateWellScan, applyPlateWellScan, nextUnscannedSpecimenWell } from '../../services/molecular/plateWellScan';
 import { resolveMolecularHistoricalTrace } from '../../services/molecular/resolveMolecularHistoricalTrace';
 import { dispatchMolecularWorklist } from '../../services/molecular/dispatchMolecularWorklist';
+import { canStartMolecularDispatch, canConfirmMolecularDispatch, molecularDispatchFeedback } from '../../services/molecular/molecularDispatchPanel';
 import type { StainType } from '../../services/stains/IStainService';
 
 const SAMPLE_TYPE_COLOR: Record<MolecularSampleType, string> = {
@@ -100,12 +101,6 @@ const PLATE_LAYOUT_LABEL_KEY: Record<MolecularPlateLayout, string> = {
   '384_well': 'molecularPlateBuilderPage.plateLayout.384_well',
   '1536_well': 'molecularPlateBuilderPage.plateLayout.1536_well',
 };
-
-function emptyWellsFor(layout: MolecularPlateLayout): MolecularWell[] {
-  const dims = MOLECULAR_PLATE_LAYOUTS[layout];
-  const positions = generateWellPositionsInOrder(dims, 'row_major');
-  return positions.map(wellPosition => ({ wellPosition }));
-}
 
 const MolecularPlateBuilderPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -165,7 +160,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
   useEffect(() => {
     molecularAssayControlRuleService.getAll().then(res => { if (res.ok) setControlRules(res.data); });
   }, []);
-  const [wells, setWells] = useState<MolecularWell[]>(() => emptyWellsFor('96_well'));
+  const [wells, setWells] = useState<MolecularWell[]>(() => emptyPlateWells('96_well'));
   const [selectedWellPos, setSelectedWellPos] = useState<string | null>(null);
   const [armedForScan, setArmedForScan] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -240,35 +235,19 @@ const MolecularPlateBuilderPage: React.FC = () => {
   // successful scan, never a second, divergent code path.
   const assignSpecimenToWell = async (raw: string, matchedAccession?: string) => {
     if (!selectedWellPos) return;
-    const session = getSessionUser();
-    const byUserId = session?.id ?? 'unknown';
-    const byUserName = session ? `${session.firstName ?? ''} ${session.lastName ?? ''}`.trim() || session.id : 'Unknown User';
-    const movementContext = { byUserId, byUserName, stationId: stationId ?? 'unknown', stationName };
-
-    const rackLookup = await molecularExtractionRackService.findPositionByContainerBarcode(raw);
-    const priorMovements = rackLookup.ok && rackLookup.data ? (rackLookup.data.position.movementHistory ?? []) : [];
-    const fromLevel = rackLookup.ok && rackLookup.data ? 'secondary_rack' : 'primary_vial';
-    const fromBarcode = rackLookup.ok && rackLookup.data ? `${rackLookup.data.rack.rackBarcode}:${rackLookup.data.position.positionLabel}` : raw;
-    const movement = resolveMolecularMovementRecord(
-      fromLevel, 'plate_well', fromBarcode, `well:${selectedWellPos}`, movementContext,
+    // PS-235 (Batch 450): who/where, rack lookup, the movement record and the
+    // well update are decided in services/molecular/plateWellScan.ts.
+    const scan = await resolvePlateWellScan(
+      raw, selectedWellPos, { session: getSessionUser(), stationId, stationName },
+      { rackService: molecularExtractionRackService },
     );
-    setWells(prev => {
-      const idx = prev.findIndex(w => w.wellPosition === selectedWellPos);
-      if (idx === -1) return prev;
-      const updated = [...prev];
-      updated[idx] = {
-        ...updated[idx], containerBarcode: raw, accessionNumber: matchedAccession ?? updated[idx].accessionNumber,
-        movementHistory: [...priorMovements, ...(updated[idx].movementHistory ?? []), movement],
-      };
-      return updated;
-    });
+    setWells(prev => applyPlateWellScan(prev, selectedWellPos, raw, matchedAccession, scan));
     setArmedForScan(false);
     // Real, per this file's own header: auto-advance to the next
     // empty PATIENT_SPECIMEN well, so a tech can scan a whole rack of
     // specimens in sequence without re-selecting a well each time.
     setWells(prev => {
-      const currentIdx = prev.findIndex(w => w.wellPosition === selectedWellPos);
-      const next = prev.slice(currentIdx + 1).find(w => w.sampleType === 'PATIENT_SPECIMEN' && !w.containerBarcode);
+      const next = nextUnscannedSpecimenWell(prev, selectedWellPos);
       if (next) { setSelectedWellPos(next.wellPosition); setArmedForScan(true); }
       return prev;
     });
@@ -313,18 +292,19 @@ const MolecularPlateBuilderPage: React.FC = () => {
     setDispatchResult(null);
     try {
       const result = await dispatchMolecularWorklist(existingBatch, scannedPlateBarcode, scannedDeckLocationLabel, getSessionUser(), stationId);
-      if (result.dispatched) {
+      // PS-236 (Batch 450): the outcome is decided in services/molecular/molecularDispatchPanel.ts.
+      const feedback = molecularDispatchFeedback(result);
+      if (!('verificationFailures' in feedback) && !('reason' in feedback)) {
         setDispatchResult({ message: t('molecularPlateBuilderPage.dispatchSuccess'), success: true });
         const refreshed = await molecularBatchService.getById(existingBatch.id);
         if (refreshed.ok) setExistingBatch(refreshed.data);
         setDispatchPanelOpen(false);
-      } else if ('reason' in result) {
+      } else {
         // Batch 356: scan-check failures are shown in the user's language.
-        const failures = result.verificationFailures;
         setDispatchResult({
-          message: failures?.length
-            ? t('molecularPlateBuilderPage.scanVerificationFailed', { list: formatList(failures.map(f => t(`molecularPlateBuilderPage.scanFailure.${f}`)), i18n.language) })
-            : result.reason,
+          message: 'verificationFailures' in feedback
+            ? t('molecularPlateBuilderPage.scanVerificationFailed', { list: formatList(feedback.verificationFailures.map(f => t(`molecularPlateBuilderPage.scanFailure.${f}`)), i18n.language) })
+            : feedback.reason,
           success: false,
         });
       }
@@ -359,7 +339,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
 
   const handleLayoutChange = (layout: MolecularPlateLayout) => {
     setPlateLayout(layout);
-    setWells(emptyWellsFor(layout));
+    setWells(emptyPlateWells(layout));
     setSelectedWellPos(null);
   };
 
@@ -375,17 +355,9 @@ const MolecularPlateBuilderPage: React.FC = () => {
     setWells(prev => prev.map(w => (w.wellPosition === position ? { ...w, ...changes } : w)));
   };
 
+  // PS-229 (Batch 451): decided in services/molecular/plateBuilderWells.ts.
   const handleAutoPopulate = (order: 'row_major' | 'column_major') => {
-    const dims = MOLECULAR_PLATE_LAYOUTS[plateLayout];
-    const orderedPositions = generateWellPositionsInOrder(dims, order);
-    setWells(prev => {
-      const byPos = new Map(prev.map(w => [w.wellPosition, w]));
-      for (const pos of orderedPositions) {
-        const well = byPos.get(pos);
-        if (well && !well.sampleType) byPos.set(pos, { ...well, sampleType: 'PATIENT_SPECIMEN' });
-      }
-      return orderedPositions.map(pos => byPos.get(pos)!);
-    });
+    setWells(prev => autoPopulatePlateWells(prev, plateLayout, order));
   };
 
   const gating = resolveMolecularReagentLotGating(reagentLots, wells);
@@ -432,7 +404,8 @@ const MolecularPlateBuilderPage: React.FC = () => {
 
   if (loading) return <div className="ps-conf-loading">{t('molecularPlateBuilderPage.loading')}</div>;
 
-  const displayWells = existingBatch ? (existingBatch.wells.length > 0 ? existingBatch.wells : emptyWellsFor(existingBatch.plateLayout)) : wells;
+  // Batch 451: drawn by grid position (plateGridWells), not list order.
+  const displayWells = existingBatch ? plateGridWells(existingBatch.wells, existingBatch.plateLayout) : plateGridWells(wells, plateLayout);
   const displayDims = existingBatch ? MOLECULAR_PLATE_LAYOUTS[existingBatch.plateLayout] : dims;
   const readOnly = !isNew;
 
@@ -448,7 +421,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
             <button className="ps-btn-small" onClick={() => printMolecularPlateLabel(existingBatch)}>{t('molecularPlateBuilderPage.plateLabel')}</button>
             <button className="ps-btn-small" onClick={() => printMolecularDeckLocationLabel(existingBatch)}>{t('molecularPlateBuilderPage.deckLocationLabel')}</button>
             <button className="ps-btn-small" onClick={() => printMolecularSpecimenLabels(existingBatch)}>{t('molecularPlateBuilderPage.specimenLabels')}</button>
-            {!existingBatch.worklistDispatchedAt && existingBatch.status !== 'superseded' && (
+            {canStartMolecularDispatch(existingBatch) && (
               <button className="ps-btn-small" onClick={() => setDispatchPanelOpen(o => !o)}>{t('molecularPlateBuilderPage.dispatchWorklist')}</button>
             )}
             {existingBatch.status !== 'superseded' && (
@@ -556,7 +529,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
           {dispatchResult && (
             <div className={`mb-result-text ${dispatchResult.success ? 'mb-result-text--success' : 'mb-result-text--error'}`}>{dispatchResult.message}</div>
           )}
-          <button className="ps-conf-btn-secondary ps-mt-14" disabled={dispatching || !scannedPlateBarcode || !scannedDeckLocationLabel} onClick={handleDispatchWorklist}>
+          <button className="ps-conf-btn-secondary ps-mt-14" disabled={!canConfirmMolecularDispatch(scannedPlateBarcode, scannedDeckLocationLabel, dispatching)} onClick={handleDispatchWorklist}>
             {dispatching ? t('molecularPlateBuilderPage.dispatching') : t('molecularPlateBuilderPage.confirmDispatch')}
           </button>
         </div>
@@ -671,12 +644,15 @@ const MolecularPlateBuilderPage: React.FC = () => {
             {displayWells.map(w => {
               const color = w.sampleType ? SAMPLE_TYPE_COLOR[w.sampleType] : undefined;
               const isSelected = w.wellPosition === selectedWellPos;
+              const title = plateWellTitle(w);
+              // Batch 467b: a saved plate's wells can be selected to see what they hold (an in-house order, say).
+              const viewable = readOnly && !!w.sampleType;
               return (
                 <button
                   key={w.wellPosition}
-                  onClick={() => !readOnly && setSelectedWellPos(w.wellPosition)}
-                  title={w.sampleType ? `${w.wellPosition}: ${t(SAMPLE_TYPE_LABEL_KEY[w.sampleType])}${w.accessionNumber ? ` — ${w.accessionNumber}` : ''}` : w.wellPosition}
-                  className={`mb-well-btn${color ? ' mb-well-btn--filled' : ''}${isSelected ? ' mb-well-btn--selected' : ''}${readOnly ? ' mb-well-btn--readonly' : ''}`}
+                  onClick={() => (!readOnly || viewable) && setSelectedWellPos(w.wellPosition)}
+                  title={t(`molecularPlateBuilderPage.wellTitle.${title.key}`, { ...title.values, type: w.sampleType ? t(SAMPLE_TYPE_LABEL_KEY[w.sampleType]) : '' })}
+                  className={`mb-well-btn${color ? ' mb-well-btn--filled' : ''}${isSelected ? ' mb-well-btn--selected' : ''}${readOnly && !viewable ? ' mb-well-btn--readonly' : ''}${w.orderId ? ' mb-well-btn--order' : ''}`}
                   style={color ? { '--ps-hue': color } as React.CSSProperties : undefined}>
                   {w.wellPosition}
                 </button>
@@ -692,6 +668,24 @@ const MolecularPlateBuilderPage: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* Batch 467b: a saved plate's selected well, read-only — its sample, and the in-house order it holds. */}
+        {!isNew && existingBatch && selectedWellPos && (() => {
+          const w = existingBatch.wells.find(x => x.wellPosition === selectedWellPos);
+          if (!w?.sampleType) return null;
+          return (
+            <div className="mb-well-panel">
+              <h4 className="ps-panel-title">{t('molecularPlateBuilderPage.wellHeading', { position: w.wellPosition })}</h4>
+              <dl className="mb-well-facts">
+                <dt>{t('molecularPlateBuilderPage.sampleTypeLabel')}</dt><dd>{t(SAMPLE_TYPE_LABEL_KEY[w.sampleType])}</dd>
+                {w.accessionNumber && <><dt>{t('molecularPlateBuilderPage.accessionNumberLabel')}</dt><dd data-phi="accession">{w.accessionNumber}</dd></>}
+                {w.orderId && <><dt>{t('molecularPlateBuilderPage.orderLabel')}</dt><dd>{w.orderId}</dd></>}
+                {w.controlInfo?.controlId && <><dt>{t('molecularPlateBuilderPage.controlLabel')}</dt><dd>{w.controlInfo.controlId}</dd></>}
+              </dl>
+              {w.orderId && <p className="ps-helper-text">{t('molecularPlateBuilderPage.orderHint')}</p>}
+            </div>
+          );
+        })()}
 
         {isNew && selectedWell && (
           <div className="mb-well-panel">
@@ -812,7 +806,7 @@ const MolecularPlateBuilderPage: React.FC = () => {
                       <React.Fragment key={i}>
                         <tr className="ps-conf-tr">
                           <td className="ps-conf-td">{r.well_position}</td>
-                          <td className="ps-conf-td">{r.accession_number ?? '—'}</td>
+                          <td className="ps-conf-td"><span data-phi="accession">{r.accession_number ?? '—'}</span></td>
                           <td className="ps-conf-td">{r.raw_data.ct_value ?? '—'}</td>
                           <td className="ps-conf-td">{r.raw_data.internal_control_ct ?? '—'}</td>
                           <td className="ps-conf-td">{r.interpretation}</td>

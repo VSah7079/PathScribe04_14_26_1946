@@ -27,3 +27,7 @@ up via the real `mockAuditService`.
 Two unnecessary `any` casts removed from the test file
 (`mockAuditService.getAuditLogs({ search: ... } as any)` — `search` is
 a genuinely declared field on `AuditFilterParams`, no cast needed).
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-39)
+
+`auditLogger.test.ts`: the legacy logger writes only to the shared audit store, never its old private key; the category test can no longer exit early without failing.

@@ -23,6 +23,7 @@ import { mockOrchestratorCaseService } from '@/services/cases/mockOrchestratorCa
 import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
 import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 // Batch 431: the same workstation preference usePreviewChannel.ts opens the window with.
 const PREVIEW_GEOMETRY_KEY = 'previewWindowGeometry';
@@ -110,7 +111,14 @@ const ReportPreviewPage: React.FC = () => {
   const accession = caseData?.accession?.fullAccession
     ?? caseData?.accession?.accessionNumber ?? caseId ?? '';
 
-  const handlePrint = () => window.print();
+  // PS-282 (Batch 437): a print from the preview is audited.
+  const handlePrint = () => {
+    void recordDocumentOutput({
+      action: 'preview-print', document: 'report', documentId: caseId ?? null, version: caseData?.version ?? null,
+      caseId: accession || null, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html',
+    });
+    window.print();
+  };
 
   return (
     <div className="rp-shell">

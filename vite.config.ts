@@ -18,6 +18,25 @@ const pkg = JSON.parse(
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
+  // Batch 444: one Gemini route per client path. The model name comes from
+  // the browser, so it's checked before it goes into the upstream path.
+  const geminiRoute = (upstream: (model: string) => string) => ({
+    target:       'https://generativelanguage.googleapis.com',
+    changeOrigin: true,
+    secure:       true,
+    rewrite: (p: string) => {
+      const asked = new URL(p, 'http://localhost').searchParams.get('model') ?? 'gemini-1.5-flash';
+      const model = /^[A-Za-z0-9._-]+$/.test(asked) ? asked : 'gemini-1.5-flash';
+      return upstream(model);
+    },
+    configure: (proxy: { on: (e: 'proxyReq', cb: (r: { setHeader: (k: string, v: string) => void; removeHeader: (k: string) => void }) => void) => void }) => {
+      proxy.on('proxyReq', (proxyReq) => {
+        proxyReq.setHeader('x-goog-api-key', env.GEMINI_API_KEY ?? '');
+        proxyReq.removeHeader('origin');
+      });
+    },
+  });
+
   return {
     plugins: [react()],
     define: {
@@ -74,27 +93,70 @@ export default defineConfig(({ mode }) => {
 
         // ── Gemini (Google) ────────────────────────────────────────────────
         // Client calls: POST /api/ai/gemini/generate?model=gemini-1.5-flash
-        // Forwards to:  https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=...
+        //               POST /api/ai/gemini/stream?model=gemini-1.5-flash
+        //               GET  /api/ai/gemini/models          (System Info check)
+        // Forwards to:  https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent
+        //               …:streamGenerateContent?alt=sse, and /v1beta/models
         //
-        // Using a clean /generate path avoids the colon in the client URL
+        // Using clean paths avoids the colon in the client URL
         // (gemini-1.5-flash:generateContent) which confuses Vite's proxy router.
-        // The colon is constructed server-side in the rewrite function instead.
-        '/api/ai/gemini/generate': {
-          target:       'https://generativelanguage.googleapis.com',
+        // The colon is constructed here instead. Batch 444: the key travels in
+        // the x-goog-api-key header, not the URL, and only from this proxy.
+        '/api/ai/gemini/generate': geminiRoute((model) => `/v1beta/models/${model}:generateContent`),
+        '/api/ai/gemini/stream':   geminiRoute((model) => `/v1beta/models/${model}:streamGenerateContent?alt=sse`),
+        '/api/ai/gemini/models':   geminiRoute(() => '/v1beta/models'),
+
+        // ── OpenAI-shaped chat completions (Batch 444) ────────────────────
+        // Client calls: POST /api/ai/openai/v1/chat/completions
+        // Forwards to:  https://api.openai.com/v1/chat/completions
+        '/api/ai/openai': {
+          target:       'https://api.openai.com',
           changeOrigin: true,
           secure:       true,
-          rewrite: (p: string) => {
-            const url    = new URL(p, 'http://localhost');
-            const model  = url.searchParams.get('model') ?? 'gemini-1.5-flash';
-            const apiKey = env.GEMINI_API_KEY ?? '';
-            return `/v1beta/models/${model}:generateContent?key=${apiKey}`;
-          },
+          rewrite:      (p: string) => p.replace(/^\/api\/ai\/openai/, ''),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
+              proxyReq.setHeader('authorization', `Bearer ${env.OPENAI_API_KEY ?? ''}`);
               proxyReq.removeHeader('origin');
             });
           },
         },
+
+        // ── Managed (Azure-style) deployment, only when configured ────────
+        // Client calls: POST /api/ai/azure/chat/completions
+        // Forwards to:  <AZURE_OPENAI_ENDPOINT>/openai/deployments/<AZURE_OPENAI_DEPLOYMENT>/chat/completions
+        ...(env.AZURE_OPENAI_ENDPOINT && env.AZURE_OPENAI_DEPLOYMENT ? {
+          '/api/ai/azure': {
+            target:       env.AZURE_OPENAI_ENDPOINT,
+            changeOrigin: true,
+            secure:       true,
+            rewrite:      () => `/openai/deployments/${encodeURIComponent(env.AZURE_OPENAI_DEPLOYMENT)}/chat/completions?api-version=2024-02-15-preview`,
+            configure: (proxy) => {
+              proxy.on('proxyReq', (proxyReq) => {
+                proxyReq.setHeader('api-key', env.AZURE_OPENAI_API_KEY ?? '');
+                proxyReq.removeHeader('origin');
+              });
+            },
+          },
+        } : {}),
+
+        // ── Custom OpenAI-compatible endpoint, only when configured ───────
+        // Client calls: POST /api/ai/custom/chat/completions
+        // Forwards to:  <CUSTOM_AI_ENDPOINT>/chat/completions
+        ...(env.CUSTOM_AI_ENDPOINT ? {
+          '/api/ai/custom': {
+            target:       env.CUSTOM_AI_ENDPOINT,
+            changeOrigin: true,
+            secure:       true,
+            rewrite:      (p: string) => `${new URL(env.CUSTOM_AI_ENDPOINT).pathname.replace(/\/+$/, '')}${p.replace(/^\/api\/ai\/custom/, '')}`,
+            configure: (proxy) => {
+              proxy.on('proxyReq', (proxyReq) => {
+                if (env.CUSTOM_AI_API_KEY) proxyReq.setHeader('authorization', `Bearer ${env.CUSTOM_AI_API_KEY}`);
+                proxyReq.removeHeader('origin');
+              });
+            },
+          },
+        } : {}),
 
         // ── UMLS / NLM (SNOMED CT, terminology) ───────────────────────────
         // Client calls: GET /api/terminology/umls/search/current?string=...
@@ -107,13 +169,20 @@ export default defineConfig(({ mode }) => {
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq, req) => {
               const sep = req.url?.includes('?') ? '&' : '?';
-              proxyReq.path += `${sep}apiKey=${env.UMLS_API_KEY ?? ''}`;
+              // Batch 444: UMLS_API_KEY, or UMLS_KEY (the name .env files have used).
+              proxyReq.path += `${sep}apiKey=${env.UMLS_API_KEY ?? env.UMLS_KEY ?? ''}`;
               proxyReq.removeHeader('origin');
             });
           },
         },
 
       },
+    },
+    // Batch 444: both workers are module workers ({ type: 'module' }), and
+    // the PDF worker code-splits, so they must build as ES modules. Vite's
+    // default worker format (iife) made `npm run build` fail outright.
+    worker: {
+      format: 'es',
     },
     build: {
       rollupOptions: {

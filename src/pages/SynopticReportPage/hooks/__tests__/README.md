@@ -117,10 +117,19 @@ you hit them yourself:
   `useReportGeneration.test.ts`'s `OrchestratorEngine` mock hit this on
   the first attempt; every single test failed with the same root cause
   before it was found.
-- **`window.prompt` isn't implemented by `happy-dom`.** `vi.spyOn(window,
-  'prompt')` requires the property to already exist as a function; direct
-  assignment (`window.prompt = vi.fn()`) is what actually works.
-  (`useGrossingCompletion.test.ts`)
+- **Driving a modal a hook `await`s on, instead of a `window.prompt()`
+  mock.** `useGrossingCompletion`'s re-finalize reason capture used to be
+  a blocking `window.prompt()` (and hit the `happy-dom` gotcha that used
+  to be documented right here: `vi.spyOn(window, 'prompt')` requires the
+  property to already exist as a function, so direct assignment,
+  `window.prompt = vi.fn()`, was what actually worked). Batch 474 replaced
+  it with `ReasonPromptModal`, so the hook now `await`s a promise the
+  modal resolves. The test can't just mock a return value anymore — it
+  has to kick off `handleGrossComplete()` without awaiting it yet, flush
+  a microtask (`await Promise.resolve()`) so the promise registers and
+  `showUpdateReasonPrompt` flips true, then call the hook's own
+  `confirmUpdateReason`/`cancelUpdateReason` and await the original call.
+  See `runGrossCompleteViaReasonPrompt()` in `useGrossingCompletion.test.ts`.
 - **`ConcurrencyConflictError`'s real constructor** is
   `(caseId, expectedVersion, actualVersion)`, not just `(actualVersion)` —
   checked against the actual class before writing more than one test
@@ -156,3 +165,15 @@ you hit them yourself:
 ## Batch 431
 
 `useOrchestratorDraft.test.ts`: saving writes no browser copy, and opening a case ignores an old browser copy and uses the case's sections.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+`useSignOutWorkflow.test.ts`: Suggest Synoptic from Narrative (PS-274), Generate Narrative review and insert (PS-275), surgical post-sign-out QA call (PS-324). `useReportGeneration.test.ts`: Regen All one at a time and warnings as toasts (PS-317, PS-318).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`useSignOutWorkflow.test.ts`: confirming a rule-matched abnormal finding sets the case's abnormal status; dismissing never does (PS-129).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`useSpecimenBlockManagement.test.ts`: decants go through the atomic save on the current version. A failure rolls back and says why, and a conflict opens the dialog.

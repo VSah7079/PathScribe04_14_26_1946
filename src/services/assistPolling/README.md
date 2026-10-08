@@ -72,5 +72,11 @@ The admin screen is `components/Config/System/AssistLisPollingSection.tsx` (Conf
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+The LIS text is merged into the newest case. The AI draft is saved only if the case is unchanged, otherwise it is redrafted on the next run.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

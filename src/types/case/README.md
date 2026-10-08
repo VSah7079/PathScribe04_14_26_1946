@@ -73,6 +73,37 @@ The registry queue entries (`CytologyRegistryOutboundQueueEntry`, `CancerRegistr
 
 `OutboundLisSyncQueueEntry.kind` gains `case_pdf` (the case's combined PDF). `SynopticReportInstance.additionalSpecimenIds` is now set from the report sidebar's "Parts covered".
 
+## Batch 434
+
+`Specimen.ts` → `StainOrder`:
+- `distributionStatus` gains `Scanned`;
+- new `wsiScanBatchId`;
+- `SlideDistributionEvent.action` gains `unloaded_from_scanner`.
+
+See `services/digitalPathology/wsiScanQueue.ts`.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`Decant.parentDecantId` (a decant split from another) and `Decant.coding` (billing codes, the block shape). `CytologyScreeningRecord.histologyCorrelationWindow` (PS-156).
+
+## Batch 460
+
+`MatrixBlock` gains `tinyTissue`, `fragile` and `requiresDecal` (Microtomy alert badges, as on `HistologyBlock`). Its comments no longer point to `utils/matrixBlocks.ts` or `utils/matrixBlockIdentifier.ts`, which don't exist. The identifier is in `types/labels/LabelData.ts`.
+
+## Batch 461
+
+`Case.organMapFigures?: OrganMapFigure[]`: the anatomical map images a pathologist inserted into the report, one per synoptic (a snapshot: print SVG, PNG, the map's fingerprint, who and when). See `services/organMapping/organMapFigures.ts`.
+
+## Batch 467 — In-house molecular orders
+
+`SynopticReportInstance.resultSources`: per question, the molecular order and call that filled it. `routedQueueLabel` adds 'Molecular In-House Queue' (Specimen, AddOnOrder).
+
+## Batch 480 — Structured Inking, Module 1: Margin and Ink Application data model (PS-359)
+
+**`Margin.ts` (new)**: `Margin` (id, name, optional free-text `orientation`/`laterality`, `examinationStatus`, and an append-only `inkApplications: MarginInkApplication[]`) and `MarginInkApplication` (id, colorCode, colorName, appliedAt, appliedByName). Margins are modeled as discrete entities distinct from physical specimen blocks, per Pete's own requirement, with a polymorphic one-to-many of ink applications so a second colour never overwrites the first or changes the margin's own identity.
+
+**`Specimen.ts`**: `margins?: Margin[]` added to both `HistologyBlock` and `Specimen`, since Pete's spec allows attachment "at the Tissue Block level (or parent Specimen level, depending on grossing protocol)" — never both for the same margin. See `services/grossing/recordMarginInkApplication.ts` and `services/grossing/resolveInkingValidationSeverity.ts`.
+
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*

@@ -40,6 +40,32 @@ Component B of the "Decoupled Dispatch & Print Management System" spec — the P
 - **Batch aggregation windows are UTC, not genuine per-site local time** — see `aggregatePrintJobsForBatch.ts`'s own header; closing this for real needs a `Facility`-level timezone field this app doesn't have yet.
 - **No true background scheduler** — `runScheduledBatchAggregation.ts` is admin-triggered ("Run Batch Now"), not a real timer; this app has no cron/scheduler infrastructure anywhere to hang one off of.
 
+## Batch 437 (PS-282, PS-357): print and export audit
+
+Pete: needed for HIPAA. Every print, reprint, preview print, stored-PDF open and export now writes one entry in the existing audit log:
+
+- `documentOutputAudit.ts` (pure) builds the entry:
+  - event `DOCUMENT_PRINTED`, `DOCUMENT_REPRINTED`, `DOCUMENT_PREVIEW_PRINTED`, `DOCUMENT_RENDERED`, `DOCUMENT_EXPORTED` or `DOCUMENT_FAXED`;
+  - detail with the document, id, version, destination, status, the time in UTC with the local offset, and the reason, format and row count when there are any.
+  - A print handed to the browser's dialog is `pending`, because the browser never says whether paper came out.
+  - `wasPrintedBefore`, `planDocumentPrint` and `printPromptComplete` decide reprints and the reprint reason.
+- `recordDocumentOutput.ts`: the app's wiring (the signed-in person, the audit service). `planReportPrint` reads the audit log and the performing lab's print settings.
+- `exportGate.ts`:
+  - `beginExport` checks an export's capability, then records it. A refusal makes no file.
+  - The capabilities are the Audit Log page's five logs, case search results, and the two My Contributions files.
+  - `recordExport` audits a configuration export that has no capability of its own.
+- Label prints are audited too (`utils/labels/labelPrintAudit.ts`). QZ Tray and agent prints record the printer and whether it took the job.
+
+Tests: `documentOutputAudit.test.ts`. Server contract: `docs/architecture/AUTHORIZATION_API.md`, "Exports and the print/export audit".
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-282)
+
+`printExportAuditPaths.test.ts`: the print/export paths reachable from services write their audit entries, and the reprint-reason setting. QA report exports now record `DOCUMENT_EXPORTED` (`qualityAssurance/qaExport.ts`).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`reportPrintAudit.ts`: the report page Print button's audit entry (PS-282).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

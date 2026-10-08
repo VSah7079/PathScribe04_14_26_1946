@@ -67,7 +67,22 @@ export default defineConfig({
     // 15 s left no headroom on a slower machine under full parallel load.
     // Seven test files also set their own 10–20 s limits per test, which
     // override this one; those were removed so the 30 s limit applies.
-    hookTimeout: 30000,
-    testTimeout: 30000,
+    //
+    // Batch 462: raised to 60 s. Pete's full run on Batch 461 (Oct 5, 2026):
+    // 5 files timed out at 30 s, the same kind as before: the first test in a
+    // file that imports the whole services barrel (mockCytologyQaReportService,
+    // processInboundTelemetryReadingEvent, liveUpdates, processLegacyRecordImport,
+    // templateService.governance). Run here with only those five files, all
+    // pass; the slowest first test took 14.2 s, so a busy machine running
+    // the whole suite in parallel needs more than 2× headroom. A real hang
+    // still fails, at 60 s. (The lasting fix is a lighter barrel: tests that
+    // import one service should not load all of them.)
+    hookTimeout: 60000,
+    testTimeout: 60000,
+
+    // Batch 456: tests never call the Pwned Passwords service
+    // (services/staffPasswords/passwordScreening.ts); its own tests pass a
+    // fake fetch.
+    env: { VITE_PWNED_CHECK: 'off' },
   },
 });

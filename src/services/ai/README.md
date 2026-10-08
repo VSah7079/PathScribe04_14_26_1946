@@ -29,6 +29,10 @@ The core AI provider abstraction layer. ALL AI generation in PathScribe flows th
 - **7 real tests** in `providers/streamingProviders.test.ts` covering the shared OpenAI-style streaming helper (token emission, `[DONE]`/`finish_reason` termination, malformed-line resilience), `StructuredContentProvider`'s genuinely different `finishReason`-based termination, and `ModelGatewayProvider`'s normalized-contract parsing. Uses a real `ReadableStream`, not just a mocked `.json()` call, so the actual `reader.read()` streaming code path is genuinely exercised.
 - `ModelGatewayProvider` (Bedrock) has a real, separate backend dependency that isn't automatic from this frontend change: the proxy route it calls (`/api/ai/bedrock/invoke-stream`) needs to be built server-side, using a real AWS SDK, to normalize Bedrock's raw binary event-stream response into the simple SSE contract this provider expects. Worth tracking as its own backend task.
 
+## Batch 444
+
+The providers no longer take a key. `AIProviderRegistry` stopped passing `config.apiKey`. `ChatCompletionsManagedProvider`, `CustomProvider` and `StructuredContentProvider` always call the proxy routes (`/api/ai/azure/…`, `/api/ai/custom/…`, `/api/ai/gemini/stream|generate`); their "dev mode" direct-to-vendor branches are gone. See `docs/architecture/AI_PROXY.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

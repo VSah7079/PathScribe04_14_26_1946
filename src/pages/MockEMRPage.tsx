@@ -1,14 +1,14 @@
+import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { resolveMockEmrPatientMatch, type MockEmrPatientMatch } from '@/services/cases/resolveMockEmrPatientMatch';
 
 interface MockEMRPageProps {
-  /** Optional — when provided (embedded modal use), takes priority over
-   *  the URL search param. Falls back to the ?patientId= query param so
-   *  this still works standalone at the real /mock-emr route. */
+  /** Optional — when provided (embedded drawer use), the patient's MRN.
+   *  Standalone at /mock-emr, the window is opened with ?case=<reference>
+   *  (Batch 446: never the MRN in the address) and looks the patient up. */
   patientId?: string;
 }
 
@@ -30,8 +30,15 @@ interface MockEMRPageProps {
 // with no inline style={{}} — nothing to change there.
 const MockEMRPage: React.FC<MockEMRPageProps> = ({ patientId: patientIdProp }) => {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const patientId = patientIdProp ?? searchParams.get('patientId') ?? '';
+  const caseId = useRouteCaseId('emr', 'case');
+  const [caseMrn, setCaseMrn] = useState('');
+  useEffect(() => {
+    if (patientIdProp || !caseId) return;
+    let live = true;
+    void caseRouter.getCase(caseId).then(c => { if (live) setCaseMrn(c?.patient?.mrn ?? ''); });
+    return () => { live = false; };
+  }, [caseId, patientIdProp]);
+  const patientId = patientIdProp ?? caseMrn;
 
   const [loading, setLoading] = useState(true);
   const [match, setMatch] = useState<MockEmrPatientMatch | null>(null);

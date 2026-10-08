@@ -1,6 +1,6 @@
 {
   "id": "lung_resection",
-  "name": "Generic Template \u2014 Lung Resection",
+  "name": "Generic Template — Lung Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "LUNG",
@@ -555,14 +555,17 @@
           "label": "Number Positive",
           "type": "numeric",
           "required": false,
-          "options": []
+          "options": [],
+          "wholeNumber": true,
+          "notMoreThan": "ln_number_examined"
         },
         {
           "id": "ln_number_examined",
           "label": "Number Examined",
           "type": "numeric",
           "required": false,
-          "options": []
+          "options": [],
+          "wholeNumber": true
         },
         {
           "id": "extranodal_extension",

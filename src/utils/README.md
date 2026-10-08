@@ -534,6 +534,61 @@ Tests only: `participationTypeLookup.test.ts` and `labels/` tests allow Configur
 - `accessRequests.ts`: each request is now saved as a record (`accessRequestService`) before the admins are messaged; `pendingAccessRequestsFor` feeds the badges.
 - `uiPreferences.ts`: `setSessionFlag` (new). The worklist filters, messages drawer, voice AI probe and preview pop-up flag use the session flags; the preview window position is a display preference (`previewWindowGeometry`).
 
+## Batch 434
+
+`slideDistributionOperations.ts`: `DISTRIBUTION_STATUS_KEYS` gains `Scanned`.
+
+## Batch 437
+
+- `formatDate.ts` `parseStoredUtc`: a stored timestamp with no zone (how the audit log stores them) is UTC. The Audit Log had shown every time shifted by the viewer's offset.
+- `labels/`: label prints are audited.
+
+## Batch 446
+
+`detectIdentifierType.resolveIdentifierApplication`: a scanned slide now gives `{ action: 'openCase', caseId, specimen? }` instead of an address. The search page opens it by reference.
+
+## Batch 449
+
+`configSectionParam.ts`: `pickConfigSection(search, allowed)` gives the inner tab named in `?section=`, else the first. Tested.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+`labels/`: molecular label content builder and tests (PS-231, PS-243).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`labels/safeBarcodeSvg.ts` (PS-256).
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`hydrateGrossingBlocks` saves with retry.
+
+## Batch 458 — PS-71 (continued)
+
+`computeDraftDiff` ignores `__draftBase` and `__draftVersion`, which travel with a cached draft for merging (Batch 458, PS-71).
+
+## Batch 458 — PS-71 (review before saving over someone else's save)
+
+No further change.
+
+## Batch 460
+
+- **`microtomyOperations.ts`:**
+  - `matrixBlockAsSpecimenView` / `matrixBlockFromSpecimenView` / `microtomyViewOf` / `microtomyCaseUpdates` (matrix blocks at the bench);
+  - `stainsInGridOrder`;
+  - `markDecantStainPrinting` / `markDecantStainPrintResult` (moved from the hook);
+  - new levels from `nextSlideLevelNumber`.
+- **`resolveMaterialFromScan.ts`:** slides are matched by printed level.
+- **Tests:** `microtomyOperations.test.ts` (including a stale-copy save that keeps the other change) and `resolveMaterialFromScan.levels.test.ts`.
+
+**Batch 460, after independent review:** `addOnOrderOperations.ts` and `grossingScreenOperations.ts` take the next unused level, and `markStainPrinting` refuses a slide that's gone. Test: `slideLevelReuse.test.ts`.
+
+## Batch 467 — In-house molecular orders
+
+`addOnOrderOperations.ts`: `resolveAddOnRouting` routes an in-house molecular line to the Molecular In-House Queue; a new molecular line starts with its default routing.
+
 ---
 *Note on structure: earlier entries above this section predate the
 convention of grouping by concern — they're the original, individual
@@ -637,3 +692,7 @@ own later additions.*
 - Moved out of the page: `filterStainsForKind` and `buildAddOnLines`.
 - Locale-key maps for routing queues and exception reasons.
 - Refusals carry an `errorCode` for the screen.
+
+## Batch 473 — Autopsy case-type key migration
+
+`search/`: `caseSearchLabels.ts`'s autopsy-authority label key renamed in step with `AutopsyCaseAuthority`. No behavior change. See `services/autopsy/README.md`.

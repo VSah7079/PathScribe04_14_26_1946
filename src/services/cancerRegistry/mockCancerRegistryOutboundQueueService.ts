@@ -5,10 +5,12 @@ import { retryRegistrySubmissionHeader } from '../registrySubmission/registrySub
 import type { ICancerRegistryOutboundQueueService } from './ICancerRegistryOutboundQueueService';
 import type { CancerRegistryOutboundQueueEntry } from '@/types/case/CancerRegistryOutboundQueueEntry';
 import { mockAuditService as auditService } from '@/services/auditlog/mockAuditService';
+import { CANCER_REGISTRY_DEMO_QUEUE } from './cancerRegistryDemoSeed';
 
 const KEY = 'cancer_registry_outbound_queue_v1';
 
-const load = (): CancerRegistryOutboundQueueEntry[] => storageGet<CancerRegistryOutboundQueueEntry[]>(KEY, []);
+// Batch 456: until anything is stored (a fresh browser, or after a Full Reset), the demo submissions (cancerRegistryDemoSeed.ts).
+const load = (): CancerRegistryOutboundQueueEntry[] => storageGet<CancerRegistryOutboundQueueEntry[]>(KEY, CANCER_REGISTRY_DEMO_QUEUE);
 const persist = (data: CancerRegistryOutboundQueueEntry[]) => storageSet(KEY, data);
 
 const delay = () => new Promise(r => setTimeout(r, 80));

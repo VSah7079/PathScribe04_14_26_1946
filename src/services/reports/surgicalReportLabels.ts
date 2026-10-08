@@ -19,6 +19,8 @@ export const SURGICAL_REPORT_LABEL_KEYS = [
   // Batch 426: one synoptic workup's own PDF (services/reports/workupPdf.ts).
   'workupParts', 'workupProtocol', 'workupVersion', 'workupStatus', 'workupSigned', 'workupDocument', 'workupChanges',
   'workupFinal', 'workupCorrected', 'workupAddendum',
+  // Batch 463: in place of a map that is part of the report but couldn't be drawn as an image.
+  'figureNotDrawn',
 ] as const;
 export type SurgicalReportLabels = Record<typeof SURGICAL_REPORT_LABEL_KEYS[number], string>;
 

@@ -40,6 +40,7 @@
 // the case's own, required, real performing-enterprise identity.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { mockBatchService } from './mockBatchService';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
@@ -103,7 +104,7 @@ export async function computePendingBatchQueue(facilityId: string | undefined): 
         for (let i = 0; i < (block.stains ?? []).length; i++) {
           const stain = block.stains[i];
           if (stain.status === 'Pending Cut') continue; // real, not-yet-cut slide — nothing physical exists yet
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(stain, i);
           const slideDisplayId = slideIdentifier(fullAccession, specimen.label, block.label, level);
           if (!batchedDisplayIds.has(slideDisplayId)) {
             queue.push({

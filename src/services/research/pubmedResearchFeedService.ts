@@ -102,8 +102,9 @@ interface CacheEnvelope {
 }
 
 function apiKey(): string | undefined {
-  const key = (import.meta as unknown as { env?: Record<string, string> })
-    .env?.VITE_NCBI_API_KEY;
+  // Batch 444: read by its full name. The old `(import.meta as …).env?.`
+  // form made Vite copy every VITE_ variable in .env into the bundle.
+  const key = import.meta.env.VITE_NCBI_API_KEY;
   return key && key.trim().length > 0 ? key.trim() : undefined;
 }
 

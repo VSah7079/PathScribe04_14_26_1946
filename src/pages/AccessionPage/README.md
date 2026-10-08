@@ -1024,3 +1024,25 @@ Picking a known patient from the index fills in their national identifiers and r
 ## Batch 430: personal settings per person; view-only fields
 
 Test only: the end-to-end test's auth mock also provides `useAuthOptional` (the voice provider reads who is signed in).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+The contact-bleeding decision moved to `services/accessioning/resolveAccessionSpecimenCytologyScreening.ts`; `AccessionPage.contactBleeding.e2e.test.tsx` accessions a Pap, an FNA and a biopsy (PS-212). Batch 452 replaced the checkbox with Yes / No / Not recorded, so an explicit 'no' is kept.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+Persistent contact bleeding is now a Yes / No / Not recorded choice. An explicit "no" is stored on each cytology and FNA specimen.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Follow-up writes to the just-created case use `updateCaseWithRetry`. A conflict on the national identifier or registry opt-out save is now shown.
+
+## Batch 468
+
+`AUTOPSY_ORGAN_LABEL_KEY` (the organ display-label map for the specimen organ picker) moved out to its own file, `autopsyOrganLabelKeys.ts`, so `SynopticReportPage.tsx`'s new consent-scope warning banner can reuse the same labels instead of defining a second, divergent map. No behavior change on this page.
+
+## Batch 473 — Case-type key migration
+
+No behavior change. This page's own intake flow references `caseAuthority`'s renamed forensic-path value, `'medicolegal_forensic'` → `'statutory_judicial'`. See `services/autopsy/README.md`.

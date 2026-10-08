@@ -468,9 +468,9 @@ const DepartmentsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input data-config-nav type="text" placeholder={t('departmentsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('departmentsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('departmentsSection.filters.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

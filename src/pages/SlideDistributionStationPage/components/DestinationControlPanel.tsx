@@ -30,6 +30,7 @@ import { filterRoutingDirectory } from '@/utils/slideDistributionOperations';
 import { formatList } from '@/utils/formatList';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
+import type { Equipment } from '@/services/equipment/IEquipmentService';
 import type { SlideQueueItem } from '../hooks/useSlideDistributionStation';
 import type { PhysicalAssignment, ScannerAssignment } from '@/utils/slideDistributionOperations';
 
@@ -39,6 +40,8 @@ export interface DestinationControlPanelProps {
   activeItem: SlideQueueItem | undefined;
   pathologists: StaffUser[];
   subspecialties: Subspecialty[];
+  /** Batch 434: active slide scanners from the Equipment register. */
+  scanners: Equipment[];
   defaultRouting: { pathologistId?: string; pathologistName?: string; subspecialtyId?: string };
   onAssignPhysical: (assignment: PhysicalAssignment) => void;
   onAssignScanner: (assignment: ScannerAssignment) => void;
@@ -52,7 +55,7 @@ export interface DestinationControlPanelProps {
 }
 
 const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
-  activeItem, pathologists, subspecialties, defaultRouting, onAssignPhysical, onAssignScanner, feedback, mode, onModeChange, requirements,
+  activeItem, pathologists, subspecialties, scanners, defaultRouting, onAssignPhysical, onAssignScanner, feedback, mode, onModeChange, requirements,
 }) => {
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState('');
@@ -178,7 +181,12 @@ const DestinationControlPanel: React.FC<DestinationControlPanelProps> = ({
         ) : (
           <>
             <label className="ps-slidedist-field-label" htmlFor="slidedist-scanner">{t('slideDistribution.destination.scannerInstrument')}{star('scannerInstrument')}</label>
-            <input id="slidedist-scanner" type="text" className="ps-slidedist-field-input" value={scannerInstrumentId} onChange={e => setScannerInstrumentId(e.target.value)} placeholder={t('slideDistribution.destination.scannerPlaceholder') ?? ''} />
+            {/* Batch 434: a slide scanner from the Equipment register (was free text). */}
+            <select id="slidedist-scanner" className="ps-slidedist-field-input" value={scannerInstrumentId} onChange={e => setScannerInstrumentId(e.target.value)}>
+              <option value="">{t('slideDistribution.destination.selectScanner')}</option>
+              {scanners.map(sc => <option key={sc.code} value={sc.code}>{sc.name}</option>)}
+            </select>
+            {scanners.length === 0 && <p className="ps-billing-reason-hint">{t('slideDistribution.destination.noScanners')}</p>}
             <label className="ps-slidedist-field-label" htmlFor="slidedist-rack">{t('slideDistribution.destination.rackId')}{star('rackId')}</label>
             <input id="slidedist-rack" type="text" className="ps-slidedist-field-input" value={rackId} onChange={e => setRackId(e.target.value)} placeholder={t('slideDistribution.destination.rackPlaceholder') ?? ''} />
             <label className="ps-slidedist-field-label" htmlFor="slidedist-slot">{t('slideDistribution.destination.slotPosition')}{star('slotPosition')}</label>

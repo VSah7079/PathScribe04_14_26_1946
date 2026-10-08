@@ -14,6 +14,9 @@ import { resolveFieldRequirements, type ResolvedFieldRequirement } from '@/servi
 import {
   completeGrossing, missingGrossingItems, specimensForSecondaryReview, type CompleteGrossingRefusal,
 } from '@/services/grossing/grossingCompletion';
+import {
+  recordMarginInkApplication, type RecordMarginInkApplicationInput, type RecordMarginInkApplicationResult,
+} from '@/services/grossing/recordMarginInkApplication';
 import type { Case } from '@/types/case/Case';
 import type { Specimen } from '@/types/case/Specimen';
 import type { ProtocolPathway } from '@/services/protocols/IProtocolService';
@@ -247,6 +250,28 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
   }, [runCompleteGrossing]);
   const cancelCompleteWithoutProtocol = useCallback(() => setPendingProtocolConfirmation(null), []);
 
+  // Batch 481 (Structured Inking, Module 2; PS-359 follow-up): records a
+  // margin's first ink application (creating it) or appends a further one
+  // to an existing margin, via the real, capability-checked, version-safe
+  // service built in Batch 480. That service doesn't hand back the updated
+  // case the way recordAutopsyOrganTag.ts does, so on success this re-reads
+  // the case — the same real idiom this hook's own initial load already
+  // uses — rather than reconstructing the new margins locally.
+  const handleRecordMarginInk = useCallback(async (
+    input: RecordMarginInkApplicationInput,
+  ): Promise<RecordMarginInkApplicationResult> => {
+    if (!caseData?.id) return { ok: false, error: 'No case loaded.' };
+    const result = await recordMarginInkApplication(caseData.id, input, signingUser?.name ?? signingUser?.id ?? 'unknown');
+    if (result.ok) {
+      const fresh = await caseRouter.getCase(caseData.id);
+      if (fresh) {
+        setCaseData(fresh);
+        knownVersionRef.current = (fresh as unknown as { version?: number }).version ?? knownVersionRef.current + 1;
+      }
+    }
+    return result;
+  }, [caseData?.id, signingUser, setCaseData, knownVersionRef]);
+
   return {
     handleAddBlock, handleRemoveBlock, handleAddStain, handleRemoveStain,
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
@@ -255,5 +280,6 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     missingItems, handleCompleteGrossing, completeRefusal,
     secondaryReviewSpecimens, pendingProtocolConfirmation, confirmCompleteWithoutProtocol, cancelCompleteWithoutProtocol,
     completionReview,
+    handleRecordMarginInk,
   };
 }

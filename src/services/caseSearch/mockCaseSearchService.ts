@@ -19,7 +19,6 @@ import { testSpecimenRouting } from '../cases/casePoolAssignmentService';
 import { getSessionUser } from '../auth/caseAccessControl';
 import { mockPhysicianService } from '../physicians/mockPhysicianService';
 import { mockFlagService } from '../flags/mockFlagService';
-import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockSpecimenDictionaryService } from '../specimenDictionary/mockSpecimenDictionaryService';
 import { mockStainTypeService } from '../stains/mockStainTypeService';
 import { mockFacilityService } from '../facilities/mockFacilityService';
@@ -30,6 +29,9 @@ import { deriveSubspecialtyFromProtocols } from '../reportTemplates/TemplateRout
 import { isUrgentCase } from '@/utils/caseUrgency';
 import { createCaseSearchService } from './createCaseSearchService';
 import type { CaseSearchReferenceData } from './caseSearchMatching';
+import { recordDocumentOutput } from '../printing/recordDocumentOutput';
+import { DESTINATION } from '../printing/documentOutputAudit';
+import { EXPORT_CHECKS } from '../printing/exportGate';
 
 /** A case's subspecialty when it doesn't record one: from its protocols, else from specimen routing rules. */
 function derivedSubspecialty(c: Case, performingLabId: string | undefined): string | undefined {
@@ -139,16 +141,13 @@ export const mockCaseSearchService = createCaseSearchService({
     })().catch(() => {});
   },
 
+  // PS-282 (Batch 437): recorded as a document export (the export entry
+  // every download now makes), with how many of the matches it held.
   auditExport({ rowCount, total }) {
-    const user = getSessionUser();
-    // Audit detail stays literal English and carries no patient data.
-    mockAuditService.logEvent({
-      type: 'user',
-      event: 'Case Search Export',
-      detail: `Exported ${rowCount} of ${total} matching cases from Search to CSV`,
-      user: user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.id : 'unknown',
-      caseId: null,
-      confidence: null,
-    }).catch(() => {});
+    void recordDocumentOutput({
+      action: 'export', document: 'case-search', destination: DESTINATION.download(`case search CSV (${rowCount} of ${total} matches)`),
+      status: 'success', format: 'csv', rowCount,
+    });
   },
+  authorizeExport: EXPORT_CHECKS['case-search'],
 });

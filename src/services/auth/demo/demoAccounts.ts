@@ -9,7 +9,11 @@
 //   • This module is loaded only when VITE_AUTH_MODE is unset or "demo"
 //     (authSession.ts). An "sso" build leaves it out of the bundle entirely.
 //   • The passwords themselves were in the shipped bundle until Batch 343,
-//     so treat them as known: change them with the script above.
+//     so treat them as known.
+//   • Batch 448: these are only the starting passwords. An administrator
+//     sets or resets anyone's password from Staff → edit → Sign-in password
+//     (services/staffPasswords/); once set there, the built-in one stops
+//     working for that account. Full Reset returns to these.
 //
 // Role guide:
 //   "pathologist"       → clinical cases + reporting only
@@ -74,6 +78,27 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: 'BW6UbPcfctpi2AGqs3pP3Q==', hash: 'HxfyWumohGb5Mfmv/wTtlt3R9RulynQ6uiixtD7D7mQ=' } },
   { email: 'michelle.nimmo@ai.com', id: 'PATH-MN-001', name: 'Michelle Nimmo', role: 'pathologist-admin', initials: 'MN', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'NEV6v3TdVFZRqfKRGYUnZw==', hash: 'UJkKSg81VbsWvNt41slFyagi7r3nmRs0q8hfQgj1yjo=' } },
+  // Batch 455 (Pete: "Some workflows require a second staff person with the
+  // appropriate RBPs"): a sign-in for every built-in role nobody could demo,
+  // so each two-person workflow has two real people. Same password as
+  // demo@pathscribe.ai (each hashed with its own salt). Built in, so a Full
+  // Reset, which clears passwords set on the Staff screen, can't lock them out.
+  // The session role is what their staff roles give (sessionRole.ts); what they
+  // may do comes from those staff roles.
+  { email: 'rachel.okafor@demo.pathscribe.ai', id: 'LD-001', name: 'Dr. Rachel Okafor', role: 'admin', initials: 'RO', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'BRs+bgTOn+h9O7QJQo/K+g==', hash: 'JXgVWl7/CcR45ynpfRQ0ZEY7ROUArQnSPQybJKEoEsg=' } },
+  { email: 'james.okafor@demo.pathscribe.ai', id: '2', name: 'Dr. James Okafor', role: 'pathologist', initials: 'JO', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: '9dJCrOwDXXASeVNr08zdqQ==', hash: 'QZ9TtRQGYt15AMr5i4z00toCalq7YH2WH8Qv0nZdf+0=' } },
+  { email: 'lucas.moreau@demo.pathscribe.ai', id: 'FEL-001', name: 'Dr. Lucas Moreau', role: 'pathologist', initials: 'LM', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'LkkjQih8JGqpRK7CCi29hw==', hash: 'FVN4yM3YiVeaRs+SKKiXNknIWj2DRzmzQLX7+3T9kXU=' } },
+  { email: 'nadia.rahman@demo.pathscribe.ai', id: 'CT-002', name: 'Nadia Rahman', role: 'pathologist', initials: 'NR', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'JUUpWPFzLkRiSztDFRW5Gg==', hash: '9M9+chfKH7tquSv+Bp/pKGrBSK9wBvQtP7/VNz16T1k=' } },
+  { email: 'hannah.price@demo.pathscribe.ai', id: 'TA-001', name: 'Hannah Price', role: 'admin', initials: 'HP', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'mdT6kdPJ7sWjwpBIdXS6Ew==', hash: 'WtpxldKZQ3yQhr25Q/mw80M25q1+C35i7U0bPLRvQRQ=' } },
+  { email: 'samuel.osei@demo.pathscribe.ai', id: 'TAP-001', name: 'Dr. Samuel Osei', role: 'admin', initials: 'SO', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: '15e9hKDlTmhfhKko8yvliw==', hash: 'pFFJi+yoDSXKZL5r8I6bPWDaIlfQ3Rd+Hx61aOWqpIk=' } },
+  { email: 'grace.liu@demo.pathscribe.ai', id: 'QA-001', name: 'Grace Liu', role: 'pathologist', initials: 'GL', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'Smv3/DzDZgoCo/KYrzt6dA==', hash: 'MjtxMX+UpCc1jJtBJfdujhesbd7v3sm1w4dkA0j+a68=' } },
 ];
 
 /** Checked when the email matches no account, so an unknown email takes as long as a wrong password. */

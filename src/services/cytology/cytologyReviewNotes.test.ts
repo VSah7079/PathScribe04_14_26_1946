@@ -43,7 +43,9 @@ describe('acknowledging and closing', () => {
     const { deps, updates } = makeWorkspaceDeps();
     const specimen = specimenWith([note()]);
     expect(await acknowledgeCytologyReviewNote({ caseData, specimenId: 'SP1', specimen, noteId: 'rn-1', user: { id: 'P1' } }, deps)).toBe('notAuthor');
-    expect(await acknowledgeCytologyReviewNote({ caseData, specimenId: 'SP1', specimen, noteId: 'rn-1', user: { id: 'CT1' } }, deps)).toBe('acknowledged');
+    // PS-71 (Batch 458): the note is changed on the specimen as saved, so the case holds it.
+    const saved = { ...(caseData as any), specimens: [specimen] } as never;
+    expect(await acknowledgeCytologyReviewNote({ caseData: saved, specimenId: 'SP1', specimen, noteId: 'rn-1', user: { id: 'CT1' } }, deps)).toBe('acknowledged');
     expect(updates[0].patch.specimens[0].cytologyScreening.reviewNotes[0]).toMatchObject({ status: 'acknowledged', acknowledgedAt: '2026-09-30T18:00:00.000Z' });
   });
   it('the author saving after acknowledging revises it; an unacknowledged note stays open', () => {
@@ -69,5 +71,23 @@ describe('the sign-out gate (Pete: blocks CT only)', () => {
     expect(gate.blockedReasons).toEqual(['pending_author_revision']);
     expect(resolveCanSignOutCytology(false, gate)).toBe(false);
     expect(resolveCanSignOutCytology(true, gate)).toBe(true);
+  });
+});
+
+describe('PS-71 (Batch 458): a note is added to the notes as saved', () => {
+  it('a note someone else added after the page loaded is kept', async () => {
+    const theirs = note({ id: 'rn-theirs' });
+    const stored = { ...(caseData as any), version: 3, specimens: [specimenWith([theirs])] };
+    const { deps, updates } = makeWorkspaceDeps({ getCase: async () => stored as never });
+    const pageCopy = { ...(caseData as any), version: 2 } as never;
+    deps.updateCase = vi.fn(async (_id: string, patch: any, v?: number) => {
+      if (v !== 3) { const { ConcurrencyConflictError } = await import('../cases/ConcurrencyConflictError'); throw new ConcurrencyConflictError('C1', v ?? -1, 3); }
+      updates.push({ id: 'C1', patch } as never);
+    }) as never;
+    const base = { caseData: pageCopy, specimenId: 'SP1', specimen: specimenWith([]), review: ctReview, section: 'primary' as const, text: 'Consider LSIL', requiresRevision: false, user: { id: 'P1', name: 'Dr P' } };
+    expect(await addCytologyReviewNote(base, deps)).toBe('added');
+    const notes = (updates[updates.length - 1] as any).patch.specimens[0].cytologyScreening.reviewNotes;
+    expect(notes.map((n: any) => n.id)).toEqual(['rn-theirs', expect.stringMatching(/^rn-/)]);
+    expect(notes).toHaveLength(2);
   });
 });

@@ -20,18 +20,28 @@ beforeEach(() => {
 });
 
 describe('mockQaActivityTypeService', () => {
-  it('seeds six real, distinct activity types by default', async () => {
+  it('seeds nine real, distinct activity types by default', async () => {
     const res = await mockQaActivityTypeService.getAll();
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     // Real, per PS-324: two new seed entries added this session
     // (Surgical Post-Sign-Out Peer Review, Surgical Biopsy-to-Resection
-    // Correlation) — six is the current, real count, not four.
-    expect(res.data.length).toBe(6);
+    // Correlation). Batch 439 added three more (pre-sign-out peer review,
+    // clinical-pathologic correlation, outside consult correlation).
+    expect(res.data.length).toBe(9);
     expect(res.data.map(t => t.id)).toEqual(expect.arrayContaining([
       'qa-activity-frozen-final', 'qa-activity-cyto-histo', 'qa-activity-abnormal-finding-confirmation', 'qa-activity-gyn-cytology-secondary-screening',
       'qa-activity-surgical-peer-review', 'qa-activity-surgical-biopsy-resection',
+      'qa-activity-pre-signout-peer-review', 'qa-activity-clinical-pathologic-correlation', 'qa-activity-outside-consult',
     ]));
+  });
+
+  it('Batch 439: a browser that stored its list before still gets the new standard types', async () => {
+    const { storageGet, storageSet } = await import('../mockStorage');
+    const stored = storageGet<{ id: string }[]>('qa_activity_types', []);
+    storageSet('qa_activity_types', stored.filter(t => t.id !== 'qa-activity-outside-consult'));
+    const res = await mockQaActivityTypeService.getAll();
+    expect(res.ok && res.data.some(t => t.id === 'qa-activity-outside-consult')).toBe(true);
   });
 
   it('the seeded Frozen vs Final type has teachingOnboardingEnabled true and a real field schema', async () => {
@@ -66,7 +76,7 @@ describe('mockQaActivityTypeService', () => {
     expect(res.ok).toBe(true);
     const all = await mockQaActivityTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.length).toBe(7); // 6 real seeds (PS-324) + this one
+    expect(all.data.length).toBe(10); // 9 real seeds (PS-324, Batch 439) + this one
   });
 
   it('deactivate/reactivate toggle a custom type\'s active flag', async () => {

@@ -24,11 +24,21 @@ import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import type { Case } from '@/types/case/Case';
 import type { ConsultToken } from '@/services/consultAccess/IConsultTokenService';
 
-const { getByCaseId, issue, revoke } = vi.hoisted(() => ({
+const { getByCaseId, issue, revoke, getOpinionsByCaseId, assessOpinion } = vi.hoisted(() => ({
   getByCaseId: vi.fn(), issue: vi.fn(), revoke: vi.fn(),
+  getOpinionsByCaseId: vi.fn(async () => ({ ok: true, data: [] })), assessOpinion: vi.fn(async () => ({ ok: true, data: {} })),
 }));
-vi.mock('@/services', () => ({
-  consultTokenService: { getByCaseId, issue, revoke },
+vi.mock('@/services', async () => {
+  const rules = await vi.importActual<typeof import('@/services/consultAccess/outsideConsultRules')>('@/services/consultAccess/outsideConsultRules');
+  return {
+    consultTokenService: { getByCaseId, issue, revoke, getOpinionsByCaseId, assessOpinion },
+    outsideConsultAssessmentProblem: rules.assessmentProblem,
+    OUTSIDE_CONSULT_ASSESSMENTS: rules.OUTSIDE_CONSULT_ASSESSMENTS,
+  };
+});
+// Batch 439: the assess button is a CapabilityButton; its permission check is tested on its own.
+vi.mock('@/components/Common/CapabilityButton', () => ({
+  CapabilityButton: ({ children, onClick, className }: { children: React.ReactNode; onClick: () => void; className: string }) => <button className={className} onClick={onClick}>{children}</button>,
 }));
 
 const CASE = {
@@ -141,5 +151,20 @@ describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
 
     expect(revoke).toHaveBeenCalledWith('ctok-1', 'u1');
     expect(getByCaseId).toHaveBeenCalledTimes(2);
+  });
+
+  // Batch 439 (PS-148): opinions sent back, and assessing one.
+  it('lists a signed opinion and records the assessment; a major discordance needs a note', async () => {
+    getByCaseId.mockResolvedValue({ ok: true, data: [] });
+    getOpinionsByCaseId.mockResolvedValueOnce({ ok: true, data: [{ id: 'op-1', tokenId: 't', caseId: 'case-1', consultantIdentifier: 'Dr Outside', signedStatus: 'Signed', opinionText: 'Favour partial mole.', submittedAt: '2026-10-02T10:00:00Z' }] } as never);
+    await renderModal();
+    expect(screen.getByText('Favour partial mole.')).toBeTruthy();
+    fireEvent.click(screen.getByText('Major discordance'));
+    await act(async () => { fireEvent.click(screen.getByText('Record assessment')); });
+    expect(screen.getByText('Say what differs.')).toBeTruthy();
+    expect(assessOpinion).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('What differs'), { target: { value: 'We reported no molar change.' } });
+    await act(async () => { fireEvent.click(screen.getByText('Record assessment')); });
+    expect(assessOpinion).toHaveBeenCalledWith('op-1', { assessment: 'major-discordance', note: 'We reported no molar change.' });
   });
 });

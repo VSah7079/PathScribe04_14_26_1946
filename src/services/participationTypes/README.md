@@ -92,6 +92,21 @@ Before, anyone who could open Configuration could change this; now each change i
 
 Country signing rules (`saveCountryProfiles.ts`) are ForMedrixAI support's: `platform:signing-rules:manage` (Superadmin only), replacing the role check. They write the participation type unchecked, since the change is checked above.
 
+## Batch 441: cytotechnologists never hold a pathologist slot
+
+Pete (Oct 2): "Cytotechs can not be selected for Pathologist roles."
+
+`cytotechParticipationRules.ts` (pure, `cytotechParticipationRules.test.ts`):
+- `isCytotechOnly`: the staff member holds Cytotechnologist and none of Pathologist, Resident or Fellow.
+- `isPathologistParticipationType`: `primary`, `attending`, `resident`, `frozen`, `second_opinion`, `consultant`, `provisional_hire`, or any type that can finalize.
+- `mayHoldParticipationType`, `cytotechInPathologistSlot` (case teams), `cytotechRoleProblem` and `roleMayListParticipationType` (the Role Dictionary).
+
+The rule holds whatever the Role Dictionary lists. It's applied in:
+- `cases/resolveClaimParticipationType.ts`: eligibility and pool claims;
+- `cases/saveCaseTeam.ts`;
+- `delegations/mockDelegationService.ts`;
+- `roles/roleAdministration.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

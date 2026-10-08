@@ -96,10 +96,19 @@ describe('saveCytologyReview', () => {
     expect(deps.returnToCytologyPool).toHaveBeenCalledWith(expect.objectContaining({ id: 'C2' }));
   });
 
+  it('Batch 440: a QC rescreen by the cytotech who did the primary screen is refused and saves nothing', async () => {
+    for (const role of ['qc_random_selection', 'qc_targeted_high_risk'] as const) {
+      const { deps, qa } = makeWorkspaceDeps();
+      expect(await saveCytologyReview(input({ resolvedRole: role, reviews: [primary] }), deps)).toEqual({ outcome: 'qcByPrimaryScreener' });
+      expect(deps.createReview).not.toHaveBeenCalled();
+      expect(qa).toEqual([]);
+    }
+  });
+
   it('a QC rescreen records the secondary-screening QA activity against the initial review', async () => {
     const { deps, qa } = makeWorkspaceDeps();
     await saveCytologyReview(input({
-      resolvedRole: 'qc_random_selection', reviews: [primary],
+      resolvedRole: 'qc_random_selection', reviews: [primary], user: { id: 'CT2', name: 'CT Two' },
       form: { kind: 'standard', draft: { ...EMPTY_DRAFT, primaryInterpretationId: 'hsil' } },
     }), deps);
     expect(qa).toEqual([expect.objectContaining({
@@ -142,7 +151,7 @@ describe('saveCytologyReview', () => {
 
   it('the secondary-screening QA record carries the graded level', async () => {
     const { deps, qa } = makeWorkspaceDeps();
-    await saveCytologyReview(input({ resolvedRole: 'qc_random_selection', reviews: [primary], form: { kind: 'standard', draft: { ...EMPTY_DRAFT, primaryInterpretationId: 'hsil' } } }), deps);
+    await saveCytologyReview(input({ resolvedRole: 'qc_random_selection', reviews: [primary], user: { id: 'CT2', name: 'CT Two' }, form: { kind: 'standard', draft: { ...EMPTY_DRAFT, primaryInterpretationId: 'hsil' } } }), deps);
     expect(qa[0].fieldValues).toMatchObject({ agreementLevel: 'major_discrepancy', majorSubtype: 'false_negative' });
   });
 
@@ -158,7 +167,8 @@ describe('saveCytologyReview', () => {
   it('Batch 412: the author\'s save closes acknowledged notes, in the same write as nothing else', async () => {
     const { deps, updates } = makeWorkspaceDeps();
     const specimen = { id: 'SP1', cytologyScreening: { reviewNotes: [{ id: 'rn-1', reviewId: 'rv-p', reviewAuthorId: 'CT1', requiresRevision: true, status: 'acknowledged' }] } };
-    await saveCytologyReview(input({ editingReviewId: 'rv-p', reviews: [primary], specimen }), deps);
+    // PS-71 (Batch 458): the notes are worked out from the specimen as saved, so the case holds it.
+    await saveCytologyReview(input({ editingReviewId: 'rv-p', reviews: [primary], specimen, caseData: { ...(caseData as any), specimens: [specimen] } as never }), deps);
     expect(updates).toHaveLength(1);
     expect(updates[0].patch.specimens[0].cytologyScreening.reviewNotes[0].status).toBe('revised');
   });
@@ -173,3 +183,44 @@ describe('saveCytologyReview', () => {
   });
 });
 
+
+// Batch 450 (PS-188): the workload check at save time uses all three cap tiers
+// (Enterprise, the case's performing facility, the reviewer).
+describe('saveCytologyReview — workload cap tiers at save time', () => {
+  // 36 s of screening = 0.01 h: a cap of 100 allows 0.125 SCU (blocked), 1000 allows 1.25 (a 1-SCU review fits).
+  const caps = (facility: number | null, staff: number | null) => vi.fn(async () => ({
+    enterprise: { dailySlideCap: 100 },
+    facility: facility === null ? null : { id: 'fc', facilityId: 'F1', overrides: { dailySlideCap: facility }, createdAt: '', updatedAt: '' },
+    staff: staff === null ? null : { id: 'sc', staffUserId: 'CT1', overrides: { dailySlideCap: staff }, createdAt: '', updatedAt: '' },
+  }));
+
+  it('asks for the caps of the case\'s performing facility and the reviewer', async () => {
+    const getWorkloadCaps = caps(null, null);
+    const { deps } = makeWorkspaceDeps({ getWorkloadCaps });
+    await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
+    expect(getWorkloadCaps).toHaveBeenCalledWith('F1', 'CT1');
+  });
+
+  it('a facility cap above the Enterprise default lets through a review the Enterprise cap alone would block', async () => {
+    const { deps, ledger } = makeWorkspaceDeps({ getWorkloadCaps: caps(1000, null) });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
+    expect(result).toMatchObject({ outcome: 'saved', capacity: expect.objectContaining({ maxAllowedScu: 1.25, status: 'ok' }) });
+    expect(deps.returnToCytologyPool).not.toHaveBeenCalled();
+    expect(ledger).toHaveLength(1);
+  });
+
+  it('a facility cap below the Enterprise default blocks a review the Enterprise cap would allow', async () => {
+    // 360 s = 0.1 h: Enterprise 100 allows 1.25 SCU; facility 50 allows 0.625.
+    const { deps } = makeWorkspaceDeps({ getWorkloadCaps: caps(50, null) });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 360 }), deps);
+    expect(result).toMatchObject({ outcome: 'workloadBlocked', capacity: expect.objectContaining({ maxAllowedScu: 0.625, status: 'exceeded' }) });
+    expect(deps.createReview).not.toHaveBeenCalled();
+  });
+
+  it('the reviewer\'s own cap beats the facility cap', async () => {
+    const { deps } = makeWorkspaceDeps({ getWorkloadCaps: caps(1000, 50) });
+    const result = await saveCytologyReview(input({ activeScreeningSeconds: 36 }), deps);
+    expect(result).toMatchObject({ outcome: 'workloadBlocked', capacity: expect.objectContaining({ maxAllowedScu: 0.0625 }) });
+    expect(deps.createReview).not.toHaveBeenCalled();
+  });
+});

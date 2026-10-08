@@ -67,7 +67,7 @@ const DEFAULT_HOSPITAL_CONFIG: HospitalConfig = {
 
 function loadSystemConfig(): SystemConfig {
   const merged = readStoredConfig('system', DEFAULT_SYSTEM_CONFIG);
-  const envVoice = import.meta.env?.VITE_VOICE_ENABLED;
+  const envVoice = import.meta.env.VITE_VOICE_ENABLED;
   if (envVoice === 'false') merged.voiceEnabled = false;
   return merged;
 }

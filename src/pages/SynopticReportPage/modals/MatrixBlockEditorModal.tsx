@@ -123,7 +123,7 @@ const MatrixBlockEditorModal: React.FC<MatrixBlockEditorModalProps> = ({
     const preset = getLabelSizePreset('histology_secondary_overlay');
     if (!preset) return;
     const html = buildSecondaryLabelHtml(data, preset);
-    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`);
+    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`, { document: 'secondary-label', documentId: data.recordLabel, caseId: fullAccession });
   };
 
   // ── Array Mapper state (PS-93) ────────────────────────────────────────────

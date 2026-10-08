@@ -36,12 +36,13 @@
 // from @/services rather than the mock directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf, stainAtLevel } from '@/services/material/slideLevels';
 import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import {
-  printerProfileService, printSettingsService, userService, subspecialtyService, scanStationService,
+  printerProfileService, printSettingsService, userService, subspecialtyService, scanStationService, equipmentService,
   slideCheckoutMissing, scannerLoadMissing, slideExceptionMissing, slideReprintMissing,
 } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
@@ -50,6 +51,7 @@ import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import type { StaffUser } from '@/services/users/IUserService';
 import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
+import type { Equipment } from '@/services/equipment/IEquipmentService';
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, StainOrder } from '@/types/case/Specimen';
 import {
@@ -92,7 +94,7 @@ const failed: SlideDistributionActionResult = { ok: false, message: { key: 'slid
 
 function levelLabelFor(stains: StainOrder[], stainId: string): string {
   const idx = stains.findIndex(s => s.id === stainId);
-  return `L${idx + 1}`;
+  return slideLevelOf(stains[idx] ?? {}, Math.max(idx, 0));
 }
 
 export function useSlideDistributionStation() {
@@ -106,14 +108,17 @@ export function useSlideDistributionStation() {
   const [scanExceptions, setScanExceptions] = useState<ScanException[]>([]);
   const [pathologists, setPathologists] = useState<StaffUser[]>([]);
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
+  // Batch 434: the slide scanners in the Equipment register (the Digital destination picks one).
+  const [scanners, setScanners] = useState<Equipment[]>([]);
   const versionsRef = useRef<Map<string, number>>(new Map());
 
   const actor = { id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' };
 
   const loadDirectories = useCallback(async () => {
-    const [usersRes, subsRes] = await Promise.all([userService.getAll(), subspecialtyService.getAll()]);
+    const [usersRes, subsRes, scannersRes] = await Promise.all([userService.getAll(), subspecialtyService.getAll(), equipmentService.getActive('slide_scanner')]);
     if (usersRes.ok) setPathologists(usersRes.data.filter(u => u.roles.includes('Pathologist') && u.status === 'Active'));
     if (subsRes.ok) setSubspecialties(subsRes.data.filter(s => s.active));
+    if (scannersRes.ok) setScanners(scannersRes.data);
   }, []);
 
   /** Real, per the spec's own "Automatic Routing Logic: pre-populates
@@ -175,7 +180,7 @@ export function useSlideDistributionStation() {
       return { ok: true };
     }
     // target.level === 'slide'
-    const stain = block.stains?.find((_, i) => `L${i + 1}` === target.slideLevel);
+    const stain = stainAtLevel(block.stains, target.slideLevel);
     if (!stain) return fail({ key: 'slideDistribution.scanErrors.slideNotFound', values: { slide: `${specimen.label}${block.label}-${target.slideLevel}` } });
     const id = enqueue(caseData, specimen, block, stain);
     setActiveQueueId(id);
@@ -310,7 +315,7 @@ export function useSlideDistributionStation() {
 
   return {
     queue, activeQueueId, setActiveQueueId, scanError, scanExceptions, resolveScan, removeFromQueue, requirements,
-    pathologists, subspecialties, loadDirectories, resolveDefaultRouting,
+    pathologists, subspecialties, scanners, loadDirectories, resolveDefaultRouting,
     handleAssignPhysical, handleAssignScanner, handleFlagException, handleResolveException, handleRequestReprint,
     splitDestinationWarningFor, effectiveStationId, actor,
   };

@@ -41,9 +41,12 @@ export type SystemSection =
   | 'print_routing_rules'
   | 'contribution_settings'
   | 'qa_config_center'
+  | 'biopsy_resection_correlation'
+  | 'follow_up_tracking'
   | 'external_resources'
   | 'research_feed'
   | 'protocols'
+  | 'organ_maps'
   | 'grossing_route_overrides'
   | 'governing_bodies'
   | 'delegation_types'
@@ -71,6 +74,10 @@ export type SystemSection =
   | 'routing_rules'
   | 'physicians'
   | 'deficiencies'
+  | 'revision_reasons'
+  | 'peer_review_gate'
+  | 'qa_trend_policy'
+  | 'feedback'
   | 'abnormal_trigger_rules'
   | 'assist_lis_polling';
 
@@ -166,6 +173,8 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'participation_types', emoji: '👥', labelKey: 'systemTab.sections.participationTypes'   , group: 'Clinical Lookups' },
   { id: 'country_signing_rules', emoji: '🌐', labelKey: 'systemTab.sections.countrySigningRules', group: 'Clinical Lookups' },
   { id: 'protocols',           emoji: '🧬', labelKey: 'systemTab.sections.protocols'   , group: 'Clinical Lookups' },
+  // Batch 461: anatomical map colours & patterns (by enterprise, jurisdiction, facility) and question bindings.
+  { id: 'organ_maps',          emoji: '🗺', labelKey: 'systemTab.sections.organMaps'   , group: 'Clinical Lookups' },
   { id: 'departments', emoji: '🗂️', labelKey: 'systemTab.sections.departments'   , group: 'Clinical Lookups' },
   { id: 'subspecialties',      emoji: '🩺', labelKey: 'systemTab.sections.subspecialties'        , group: 'Clinical Lookups' },
 
@@ -195,6 +204,16 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'delivery_rules', emoji: '📬', labelKey: 'systemTab.sections.deliveryRules', group: 'Administration & Compliance' },
   { id: 'print_routing_rules', emoji: '🖨', labelKey: 'systemTab.sections.printRoutingRules', group: 'Administration & Compliance' },
   { id: 'qa_config_center',    emoji: '✅', labelKey: 'systemTab.sections.qaConfigCenter' , group: 'Administration & Compliance' },
+  // Batch 453 (PS-324): the biopsy-to-resection correlation window.
+  { id: 'biopsy_resection_correlation', emoji: '⏱', labelKey: 'systemTab.sections.biopsyResectionCorrelation', group: 'Administration & Compliance' },
+  // Batch 454: warning period, clinician email on/off and its wording.
+  { id: 'follow_up_tracking', emoji: '📬', labelKey: 'systemTab.sections.followUpTracking', group: 'Administration & Compliance' },
+  // Batch 438 (PS-146): amendment and correction reasons, and which are clinically significant.
+  { id: 'revision_reasons',    emoji: '📝', labelKey: 'systemTab.sections.revisionReasons', group: 'Administration & Compliance' },
+  // Batch 439 (PS-144): where sign-out waits for a first-time malignancy's peer review.
+  { id: 'peer_review_gate',    emoji: '👥', labelKey: 'systemTab.sections.peerReviewGate', group: 'Administration & Compliance' },
+  { id: 'qa_trend_policy',     emoji: '📈', labelKey: 'systemTab.sections.qaTrendPolicy', group: 'Administration & Compliance' },
+  { id: 'feedback',            emoji: '🧪', labelKey: 'systemTab.sections.feedback', group: 'Administration & Compliance' },
   { id: 'research_feed',       emoji: '📰', labelKey: 'systemTab.sections.researchFeed'         , group: 'Administration & Compliance' },
   { id: 'session_security',    emoji: '🔒', labelKey: 'systemTab.sections.sessionSecurity'      , group: 'Administration & Compliance' },
   // Batch 372: whether ForMedrixAI support may reach this organisation's data, approvals, and the support audit.

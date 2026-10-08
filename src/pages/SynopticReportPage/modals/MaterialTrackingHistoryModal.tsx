@@ -27,6 +27,7 @@
 // pathscribe.css), never both visible at once.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +51,7 @@ interface MaterialTrackingHistoryModalProps {
 }
 
 import { is24HourForLocale } from '@/utils/formatDate';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 /**
  * Real fix, per direct follow-up: "Maybe time in military style?
@@ -321,7 +323,7 @@ function buildFlatTree(specimens: Specimen[], fullAccession: string, query: stri
       items.push({ id: block.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.block', { label: block.label }), displayId: blockDisplayId, subtitle: t('materialTrackingHistoryModal.subtitle.block'), locationHistory: block.locationHistory, visible: blockVisible, directMatch: blockSelfMatches(block, blockDisplayId, query), readyForReview: allSlidesReady(block.stains ?? []) });
 
       (block.stains ?? []).forEach((slide, i) => {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const slideDisplayId = resolveSlideDisplayId(fullAccession, sp.label, block.label, level, slide);
         const slideVisible = blockVisible && slideMatches(slide, slideDisplayId, query);
         items.push({ id: slide.id, depth: 2, icon: '🔬', title: t('materialTrackingHistoryModal.itemTitle.slide', { id: `${block.label}-${level}` }), displayId: slideDisplayId, subtitle: slide.stainName || t('materialTrackingHistoryModal.subtitle.unstained'), locationHistory: slide.locationHistory, visible: slideVisible, directMatch: slideSelfMatches(slide, slideDisplayId, query), readyForReview: isSlideReady(slide) });
@@ -339,7 +341,7 @@ function buildFlatTree(specimens: Specimen[], fullAccession: string, query: stri
       items.push({ id: decant.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.decant', { label: decant.label }), displayId: decantDisplayId, subtitle: DECANT_TYPE_LABEL[decant.decantType], locationHistory: decant.locationHistory, visible: decantVisible, directMatch: decantSelfMatches(decant, decantDisplayId, query), readyForReview: allSlidesReady(decant.stains ?? []) });
 
       (decant.stains ?? []).forEach((slide, i) => {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const slideDisplayId = resolveDecantSlideDisplayId(fullAccession, sp.label, decant.label, level, slide);
         const slideVisible = decantVisible && slideMatches(slide, slideDisplayId, query);
         items.push({ id: slide.id, depth: 2, icon: '🔬', title: t('materialTrackingHistoryModal.itemTitle.slide', { id: `${decant.label}-${level}` }), displayId: slideDisplayId, subtitle: slide.stainName || t('materialTrackingHistoryModal.subtitle.unstained'), locationHistory: slide.locationHistory, visible: slideVisible, directMatch: slideSelfMatches(slide, slideDisplayId, query), readyForReview: isSlideReady(slide) });
@@ -503,6 +505,8 @@ const MaterialTrackingHistoryModal: React.FC<MaterialTrackingHistoryModalProps> 
       );
       if (!proceed) return;
     }
+    // PS-282 (Batch 437): audited.
+    void recordDocumentOutput({ action: 'print', document: 'material-tracking-history', documentId: caseData.id, caseId: fullAccession, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
     window.print();
   };
 

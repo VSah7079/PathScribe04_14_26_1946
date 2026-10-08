@@ -5,7 +5,7 @@ import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 
 function baseCase(overrides: Partial<AutopsyCaseDetails>): AutopsyCaseDetails {
   return {
-    jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full',
+    jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full',
     addenda: [], ancillaryHold: { active: false }, ...overrides,
   } as AutopsyCaseDetails;
 }
@@ -15,7 +15,7 @@ describe('applyAutopsyAuthorizationCompletion', () => {
     const original = baseCase({
       forensicAuthorization: { authorityType: 'coroner', verbalOrderReceivedAt: '2026-09-01T02:15:00Z', verbalOrderReceivedFrom: 'On-call Deputy Coroner', orderReference: '', orderDate: '' },
     });
-    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: 'CO-2026-4471', orderDate: '2026-09-01', consentGivenAt: '', consentScope: '' });
+    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: 'CO-2026-4471', orderDate: '2026-09-01', consentGivenAt: '', consentScope: '', excludedOrgans: '', retentionPermitted: true });
     expect(updated.forensicAuthorization).toEqual({
       authorityType: 'coroner', verbalOrderReceivedAt: '2026-09-01T02:15:00Z', verbalOrderReceivedFrom: 'On-call Deputy Coroner',
       orderReference: 'CO-2026-4471', orderDate: '2026-09-01',
@@ -26,20 +26,31 @@ describe('applyAutopsyAuthorizationCompletion', () => {
     const original = baseCase({
       forensicAuthorization: { authorityType: 'coroner', verbalOrderReceivedAt: '2026-09-01T02:15:00Z', verbalOrderReceivedFrom: 'On-call Deputy Coroner', orderReference: '', orderDate: '' },
     });
-    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: 'CO-2026-4471', orderDate: '2026-09-01', consentGivenAt: '', consentScope: '' });
+    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: 'CO-2026-4471', orderDate: '2026-09-01', consentGivenAt: '', consentScope: '', excludedOrgans: '', retentionPermitted: true });
     expect(resolveAutopsyGrossExaminationGate(updated).allowed).toBe(true);
   });
 
   it('a real, temporary hospital-consented case (relative name only) has the real consent grant merged in, preserving the real relative name/relationship already on file, and real consentScope is split into a real array', () => {
     const original = baseCase({
       caseAuthority: 'hospital_consented',
-      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '', consentScope: [] },
+      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '', status: 'active', consentScope: [], excludedOrgans: [], retentionPermitted: true },
     });
-    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: '', orderDate: '', consentGivenAt: '2026-09-01T10:00:00Z', consentScope: 'full, no organ retention' });
+    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: '', orderDate: '', consentGivenAt: '2026-09-01T10:00:00Z', consentScope: 'full, no organ retention', excludedOrgans: '', retentionPermitted: true });
     expect(updated.hospitalConsent).toEqual({
       consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner',
-      consentGivenAt: '2026-09-01T10:00:00Z', consentScope: ['full', 'no organ retention'],
+      consentGivenAt: '2026-09-01T10:00:00Z', status: 'active', consentScope: ['full', 'no organ retention'],
+      excludedOrgans: [], retentionPermitted: true,
     });
     expect(resolveAutopsyGrossExaminationGate(updated).allowed).toBe(true);
+  });
+
+  it('Batch 468: excludedOrgans is parsed from a comma-separated string, unrecognized tokens dropped, and retentionPermitted is carried through', () => {
+    const original = baseCase({
+      caseAuthority: 'hospital_consented',
+      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '', status: 'active', consentScope: [], excludedOrgans: [], retentionPermitted: true },
+    });
+    const updated = applyAutopsyAuthorizationCompletion(original, { orderReference: '', orderDate: '', consentGivenAt: '2026-09-01T10:00:00Z', consentScope: '', excludedOrgans: 'brain, not-a-real-organ, heart', retentionPermitted: false });
+    expect(updated.hospitalConsent?.excludedOrgans).toEqual(['brain', 'heart']);
+    expect(updated.hospitalConsent?.retentionPermitted).toBe(false);
   });
 });

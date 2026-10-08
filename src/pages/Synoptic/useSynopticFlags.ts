@@ -3,8 +3,8 @@
 import { useState, useCallback } from 'react';
 import type { FlagDefinition } from '../../types/FlagDefinition';
 import type { CaseWithFlags } from '../../types/flagsRuntime';
-import { mockFlagService } from '../../services/flags/mockFlagService';
-import { mockCaseService } from '../../services/cases/mockCaseService';
+import { flagService, caseService } from '@/services';
+import { toCaseWithFlags } from '@/services/flags/caseFlagView';
 import { applyFlags, deleteFlags, ApplyFlagPayload, DeleteFlagPayload } from '../../api/caseFlagsApi';
 import { adaptFlag } from '../../utils/flagAdapter';
 
@@ -15,30 +15,15 @@ export function useSynopticFlags(caseId: string) {
 
   const openFlagManager = useCallback(async (caseData: any) => {
     // Load flag definitions
-    const result = await mockFlagService.getAll();
+    const result = await flagService.getAll();
     if (result.ok) setFlagDefinitions(result.data.map(adaptFlag));
 
-    // Reload case fresh from storage to pick up any persisted flags
-    const freshCase = await mockCaseService.getCase(caseData.id) ?? caseData;
-
-    const accession = freshCase.accession?.fullAccession
-      ?? freshCase.accession?.accessionNumber
-      ?? freshCase.accession
-      ?? caseId;
-
-    const caseWithFlags: CaseWithFlags = {
-      id: freshCase.id,
-      accession,
-      flags: Array.isArray((freshCase as any).caseFlags)
-        ? (freshCase as any).caseFlags.filter((f: any) => f.flagDefinitionId && !f.deletedAt)
-        : [],
-      specimens: (freshCase.specimens ?? []).map((sp: any) => ({
-        ...sp,
-        flags: Array.isArray(sp.specimenFlags)
-          ? sp.specimenFlags.filter((f: any) => f.flagDefinitionId && !f.deletedAt)
-          : [],
-      })),
-    };
+    // Reload the case to pick up any persisted flags. Batch 452 (PS-57): the
+    // view is built by services/flags/caseFlagView.ts from the typed
+    // FlagInstance fields (no more `as any`), through @/services rather than
+    // the mock files directly (deployment-neutral UI).
+    const freshCase = (await caseService.getCase(caseData.id)) ?? caseData;
+    const caseWithFlags: CaseWithFlags = toCaseWithFlags(freshCase, { activeOnly: true, accessionFallback: caseId });
 
     setFlagCaseData(caseWithFlags);
     setShowFlagManager(true);

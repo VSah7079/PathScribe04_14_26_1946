@@ -17,6 +17,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import ReactDOM from 'react-dom';
@@ -57,6 +58,8 @@ import { setSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
 import { usePersonalLanguage } from '@/hooks/usePersonalLanguage';
 import MyDictionaryModal from '@/components/Profile/MyDictionaryModal';
 import MyVoiceCommandsModal from '@/components/Profile/MyVoiceCommandsModal';
+import BiometricSigningModal from '@/components/Profile/BiometricSigningModal';
+import { biometricService } from '@/services';
 
 /** Batch 396: a stable empty list, so the link memo doesn't rerun on every render. */
 const NO_ACCESSIONS: string[] = [];
@@ -818,8 +821,9 @@ interface AppShellProps { hideNav?: boolean; }
 const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
 
-  const { user } = useAuth();
+  const { user, showBiometricWizard, setShowBiometricWizard } = useAuth();
   // Batch 431: the screen language follows the signed-in person.
   usePersonalLanguage(user?.id);
   const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
@@ -937,6 +941,9 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const [aboutOpen, setAboutOpen]             = useState(false);
   const [myDictionaryOpen, setMyDictionaryOpen] = useState(false);
   const [myVoiceCommandsOpen, setMyVoiceCommandsOpen] = useState(false);
+  // Batch 433: biometric signing (profile menu, and the invitation after sign-in).
+  const [biometricOpen, setBiometricOpen] = useState(false);
+  const biometricEnabled = biometricService.getBiometricPolicy().enabled;
   const [systemInfoOpen, setSystemInfoOpen]   = useState(false);
   const [newRecipients, setNewRecipients]     = useState<InternalUser[]>([]);
   const [newToInput,    setNewToInput]        = useState('');
@@ -1565,7 +1572,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                             // directly), so its own "Back" handling for
                             // messages was real code with no real path
                             // reaching it. Now it does.
-                            navigate(`/report/${currentMsg.caseNumber}`, { state: { fromMessages: true, openInternalNotes: true } });
+                            void openCasePage(currentMsg.caseNumber, 'report', { state: { fromMessages: true, openInternalNotes: true } });
                           }}>
                             {t('appShell.thread.caseLinkLabel', { caseNumber: currentMsg.caseNumber })}
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -1580,7 +1587,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                           <button key={ref} className="ps-msg-case-link" data-phi="accession" onClick={() => {
                             setPortalOpen(false);
                             setSessionFlag('ps_reopen_messages', '1');
-                            navigate(`/report/${ref}`, { state: { fromMessages: true, openInternalNotes: true } });
+                            void openCasePage(ref, 'report', { state: { fromMessages: true, openInternalNotes: true } });
                           }}>
                             {t('appShell.thread.caseLinkLabel', { caseNumber: ref })}
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -1745,6 +1752,9 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {systemInfoOpen && <SystemInfoModal onClose={() => setSystemInfoOpen(false)} />}
       {myDictionaryOpen && <MyDictionaryModal onClose={() => setMyDictionaryOpen(false)} />}
       {myVoiceCommandsOpen && <MyVoiceCommandsModal onClose={() => setMyVoiceCommandsOpen(false)} />}
+      {biometricOpen && <BiometricSigningModal mode="manage" onClose={() => setBiometricOpen(false)} />}
+      {/* Batch 433: invited to enrol after sign-in when the lab has turned biometric signing on. */}
+      {showBiometricWizard && !biometricOpen && <BiometricSigningModal mode="invite" onClose={() => setShowBiometricWizard(false)} />}
 
       {aboutOpen && (
         <div className="ps-overlay" onClick={() => setAboutOpen(false)}>
@@ -1783,6 +1793,14 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               <button onClick={() => { setAboutOpen(false); setMyVoiceCommandsOpen(true); }} className="ps-about-menu-item">
                 {t('profileMenu.myVoiceCommands.title')}
               </button>
+              {biometricEnabled && (
+                <>
+                  <div className="ps-about-menu-divider" />
+                  <button onClick={() => { setAboutOpen(false); setBiometricOpen(true); }} className="ps-about-menu-item">
+                    {t('profileMenu.biometric.title')}
+                  </button>
+                </>
+              )}
               <div className="ps-about-menu-divider" />
               <button
                 onClick={() => { setAboutOpen(false); setSystemInfoOpen(true); }}

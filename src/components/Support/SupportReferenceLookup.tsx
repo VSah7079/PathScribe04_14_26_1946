@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supportReferenceService, type AuditLog, type ErrorLog } from '@/services';
 import type { InterfaceException } from '@/services/interfaceExceptions/IInterfaceExceptionService';
 import { describeSupportTarget, type SupportTarget } from '@/services/supportReferences/supportReferenceTargets';
+import { formatAuditTimestamp } from '@/utils/formatDate';
 
 interface Props {
   initialRef?: string;
@@ -51,7 +52,7 @@ const SupportReferenceLookup: React.FC<Props> = ({ initialRef, data, onOpenCase 
           {!target.found && <div className="ps-supportref-lookup-muted">{t('supportReference.lookup.notLoaded')}</div>}
           {target.found && target.title && (
             <div className="ps-supportref-lookup-entry" data-phi="true">
-              {target.time && <span className="ps-supportref-lookup-muted">{target.time}</span>}
+              {target.time && <span className="ps-supportref-lookup-muted">{formatAuditTimestamp(target.time)}</span>}
               <strong>{target.title}</strong>
               {target.detail && <span>{target.detail}</span>}
             </div>

@@ -4,7 +4,7 @@
 // service's publishing.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseIntraopChangedEvent, parsePrintJobStatusEvent, HUB_INTRAOP_CHANGED, HUB_PRINT_JOB_STATUS, HUB_SET_INTRAOP_SCOPE, type IntraopChangedEvent, type PrintJobStatusEvent } from './liveUpdateContract';
+import { parseIntraopChangedEvent, parsePrintJobStatusEvent, parseWsiScanBatchChangedEvent, HUB_INTRAOP_CHANGED, HUB_PRINT_JOB_STATUS, HUB_SET_INTRAOP_SCOPE, HUB_WSI_SCAN_BATCH_CHANGED, type IntraopChangedEvent, type PrintJobStatusEvent, type WsiScanBatchChangedEvent } from './liveUpdateContract';
 import {
   combineScopes, createDuplicateFilter, eventMatchesScope, fallbackPollIntervalMs, nextRetryDelayMs, scopeKey,
   selectLiveUpdateTransport, FALLBACK_POLL_MS, LIVE_SAFETY_POLL_MS, MAX_RETRY_DELAY_MS,
@@ -305,6 +305,66 @@ describe('print results over the live connection (Batch 347)', () => {
     await flush();
     expect(timers.some(t => t.ms === CLOSE_GRACE_MS)).toBe(false);
     expect(hub.invoke).toHaveBeenLastCalledWith(HUB_SET_INTRAOP_SCOPE, { locationIds: [], all: false });
+  });
+});
+
+describe('WSI scan batch changes over the live connection (Batch 434)', () => {
+  const wsi = (over: Partial<WsiScanBatchChangedEvent> = {}): WsiScanBatchChangedEvent => ({ v: 1, eventId: 'w1', batchId: 'wb1', change: 'slideStatus', facilityId: 'lab', occurredAt: '2026-10-02T12:00:00Z', ...over } as WsiScanBatchChangedEvent);
+  it('the contract: ids only; anything else is dropped', () => {
+    expect(parseWsiScanBatchChangedEvent(wsi())).toEqual(wsi());
+    expect(parseWsiScanBatchChangedEvent({ ...wsi(), change: 'exploded' })).toBeNull();
+    expect(parseWsiScanBatchChangedEvent({ ...wsi(), batchId: '' })).toBeNull();
+    expect(parseWsiScanBatchChangedEvent({ ...wsi(), patientName: 'X' })).not.toHaveProperty('patientName');
+  });
+
+  it('local: a change reaches this window and another, once; not the intraop or print subscribers', () => {
+    const factory = channelPair();
+    const windowA = createLocalLiveUpdateService({ channelFactory: factory });
+    const windowB = createLocalLiveUpdateService({ channelFactory: factory });
+    const inA = vi.fn(); const inB = vi.fn(); const print = vi.fn();
+    windowA.subscribeWsiScanBatches(inA);
+    windowB.subscribeWsiScanBatches(inB);
+    windowB.subscribePrintJobs(print);
+    const sent = windowA.publishWsiScanBatchChange({ batchId: 'wb1', change: 'unloaded' });
+    expect(inA).toHaveBeenCalledWith(sent);
+    expect(inB).toHaveBeenCalledWith(sent);
+    expect(print).not.toHaveBeenCalled();
+  });
+
+  it('SignalR: a scan-batch subscriber opens the connection without a scope, gets each change once, and closes after', async () => {
+    const hub = fakeHub();
+    let timers: { fn: () => void; ms: number }[] = [];
+    const svc = createSignalRLiveUpdateService({
+      hubUrl: 'https://api.example/hubs/live', buildConnection: () => hub as unknown as HubConnectionLike,
+      setTimer: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clearTimer: t => { timers = timers.filter(x => x !== t); },
+      random: () => 0.5, log: () => {},
+    });
+    const got = vi.fn();
+    const sub = svc.subscribeWsiScanBatches(got);
+    await flush();
+    expect(hub.start).toHaveBeenCalledTimes(1);
+    expect(hub.invoke).not.toHaveBeenCalled();
+    hub.emit(HUB_WSI_SCAN_BATCH_CHANGED, wsi());
+    hub.emit(HUB_WSI_SCAN_BATCH_CHANGED, wsi());          // redelivered
+    expect(got).toHaveBeenCalledTimes(1);
+    sub.unsubscribe();
+    timers.find(t => t.ms === CLOSE_GRACE_MS)!.fn();
+    expect(hub.stop).toHaveBeenCalled();
+  });
+
+  it('the mock scan-batch service announces each write with ids only', async () => {
+    const { localLiveUpdateService } = await import('./localLiveUpdateService');
+    const { mockWsiScanBatchService } = await import('../digitalPathology/mockWsiScanBatchService');
+    const received: WsiScanBatchChangedEvent[] = [];
+    const sub = localLiveUpdateService.subscribeWsiScanBatches(e => received.push(e));
+    const created = await mockWsiScanBatchService.create({ scannerInstrumentId: 'S', facilityId: 'lab', slides: [{ slidePosition: '1', caseId: 'C', specimenId: 's', scanStatus: 'pending' }] });
+    if (!created.ok) throw new Error('create failed');
+    await mockWsiScanBatchService.markDispatched(created.data.id);
+    await mockWsiScanBatchService.updateSlideStatus(created.data.id, '1', { scanStatus: 'completed' });
+    sub.unsubscribe();
+    expect(received.map(e => e.change)).toEqual(['loaded', 'sent', 'slideStatus']);
+    expect(received.every(e => e.batchId === created.data.id && e.facilityId === 'lab')).toBe(true);
+    expect(JSON.stringify(received)).not.toContain('"C"');
   });
 });
 

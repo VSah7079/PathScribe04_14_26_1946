@@ -35,7 +35,7 @@ import AutopsyBodyReleaseForm from './AutopsyBodyReleaseForm';
 
 afterEach(() => { cleanup(); listeners.length = 0; held.current = true; release.mockReset(); });
 
-const details = { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false },
+const details = { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false },
   padSnapshot: { tier: 'PAD', frozenPayload: {}, signedBy: { name: 'Dr. E. Reed', isPathologist: true }, signedAt: '2026-09-05T14:00:00Z' } } as any;
 
 async function open() {

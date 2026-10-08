@@ -18,7 +18,7 @@ import { useSystemConfig } from '../../../contexts/SystemConfigContext';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import type { AbnormalTriggerRule, AbnormalSeverity } from '../../../services/abnormalDetection/IAbnormalTriggerRuleService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
-import { findDuplicate } from '../../../utils/validateUnique';
+import { saveAbnormalTriggerRule, toggleAbnormalTriggerRule } from '../../../services/abnormalDetection/abnormalTriggerRuleEditing';
 import { duplicateAbnormalTriggerRule } from '@/services/duplication/duplicateEntities';
 
 const SEVERITIES: AbnormalSeverity[] = ['Abnormal', 'Critical', 'Malignant'];
@@ -69,44 +69,30 @@ const AbnormalTriggerRulesSection: React.FC = () => {
     labFilter === 'All' || (labFilter === 'Global' ? !item.performingLabFacilityId : item.performingLabFacilityId === labFilter)
   );
 
+  // Batch 450 (PS-129): validation, scope-aware uniqueness and the write live in
+  // services/abnormalDetection/abnormalTriggerRuleEditing.ts.
   const handleSave = async () => {
-    if (!draft.fieldLabel.trim()) { setFieldError(t('abnormalTriggerRulesSection.errors.fieldLabelRequired')); return; }
-    const triggerValues = draft.triggerValues.split(',').map(v => v.trim()).filter(Boolean);
-    if (triggerValues.length === 0) { setFieldError(t('abnormalTriggerRulesSection.errors.triggerValueRequired')); return; }
-
-    // Same real, scope-aware uniqueness check as DeficienciesSection.tsx's
-    // own dictionaries — a collision only blocks the save within the
-    // same scope (same lab, or both Global).
-    const excludeId = modal?.mode === 'edit' ? modal.item?.id : undefined;
-    const collision = findDuplicate(items, { performingLabFacilityId: draft.performingLabFacilityId || undefined, fieldLabel: draft.fieldLabel.trim() }, ['performingLabFacilityId', 'fieldLabel'], excludeId);
-    if (collision) {
-      setFieldError(draft.performingLabFacilityId
-        ? t('abnormalTriggerRulesSection.errors.duplicateRuleForLab', { label: collision.fieldLabel })
-        : t('abnormalTriggerRulesSection.errors.duplicateRuleGlobal', { label: collision.fieldLabel }));
+    const outcome = await saveAbnormalTriggerRule(draft, modal, items, abnormalTriggerRuleService);
+    if (outcome.kind === 'invalid') {
+      setFieldError(outcome.error === 'fieldLabelRequired'
+        ? t('abnormalTriggerRulesSection.errors.fieldLabelRequired')
+        : t('abnormalTriggerRulesSection.errors.triggerValueRequired'));
       return;
     }
-
-    const payload = {
-      fieldLabel: draft.fieldLabel.trim(), triggerValues, severity: draft.severity,
-      description: draft.description.trim() || undefined,
-      status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
-      performingLabFacilityId: draft.performingLabFacilityId || undefined,
-    };
-    if (modal?.mode === 'add') {
-      // A duplicate carries its source's synthetic coding, which this form
-      // doesn't display; a plain Add has none.
-      const res = await abnormalTriggerRuleService.add({ ...payload, syntheticCoding: modal.item?.syntheticCoding });
-      if (res.ok) setItems(prev => [...prev, res.data]);
-    } else if (modal?.item) {
-      const res = await abnormalTriggerRuleService.update(modal.item.id, payload);
-      if (res.ok) setItems(prev => prev.map(i => i.id === res.data.id ? res.data : i));
+    if (outcome.kind === 'duplicate') {
+      setFieldError(outcome.scope === 'lab'
+        ? t('abnormalTriggerRulesSection.errors.duplicateRuleForLab', { label: outcome.label })
+        : t('abnormalTriggerRulesSection.errors.duplicateRuleGlobal', { label: outcome.label }));
+      return;
     }
+    const saved = outcome.rule;
+    if (saved) setItems(prev => outcome.mode === 'add' ? [...prev, saved] : prev.map(i => i.id === saved.id ? saved : i));
     setModal(null);
   };
 
   const handleToggleActive = async (item: AbnormalTriggerRule) => {
-    const res = item.status === 'Active' ? await abnormalTriggerRuleService.deactivate(item.id) : await abnormalTriggerRuleService.reactivate(item.id);
-    if (res.ok) setItems(prev => prev.map(i => i.id === item.id ? res.data : i));
+    const saved = await toggleAbnormalTriggerRule(item, abnormalTriggerRuleService);
+    if (saved) setItems(prev => prev.map(i => i.id === item.id ? saved : i));
   };
 
   const severityBadgeClass = (s: AbnormalSeverity) => s === 'Malignant' ? 'ps-defic-status-badge--inactive' : s === 'Critical' ? 'ps-defic-status-badge--inactive' : 'ps-defic-status-badge--active';
@@ -149,7 +135,7 @@ const AbnormalTriggerRulesSection: React.FC = () => {
 
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="Global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

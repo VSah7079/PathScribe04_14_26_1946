@@ -8,17 +8,20 @@
 // Pete: turning on one that needs another offers to turn that on too;
 // turning off one that others need offers to turn those off too. Either
 // way they can cancel and leave the role as it was. What depends on what
-// is decided by services/authorization (planGrant / planRevoke); this tab
-// only shows it.
+// is decided by services/authorization (planGrant / planRevoke), and what a
+// click does by capabilityToggle.ts (Batch 451); this tab only shows it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   capabilitiesByGroup, capabilityDefinition, capabilityDescriptionKey, capabilityGroupKey, capabilityLabelKey,
-  dependentsOf, planGrant, planRevoke, requirementsOf,
+  dependentsOf, requirementsOf,
 } from '@/services';
-import { DivCheckbox, TriCheckbox, type TriState } from './roleDictionaryControls';
+import {
+  capabilityGroupState, planCapabilityClick, planCapabilityGroupClick, type CapabilityToggleOutcome,
+} from '@/services/authorization/capabilityToggle';
+import { DivCheckbox, TriCheckbox } from './roleDictionaryControls';
 
 interface Props {
   granted: string[];
@@ -30,16 +33,9 @@ interface Props {
   includePlatform?: boolean;
 }
 
-type Prompt =
-  | { kind: 'grant'; what: string; others: string[]; next: string[] }
-  | { kind: 'revoke'; what: string; others: string[]; next: string[] };
+type Prompt = { kind: 'grant' | 'revoke'; what: string; others: string[]; next: string[] };
 
 const pctVar = (pct: number) => ({ '--rd-pct': `${pct}%` } as React.CSSProperties);
-
-const triState = (keys: string[], granted: Set<string>): TriState => {
-  const n = keys.filter(k => granted.has(k)).length;
-  return n === 0 ? 'none' : n === keys.length ? 'all' : 'some';
-};
 
 export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOnly = false, includePlatform = false }) => {
   const { t } = useTranslation();
@@ -51,24 +47,15 @@ export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOn
   const groupKeys = group.capabilities.map(c => c.key);
   const labelOf = (key: string) => { const d = capabilityDefinition(key); return d ? t(capabilityLabelKey(d)) : key; };
 
-  const turnOn = (keys: string[], what: string) => {
-    const plan = planGrant(granted, keys);
-    if (plan.requested.length === 0) return;
-    if (plan.missingRequirements.length === 0) { onChange(plan.withRequirements); return; }
-    setPrompt({ kind: 'grant', what, others: plan.missingRequirements, next: plan.withRequirements });
+  const apply = (outcome: CapabilityToggleOutcome, what: string) => {
+    if (outcome.kind === 'apply') onChange(outcome.next);
+    else if (outcome.kind === 'confirm') setPrompt({ kind: outcome.direction, what, others: outcome.others, next: outcome.next });
   };
-  const turnOff = (keys: string[], what: string) => {
-    const plan = planRevoke(granted, keys);
-    if (plan.requested.length === 0) return;
-    if (plan.affectedDependents.length === 0) { onChange(plan.withDependents); return; }
-    setPrompt({ kind: 'revoke', what, others: plan.affectedDependents, next: plan.withDependents });
-  };
-  const toggle = (key: string) => { if (readOnly) return; if (have.has(key)) turnOff([key], labelOf(key)); else turnOn([key], labelOf(key)); };
+  const toggle = (key: string) => { if (readOnly) return; apply(planCapabilityClick(granted, key), labelOf(key)); };
   const toggleGroup = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (readOnly) return;
-    const what = t(capabilityGroupKey(group.group));
-    if (triState(groupKeys, have) === 'all') turnOff(groupKeys, what); else turnOn(groupKeys, what);
+    apply(planCapabilityGroupClick(granted, groupKeys), t(capabilityGroupKey(group.group)));
   };
 
   return (
@@ -77,7 +64,7 @@ export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOn
         {groups.map(g => {
           const keys = g.capabilities.map(c => c.key);
           const n = keys.filter(k => have.has(k)).length;
-          const ts = triState(keys, have);
+          const ts = capabilityGroupState(keys, have);
           const active = g.group === group.group;
           return (
             <div key={g.group} onClick={() => setGroupId(g.group)}
@@ -95,7 +82,7 @@ export const RoleCapabilitiesTab: React.FC<Props> = ({ granted, onChange, readOn
       <div className="ps-rd-action-panel">
         <p className="ps-rd-cap-intro">{t('roleDictionary.capabilities.intro')}</p>
         <div className="ps-rd-action-header">
-          <TriCheckbox state={triState(groupKeys, have)} onClick={toggleGroup} size={18} />
+          <TriCheckbox state={capabilityGroupState(groupKeys, have)} onClick={toggleGroup} size={18} />
           <span className="ps-rd-action-group-title">{t(capabilityGroupKey(group.group))}</span>
           <span className="ps-rd-action-granted-count">
             {t('roleDictionary.permissions.grantedCount', { granted: groupKeys.filter(k => have.has(k)).length, total: groupKeys.length })}

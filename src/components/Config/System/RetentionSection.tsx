@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 
 import { loadRetentionPolicy as load, saveRetentionPolicy, DEFAULT_RETENTION_POLICY as DEFAULTS, type RetentionPolicy } from '@/services';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 // ─── Editable row ─────────────────────────────────────────────────────────────
 const Row: React.FC<{
@@ -50,6 +51,8 @@ const RetentionSection: React.FC = () => {
   const [policy,  setPolicy]  = useState<RetentionPolicy>(load);
   const [saved,   setSaved]   = useState(false);
   const [dirty,   setDirty]   = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(dirty);
 
   const saved_policy = load(); // reference point for dirty detection
 

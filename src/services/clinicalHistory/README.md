@@ -62,6 +62,12 @@ review — showing the combined picture while reviewing one specific
 specimen's slides in `CytologyScreeningPage.tsx` — is separate, later
 work, stated directly at the time rather than assumed covered.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+The inbound accession event rebuilds the order from the newest case.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

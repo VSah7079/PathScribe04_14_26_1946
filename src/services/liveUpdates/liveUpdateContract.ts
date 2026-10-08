@@ -146,3 +146,45 @@ export function parsePrintJobStatusEvent(raw: unknown): PrintJobStatusEvent | nu
     occurredAt: e.occurredAt as string,
   };
 }
+
+
+// ── WSI scan batches (Batch 434) ────────────────────────────────────────────
+
+/** Server → client: a WSI scan batch changed (loaded, sent, a slide's scan
+ *  status came back from the scanner, unloaded). Ids only; the Slide scanning
+ *  page re-reads. The server sends it to users who can open Batch Management
+ *  in the batch's lab (the scanner's lab). */
+export const HUB_WSI_SCAN_BATCH_CHANGED = 'WsiScanBatchChanged';
+
+export const WSI_SCAN_BATCH_CHANGES = ['loaded', 'sent', 'sendFailed', 'slideStatus', 'unloaded'] as const;
+export type WsiScanBatchChange = typeof WSI_SCAN_BATCH_CHANGES[number];
+
+export interface WsiScanBatchChangedEvent {
+  v: typeof LIVE_UPDATES_CONTRACT_VERSION;
+  eventId: string;
+  batchId: string;
+  change: WsiScanBatchChange;
+  /** The batch's lab (the scanner's), when known. */
+  facilityId?: string;
+  occurredAt: string;
+}
+
+/** Validates a scan-batch change received from the wire; anything else is ignored. */
+export function parseWsiScanBatchChangedEvent(raw: unknown): WsiScanBatchChangedEvent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const e = raw as Record<string, unknown>;
+  if (e.v !== LIVE_UPDATES_CONTRACT_VERSION) return null;
+  for (const k of ['eventId', 'batchId', 'occurredAt'] as const) {
+    if (typeof e[k] !== 'string' || !e[k]) return null;
+  }
+  if (typeof e.change !== 'string' || !(WSI_SCAN_BATCH_CHANGES as readonly string[]).includes(e.change)) return null;
+  if (e.facilityId !== undefined && typeof e.facilityId !== 'string') return null;
+  return {
+    v: LIVE_UPDATES_CONTRACT_VERSION,
+    eventId: e.eventId as string,
+    batchId: e.batchId as string,
+    change: e.change as WsiScanBatchChange,
+    ...(typeof e.facilityId === 'string' ? { facilityId: e.facilityId } : {}),
+    occurredAt: e.occurredAt as string,
+  };
+}

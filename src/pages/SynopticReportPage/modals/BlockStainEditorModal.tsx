@@ -810,7 +810,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
     const preset = getLabelSizePreset('histology_secondary_overlay');
     if (!preset) return;
     const html = buildSecondaryLabelHtml(data, preset);
-    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`);
+    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`, { document: 'secondary-label', documentId: data.recordLabel, caseId: fullAccession });
   };
 
   // Real, parallel sibling to printSecondaryLabel above — per direct
@@ -830,7 +830,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
     const preset = getLabelSizePreset('histology_secondary_overlay');
     if (!preset) return;
     const html = buildSecondaryLabelHtml(data, preset);
-    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`);
+    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`, { document: 'secondary-label', documentId: data.recordLabel, caseId: fullAccession });
   };
 
   // Real, parallel sibling to foreignIdCollisions/checkForeignIdCollision

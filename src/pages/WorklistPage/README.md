@@ -151,5 +151,33 @@ Checked in a browser at 1920×945: the table ends 12 px (the page padding) above
 
 The "access requested" marker upkeep is gone (the badges come from request records); the context and branch filters use session flags.
 
+## Batch 439 (PS-144)
+
+A **Peer Review** tile: cases with a peer review waiting on this pathologist (their read, or a consensus they are part of). Shown only when there are some; those cases are added to the list even when the reviewer isn't on the case.
+
+## Batch 440: Cytology Review tile
+
+Positive GYN cytology waiting for a pathologist (`loadCytologyReviewTray`), shown only to holders of `cytology:pathologist-review:take` and only when there are some. It lists cases with no pathologist yet, plus the viewer's own. The open cases are kept apart from `realCases`, so they don't join the viewer's All list. Clicking an open case asks to **Take and open**: `takeCytologyReview` makes the viewer the case's pathologist and opens it in the Cytology Workspace. A case already the viewer's opens directly. `WorklistTable` gains `interceptOpen`, which runs after the pediatric and Outreach access checks, so a case the viewer can't open still goes to the request-access flow first.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-305, PS-307, PS-309)
+
+The tile counts and tile lists now come from `services/worklist/worklistTileCounts.ts`. The Finalizing tile's list now holds only finalizing cases.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+The tile counts no longer take an access check, so they match the redacted rows the list shows. The page's pediatric-threshold loading, which only fed that check, was removed.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+A "Follow-up due" tile, shown when the count isn't 0. It lists the viewer's signed-out cases with a follow-up due soon or overdue (`loadFollowUpCaseIdsForUser`), and those cases are merged into the list like delegated and peer-review cases.
+
+## Batch 477 — Autopsy worklist badges (PS-261 follow-up, Module 5)
+
+The Autopsy branch tab's rows now show real autopsy state — case authority, an active ancillary hold, PAD/FAD signed, and a TAT/SLA tooltip — via `components/Worklist/AutopsyWorklistBadges.tsx`. No change to this page itself; `WorklistTable.tsx` renders the badges. See `components/Worklist/README.md` for the full reasoning, including why this extends the existing branch tab + grouping rather than adding a separate screen.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

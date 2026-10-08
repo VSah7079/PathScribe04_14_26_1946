@@ -21,6 +21,7 @@
 // stay English (data and compliance records, not screen text).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { nextDecantLabel, type DecantChange } from '../material/materialTree';
 import type { Case } from '@/types/case/Case';
 import type { CytologyReviewRecord } from '@/types/cytology/CytologyReviewRecord';
 import type { DecantType } from '@/types/case/Material';
@@ -35,6 +36,7 @@ import { resolveUpdatedCodingFromModalSubmission } from './resolveUpdatedCodingF
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
 import { decantIdentifier } from '@/types/labels/LabelData';
 import { CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID } from '../quality/mockQaActivityTypeService';
+import { saveCaseChangeFrom } from './cytologyCaseWriteDeps';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -45,11 +47,27 @@ function specimensWith(caseData: Case, specimenId: string, change: (sp: any) => 
   return ((caseData.specimens ?? []) as any[]).map(sp => (sp.id === specimenId ? change(sp) : sp));
 }
 
-/** Merge a patch into one specimen's cytology screening record and save the case. */
-export async function patchCytologyScreening(caseData: Case, specimenId: string, patch: Record<string, unknown>, deps: Pick<CytologyWorkspaceDeps, 'updateCase'>) {
-  const specimens = specimensWith(caseData, specimenId, sp => ({ ...sp, cytologyScreening: { ...sp.cytologyScreening, ...patch } }));
-  await deps.updateCase(caseData.id, { specimens });
-  return specimens;
+/** PS-71 (Batch 458): every Workspace case save goes through here. The
+ *  change is built from the case the screen loaded and saved with its
+ *  version; if someone saved since, it is rebuilt from the newer case and
+ *  saved against that (saveCaseChangeFrom), never over their change. */
+export function saveWorkspaceCaseChange(caseData: Case, change: (current: Case) => Partial<Case> | null, deps: Pick<CytologyWorkspaceDeps, 'getCase' | 'updateCase'>) {
+  return saveCaseChangeFrom(caseData, change, { getCase: id => deps.getCase(id, 'current'), updateCase: deps.updateCase });
+}
+
+/** Merge a patch into one specimen's cytology screening record and save the
+ *  case. PS-71 (Batch 458): a patch that depends on what the specimen holds
+ *  (a list it adds to) is a function of the specimen, so a re-applied save
+ *  starts from the newer case's list. */
+export async function patchCytologyScreening(
+  caseData: Case, specimenId: string,
+  patch: Record<string, unknown> | ((specimen: any) => Record<string, unknown>),
+  deps: Pick<CytologyWorkspaceDeps, 'getCase' | 'updateCase'>,
+) {
+  const saved = await saveWorkspaceCaseChange(caseData, current => ({
+    specimens: specimensWith(current, specimenId, sp => ({ ...sp, cytologyScreening: { ...sp.cytologyScreening, ...(typeof patch === 'function' ? patch(sp) : patch) } })),
+  }), deps);
+  return (saved?.specimens ?? caseData.specimens) as any[];
 }
 
 // ── Final diagnosis and QC ───────────────────────────────────────────────────
@@ -146,7 +164,11 @@ export async function resolveHistologyCorrelations(
     const candidateCase = await deps.getCase(candidate.candidateCaseId, 'current');
     const snomed = ((candidateCase?.specimens ?? []) as any[]).flatMap(sp => sp.coding?.snomed ?? []);
     const histologyRank = resolveCytologyHistologySeverityFromSnomed(snomed, mapping);
-    const matched = mapping.find((m: any) => snomed.some((s: { code: string }) => s.code === m.snomedCode));
+    // Batch 450: the description of the mapping that set the rank (the most
+    // severe matched code), not whichever matched entry the mapping lists first.
+    const matched = mapping
+      .filter((m: any) => snomed.some((s: { code: string }) => s.code === m.snomedCode))
+      .reduce((best: any, m: any) => (!best || m.severityRank > best.severityRank ? m : best), undefined);
     out[candidate.candidateCaseId] = {
       cytologyDxLabel: finalCategory?.label ?? 'Unknown',
       histologyDxDescription: matched?.description,
@@ -199,10 +221,10 @@ export async function recordCytologyHistologyCorrelation(
     recordedBy: { userId: input.user.id, userName: input.user.name },
   });
   if (!created.ok) return 'failed';
-  await patchCytologyScreening(input.caseData, input.specimenId, {
-    histologyCorrelationCandidates: candidatesOf(input.specimen).map(c =>
+  await patchCytologyScreening(input.caseData, input.specimenId, sp => ({
+    histologyCorrelationCandidates: candidatesOf(sp).map(c =>
       c.candidateCaseId === input.candidateCaseId ? { ...c, recordedActivityRecordId: created.data.id } : c),
-  }, deps);
+  }), deps);
   return 'recorded';
 }
 
@@ -213,14 +235,81 @@ export async function dismissHistologyCorrelationCandidate(
 ): Promise<'notPermitted' | 'dismissed'> {
   const decision = await deps.enforce('cytology:histology-correlation:record', { caseId: input.caseData.id });
   if (!decision.allowed) return 'notPermitted';
-  await patchCytologyScreening(input.caseData, input.specimenId, {
-    histologyCorrelationCandidates: candidatesOf(input.specimen).map(c =>
+  await patchCytologyScreening(input.caseData, input.specimenId, sp => ({
+    histologyCorrelationCandidates: candidatesOf(sp).map(c =>
       c.candidateCaseId === input.candidateCaseId ? { ...c, dismissedAsNotRelevant: true } : c),
-  }, deps);
+  }), deps);
   return 'dismissed';
 }
 
 // ── Material, ROSE, codes, LMP ───────────────────────────────────────────────
+
+/** Batch 453: why a decant change wasn't saved (the toast key's last part). */
+export class CytologyDecantNotSaved extends Error {
+  constructor(readonly reason: string, readonly currentVersion?: number) { super(`Decant change not saved: ${reason}`); }
+}
+
+/** Batch 453: one decant change through the atomic, versioned save when the
+ *  deps provide it (published as MATERIAL_DECANTED), else the old whole-case
+ *  write. Returns the new specimens; throws CytologyDecantNotSaved. */
+async function saveDecant(caseData: Case, change: DecantChange, fallbackSpecimens: (current: Case) => any[], deps: CytologyWorkspaceDeps): Promise<any[]> {
+  if (!deps.saveDecantChange) {
+    // PS-71 (Batch 458): the whole-case write is versioned too, rebuilt from the newer case on a conflict.
+    const saved = await saveWorkspaceCaseChange(caseData, current => ({ specimens: fallbackSpecimens(current) }), deps);
+    return (saved?.specimens ?? []) as any[];
+  }
+  const result = await deps.saveDecantChange(caseData.id, change, (caseData as any).version ?? 0);
+  if (result.ok === false) throw new CytologyDecantNotSaved(result.error, (result as any).currentVersion);
+  deps.publishMaterialEvent?.({ type: 'MATERIAL_DECANTED', caseId: caseData.id, change: result.change, decant: result.event });
+  return result.specimens;
+}
+
+/** Batch 460: the billing panel's change to one billable unit (a decant or a
+ *  block) of a cytology specimen. A decant goes through the material save
+ *  (versioned, published); a block is changed on the case as saved. The
+ *  change is a function of the unit's codes, so it applies to the newer
+ *  case's codes when someone saved in between. Returns the new specimens,
+ *  and the case's new version from the material save. */
+export async function saveCytologyUnitCoding(
+  input: { caseData: Case; specimenId: string; unitId: string; change: (coding: any) => any },
+  deps: CytologyWorkspaceDeps,
+): Promise<{ specimens: any[]; version?: number }> {
+  const { specimenId, unitId, change } = input;
+  // The case as saved now (several changes can follow each other before the
+  // screen re-renders, e.g. "Approve all" across decants).
+  const caseData = ((await deps.getCase(input.caseData.id, 'current')) as Case | null) ?? input.caseData;
+  const specimen = ((caseData.specimens ?? []) as any[]).find(sp => sp.id === specimenId);
+  const decant = (specimen?.decants ?? []).find((d: any) => d.id === unitId);
+  if (decant) {
+    const patch = { coding: change(decant.coding) };
+    if (deps.saveDecantChange) {
+      const result = await deps.saveDecantChange(caseData.id, { kind: 'update', decantId: unitId, patch } as DecantChange, (caseData as any).version ?? 0);
+      if (result.ok === false) throw new CytologyDecantNotSaved(result.error, (result as any).currentVersion);
+      deps.publishMaterialEvent?.({ type: 'MATERIAL_DECANTED', caseId: caseData.id, change: result.change, decant: result.event });
+      return { specimens: result.specimens, version: (result as any).version };
+    }
+    const specimens = await saveDecant(caseData, { kind: 'update', decantId: unitId, patch } as DecantChange, current =>
+      specimensWith(current, specimenId, sp => ({ ...sp, decants: (sp.decants ?? []).map((d: any) => (d.id === unitId ? { ...d, coding: change(d.coding) } : d)) })), deps);
+    return { specimens };
+  }
+  const saved = await saveWorkspaceCaseChange(caseData, current => ({
+    specimens: specimensWith(current, specimenId, sp => ({ ...sp, blocks: (sp.blocks ?? []).map((b: any) => (b.id === unitId ? { ...b, coding: change(b.coding) } : b)) })),
+  }), deps);
+  return withSavedVersion(caseData.id, (saved?.specimens ?? []) as any[], deps);
+}
+
+/** The saved specimens with the case's version as saved now, so the screen's next save is checked against it. */
+async function withSavedVersion(caseId: string, specimens: any[], deps: CytologyWorkspaceDeps): Promise<{ specimens: any[]; version?: number }> {
+  const after = (await deps.getCase(caseId, 'current')) as Case | undefined;
+  return { specimens: (after?.specimens as any[]) ?? specimens, version: after?.version };
+}
+
+/** Batch 460: the billing panel's change to the specimens (base codes, matrix
+ *  codes), applied to the case as saved. Returns the new specimens and version. */
+export async function saveCytologySpecimenBilling(input: { caseData: Case; change: (specimens: any[]) => any[] }, deps: CytologyWorkspaceDeps): Promise<{ specimens: any[]; version?: number }> {
+  const saved = await saveWorkspaceCaseChange(input.caseData, current => ({ specimens: input.change((current.specimens ?? []) as any[]) }), deps);
+  return withSavedVersion(input.caseData.id, (saved?.specimens ?? []) as any[], deps);
+}
 
 /** A residual fluid or cell block: labelled D1, D2…, with its cassette colour and display id. Returns the new specimens. */
 export async function addCytologyDecant(
@@ -229,7 +318,8 @@ export async function addCytologyDecant(
 ) {
   const { caseData, specimen } = input;
   const existing = specimen.decants ?? [];
-  const label = `D${existing.length + 1}`;
+  // Batch 453: never reuses a label after a decant was removed.
+  const label = nextDecantLabel(existing);
   const fullAccession = caseData.accession?.fullAccession;
   const decant = {
     id: `dcnt-${specimen.id}-${deps.newId()}`,
@@ -241,33 +331,31 @@ export async function addCytologyDecant(
     displayId: fullAccession ? decantIdentifier(fullAccession, specimen.label, label) : undefined,
     cassetteColorId: await deps.resolveDecantCassetteColor(input.decantType, { priority: (caseData as any).order?.priority }),
   };
-  const specimens = specimensWith(caseData, specimen.id, sp => ({ ...sp, decants: [...existing, decant] }));
-  await deps.updateCase(caseData.id, { specimens });
-  return specimens;
+  return saveDecant(caseData, { kind: 'add', specimenId: specimen.id, decant: decant as any },
+    current => specimensWith(current, specimen.id, sp => ({ ...sp, decants: [...(sp.decants ?? []), decant] })), deps);
 }
 
 export async function updateCytologyDecantStains(
   input: { caseData: Case; specimen: any; decantId: string; stains: unknown[] },
   deps: CytologyWorkspaceDeps,
 ) {
-  const decants = (input.specimen.decants ?? []).map((d: any) => (d.id === input.decantId ? { ...d, stains: input.stains } : d));
-  const specimens = specimensWith(input.caseData, input.specimen.id, sp => ({ ...sp, decants }));
-  await deps.updateCase(input.caseData.id, { specimens });
-  return specimens;
+  return saveDecant(input.caseData, { kind: 'update', decantId: input.decantId, patch: { stains: input.stains as any } }, current =>
+    specimensWith(current, input.specimen.id, sp => ({
+      ...sp, decants: (sp.decants ?? []).map((d: any) => (d.id === input.decantId ? { ...d, stains: input.stains } : d)),
+    })), deps);
 }
 
 export async function recordCytologyRoseEvaluation(
   input: { caseData: Case; specimen: any; location: any; passes: any[]; user: Actor },
   deps: CytologyWorkspaceDeps,
 ) {
-  const evaluations = resolveCytologyRoseEvaluationAdded(
-    input.specimen.roseEvaluations,
-    { performedAt: deps.now().toISOString(), performedBy: { userId: input.user.id, userName: input.user.name }, location: input.location, passes: input.passes },
-    `rose-${deps.newId()}`,
-  );
-  const specimens = specimensWith(input.caseData, input.specimen.id, sp => ({ ...sp, roseEvaluations: evaluations }));
-  await deps.updateCase(input.caseData.id, { specimens });
-  return specimens;
+  const evaluation = { performedAt: deps.now().toISOString(), performedBy: { userId: input.user.id, userName: input.user.name }, location: input.location, passes: input.passes };
+  const id = `rose-${deps.newId()}`;
+  // PS-71 (Batch 458): added to the evaluations the saved case holds, with its version.
+  const saved = await saveWorkspaceCaseChange(input.caseData, current => ({
+    specimens: specimensWith(current, input.specimen.id, sp => ({ ...sp, roseEvaluations: resolveCytologyRoseEvaluationAdded(sp.roseEvaluations, evaluation, id) })),
+  }), deps);
+  return (saved?.specimens ?? []) as any[];
 }
 
 /**
@@ -277,9 +365,14 @@ export async function recordCytologyRoseEvaluation(
  */
 export async function applyCytologyCodeChanges(input: { caseData: Case; codes: any[]; user: { id?: string; name?: string } }, deps: CytologyWorkspaceDeps) {
   const { caseData } = input;
-  const { newCoding, updatedSpecimens, additionsBySpecimen, removalsBySpecimen } =
-    resolveUpdatedCodingFromModalSubmission((caseData.specimens ?? []) as any[], input.codes);
-  await deps.updateCase(caseData.id, { coding: newCoding, specimens: updatedSpecimens });
+  // PS-71 (Batch 458): the codes are applied to the case as saved, with its
+  // version; on a conflict, to the newer case (the audit names what that save added and removed).
+  let resolved!: ReturnType<typeof resolveUpdatedCodingFromModalSubmission>;
+  await saveWorkspaceCaseChange(caseData, current => {
+    resolved = resolveUpdatedCodingFromModalSubmission((current.specimens ?? []) as any[], input.codes);
+    return { coding: resolved.newCoding, specimens: resolved.updatedSpecimens } as Partial<Case>;
+  }, deps);
+  const { newCoding, updatedSpecimens, additionsBySpecimen, removalsBySpecimen } = resolved;
   const who = input.user.name ?? input.user.id ?? 'unknown';
   const caseRef = caseData.accession?.fullAccession ?? caseData.id;
   const label = (specId: string) => ((caseData.specimens ?? []) as any[]).find(s => s.id === specId)?.label ?? specId;
@@ -294,7 +387,14 @@ export async function applyCytologyCodeChanges(input: { caseData: Case; codes: a
 
 /** The patient's last menstrual period (cleared when blank). */
 export async function saveCytologyLastMenstrualPeriod(input: { caseData: Case; lmp: string }, deps: CytologyWorkspaceDeps) {
-  await deps.updateCase(input.caseData.id, { patient: { ...input.caseData.patient, lastMenstrualPeriod: input.lmp || undefined } });
+  // PS-71 (Batch 458): versioned; the rest of the patient record comes from the case as saved.
+  await saveWorkspaceCaseChange(input.caseData, current => ({ patient: { ...current.patient, lastMenstrualPeriod: input.lmp || undefined } as Case['patient'] }), deps);
+}
+
+/** The case's spelling language (PS-342). PS-71 (Batch 458): saved with
+ *  the version the screen loaded, re-applied to the newer case on a conflict. */
+export async function saveCytologySpellingLocaleOverride(input: { caseData: Case; locale: string | null }, deps: Pick<CytologyWorkspaceDeps, 'getCase' | 'updateCase'>) {
+  await saveWorkspaceCaseChange(input.caseData, () => ({ spellingLocaleOverride: input.locale } as Partial<Case>), deps);
 }
 
 // ── Print ────────────────────────────────────────────────────────────────────

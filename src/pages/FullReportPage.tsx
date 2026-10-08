@@ -32,10 +32,12 @@
 // files) — this page had none before this pass.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import { useState, useEffect } from "react";
 import '../pathscribe.css';
-import { useParams, useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
+import { formatDateTime } from "@/utils/formatDate";
 import type { Case } from "@/types/case/Case";
 import { openCaseForViewDefault } from "@/services/cases/defaultOpenCaseForView";
 import { CaseUnavailable } from "../components/CaseUnavailable/CaseUnavailable";
@@ -72,8 +74,9 @@ interface FullReportLocationState {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FullReportPage() {
-  const { t } = useTranslation();
-  const { caseId } = useParams();
+  const { t, i18n } = useTranslation();
+  // Batch 446: the address carries the case's reference, not its accession.
+  const caseId = useRouteCaseId('report');
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -219,7 +222,7 @@ export default function FullReportPage() {
             <div className="ps-report-header-meta">
               <div className="ps-report-label">{t('fullReport.lastUpdated')}</div>
               <div className="ps-report-header-meta-value">
-                {(caseData as any).updatedAt ?? '—'}
+                {formatDateTime((caseData as any).updatedAt, i18n.language)}
               </div>
             </div>
           </div>

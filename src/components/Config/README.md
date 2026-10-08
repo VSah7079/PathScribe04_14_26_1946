@@ -353,6 +353,109 @@ Every Configuration section now checks its own capability in its service (84 of 
 
 The Configuration search covers every tab and section (see `Search/README.md`); System and Cytology section lists are data files; Document Style has the lab's page size and margins.
 
+## Batch 433
+
+System → Session security has the biometric e-signature policy (`System/BiometricPolicyCard.tsx`).
+
+## Batch 437 (PS-128): unsaved changes anywhere in Configuration
+
+- `configDirtyGuardContext.ts`:
+  - `useReportConfigDirty(dirty)`: inline forms report their exact state. 18 sections now do, besides Macros and Assist LIS polling.
+  - `useConfigNavigationGuard()`: the System and Cytology section lists, the System group tabs, the Protocols list and the Staff sub-tabs ask before leaving unsaved changes.
+- Editor dialogs report nothing themselves: the page notices edits in any open dialog (`hooks/useConfigEditTracking.ts`).
+- Filters and search boxes are marked `data-dirty-ignore` (70 of them), so using one isn't an unsaved change.
+- See `services/configDirty/README.md`.
+
+## Batch 438
+
+System → Revision Reasons (PS-146). Dialogs with edits ask before closing from their backdrop or Escape; the first keystroke in a dialog is no longer lost (a Batch 437 fault).
+
+## Batch 439
+
+System → Peer Review Before Sign-Out (PS-144).
+
+## Batch 441
+
+Role Dictionary: the Cytotechnologist role can't list a pathologist participation type. QA Configuration Center: the "after release only" CAPA switch. See `Staff/README.md` and `System/README.md`.
+
+## Batch 442
+
+System → Discordance Trend Policy (PS-147): each site sets when a discordance pattern is flagged.
+
+## Batch 444
+
+AI → AI Provider: the developer key field is gone (keys live only on the server). System → Scan Stations: translated.
+
+## Batch 447
+
+System → Feedback: the QA feedback button and recipients (replacing the `VITE_QA_*` build settings).
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+`System/`: TAT and abnormal-trigger-rule actions moved to services (PS-38, PS-129).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+System and Staff sections: tests and logic moved to services (PS-48, PS-90, PS-155, PS-233, PS-355).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+Cytology: the Correlation window section (PS-156). System: Modifier Dictionary upload errors are shown.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+- `System/`: new Biopsy-to-resection correlation section.
+- `Cytology/`: the correlation-window screen is now a shared component.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`System/`: new Follow-up tracking section.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`System/DemoResetTab.tsx`: Full Reset only.
+
+## Batch 461
+
+System → **Organ maps**: colours and patterns of the anatomical maps by enterprise, jurisdiction and facility, and the binding of a lab's own synoptic questions (see `System/README.md`).
+
+## Batch 463
+
+Protocols: the Mohs stage map field type and PathScribe's Mohs template. System → Organ maps: Mohs bindings and preview.
+
+## Batch 463b
+
+Protocols: the Mohs question's "Default histology from" setting; review and publish refuse a broken source (Templates list too).
+
+## Batch 464
+
+System → Organ maps: the colorectal involved-margin rules and bindings. Protocols: registry field counts corrected.
+
+## Batch 465
+
+Organ maps: oral cavity margin rules and the neck dissection binding editor (`System/`); `HEAD_NECK` template category (`Protocols/`).
+
+## Batch 466
+
+Kidney margin rules; renal previews; Kidney Resection field count.
+
+## Batch 466b
+
+Map bindings: generic margin questions derived from the map. Synoptic Editor: count settings.
+
+## Batch 466c
+
+- Protocols → Synoptic Editor: "unless" and "or also when" visibility conditions, and the checked hand-entered total.
+- System → Organ maps → Map bindings: an adenoma-at-margin option for the colorectal polyp. (Replaced in Batch 466d by margins per component.)
+
+## Batch 466d
+
+System → Organ maps → Map bindings binds margin questions per component (invasive carcinoma, precursor). Bindings saved earlier for polyp, breast or oral maps are held for review.
+
+## Batch 467 — In-house molecular orders
+
+Synoptic Editor: molecular result binding on choice questions. Stain Dictionary: in-house labs per molecular test.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 - **Batch 345:** `Staff/LinkedSignInAccounts.tsx`, a person's linked single-sign-on accounts in Staff → edit, with Unlink (audited). See `Staff/README.md`.

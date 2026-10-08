@@ -34,9 +34,14 @@ describe('resolveCytologyReviewerRole — real, per direct guidance\'s own defau
     expect(resolveCytologyReviewerRole(reviews, false, FLAG_RANDOM)).toBe('secondary_reviewer');
   });
 
-  it('a Pathologist still defaults to Pathologist Review even when a QC flag is pending — the QC-role override only applies to non-Pathologists', () => {
-    const reviews = [{ role: 'primary_screen' as const }];
-    expect(resolveCytologyReviewerRole(reviews, true, FLAG_TARGETED)).toBe('pathologist_review');
+  // Batch 440 (Pete, Oct 2): "If a Pathologist is actually doing the initial QC he should go to the
+  // Cytology workspace. That should be rare." Replaces the earlier rule that QC was cytotechnologists' only.
+  it('a Pathologist doing a pending QC rescreen records the QC role; once a screen needs a pathologist, it is their own review', () => {
+    const negative = [{ role: 'primary_screen' as const, requiresPathologistReview: false }];
+    expect(resolveCytologyReviewerRole(negative, true, FLAG_TARGETED)).toBe('qc_targeted_high_risk');
+    expect(resolveCytologyReviewerRole(negative, true, FLAG_RANDOM)).toBe('qc_random_selection');
+    const positive = [{ role: 'primary_screen' as const, requiresPathologistReview: true }];
+    expect(resolveCytologyReviewerRole(positive, true, FLAG_TARGETED)).toBe('pathologist_review');
   });
 
   it('no qcFlag at all behaves exactly like the plain, three-outcome rule', () => {

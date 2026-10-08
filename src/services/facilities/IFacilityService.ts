@@ -499,20 +499,16 @@ export interface Facility {
    *  land in the pool via either path independently, never both
    *  conflated into one signal. */
   codeReviewSamplingRatePercent?: number | null;
-  /** Real, per direct guidance's own Feature Specification refinement
-   *  (Pathology Billing Rules Engine & Audit Logging, "Opt-in Core"):
-   *  when true, a real charge created for this facility's own
-   *  performing lab starts as DRAFT (ServiceChargeRecord.approvalStatus)
-   *  and genuinely requires a real, different approver before it can
-   *  ever export - the Four-Eyes Principle, enforced at charge
-   *  creation. False/undefined (the real, default state) preserves
-   *  today's existing behavior exactly: a charge is created with no
-   *  approvalStatus at all, treated by getEffectiveChargeStatus
-   *  (mockServiceChargeService.ts) as already-cleared - same "absence
-   *  means off" convention as codeReviewSamplingRatePercent above.
-   *  Resolved via resolvePerformingLabFacilityId(), same real
-   *  resolution as that field too - a lab-wide policy, not a
-   *  per-order or per-pathologist one. */
+  /** Whether this facility's charges wait for billing approval before
+   *  they go to the billing system (the "Opt-in Core" four-eyes step of the
+   *  Billing Rules Engine specification). Batch 433 (Pete: enterprise
+   *  definition with facility overrides): an enterprise sets it on or off;
+   *  a performing lab can leave it unset to follow its enterprise, or set
+   *  true/false to override (chargeApproval.ts resolveBillingApprovalRequired).
+   *  Off unless set somewhere. When on, a charge from sign-out or a billing
+   *  correction starts as PENDING_APPROVAL and needs billing:charge:approve
+   *  from someone other than its drafter (Quality Assurance → Financials →
+   *  Charges awaiting approval). Edited in Configuration → Facilities. */
   requireBillingApproval?: boolean;
   /**
    * Real feature, per direct specification: Post-Sign-Out Release

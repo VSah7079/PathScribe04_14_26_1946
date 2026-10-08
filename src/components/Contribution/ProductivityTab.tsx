@@ -11,6 +11,7 @@ import { userService } from "@/services";
 import { rvuCodeMapService } from "@/services";
 import { getFacilityDateParts } from "@/utils/facilityTime";
 import { computeMonthlyCaseCounts, canSeePeerComparison, computeRvuSummary, computeMonthlyRvu, computePeerRvuStats, type RealRvuSummary, type RealPeerRvuStats } from "./productivityCalculations";
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -505,7 +506,11 @@ const ProductivityTab: React.FC = () => {
 
       {/* ── Export row ── */}
       <div className="ps-prodtab-export-row">
-        <button onClick={() => window.print()}
+        <button onClick={() => {
+            // PS-282 (Batch 437): audited.
+            void recordDocumentOutput({ action: 'print', document: 'productivity-report', destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
+            window.print();
+          }}
           className="ps-prodtab-export-btn ps-prodtab-export-btn--print">
           🖨 {t('productivityTab.export.print')}
         </button>

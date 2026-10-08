@@ -38,7 +38,9 @@ import { deploymentInstance } from '../deployment/deploymentInstance';
 // feature?") — used only by the new, deliberately NOT-yet-wired
 // services/clinical/postGaAlertChannels/ module; no currently-active
 // call site produces it yet. See that folder's own README.
-export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT';
+// Batch 434: 'WSI_SCAN_MANIFEST', the slides loaded on a slide scanner
+// (services/digitalPathology/wsiScanBatchWorkflow.ts).
+export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT' | 'WSI_SCAN_MANIFEST';
 
 export interface InterfaceDispatchEnvelope {
   queueEntryId: string;
@@ -89,9 +91,9 @@ export interface InterfaceDispatchResult {
 export const INTERFACE_RECEIVER = resolveServiceEndpoint({
   name: 'interface engine',
   envVar: 'VITE_INTERFACE_RECEIVER_ENDPOINT',
-  configured: (import.meta as any).env?.VITE_INTERFACE_RECEIVER_ENDPOINT,
+  configured: import.meta.env.VITE_INTERFACE_RECEIVER_ENDPOINT,
   devDefault: 'http://localhost:8080/',
-  isProduction: !!(import.meta as any).env?.PROD,
+  isProduction: !!import.meta.env.PROD,
 });
 
 // Real, per direct follow-up ("We are logging interface errors with

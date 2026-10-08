@@ -27,11 +27,14 @@ import {
   buildMolecularSpecimenLabelHtml, buildMolecularPlateLabelHtml,
   buildMolecularRackLabelHtml, buildMolecularDeckLocationLabelHtml,
 } from './buildLabelHtml';
-import { barcodePayloadForMolecularPlate, barcodePayloadForMolecularRack, barcodePayloadForMolecularDeckLocation } from '@/types/labels/LabelData';
+import { barcodePayloadForMolecularSpecimen, barcodePayloadForMolecularPlate, barcodePayloadForMolecularRack, barcodePayloadForMolecularDeckLocation } from '@/types/labels/LabelData';
 import { printLabels } from './printLabels';
 import { getLabelSizePreset } from '@/types/labels/LabelSizePreset';
 import type { LabelSizePreset } from '@/types/labels/LabelSizePreset';
-import { generateExtractionRackBarcode, generateDeckLocationLabel } from '@/services/molecular/resolveMolecularBarcodes';
+import {
+  buildMolecularSpecimenLabelData, buildMolecularPlateLabelData, buildMolecularRackLabelData, buildMolecularDeckLocationLabelData,
+  molecularSpecimenZplTextLines, molecularPlateZplTextLines, molecularRackZplTextLines, molecularDeckLocationZplTextLines,
+} from './buildMolecularLabelData';
 // Real, deliberate direct import — NOT via '@/services/index'. That
 // barrel re-exports this app's entire service layer; a real,
 // empirical timing check found importing it alone costs 2+ seconds
@@ -66,7 +69,7 @@ async function tryDispatchViaHardwareBridge(barcodePayload: string, textLines: s
   if (printer.bridgeType !== 'qz_tray') return false;
 
   const zpl = buildSimpleZplLabel({ barcodePayload, symbology: preset.defaultBarcodeSymbology, textLines, dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm });
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'molecular-label', documentId: barcodePayload });
   return result.ok;
 }
 
@@ -82,33 +85,28 @@ async function tryDispatchViaHardwareBridge(barcodePayload: string, textLines: s
  *  falls back to a browser dialog for the rest. */
 export async function printMolecularSpecimenLabels(batch: MolecularBatch): Promise<boolean> {
   const preset = getLabelSizePreset(SPECIMEN_PRESET_ID)!;
-  const printedAt = new Date().toISOString();
-  const specimenWells = batch.wells.filter(w => w.sampleType === 'PATIENT_SPECIMEN' && w.containerBarcode);
-  if (specimenWells.length === 0) return false;
+  // PS-231 (Batch 450): label content is built in buildMolecularLabelData.ts.
+  const labels = buildMolecularSpecimenLabelData(batch, new Date().toISOString());
+  if (labels.length === 0) return false;
 
   const settingsRes = await printSettingsService.get();
   if (settingsRes.ok && settingsRes.data.molecularLabelPrinterProfileId) {
-    const results = await Promise.all(specimenWells.map(w => tryDispatchViaHardwareBridge(
-      w.containerBarcode!, [w.accessionNumber ?? '—'], preset,
+    const results = await Promise.all(labels.map(l => tryDispatchViaHardwareBridge(
+      barcodePayloadForMolecularSpecimen(l), molecularSpecimenZplTextLines(l), preset,
     )));
     if (results.every(Boolean)) return true;
   }
 
-  const htmlFragments = specimenWells.map(w => buildMolecularSpecimenLabelHtml({
-    containerBarcode: w.containerBarcode!, accessionNumber: w.accessionNumber ?? '—',
-    aliquotVolumeUl: w.aliquotVolumeUl, printedAt,
-  }, preset));
-  return printLabels(htmlFragments, preset, `Specimen Labels — ${batch.batchBarcode}`);
+  const htmlFragments = labels.map(l => buildMolecularSpecimenLabelHtml(l, preset));
+  return printLabels(htmlFragments, preset, `Specimen Labels — ${batch.batchBarcode}`, { document: 'molecular-specimen-labels', documentId: batch.batchBarcode });
 }
 
 export async function printMolecularPlateLabel(batch: MolecularBatch): Promise<boolean> {
   const preset = getLabelSizePreset(PLATE_AND_RACK_PRESET_ID)!;
-  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularPlate({ plateBarcode: batch.plateBarcode, assayName: batch.assayName, targetInstrumentId: batch.targetInstrumentId, printedAt: '' }), [batch.assayName, batch.targetInstrumentId], preset)) return true;
-  const html = buildMolecularPlateLabelHtml({
-    plateBarcode: batch.plateBarcode, assayName: batch.assayName,
-    targetInstrumentId: batch.targetInstrumentId, printedAt: new Date().toISOString(),
-  }, preset);
-  return printLabels([html], preset, `Plate Label — ${batch.plateBarcode}`);
+  const label = buildMolecularPlateLabelData(batch, new Date().toISOString());
+  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularPlate(label), molecularPlateZplTextLines(label), preset)) return true;
+  const html = buildMolecularPlateLabelHtml(label, preset);
+  return printLabels([html], preset, `Plate Label — ${label.plateBarcode}`, { document: 'molecular-plate-label', documentId: label.plateBarcode });
 }
 
 /** Real, per the given specification's own §2.2: an extraction rack is
@@ -117,29 +115,22 @@ export async function printMolecularPlateLabel(batch: MolecularBatch): Promise<b
  *  rack-tracking count), this function does not invent one. */
 export async function printMolecularRackLabel(sequence: number): Promise<boolean> {
   const preset = getLabelSizePreset(PLATE_AND_RACK_PRESET_ID)!;
-  const rackBarcode = generateExtractionRackBarcode(sequence);
+  const label = buildMolecularRackLabelData(sequence, new Date().toISOString());
   // Real, direct bug fix per direct feedback from real Labelary
   // verification ("Seems like there should be a Printed Designation
-  // under the barcode?"): this used to pass an empty textLines array,
-  // the one real place this label's own hardware-bridge/ZPL path
-  // diverged from its own HTML path — buildMolecularRackLabelHtml
-  // already shows rackBarcode as real, visible text (labelWrapper's
-  // own accessionText argument); the ZPL path now shows the exact
-  // same real text, matching every sibling molecular label (plate,
-  // deck location), each of which already passes its own real,
-  // meaningful text lines here.
-  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularRack({ rackBarcode, printedAt: '' }), [rackBarcode], preset)) return true;
-  const html = buildMolecularRackLabelHtml({ rackBarcode, printedAt: new Date().toISOString() }, preset);
-  return printLabels([html], preset, `Extraction Rack Label — ${rackBarcode}`);
+  // under the barcode?"): the ZPL path shows the rack barcode as
+  // human-readable text, matching the HTML path and every sibling
+  // molecular label (molecularRackZplTextLines).
+  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularRack(label), molecularRackZplTextLines(label), preset)) return true;
+  const html = buildMolecularRackLabelHtml(label, preset);
+  return printLabels([html], preset, `Extraction Rack Label — ${label.rackBarcode}`, { document: 'molecular-rack-label', documentId: label.rackBarcode });
 }
 
 export async function printMolecularDeckLocationLabel(batch: MolecularBatch): Promise<boolean> {
-  if (!batch.deckSlot) return false; // real, honest no-op — no real deck slot assigned to this batch yet
+  const label = buildMolecularDeckLocationLabelData(batch, new Date().toISOString());
+  if (!label) return false; // real, honest no-op — no real deck slot assigned to this batch yet
   const preset = getLabelSizePreset(DECK_LOCATION_PRESET_ID)!;
-  const deckLocationLabel = generateDeckLocationLabel(batch.targetInstrumentId, batch.deckSlot);
-  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularDeckLocation({ deckLocationLabel, targetInstrumentId: batch.targetInstrumentId, deckSlot: batch.deckSlot, printedAt: '' }), [batch.targetInstrumentId, batch.deckSlot], preset)) return true;
-  const html = buildMolecularDeckLocationLabelHtml({
-    deckLocationLabel, targetInstrumentId: batch.targetInstrumentId, deckSlot: batch.deckSlot, printedAt: new Date().toISOString(),
-  }, preset);
-  return printLabels([html], preset, `Deck Location Label — ${deckLocationLabel}`);
+  if (await tryDispatchViaHardwareBridge(barcodePayloadForMolecularDeckLocation(label), molecularDeckLocationZplTextLines(label), preset)) return true;
+  const html = buildMolecularDeckLocationLabelHtml(label, preset);
+  return printLabels([html], preset, `Deck Location Label — ${label.deckLocationLabel}`, { document: 'molecular-deck-location-label', documentId: label.deckLocationLabel });
 }

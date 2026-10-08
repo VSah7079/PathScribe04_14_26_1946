@@ -1,0 +1,58 @@
+// src/services/printing/recordDocumentOutput.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// PS-282 (Batch 437): the app's wiring for documentOutputAudit.ts — writes to
+// the audit log as the signed-in person, and plans a report print from the
+// audit log (printed before?) and the lab's print settings (reason required
+// for a reprint?). Screens reach these through '@/services'.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { mockAuditService } from '../auditlog/mockAuditService';
+import { readSessionProfile } from '../auth/sessionProfile';
+import { mockPrintSettingsService } from '../printSettings/mockPrintSettingsService';
+import { mockFacilityPrintSettingsService } from '../printSettings/mockFacilityPrintSettingsService';
+import { resolveEffectivePrintSettings } from '../printSettings/IFacilityPrintSettingsService';
+import { mockFacilityService } from '../facilities/mockFacilityService';
+import { resolveCasePerformingLab } from '../facilities/resolveCasePerformingLab';
+import {
+  recordDocumentOutputWith, wasPrintedBefore, planDocumentPrint,
+  type DocumentOutputEvent, type PrintPlan,
+} from './documentOutputAudit';
+
+const sessionActor = (): string => {
+  const p = readSessionProfile();
+  return p?.name || p?.id || 'unknown';
+};
+
+/** Records a print, reprint, preview print or export in the audit log. */
+export function recordDocumentOutput(e: DocumentOutputEvent): Promise<void> {
+  return recordDocumentOutputWith(e, { logEvent: entry => mockAuditService.logEvent(entry), actor: sessionActor });
+}
+
+/** Whether the case's performing lab asks for a reason when a report is reprinted. */
+async function reprintReasonRequired(caseRecord: { originHospitalId?: string | null }): Promise<boolean> {
+  const global = await mockPrintSettingsService.get();
+  if (!global.ok) return false;
+  const facilities = await mockFacilityService.getAll();
+  const lab = facilities.ok ? resolveCasePerformingLab(caseRecord, facilities.data) : undefined;
+  const override = lab ? await mockFacilityPrintSettingsService.getForFacility(lab.id) : null;
+  const effective = resolveEffectivePrintSettings(global.data, override && override.ok ? override.data : null);
+  return effective.requireReprintReason === true;
+}
+
+/** What pressing Print on a report should do: print, or reprint (asking why when the lab requires it). */
+export async function planReportPrint(input: {
+  document: string;
+  caseId: string;
+  caseRecord: { originHospitalId?: string | null };
+  pendingReleaseRestricted: boolean;
+}): Promise<PrintPlan> {
+  const [logs, requireReprintReason] = await Promise.all([
+    mockAuditService.getAuditLogs().then(r => (r.ok ? r.data : [])).catch(() => []),
+    reprintReasonRequired(input.caseRecord).catch(() => false),
+  ]);
+  return planDocumentPrint({
+    printedBefore: wasPrintedBefore(logs, input.document, input.caseId),
+    requireReprintReason,
+    pendingReleaseRestricted: input.pendingReleaseRestricted,
+  });
+}

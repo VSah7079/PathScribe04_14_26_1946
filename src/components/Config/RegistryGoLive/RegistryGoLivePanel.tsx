@@ -32,6 +32,7 @@ import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { REGISTRY_GO_LIVE_APPROVALS_MAX, REGISTRY_GO_LIVE_APPROVALS_MIN, REGISTRY_GO_LIVE_CAPACITIES } from '@/services/registryGoLive/registryGoLiveRules';
 import { REGISTRY_MANAGE_CAPABILITY, type TestSuiteOutcome } from '@/services/registryGoLive/registryGoLive';
 import { REGISTRY_TEMPLATE_ELEMENTS, type RegistryDomain, type RegistryTemplateElement } from '@/services/registryGoLive/registryTemplateVersions';
+import { recordExport } from '@/services';
 
 const K = 'registryGoLive';
 const APPROVAL_CHOICES = Array.from({ length: REGISTRY_GO_LIVE_APPROVALS_MAX - REGISTRY_GO_LIVE_APPROVALS_MIN + 1 }, (_, i) => REGISTRY_GO_LIVE_APPROVALS_MIN + i);
@@ -144,7 +145,11 @@ export const RegistryGoLivePanel: React.FC<Props> = ({ domain, registryId, regis
               <CapabilityButton capability={manage} className="ps-conf-btn-secondary" disabled={g.busy || view.acceptedSynthetic === 0}
                 onClick={async () => {
                   const r = await g.exportValidation();
-                  if (r.outcome === 'exported') downloadText(r.fileName!, r.text!, 'application/json');
+                  if (r.outcome === 'exported') {
+                    // PS-282 (Batch 437): audited.
+                    void recordExport('registry-validation-file', { filename: r.fileName!, rowCount: 1, format: 'json' });
+                    downloadText(r.fileName!, r.text!, 'application/json');
+                  }
                   after(r.outcome, ['exported']);
                 }}>{t(`${K}.validation.export`)}</CapabilityButton>
             </div>

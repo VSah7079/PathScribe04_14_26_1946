@@ -14,6 +14,7 @@ import { isVoiceMacroVisibleTo, applyVoiceMacroSubstitutions, type VoiceMacro } 
 import { getVoiceProfileRecognitionLang, getVoiceProfileLanguage } from '../constants/voiceProfiles';
 import { getPunctuationMapForLanguage } from './punctuationMaps';
 import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
+import { offerVoiceCommandToScreen, screenVoiceStatusKey } from '@/services/voice/voiceCommandEvents';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 
@@ -542,6 +543,14 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // so a genuine, real French/German/Dutch/Korean command
         // trigger (once translated content exists) is actually
         // matched, not silently only ever checked against English.
+        // Batch 463: a command for what is on screen first (the Mohs stage question).
+        const screenOutcome = offerVoiceCommandToScreen(text, getVoiceProfileLanguage(accent));
+        if (screenOutcome) {
+          pendingMissRef.current = null;
+          setTranscript(t(screenVoiceStatusKey(screenOutcome), { text }));
+          setTimeout(() => setTranscript(''), 1200);
+          continue;
+        }
         const action = mockActionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent));
         if (action) {
           pendingMissRef.current = null;

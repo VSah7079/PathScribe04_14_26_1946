@@ -22,7 +22,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { mockMolecularQcRunRecordService } from '../cytology/mockMolecularQcRunRecordService';
 import type { MolecularBatchResultEventPayload } from '@/types/events/MolecularBatchResultEventPayload';
 
@@ -81,29 +81,27 @@ export async function processInboundMolecularBatchEvent(payload: MolecularBatchR
       continue;
     }
 
-    const specimens = (caseData.specimens as any[]) ?? [];
-    const targetSpecimen = specimens.find(sp => sp.label === target.specimenLetter);
-    if (!targetSpecimen) {
+    // PS-71 (Batch 458): the run ID is applied to the newest case on every
+    // try (updateCaseWithRetryOrThrow), so a concurrent edit to another
+    // specimen is kept. Replaces the old "force through" retry that re-saved
+    // the stale specimens array without a version. If every try conflicts,
+    // the ConcurrencyConflictError propagates (as any other failed save
+    // already did) and the messageId is NOT marked processed.
+    let targetSpecimen: any;
+    const write = await updateCaseWithRetryOrThrow(caseData.id, current => {
+      const specimens = (current.specimens as any[]) ?? [];
+      targetSpecimen = specimens.find(sp => sp.label === target.specimenLetter);
+      if (!targetSpecimen) return null;
+      const updatedSpecimens = specimens.map(sp =>
+        sp.label === target.specimenLetter
+          ? { ...sp, cytologyScreening: { ...sp.cytologyScreening, molecularRunId: runId } }
+          : sp
+      );
+      return { specimens: updatedSpecimens } as any;
+    }, caseRouter);
+    if (!write.ok) {
       specimenResults.push({ accessionNumber: target.accessionNumber, specimenLetter: target.specimenLetter, outcome: 'specimen-not-found', caseId: caseData.id });
       continue;
-    }
-
-    const updatedSpecimens = specimens.map(sp =>
-      sp.label === target.specimenLetter
-        ? { ...sp, cytologyScreening: { ...sp.cytologyScreening, molecularRunId: runId } }
-        : sp
-    );
-
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
-    } catch (e) {
-      // Real, deliberate "force through" posture — same reasoning as
-      // processInboundHpvResultEvent.ts's own.
-      if (e instanceof ConcurrencyConflictError) {
-        await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
-      } else {
-        throw e;
-      }
     }
 
     specimenResults.push({ accessionNumber: target.accessionNumber, specimenLetter: target.specimenLetter, outcome: 'applied', caseId: caseData.id, specimenId: targetSpecimen.id });

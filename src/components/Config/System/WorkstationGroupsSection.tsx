@@ -236,7 +236,7 @@ const WorkstationGroupsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input data-config-nav type="text" placeholder={t('workstationGroupsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('workstationGroupsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
       </div>
 
       <div className="ps-conf-table-wrap">

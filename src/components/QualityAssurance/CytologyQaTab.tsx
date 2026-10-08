@@ -59,7 +59,7 @@ const LEVEL_LABEL: Record<string, { textKey: string; color: string }> = {
 // same real .ps-wl-filter-tile pattern the parent QualityAssurancePage
 // already uses for its own Operations/CAPA sub-navigation, reused
 // directly rather than a second, competing tile style.
-type CytologyQaReportKey = 'random' | 'high-risk' | 'ct-path' | 'peer-review' | 'ct-stats' | 'ascus-hpv' | 'workload' | 'transmission' | 'secondary-screening-audit' | 'histology-correlation' | 'unscreened-backlog' | 'uk-failsafe' | 'eu-compliance' | 'hpv-positivity' | 'mol-qc-failure' | 'mol-lot-trend' | 'apac-pt';
+type CytologyQaReportKey = 'random' | 'high-risk' | 'ct-path' | 'peer-review' | 'final-dx' | 'ct-stats' | 'ascus-hpv' | 'workload' | 'transmission' | 'secondary-screening-audit' | 'histology-correlation' | 'unscreened-backlog' | 'uk-failsafe' | 'eu-compliance' | 'hpv-positivity' | 'mol-qc-failure' | 'mol-lot-trend' | 'apac-pt';
 
 // Tile labels are UI chrome — icon kept as literal, text resolved via
 // t() at render with labelKey below.
@@ -68,6 +68,8 @@ const REPORT_TILES: { key: CytologyQaReportKey; icon: string; labelKey: string; 
   { key: 'high-risk', icon: '⚠️', labelKey: 'cytologyQaTab.tiles.highRisk', color: '#f59e0b' },
   { key: 'ct-path', icon: '⚖️', labelKey: 'cytologyQaTab.tiles.ctPath', color: '#38bdf8' },
   { key: 'peer-review', icon: '🔍', labelKey: 'cytologyQaTab.tiles.peerReview', color: '#14B8A6' },
+  // Batch 459 (PS-152): the screener's initial read vs the Final Diagnosis signed out.
+  { key: 'final-dx', icon: '🎯', labelKey: 'cytologyQaTab.tiles.finalDx', color: '#0D9488' },
   { key: 'ct-stats', icon: '📊', labelKey: 'cytologyQaTab.tiles.ctStats', color: '#8B5CF6' },
   { key: 'ascus-hpv', icon: '🧬', labelKey: 'cytologyQaTab.tiles.ascusHpv', color: '#EC4899' },
   { key: 'workload', icon: '⏱️', labelKey: 'cytologyQaTab.tiles.workload', color: '#261CE3' },
@@ -907,6 +909,9 @@ export const CytologyQaTab: React.FC = () => {
       } else if (activeReport === 'peer-review') {
         const res = await cytologyQaReportService.getPostSignOutPeerReviewCorrelationReport(scope);
         if (!cancelled && res.ok) setAggregateReport(res.data);
+      } else if (activeReport === 'final-dx') {
+        const res = await cytologyQaReportService.getPrimaryVsFinalDiagnosisReport(scope);
+        if (!cancelled && res.ok) setAggregateReport(res.data);
       } else if (activeReport === 'ct-stats') {
         const res = await cytologyQaReportService.getCtStatisticalComparisonReport(scope);
         if (!cancelled && res.ok) setCtStatsReport(res.data);
@@ -1008,6 +1013,7 @@ export const CytologyQaTab: React.FC = () => {
           {activeReport === 'high-risk' && <ReportCard titleKey="cytologyQaTab.reportTitle.highRisk" report={aggregateReport} />}
           {activeReport === 'ct-path' && <ReportCard titleKey="cytologyQaTab.reportTitle.ctPath" titleCode="US-QA-01" report={aggregateReport} />}
           {activeReport === 'peer-review' && <ReportCard titleKey="cytologyQaTab.reportTitle.peerReview" report={aggregateReport} />}
+          {activeReport === 'final-dx' && <ReportCard titleKey="cytologyQaTab.reportTitle.finalDx" report={aggregateReport} />}
           {activeReport === 'ct-stats' && <CtStatisticalComparisonTable rows={ctStatsReport} />}
           {activeReport === 'ascus-hpv' && <AscusHpvReflexTable rows={ascusHpvReport} />}
           {activeReport === 'workload' && <WorkloadTrackingTable rows={workloadReport} />}

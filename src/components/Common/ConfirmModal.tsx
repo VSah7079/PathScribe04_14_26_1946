@@ -26,6 +26,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Batch 437: shown over an open editor dialog (the unsaved-changes guard). */
+  aboveDialogs?: boolean;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -36,6 +38,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelLabel,
   onConfirm,
   onCancel,
+  aboveDialogs = false,
 }) => {
   const { t } = useTranslation();
   if (!show) return null;
@@ -43,7 +46,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
 
   return (
-    <div className="ps-overlay ps-overlay--confirm">
+    <div className={`ps-overlay ps-overlay--confirm${aboveDialogs ? ' ps-overlay--above-dialogs' : ''}`}>
       <div className="ps-modal-dark ps-modal-sm">
         {title && <span className="ps-modal-dark-title ps-modal-dark-title--confirm">{title}</span>}
         <p className="ps-modal-dark-body ps-modal-dark-body--confirm">{message}</p>

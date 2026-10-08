@@ -25,9 +25,10 @@
 // translated.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router';
+import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { formatFullDisplayName } from '@/utils/personName';
 import { actionRegistryService } from '@/services';
@@ -74,6 +75,7 @@ const AddOnOrderPage: React.FC = () => {
   /** The text for a refused action. */
   const describeFailure = (result: AddOnActionResult): string => {
     if (result.notPermitted) return t('addOnOrder.errors.notPermitted');
+    if (result.inHouseNotAvailable?.length) return t('addOnOrder.errors.inHouseNotAvailable', { tests: formatList(result.inHouseNotAvailable, i18n.language) });
     if (result.missing?.length) {
       return t('fieldRequirements.stillRequired', { fields: formatList(result.missing.map(id => t(`fieldRequirements.fields.addOnOrder.${id}`)), i18n.language) });
     }
@@ -87,13 +89,13 @@ const AddOnOrderPage: React.FC = () => {
   // Batch 375 (Pete): Add-On Orders is an action on a case now, not a Home
   // tile. The report page's "Add-on order" opens this page with ?case=<id>,
   // and the case is opened straight away, as if searched for.
-  const location = useLocation();
+  // Batch 446: ?case= carries the case's reference, not its accession.
+  const requested = useRouteCaseId('addOnOrders', 'case');
   useEffect(() => {
-    const requested = new URLSearchParams(location.search).get('case');
     if (!requested) return;
     setSearchInput(requested);
     void w.openCase(requested);
-  }, [location.search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [requested]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpen = async () => {
     setSubmitError(null);
@@ -106,11 +108,15 @@ const AddOnOrderPage: React.FC = () => {
   };
 
   const handleAddLines = (lines: AddOnOrderLineInput[]) => {
-    setCart(prev => [...prev, ...lines.map(l => ({ ...withDefaultSendOutLab(l, w.referenceLabs), cartId: nextCartId() }))]);
+    setCart(prev => [...prev, ...lines.map(l => ({ ...withDefaultSendOutLab(l, w.referenceLabs, w.performingLabFacilityId), cartId: nextCartId() }))]);
   };
 
   const handleLineLabChange = (cartId: string, labId: string, labName: string) => {
     setCart(prev => prev.map(l => l.cartId !== cartId ? l : { ...l, sendOutReferenceLabFacilityId: labId || undefined, sendOutReferenceLabName: labId ? labName : undefined }));
+  };
+
+  const handleLineRoutingChange = (cartId: string, routing: 'IN_HOUSE' | 'SEND_OUT') => {
+    setCart(prev => prev.map(l => l.cartId !== cartId ? l : { ...l, molecularRouting: routing }));
   };
 
   const handleRemoveLine = (cartId: string) => {
@@ -126,7 +132,7 @@ const AddOnOrderPage: React.FC = () => {
       setCart([]);
       setSelectedBlockIds([]);
       setCuttingInstructions('');
-      setSubmitNotice(t('addOnOrder.summary.submitted') as string);
+      setSubmitNotice(result.molecularNotQueued ? t('addOnOrder.summary.submittedMolecularNotQueued', { count: result.molecularNotQueued }) : t('addOnOrder.summary.submitted') as string);
     } else {
       setSubmitError(describeFailure(result));
     }
@@ -197,6 +203,8 @@ const AddOnOrderPage: React.FC = () => {
           onCuttingInstructionsChange={setCuttingInstructions}
           referenceLabs={w.referenceLabs}
           onLineLabChange={handleLineLabChange}
+          onLineRoutingChange={handleLineRoutingChange}
+          performingLabFacilityId={w.performingLabFacilityId}
           stationsForLine={(line) => w.stationsForRouting(line.orderKind, line.stainType.category)}
           performingLabResolved={Boolean(w.performingLabFacilityId)}
           onSubmit={handleSubmit}

@@ -11,9 +11,10 @@
 // real pediatric/orchestration access checks a pathologist does.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { protocolService, stainTypeService, batchService, actionRegistryService } from '@/services';
@@ -24,6 +25,7 @@ import { formatList } from '@/utils/formatList';
 import { formatDateTime } from '@/utils/formatDate';
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock } from '@/types/case/Specimen';
+import type { Margin } from '@/types/case/Margin';
 import type { Protocol, ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
 import type { Batch } from '@/services/batches/IBatchService';
@@ -36,8 +38,9 @@ function findPathwayForBlock(protocol: Protocol | undefined, block: HistologyBlo
 
 const GrossingScreenPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { caseId } = useParams<{ caseId: string }>();
-  const navigate = useNavigate();
+  // Batch 446: the address carries the case's reference, not its accession.
+  const caseId = useRouteCaseId('grossing');
+  const openCasePage = useOpenCase();
   const { user } = useAuth();
 
   const [caseData, setCaseData] = useState<Case | null>(null);
@@ -50,6 +53,16 @@ const GrossingScreenPage: React.FC = () => {
   const [addStainForBlock, setAddStainForBlock] = useState<{ specimenId: string; blockId: string } | null>(null);
   const [selectedStainId, setSelectedStainId] = useState('');
   const [expandedAudit, setExpandedAudit] = useState<Set<string>>(new Set());
+
+  // Batch 481 (Structured Inking, Module 2): the "add a new margin" and
+  // "add a further ink application to an existing margin" inline forms —
+  // same toggle-open-row shape as addStainForBlock/selectedStainId above.
+  const [marginFormFor, setMarginFormFor] = useState<{ specimenId: string; blockId?: string } | null>(null);
+  const [marginForm, setMarginForm] = useState({ name: '', orientation: '', laterality: '', colorName: '', colorCode: '', examined: true });
+  const [inkFormFor, setInkFormFor] = useState<{ specimenId: string; blockId?: string; marginId: string } | null>(null);
+  const [inkForm, setInkForm] = useState({ colorName: '', colorCode: '', examined: true });
+  const [marginSubmitError, setMarginSubmitError] = useState<string | null>(null);
+  const [marginSubmitting, setMarginSubmitting] = useState(false);
 
   useEffect(() => {
     if (!caseId) return;
@@ -84,6 +97,7 @@ const GrossingScreenPage: React.FC = () => {
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
     handleUpdatePieceCount, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
+    handleRecordMarginInk,
   } = useGrossingScreen({ caseData, setCaseData: setCaseData as any, signingUser: user, knownVersionRef, setConcurrencyConflict });
 
   // Batch 378 (Pete): Complete grossing can be asked for by voice or keyboard
@@ -118,13 +132,122 @@ const GrossingScreenPage: React.FC = () => {
     });
   };
 
+  // Batch 481 (Structured Inking, Module 2): submits the "add a new margin"
+  // inline form. The attach-to choice (specimen vs. a specific block) comes
+  // straight from marginFormFor.blockId, set by the form's own select.
+  const onSubmitNewMargin = useCallback(async () => {
+    if (!marginFormFor) return;
+    setMarginSubmitting(true);
+    setMarginSubmitError(null);
+    const result = await handleRecordMarginInk({
+      specimenId: marginFormFor.specimenId,
+      blockId: marginFormFor.blockId,
+      marginName: marginForm.name,
+      orientation: marginForm.orientation || undefined,
+      laterality: marginForm.laterality || undefined,
+      colorName: marginForm.colorName,
+      colorCode: marginForm.colorCode,
+      examined: marginForm.examined,
+    });
+    setMarginSubmitting(false);
+    if (result.ok) {
+      setMarginFormFor(null);
+      setMarginForm({ name: '', orientation: '', laterality: '', colorName: '', colorCode: '', examined: true });
+    } else {
+      setMarginSubmitError(result.error ?? t('grossingScreen.margins.saveFailed'));
+    }
+  }, [marginFormFor, marginForm, handleRecordMarginInk, t]);
+
+  // Appends a further ink application to an already-existing margin —
+  // never renames it or touches its orientation/laterality.
+  const onSubmitInk = useCallback(async () => {
+    if (!inkFormFor) return;
+    setMarginSubmitting(true);
+    setMarginSubmitError(null);
+    const result = await handleRecordMarginInk({
+      specimenId: inkFormFor.specimenId,
+      blockId: inkFormFor.blockId,
+      marginId: inkFormFor.marginId,
+      colorName: inkForm.colorName,
+      colorCode: inkForm.colorCode,
+      examined: inkForm.examined || undefined,
+    });
+    setMarginSubmitting(false);
+    if (result.ok) {
+      setInkFormFor(null);
+      setInkForm({ colorName: '', colorCode: '', examined: true });
+    } else {
+      setMarginSubmitError(result.error ?? t('grossingScreen.margins.saveFailed'));
+    }
+  }, [inkFormFor, inkForm, handleRecordMarginInk, t]);
+
+  // One margin row — its name/orientation/laterality/status, its full,
+  // append-only ink history, and the inline "+ Add ink application"
+  // toggle. Used for both specimen-level and block-level margins; the
+  // caller's blockId (undefined for a specimen-level margin) is what tells
+  // recordMarginInkApplication.ts which one a new ink application belongs to.
+  const renderMarginRow = (specimenId: string, blockId: string | undefined, m: Margin) => (
+    <div key={m.id} className="ps-grossing-margin-row">
+      <div className="ps-grossing-margin-row-header">
+        <span className="ps-grossing-margin-name">{m.name}</span>
+        {(m.orientation || m.laterality) && (
+          <span className="ps-grossing-margin-detail">{[m.orientation, m.laterality].filter(Boolean).join(' · ')}</span>
+        )}
+        <span className={`ps-grossing-margin-status ps-grossing-margin-status--${m.examinationStatus}`}>
+          {t(`grossingScreen.margins.status.${m.examinationStatus}`)}
+        </span>
+      </div>
+      <ul className="ps-grossing-margin-ink-list">
+        {m.inkApplications.map(app => (
+          <li key={app.id} className="ps-grossing-margin-ink-entry">
+            {t('grossingScreen.margins.inkEntry', {
+              colorName: app.colorName, colorCode: app.colorCode, by: app.appliedByName, when: formatDateTime(app.appliedAt, i18n.language),
+            })}
+          </li>
+        ))}
+      </ul>
+      {inkFormFor?.marginId === m.id ? (
+        <div className="ps-grossing-add-stain-row">
+          <input
+            type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorNamePlaceholder')}
+            value={inkForm.colorName} onChange={e => setInkForm(f => ({ ...f, colorName: e.target.value }))}
+          />
+          <input
+            type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorCodePlaceholder')}
+            value={inkForm.colorCode} onChange={e => setInkForm(f => ({ ...f, colorCode: e.target.value }))}
+          />
+          <label className="ps-grossing-margin-examined-check">
+            <input type="checkbox" checked={inkForm.examined} onChange={e => setInkForm(f => ({ ...f, examined: e.target.checked }))} />
+            {t('grossingScreen.margins.markExamined')}
+          </label>
+          <CapabilityButton
+            capability="grossing:margin-ink:record" className="ps-conf-btn-primary"
+            context={{ caseId: caseData!.id }}
+            disabled={marginSubmitting || !inkForm.colorName || !inkForm.colorCode}
+            onClick={() => { void onSubmitInk(); }}
+          >
+            {t('common.save')}
+          </CapabilityButton>
+          <button type="button" className="ps-grossing-stain-remove" onClick={() => { setInkFormFor(null); setMarginSubmitError(null); }}>×</button>
+        </div>
+      ) : (
+        <button
+          type="button" className="ps-grossing-add-stain-link"
+          onClick={() => { setInkFormFor({ specimenId, blockId, marginId: m.id }); setInkForm({ colorName: '', colorCode: '', examined: true }); setMarginSubmitError(null); }}
+        >
+          + {t('grossingScreen.margins.addInk')}
+        </button>
+      )}
+    </div>
+  );
+
   if (!isLoaded) return <div className="ps-grossing-screen-loading">{t('common.loading')}</div>;
   if (!caseData) return <div className="ps-grossing-screen-loading">{t('grossingScreen.caseNotFound')}</div>;
 
   return (
     <div className="ps-grossing-screen-page">
       <div className="ps-grossing-screen-header">
-        <button className="ps-btn-secondary" onClick={() => navigate(`/case/${caseId}/synoptic`)}>
+        <button className="ps-btn-secondary" onClick={() => void openCasePage(caseId, 'synoptic')}>
           {t('grossingScreen.backToCase')}
         </button>
         <h1 className="ps-grossing-screen-title" data-phi="accession">{t('grossingScreen.pageTitle', { accession: caseData.accession?.fullAccession ?? caseData.id })}</h1>
@@ -179,6 +302,12 @@ const GrossingScreenPage: React.FC = () => {
         const protocol = sp.protocolSnapshot ? protocols.find(p => p.id === sp.protocolSnapshot!.id) : undefined;
         const blocks = sp.blocks ?? [];
         const decants = sp.decants ?? [];
+        // Batch 481 (Structured Inking, Module 2): margins live either on
+        // the specimen directly or on one of its blocks — never both for
+        // the same margin — per types/case/Margin.ts's own header.
+        const specimenMargins = sp.margins ?? [];
+        const blocksWithMargins = blocks.filter(b => (b.margins ?? []).length > 0);
+        const hasAnyMargins = specimenMargins.length > 0 || blocksWithMargins.length > 0;
         const protocolModified = blocks.some(b => b.userModified);
         const overrides = sp.grossingOverrides ?? [];
         // Real — the block-kind pathways this specimen's own protocol
@@ -364,6 +493,95 @@ const GrossingScreenPage: React.FC = () => {
                 </tbody>
               </table>
             )}
+
+            {/* Batch 481 (Structured Inking, Module 2; PS-359 follow-up):
+                recording margins and their ink applications during
+                grossing. Data model, the recording service, and the
+                severity engine are Batch 480's; this is the first UI that
+                calls recordMarginInkApplication.ts. The severity engine's
+                own WARN_ONLY/STRICT_ENFORCE advisory display is
+                deliberately not wired in here yet — it needs a real
+                site id to read the site's inking_validation_mode from,
+                and Case has no real link to a Site yet (the
+                Organisation/Site admin UI is still unbuilt — see
+                services/grossing/README.md). */}
+            <div className="ps-grossing-margins-section">
+              <div className="ps-grossing-margins-header">
+                <span className="ps-grossing-margins-title">{t('grossingScreen.margins.title')}</span>
+              </div>
+              {!hasAnyMargins && marginFormFor?.specimenId !== sp.id && (
+                <div className="ps-grossing-margins-empty">{t('grossingScreen.margins.empty')}</div>
+              )}
+              {specimenMargins.length > 0 && (
+                <div className="ps-grossing-margins-group">
+                  <div className="ps-grossing-margins-group-label">{t('grossingScreen.margins.onSpecimen')}</div>
+                  {specimenMargins.map(m => renderMarginRow(sp.id, undefined, m))}
+                </div>
+              )}
+              {blocksWithMargins.map(block => (
+                <div key={block.id} className="ps-grossing-margins-group">
+                  <div className="ps-grossing-margins-group-label">{t('grossingScreen.margins.onBlock', { label: `${sp.label}${block.label}` })}</div>
+                  {(block.margins ?? []).map(m => renderMarginRow(sp.id, block.id, m))}
+                </div>
+              ))}
+              {marginFormFor?.specimenId === sp.id ? (
+                <div className="ps-grossing-add-margin-row">
+                  <select
+                    className="ps-conf-select" value={marginFormFor.blockId ?? ''}
+                    onChange={e => setMarginFormFor({ specimenId: sp.id, blockId: e.target.value || undefined })}
+                  >
+                    <option value="">{t('grossingScreen.margins.attachToSpecimen')}</option>
+                    {blocks.map(b => (
+                      <option key={b.id} value={b.id}>{t('grossingScreen.margins.attachToBlock', { label: `${sp.label}${b.label}` })}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.namePlaceholder')}
+                    value={marginForm.name} onChange={e => setMarginForm(f => ({ ...f, name: e.target.value }))}
+                  />
+                  <input
+                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.orientationPlaceholder')}
+                    value={marginForm.orientation} onChange={e => setMarginForm(f => ({ ...f, orientation: e.target.value }))}
+                  />
+                  <input
+                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.lateralityPlaceholder')}
+                    value={marginForm.laterality} onChange={e => setMarginForm(f => ({ ...f, laterality: e.target.value }))}
+                  />
+                  <input
+                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorNamePlaceholder')}
+                    value={marginForm.colorName} onChange={e => setMarginForm(f => ({ ...f, colorName: e.target.value }))}
+                  />
+                  <input
+                    type="text" className="ps-conf-input" placeholder={t('grossingScreen.margins.colorCodePlaceholder')}
+                    value={marginForm.colorCode} onChange={e => setMarginForm(f => ({ ...f, colorCode: e.target.value }))}
+                  />
+                  <label className="ps-grossing-margin-examined-check">
+                    <input type="checkbox" checked={marginForm.examined} onChange={e => setMarginForm(f => ({ ...f, examined: e.target.checked }))} />
+                    {t('grossingScreen.margins.markExamined')}
+                  </label>
+                  <CapabilityButton
+                    capability="grossing:margin-ink:record" className="ps-conf-btn-primary"
+                    context={{ caseId: caseData.id }}
+                    disabled={marginSubmitting || !marginForm.name || !marginForm.colorName || !marginForm.colorCode}
+                    onClick={() => { void onSubmitNewMargin(); }}
+                  >
+                    {t('common.add')}
+                  </CapabilityButton>
+                  <button
+                    type="button" className="ps-grossing-stain-remove"
+                    onClick={() => { setMarginFormFor(null); setMarginSubmitError(null); }}
+                  >×</button>
+                </div>
+              ) : (
+                <button
+                  type="button" className="ps-grossing-add-stain-link"
+                  onClick={() => { setMarginFormFor({ specimenId: sp.id }); setMarginForm({ name: '', orientation: '', laterality: '', colorName: '', colorCode: '', examined: true }); setMarginSubmitError(null); }}
+                >
+                  + {t('grossingScreen.margins.addMargin')}
+                </button>
+              )}
+              {marginSubmitError && <p className="ps-grossing-complete-error" role="alert">{marginSubmitError}</p>}
+            </div>
 
             {addableBlockPathways.length > 0 && (
               <div className="ps-grossing-add-block-row">

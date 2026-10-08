@@ -26,6 +26,22 @@ Grossing template routing evaluation — TYPES ONLY, deliberately.
 - `specimensWithoutGrossEntry`: the page's existing "no grossing entered" rule, moved out of the hook.
 - `grossingCompletion.ts`: the protocol test is now a parameter (`ProtocolSatisfied`, default: an attached protocol), and the deficiency raising is shared (`raiseGrossedWithoutProtocol`).
 
+## Batch 480: Structured Inking, Module 1 — margin/ink data model, recording, severity (PS-359)
+
+Pete's "Margin and Ink Application Data Model" requirement: margins are discrete entities (not physical specimen blocks), hierarchically attached at either the Tissue Block or the parent Specimen (see `types/case/Margin.ts`, `types/case/Specimen.ts`), each holding a polymorphic, append-only list of ink applications.
+
+- **`recordMarginInkApplication.ts`**: checks `grossing:margin-ink:record`, then either creates a new `Margin` (with its first `MarginInkApplication`) on a specimen or block, or appends a new application to an existing margin by id — never overwriting a prior application or renaming/re-orienting the margin once created. Saves via `updateCaseWithRetry`; audits `MARGIN_INK_APPLICATION_RECORDED`.
+- **`resolveInkingValidationSeverity.ts`**: the severity engine, mirroring `services/autopsy/resolveAutopsyGrossExaminationGate.ts`'s `{ allowed/blocked, reasons }` shape but as `{ issues, blocked }` since several issues can coexist on one case. Three tiers per Pete's own table: Severity 1 (Advisory, never blocks), Severity 2 (Corrective Warning — blocks only when the site's `inking_validation_mode` is `STRICT_ENFORCE`; `margin_not_examined` and `margin_no_ink_applied` are the two checks implemented this batch, both Severity 2), Severity 3 (Compliance Critical — always blocks, never site-configurable; reserved for a real structural export failure such as an unmapped ink colour code, not yet triggerable since there's no ink-colour palette to validate against yet).
+- **`inkingSiteSettings.ts`**: `getInkingValidationMode(siteId)` (unrestricted read, defaults `WARN_ONLY`) / `setInkingValidationMode(siteId, mode)` (checks `config:inking-validation-mode:manage`), over the new `services/siteSettings/siteSettingsStore.ts`.
+
+**Deliberately out of scope this batch** (per Pete's own choice when asked how much to build at once): the grossing-screen UI for recording margins/ink, and the ink-colour admin palette that would let Severity 3 actually trigger. Both are later batch(es), mirroring the autopsy module's own multi-batch (Modules 1–6) pattern.
+
+## Batch 481: Structured Inking, Module 2 — the grossing-screen UI (PS-359)
+
+The UI deferred above. `pages/GrossingScreenPage/GrossingScreenPage.tsx` gets a "Margins & Ink Applications" section per specimen, listing every margin (grouped by whether it lives on the specimen or a block) with its ink history, plus inline "+ Add margin" / "+ Add ink application" forms calling `recordMarginInkApplication.ts` through a new `useGrossingScreen.ts` handler, `handleRecordMarginInk`. See `pages/GrossingScreenPage/README.md`'s own Batch 481 entry for the full detail.
+
+**Still deliberately out of scope:** the severity engine's advisory display (no real `Case` → `Site` link exists yet to read a site's `inking_validation_mode` from) and the ink-colour admin palette (needed for Severity 3 to ever trigger).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

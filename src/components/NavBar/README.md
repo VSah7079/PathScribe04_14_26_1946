@@ -38,6 +38,24 @@ A registry exceptions button with the live count (`useRegistryExceptionCount`). 
 
 The language choice is saved to the signed-in person (`hooks/usePersonalLanguage.ts`).
 
+## Batch 437 (PS-128)
+
+The nav bar's own buttons (Intraop Queue, Registry Exceptions, the scan-station bench) go through the unsaved-changes guard (`hooks/useGuardedNavigate.ts`), like the logo.
+
+## Batch 438
+
+The support report's "Generated:" line says UTC. Open, not changed here: `NavBar.tsx` calls the AI provider straight from the browser with `VITE_AI_API_KEY`, which puts the key in the browser bundle; it belongs behind the API server. **Fixed in Batch 444** (below).
+
+## Batch 444
+
+System Info's AI status now comes from `checkAiProxyStatus()` (`@/services`), which asks the proxy routes; the browser sends no key. "API mode" always reads Proxy. The Gemini row shows Checking… until the answer arrives.
+
+Found while doing this: nothing in the app currently opens System Info (`setSysInfoOpen(true)` is never called), so the old vendor call never actually ran. The exposure was the `VITE_AI_API_KEY` reference itself, which compiled the key into the bundle whenever it was set.
+
+## Batch 447
+
+The QA feedback button shows when `feedbackSettingsService.qaButtonShown()` says so: Configuration → System → Feedback, by default shown on a validation instance.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 

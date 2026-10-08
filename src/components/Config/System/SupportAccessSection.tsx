@@ -28,6 +28,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatDateTime } from '@/utils/formatDate';
 import { downloadText } from '@/utils/downloadText';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
+import { recordExport } from '@/services';
 
 type Org = { id: string; name: string };
 
@@ -46,6 +49,8 @@ const SupportAccessSection: React.FC = () => {
   const [chain, setChain] = useState<ChainCheck | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({ tenantId: '', ticketId: '', reason: '' });
+  // PS-128 (Batch 437): a changed policy, or an access request being typed.
+  useReportConfigDirty((!!settings && !!draft && draftDiffers(settings, draft)) || form.ticketId.trim() !== '' || form.reason.trim() !== '');
   const [now, setNow] = useState(() => new Date());
 
   const orgName = (id: string) => orgs.find(o => o.id === id)?.name ?? id;
@@ -94,6 +99,8 @@ const SupportAccessSection: React.FC = () => {
     const columns = Object.fromEntries(SUPPORT_AUDIT_COLUMNS.map(c => [c, t(`supportAccess.audit.columns.${c}`)])) as Record<(typeof SUPPORT_AUDIT_COLUMNS)[number], string>;
     const r = await supportAccessService.exportAudit(myTenant, format, columns);
     if (r.ok === false) { await done(`supportAccess.refusals.${r.reason}`); return; }
+    // PS-282 (Batch 437): also in the main audit log (the support stream records it too).
+    void recordExport('support-access-audit', { filename: r.filename, rowCount: 1, format });
     downloadText(r.filename, r.content, r.mime);
     await load();
   };

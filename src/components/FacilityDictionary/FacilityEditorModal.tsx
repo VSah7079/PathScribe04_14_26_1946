@@ -30,6 +30,7 @@
 import { REPORT_LANGUAGES, defaultReportLanguage, type ReportLanguage } from '@/services/reports/reportLanguage';
 import React, { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
+import { billingApprovalChoice, billingApprovalChoices, requireBillingApprovalFor, type BillingApprovalChoice } from '@/services/billing/chargeApproval';
 import '../../pathscribe.css';
 import type { Facility, FacilityInput, FacilityRole } from "../../services/facilities/IFacilityService";
 import { FACILITY_ROLE_LABELS, FACILITY_ROLE_TOOLTIPS } from "../../services/facilities/IFacilityService";
@@ -607,6 +608,26 @@ export const FacilityEditorModal: React.FC<FacilityEditorModalProps> = ({
                     />
                     <div className="cem-hint">
                       {t('facilityEditorModal.general.headerLogoUrlHint')}
+                    </div>
+                  </Field>
+                )}
+                {/* Batch 433: whether this facility's charges wait for billing
+                    approval (Quality Assurance → Financials). Set for the
+                    enterprise; a lab can follow it or override it. */}
+                {(hasRole('performing_lab') || form.isEnterprise) && (
+                  <Field label={t('facilityEditorModal.general.requireBillingApproval')}>
+                    <select
+                      className="cem-input"
+                      aria-label={t('facilityEditorModal.general.requireBillingApproval')}
+                      value={billingApprovalChoice(form)}
+                      onChange={(e) => set("requireBillingApproval", requireBillingApprovalFor(e.target.value as BillingApprovalChoice))}
+                    >
+                      {billingApprovalChoices(form.isEnterprise).map(c => (
+                        <option key={c} value={c}>{t(`facilityEditorModal.general.requireBillingApproval_${c}`)}</option>
+                      ))}
+                    </select>
+                    <div className="cem-hint">
+                      {t(form.isEnterprise ? 'facilityEditorModal.general.requireBillingApprovalHintEnterprise' : 'facilityEditorModal.general.requireBillingApprovalHintLab')}
                     </div>
                   </Field>
                 )}

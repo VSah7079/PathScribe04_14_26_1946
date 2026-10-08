@@ -1,6 +1,6 @@
 {
   "id": "colorectal_local_excision",
-  "name": "Generic Template \u2014 Colorectal Local Excision",
+  "name": "Generic Template — Colorectal Local Excision",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -676,75 +676,87 @@
       "title": "Margins",
       "fields": [
         {
-          "id": "peripheral_margin_involvement",
-          "label": "Field 1",
-          "type": "dropdown",
-          "required": true,
-          "core": true,
-          "snomed": "",
-          "icd": "",
-          "options": [
-            {
-              "id": "peripheral_margin_involvement_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "peripheral_margin_involvement_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "peripheral_margin_involvement_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            }
-          ],
-          "note": "Optional"
-        },
-        {
-          "id": "deep_margin_involvement",
-          "label": "Field 2",
-          "type": "dropdown",
-          "required": true,
-          "core": true,
-          "snomed": "",
-          "icd": "",
-          "options": [
-            {
-              "id": "deep_margin_involvement_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "deep_margin_involvement_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "deep_margin_involvement_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            }
-          ],
-          "note": "Optional"
-        },
-        {
-          "id": "distance_to_deep_margin_mm",
-          "label": "Field 3",
-          "type": "text",
+          "id": "psmap_crp_derived_marginStatus",
+          "label": "Invasive carcinoma margins",
+          "type": "radio",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
-          "options": [],
-          "note": "Optional"
+          "note": "PathScribe — calculated from the anatomical map",
+          "options": [
+            {
+              "id": "psmap_crp_derived_marginStatus_notInvolved",
+              "label": "All margins negative for invasive carcinoma",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_derived_marginStatus_involved",
+              "label": "Invasive carcinoma present at margin",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "psmap_crp_invasive",
+            "answerId": "",
+            "notAnswerIds": [
+              "psmap_crp_invasive_no"
+            ]
+          }
+        },
+        {
+          "id": "psmap_crp_derived_marginsInvolved",
+          "label": "Margin(s) involved by invasive carcinoma",
+          "type": "checkboxes",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe — calculated from the anatomical map",
+          "options": [
+            {
+              "id": "psmap_crp_derived_marginsInvolved_deep",
+              "label": "Deep (stalk / submucosal)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_derived_marginsInvolved_lateral",
+              "label": "Peripheral / lateral mucosal",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "psmap_crp_derived_marginStatus",
+            "answerId": "psmap_crp_derived_marginStatus_involved"
+          }
+        },
+        {
+          "id": "psmap_crp_derived_precursorMarginStatus",
+          "label": "Adenoma (non-invasive) margins",
+          "type": "radio",
+          "required": false,
+          "core": true,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe — calculated from the anatomical map",
+          "options": [
+            {
+              "id": "psmap_crp_derived_precursorMarginStatus_notInvolved",
+              "label": "All margins negative for adenoma",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_derived_precursorMarginStatus_involved",
+              "label": "Adenoma present at mucosal margin",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
         },
         {
           "id": "resection_status",
@@ -887,6 +899,195 @@
           "icd": "",
           "options": [],
           "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "psmap_colorectal_polyp",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_crp_paris",
+          "label": "Paris classification (for the map)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_crp_paris_0-Ip",
+              "label": "0-Ip — pedunculated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_paris_0-Isp",
+              "label": "0-Isp — subpedunculated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_paris_0-Is",
+              "label": "0-Is — sessile",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_paris_0-IIa",
+              "label": "0-IIa — slightly elevated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_paris_0-IIb",
+              "label": "0-IIb — flat",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_paris_0-IIc",
+              "label": "0-IIc — slightly depressed",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_paris_0-III",
+              "label": "0-III — excavated",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "The endoscopic shape: sets how the polyp is drawn (pedunculated with Haggitt levels, or sessile/flat with Kikuchi levels)."
+        },
+        {
+          "id": "psmap_crp_invasive",
+          "label": "Invasive carcinoma (for the map)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_crp_invasive_yes",
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_invasive_no",
+              "label": "Not identified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_crp_depth",
+          "label": "Depth of invasion (Haggitt / Kikuchi)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_crp_depth_haggitt1",
+              "label": "Haggitt level 1 (head)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_depth_haggitt2",
+              "label": "Haggitt level 2 (neck)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_depth_haggitt3",
+              "label": "Haggitt level 3 (stalk)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_depth_haggitt4",
+              "label": "Haggitt level 4 (below the stalk)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_depth_sm1",
+              "label": "Kikuchi sm1 (upper third of submucosa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_depth_sm2",
+              "label": "Kikuchi sm2 (middle third)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_depth_sm3",
+              "label": "Kikuchi sm3 (lower third)",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "Haggitt for a pedunculated polyp, Kikuchi for a sessile or flat one."
+        },
+        {
+          "id": "psmap_crp_deepMarginMm",
+          "label": "Deep (stalk / submucosal) margin: distance of carcinoma (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "0 = carcinoma at the cauterised margin. Judged by the site’s malignant-polyp margin rule (≤ 1.0 mm involved unless the site sets another).",
+          "unit": "mm"
+        },
+        {
+          "id": "psmap_crp_lateralMarginMm",
+          "label": "Lateral (mucosal) margin: distance of carcinoma (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm"
+        },
+        {
+          "id": "psmap_crp_lateralAdenoma",
+          "label": "Adenoma at the mucosal margin (lateral; the stalk margin when pedunculated)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_crp_lateralAdenoma_present",
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_crp_lateralAdenoma_absent",
+              "label": "Absent",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
         }
       ]
     },

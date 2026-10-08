@@ -25,7 +25,7 @@ const LogoutWarningModal: React.FC<LogoutWarningModalProps> = ({ isOpen, onClose
   const { t } = useTranslation();
   if (!isOpen) return null;
   return (
-    <div className="ps-overlay" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
+    <div className="ps-overlay ps-overlay--above-dialogs" tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="ps-modal-dark ps-modal-dark--logout-warning">
         <div className="ps-logout-warning-icon-wrap">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">

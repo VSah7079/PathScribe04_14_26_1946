@@ -1,9 +1,11 @@
 // src/pages/SynopticReportPage/components/HeaderBar.tsx
 // Rich case header — white bar with accession, patient info, progress steps.
 
+import { useOpenCase } from '@/hooks/useOpenCase';
 import { RegistryOptOutBadge } from '@/components/Common/RegistryOptOutBadge';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/utils/formatDate';
 import { useNavigate } from 'react-router';
 import { useMessaging } from '@/contexts/MessagingContext';
 import type { Case } from '@/types/case/Case';
@@ -11,6 +13,7 @@ import type { BlockStatus } from '@/types/case/Specimen';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
 import { lisSyncService, resolveLisFlagDefinitionId } from '@/services';
+import { applyLisSyncFlags } from '@/services/flags/applyLisSyncFlags';
 import type { LisSyncState } from '@/services';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { getSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
@@ -51,16 +54,10 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
   Damaged:   'headerBar.blockStatusLabels.damaged',
 };
 
-// ── AI Synthesis Status — Gatekeeper Badge model. Matches the type defined
-// in SynopticReportPage.tsx (duplicated here rather than imported to avoid
-// a cross-directory type-only import cycle; keep these two in sync if the
-// shape changes).
-export interface AiSynthesisStatus {
-  state: 'none' | 'draft-ready' | 'review-required';
-  overallConfidence?:      number;
-  flaggedFieldId?:          string;
-  flaggedFieldConfidence?:  number;
-}
+// ── AI Synthesis Status — the Gatekeeper Badge. One definition, in
+// services/templates/aiSynthesisStatus.ts (Batch 437).
+import type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
+export type { AiSynthesisStatus };
 
 interface HeaderBarProps {
   caseData:      Case | null;
@@ -68,12 +65,10 @@ interface HeaderBarProps {
   onNavigate:    (path: string) => void;
   /**
    * Gatekeeper Badge status — replaces the old flat `aiConfidence` percentage.
-   * SHORT-TERM model (per clinical review): conservative binary state — ANY
-   * AI-suggested field below the configured confidence threshold trips
-   * 'review-required', regardless of which field it is. A true tiered
-   * "floor" model (gating only on diagnosis/staging-critical fields) is the
-   * intended long-term design, deferred until tier classification can be
-   * sourced from the real CAP eCC template schema rather than guessed.
+   * PS-329 (Batch 437): an unreviewed AI suggestion below the configured
+   * confidence threshold trips 'review-required' only when its field is
+   * Must Have (required in the template and shown). Fields the template
+   * doesn't list still count, the safe side.
    */
   aiSynthesisStatus?: AiSynthesisStatus;
   /** "Unpacking" — clicking the badge in 'review-required' state should
@@ -157,7 +152,7 @@ function stepClass(status: StepStatus): string {
 }
 
 const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // Real fix, found via a direct audit: this used to call the old,
   // superseded getOrchestratorMode() (org-level only, from the now-
   // dead NarrativeTemplates/index.tsx) instead of the real
@@ -183,6 +178,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // history), so this needs its own copy of the same reactive
   // sessionStorage check rather than anything AppShell tracks.
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   // Batch 375 (Pete): Add-On Orders is an action on the case, for whoever may open that screen.
   const capabilities = useCapabilities();
   const { setPortalOpen } = useMessaging();
@@ -236,42 +232,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         // whatever came back onto the case the same way any other flag
         // addition would, just built as real FlagInstance records here.
         if (res.data.newFlags.length > 0 && onCaseUpdate && caseData) {
-          const now = new Date().toISOString();
-          let updatedCaseFlags = (caseData.caseFlags ?? []).slice();
-          const specimenFlagAdds = new Map<string, any[]>();
-
-          for (const pf of res.data.newFlags) {
-            const flagDefinitionId = await resolveOrCreateFlagDefId(pf);
-            const inst = {
-              id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-              flagDefinitionId,
-              appliedAt: now,
-              appliedBy: 'LIS Sync',
-              source: 'lis' as const,
-              deletedAt: null,
-              deletedBy: null,
-            };
-            if (pf.specimenId) {
-              const existingOnSpecimen = (caseData.specimens ?? []).find(sp => sp.id === pf.specimenId)?.specimenFlags ?? [];
-              const alreadyApplied = existingOnSpecimen.some(f => f.flagDefinitionId === flagDefinitionId && !f.deletedAt);
-              if (!alreadyApplied) {
-                if (!specimenFlagAdds.has(pf.specimenId)) specimenFlagAdds.set(pf.specimenId, []);
-                specimenFlagAdds.get(pf.specimenId)!.push(inst);
-              }
-            } else {
-              const alreadyApplied = updatedCaseFlags.some(f => f.flagDefinitionId === flagDefinitionId && !f.deletedAt);
-              if (!alreadyApplied) updatedCaseFlags = [...updatedCaseFlags, inst];
-            }
-          }
-
-          const updated: Case = {
-            ...caseData,
-            caseFlags: updatedCaseFlags,
-            specimens: (caseData.specimens ?? []).map(sp => {
-              const adds = specimenFlagAdds.get(sp.id);
-              return adds ? { ...sp, specimenFlags: [...(sp.specimenFlags ?? []), ...adds] } : sp;
-            }),
-          };
+          // Batch 450 (PS-57): placement and de-duplication live in services/flags/applyLisSyncFlags.ts.
+          const updated = await applyLisSyncFlags(caseData, res.data.newFlags, {
+            resolveDefinitionId: resolveOrCreateFlagDefId,
+            now: new Date().toISOString(),
+            newId: () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+          });
           onCaseUpdate(updated);
         }
       }
@@ -294,8 +260,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
 
   const accession = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '—';
   const patient   = caseData?.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—';
-  const dob       = caseData?.patient?.dateOfBirth
-    ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '—';
+  // Batch 445: the shared helper, in the user's language; a date-only birth
+  // date no longer shows as the day before west of UTC.
+  const dob       = formatDate(caseData?.patient?.dateOfBirth, i18n.language);
   const mrn       = caseData?.patient?.mrn ?? '—';
   const sex       = caseData?.patient?.sex ?? '—';
   const status    = caseData?.status ?? 'draft';
@@ -538,7 +505,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           )}
           {caseData && capabilities.has('screen:add-on-orders:open') && (
             <button className="ps-hb-block-edit-btn" title={t('headerBar.blocks.addOnOrderTitle')}
-              onClick={() => navigate(`/add-on-orders?case=${encodeURIComponent(caseData.id)}`)}>
+              onClick={() => void openCasePage(caseData.id, 'addOnOrders')}>
               {t('headerBar.blocks.addOnOrder')}
             </button>
           )}

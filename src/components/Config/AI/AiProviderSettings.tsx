@@ -13,16 +13,16 @@
 // which real vendor account/contract they're actually configuring.
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
 import { useTranslation } from 'react-i18next';
 import {
   resolveAiConfig,
   setUserAiConfig,
   clearUserAiConfig,
-  isDevMode,
   PROVIDER_MODELS,
   type AiProviderId,
-  type AiProviderConfig,
 } from '@/components/Config/AI/aiProviderConfig';
 import { saveOrgAiProvider } from '@/services/aiConfig/saveAiSettings';
 
@@ -79,16 +79,26 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
   const [managedDeployment, setManagedDeployment] = useState(current.managedDeploymentName ?? '');
   const [gatewayRegion, setGatewayRegion] = useState(current.gatewayRegion ?? 'us-east-1');
   const [customEndpoint,setCustomEndpoint]= useState(current.customEndpoint ?? '');
-  const [devApiKey,     setDevApiKey]     = useState('');
   const [saved,         setSaved]         = useState(false);
   const [testResult,    setTestResult]    = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
   const [testError,     setTestError]     = useState('');
 
-  // When provider changes, reset model to first available
+  // When provider changes, reset model to first available. Batch 437: not on
+  // the first render, which used to replace the saved model with the
+  // provider's first one before anyone touched the form.
+  const providerShown = useRef(providerId);
   useEffect(() => {
+    if (providerShown.current === providerId) return;
+    providerShown.current = providerId;
     const models = PROVIDER_MODELS[providerId];
     if (models?.length) setModelId(models[0].id);
   }, [providerId]);
+
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(draftDiffers(
+    { providerId: current.providerId, modelId: current.modelId, managedEndpoint: current.managedEndpoint ?? '', managedDeployment: current.managedDeploymentName ?? '', gatewayRegion: current.gatewayRegion ?? 'us-east-1', customEndpoint: current.customEndpoint ?? '' },
+    { providerId, modelId, managedEndpoint, managedDeployment, gatewayRegion, customEndpoint },
+  ));
 
   const handleSave = async () => {
     const config = {
@@ -104,10 +114,8 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       // Batch 428: the service checks config:ai-provider:manage; a refusal saves nothing.
       if (!(await saveOrgAiProvider(config))) return;
     } else {
-      // Dev override — include API key if provided
-      const devConfig: Partial<AiProviderConfig> = { ...config };
-      if (devApiKey) devConfig.apiKey = devApiKey;
-      setUserAiConfig(devConfig);
+      // Personal override (testing). Batch 444: never a key; the proxy holds it.
+      setUserAiConfig(config);
     }
 
     setSaved(true);
@@ -142,7 +150,6 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
     setManagedDeployment(refreshed.managedDeploymentName ?? '');
     setGatewayRegion(refreshed.gatewayRegion ?? 'us-east-1');
     setCustomEndpoint(refreshed.customEndpoint ?? '');
-    setDevApiKey('');
   };
 
   const devOnly = !isAdmin;
@@ -170,7 +177,6 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
       <div className="ps-aiprovider-active-box">
         <strong>{t('aiProviderSettings.currentlyActive')}</strong>{' '}
         {PROVIDER_LABELS[current.providerId]} · {current.modelId}
-        {isDevMode() && <span className="ps-aiprovider-devmode-flag">⚠ {t('aiProviderSettings.devModeFlag')}</span>}
       </div>
 
       {/* Demo mode banner */}
@@ -263,24 +269,6 @@ const AiProviderSettings: React.FC<AiProviderSettingsProps> = ({
           />
           <p className="ps-aiprovider-hint">
             {t('aiProviderSettings.customEndpointHint')}
-          </p>
-        </div>
-      )}
-
-      {/* Dev-only: API key field */}
-      {devOnly && isDevMode() && (
-        <div className="ps-aiprovider-devkey-box">
-          <label className="ps-aiprovider-label ps-aiprovider-label--warn">
-            ⚠ {t('aiProviderSettings.devApiKeyLabel')}
-          </label>
-          <input
-            type="password" value={devApiKey}
-            onChange={e => setDevApiKey(e.target.value)}
-            placeholder="sk-ant-... or sk-..."
-            className="ps-aiprovider-input ps-aiprovider-input--warn"
-          />
-          <p className="ps-aiprovider-devkey-hint">
-            {t('aiProviderSettings.devApiKeyHint')}
           </p>
         </div>
       )}

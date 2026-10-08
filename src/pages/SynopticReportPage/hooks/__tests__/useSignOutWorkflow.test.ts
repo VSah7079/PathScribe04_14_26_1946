@@ -35,6 +35,8 @@ import { ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID } from '@/services/quali
 import { detectCriticalFindings } from '@/services/clinical/detectCriticalFindings';
 import { mockCriticalResultNotificationService } from '@/services/clinical/mockCriticalResultNotificationService';
 import type { Case } from '@/types/case/Case';
+import { applySurgicalPostSignOutQa } from '@/services/quality/applySurgicalPostSignOutQa';
+import { getTemplate } from '@/services/templates/templateService';
 
 vi.mock('@/services/cases/CaseRouter', () => ({
   caseRouter: { updateCase: vi.fn().mockResolvedValue(undefined) },
@@ -48,6 +50,12 @@ vi.mock('@/services/auth/caseAccessControl', () => ({
   // path before it existed. Individual tests below override with
   // mockReturnValueOnce to exercise the new configured-type gate.
   resolveCountersignRequiredTypeIds: vi.fn().mockReturnValue([]),
+}));
+// Batch 439: the mismatch and peer-review checks are tested on their own
+// (services/clinical, services/quality); here they never stop sign-out.
+vi.mock('../checkPeerReviewAndMismatch', () => ({
+  checkClinicalMismatch: vi.fn().mockResolvedValue(null),
+  checkPeerReviewGate: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('@/services', () => ({
   countersignService: { release: vi.fn().mockResolvedValue({ ok: true }), countersign: vi.fn().mockResolvedValue({ ok: true }), reject: vi.fn().mockResolvedValue({ ok: true, data: { residentId: 'PATH-002', residentName: 'Dr. Resident' } }) },
@@ -79,10 +87,28 @@ vi.mock('@/services/templates/templateService', () => ({
   getTemplate: vi.fn().mockResolvedValue({ template: { sections: [] } }),
 }));
 vi.mock('@/services/clinical/detectCriticalFindings', () => ({
-  detectCriticalFindings: vi.fn().mockResolvedValue({ ok: true, data: { flags: [] } }),
+  detectCriticalFindings: vi.fn().mockResolvedValue({ ok: true, data: { flags: [], negated: [] } }),
 }));
 vi.mock('@/services/clinical/mockCriticalResultNotificationService', () => ({
   mockCriticalResultNotificationService: { recordNotification: vi.fn().mockResolvedValue({ ok: true, data: {} }) },
+}));
+// Batch 450 (PS-324): the post-sign-out QA step is tested on its own
+// (services/quality); here we only check that sign-out calls it.
+vi.mock('@/services/quality/applySurgicalPostSignOutQa', () => ({
+  applySurgicalPostSignOutQa: vi.fn().mockResolvedValue(undefined),
+}));
+// Batch 450 (PS-274, PS-275): the AI service is replaced so the two AI
+// sync actions can be driven without a provider. The service's own prompt
+// building is tested in services/aiIntegration/PathScribeAIService.test.ts.
+const aiServiceMocks = vi.hoisted(() => ({
+  suggestSynopticFields: vi.fn(),
+  generateNarrativeFromSynopticAnswers: vi.fn(),
+}));
+vi.mock('@/services/aiIntegration/PathScribeAIService', () => ({
+  PathScribeAIService: class {
+    suggestSynopticFields = aiServiceMocks.suggestSynopticFields;
+    generateNarrativeFromSynopticAnswers = aiServiceMocks.generateNarrativeFromSynopticAnswers;
+  },
 }));
 
 function makeTestCase(overrides: Partial<Case> = {}): Case {
@@ -119,6 +145,8 @@ function baseParams(overrides: Partial<Parameters<typeof useSignOutWorkflow>[0]>
     specimenDictionary: [],
     setFixativeGateSpecimens: vi.fn(),
     setStainQcGateBlocking: vi.fn(),
+    setClinicalMismatch: vi.fn(),
+    setPeerReviewGate: vi.fn(),
     setPreAnalyticDateGateSpecimens: vi.fn(),
     setPendingFinalizeArgs: vi.fn(),
     setPendingActionIsSignOut: vi.fn(),
@@ -878,7 +906,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('blocks finalize and opens the critical findings modal when a real, detected \'critical\' severity finding is present', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -894,7 +922,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('does NOT block finalize when only an \'abnormal\' severity finding is detected - only \'critical\'/\'malignant\' soft-blocks', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'mild dysplasia', sourceField: 'microscopic', sourceQuote: 'mild dysplastic changes noted', severity: 'Abnormal', confidence: 80 }] },
+      data: { flags: [{ term: 'mild dysplasia', sourceField: 'microscopic', sourceQuote: 'mild dysplastic changes noted', severity: 'Abnormal', confidence: 80 }], negated: [] },
     });
     const caseData = makeTestCase({ diagnostic: { microscopicDescription: 'Mild dysplastic changes noted.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -919,7 +947,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
     }));
     vi.mocked(detectCriticalFindings).mockResolvedValue({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -934,7 +962,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('handleAcknowledgeCriticalFindings dismisses the modal and marks this session\'s findings acknowledged - a second Finalize click no longer re-blocks on the same, unchanged findings', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValue({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -953,7 +981,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('handleRecordCriticalNotification records a real notification with every required field, then dismisses the modal', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -979,7 +1007,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('real, per direct guidance: "notified by" is genuinely editable, independent of the signed-in user\'s own name — a representative may have made the real call, with staff simply transcribing the event', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1001,7 +1029,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
     it('a confirmed Malignant finding creates a real, concordant QA activity record — never "discordant," since the primary pathologist confirming their own finding is not a discrepancy', async () => {
       vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
         ok: true,
-        data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+        data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
       });
       const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
       const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1024,7 +1052,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
     it('the real finding term and source quote are carried through as this activity\'s own fieldValues, not lost', async () => {
       vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
         ok: true,
-        data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified in the deep margin', severity: 'Malignant', confidence: 92 }] },
+        data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified in the deep margin', severity: 'Malignant', confidence: 92 }], negated: [] },
       });
       const caseData = makeTestCase({ id: 'TEST-CASE-FIELDVALUES', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified in the deep margin.' } as any });
       const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1042,7 +1070,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
     it('disputing (acknowledging without recording) never creates a QA activity record at all — matches this ticket\'s own "human\'s call is genuinely final" acceptance criterion', async () => {
       vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
         ok: true,
-        data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+        data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
       });
       const caseData = makeTestCase({ id: 'TEST-CASE-DISPUTED', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
       const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1060,7 +1088,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
       data: { flags: [
         { term: 'mild atypia', sourceField: 'microscopic', sourceQuote: 'mild atypia', severity: 'Abnormal', confidence: 70 },
         { term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 },
-      ] },
+      ], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1081,7 +1109,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('PS-130 architecture test: handleRecordCriticalNotification attaches a real, structurally-synthetic coded term alongside the confirmed status — never a real SNOMED/ICD-O-3 code (PS-130 stays blocked)', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1103,7 +1131,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('PS-137: handleRecordCriticalNotification records a real, "confirmed" agreement signal per finding, de-identifying narrative-sourced ones', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma, 3.2 cm, identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma, 3.2 cm, identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma, 3.2 cm, identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1135,7 +1163,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
   it('PS-137: handleAcknowledgeCriticalFindings records a real "dismissed" signal, never a confirmed one, and never touches Case.abnormalDetectionStatus', async () => {
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1157,7 +1185,7 @@ describe('useSignOutWorkflow — handleRequestFinalize', () => {
     const spy = vi.spyOn(mockValidationStudyService, 'getStudyForCase').mockResolvedValue({ ok: true, data: { id: 'vs-demo-001' } as any });
     vi.mocked(detectCriticalFindings).mockResolvedValueOnce({
       ok: true,
-      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }] },
+      data: { flags: [{ term: 'invasive carcinoma', sourceField: 'microscopic', sourceQuote: 'invasive ductal carcinoma identified', severity: 'Malignant', confidence: 92 }], negated: [] },
     });
     const caseData = makeTestCase({ id: 'TEST-CASE-CRITICAL', diagnostic: { microscopicDescription: 'Invasive ductal carcinoma identified.' } as any });
     const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
@@ -1197,5 +1225,295 @@ describe('useSignOutWorkflow — handlePreFinalConfirm / handleFinalizeConfirm s
     // this real, first-time-finalize path genuinely lands on
     // 'pending-release', not 'finalized' — a real write happened.
     expect(caseRouter.updateCase).toHaveBeenCalledWith('TEST-CASE-SIGNOUT', expect.objectContaining({ status: 'pending-release' }), expect.anything());
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 450 — PS-324: post-sign-out surgical QA runs from sign-out.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('useSignOutWorkflow — PS-324 post-sign-out surgical QA', () => {
+  const attendingCase = () => makeTestCase({
+    participants: [{ status: 'active', staffId: 'PATH-001', participationTypeIds: ['attending'] }],
+  } as any);
+
+  it('a completed surgical sign-out calls applySurgicalPostSignOutQa with the case id', async () => {
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: attendingCase() })));
+    await act(async () => { await result.current.handleSignOutConfirm(); });
+    expect(applySurgicalPostSignOutQa).toHaveBeenCalledTimes(1);
+    expect(applySurgicalPostSignOutQa).toHaveBeenCalledWith('TEST-CASE-SIGNOUT');
+  });
+
+  it('a failure in the post-sign-out QA step does not break the sign-out: the case is still signed and the error is only logged', async () => {
+    vi.mocked(applySurgicalPostSignOutQa).mockRejectedValueOnce(new Error('qa store down'));
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const setCaseSigned = vi.fn();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: attendingCase(), setCaseSigned })));
+    await act(async () => { await result.current.handleSignOutConfirm(); });
+    await waitFor(() => expect(errSpy).toHaveBeenCalledWith(
+      expect.stringContaining('surgical post-sign-out QA'), expect.any(Error),
+    ));
+    expect(setCaseSigned).toHaveBeenCalledWith(true);
+    const updateCalls = vi.mocked(caseRouter.updateCase).mock.calls;
+    expect(updateCalls.some((call: any[]) => call[1]?.status === 'pending-release' || call[1]?.status === 'finalized')).toBe(true);
+    errSpy.mockRestore();
+  });
+
+  it('a resident release for countersign is not a sign-out and does not run the post-sign-out QA', async () => {
+    const caseData = makeTestCase({
+      participants: [{ status: 'active', staffId: 'PATH-001', participationTypeIds: ['resident'] }],
+    } as any);
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData })));
+    await act(async () => { await result.current.handleSignOutConfirm(); });
+    const { countersignService } = await import('@/services');
+    expect(countersignService.release).toHaveBeenCalled();
+    expect(applySurgicalPostSignOutQa).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 450 — PS-274 / PS-275: the two AI sync actions.
+// ─────────────────────────────────────────────────────────────────────────────
+const AI_TEMPLATE = {
+  sections: [
+    {
+      id: 'sec-tumour', title: 'Tumour',
+      fields: [
+        { id: 'histologic_type', label: 'Histologic Type', options: [{ id: 'idc', label: 'Invasive ductal carcinoma' }, { id: 'ilc', label: 'Invasive lobular carcinoma' }] },
+        { id: 'tumour_size', label: 'Tumour Size', options: [] },
+      ],
+    },
+    {
+      id: 'sec-margins', title: 'Margins',
+      fields: [{ id: 'margin_status', label: 'Margin Status', options: [{ id: 'neg', label: 'Negative' }, { id: 'pos', label: 'Positive' }] }],
+    },
+  ],
+};
+
+function narrativeCase(overrides: Partial<Case> = {}) {
+  return makeTestCase({
+    synopticReports: [{ instanceId: 'SR-1', specimenId: 'SP-1', templateId: 'TPL-BREAST', templateName: 'Breast', answers: {}, status: 'draft' }],
+    diagnostic: {
+      grossDescription: 'Received a 3.2 cm firm mass.',
+      microscopicDescription: 'Invasive ductal carcinoma. Margins are negative.',
+      ancillaryStudies: '',
+    },
+    ...overrides,
+  } as any);
+}
+
+describe('useSignOutWorkflow — PS-274 Suggest Synoptic from Narrative', () => {
+  it('sends the case narrative and the template fields to suggestSynopticFields, fills the review fields and opens the AI Review modal', async () => {
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: AI_TEMPLATE } as any);
+    aiServiceMocks.suggestSynopticFields.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        histologic_type: { value: 'idc', confidence: 91, source: 'Invasive ductal carcinoma' },
+        margin_status: { value: 'neg', confidence: 80, source: 'Margins are negative' },
+      },
+    });
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: narrativeCase() })));
+
+    await act(async () => { await result.current.handleSuggestSynopticFromNarrative(); });
+
+    expect(getTemplate).toHaveBeenCalledWith('TPL-BREAST');
+    expect(aiServiceMocks.suggestSynopticFields).toHaveBeenCalledTimes(1);
+    const [caseText, fields] = aiServiceMocks.suggestSynopticFields.mock.calls[0];
+    expect(caseText).toEqual({
+      gross: 'Received a 3.2 cm firm mass.',
+      microscopic: 'Invasive ductal carcinoma. Margins are negative.',
+      ancillary: '',
+    });
+    expect(fields).toEqual([
+      { id: 'histologic_type', label: 'Histologic Type', options: [{ id: 'idc', label: 'Invasive ductal carcinoma' }, { id: 'ilc', label: 'Invasive lobular carcinoma' }] },
+      { id: 'tumour_size', label: 'Tumour Size', options: [] },
+      { id: 'margin_status', label: 'Margin Status', options: [{ id: 'neg', label: 'Negative' }, { id: 'pos', label: 'Positive' }] },
+    ]);
+
+    expect(result.current.showAiReview).toBe(true);
+    expect(result.current.isSuggestingSynoptic).toBe(false);
+    expect(result.current.reviewFields.map(f => [f.fieldId, f.sectionTitle, f.aiValue, f.verification])).toEqual([
+      ['histologic_type', 'Tumour', 'idc', 'unverified'],
+      ['margin_status', 'Margins', 'neg', 'unverified'],
+    ]);
+  });
+
+  it('with no narrative text, warns and never calls the AI', async () => {
+    const showToast = vi.fn();
+    const caseData = narrativeCase({ diagnostic: { grossDescription: ' ', microscopicDescription: '', ancillaryStudies: '' } } as any);
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData, showToast })));
+    await act(async () => { await result.current.handleSuggestSynopticFromNarrative(); });
+    expect(aiServiceMocks.suggestSynopticFields).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('Enter a Gross, Microscopic, or Ancillary narrative'), 'warning');
+    expect(result.current.showAiReview).toBe(false);
+  });
+
+  it('an AI failure shows a warning and leaves the AI Review modal closed', async () => {
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: AI_TEMPLATE } as any);
+    aiServiceMocks.suggestSynopticFields.mockResolvedValueOnce({ ok: false, error: 'provider down' });
+    const showToast = vi.fn();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: narrativeCase(), showToast })));
+    await act(async () => { await result.current.handleSuggestSynopticFromNarrative(); });
+    expect(showToast).toHaveBeenCalledWith('AI suggestion failed. Please try again.', 'warning');
+    expect(result.current.showAiReview).toBe(false);
+    expect(result.current.reviewFields).toEqual([]);
+    expect(result.current.isSuggestingSynoptic).toBe(false);
+  });
+
+  it('when the AI suggests nothing that matches a template field, says so and does not open the modal', async () => {
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: AI_TEMPLATE } as any);
+    aiServiceMocks.suggestSynopticFields.mockResolvedValueOnce({ ok: true, data: { not_a_field: { value: 'x', confidence: 50, source: 'x' } } });
+    const showToast = vi.fn();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: narrativeCase(), showToast })));
+    await act(async () => { await result.current.handleSuggestSynopticFromNarrative(); });
+    expect(showToast).toHaveBeenCalledWith('AI did not find any fields to suggest from the current narrative.');
+    expect(result.current.showAiReview).toBe(false);
+  });
+});
+
+describe('useSignOutWorkflow — PS-275 Generate Narrative from Synoptic', () => {
+  const answeredCase = () => narrativeCase({
+    synopticReports: [{ instanceId: 'SR-1', specimenId: 'SP-1', templateId: 'TPL-BREAST', templateName: 'Breast', answers: { histologic_type: 'idc', margin_status: 'neg' }, status: 'draft' }],
+  } as any);
+
+  it('calls generateNarrativeFromSynopticAnswers with the template and the active report\'s answers, then opens the review modal with the generated text', async () => {
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: AI_TEMPLATE } as any);
+    aiServiceMocks.generateNarrativeFromSynopticAnswers.mockResolvedValueOnce({ ok: true, data: 'Invasive ductal carcinoma with negative margins.' });
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: answeredCase() })));
+
+    await act(async () => { await result.current.handleGenerateNarrativeFromSynoptic(); });
+
+    expect(getTemplate).toHaveBeenCalledWith('TPL-BREAST');
+    expect(aiServiceMocks.generateNarrativeFromSynopticAnswers).toHaveBeenCalledWith(AI_TEMPLATE, { histologic_type: 'idc', margin_status: 'neg' });
+    expect(result.current.showNarrativeReview).toBe(true);
+    expect(result.current.generatedNarrativeText).toBe('Invasive ductal carcinoma with negative margins.');
+    expect(result.current.isGeneratingNarrative).toBe(false);
+  });
+
+  it('with no synoptic answers, warns and never calls the AI', async () => {
+    const showToast = vi.fn();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: narrativeCase(), showToast })));
+    await act(async () => { await result.current.handleGenerateNarrativeFromSynoptic(); });
+    expect(aiServiceMocks.generateNarrativeFromSynopticAnswers).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith('Answer some synoptic fields before generating narrative text.', 'warning');
+    expect(result.current.showNarrativeReview).toBe(false);
+  });
+
+  it('an AI failure shows a warning and leaves the review modal closed', async () => {
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: AI_TEMPLATE } as any);
+    aiServiceMocks.generateNarrativeFromSynopticAnswers.mockResolvedValueOnce({ ok: false, error: 'provider down' });
+    const showToast = vi.fn();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: answeredCase(), showToast })));
+    await act(async () => { await result.current.handleGenerateNarrativeFromSynoptic(); });
+    expect(showToast).toHaveBeenCalledWith('Narrative generation failed. Please try again.', 'warning');
+    expect(result.current.showNarrativeReview).toBe(false);
+    expect(result.current.generatedNarrativeText).toBe('');
+  });
+
+  it.each([
+    ['gross', 'grossDescription'],
+    ['microscopic', 'microscopicDescription'],
+    ['ancillary', 'ancillaryStudies'],
+  ] as const)('accepting into %s writes the pathologist\'s final text to diagnostic.%s, leaves the other fields alone, closes the modal and saves the case', async (target, key) => {
+    const setCaseData = vi.fn();
+    const caseData = answeredCase();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData, setCaseData })));
+
+    await act(async () => { await result.current.handleAcceptGeneratedNarrative('Edited by the pathologist.', target); });
+
+    const expectedDiagnostic = { ...(caseData as any).diagnostic, [key]: 'Edited by the pathologist.' };
+    expect(setCaseData).toHaveBeenCalledWith(expect.objectContaining({ diagnostic: expectedDiagnostic }));
+    expect(caseRouter.updateCase).toHaveBeenCalledWith('TEST-CASE-SIGNOUT', { diagnostic: expectedDiagnostic }, 1);
+    expect(result.current.showNarrativeReview).toBe(false);
+  });
+
+  it('the inserted text is the edited text passed to accept, not the raw AI output', async () => {
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: AI_TEMPLATE } as any);
+    aiServiceMocks.generateNarrativeFromSynopticAnswers.mockResolvedValueOnce({ ok: true, data: 'RAW AI TEXT' });
+    const knownVersionRef = { current: 3 };
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: answeredCase(), knownVersionRef })));
+    await act(async () => { await result.current.handleGenerateNarrativeFromSynoptic(); });
+    await act(async () => { await result.current.handleAcceptGeneratedNarrative('Pathologist edited text.', 'microscopic'); });
+
+    const [, patch, version] = vi.mocked(caseRouter.updateCase).mock.calls[0] as any[];
+    expect(patch.diagnostic.microscopicDescription).toBe('Pathologist edited text.');
+    expect(JSON.stringify(patch)).not.toContain('RAW AI TEXT');
+    expect(version).toBe(3);
+    expect(knownVersionRef.current).toBe(4);
+  });
+
+  it('a failed save after insert warns the pathologist (the text stays in the editor)', async () => {
+    vi.mocked(caseRouter.updateCase).mockRejectedValueOnce(new Error('offline'));
+    const showToast = vi.fn();
+    const setCaseData = vi.fn();
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: answeredCase(), showToast, setCaseData })));
+    await act(async () => { await result.current.handleAcceptGeneratedNarrative('Final text.', 'gross'); });
+    expect(setCaseData).toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('Narrative inserted, but saving to the case failed'), 'warning');
+  });
+});
+
+// Batch 451 (PS-129): a finding from a discrete synoptic trigger rule (not the
+// AI narrative). The case's abnormal status is set only when the pathologist
+// confirms it (records the notification), never when they dismiss it.
+describe('useSignOutWorkflow — PS-129 rule-matched finding: abnormal status set on confirm only', () => {
+  const MARGIN_TEMPLATE = {
+    sections: [{ id: 'sec-margins', title: 'Margins', fields: [{ id: 'margin_status', label: 'Margin Status', options: [{ id: 'neg', label: 'Negative' }, { id: 'pos', label: 'Positive' }] }] }],
+  };
+  const MARGIN_CODING = [{ system: 'TEST-SNOMED', code: 'TEST-MARGIN-POS', display: 'Margin positive [SYNTHETIC — TEST ONLY]' }];
+  const marginRule = { id: 'rule-margin-pos', fieldLabel: 'Margin Status', triggerValues: ['Positive'], severity: 'Critical', status: 'Active', syntheticCoding: MARGIN_CODING };
+  const ruleCase = (marginAnswer: string) => makeTestCase({
+    id: 'TEST-CASE-RULE',
+    synopticReports: [{ instanceId: 'SR-1', specimenId: 'SP-1', templateId: 'TPL-MARGIN', templateName: 'Margins', answers: { margin_status: marginAnswer }, status: 'draft' }] as any,
+  });
+
+  async function finalizeWithRuleMatch() {
+    const { abnormalTriggerRuleService } = await import('@/services');
+    vi.mocked(abnormalTriggerRuleService.getAll).mockResolvedValueOnce({ ok: true, data: [marginRule] } as any);
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: MARGIN_TEMPLATE } as any);
+    const setCaseData = vi.fn();
+    const hook = renderHook(() => useSignOutWorkflow(baseParams({ caseData: ruleCase('pos'), setCaseData })));
+    await act(async () => { await hook.result.current.handleRequestFinalize(false); });
+    return { ...hook, setCaseData };
+  }
+  const abnormalStatusCalls = () => (caseRouter.updateCase as any).mock.calls.filter((c: any[]) => c[1]?.abnormalDetectionStatus);
+
+  it('the trigger rule service\'s match opens the critical findings review as a synoptic finding', async () => {
+    const { result } = await finalizeWithRuleMatch();
+    expect(detectCriticalFindings).not.toHaveBeenCalled();
+    expect(result.current.showCriticalFindingsModal).toBe(true);
+    expect(result.current.criticalFindings).toEqual([expect.objectContaining({ sourceField: 'synoptic', severity: 'Critical', term: 'Margin Status: Positive' })]);
+  });
+
+  it('confirming (recording the notification) sets the case\'s abnormal status to the rule\'s severity, with the rule\'s own coding', async () => {
+    const { result, setCaseData } = await finalizeWithRuleMatch();
+    await act(async () => {
+      await result.current.handleRecordCriticalNotification({ clinicianName: 'Dr. Faulkner', method: 'verbal_phone', notifiedByName: 'Test User' });
+    });
+    const calls = abnormalStatusCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toBe('TEST-CASE-RULE');
+    expect(calls[0][1].abnormalDetectionStatus).toEqual({ severity: 'Critical', confirmedAt: expect.any(String) });
+    expect(calls[0][1].syntheticAbnormalCoding).toEqual(MARGIN_CODING);
+    expect(calls[0][2]).toBe(1);
+    expect(setCaseData).toHaveBeenCalled();
+  });
+
+  it('dismissing the same rule-matched finding never sets the abnormal status', async () => {
+    const { result, setCaseData } = await finalizeWithRuleMatch();
+    act(() => { result.current.handleAcknowledgeCriticalFindings(); });
+    await waitFor(() => expect(abnormalDetectionSignalService.recordSignal).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'dismissed' })));
+    expect(result.current.showCriticalFindingsModal).toBe(false);
+    expect(abnormalStatusCalls()).toHaveLength(0);
+    expect(setCaseData).not.toHaveBeenCalled();
+  });
+
+  it('an answer the rule does not list (Margin Status: Negative) raises no finding and sets nothing', async () => {
+    const { abnormalTriggerRuleService } = await import('@/services');
+    vi.mocked(abnormalTriggerRuleService.getAll).mockResolvedValueOnce({ ok: true, data: [marginRule] } as any);
+    vi.mocked(getTemplate).mockResolvedValueOnce({ template: MARGIN_TEMPLATE } as any);
+    const { result } = renderHook(() => useSignOutWorkflow(baseParams({ caseData: ruleCase('neg') })));
+    await act(async () => { await result.current.handleRequestFinalize(false); });
+    expect(result.current.showCriticalFindingsModal).toBe(false);
+    expect(abnormalStatusCalls()).toHaveLength(0);
   });
 });

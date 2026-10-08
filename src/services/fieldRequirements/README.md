@@ -292,3 +292,11 @@ Main functions:
 - `rackTypeOf`: racks stored before the rack type existed count as sample tube racks.
 
 The rack service enforces the same rules again in `placeOnDeck`.
+
+## Batch 467 — In-house molecular orders
+
+`addOnOrderChecks.ts`: the reference-lab requirement applies to molecular lines that are sent out, not in-house ones.
+
+## Batch 473 — Case-type key migration
+
+`reportPageChecks.ts`'s forensic-path check now compares against `'statutory_judicial'`, not `'medicolegal_forensic'` — the local `forensic` variable name is unchanged, only the literal it compares against. No behavior change. See `services/autopsy/README.md`.

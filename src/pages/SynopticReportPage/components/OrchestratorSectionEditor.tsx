@@ -19,7 +19,7 @@
 // focused — same principle as the old version, just retargeted dynamically.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import NarrativeEditor from '@/components/Editor/NarrativeEditor';
@@ -32,6 +32,9 @@ import { facilityService, macroService, voiceMacroService } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { SpellingLanguageControl } from '@/components/SpellCheck/SpellingLanguageControl';
+import { regenerateSectionsSequentially } from '@/services/reportEditing/orchestratorSections';
+import { findingsForField, narrativeFieldForSection } from '@/services/clinical/findingHighlight';
+import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -207,6 +210,12 @@ interface Props {
   //    setting is shared/persisted across all section editors in this case.
   tabWidthChars?:       number;
   onTabWidthChange?:    (chars: number) => void;
+
+  /** Batch 452 (PS-323): the critical findings detected at the last
+   *  Finalize attempt. Each is highlighted in the section that feeds its
+   *  narrative field (services/clinical/findingHighlight.ts); the
+   *  highlight is drawn over the text and never saved into it. */
+  criticalFindings?:    readonly CriticalFindingFlag[];
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -216,9 +225,17 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   onRegenerateSection, lastGeneratedAt, caseData,
   onAcceptAll, activeSectionId, onActiveSectionChange,
   tabWidthChars = 4, onTabWidthChange, onAcceptSection,
-  onGenerateReport, onStartManualEntry, documentStyle,
+  onGenerateReport, onStartManualEntry, documentStyle, criticalFindings,
 }) => {
   const { t } = useTranslation();
+  // PS-323: one stable list per section, so the editors only redraw when
+  // the findings actually change.
+  const findingsBySection = useMemo(() => {
+    const out: Record<string, CriticalFindingFlag[]> = {};
+    for (const s of sections) out[s.id] = findingsForField(criticalFindings, narrativeFieldForSection(s.id));
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticalFindings, sections.map(s => s.id).join('|')]);
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const editorRefs    = useRef<Record<string, PathScribeEditorHandle | null>>({});
   const sectionRefs   = useRef<Record<string, HTMLDivElement | null>>({});
@@ -442,9 +459,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   // time, matching what "Regen ALL" should mean.
   const regenerateAllSequentially = useCallback(async () => {
     if (!onRegenerateSection) return;
-    for (const s of sections) {
-      await onRegenerateSection(s.id);
-    }
+    await regenerateSectionsSequentially(sections.map(s => s.id), onRegenerateSection);
   }, [sections, onRegenerateSection]);
 
   // ── Voice / keyboard event listeners ─────────────────────────────────────────
@@ -629,8 +644,14 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
               {t('orchestratorSectionEditor.lockedOverlayNote')}
             </div>
           )}
+          {(findingsBySection[section.id]?.length ?? 0) > 0 && (
+            <div className="ps-finding-hl-note" role="note">
+              {t('findingHighlight.sectionNote', { count: findingsBySection[section.id].length })}
+            </div>
+          )}
           <NarrativeEditor
             ref={(h: any) => { editorRefs.current[section.id] = h; }}
+            highlightFindings={findingsBySection[section.id]}
             value={textToHtml(section.text)}
             onChange={html => onSectionChange(section.id, html)}
             readOnly={isGenerating || isLocked}

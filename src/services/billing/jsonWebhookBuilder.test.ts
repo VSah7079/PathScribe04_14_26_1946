@@ -287,10 +287,11 @@ describe('buildJsonWebhookPayload — real, per direct follow-up: performingFaci
   it('performingFacility is genuinely undefined when the ordering facility holds no performing_lab role and no override', async () => {
     const caseData = {
       id: 'CASE-FACILITY-4', patient: undefined as any, participants: [], specimens: [],
-      // c1 (Metro General) is external_ordering_client only - no
-      // performing_lab role, no performingLabFacilityId override, so
-      // resolvePerformingLabFacilityId() correctly returns undefined.
-      order: { icd10Codes: [], facilityId: 'c1' } as any,
+      // c-auto-000001 (Fairview Family Practice) is external_ordering_client
+      // only - no performing_lab role, no performingLabFacilityId override,
+      // so resolvePerformingLabFacilityId() correctly returns undefined.
+      // (Batch 441: c1 now names Desert Valley as its performing lab.)
+      order: { icd10Codes: [], facilityId: 'c-auto-000001' } as any,
     };
     const payload = await buildJsonWebhookPayload(caseData as any, []);
     expect(payload.performingFacility).toBeUndefined();

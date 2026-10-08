@@ -105,4 +105,6 @@ export interface IServiceChargeService {
    *  being placed on hold - never guessed or reset to DRAFT. */
   holdCharge(chargeId: string, heldBy: string): Promise<ServiceResult<ServiceChargeRecord>>;
   releaseHold(chargeId: string, releasedBy: string): Promise<ServiceResult<ServiceChargeRecord>>;
+  /** Batch 433: charges in any of these approval statuses (the approval queue). */
+  listByApprovalStatus(statuses: readonly NonNullable<ServiceChargeRecord['approvalStatus']>[]): Promise<ServiceResult<ServiceChargeRecord[]>>;
 }

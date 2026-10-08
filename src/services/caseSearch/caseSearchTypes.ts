@@ -38,7 +38,7 @@ export type CaseSearchHoldType = 'case' | 'retention' | 'autopsyAncillary';
 export type CaseSearchResultFlag = 'Abnormal' | 'Critical' | 'Malignant';
 export type CaseSearchPendingWork = 'stains' | 'ihc' | 'molecular' | 'addOns';
 export type CaseSearchIntake = 'standard' | 'downtime' | 'outside' | 'referenceLab';
-export type CaseSearchAutopsyAuthority = 'medicolegal_forensic' | 'hospital_consented';
+export type CaseSearchAutopsyAuthority = 'statutory_judicial' | 'hospital_consented';
 /** Which autopsy reports are signed: none yet, the provisional (PAD), the final (FAD). */
 export type CaseSearchAutopsyReport = 'none' | 'pad' | 'fad';
 
@@ -202,7 +202,7 @@ export const CASE_SEARCH_HOLD_TYPES: readonly CaseSearchHoldType[] = ['case', 'r
 export const CASE_SEARCH_RESULT_FLAGS: readonly CaseSearchResultFlag[] = ['Abnormal', 'Critical', 'Malignant'];
 export const CASE_SEARCH_PENDING_WORK: readonly CaseSearchPendingWork[] = ['stains', 'ihc', 'molecular', 'addOns'];
 export const CASE_SEARCH_INTAKES: readonly CaseSearchIntake[] = ['standard', 'downtime', 'outside', 'referenceLab'];
-export const CASE_SEARCH_AUTOPSY_AUTHORITIES: readonly CaseSearchAutopsyAuthority[] = ['medicolegal_forensic', 'hospital_consented'];
+export const CASE_SEARCH_AUTOPSY_AUTHORITIES: readonly CaseSearchAutopsyAuthority[] = ['statutory_judicial', 'hospital_consented'];
 export const CASE_SEARCH_AUTOPSY_REPORTS: readonly CaseSearchAutopsyReport[] = ['none', 'pad', 'fad'];
 
 // ── The Search page's draft (and a saved search's contents) ─────────────────

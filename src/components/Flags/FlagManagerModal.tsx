@@ -627,7 +627,7 @@ const FlagManagerModal: React.FC<Props> = ({
               {/* Search */}
               <div className="fm-search-bar">
                 <span className="fm-search-icon"><IcoSearch /></span>
-                <input
+                <input data-dirty-ignore
                   className="fm-search-input"
                   value={query}
                   onChange={e => setQuery(e.target.value)}

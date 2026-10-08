@@ -31,6 +31,10 @@ is deliberately waiting on.
 
 `ExternalConsultAccessModal.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 439 (PS-148)
+
+`ExternalConsultAccessModal.tsx` lists the opinions consultants sent back, and the pathologist assesses each signed one against the case (agrees / minor difference / major discordance, with a note for a difference). Converted on touch: the status badge and scope buttons are classes (their colours were set from JSX), and dates use the reader's language.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

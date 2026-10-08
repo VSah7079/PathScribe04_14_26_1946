@@ -51,6 +51,8 @@ export interface ICytologyQaReportService {
   getDirectedHighRiskRescreeningReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getCtVsPathologistCorrelationReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getPostSignOutPeerReviewCorrelationReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
+  /** Batch 459 (PS-152): each signed-out specimen's primary screen vs the review chosen as its Final Diagnosis. */
+  getPrimaryVsFinalDiagnosisReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getCtStatisticalComparisonReport(scope: QaScope): Promise<ServiceResult<CytologyCtStatisticalComparisonRow[]>>;
   getAscusHpvReflexReport(scope: QaScope): Promise<ServiceResult<CytologyAscusHpvReflexRow[]>>;
   getWorkloadTrackingReport(scope: QaScope): Promise<ServiceResult<CytologyWorkloadTrackingRow[]>>;

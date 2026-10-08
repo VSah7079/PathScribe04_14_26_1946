@@ -25,7 +25,7 @@ export const SUPPORT_ROUTE_PATTERNS: readonly string[] = [
   '/quality-compliance', '/cytology-worklist', '/cytology-worklist/:caseId', '/molecular',
   '/molecular-batch/:batchId', '/molecular-rack', '/molecular-rack/:rackId', '/molecular-control-rules',
   '/dev/mock-interface-engine', '/quality-assurance', '/batch-management', '/batch-management/disposal',
-  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log',
+  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan',
   '/workstations/microtomy', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
   '/intraop-queue', '/molecular-order-queue', '/cytology-qc-queue', '/surgical-qa-worklist', '/migration-jobs',
   '/search', '/audit', '/registry-exceptions', '/configuration', '/contribution', '/case/:caseId/synoptic', '/case/:caseId/grossing',
@@ -92,4 +92,29 @@ export function replaceIdentifiers(text: string, replacements: ReadonlyMap<strin
     out = out.replace(new RegExp(`(?<![\\w-])${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`, 'gi'), to);
   }
   return out;
+}
+
+// ── The warning step (Batch 450, moved from EnhancementRequestModal.tsx) ────
+
+/**
+ * What pressing Send does with what the user typed: the identifiers to warn
+ * about (stop at the warning), or null (send). "Send anyway" skips the check.
+ */
+export function identifierWarningOnSend(
+  input: { title: string; description: string; sendAnyway: boolean },
+  find: (text: string) => IdentifierInText[] = findIdentifiersInText,
+): IdentifierInText[] | null {
+  if (input.sendAnyway) return null;
+  const found = find(`${input.title}\n${input.description}`);
+  return found.length > 0 ? found : null;
+}
+
+/** Whether the warning offers "replace case numbers with support references": only when a case number was found. */
+export function canReplaceCaseNumbers(found: readonly IdentifierInText[]): boolean {
+  return found.some(f => f.kind === 'accession');
+}
+
+/** The case numbers among the identifiers found (the ones a support reference can replace). */
+export function caseNumbersIn(found: readonly IdentifierInText[]): string[] {
+  return found.filter(f => f.kind === 'accession').map(f => f.text);
 }

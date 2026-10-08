@@ -283,6 +283,58 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 Protocol lifecycle overrides (`protocolShared.tsx`) are kept in the lab settings store.
 
+## Batch 437
+
+The section list asks before leaving unsaved changes (PS-128). A protocol's JSON export is audited (PS-282).
+
+## Batch 461
+
+`SynopticEditor.tsx`: field type `partGrid` (a results grid: one row per part, fixed columns, see `services/templates/partGrid.ts`). It is built in (PathScribe's Core results question) and kept out of the add-a-field pickers; the preview lists its columns.
+
+## Batch 463
+
+- `SynopticEditor.tsx`: field type `spatialStageCanvas` ("Mohs stage map"). Built in: it comes with PathScribe's Mohs template and its copies and isn't offered when adding a question. A field may carry `defaultHistologyFieldId` (kept from the template; no editor control yet). The preview shows a hint.
+- `protocolShared.tsx`: "PathScribe — Mohs Micrographic Surgery" in the protocol registry (skin, 15 fields).
+
+## Batch 463b
+
+`SynopticEditor.tsx`: a Mohs stage question gets **Default histology from** (a choice question, or None). A source that was deleted or isn't a choice question is flagged on the field and stops Submit for review.
+
+## Batch 464
+
+`protocolShared.tsx`: field counts for Colon Resection (52), Colorectal Resection B (45) and Colorectal Local Excision (40) with their new map questions. Corrected: the prostate and breast templates' counts hadn't been raised for their Batch 461–462 map questions; they now match.
+
+## Batch 465
+
+`protocolShared.tsx`: registry entries for PathScribe's Oral Cavity Resection (17 fields) and Neck Dissection (8 fields), category `HEAD_NECK`. `SynopticEditor.tsx`: `HEAD_NECK` in the category list (`synopticEditor.category.headNeck`).
+
+## Batch 465b
+
+`SynopticEditor.tsx`: `EditorField.sumOf` (a total from a grid). It is set in template JSON; the editor doesn't expose it yet.
+
+## Batch 466
+
+- `protocolShared.tsx`: Kidney Resection now has 35 fields (the 10 renal map questions added).
+- `SynopticEditor.tsx`: `EditorField.wholeNumber`.
+
+## Batch 466b
+
+`SynopticEditor.tsx` count settings:
+- A numeric question has a number type (decimal or whole number), "can't exceed" (another numeric question), and a value that is either entered by hand or the total of a grid column.
+- A grid's number columns each have a number type and a column they can't exceed.
+- `protocolShared.tsx`: Kidney Resection has 36 fields.
+
+## Batch 466c
+
+- `SynopticEditor.tsx`:
+  - The condition picker has a mode ("when the answer is" / "unless the answer is") and "+ Or also when…" alternatives. The renal vein and ureter conditions in Kidney Resection are now editable here.
+  - The value list for a number question offers "Entered by hand, checked against a grid's total".
+- The logic lives in `services/templates/conditionEdits.ts` and `templateCountRules.ts`.
+
+## Batch 467 — In-house molecular orders
+
+`MolecularResultBindingEditor.tsx`: on a choice question in the Synoptic Editor, "Filled from in-house molecular test", with what a positive and a negative result mean, and a warning when the binding can't be used. It loads the test list only when shown.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

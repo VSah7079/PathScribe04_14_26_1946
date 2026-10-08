@@ -302,6 +302,10 @@ The §1.1.4 Web Worker offload itself lives in `services/cytology/`
 
 `printFonts.ts` no longer imports the font through the `pretendard` npm package (`...ttf?url`). On a machine without the package that import failed, and because `services/index.ts` reaches it, 44 unrelated test files failed with it (Pete's run). The font files now ship in `public/fonts/pretendard/` and load from `/fonts/pretendard/...`; the package is no longer a dependency. A test fails if anything in `src/` imports the package again.
 
+## Batch 461: `svgToPng.ts`
+
+`svgToPngDataUrl(svg, scale = 4)` draws a standalone SVG to a canvas and returns a PNG data URL (undefined where there is no DOM, or when drawing fails). Used for the organ-map image the pathologist inserts into the report: the PDF renderer embeds the PNG, the SVG is kept alongside.
+
 ---
 *See [services/cytology/README.md](../cytology/README.md) for how the
 cytology PDF pipeline this folder extends actually works end to end.*

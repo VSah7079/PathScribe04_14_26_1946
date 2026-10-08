@@ -27,6 +27,7 @@ import type { FacilityCytologyWorkloadCapOverride } from '../../../services/cyto
 import type { StaffCytologyWorkloadCapOverride } from '../../../services/cytology/IStaffCytologyWorkloadCapOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import type { StaffUser } from '../../../services/users/IUserService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const CytologyWorkloadCapSettingsSection: React.FC = () => {
   const { t } = useTranslation();
@@ -39,6 +40,8 @@ const CytologyWorkloadCapSettingsSection: React.FC = () => {
   const [addingFacility, setAddingFacility] = useState<{ facilityId: string; cap: number } | null>(null);
   const [addingStaff, setAddingStaff] = useState<{ staffUserId: string; cap: number } | null>(null);
   const [saving, setSaving] = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(enterpriseDraft !== savedEnterprise || addingFacility !== null || addingStaff !== null);
 
   const refresh = () => {
     mockCytologyWorkloadCapSettingsService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.dailySlideCap); setSavedEnterprise(r.data.dailySlideCap); } });

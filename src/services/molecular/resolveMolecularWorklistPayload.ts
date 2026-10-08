@@ -25,6 +25,8 @@ export function resolveMolecularWorklistPayload(batch: MolecularBatch, now: Date
       specimen_uuid: w.specimenUuid ?? null,
       control_info: w.controlInfo ? { control_id: w.controlInfo.controlId, expected_value: w.controlInfo.expectedValue } : undefined,
       accession_number: w.accessionNumber,
+      // Batch 467b: the order the well holds, echoed back with the result.
+      ...(w.orderId ? { order_id: w.orderId } : {}),
       container_barcode: w.containerBarcode,
       aliquot_volume_ul: w.aliquotVolumeUl,
     }));

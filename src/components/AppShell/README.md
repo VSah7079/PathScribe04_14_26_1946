@@ -177,5 +177,13 @@ Applies the signed-in person's language (`usePersonalLanguage`); the messages dr
 
 The profile menu (About panel) has "My dictionary" and "My voice commands" (`components/Profile/`).
 
+## Batch 433
+
+The profile menu has **Biometric signing** when the lab's biometric policy is on, and AppShell shows the enrolment invitation after sign-in when the lab asks for it (`components/Profile/BiometricSigningModal.tsx`).
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

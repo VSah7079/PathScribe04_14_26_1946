@@ -47,6 +47,12 @@ export async function processInboundReferralResultEvent(
     pdfAttachmentUrl: payload.pdfAttachmentUrl,
   });
 
+  // Batch 467b: the batch's send-out molecular orders take their results (coded ones fill the synoptic; a final PDF
+  // report alone leaves the answer to be entered from it; an interim text message changes nothing). If one can't be applied, the message isn't marked processed, so
+  // redelivering it finishes the job (orders already resulted are skipped).
+  const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');
+  await molecularOrderEngine.onSendOutResults({ batchId: payload.batchId, results: payload.orderResults, reportOnly: !payload.orderResults?.length && payload.resultType === 'pdf_attachment' });
+
   processedMessageIds.add(payload.messageId);
   return { messageId: payload.messageId, outcome: 'applied' };
 }

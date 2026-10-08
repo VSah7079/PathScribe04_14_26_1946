@@ -182,3 +182,32 @@ describe('FacilityEditorModal — PS-73: real assigningAuthority uniqueness vali
     expect(screen.queryByText(/assigningAuthorityCollision/)).toBeNull();
   });
 });
+
+describe('FacilityEditorModal — Batch 433: "Charges need billing approval" (enterprise setting, lab override)', () => {
+  const lab: Facility = {
+    id: 'fac-lab', name: 'Lab', roles: ['performing_lab'], jurisdiction: 'US', parentId: 'fac-ent',
+    assigningAuthority: 'LAB', email: 'x@y.com', phone: '', fax: '', address: '', status: 'Active',
+    reporting: { reportFormat: 'PDF', deliveryMethod: 'Portal', autoRelease: false, copyToReferring: false },
+  } as Facility;
+  const select = () => screen.getByRole('combobox', { name: 'facilityEditorModal.general.requireBillingApproval' }) as HTMLSelectElement;
+
+  it('a lab follows its enterprise until it overrides, and the override is saved', () => {
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="edit" onClose={() => {}} onSave={onSave} allFacilities={[lab]} facility={lab} />);
+    const s = select();
+    expect([...s.options].map(o => o.value)).toEqual(['inherit', 'on', 'off']);
+    expect(s.value).toBe('inherit');
+    fireEvent.change(s, { target: { value: 'on' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.saveChanges'));
+    expect(onSave.mock.calls[0][0].requireBillingApproval).toBe(true);
+  });
+
+  it('an enterprise is simply on or off', () => {
+    const ent = { ...lab, id: 'fac-ent', parentId: undefined, roles: [], isEnterprise: true, assigningAuthority: 'ENT' } as Facility;
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="edit" onClose={() => {}} onSave={onSave} allFacilities={[ent]} facility={ent} />);
+    const s = select();
+    expect([...s.options].map(o => o.value)).toEqual(['on', 'off']);
+    expect(s.value).toBe('off');
+  });
+});

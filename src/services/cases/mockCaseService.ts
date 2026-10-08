@@ -8,7 +8,10 @@
 
 import { ICaseService } from "./ICaseService";
 import { withAddOnOrderDemo } from './addOnOrderDemo';
+import { withMaterialDemo } from '../material/materialDemoSeed';
+import { DEMO_BASELINE_CASES } from './demoBaselineCases';
 import { ConcurrencyConflictError } from "./ConcurrencyConflictError";
+import { updateCaseWithRetry, updateCaseWithRetryOrThrow, type CaseWriteDeps } from "./caseWrite";
 import { callAi } from '../aiIntegration/aiProviderService';
 import { resolveAiConfigOverrideForClient } from '../../components/Config/AI/resolveClientAiModel';
 import { Case, CaseParticipant, ProtocolChange } from "../../types/case/Case";
@@ -31,6 +34,7 @@ import { isOrchCaseId } from './reportingModeRouting';
 import { recordCaseChange } from '../reportChangeLog/recordCaseChange';
 import { mockUserService } from '../users/mockUserService';
 import { mockRoleService } from '../roles/mockRoleService';
+import { isCytotechOnly } from '../participationTypes/cytotechParticipationRules';
 import { mockParticipationTypeService } from '../participationTypes/mockParticipationTypeService';
 
 const STORAGE_KEY = 'cases';
@@ -143,6 +147,11 @@ const MOCK_CASES: Case[] = [
         previouslyFinalizedForAmendment: true,
         pendingAmendmentId: 'amend-seed-cp04b',
         answers: {
+          // Batch 462: the Anatomical map questions, from the gross and microscopic descriptions (left breast, upper outer quadrant; closest margin 2.0 mm, deep).
+          psmap_breast_side: 'psmap_side_left',
+          'psmap_breast_foci__r1__type': 'psmap_ftype_invasive', 'psmap_breast_foci__r1__clock': 'psmap_clock_2', 'psmap_breast_foci__r1__distance': '3', 'psmap_breast_foci__r1__size': '23',
+          'psmap_breast_foci__r2__type': 'psmap_ftype_dcis', 'psmap_breast_foci__r2__clock': 'psmap_clock_2', 'psmap_breast_foci__r2__distance': '3.5', 'psmap_breast_foci__r2__size': '4',
+          'psmap_breast_margins__superior__invasive': '15', 'psmap_breast_margins__superior__dcis': '18', 'psmap_breast_margins__inferior__invasive': '40', 'psmap_breast_margins__medial__invasive': '60', 'psmap_breast_margins__lateral__invasive': '25', 'psmap_breast_margins__anterior__invasive': '8', 'psmap_breast_margins__anterior__dcis': '10', 'psmap_breast_margins__posterior__invasive': '2.0', 'psmap_breast_margins__posterior__dcis': '4',
           procedure: 'procedure_opt_2',
           specimen_laterality: 'specimen_laterality_opt_2',
           tumor_site: ['tumor_site_opt_1'],
@@ -509,6 +518,13 @@ const MOCK_CASES: Case[] = [
           perineural_invasion: 'perineural_invasion_opt_2',
           lymphatic_vascular_invasion: 'lymphatic_vascular_invasion_opt_1',
           treatment_effect: ['treatment_effect_opt_1'],
+          // Batch 461: the Core results grid (one row per part) that draws the biopsy map.
+          'psmap_core_results__S26-4404-SP-1__site': 'psmap_site_r_apex_lat', 'psmap_core_results__S26-4404-SP-1__cancer': 'psmap_ca_yes', 'psmap_core_results__S26-4404-SP-1__gleason_primary': 'psmap_gp_3', 'psmap_core_results__S26-4404-SP-1__gleason_secondary': 'psmap_gs_4', 'psmap_core_results__S26-4404-SP-1__grade_group': 'psmap_gg_2', 'psmap_core_results__S26-4404-SP-1__percent': '40', 'psmap_core_results__S26-4404-SP-1__length': '14',
+          'psmap_core_results__S26-4404-SP-2__site': 'psmap_site_r_mid_lat', 'psmap_core_results__S26-4404-SP-2__cancer': 'psmap_ca_yes', 'psmap_core_results__S26-4404-SP-2__gleason_primary': 'psmap_gp_3', 'psmap_core_results__S26-4404-SP-2__gleason_secondary': 'psmap_gs_4', 'psmap_core_results__S26-4404-SP-2__grade_group': 'psmap_gg_2', 'psmap_core_results__S26-4404-SP-2__percent': '70', 'psmap_core_results__S26-4404-SP-2__length': '16',
+          'psmap_core_results__S26-4404-SP-3__site': 'psmap_site_r_base_lat', 'psmap_core_results__S26-4404-SP-3__cancer': 'psmap_ca_yes', 'psmap_core_results__S26-4404-SP-3__gleason_primary': 'psmap_gp_3', 'psmap_core_results__S26-4404-SP-3__gleason_secondary': 'psmap_gs_4', 'psmap_core_results__S26-4404-SP-3__grade_group': 'psmap_gg_2', 'psmap_core_results__S26-4404-SP-3__percent': '30', 'psmap_core_results__S26-4404-SP-3__length': '18',
+          'psmap_core_results__S26-4404-SP-4__site': 'psmap_site_l_apex_lat', 'psmap_core_results__S26-4404-SP-4__cancer': 'psmap_ca_no', 'psmap_core_results__S26-4404-SP-4__length': '13',
+          'psmap_core_results__S26-4404-SP-5__site': 'psmap_site_l_mid_lat', 'psmap_core_results__S26-4404-SP-5__cancer': 'psmap_ca_no', 'psmap_core_results__S26-4404-SP-5__length': '15',
+          'psmap_core_results__S26-4404-SP-6__site': 'psmap_site_l_base_lat', 'psmap_core_results__S26-4404-SP-6__cancer': 'psmap_ca_no', 'psmap_core_results__S26-4404-SP-6__length': '17',
         },
         aiSuggestions: {
           procedure:                    { value: ['procedure_opt_1'], confidence: 94, source: 'Gross description', verification: 'unverified' },
@@ -552,6 +568,8 @@ const MOCK_CASES: Case[] = [
     },
     specimens: [
       { id: 'S26-4405-SP-1', label: 'A', description: 'Right breast lumpectomy', receivedAt: isoDaysAgo(5), collectedAt: isoDaysAgo(6), specimenFlags: [],
+        // Batch 457: ICD-O-3 morphology, so Registry Exceptions → Resend can rebuild this case's submission.
+        coding: { icdO: [{ code: '8500/2', description: 'Intraductal carcinoma, noninfiltrating, NOS' }] },
         // Batch 395: selected for post-sign-out peer review (demo for Pete Nimmo).
         surgicalPeerReview: { postSignOutPeerReviewFlag: { reason: 'random_selection', flaggedAt: isoDaysAgo(1) } } },
     ],
@@ -560,6 +578,9 @@ const MOCK_CASES: Case[] = [
       grossDescription: 'Received fresh, wire-localised, labeled "right breast lumpectomy" is a 68g specimen, 7.0 × 5.5 × 3.0 cm. Specimen radiograph confirms an area of interest correlating with a firm, white, granular area measuring 1.8 × 1.2 cm in the upper outer quadrant. No discrete mass identified.',
       microscopicDescription: 'Sections show a secondary (non-invasive) finding, intermediate grade, predominantly one architectural pattern with focal areas of another, spanning 18 mm. An associated finding is present within the affected foci, correlating with the specimen radiograph. No primary invasive finding identified. All margins are negative; closest margin measures 3 mm. No regional nodes submitted.',
       ancillaryStudies: 'Marker A by IHC: Positive (strong, diffuse). Marker B: Positive. Marker C: 1+ (negative). Proliferation index: 12%.',
+      // Batch 457: what sign-out stores, so the cancer registry submission can be rebuilt (Resend).
+      primaryDiagnosis: 'Right breast, wire-localised lumpectomy: ductal carcinoma in situ, intermediate nuclear grade, 18 mm; margins negative (closest 3 mm).',
+      issuedDate: isoDaysAgo(0),
     },
     synopticReports: [
       {
@@ -569,6 +590,11 @@ const MOCK_CASES: Case[] = [
         templateName: 'Generic Template — Breast Dcis Resection',
         status: 'finalized',
         answers: {
+          // Batch 462: the Anatomical map questions (right breast, upper outer quadrant; DCIS 18 mm with calcifications; closest margin 3 mm, superior).
+          psmap_breast_side: 'psmap_side_right',
+          'psmap_breast_foci__r1__type': 'psmap_ftype_dcis', 'psmap_breast_foci__r1__clock': 'psmap_clock_10', 'psmap_breast_foci__r1__distance': '4', 'psmap_breast_foci__r1__size': '18',
+          'psmap_breast_foci__r2__type': 'psmap_ftype_calcifications', 'psmap_breast_foci__r2__clock': 'psmap_clock_10', 'psmap_breast_foci__r2__distance': '4',
+          'psmap_breast_margins__superior__dcis': '3', 'psmap_breast_margins__inferior__dcis': '8', 'psmap_breast_margins__medial__dcis': '12', 'psmap_breast_margins__lateral__dcis': '5', 'psmap_breast_margins__anterior__dcis': '4', 'psmap_breast_margins__posterior__dcis': '6',
           procedure: 'procedure_opt_1',
           specimen_laterality: 'specimen_laterality_opt_1',
           tumor_type: 'tumor_type_opt_1',
@@ -1099,6 +1125,223 @@ const MOCK_CASES: Case[] = [
     reportingMode: 'assist', coding: {},
   } as any,
 
+  // ── Batch 466: renal resection map (CAP/ICCR kidney resection) ──
+  {
+    id: 'S26-4467',
+    accession: { accessionNumber: '4467', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4467' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    patient: { id: 'PAT-467', mrn: '100467', firstName: 'Marguerite', lastName: 'Ellsworth', dateOfBirth: isoYearsAgo(67, 1, 14), sex: 'F', phone: '555-467-0101', email: 'mellsworth@example.org', address: '15 Ocotillo Pl, Tucson, AZ 85716' },
+    specimens: [
+      { id: 'S26-4467-SP-1', label: 'A', description: 'Right kidney, radical nephrectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Owen Castellano', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: 'Right upper pole renal mass, 8 cm on CT, with renal vein involvement suspected. Radical nephrectomy.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'A right radical nephrectomy with perinephric fat and Gerota\u2019s fascia intact. A golden-yellow tumour, 8.5 cm, occupies the upper pole, lateral and anterior, bulging into the perinephric fat. Tumour thrombus extends into the renal vein. The soft tissue margin is inked.',
+      microscopicDescription: 'Clear cell renal cell carcinoma, WHO/ISUP grade 3, invading perinephric fat, with tumour in the renal vein. Renal vein margin involved by tumour thrombus adherent to the wall. Ureteral margin clear. Carcinoma reaches the inked soft tissue margin focally (0 mm).',
+      ancillaryStudies: '',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4467-SP-1_kidney_001',
+        specimenId: 'S26-4467-SP-1',
+        templateId: 'kidney_resection',
+        templateName: 'Generic Template \u2014 Kidney Resection',
+        status: 'draft',
+        answers: {
+          tumor_size_cm: '8.5', ln_number_positive: '0', ln_number_examined: '2',
+          psmap_ren_procedure: 'psmap_ren_procedure_radical', psmap_ren_kidney: 'psmap_ren_kidney_right',
+          psmap_ren_poles: ['psmap_ren_poles_upper'], psmap_ren_halves: ['psmap_ren_halves_lateral'], psmap_ren_aspect: ['psmap_ren_aspect_anterior'],
+          psmap_ren_extent: ['psmap_ren_extent_perinephricFat', 'psmap_ren_extent_renalVein'],
+          psmap_ren_veinMargin: 'psmap_ren_veinMargin_involved', psmap_ren_ureterMargin: 'psmap_ren_ureterMargin_notInvolved',
+          psmap_ren_softTissueMarginMm: '0',
+        },
+        createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+    caseFlags: [], specimenFlags: [],
+    participants: [{ staffId: 'PATH-001', staffName: 'Pete Nimmo', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(0), status: 'active' }],
+    reportingMode: 'assist', coding: {},
+  } as any,
+
+  // ── Batch 465: head and neck maps — a composite resection with both PathScribe synoptics on one case ──
+  {
+    id: 'S26-4466',
+    accession: { accessionNumber: '4466', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4466' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    patient: { id: 'PAT-466', mrn: '100466', firstName: 'Desmond', lastName: 'Okafor-Hale', dateOfBirth: isoYearsAgo(61, 3, 27), sex: 'M', phone: '555-466-0101', email: 'dokaforhale@example.org', address: '23 Ironwood Dr, Tucson, AZ 85712' },
+    specimens: [
+      { id: 'S26-4466-SP-1', label: 'A', description: 'Tongue, right lateral, partial glossectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'S26-4466-SP-2', label: 'B', description: 'Right neck dissection, levels I–IV', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Helena Voss', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: 'Squamous cell carcinoma, right lateral tongue, cT2 N1. Partial glossectomy and right selective neck dissection (I–IV).', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'A: partial glossectomy, 5.2 × 3.0 × 2.1 cm, with an ulcerated tumour 2.6 cm across on the right lateral tongue extending to the right floor of mouth. Margins inked. B: right neck dissection, levels I–IV separated by the surgeon.',
+      microscopicDescription: 'A: moderately differentiated squamous cell carcinoma, depth of invasion 7 mm. Deep margin 0.6 mm; peripheral mucosal margin 3 mm with high-grade dysplasia at the margin. Perineural invasion present. B: metastatic carcinoma in 2 of 6 level IIa nodes (largest 18 mm, extranodal extension 3 mm) and 1 of 5 level III nodes (6 mm, extranodal extension 1 mm); levels Ib, IIb and IV negative.',
+      ancillaryStudies: '',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4466-SP-1_oral_001',
+        specimenId: 'S26-4466-SP-1',
+        templateId: 'oral_cavity_resection',
+        templateName: 'PathScribe — Oral Cavity Resection',
+        status: 'draft',
+        answers: {
+          oc_procedure: 'oc_proc_partialGlossectomy', oc_laterality: 'oc_lat_right',
+          psmap_oc_subsites: ['psmap_oc_subsites_tongueR', 'psmap_oc_subsites_floorR'],
+          oc_tumour_size: '26', oc_histologic_type: 'oc_ht_scc', oc_grade: 'oc_gr_g2', psmap_oc_doiMm: '7', oc_pni: 'oc_pni_present', oc_lvi: 'oc_lvi_absent',
+          psmap_oc_peripheralMarginMm: '3', psmap_oc_deepMarginMm: '0.6', psmap_oc_mucosalDysplasia: 'psmap_oc_mucosalDysplasia_highGrade',
+        },
+        createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+      },
+      {
+        instanceId: 'S26-4466-SP-2_neck_001',
+        specimenId: 'S26-4466-SP-2',
+        templateId: 'neck_dissection',
+        templateName: 'PathScribe — Neck Dissection',
+        status: 'draft',
+        answers: {
+          nd_laterality: 'nd_lat_right', nd_type: 'nd_type_selective',
+          psmap_nd_levels__R_Ia__positive: '0', psmap_nd_levels__R_Ia__examined: '2',
+          psmap_nd_levels__R_Ib__positive: '0', psmap_nd_levels__R_Ib__examined: '4',
+          psmap_nd_levels__R_IIa__positive: '2', psmap_nd_levels__R_IIa__examined: '6', psmap_nd_levels__R_IIa__largest: '18', psmap_nd_levels__R_IIa__ene: 'psmap_nd_ene_major',
+          psmap_nd_levels__R_IIb__positive: '0', psmap_nd_levels__R_IIb__examined: '3',
+          psmap_nd_levels__R_III__positive: '1', psmap_nd_levels__R_III__examined: '5', psmap_nd_levels__R_III__largest: '6', psmap_nd_levels__R_III__ene: 'psmap_nd_ene_minor',
+          psmap_nd_levels__R_IV__positive: '0', psmap_nd_levels__R_IV__examined: '7',
+          nd_total_positive: '3', nd_total_examined: '27',
+        },
+        createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+    caseFlags: [], specimenFlags: [],
+    participants: [{ staffId: 'PATH-001', staffName: 'Pete Nimmo', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(0), status: 'active' }],
+    reportingMode: 'assist', coding: {},
+  } as any,
+
+  // ── Batch 464: colorectal maps (rectal resection; malignant polyp) ──
+  {
+    id: 'S26-4464',
+    accession: { accessionNumber: '4464', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4464' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    patient: { id: 'PAT-464', mrn: '100464', firstName: 'Graham', lastName: 'Whitlock', dateOfBirth: isoYearsAgo(63, 5, 2), sex: 'M', phone: '555-464-0101', email: 'gwhitlock@example.org', address: '41 Mesquite Ln, Tucson, AZ 85745' },
+    specimens: [
+      { id: 'S26-4464-SP-1', label: 'A', description: 'Rectum, low anterior resection', receivedAt: isoDaysAgo(1), collectedAt: isoDaysAgo(1), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Priya Raman', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: 'Low rectal adenocarcinoma, MRI T3 N1, after short-course radiotherapy. Low anterior resection with total mesorectal excision.', receivedDate: isoDaysAgo(1), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'Received fresh, a low anterior resection, 18 cm long, with intact mesorectum. An ulcerated tumour 3.8 cm across occupies the anterior and left lateral wall, below the peritoneal reflection, 25 mm from the distal margin. The circumferential margin is inked; the tumour comes closest anteriorly.',
+      microscopicDescription: 'Moderately differentiated adenocarcinoma invading through the muscularis propria into the mesorectal fat. Closest approach to the circumferential margin 1.5 mm, anteriorly. Distal margin clear (25 mm). Mesorectal plane of excision.',
+      ancillaryStudies: '',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4464-SP-1_rectal_001',
+        specimenId: 'S26-4464-SP-1',
+        templateId: 'colorectal_resection_b',
+        templateName: 'Generic Template — Colorectal Resection B',
+        status: 'draft',
+        answers: {
+          psmap_rec_quadrants: ['psmap_rec_quadrants_anterior', 'psmap_rec_quadrants_left'],
+          psmap_rec_crmMm: '1.5', psmap_rec_crmQuadrant: 'psmap_rec_crmQuadrant_anterior',
+          psmap_rec_tmePlane: 'psmap_rec_tmePlane_mesorectal', psmap_rec_reflection: 'psmap_rec_reflection_below',
+          psmap_rec_distalMarginMm: '25',
+        },
+        createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
+    caseFlags: [], specimenFlags: [],
+    participants: [{ staffId: 'PATH-001', staffName: 'Pete Nimmo', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(1), status: 'active' }],
+    reportingMode: 'assist', coding: {},
+  } as any,
+
+  {
+    id: 'S26-4465',
+    accession: { accessionNumber: '4465', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4465' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    patient: { id: 'PAT-465', mrn: '100465', firstName: 'Lorna', lastName: 'Achterberg', dateOfBirth: isoYearsAgo(58, 8, 19), sex: 'F', phone: '555-465-0101', email: 'lachterberg@example.org', address: '7 Palo Verde Ct, Tucson, AZ 85704' },
+    specimens: [
+      { id: 'S26-4465-SP-1', label: 'A', description: 'Sigmoid colon polyp, 32 cm, snare polypectomy', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Marcus Feld', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: 'Screening colonoscopy. Pedunculated sigmoid polyp, 2.2 cm, Paris 0-Ip, removed whole by snare.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'A pedunculated polyp, head 2.0 cm, stalk 0.8 cm long. The stalk margin is inked. Bisected through the stalk and submitted entirely.',
+      microscopicDescription: 'Tubulovillous adenoma with a focus of well-differentiated adenocarcinoma invading into the neck of the stalk (Haggitt level 2). Carcinoma 0.8 mm from the cauterised stalk margin. No lymphovascular invasion seen.',
+      ancillaryStudies: '',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4465-SP-1_polyp_001',
+        specimenId: 'S26-4465-SP-1',
+        templateId: 'colorectal_local_excision',
+        templateName: 'Generic Template — Colorectal Local Excision',
+        status: 'draft',
+        answers: {
+          'psmap_crp_paris': 'psmap_crp_paris_0-Ip', psmap_crp_invasive: 'psmap_crp_invasive_yes', psmap_crp_depth: 'psmap_crp_depth_haggitt2',
+          psmap_crp_deepMarginMm: '0.8',
+          // Batch 466d: the invasive carcinoma's margins, calculated from the map (deep 0.8 mm: involved by the polyp rule).
+          psmap_crp_derived_marginStatus: 'psmap_crp_derived_marginStatus_involved', psmap_crp_derived_marginsInvolved: ['psmap_crp_derived_marginsInvolved_deep'],
+        },
+        createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+    caseFlags: [], specimenFlags: [],
+    participants: [{ staffId: 'PATH-001', staffName: 'Pete Nimmo', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(0), status: 'active' }],
+    reportingMode: 'assist', coding: {},
+  } as any,
+
+  // ── Batch 463: Mohs micrographic surgery (PathScribe Mohs synoptic, stage maps) ──
+  {
+    id: 'S26-4463',
+    accession: { accessionNumber: '4463', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4463' },
+    originHospitalId: 'HOSP-001', originEnterpriseId: 'ENT-DEFAULT',
+    patient: { id: 'PAT-463', mrn: '100463', firstName: 'Walter', lastName: 'Brennan', dateOfBirth: isoYearsAgo(74, 2, 11), sex: 'M', phone: '555-463-0101', email: 'wbrennan@example.org', address: '9 Saguaro Way, Tucson, AZ 85718' },
+    specimens: [
+      { id: 'S26-4463-SP-1', label: 'A', description: 'Skin, left nasal ala, Mohs stage 1', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+      { id: 'S26-4463-SP-2', label: 'B', description: 'Skin, left nasal ala, Mohs stage 2', receivedAt: isoDaysAgo(0), collectedAt: isoDaysAgo(0), specimenFlags: [] },
+    ],
+    order: { priority: 'Routine', requestingProvider: 'Dr. Elena Ruiz', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: 'Biopsy-proven nodular basal cell carcinoma, left nasal ala, 1.2 cm. Mohs micrographic surgery.', receivedDate: isoDaysAgo(0), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
+    diagnostic: {
+      grossDescription: 'Stage 1: received fresh, a disc of skin 1.6 × 1.2 × 0.3 cm, divided and inked as three blocks (A: 12–3 o\'clock, B: 3–9 o\'clock, C: deep). Stage 2: a crescent of skin 1.0 × 0.4 × 0.3 cm from the 12–1 o\'clock margin, one block.',
+      microscopicDescription: 'Stage 1: basal cell carcinoma, nodular, at the peripheral margin at 12 and 1 o\'clock (block A); infiltrative basal cell carcinoma with perineural invasion at the deep margin (block C). Stage 2: no residual tumour; margins clear.',
+      ancillaryStudies: '',
+    },
+    synopticReports: [
+      {
+        instanceId: 'S26-4463-SP-1_mohs_001',
+        specimenId: 'S26-4463-SP-1',
+        additionalSpecimenIds: ['S26-4463-SP-2'],
+        templateId: 'mohs_micrographic_surgery',
+        templateName: 'PathScribe — Mohs Micrographic Surgery',
+        status: 'draft',
+        answers: {
+          mohs_site: 'Left nasal ala', mohs_tumour_type: 'mohs_tt_bcc_nodular', mohs_stain: 'mohs_stain_he',
+          mohs_preop_length: '1.2', mohs_preop_width: '0.8', mohs_preop_depth: '0.2',
+          'psmap_mohs_stages__stages': '2',
+          'psmap_mohs_stages__s1__time': '09:15', 'psmap_mohs_stages__s1__blocks': '3', 'psmap_mohs_stages__s1__positive': ['c12', 'c1', 'deep'],
+          'psmap_mohs_stages__s1__c12__block': 'A', 'psmap_mohs_stages__s1__c12__histology': 'Basal cell carcinoma, nodular',
+          'psmap_mohs_stages__s1__c1__block': 'A', 'psmap_mohs_stages__s1__c1__histology': 'Basal cell carcinoma, nodular',
+          'psmap_mohs_stages__s1__deep__block': 'C', 'psmap_mohs_stages__s1__deep__histology': 'Basal cell carcinoma, infiltrative', 'psmap_mohs_stages__s1__deep__pni': 'yes',
+          'psmap_mohs_stages__s2__time': '10:30', 'psmap_mohs_stages__s2__blocks': '1',
+          mohs_defect_length: '1.8', mohs_defect_width: '1.5', mohs_defect_depth: '0.4', mohs_closure: 'mohs_cl_flap_forehead',
+        },
+        createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+      },
+    ],
+    status: 'in-progress' as CaseStatus,
+    createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0),
+    caseFlags: [], specimenFlags: [],
+    participants: [{ staffId: 'PATH-001', staffName: 'Pete Nimmo', source: 'system', participationTypeIds: ['attending'], addedBy: 'system', addedAt: isoDaysAgo(0), status: 'active' }],
+    reportingMode: 'assist', coding: {},
+  } as any,
+
   {
     id: 'S26-4417-BX-001',
     accession: { accessionNumber: '4417', accessionPrefix: 'S', accessionYear: 2026, fullAccession: 'S26-4417-BX-001' },
@@ -1143,6 +1386,8 @@ const MOCK_CASES: Case[] = [
     order: {
       priority: 'Routine',
       requestingProvider: 'Mr. James Whitfield',
+      // Batch 436 (PS-101): the ordering facility, so the organisation filters find it.
+      facilityId: 'c-mft-01', facilityName: 'Manchester Royal Infirmary',
       clinicalIndication: 'Rectal adenocarcinoma, 7 cm from anal verge. MRI staging: mrT3N1. Completed neoadjuvant long-course chemoradiotherapy. Good radiological response. Proceeding to laparoscopic anterior resection.',
       receivedDate: isoDaysAgo(3),
       assignedTo: 'PATH-UK-001',
@@ -1349,6 +1594,8 @@ const MOCK_CASES: Case[] = [
     order: {
       priority: 'Routine',
       requestingProvider: 'Mr. James Whitfield',
+      // Batch 436 (PS-101): the ordering facility, so the organisation filters find it.
+      facilityId: 'c-mft-01', facilityName: 'Manchester Royal Infirmary',
       clinicalIndication: 'Sessile rectal polyp, 4 cm, 6 cm from anal verge. Colonoscopy biopsy: tubulovillous adenoma with high-grade dysplasia. Proceeding to TEMS excision.',
       receivedDate: isoDaysAgo(4),
       assignedTo: 'PATH-UK-001',
@@ -1378,9 +1625,9 @@ const MOCK_CASES: Case[] = [
           perineural_invasion: 'perineural_invasion_opt_1',
           tumour_budding_number_of_buds: '3',
           tumour_budding_grade: 'tumour_budding_grade_opt_1',
-          peripheral_margin_involvement: 'peripheral_margin_involvement_opt_2',
-          deep_margin_involvement: 'deep_margin_involvement_opt_2',
-          distance_to_deep_margin_mm: '1.2',
+          // Batch 466d: the margins come from the map (the report gives the deep clearance only; the peripheral
+          // distance isn't stated, so the carcinoma's margins stay uncalculated and sign-out asks about it).
+          psmap_crp_paris: 'psmap_crp_paris_0-Is', psmap_crp_invasive: 'psmap_crp_invasive_yes', psmap_crp_depth: 'psmap_crp_depth_sm1', psmap_crp_deepMarginMm: '1.2',
           resection_status: 'resection_status_opt_1',
           t_stage: 'Category A: Level 1',
           n_stage: 'Category B: Not assessed',
@@ -1394,7 +1641,6 @@ const MOCK_CASES: Case[] = [
           local_invasion:      { value: 'local_invasion_opt_2', confidence: 88, source: 'Microscopic description', verification: 'unverified' },
           kikuchi_level:       { value: 'kikuchi_level_opt_1',  confidence: 85, source: 'Microscopic description', verification: 'unverified' },
           tumour_budding_grade: { value: 'tumour_budding_grade_opt_1', confidence: 82, source: 'Microscopic description', verification: 'unverified' },
-          deep_margin_involvement: { value: 'deep_margin_involvement_opt_2', confidence: 90, source: 'Microscopic description', verification: 'unverified' },
           resection_status:    { value: 'resection_status_opt_1', confidence: 92, source: 'Microscopic description', verification: 'unverified' },
           t_stage:             { value: 'Category A: Level 1', confidence: 90, source: 'Microscopic description', verification: 'unverified' },
           snomed_t_code:       { value: '',                  confidence: 90, source: 'Reference code lookup', verification: 'unverified' },
@@ -1450,7 +1696,15 @@ const MOCK_CASES: Case[] = [
         templateId: 'prostate_radical_prostatectomy',
         templateName: 'Generic Template — Prostate Radical Prostatectomy',
         status: 'draft',
-        answers: {},
+        // Batch 461: the Anatomical map (PathScribe) questions, from the microscopic description —
+        // Grade Group 3 in the right mid, base and apex; EPE and a positive margin right posterolateral.
+        answers: {
+          psmap_tumour_sectors: ['psmap_sector_r_base_pzpl', 'psmap_sector_r_base_pzpm', 'psmap_sector_r_mid_pza', 'psmap_sector_r_mid_pzpl', 'psmap_sector_r_mid_pzpm', 'psmap_sector_r_apex_pzpl'],
+          psmap_grade_group: 'psmap_gg_3',
+          psmap_epe_sectors: ['psmap_sector_r_mid_pzpl'],
+          psmap_margin_sectors: ['psmap_sector_r_mid_pzpl'],
+          psmap_sv_invasion: 'psmap_sv_none',
+        },
         aiSuggestions: {
           histological_tumour_type:         { value: ['histological_tumour_type_opt_1'], confidence: 99, source: 'Microscopic description', verification: 'unverified' },
           primary_gleason_grade:            { value: 'primary_gleason_grade_opt_3',      confidence: 98, source: 'Microscopic description', verification: 'unverified' },
@@ -1503,6 +1757,8 @@ const MOCK_CASES: Case[] = [
     order: {
       priority: 'Routine',
       requestingProvider: 'Mr. James Whitfield',
+      // Batch 436 (PS-101): the ordering facility, so the organisation filters find it.
+      facilityId: 'c-mft-01', facilityName: 'Manchester Royal Infirmary',
       clinicalIndication: 'Caecal adenocarcinoma, colonoscopy biopsy confirmed. CT staging: T3N0M0. Proceeding to laparoscopic right hemicolectomy.',
       receivedDate: isoDaysAgo(8),
       assignedTo: 'PATH-UK-001',
@@ -2636,7 +2892,9 @@ const MOCK_CASES: Case[] = [
       address: '14 Ocotillo Ln, Tucson, AZ 85718',
     },
     specimens: [
-      { id: 'S26-4490-SP-1', label: 'A', description: 'Right total mastectomy', receivedAt: isoDaysAgo(8), collectedAt: isoDaysAgo(8), specimenFlags: [] },
+      { id: 'S26-4490-SP-1', label: 'A', description: 'Right total mastectomy', receivedAt: isoDaysAgo(8), collectedAt: isoDaysAgo(8), specimenFlags: [],
+        // Batch 457: ICD-O-3 morphology, so Registry Exceptions → Resend can rebuild this case's submission.
+        coding: { icdO: [{ code: '8500/3', description: 'Infiltrating duct carcinoma, NOS' }] } },
       { id: 'S26-4490-SP-2', label: 'B', description: 'Right axillary sentinel lymph nodes — two', receivedAt: isoDaysAgo(8), collectedAt: isoDaysAgo(8), specimenFlags: [] },
     ],
     order: { priority: 'Routine', requestingProvider: 'Dr. Nina Foster', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: '3.4 cm right breast mass, BI-RADS 5. Core biopsy confirmed invasive ductal carcinoma, HER2 amplified on prior testing. Proceeding to mastectomy with sentinel node biopsy.', receivedDate: isoDaysAgo(8), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
@@ -2644,6 +2902,9 @@ const MOCK_CASES: Case[] = [
       grossDescription: 'Received fresh, labeled "right total mastectomy," is a breast specimen measuring 21.0 x 17.0 x 5.5 cm with attached skin ellipse and nipple. Sectioning reveals a firm, tan-white mass measuring 3.4 x 2.9 x 2.4 cm at the 2 o\'clock position, 1.1 cm from the deep margin. Representative sections submitted.\n\nReceived separately, labeled "right axillary sentinel lymph nodes," are two lymph nodes, entirely submitted.',
       microscopicDescription: 'Sections of the mass show invasive ductal carcinoma, Grade 3, with associated high-grade DCIS. Margins are free of invasive and in situ carcinoma. Both sentinel lymph nodes are negative for metastatic carcinoma.',
       ancillaryStudies: 'ER, PR, and HER2 immunohistochemistry performed — see synoptic Biomarkers section.',
+      // Batch 457: what sign-out stores, so the cancer registry submission can be rebuilt (Resend).
+      primaryDiagnosis: 'Right breast, total mastectomy: invasive ductal carcinoma, grade 3, with high-grade ductal carcinoma in situ; sentinel lymph nodes negative (0/2).',
+      issuedDate: isoDaysAgo(5),
     },
     synopticReports: [
       {
@@ -2815,13 +3076,21 @@ const MOCK_CASES: Case[] = [
       address: '318 Camino Real, Tucson, AZ 85718',
     },
     specimens: [
-      { id: 'S26-4493-SP-1', label: 'A', description: 'Right lung, upper lobe wedge resection', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(2), specimenFlags: [] },
+      { id: 'S26-4493-SP-1', label: 'A', description: 'Right lung, upper lobe wedge resection', receivedAt: isoDaysAgo(2), collectedAt: isoDaysAgo(2), specimenFlags: [],
+        // Batch 467: block A1, with an in-house EGFR mutation PCR add-on (its order waits in the Molecular Order Queue).
+        blocks: [{ id: 'blk-4493-a1', label: '1', status: 'Embedded', stains: [
+          { id: 'stn-4493-a1-1', stainName: 'H&E', status: 'Ready for Review' },
+          { id: 'addon-4493-egfr', stainName: 'EGFR mutation PCR', status: 'Pending Cut', userAdded: true, printStatus: 'Pending',
+            orderedByPathologistId: 'PATH-001', orderedByPathologistName: 'Pete Nimmo', orderedAt: isoHoursAgo(3), addOnPriority: 'Routine Sign-Out', slideMediaType: 'Plus Glass',
+            cuttingInstructions: 'Five 10 µm curls for DNA extraction.', routedQueueLabel: 'Molecular In-House Queue', performingLabFacilityId: 'c-ent-dvmc' },
+        ] }] as any,
+      },
     ],
     order: { priority: 'Routine', requestingProvider: 'Dr. Samuel Ortega', facilityId: 'c1', facilityName: 'Metro General Hospital', clinicalIndication: '1.8 cm right upper lobe nodule, PET-avid. Proceeding to wedge resection.', receivedDate: isoDaysAgo(2), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' },
     diagnostic: {
       grossDescription: 'Received fresh, labeled "right lung, upper lobe wedge resection," is a wedge of lung parenchyma measuring 5.5 x 4.0 x 1.8 cm with a stapled margin. Sectioning reveals a firm, tan-white mass measuring 1.8 x 1.6 x 1.3 cm, 1.4 cm from the staple line. Representative sections submitted.',
       microscopicDescription: 'Sections show invasive adenocarcinoma, acinar-predominant pattern, without visceral pleural invasion. Margins are free of tumor.',
-      ancillaryStudies: 'EGFR, ALK, ROS1, and PD-L1 testing performed — see synoptic Biomarkers section.',
+      ancillaryStudies: 'ALK, ROS1 and PD-L1 testing performed — see synoptic Biomarkers section. EGFR mutation PCR ordered in-house (pending).',
     },
     synopticReports: [
       {
@@ -2849,7 +3118,7 @@ const MOCK_CASES: Case[] = [
           stage_category_a: 'stage_category_a_opt_2', stage_category_b: 'stage_category_b_opt_1', stage_category_c: 'stage_category_c_opt_1',
           additional_findings: ['additional_findings_opt_1'], special_studies_note: 'Molecular profiling performed per institutional reflex-testing protocol; see Biomarkers section.',
           comments: 'Findings consistent with primary pulmonary adenocarcinoma, stage pT1bNx.',
-          pdl1_tps: 'pdl1_tps_lt1', egfr_status: 'egfr_not_detected', egfr_variant: 'Not applicable', alk_status: 'alk_non_rearranged', ros1_status: 'ros1_not_tested',
+          pdl1_tps: 'pdl1_tps_lt1', alk_status: 'alk_non_rearranged', ros1_status: 'ros1_not_tested',
         },
         createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0),
       },
@@ -3404,7 +3673,7 @@ const MOCK_CASES: Case[] = [
           reviewRecordId: 'cyto-review-seed-uk9101-primary',
           primaryInterpretationId: 'bscc-negative',
           adequacySelections: [{ categoryId: 'bscc-adeq-satisfactory' }],
-          selectedBy: 'PATH-UK-001', selectedByName: 'Dr. Priya Shah', selectedAt: isoDaysAgo(1),
+          selectedBy: 'PATH-FW-001', selectedByName: 'Dr. Eleanor Hughes', selectedAt: isoDaysAgo(1),
         },
       },
     } as any],
@@ -3416,7 +3685,7 @@ const MOCK_CASES: Case[] = [
     order: { priority: 'Routine', requestingProvider: 'Dr. Priya Shah', facilityId: 'c-fenwick-womens', facilityName: "Fenwick Women's Hospital", clinicalIndication: 'Routine NHS Cervical Screening Programme recall.', receivedDate: isoDaysAgo(2), assignedTo: null } as any,
     diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
     synopticReports: [],
-    status: 'complete' as CaseStatus,
+    status: 'finalized' as CaseStatus, // Batch 436 (PS-101): was 'complete', which isn't a case status
     createdAt: isoDaysAgo(2), updatedAt: isoDaysAgo(1),
     caseFlags: [{
       id: 'csms-elig-seed-9101', flagDefinitionId: 'f36', appliedAt: isoDaysAgo(1), appliedBy: 'system',
@@ -3779,7 +4048,11 @@ export const mockPatientHistory = mockPatientHistoryMap['S26-4401'] ?? DEFAULT_H
 // ─── Persisted case store ─────────────────────────────────────────────────────
 // Version bump here forces a re-seed whenever mock data changes structurally.
 // Increment MOCK_VERSION whenever MOCK_CASES fields are added/changed.
-const MOCK_VERSION = '47'; // bumped (Batch 403): demo add-on orders on S26-4401-BX-001 (services/cases/addOnOrderDemo.ts).
+const MOCK_VERSION = '61'; // bumped (Batch 469): A26-4663 gains a still-pending toxicology order; new HTA-jurisdiction (GB_EW) autopsy A26-4664 with a retention tier on file to demo organ/tissue retention disposal.
+// Previous: '60'; // bumped (Batch 468): A26-4660's and A26-4661's consent narrowed (no retention / brain excluded) to demo consent-scope enforcement; new forensic autopsy A26-4663 with a chain-of-custody entry on record.
+// Previous: '59'; // bumped (Batch 467): S26-4493 gains block A1 with an in-house EGFR PCR add-on; its EGFR answer awaits the result. 58 (Batch 466d): Colorectal Local Excision's Margins section rebuilt (S26-4465, MFT26-8803). 57 (Batch 466): renal resection case S26-4467. 56 (Batch 465): head and neck composite case S26-4466 (oral cavity + neck dissection). 55 (Batch 464): colorectal demo cases S26-4464 (rectal resection) and S26-4465 (malignant polyp). 54 (Batch 463): Mohs demo case S26-4463. 53 (Batch 462): breast map answers on S26-4401 and S26-4405. 52 (Batch 461): anatomical map answers on S26-4404 (Core results grid) and MFT26-8804 (map sectors). 51 (Batch 457): ICD-O codes on S26-4405 and S26-4490 (registry Resend). 50 (Batch 456): S26-9101's diagnosis names Fenwick's cytopathologist, not PATH-UK-001; autopsy cases A26-4660..4662; demo decants and a matrix block. 49 (Batch 455): the demo baseline cases (demoBaselineCases.ts).
+// Previous: '48'; // bumped (Batch 436): MFT26-8801/8803/8805 get their ordering facility; S26-9101-CYT-001 status finalized.
+// Previous: '47'; // bumped (Batch 403): demo add-on orders on S26-4401-BX-001 (services/cases/addOnOrderDemo.ts).
 // Previous: '46'; // bumped (Batch 395): S26-4405, S26-4412 and S26-4492 selected for Surgical Post-Sign-Out QA peer review.
 // Previous: '45'; // bumped: real, new Northern Ireland demo case (S26-9401) added at the new Lagan Valley Women's Health Centre facility (c-ni-lagan-valley) — real reflex-triggered pathway.
 const VERSION_KEY  = 'pathscribe_mock_cases_version';
@@ -3794,8 +4067,22 @@ if (storedVersion !== MOCK_VERSION) {
 const stored = localStorage.getItem('pathscribe_mock_' + STORAGE_KEY);
 let CASES: Case[] = stored ? JSON.parse(stored) : null;
 if (!CASES) {
-  CASES = JSON.parse(JSON.stringify(withAddOnOrderDemo(MOCK_CASES)));
+  // Batch 455: plus the demo baseline (services/cases/demoBaselineCases.ts).
+  // Batch 456: the demo decants and matrix block (material/materialDemoSeed.ts).
+  CASES = JSON.parse(JSON.stringify(withMaterialDemo(withAddOnOrderDemo([...MOCK_CASES, ...DEMO_BASELINE_CASES]))));
   storageSet(STORAGE_KEY, CASES);
+}
+
+// Batch 458 (PS-71): another tab of this browser saved cases. Take its copy,
+// so this tab's version checks (and its next save) see that save instead of
+// writing its own older copy over it. The demo's stand-in for the API server
+// being the one copy (in production every read comes from the server).
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', e => {
+    if (e.key === 'pathscribe_mock_' + STORAGE_KEY && e.newValue) {
+      try { CASES = JSON.parse(e.newValue); } catch { /* keep this tab's copy */ }
+    }
+  });
 }
 
 // ─── AI Suggestion Generator ─────────────────────────────────────────────────
@@ -4682,7 +4969,8 @@ async function getCaseAnyMode(caseId: string): Promise<Case | undefined> {
 // callers (acceptPoolCase, and the delegation-acceptance path below) track a
 // version to pass today — this is real, available plumbing for whichever
 // future caller does, not a behavior change for the callers that exist now.
-async function updateCaseAnyMode(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
+// Exported (Batch 450) so the version forwarding is tested directly.
+export async function updateCaseAnyMode(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
   if (isOrchCaseId(caseId)) {
     await mockOrchestratorCaseService.updateCase(caseId, updates, expectedVersion);
     return;
@@ -4699,6 +4987,12 @@ async function updateCaseAnyMode(caseId: string, updates: Partial<Case>, expecte
     recordCaseChange(caseId, before, CASES[idx], Object.keys(updates));
   }
 }
+
+/** PS-71 (Batch 458): versioned reads/writes for acceptPoolCase and delegateCase. */
+const caseAnyModeWriteDeps: CaseWriteDeps = {
+  getCase: getCaseAnyMode,
+  updateCase: (caseId, updates, expectedVersion) => updateCaseAnyMode(caseId, updates, expectedVersion),
+};
 
 /** Accept a pool case — assigns to pathologist, removes from pool.
  *  Previously only ever touched the CoPilot CASES array directly, so
@@ -4748,9 +5042,6 @@ export async function acceptPoolCase(caseId: string, userId: string, userName?: 
     const participationTypeId = staffRes.ok && rolesRes.ok && participationTypesRes.ok
       ? resolveClaimParticipationType(staffRes.data.roles, rolesRes.data, participationTypesRes.data)
       : 'primary';
-    const syncUpdates = participationTypeId === 'primary'
-      ? syncPrimaryAssignee(caseData, userId, userId, userName)
-      : syncClaimAssignee(caseData, userId, userName, participationTypeId);
     // Real, critical fix, per direct report: this status transition was
     // previously gated on `reportingMode === 'orchestrator'` only,
     // leaving every Assist/CoPilot-mode pool case's status genuinely
@@ -4765,8 +5056,28 @@ export async function acceptPoolCase(caseId: string, userId: string, userName?: 
     // mockOrchestratorCaseService.ts's own comment on its unused
     // CaseStatus values) — using it here would trade one broken display
     // for another, not fix anything.
-    const updates: Partial<Case> = { ...syncUpdates, status: 'in-progress' as CaseStatus };
-    await updateCaseAnyMode(caseId, updates);
+    //
+    // PS-71 (Batch 458): a versioned write built from the newest case (was:
+    // updateCaseAnyMode with no version, built from the copy read above).
+    // If, in the newest case, someone else already holds it (assigned to
+    // another user), nothing is written and the claim is refused, so two
+    // people accepting the same pool case at once can't both win.
+    let claimedByOther = false;
+    const accepted = await updateCaseWithRetry(caseId, current => {
+      const holder = current.order?.assignedTo;
+      claimedByOther = !!holder && holder !== userId;
+      if (claimedByOther) return null;
+      const syncUpdates = participationTypeId === 'primary'
+        ? syncPrimaryAssignee(current, userId, userId, userName)
+        : syncClaimAssignee(current, userId, userName, participationTypeId);
+      return { ...syncUpdates, status: 'in-progress' as CaseStatus };
+    }, caseAnyModeWriteDeps);
+    if (accepted.ok === false && accepted.reason === 'noChange' && claimedByOther) {
+      throw new Error('Case has already been accepted by another pathologist');
+    }
+    if (accepted.ok === false && accepted.reason === 'conflict') {
+      throw new Error('Case could not be accepted: it was being changed by someone else. Try again.');
+    }
   }
 
   markPendingDelegationAccepted(caseId);
@@ -4847,32 +5158,44 @@ export async function delegateCase(payload: DelegatePayload): Promise<Delegation
     const configRes = await mockDelegationTypeService.getById(payload.delegationType);
     const transfersOwnership = configRes.ok && !!configRes.data?.transfersOwnership;
 
-    const updates: Partial<Case> = {};
-
+    // Batch 441: a cytotech who was primary is demoted to cytotechnologist, not co-signer.
+    let cytotechs = new Set<string>();
     if (transfersOwnership && payload.targetUserId) {
-      Object.assign(updates, syncPrimaryAssignee(caseData, payload.targetUserId, payload.requestorId, payload.targetUserName));
-    } else if (payload.delegationType === 'POOL') {
-      updates.order = { ...caseData.order, assignedTo: undefined };
-      if (payload.targetPoolId)   (updates as any).poolId = payload.targetPoolId;
-      if (payload.targetPoolName) (updates as any).poolName = payload.targetPoolName;
-      if (caseData.reportingMode === 'orchestrator') {
-        updates.status = 'pool' as CaseStatus;
-      }
-    } else if (payload.targetUserId) {
-      // Non-ownership delegation (consult, review, second opinion, tumor
-      // board, teaching, etc.) — adds the target as a participant with
-      // the mapped real role, never touches order.assignedTo or CaseStatus.
-      const roleId = mapDelegationTypeToParticipationRole(payload.delegationType);
-      updates.participants = addNonPrimaryParticipant(
-        caseData.participants ?? [], payload.targetUserId, payload.targetUserName, roleId, payload.requestorId,
-      );
+      const [staffRes, rolesRes] = await Promise.all([mockUserService.getAll(), mockRoleService.getAll()]);
+      const roles = rolesRes.ok ? rolesRes.data : [];
+      cytotechs = new Set((staffRes.ok ? staffRes.data : []).filter(u => isCytotechOnly(u.roles, roles)).map(u => u.id));
     }
 
-    // CRITICAL: no CaseStatus mutation anywhere above except the POOL
-    // branch on an Orchestrator-mode case.
-    if (Object.keys(updates).length > 0) {
-      await updateCaseAnyMode(payload.caseId, updates);
-    }
+    // PS-71 (Batch 458): the update is built from the newest case and saved
+    // with its version (updateCaseWithRetryOrThrow; was: updateCaseAnyMode
+    // with no version, built from the copy read above, so e.g. a participant
+    // added meanwhile was dropped). After repeated conflicts it throws a
+    // ConcurrencyConflictError and no delegation is recorded.
+    const delegationUpdates = (current: Case): Partial<Case> | null => {
+      const updates: Partial<Case> = {};
+      if (transfersOwnership && payload.targetUserId) {
+        Object.assign(updates, syncPrimaryAssignee(current, payload.targetUserId, payload.requestorId, payload.targetUserName, id => cytotechs.has(id)));
+      } else if (payload.delegationType === 'POOL') {
+        updates.order = { ...current.order, assignedTo: undefined };
+        if (payload.targetPoolId)   (updates as any).poolId = payload.targetPoolId;
+        if (payload.targetPoolName) (updates as any).poolName = payload.targetPoolName;
+        if (current.reportingMode === 'orchestrator') {
+          updates.status = 'pool' as CaseStatus;
+        }
+      } else if (payload.targetUserId) {
+        // Non-ownership delegation (consult, review, second opinion, tumor
+        // board, teaching, etc.) — adds the target as a participant with
+        // the mapped real role, never touches order.assignedTo or CaseStatus.
+        const roleId = mapDelegationTypeToParticipationRole(payload.delegationType);
+        updates.participants = addNonPrimaryParticipant(
+          current.participants ?? [], payload.targetUserId, payload.targetUserName, roleId, payload.requestorId,
+        );
+      }
+      // CRITICAL: no CaseStatus mutation anywhere above except the POOL
+      // branch on an Orchestrator-mode case.
+      return Object.keys(updates).length > 0 ? updates : null;
+    };
+    await updateCaseWithRetryOrThrow(payload.caseId, delegationUpdates, caseAnyModeWriteDeps);
   }
 
   appendDelegation(record);
@@ -5666,6 +5989,11 @@ export const mockCaseService: ICaseService = {
     return CASES.filter(c => {
       if (c.order?.assignedTo === userId) return true;
       if ((c as any).status === 'pool') return true;
+      // Batch 455: a resident's released case, waiting for this attending's
+      // countersign. It stays assigned to the resident, so without this the
+      // attending's Countersign tile never saw it.
+      if ((c as any).status === 'pending-countersign'
+        && ((c as any).participants ?? []).some((p: any) => p.status === 'active' && p.staffId === userId && (p.participationTypeIds ?? []).includes('attending'))) return true;
       return false;
     });
   },

@@ -38,6 +38,14 @@ const DELEGATION_SEED: DelegationRecord[] = [
     timestamp: '2026-07-15T09:00:00.000Z', status: 'pending' }, // real, still-ongoing wait
   { id: 'deleg-seed-5', caseId: 'S26-4408', fromUserId: 'PATH-001', toUserId: '1',
     delegationType: 'CASUAL_REVIEW', timestamp: '2026-07-28T09:00:00.000Z', status: 'pending' },
+  // Batch 455 (demo baseline): pending second opinions between two people who
+  // can both sign in, so either side of the workflow can be shown.
+  { id: 'deleg-seed-6', caseId: 'S26-4603', fromUserId: 'PATH-SJ-001', toUserId: 'PATH-001',
+    delegationType: 'SECOND_OPINION', note: 'One focus looks like capsular invasion to me. Would you agree?',
+    timestamp: new Date(Date.now() - 86_400_000).toISOString(), status: 'pending' },
+  { id: 'deleg-seed-7', caseId: 'S26-4604', fromUserId: 'PATH-001', toUserId: 'PATH-SJ-001',
+    delegationType: 'SECOND_OPINION', note: 'Small crowded glands in one chip. Worth an ATYP call?',
+    timestamp: new Date(Date.now() - 3_600_000 * 5).toISOString(), status: 'pending' },
 ];
 
 export function loadDelegations(): DelegationRecord[] {

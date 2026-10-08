@@ -11,6 +11,8 @@
 // This file is intentionally thin — layout + modal wiring only.
 // ─────────────────────────────────────────────────────────────
 
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import { CaseUnavailable } from '@/components/CaseUnavailable/CaseUnavailable';
 import { WorkupPartsModal } from './modals/WorkupPartsModal';
 import { setWorkupParts, type WorkupPartsMode } from '@/services/reports/workupParts';
@@ -22,9 +24,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useVoice } from '@/contexts/VoiceProvider';
 import { useFootPedal } from '@/hooks/useFootPedal';
 import { useAudioSegmentRecorder } from '@/hooks/useAudioSegmentRecorder';
-import { useParams, useNavigate, useLocation } from 'react-router';
-import { useTranslation } from 'react-i18next';
-import { formatDate } from '@/utils/formatDate';
+import { useNavigate, useLocation } from 'react-router';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useTranslation, Trans } from 'react-i18next';
+import type { DirtySectionId } from '@/services';
+import { loadFollowUpMarkOffer, markFollowUpExpectedAfterSignOutLive, followUpMarkFailureKey, type FollowUpMarkOffer } from '@/services';
+import { formatDate, formatDateTime } from '@/utils/formatDate';
 import AddSynopticModal       from './components/AddSynopticModal';
 import SpecimenEditModal      from './modals/SpecimenEditModal';
 import CreateBiopsyArrayModal from './modals/CreateBiopsyArrayModal';
@@ -38,6 +44,7 @@ import LeftReportPanel    from './components/LeftReportPanel';
 import { AmendmentStatusBanner } from './components/AmendmentStatusBanner';
 import AutopsyAuthorizationCompletionForm from '../../components/Autopsy/AutopsyAuthorizationCompletionForm';
 import AutopsyBodyReleaseForm from '../../components/Autopsy/AutopsyBodyReleaseForm';
+import { resolveCodeManagerSave, buildCodeManagerExistingCodes, type CodeManagerCode } from '@/services/codes/codeManagerCoding';
 import { resolveAutopsyGrossExaminationGate } from '@/services/autopsy/resolveAutopsyGrossExaminationGate';
 import { resolveAutopsyAccessionStatus } from '@/services/autopsy/resolveAutopsyAccessionStatus';
 import { resolveAutopsyTatSlaMatrix } from '@/services/autopsy/resolveAutopsyTatSlaMatrix';
@@ -45,14 +52,30 @@ import { formatAutopsyTatSlaSummary } from '@/services/autopsy/formatAutopsyTatS
 import { resolveHtaApplicability } from '@/services/autopsy/resolveHtaApplicability';
 import { resolveAutopsyBodyReleaseGate } from '@/services/autopsy/resolveAutopsyBodyReleaseGate';
 import { resolveAutopsyBodyAlreadyReleased } from '@/services/autopsy/resolveAutopsyBodyAlreadyReleased';
+import { resolveRetentionTierConsentCheck, resolveExcludedOrgansPresent } from '@/services/autopsy/resolveAutopsyConsentScopeViolation';
+import { recordAutopsyCustodyTransfer, custodyEventsForToxicologyOrder } from '@/services/autopsy/recordAutopsyCustodyTransfer';
+import { recordAutopsyOrganTag } from '@/services/autopsy/recordAutopsyOrganTag';
+import { recordAutopsyConsentStatusChange } from '@/services/autopsy/recordAutopsyConsentStatusChange';
+import { recordAutopsyOrganRetentionDisposal } from '@/services/autopsy/recordAutopsyOrganRetentionDisposal';
+import { orderAutopsyToxicology } from '@/services/autopsy/orderAutopsyToxicology';
+import { recordAutopsyToxicologyResult } from '@/services/autopsy/recordAutopsyToxicologyResult';
+import { cancelAutopsyToxicologyOrder } from '@/services/autopsy/cancelAutopsyToxicologyOrder';
+import { recordAutopsyOrganRetentionDetail } from '@/services/autopsy/recordAutopsyOrganRetentionDetail';
+import { recordAutopsyConsentReinstatement } from '@/services/autopsy/recordAutopsyConsentReinstatement';
+import { AUTOPSY_ORGAN_LABEL_KEY } from '@/pages/AccessionPage/autopsyOrganLabelKeys';
+import { AUTOPSY_ORGAN_TO_SECTION, type AutopsyOrganCode } from '@/types/autopsy/AutopsyOrganCode';
+import type { HospitalConsentStatus, OrganRetentionDisposalRecord, AutopsyOrganTagStatus } from '@/types/autopsy/AutopsyCaseDetails';
 import { signAutopsyReport } from '@/services/autopsy/signAutopsyReport';
 import { SignatureConfirmModal } from '@/components/Signing/SignatureConfirmModal';
 import ConfirmModal from '@/components/Common/ConfirmModal';
+import ReasonPromptModal from '@/components/Common/ReasonPromptModal';
 import { formatList } from '@/utils/formatList';
 import type { SignatureConfirmation } from '@/services/auth/signerConfirmation';
 import { releasePreliminaryReport } from '@/services/reports/releasePreliminaryReport';
 import { getMainBodySpecimen } from '@/services/autopsy/getMainBodySpecimen';
-import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
+import { buildAutopsyCaseTimeline } from '@/services/autopsy/buildAutopsyCaseTimeline';
+import AutopsyCaseTimeline from '@/pages/SynopticReportPage/components/AutopsyCaseTimeline';
+import type { AutopsyCaseDetails, AutopsyCustodianType } from '@/types/autopsy/AutopsyCaseDetails';
 // Real fix, per direct follow-up: "I want informal reviews to be
 // handled differently than delegations types, so remove the informal
 // action from that workflow." InformalReviewBanner.tsx was built
@@ -65,6 +88,9 @@ import { ReleaseBufferBanner } from './components/ReleaseBufferBanner';
 import { RevisionFeedbackBanner } from './components/RevisionFeedbackBanner';
 import { AmendmentDraftBanner } from './components/AmendmentDraftBanner';
 import RightSynopticPanel, { type RightSynopticPanelHandle, type AiSuggestion } from './components/RightSynopticPanel';
+import { OrganMapPanel } from '@/components/OrganMap/OrganMapPanel';
+import { useOrganMap } from './hooks/useOrganMap';
+import { computeAiSynthesisStatus, type AiSynthesisStatus, type MustHaveFields } from '@/services/templates/aiSynthesisStatus';
 import MicroscopicEntryPanel from './components/MicroscopicEntryPanel';
 import { useMicroscopicEntry } from './hooks/useMicroscopicEntry';
 import { useEffectiveSpecimenComplexity } from './hooks/useEffectiveSpecimenComplexity';
@@ -83,6 +109,8 @@ import CaseSignOutModal      from './modals/CaseSignOutModal';
 import BillingReviewPanel from './components/BillingReviewPanel';
 import { DiscordanceReconciliationModal } from './modals/DiscordanceReconciliationModal';
 import { CopilotReportViewModal } from './modals/CopilotReportViewModal';
+import ReportPrintPromptModal from './modals/ReportPrintPromptModal';
+import { recordDocumentOutput, planReportPrint, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
 import { useLisIntegration } from './hooks/useLisIntegration';
 import { MATERIAL_SCAN_UPDATED_EVENT } from '@/hooks/useGlobalMaterialScanTracking';
 import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
@@ -91,7 +119,8 @@ import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { useReportGeneration } from './hooks/useReportGeneration';
 import { useAmendmentWorkflow } from './hooks/useAmendmentWorkflow';
 import { useGrossingCompletion } from './hooks/useGrossingCompletion';
-import { useOrchestratorDraft, writeCaseDraft } from './hooks/useOrchestratorDraft';
+import { useOrchestratorDraft, writeCaseDraft, caseDraftUpdates } from './hooks/useOrchestratorDraft';
+import { useWarningConfirm } from './hooks/useWarningConfirm';
 import { useSignOutWorkflow } from './hooks/useSignOutWorkflow';
 import { resolveBuildReportAvailability } from './hooks/resolveBuildReportDirection';
 import FinalizeSynopticModal from './modals/FinalizeSynopticModal';
@@ -112,17 +141,19 @@ import { priorityService } from '@/services';
 import { getUiPreference, setUiPreference, getSessionFlag } from '@/utils/uiPreferences';
 import { stainTypeService } from '@/services';
 import { computeCaseCodingSummary } from '@/services/billing/codeMapTable';
-import { resolveServiceCharge, reverseServiceCharge } from '@/services/billing/resolveServiceCharge';
 import type { PostSignoutChangeContext } from '@/services/billing/resolveServiceCharge';
 import { isCaseSignedOutForBilling } from '@/services/billing/isCaseSignedOutForBilling';
 import { PostSignoutBillingChangeModal } from '@/components/Billing/PostSignoutBillingChangeModal';
 import { CorrectAppliedCodeModal } from '@/components/Billing/CorrectAppliedCodeModal';
-import { correctServiceCharge, enforceAppliedCodeCorrection } from '@/services/billing/correctServiceCharge';
+import { enforceAppliedCodeCorrection } from '@/services/billing/correctServiceCharge';
 // Batch 381: services through @/services, not their mock file paths.
-import { billingRuleService, serviceChargeService, actionRegistryService, reportTemplateService, reportReleaseService, evaluateGrossingTemplateAssignment } from '@/services';
-import { resolveRequireBillingApprovalForCase } from '@/services/billing/shouldRequireBillingApproval';
+import { actionRegistryService, reportTemplateService, reportReleaseService, evaluateGrossingTemplateAssignment } from '@/services';
 import { auditService, authorizationService, signatureGate } from '@/services';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
+import { adoptSavedVersion, caseConflictRows, overwriteAfterConflict, caseOverwriteDeps, savePageChange, commitMergeReview, takeUpSavedCase, MergeReviewPendingError, caseWriteDeps, type ConflictRow, type MergeReview } from '@/services';
+import { EditConflictDialog } from './components/EditConflictDialog';
+import { MergeReviewDialog } from './components/MergeReviewDialog';
+import { handleConcurrencyConflict } from './hooks/sharedHookTypes';
 import { intraoperativeService } from '@/services';
 import { IntraopMergePromptModal } from '@/pages/AccessionPage/IntraopMergePromptModal';
 import type { EntryMatch } from '@/types/intraop/IntraoperativeEntry';
@@ -130,6 +161,10 @@ import { amendmentService, reportVersionService, reportChangeLogService, REPORT_
 import { exportChangeLog } from '@/services/reportChangeLog/exportChangeLog';
 import { downloadCsv } from '@/utils/csv';
 import { ChangeHistoryModal } from './modals/ChangeHistoryModal';
+import { resolveMaterialAssetClick } from '@/services/billing/billingMaterialSync';
+import { aiReportToolsVisibility, aiReportToolsInputs } from '@/services/aiIntegration/aiReportTools';
+import { AiReportToolButtons } from './components/AiReportToolButtons';
+import { reportPrintAuditEvent, REPORT_DOCUMENT } from '@/services/printing/reportPrintAudit';
 import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { deficiencyTypeService, resolutionTypeService } from '@/services';
@@ -142,6 +177,11 @@ import { specimenDeficiencyService } from '@/services';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
 import { FixativeTimeGateModal, type FixativeGateSpecimen, type FixativeResolution } from './modals/FixativeTimeGateModal';
 import { StainQcGateModal } from './modals/StainQcGateModal';
+import { ClinicalMismatchModal } from './modals/ClinicalMismatchModal';
+import { PeerReviewGateModal } from './modals/PeerReviewGateModal';
+import { PeerReviewBanner } from './components/PeerReviewBanner';
+import { usePeerReview } from './hooks/usePeerReview';
+import type { ClinicalMismatchSuggestion, PeerReviewStatus } from '@/services';
 import type { StainQcGateBlockingItem } from './hooks/checkStainQcGate';
 import { PreAnalyticDateGateModal, type PreAnalyticDateGateSpecimen, type PreAnalyticDateResolution } from './modals/PreAnalyticDateGateModal';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
@@ -154,7 +194,10 @@ import { computeDraftDiff } from '@/utils/computeDraftDiff';
 import '@/pathscribe.css';
 
 import type { Case } from '@/types/case/Case';
-import type { Specimen } from '@/types/case/Specimen';
+import type { Specimen, HistologyBlock } from '@/types/case/Specimen';
+import type { Decant } from '@/types/case/Material';
+import { billableUnitOf } from '@/services/material/billableMaterial';
+import { findingsForField } from '@/services/clinical/findingHighlight';
 import { AiReviewModal }  from './modals/AiReviewModal';
 import { AiNarrativeReviewModal } from './modals/AiNarrativeReviewModal';
 import { DelegateModal }  from '../Synoptic/Delegate/DelegateModal';
@@ -179,6 +222,14 @@ import { useCaseSpellCheck } from '@/hooks/useCaseSpellCheck';
 import { SpellCheckProvider } from '@/components/SpellCheck/SpellCheckContext';
 import type { SpellingLocale } from '@/services/spellcheck/spellingLocales';
 import { getCaseOpenedFrom, markReturnToSearch } from '@/utils/search/searchSession';
+import { recordCaseCharge, recordCaseCredit, recordCaseCodeCorrection, enforceBillingReview, auditBillingSuggestionDeclined } from '@/services';
+import { codingWithApproved, codingWithRejected, codingWithOverride, codingWithoutCode, codingWithCorrection, groupApprovalsByUnit, specimensWithBaseCodeAdded, specimensWithBaseCodeRemoved, specimensWithBaseCodeCorrected, specimensWithMatrixCode, matrixSlidesWithEvaluatedCores, type BillingApprovalItem } from '@/services';
+import { partGridRowsOf } from '@/services/templates/partGrid';
+import { reportFiguresWithAuto, reportTranslateFor } from '@/services/organMapping/organMapAutoFigures';
+
+// Batch 445: the default template's stored name. It's saved into the report
+// and draft data in English (data); on screen it's shown translated.
+const GOLD_STANDARD_TEMPLATE_NAME = 'Gold Standard — General Surgical Pathology';
 
 
 // Report PDF generation — Firebase Cloud Function (Python/ReportLab), see
@@ -203,9 +254,9 @@ import { getCaseOpenedFrom, markReturnToSearch } from '@/utils/search/searchSess
 const REPORT_PDF = resolveServiceEndpoint({
   name: 'report renderer',
   envVar: 'VITE_REPORT_PDF_ENDPOINT',
-  configured: (import.meta as any).env?.VITE_REPORT_PDF_ENDPOINT,
+  configured: import.meta.env.VITE_REPORT_PDF_ENDPOINT,
   devDefault: 'http://localhost:8080/',
-  isProduction: !!(import.meta as any).env?.PROD,
+  isProduction: !!import.meta.env.PROD,
 });
 /** The report renderer's URL, or throws its configuration problem. */
 const reportPdfEndpoint = (): string => {
@@ -213,32 +264,41 @@ const reportPdfEndpoint = (): string => {
   return REPORT_PDF.url;
 };
 
-// ── AI Synthesis Status — Gatekeeper Badge model (see Dr. Carter's review,
-// applied in SynopticReportPage below). 'none' = no AI suggestions exist
-// yet for this case; 'draft-ready' = no Tier 1 field is under threshold;
-// 'review-required' = at least one Tier 1 field is under threshold and
-// flaggedFieldId/flaggedFieldConfidence identify which one for "unpacking."
-export interface AiSynthesisStatus {
-  state: 'none' | 'draft-ready' | 'review-required';
-  overallConfidence?:      number; // informational only — never drives `state`
-  flaggedFieldId?:          string;
-  flaggedFieldConfidence?:  number;
-}
+// ── AI Synthesis Status — the Gatekeeper Badge. Decided by
+// services/templates/aiSynthesisStatus.ts (PS-329, Batch 437: only the
+// template's Must Have fields count).
+export type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
 
 /** Translated text for each signAutopsyReport error code (Batch 331). */
 const AUTOPSY_SIGN_ERROR_KEY: Record<string, string> = {
-  CASE_NOT_FOUND:          'autopsySignOut.errors.caseNotFound',
-  NO_AUTOPSY_RECORD:       'autopsySignOut.errors.noAutopsyRecord',
-  PAD_REQUIRED:            'autopsySignOut.errors.padRequired',
-  NO_FORENSIC_APPOINTMENT: 'autopsySignOut.errors.noForensicAppointment',
-  SAVE_FAILED:             'autopsySignOut.errors.saveFailed',
+  CASE_NOT_FOUND:              'autopsySignOut.errors.caseNotFound',
+  NO_AUTOPSY_RECORD:           'autopsySignOut.errors.noAutopsyRecord',
+  PAD_REQUIRED:                'autopsySignOut.errors.padRequired',
+  NO_FORENSIC_APPOINTMENT:     'autopsySignOut.errors.noForensicAppointment',
+  // Batch 478: resolveAutopsyGrossExaminationGate.ts is now a real hard
+  // stop here. The gate's own blockedReasons (gate.blockedReasons, shown
+  // already in the warning banner above) stay literal English — a
+  // pre-existing gap, not introduced or fixed by this batch — so this
+  // toast shows a translated, generic message instead of result.error.
+  AUTHORIZATION_GATE_BLOCKED:  'autopsySignOut.errors.authorizationGateBlocked',
+  GATE_OVERRIDE_NOT_PERMITTED: 'autopsySignOut.errors.gateOverrideNotPermitted',
+  SAVE_FAILED:                 'autopsySignOut.errors.saveFailed',
 };
 
+// Batch 469 (PS-261 §2.5.1 follow-up) — the full organ-code vocabulary,
+// for the consent-narrowing excluded-organs picker. Flat (unlike
+// AccessionPage's own grouped AUTOPSY_ORGAN_PICKER_GROUPS), since this
+// picker is about marking exclusions on an already-accessioned case,
+// not driving section visibility.
+const ALL_AUTOPSY_ORGAN_CODES = Object.keys(AUTOPSY_ORGAN_TO_SECTION) as AutopsyOrganCode[];
+
 const SynopticReportPage: React.FC = () => {
-  const { caseId } = useParams<{ caseId: string }>();
+  // Batch 446: the address carries the case's reference, not its accession.
+  const caseId = useRouteCaseId('synoptic');
   const { user: signingUser } = useAuth();
   const { log }   = useAuditLog();
   const navigate   = useNavigate();
+  const openCasePage = useOpenCase();
   const { t: tGrossingNav, i18n: i18nForDates } = useTranslation();
   // Batch 382: the name used when nobody is signed in, in the user's language (was English in twelve places).
   const unknownUserName = tGrossingNav('common.unknownUser');
@@ -298,6 +358,8 @@ const SynopticReportPage: React.FC = () => {
 
   // ── Case data ──────────────────────────────────────────────
   const [caseData, setCaseData]     = useState<Case | null>(null);
+  // Batch 465b: the warning a save or sign-out can ask the person to go past (totals that differ from their grid).
+  const warningConfirm = useWarningConfirm();
   // Real optimistic-concurrency baseline — the version this session last
   // knew about, either from initial load or this session's own last
   // successful save. Passed as expectedVersion on every write; the server
@@ -307,6 +369,13 @@ const SynopticReportPage: React.FC = () => {
   // time and updated after saves, never needs to trigger a render.
   const knownVersionRef = useRef<number>(0);
   const [concurrencyConflict, setConcurrencyConflict] = useState<{ actualVersion: number; blockOverride?: boolean } | null>(null);
+  // PS-71 (Batch 458, Pete: "We can't lose the user's changes"): a change
+  // whose save stopped at the Edit Conflict dialog, with the values it was
+  // built on. It is kept on the page, saved with the next draft save (merged
+  // the same way), and saved by "Save mine anyway"; never dropped.
+  const pendingPartsRef = useRef<{ parts: Partial<Case>; base: Partial<Case> } | null>(null);
+  const [mergeReview, setMergeReview] = useState<MergeReview | null>(null);
+  const caseDataRef = useRef<Case | null>(null);
 
   // Real conflict-resolution actions. "Reload" deliberately does a full page
   // reload rather than trying to reconstruct orchSections from a fresh fetch
@@ -318,36 +387,49 @@ const SynopticReportPage: React.FC = () => {
   const handleConcurrencyReload = () => {
     window.location.reload();
   };
+  // PS-71 (Batch 458): View changes lists the parts of the case where this
+  // copy differs from the version now saved, and which of them Overwrite
+  // would replace (only the draft's own parts; everything else stays as saved).
+  const [conflictRows, setConflictRows] = useState<ConflictRow[] | null>(null);
+  const handleConcurrencyViewChanges = async () => {
+    if (!caseData?.id) return;
+    const latest = await caseRouter.getCase(caseData.id);
+    if (!latest) return;
+    setConflictRows(caseConflictRows(caseData, latest, [...Object.keys(caseDraftUpdates(caseData, orchSections)), ...Object.keys(pendingPartsRef.current?.parts ?? {})]));
+  };
+  const closeConcurrencyConflict = () => { setConcurrencyConflict(null); setConflictRows(null); };
+  // "Save mine anyway": checked (case:edit-conflict:override: Pathologist,
+  // Admin, Lab Director) and saved against the newest version, so a third
+  // save landing meanwhile is caught too; audited in the service.
   const handleConcurrencyForceSave = async () => {
-    if (!caseData?.id || !concurrencyConflict) { setConcurrencyConflict(null); return; }
-    try {
-      // Deliberately omits expectedVersion — bypasses the check entirely
-      // rather than racing to guess the current version, matching "Save
-      // Mine Anyway"'s actual intent (overwrite regardless of what's
-      // there). The service still increments version normally; this
-      // session's known baseline is set from the conflict's own
-      // actualVersion (not a blind +1 on whatever this session last
-      // knew), since other writes may have landed between the conflict
-      // being detected and this force-save actually running.
-      await writeCaseDraft(caseData, caseId, orchSections);
-      // Real, direct follow-up (PS-71): "Save Mine Anyway" is the real,
-      // user-initiated override of a detected conflict — the other half of
-      // "record both blocked and overridden edit collisions to the audit
-      // trail" (handleConcurrencyConflict in sharedHookTypes.ts covers the
-      // detection/blocked half).
-      auditService.logEvent({
-        type: 'user',
-        event: 'Concurrency conflict overridden',
-        detail: `Save Mine Anyway: this session's draft overwrote version ${concurrencyConflict.actualVersion}`,
-        user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-        caseId: caseData.accession?.fullAccession ?? caseData.id,
-        confidence: null,
-      });
-      knownVersionRef.current = concurrencyConflict.actualVersion + 1;
-      clearDirty();
-      showToast(tGrossingNav('synopticReportPage.toast.draftOverwroteOther'), 'warning');
-    } catch (e) { console.error(e); }
-    setConcurrencyConflict(null);
+    if (!caseData?.id || !concurrencyConflict) { closeConcurrencyConflict(); return; }
+    // The draft and any change that stopped at this dialog (PS-71: never dropped).
+    const updates = { ...caseDraftUpdates(caseData, orchSections), ...(pendingPartsRef.current?.parts ?? {}) };
+    const r = await overwriteAfterConflict({
+      caseId: caseData.id, caseLabel: caseData.accession?.fullAccession ?? caseData.id, updates,
+      changedFields: Object.keys(updates), actor: { id: signingUser?.id ?? 'unknown', name: signingUser?.name ?? '' },
+    }, caseOverwriteDeps);
+    if (r.ok === false) {
+      if (r.reason === 'conflict') {
+        const latest = await caseRouter.getCase(caseData.id);
+        setConflictRows(null);
+        setConcurrencyConflict({ actualVersion: latest?.version ?? concurrencyConflict.actualVersion });
+        return;
+      }
+      showToast(tGrossingNav(r.reason === 'notPermitted' ? 'synopticReportPage.concurrency.overwriteNotPermitted' : 'synopticReportPage.concurrency.overwriteFailed'), 'warning');
+      return;
+    }
+    // Take up the rest of the saved case (the other person's changes to other
+    // parts) so the page's copy is the saved case before adopting its version.
+    const saved = await caseRouter.getCase(caseData.id);
+    if (saved && saved.version === r.version) {
+      setCaseData(prev => (prev ? { ...saved, diagnostic: prev.diagnostic } as typeof prev : prev));
+      knownVersionRef.current = r.version;
+    }
+    pendingPartsRef.current = null;
+    clearDirty();
+    showToast(tGrossingNav('synopticReportPage.toast.draftOverwroteOther'), 'warning');
+    closeConcurrencyConflict();
   };
 
   // Phase 2 of the Inactivity Timeout & Draft Recovery spec. Caches the FULL case (not just synoptic answers --
@@ -377,10 +459,17 @@ const SynopticReportPage: React.FC = () => {
   // (never a real Case field, so it can't collide with one) — the
   // restore handler below extracts it back out separately rather than
   // spreading it into caseData.
+  // PS-71 (Batch 458): the draft as this page last loaded or saved it (the
+  // merge base, kept by useOrchestratorDraft), and the version it was built
+  // on. Both travel with the browser copy, so a draft restored after a
+  // reload or a crash is merged section by section onto whatever was saved
+  // since, exactly like a refused save: never laid over someone else's newer
+  // sections, and never lost.
+  const draftBaseRef = useRef<Partial<Case>>({});
   const draftableCaseSlice = useMemo(() => {
     if (!caseData) return null;
     const { patient: _patient, ...rest } = caseData as any;
-    return { ...rest, __orchSectionsDraft: orchSections };
+    return { ...rest, __orchSectionsDraft: orchSections, __draftBase: draftBaseRef.current, __draftVersion: knownVersionRef.current };
   }, [caseData, orchSections]);
 
   const { hasExistingDraft, existingDraftPayload, existingDraftSavedAt, confirmRestore, discardDraft } = useDraftCache(
@@ -438,9 +527,9 @@ const SynopticReportPage: React.FC = () => {
   const [caseNotFound, setCaseNotFound] = useState(false);
   const [activeTab, setActiveTab]       = useState('tumor');
   const { isDirty: hasUnsavedData, setDirty: setHasUnsavedData, pendingPath, confirmNavigate: confirmContextNavigate, cancelNavigate: cancelContextNavigate, registerSaveHandler, registerDiscardHandler } = useDirtyState();
-  const [dirtySections, setDirtySections] = useState<Set<string>>(new Set());
+  const [dirtySections, setDirtySections] = useState<Set<DirtySectionId>>(new Set());
 
-  const markDirty = React.useCallback((section: string) => {
+  const markDirty = React.useCallback((section: DirtySectionId) => {
     setHasUnsavedData(true);
     setDirtySections(prev => new Set(prev).add(section));
   }, [setHasUnsavedData]);
@@ -457,10 +546,19 @@ const SynopticReportPage: React.FC = () => {
     // — pulled out separately here and applied via setOrchSections,
     // rather than spread into caseData where it would just become a
     // stray, meaningless property.
-    const { __orchSectionsDraft, ...caseFields } = existingDraftPayload as any;
+    const { __orchSectionsDraft, __draftBase, __draftVersion, version: _cachedVersion, ...caseFields } = existingDraftPayload as any;
     setCaseData({ ...caseData, ...caseFields } as typeof caseData);
     if (Array.isArray(__orchSectionsDraft)) setOrchSections(__orchSectionsDraft);
-    markDirty('Restored draft');
+    // PS-71 (Batch 458): the restored draft carries what it was built on, so
+    // its next save is checked against that version and merged section by
+    // section onto anything saved since (the Edit Conflict dialog opens only
+    // where both changed the same section). A draft cached before Batch 458
+    // has neither: it is checked against the version loaded now.
+    if (__draftBase && typeof __draftVersion === 'number') {
+      draftBaseRef.current = __draftBase;
+      knownVersionRef.current = __draftVersion;
+    }
+    markDirty('restoredDraft');
     confirmRestore();
   }, [caseData, existingDraftPayload, markDirty, confirmRestore]);
 
@@ -477,7 +575,7 @@ const SynopticReportPage: React.FC = () => {
   // setting true/false, otherwise closing a clean modal could wrongly
   // clear a warning that's still legitimately active for an unrelated
   // dirty content field.
-  const setSectionDirty = React.useCallback((section: string, dirty: boolean) => {
+  const setSectionDirty = React.useCallback((section: DirtySectionId, dirty: boolean) => {
     setDirtySections(prev => {
       const next = new Set(prev);
       dirty ? next.add(section) : next.delete(section);
@@ -501,9 +599,9 @@ const SynopticReportPage: React.FC = () => {
   // a component stuck re-rendering in a tight loop cannot reliably
   // process a click or keep its own state consistent.
   const handleFlagsDirtyChange = React.useCallback(
-    (dirty: boolean) => setSectionDirty('Flags', dirty), [setSectionDirty]);
+    (dirty: boolean) => setSectionDirty('flags', dirty), [setSectionDirty]);
   const handleTeamDirtyChange = React.useCallback(
-    (dirty: boolean) => setSectionDirty('Team', dirty), [setSectionDirty]);
+    (dirty: boolean) => setSectionDirty('team', dirty), [setSectionDirty]);
 
   const [activeSpecimenId, setActiveSpecimenId] = useState<string>('');
   const [showCaseCommentModal, setShowCaseCommentModal] = useState(false);
@@ -524,12 +622,22 @@ const SynopticReportPage: React.FC = () => {
     return map;
   }, [caseData?.specimens]);
 
+  // Batch 476 (PS-261 follow-up, Module 4) — the real, unified autopsy
+  // case timeline, derived fresh from the case's own autopsy record
+  // every render (buildAutopsyCaseTimeline.ts is a pure read-model,
+  // never a second, persisted copy of these events).
+  const autopsyTimeline = useMemo(() => buildAutopsyCaseTimeline(caseData?.autopsy), [caseData?.autopsy]);
+
   // ── Fixation-time signout gate ──────────────────────────────────────────────
   const { dictionary: specimenDictionary } = useSpecimenDictionary();
   const [fixativeGateSpecimens, setFixativeGateSpecimens] = useState<FixativeGateSpecimen[] | null>(null);
   // Real, per PS-289/PS-292's own Gating Strategy — see
   // checkStainQcGate.ts's own header for the full reasoning.
   const [stainQcGateBlocking, setStainQcGateBlocking] = useState<StainQcGateBlockingItem[] | null>(null);
+  // Batch 439 (PS-145, PS-144): a mismatch to decide, or the peer-review
+  // gate, stopped sign-out (checkPeerReviewAndMismatch.ts).
+  const [clinicalMismatch, setClinicalMismatch] = useState<ClinicalMismatchSuggestion | null>(null);
+  const [peerReviewGate, setPeerReviewGate] = useState<PeerReviewStatus | null>(null);
   // Real, per direct follow-up: "Begin AutopsyAuthorizationCompletionForm.tsx
   // persistence — hands back updated data, nothing saves it." Investigation
   // found a deeper, real gap this closes: neither this form nor
@@ -542,7 +650,99 @@ const SynopticReportPage: React.FC = () => {
   // mounting" — same real, previously-unmounted gap as the
   // authorization completion form above, now closed the same way.
   const [showAutopsyBodyRelease, setShowAutopsyBodyRelease] = useState(false);
+  // Batch 468 (PS-261 §2.4.3) — the custody-transfer mini-form's open
+  // state and draft fields. Presentational only: recordAutopsyCustodyTransfer.ts
+  // decides everything (capability, forensic-only gate, who it's from).
+  const [showAutopsyCustodyForm, setShowAutopsyCustodyForm] = useState(false);
+  // Batch 475 (PS-261 follow-up) — optionally ties this transfer to one
+  // toxicology order (AutopsyCustodyTransferEvent.toxicologyOrderId), so
+  // a specimen's own chain of custody shows under its order too, not
+  // just in this case-wide log. null = not about a toxicology specimen.
+  const [custodyForm, setCustodyForm] = useState<{ itemDescription: string; toCustodianType: AutopsyCustodianType; toCustodianName: string; releasedByName: string; receivedByName: string; notes: string; toxicologyOrderId: string | null }>({
+    itemDescription: '', toCustodianType: 'medical_examiner', toCustodianName: '', releasedByName: '', receivedByName: '', notes: '', toxicologyOrderId: null,
+  });
+  const [submittingCustodyTransfer, setSubmittingCustodyTransfer] = useState(false);
+  // Batch 478 (PS-261 follow-up) — the per-organ tag mini-form's open
+  // state and draft fields. Presentational only: recordAutopsyOrganTag.ts
+  // decides everything (capability, who recorded it, append-only log).
+  const [showOrganTagForm, setShowOrganTagForm] = useState(false);
+  const [organTagForm, setOrganTagForm] = useState<{ organCode: AutopsyOrganCode; status: AutopsyOrganTagStatus; finding: string }>({
+    organCode: 'heart', status: 'normal', finding: '',
+  });
+  const [submittingOrganTag, setSubmittingOrganTag] = useState(false);
+  // Batch 469 (PS-261 §2.5.1 follow-up) — consent narrowing/revocation
+  // mini-form's open state and draft fields. Presentational only:
+  // recordAutopsyConsentStatusChange.ts decides everything (capability,
+  // hospital-consented-only gate, never widening consent back).
+  const [showAutopsyConsentForm, setShowAutopsyConsentForm] = useState(false);
+  const [consentForm, setConsentForm] = useState<{ status: HospitalConsentStatus; excludedOrgans: AutopsyOrganCode[]; retentionPermitted: boolean; revocationNote: string }>({
+    status: 'narrowed', excludedOrgans: [], retentionPermitted: true, revocationNote: '',
+  });
+  const [submittingConsentChange, setSubmittingConsentChange] = useState(false);
+  // Batch 469 (PS-261 §2.4.2) — organ/tissue retention disposal
+  // recording's open state and draft fields. Only ever shown once an
+  // HTA-applicable jurisdiction has a retention tier beyond
+  // tier_0_no_retention on file — resolveHtaApplicability.ts and
+  // recordAutopsyOrganRetentionDisposal.ts enforce the same gate.
+  const [showAutopsyDisposalForm, setShowAutopsyDisposalForm] = useState(false);
+  const [disposalForm, setDisposalForm] = useState<{ disposalMethod: OrganRetentionDisposalRecord['disposalMethod']; certificateReference: string }>({
+    disposalMethod: 'cremation', certificateReference: '',
+  });
+  const [submittingDisposal, setSubmittingDisposal] = useState(false);
+  // Batch 469 (PS-261 §2.3) — toxicology order/result mini-forms'
+  // open state and draft fields. orderAutopsyToxicology.ts and
+  // recordAutopsyToxicologyResult.ts decide everything else.
+  const [showAutopsyToxOrderForm, setShowAutopsyToxOrderForm] = useState(false);
+  const [toxOrderForm, setToxOrderForm] = useState<{ specimenDescription: string; specimenBarcode: string; analytesRequested: string; labName: string }>({
+    specimenDescription: '', specimenBarcode: '', analytesRequested: '', labName: '',
+  });
+  const [submittingToxOrder, setSubmittingToxOrder] = useState(false);
+  const [toxResultOrderId, setToxResultOrderId] = useState<string | null>(null);
+  const [toxResultSummary, setToxResultSummary] = useState('');
+  const [submittingToxResult, setSubmittingToxResult] = useState(false);
+  // Batch 471 (PS-261 follow-up) — cancelling a still-'ordered'
+  // toxicology order. cancelAutopsyToxicologyOrder.ts decides
+  // everything else (eligibility, clearing the ancillary hold).
+  const [toxCancelOrderId, setToxCancelOrderId] = useState<string | null>(null);
+  const [toxCancelReason, setToxCancelReason] = useState('');
+  const [submittingToxCancel, setSubmittingToxCancel] = useState(false);
+  // Batch 471 (PS-261 follow-up) — recording who holds retained
+  // organs/tissue and where, while retention is ongoing. Same gate as
+  // the disposal form (HTA-applicable jurisdiction, tier beyond
+  // tier_0_no_retention). Opening the form seeds from the current
+  // record, same reasoning as the consent form below: an edit should
+  // start from what's on file, not a blank slate.
+  const [showAutopsyRetentionDetailForm, setShowAutopsyRetentionDetailForm] = useState(false);
+  const [retentionDetailForm, setRetentionDetailForm] = useState<{ recipientName: string; location: string; reason: string }>({
+    recipientName: '', location: '', reason: '',
+  });
+  const [submittingRetentionDetail, setSubmittingRetentionDetail] = useState(false);
+  // Batch 472 — a free-text reason for the organRetentionTier
+  // selection itself (distinct from the retention-detail form's own
+  // `reason`, which is about who holds it and where). Local draft so
+  // typing doesn't save on every keystroke; committed on blur via the
+  // same handleOrganRetentionTierChange save path the tier select
+  // already uses.
+  const [retentionTierReasonDraft, setRetentionTierReasonDraft] = useState('');
+  useEffect(() => {
+    setRetentionTierReasonDraft(caseData?.autopsy?.organRetentionTierReason ?? '');
+  }, [caseData?.id, caseData?.autopsy?.organRetentionTierReason]);
+  // Batch 471 (PS-261 follow-up) — reinstating an already-narrowed or
+  // revoked consent. Its own mini-form, deliberately separate from the
+  // narrowing one above: recordAutopsyConsentReinstatement.ts is a
+  // different capability from recordAutopsyConsentStatusChange.ts, and
+  // the two actions should never share UI state.
+  const [showAutopsyConsentReinstateForm, setShowAutopsyConsentReinstateForm] = useState(false);
+  const [reinstateForm, setReinstateForm] = useState<{ status: HospitalConsentStatus; excludedOrgans: AutopsyOrganCode[]; retentionPermitted: boolean; reinstatementNote: string }>({
+    status: 'active', excludedOrgans: [], retentionPermitted: true, reinstatementNote: '',
+  });
+  const [submittingReinstate, setSubmittingReinstate] = useState(false);
   const [signingAutopsyTier, setSigningAutopsyTier] = useState<'PAD' | 'FAD' | null>(null);
+  // Batch 478: the gross-exam authorization gate's own override — a
+  // written reason, prompted for before the existing signature-confirm
+  // modal, then carried through to handleSignAutopsyReport/signAutopsyReport.ts.
+  const [showGateOverridePrompt, setShowGateOverridePrompt] = useState<'PAD' | 'FAD' | null>(null);
+  const [gateOverrideReason, setGateOverrideReason] = useState<string | null>(null);
   // Batch 344: a PAD/FAD signature waits for the signer to be confirmed.
   const [confirmingAutopsyTier, setConfirmingAutopsyTier] = useState<'PAD' | 'FAD' | null>(null);
   // ── Pre-analytic date (collection/receipt) signout gate — real, per
@@ -578,10 +778,9 @@ const SynopticReportPage: React.FC = () => {
     if (!caseData?.id) return;
     const patch = { order: { ...caseData.order, priority: newPriority as any } };
     try {
-      await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, patch as any);
       setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
-      markDirty('Priority');
+      markDirty('priority');
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: e.actualVersion });
@@ -664,6 +863,243 @@ const SynopticReportPage: React.FC = () => {
 
   const { toastMsg, toastKind, toastVisible, toastContainsPhi, showToast, dismissToast } = useSynopticToast();
 
+  // Batch 468 (PS-261 §2.4.3) — submits the custody-transfer mini-form.
+  // Moved here (after showToast exists) from the form's own state block above.
+  const signingUserName = signingUser?.name ?? '';
+  const handleCustodyTransferSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingCustodyTransfer(true);
+    try {
+      const result = await recordAutopsyCustodyTransfer(caseData.id, {
+        itemDescription: custodyForm.itemDescription,
+        toCustodianType: custodyForm.toCustodianType,
+        toCustodianName: custodyForm.toCustodianName,
+        releasedByName: custodyForm.releasedByName,
+        receivedByName: custodyForm.receivedByName || undefined,
+        notes: custodyForm.notes || undefined,
+        toxicologyOrderId: custodyForm.toxicologyOrderId ?? undefined,
+      }, signingUserName);
+      if (!result.ok) {
+        // Real, per the standing i18n rule — result.error is a
+        // developer-facing literal-English fallback, never shown
+        // directly; the reasonCode maps to a translated message.
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.custody.errors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.custody.transferFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowAutopsyCustodyForm(false);
+      setCustodyForm({ itemDescription: '', toCustodianType: 'medical_examiner', toCustodianName: '', releasedByName: '', receivedByName: '', notes: '', toxicologyOrderId: null });
+      showToast(tGrossingNav('synopticReportPage.autopsy.custody.transferRecorded'));
+    } finally {
+      setSubmittingCustodyTransfer(false);
+    }
+  }, [caseData?.id, custodyForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 478 (PS-261 follow-up) — per-organ gross-exam tagging. Same
+  // presentational-only shape as the custody transfer form above:
+  // recordAutopsyOrganTag.ts decides everything (capability, who recorded
+  // it, append-only persistence).
+  const handleOrganTagSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingOrganTag(true);
+    try {
+      const result = await recordAutopsyOrganTag(caseData.id, {
+        organCode: organTagForm.organCode,
+        status: organTagForm.status,
+        finding: organTagForm.finding || undefined,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.organTag.errors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.organTag.tagFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowOrganTagForm(false);
+      setOrganTagForm({ organCode: 'heart', status: 'normal', finding: '' });
+      showToast(tGrossingNav('synopticReportPage.autopsy.organTag.tagRecorded'));
+    } finally {
+      setSubmittingOrganTag(false);
+    }
+  }, [caseData?.id, organTagForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 469 (PS-261 §2.5.1 follow-up) — submits the consent
+  // narrowing/revocation mini-form.
+  const handleConsentStatusChangeSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingConsentChange(true);
+    try {
+      const result = await recordAutopsyConsentStatusChange(caseData.id, {
+        status: consentForm.status,
+        excludedOrgans: consentForm.excludedOrgans,
+        retentionPermitted: consentForm.retentionPermitted,
+        revocationNote: consentForm.revocationNote || undefined,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.consent.errors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.consent.changeFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowAutopsyConsentForm(false);
+      setConsentForm({ status: 'narrowed', excludedOrgans: [], retentionPermitted: true, revocationNote: '' });
+      showToast(tGrossingNav('synopticReportPage.autopsy.consent.changeRecorded'));
+    } finally {
+      setSubmittingConsentChange(false);
+    }
+  }, [caseData?.id, consentForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 469 (PS-261 §2.4.2) — submits the organ-retention disposal form.
+  const handleOrganRetentionDisposalSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingDisposal(true);
+    try {
+      const result = await recordAutopsyOrganRetentionDisposal(caseData.id, {
+        disposalMethod: disposalForm.disposalMethod,
+        certificateReference: disposalForm.certificateReference,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.disposal.errors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.disposal.recordFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowAutopsyDisposalForm(false);
+      setDisposalForm({ disposalMethod: 'cremation', certificateReference: '' });
+      showToast(tGrossingNav('synopticReportPage.autopsy.disposal.recorded'));
+    } finally {
+      setSubmittingDisposal(false);
+    }
+  }, [caseData?.id, disposalForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 469 (PS-261 §2.3) — submits the toxicology order form.
+  const handleToxicologyOrderSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingToxOrder(true);
+    try {
+      const result = await orderAutopsyToxicology(caseData.id, {
+        specimenDescription: toxOrderForm.specimenDescription,
+        specimenBarcode: toxOrderForm.specimenBarcode,
+        analytesRequested: toxOrderForm.analytesRequested,
+        labName: toxOrderForm.labName,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.toxicology.orderErrors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.toxicology.orderFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowAutopsyToxOrderForm(false);
+      setToxOrderForm({ specimenDescription: '', specimenBarcode: '', analytesRequested: '', labName: '' });
+      showToast(tGrossingNav('synopticReportPage.autopsy.toxicology.orderPlaced'));
+    } finally {
+      setSubmittingToxOrder(false);
+    }
+  }, [caseData?.id, toxOrderForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 469 (PS-261 §2.3) — submits a result for an existing order.
+  const handleToxicologyResultSubmit = useCallback(async () => {
+    if (!caseData?.id || !toxResultOrderId) return;
+    setSubmittingToxResult(true);
+    try {
+      const result = await recordAutopsyToxicologyResult(caseData.id, {
+        orderId: toxResultOrderId,
+        resultSummary: toxResultSummary,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.toxicology.resultErrors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.toxicology.resultFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setToxResultOrderId(null);
+      setToxResultSummary('');
+      showToast(tGrossingNav('synopticReportPage.autopsy.toxicology.resultRecorded'));
+    } finally {
+      setSubmittingToxResult(false);
+    }
+  }, [caseData?.id, toxResultOrderId, toxResultSummary, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 471 (PS-261 follow-up) — submits the toxicology order cancellation.
+  const handleToxicologyCancelSubmit = useCallback(async () => {
+    if (!caseData?.id || !toxCancelOrderId) return;
+    setSubmittingToxCancel(true);
+    try {
+      const result = await cancelAutopsyToxicologyOrder(caseData.id, {
+        orderId: toxCancelOrderId,
+        cancelReason: toxCancelReason,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.toxicology.cancelOrderErrors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.toxicology.cancelOrderFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setToxCancelOrderId(null);
+      setToxCancelReason('');
+      showToast(tGrossingNav('synopticReportPage.autopsy.toxicology.orderCancelled'));
+    } finally {
+      setSubmittingToxCancel(false);
+    }
+  }, [caseData?.id, toxCancelOrderId, toxCancelReason, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 471 (PS-261 follow-up) — submits the organ-retention detail form.
+  const handleOrganRetentionDetailSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingRetentionDetail(true);
+    try {
+      const result = await recordAutopsyOrganRetentionDetail(caseData.id, {
+        recipientName: retentionDetailForm.recipientName,
+        location: retentionDetailForm.location,
+        reason: retentionDetailForm.reason || undefined,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.retentionDetail.errors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.retentionDetail.recordFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowAutopsyRetentionDetailForm(false);
+      showToast(tGrossingNav('synopticReportPage.autopsy.retentionDetail.recorded'));
+    } finally {
+      setSubmittingRetentionDetail(false);
+    }
+  }, [caseData?.id, retentionDetailForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
+  // Batch 471 (PS-261 follow-up) — submits the consent reinstatement form.
+  const handleConsentReinstateSubmit = useCallback(async () => {
+    if (!caseData?.id) return;
+    setSubmittingReinstate(true);
+    try {
+      const result = await recordAutopsyConsentReinstatement(caseData.id, {
+        status: reinstateForm.status,
+        excludedOrgans: reinstateForm.excludedOrgans,
+        retentionPermitted: reinstateForm.retentionPermitted,
+        reinstatementNote: reinstateForm.reinstatementNote,
+      }, signingUserName);
+      if (!result.ok) {
+        const reasonKey = result.reasonCode ? `synopticReportPage.autopsy.consent.reinstateErrors.${result.reasonCode}` : undefined;
+        showToast(reasonKey ? tGrossingNav(reasonKey) : tGrossingNav('synopticReportPage.autopsy.consent.reinstateFailed'), 'warning');
+        return;
+      }
+      const refreshed = await caseRouter.getCase(caseData.id);
+      if (refreshed) setCaseData(refreshed);
+      setShowAutopsyConsentReinstateForm(false);
+      setReinstateForm({ status: 'active', excludedOrgans: [], retentionPermitted: true, reinstatementNote: '' });
+      showToast(tGrossingNav('synopticReportPage.autopsy.consent.reinstateRecorded'));
+    } finally {
+      setSubmittingReinstate(false);
+    }
+  }, [caseData?.id, reinstateForm, signingUserName, setCaseData, showToast, tGrossingNav]);
+
   const {
     sendMaterialOrderToLis,
     sendSynopticReportToLis,
@@ -693,12 +1129,14 @@ const SynopticReportPage: React.FC = () => {
   // nothing on this page.
   useEffect(() => {
     const listener = (e: Event) => {
-      const detail = (e as CustomEvent<{ caseId: string; targetDescription: string; stationName: string }>).detail;
+      const detail = (e as CustomEvent<{ caseId: string; targetDescription: string; stationName: string; resolvedCassettes?: number }>).detail;
       if (!detail || !caseData || detail.caseId !== caseData.id) return;
       caseRouter.getCase(caseData.id).then(refreshed => {
         if (refreshed) setCaseData(refreshed);
       });
-      showToast(`📍 ${detail.targetDescription} scanned at "${detail.stationName}" — location updated and sent to the engine.`);
+      showToast(detail.resolvedCassettes !== undefined
+        ? tGrossingNav('synopticReportPage.toast.cassettesResolved', { specimen: detail.targetDescription, count: detail.resolvedCassettes })
+        : tGrossingNav('synopticReportPage.toast.materialScanned', { target: detail.targetDescription, station: detail.stationName }));
     };
     window.addEventListener(MATERIAL_SCAN_UPDATED_EVENT, listener);
     return () => window.removeEventListener(MATERIAL_SCAN_UPDATED_EVENT, listener);
@@ -730,6 +1168,7 @@ const SynopticReportPage: React.FC = () => {
     handleRemovePendingBlock,
     handleAddDecant,
     handleUpdateDecant,
+    handleDeleteDecant,
     handleCreateBiopsyArray,
     handleUpdateBiopsyArray,
     handleDissolveBiopsyArray,
@@ -845,6 +1284,8 @@ const SynopticReportPage: React.FC = () => {
   // onFocusBlock), and folding this into it risked a real, hard-to-
   // reason-about bidirectional loop between the two directions.
   const [materialSelectedBlockId, setMaterialSelectedBlockId] = useState<string | undefined>(undefined);
+  // Batch 452: counts Material clicks, so re-clicking the same block re-syncs billing.
+  const [materialSelectionSeq, setMaterialSelectionSeq] = useState(0);
   // Honest signal for when the AI's cited source couldn't actually be
   // located in the report text — see LeftReportPanel's matchResult.
   const [highlightNotFound, setHighlightNotFound] = useState(false);
@@ -914,6 +1355,80 @@ const SynopticReportPage: React.FC = () => {
   // a genuinely undefined/missing reportingMode (a real, older or
   // LIS-owned record) stays Assist mode, never guessed otherwise.
   const isOrchestrationMode = caseData?.reportingMode === 'orchestrator';
+  caseDataRef.current = caseData;
+
+  // ── PS-71 (Batch 458): this page's immediate saves ──────────────────────
+  // Specimen and case comments, flags, codes, priority, specimen and block
+  // fields, autopsy details: each saved the moment it's made, with the page's
+  // version. If someone else saved meanwhile, the change is merged field by
+  // field and record by record onto their save (services/cases/caseWrite.ts),
+  // and the page shows their changes. Only when the same field was changed
+  // both ways does it stop: the change is kept on the page (pendingPartsRef)
+  // and the Edit Conflict dialog opens (a ConcurrencyConflictError, which
+  // every caller already handles).
+  const savePagePatch = useCallback(async (id: string, patch: Partial<Case>): Promise<void> => {
+    const before = caseDataRef.current;
+    const r = await savePageChange({ caseId: id, patch, before, knownVersion: knownVersionRef.current, pending: pendingPartsRef.current }, caseWriteDeps);
+    if (r.kind === 'notFound') throw new Error(`Case ${id} not found`);
+    if (r.kind === 'conflict') {
+      pendingPartsRef.current = r.pending;
+      setCaseData(prev => (prev ? { ...prev, ...patch } as typeof prev : prev));
+      const conflict = new ConcurrencyConflictError(id, knownVersionRef.current, r.actualVersion);
+      // Audited like the draft save's conflict ("Concurrency conflict detected").
+      handleConcurrencyConflict(conflict, setConcurrencyConflict, { userName: signingUser?.name ?? signingUser?.id, actionName: `instant save (${Object.keys(patch).join(', ')})` });
+      throw conflict;
+    }
+    if (r.kind === 'review') {
+      // Nothing saved yet: keep the change (as for a conflict) and let the person decide.
+      pendingPartsRef.current = r.pending;
+      setCaseData(prev => (prev ? { ...prev, ...patch } as typeof prev : prev));
+      setMergeReview(r.review);
+      throw new MergeReviewPendingError(r.review, knownVersionRef.current);
+    }
+    knownVersionRef.current = r.version;
+  }, [signingUser]);
+
+  // Batch 458 (Pete: "an option to abort or accept the changes"): a save that
+  // met someone else's newer save in other parts stops here for the person.
+  const [mergeReviewBusy, setMergeReviewBusy] = useState(false);
+  /** Take up a newer saved case without losing anything typed and not saved. */
+  const takeUp = useCallback((saved: Case, savedVersion: number, applied: Partial<Case>) => {
+    const pageDraft = caseDataRef.current ? caseDraftUpdates(caseDataRef.current, orchSections) : {};
+    const take = takeUpSavedCase({ saved, savedVersion, applied, pageDraft, draftBase: draftBaseRef.current });
+    setCaseData(prev => (prev ? { ...take.show, ...(isOrchestrationMode && !('diagnostic' in applied) ? { diagnostic: prev.diagnostic } : {}) } as typeof prev : prev));
+    const orch = (take.show as any).orchSections;
+    if (isOrchestrationMode && Array.isArray(orch)) setOrchSections(orch);
+    if (take.adoptVersion !== null) {
+      knownVersionRef.current = take.adoptVersion;
+      draftBaseRef.current = { ...draftBaseRef.current, ...Object.fromEntries(Object.keys(applied).filter(k => k in pageDraft).map(k => [k, (saved as any)[k]])), ...(take.draftBase ?? {}) };
+    }
+  }, [orchSections, isOrchestrationMode]);
+  const handleMergeReviewSave = async () => {
+    if (!mergeReview) return;
+    setMergeReviewBusy(true);
+    const r = await commitMergeReview(mergeReview, caseWriteDeps).finally(() => setMergeReviewBusy(false));
+    const review = mergeReview;
+    setMergeReview(null); setConcurrencyConflict(null);
+    if (r.ok === false) { showToast(tGrossingNav('synopticReportPage.mergeReview.changedAgain'), 'warning'); return; }
+    takeUp(r.saved, r.version, review.parts);
+    pendingPartsRef.current = null;
+    // The draft is saved when the review carried it.
+    if (Object.keys(review.parts).some(k => k === 'synopticReports' || k === 'orchSections' || k === 'grossingReports')) { discardDraft(); clearDirty(); }
+    showToast(tGrossingNav('synopticReportPage.mergeReview.saved'));
+  };
+  const handleMergeReviewNotYet = () => {
+    if (!mergeReview) return;
+    const review = mergeReview;
+    setMergeReview(null); setConcurrencyConflict(null);
+    // Their changes shown, this person's on top, not saved.
+    takeUp(review.latest, review.version, review.parts);
+    const pagePartKeys = Object.keys(review.parts).filter(k => !['synopticReports', 'orchSections', 'grossingReports'].includes(k));
+    pendingPartsRef.current = pagePartKeys.length
+      ? { parts: Object.fromEntries(pagePartKeys.map(k => [k, (review.parts as any)[k]])) as Partial<Case>, base: Object.fromEntries(pagePartKeys.map(k => [k, (review.latest as any)[k]])) as Partial<Case> }
+      : null;
+    markDirty('mergeReview');
+    showToast(tGrossingNav('synopticReportPage.mergeReview.shown'), 'info');
+  };
 
   // ── Three-column Orchestration layout state ─────────────────────────────────
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
@@ -987,9 +1502,11 @@ const SynopticReportPage: React.FC = () => {
     handleKeepVersion,
     handleAcceptAllSections,
   } = useOrchestratorDraft({
+    confirmWarnings: warningConfirm.confirm,
     caseData, setCaseData, caseId, orchSections, setOrchSections,
     activeSectionId, setActiveSectionId, isOrchestrationMode, leftTab,
-    knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast,
+    knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast, draftBaseRef, pendingPartsRef,
+    onMergeReview: setMergeReview,
   });
 
   // Real fix, per direct follow-up: "1. Save & Switch: Flushes
@@ -1026,7 +1543,7 @@ const SynopticReportPage: React.FC = () => {
   // read anywhere in this file. Flagged as a likely real gap (this looks
   // like it should feed into which physical report template renders, or
   // the print/PDF flow) rather than silently deleted.
-  const [resolvedTemplateName, setResolvedTemplateName] = useState<string>('Gold Standard — General Surgical Pathology');
+  const [resolvedTemplateName, setResolvedTemplateName] = useState<string>(GOLD_STANDARD_TEMPLATE_NAME);
   const [resolvedBy,           setResolvedBy]           = useState<string>('gold-standard');
   const [overrideTemplateId,   setOverrideTemplateId]   = useState<string | null>(null);
 
@@ -1054,7 +1571,7 @@ const SynopticReportPage: React.FC = () => {
         // produced with the same auto-resolve values.
         setResolvedTemplateId(prev => prev === 'tmpl-gold-standard' ? ctx.narrativeTemplate.templateId : prev);
         setResolvedTemplateName(curr =>
-          curr === 'Gold Standard — General Surgical Pathology' ? ctx.narrativeTemplate.templateName : curr
+          curr === GOLD_STANDARD_TEMPLATE_NAME ? ctx.narrativeTemplate.templateName : curr
         );
       })
       .catch(e => {
@@ -1097,38 +1614,10 @@ const SynopticReportPage: React.FC = () => {
   // actually does today.
 
   // ── AI Synthesis Status — fed to HeaderBar's badge ───────────────────────
-  // SHORT-TERM SAFE FALLBACK, per Dr. Carter's review: a true tiered
-  // "floor" model (Tier 1 diagnosis/staging fields gating the badge,
-  // Tier 2/3 not) is the right long-term design — but classifying tiers by
-  // regex-matching field ID strings (the only metadata AiSuggestion
-  // carries today) is a silent-failure risk: an unexpected ID like
-  // `txt_tmr_typ_01` would slip past the patterns and a genuinely critical
-  // field could fail to gate the badge. That's worse than the flat-average
-  // bug this whole thing started as fixing.
-  //
-  // Until tier classification is sourced from the real CAP eCC template
-  // schema (EditorField/EditorSection's actual "Must Have" / required
-  // metadata — the same schema RightSynopticPanel renders from, not
-  // available in this file), the badge uses a deliberately conservative
-  // binary rule instead: ANY field below the confidence threshold trips
-  // the warning, regardless of which field it is. Over-warning is the
-  // correct failure mode here, not over-assuring.
-  //
-  // TODO (long-term fix): once tier metadata is wired in from the CAP
-  // schema, replace this with real floor logic restricted to Tier 1
-  // fields, matching the design discussed but not shipped here.
-  //
-  // Real fix, found via a direct audit: this used to hardcode
-  // REVIEW_THRESHOLD = 80 as its own, second, independently-maintained
-  // copy of the confidence threshold, separate from the one
-  // RightSynopticPanel.tsx actually uses to decide which AI suggestions
-  // are "above threshold" (which defaults to 75, not 80, and is loaded
-  // from the real, admin-configurable aiBehaviorService — Config > AI
-  // Provider Settings). The two were already disagreeing by default,
-  // not just at risk of drifting apart later — the exact class of
-  // duplicated-constant bug the O26- prefix had. Now loaded from the
-  // same real source, same default fallback, so the two can't
-  // independently disagree anymore.
+  // PS-329 (Batch 437): only the template's Must Have fields (required and
+  // shown) decide the badge; see services/templates/aiSynthesisStatus.ts.
+  // The threshold is the admin-configurable one RightSynopticPanel also
+  // uses (Configuration → AI Provider Settings), not a second copy.
   const [reviewThreshold, setReviewThreshold] = React.useState(75);
   React.useEffect(() => {
     aiBehaviorService.get().then(res => {
@@ -1138,40 +1627,11 @@ const SynopticReportPage: React.FC = () => {
 
   const REVIEW_THRESHOLD = reviewThreshold;
 
-  const aiSynthesisStatus = React.useMemo<AiSynthesisStatus>(() => {
-    const entries = Object.entries(aiSuggestions)
-      .filter((e): e is [string, AiSuggestion] => typeof e[1]?.confidence === 'number');
-    if (entries.length === 0) return { state: 'none' };
-
-    const overallConfidence = Math.round(
-      entries.reduce((sum, [, s]) => sum + s.confidence, 0) / entries.length
-    );
-
-    // ROOT FIX — this previously flagged the lowest-confidence field
-    // across ALL suggestions regardless of verification status, so a
-    // field the pathologist had already confirmed or overridden (e.g.
-    // via a Delta-table override during an amendment, which sets
-    // verification: 'disputed') kept triggering "Review Pending"
-    // forever based on its original, now-irrelevant AI confidence
-    // score. Only fields still genuinely 'unverified' — i.e. actually
-    // pending review — should be able to trip this.
-    const unreviewed = entries.filter(([, s]) => s.verification === 'unverified');
-
-    let flagged: [string, AiSuggestion] | null = null;
-    for (const entry of unreviewed) {
-      if (!flagged || entry[1].confidence < flagged[1].confidence) flagged = entry;
-    }
-
-    const state: AiSynthesisStatus['state'] =
-      flagged && flagged[1].confidence < REVIEW_THRESHOLD ? 'review-required' : 'draft-ready';
-
-    return {
-      state,
-      overallConfidence,
-      flaggedFieldId: flagged?.[0],
-      flaggedFieldConfidence: flagged?.[1].confidence,
-    };
-  }, [aiSuggestions, REVIEW_THRESHOLD]);
+  const [mustHave, setMustHave] = React.useState<MustHaveFields | null>(null);
+  const aiSynthesisStatus = React.useMemo<AiSynthesisStatus>(
+    () => computeAiSynthesisStatus(aiSuggestions, REVIEW_THRESHOLD, mustHave),
+    [aiSuggestions, REVIEW_THRESHOLD, mustHave],
+  );
 
   // "Unpacking" — clicking the badge in a 'review-required' state jumps
   // straight to the Tier 1 field that dragged the status down, reusing the
@@ -1378,6 +1838,27 @@ const SynopticReportPage: React.FC = () => {
   // added to the shared useSynopticFinalize hook since it's specific to
   // this one flow and doesn't need to be shared with other components.
   const [countersignFeedback, setCountersignFeedback] = useState('');
+  // Batch 454: "follow-up specimen expected", ticked in the sign-out modal.
+  const [followUpExpected, setFollowUpExpected] = useState(false);
+  const capabilities = useCapabilities();
+  const canMarkFollowUp = capabilities.has('case:follow-up:expect', { caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null });
+  // Kept while sign-out gates close and reopen the flow; cleared for another case.
+  useEffect(() => { setFollowUpExpected(false); }, [caseData?.id]);
+  // Batch 459: after sign-out, "Mark follow-up expected" (or the existing mark) in the action bar.
+  const [followUpOffer, setFollowUpOffer] = useState<FollowUpMarkOffer>({ kind: 'none' });
+  useEffect(() => {
+    let live = true;
+    if (!caseData?.id) { setFollowUpOffer({ kind: 'none' }); return; }
+    loadFollowUpMarkOffer(caseData.id).then(o => { if (live) setFollowUpOffer(o); }).catch(() => { if (live) setFollowUpOffer({ kind: 'none' }); });
+    return () => { live = false; };
+  }, [caseData?.id, caseData?.status]);
+  const handleMarkFollowUpAfterSignOut = useCallback(async () => {
+    if (!caseData?.id || !signingUser) return;
+    const r = await markFollowUpExpectedAfterSignOutLive(caseData.id, { id: signingUser.id, name: signingUser.name });
+    if (r.ok === false) { showToast(tGrossingNav(`bottomActionBar.followUp.notMarked.${followUpMarkFailureKey(r.reason)}`), 'warning'); return; }
+    setFollowUpOffer({ kind: 'marked', expectation: r.data });
+    showToast(tGrossingNav('bottomActionBar.followUp.markedToast', { date: formatDate(r.data.window.endsAt, i18nForDates.language) }));
+  }, [caseData?.id, signingUser, showToast, tGrossingNav, i18nForDates.language]);
 
   // Real fix: handleUpdateBlock does a shallow merge at the block
   // level ({ ...block, ...changes }), not a deep merge into coding -
@@ -1385,324 +1866,97 @@ const SynopticReportPage: React.FC = () => {
   // any real, existing rejectedCpt on that same block, and vice versa.
   // Both real arrays are read and re-passed together here for exactly
   // that reason.
+  // Batch 452: a billing row can be a block or a decant
+  // (services/material/billableMaterial.ts); its codes are read from, and
+  // written back to, whichever it is. A decant's coding goes through the
+  // material store like any other decant change.
   const findCaseBlock = (specimenId: string, blockId: string) =>
-    caseData?.specimens?.find(sp => sp.id === specimenId)?.blocks?.find(b => b.id === blockId);
-
-  // Real feature, per direct requirement: "the Pathologist has the
-  // right to update all billing, even those that are deterministic
-  // ... we need a mechanism to send a credit transaction on billing
-  // that gets changed ... All must be audited." Shared helper -
-  // resolves a real charge against the current, real Billing
-  // Dictionary and records it permanently (serviceChargeService),
-  // plus a real, general audit trail entry, matching this app's own
-  // established "type: 'user', event, detail (PHI-safe)" convention
-  // everywhere else a significant user action gets logged.
-  const recordChargeTransaction = async (specimenId: string, blockId: string | undefined, code: string, postSignoutContext?: PostSignoutChangeContext) => {
-    const sp = caseData?.specimens?.find(s => s.id === specimenId);
-    const block = blockId ? sp?.blocks?.find(b => b.id === blockId) : undefined;
-    if (!caseData?.id || !sp) return;
-
-    // Real, per direct guidance's own recommended fallback hierarchy:
-    // Date Collected (default) -> Date Received/Accessioned (fallback
-    // if Date Collected is null). Real fix, per direct correction: this
-    // used to fall straight to "now" whenever receivedAt was missing,
-    // which could silently resolve against the wrong billing rule
-    // version with no error raised. Per direct guidance's own explicit
-    // CAP/CLIA (§ 493.1241, COM.06100/COM.06200) correction: a
-    // placeholder/best-effort date must never be used to push a charge
-    // through either, even once the pre-analytic date gate
-    // (useSignOutWorkflow.ts) has already let the case itself sign out
-    // on a formally-documented administrative override. When neither a
-    // real collectedAt nor receivedAt exists, this specimen's billing
-    // is genuinely NOT resolved here — same honest "never fabricate,
-    // report the gap" posture resolveServiceCharge already uses for an
-    // unrecognized billingCode/date. The real, open SpecimenDeficiency
-    // already raised in handlePreAnalyticDateGateContinue is where this
-    // gap lives until a real date is recovered; re-triggering charge
-    // capture after that correction is a real, disclosed follow-up gap
-    // — not built here.
-    const dateOfService = sp.collectedAt ?? sp.receivedAt;
-    if (!dateOfService) {
-      auditService.logEvent({
-        type: 'user',
-        event: 'Billing code NOT charged — pre-analytic date unresolved',
-        detail: `${block ? `${sp.label}${block.label}` : sp.label}: ${code} withheld — neither Date Collected nor Date Received is available (administrative override in effect). See open Pre-Analytic Date deficiency for this specimen.`,
-        user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-        caseId: caseData.accession?.fullAccession ?? caseData.id,
-        confidence: null,
-      });
-      return;
-    }
-
-    const versionsRes = await billingRuleService.getAll();
-    if (!versionsRes.ok) return;
-    const charge = resolveServiceCharge(code, versionsRes.data, {
-      caseId: caseData.id,
-      sourceLevel: blockId ? 'block' : 'specimen',
-      sourceLabel: block ? `${sp.label}${block.label}` : sp.label,
-      specimenId,
-      blockId,
-      dateOfService,
-      resolvedBy: signingUser?.id ?? 'unknown',
-      postSignoutContext,
-    });
-    if (!charge) return; // honest, real gap: no ACTIVE dictionary rule covers this code/date - never fabricated
-    // Real, per direct guidance's own Feature Specification refinement
-    // ("Opt-in Core"): a new charge starts as DRAFT, requiring a real,
-    // different approver before it can export, only when the
-    // performing lab has explicitly opted in. Absence (the real,
-    // default state) preserves today's exact behavior - no
-    // approvalStatus at all.
-    if (await resolveRequireBillingApprovalForCase(caseData.originHospitalId)) {
-      charge.approvalStatus = 'DRAFT';
-      charge.draftedBy = signingUser?.id ?? 'unknown';
-      charge.draftedAt = new Date().toISOString();
-    }
-    await serviceChargeService.saveCharge(charge);
-    auditService.logEvent({
-      type: 'user',
-      event: 'Billing code charged',
-      detail: `${charge.sourceLabel}: ${charge.billingCode} (${charge.cptCode}) charged`
-        + (postSignoutContext ? ` \u2014 post-sign-out change, reason ${postSignoutContext.reasonId}: "${postSignoutContext.comment}"` : ''),
-      user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-      caseId: caseData.accession?.fullAccession ?? caseData.id,
-      confidence: null,
-    });
+    billableUnitOf<HistologyBlock, Decant>(caseData?.specimens as never, specimenId, blockId)?.unit as { coding?: HistologyBlock['coding'] } | undefined;
+  const updateBillableMaterial = (specimenId: string, materialId: string, changes: { coding?: HistologyBlock['coding'] }) => {
+    const target = billableUnitOf<HistologyBlock, Decant>(caseData?.specimens as never, specimenId, materialId);
+    if (target?.kind === 'decant') return handleUpdateDecant(specimenId, materialId, { coding: changes.coding as Decant['coding'] });
+    return handleUpdateBlock(specimenId, materialId, changes);
   };
 
-  // Real, per direct requirement: a credit is an exact reversal of
-  // whatever was actually charged - see reverseServiceCharge's own
-  // header for why this never re-resolves against the current
-  // dictionary. Gracefully proceeds (with its own honest audit entry)
-  // even when no matching charge record can be found, rather than
-  // blocking a pathologist's real right to remove a code just because
-  // older data predates this ledger.
-  const recordCreditTransaction = async (specimenId: string, blockId: string | undefined, code: string, postSignoutContext?: PostSignoutChangeContext) => {
-    if (!caseData?.id) return;
-    const activeRes = await serviceChargeService.findActiveChargeForSource(caseData.id, specimenId, blockId, code);
-    const sp = caseData.specimens?.find(s => s.id === specimenId);
-    const block = blockId ? sp?.blocks?.find(b => b.id === blockId) : undefined;
-    const sourceLabel = block ? `${sp?.label ?? ''}${block.label}` : (sp?.label ?? specimenId);
-    if (activeRes.ok && activeRes.data) {
-      const credit = reverseServiceCharge(activeRes.data, signingUser?.id ?? 'unknown', undefined, postSignoutContext);
-      if (await resolveRequireBillingApprovalForCase(caseData.originHospitalId)) {
-        credit.approvalStatus = 'DRAFT';
-        credit.draftedBy = signingUser?.id ?? 'unknown';
-        credit.draftedAt = new Date().toISOString();
-      }
-      await serviceChargeService.saveCharge(credit);
-      auditService.logEvent({
-        type: 'user',
-        event: 'Billing code credited',
-        detail: `${sourceLabel}: ${code} (${credit.cptCode}) removed - real credit issued reversing charge ${activeRes.data.id}`
-          + (postSignoutContext ? ` \u2014 post-sign-out change, reason ${postSignoutContext.reasonId}: "${postSignoutContext.comment}"` : ''),
-        user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-        caseId: caseData.accession?.fullAccession ?? caseData.id,
-        confidence: null,
-      });
-    } else {
-      // Real, honest case: removing a code with no matching charge
-      // record (e.g. applied before this ledger existed). Still
-      // audited - "All must be audited" - just without a financial
-      // reversal that has nothing real to reverse.
-      auditService.logEvent({
-        type: 'user',
-        event: 'Billing code removed (no charge record found)',
-        detail: `${sourceLabel}: ${code} removed - no matching real charge record found to credit`,
-        user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-        caseId: caseData.accession?.fullAccession ?? caseData.id,
-        confidence: null,
-      });
-    }
+  // Batch 460: the charge, credit and coding decisions behind the billing
+  // panel live in services/billing/caseBillingCharges.ts and
+  // caseBillingCoding.ts (shared with the Cytology Workspace and Microtomy).
+  // Every change needs billing:applied-code:review (enforceBillingReview),
+  // asked before anything changes; correcting an applied code still needs
+  // billing:applied-code:correct. A pending AI suggestion can still be
+  // approved on a signed-out case, after the post-sign-out reason.
+  const recordChargeTransaction = (specimenId: string, blockId: string | undefined, code: string, postSignoutContext?: PostSignoutChangeContext) =>
+    caseData ? recordCaseCharge({ caseData, specimenId, blockId, code, user: signingUser, postSignoutContext }) : Promise.resolve('notCharged' as const);
+  const recordCreditTransaction = (specimenId: string, blockId: string | undefined, code: string, postSignoutContext?: PostSignoutChangeContext) =>
+    caseData ? recordCaseCredit({ caseData, specimenId, blockId, code, user: signingUser, postSignoutContext }) : Promise.resolve('notCredited' as const);
+  const billingReviewAllowed = async (): Promise<boolean> => {
+    if (!caseData) return false;
+    if (await enforceBillingReview(caseData)) return true;
+    showToast(tGrossingNav('billingReview.toast.notPermitted'), 'warning');
+    return false;
+  };
+  // Cancelled → null: nothing changes. Not signed out → undefined.
+  const postSignoutReason = async (summary: string): Promise<PostSignoutChangeContext | undefined | null> => {
+    if (!(isOrchestrationMode && isCaseSignedOutForBilling(caseData?.status))) return undefined;
+    try { return await requestPostSignoutConfirmation(summary); } catch { return null; }
   };
 
   const handleApproveBillingCode = async (specimenId: string, blockId: string, code: string, stainOrderId?: string) => {
-    // Real, confirmed gap fix: pending AI suggestions are live-
-    // recomputed from unapplied stain evidence (BillingReviewPanel.tsx's
-    // own pending/unappliedSuggestionSources), not a one-time-resolved
-    // list - they genuinely can still exist and be approved on an
-    // already-signed-out case. Gated before any mutation, same
-    // principle as handleAddCodesToSpecimens/handleConfirmCodeCorrection.
-    let postSignoutContext: PostSignoutChangeContext | undefined;
-    if (isOrchestrationMode && isCaseSignedOutForBilling(caseData?.status)) {
-      try {
-        postSignoutContext = await requestPostSignoutConfirmation(`${code} approved.`);
-      } catch {
-        return; // cancelled - no mutation at all
-      }
-    }
-    const block = findCaseBlock(specimenId, blockId);
-    handleUpdateBlock(specimenId, blockId, {
-      coding: {
-        cpt: [...(block?.coding?.cpt ?? []), { code, stainOrderId }],
-        rejectedCpt: block?.coding?.rejectedCpt ?? [],
-      },
-    });
+    if (!(await billingReviewAllowed())) return;
+    const postSignoutContext = await postSignoutReason(`${code} approved.`);
+    if (postSignoutContext === null) return;
+    updateBillableMaterial(specimenId, blockId, { coding: codingWithApproved(findCaseBlock(specimenId, blockId)?.coding, [{ code, stainOrderId }]) });
     recordChargeTransaction(specimenId, blockId, code, postSignoutContext);
   };
 
-  const handleRejectBillingCode = (specimenId: string, blockId: string, code: string, stainOrderId?: string) => {
-    const block = findCaseBlock(specimenId, blockId);
-    handleUpdateBlock(specimenId, blockId, {
-      coding: {
-        cpt: block?.coding?.cpt ?? [],
-        rejectedCpt: [...(block?.coding?.rejectedCpt ?? []), { code, stainOrderId }],
-      },
-    });
-    // Real, per direct requirement ("All must be audited"): no
-    // financial transaction here - overriding a pending AI suggestion
-    // means nothing was ever actually charged, so there is nothing
-    // real to credit. The decision itself is still worth a real audit
-    // trail entry, distinct from recordCreditTransaction's own
-    // "removed an already-applied code" case above.
-    auditService.logEvent({
-      type: 'user',
-      event: 'AI billing suggestion overridden',
-      detail: `${specimenId}${blockId}${stainOrderId ? ` (stain ${stainOrderId})` : ''}: ${code} overridden, not applied`,
-      user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-      caseId: caseData?.accession?.fullAccession ?? caseData?.id ?? null,
-      confidence: null,
-    });
+  const handleRejectBillingCode = async (specimenId: string, blockId: string, code: string, stainOrderId?: string) => {
+    if (!caseData || !(await billingReviewAllowed())) return;
+    updateBillableMaterial(specimenId, blockId, { coding: codingWithRejected(findCaseBlock(specimenId, blockId)?.coding, code, stainOrderId) });
+    // Nothing was charged for a suggestion, so nothing to credit; the decision is audited.
+    auditBillingSuggestionDeclined({ caseData, specimenId, blockId, code, stainOrderId, user: signingUser });
   };
 
-  // Real fix, found via direct inspection of the actual, real case data
-  // after testing BillingReviewPanel's own new expand-in-place Override
-  // flow: calling handleRejectBillingCode then immediately,
-  // synchronously, handleApproveBillingCode in the same event handler
-  // silently lost one of the two changes. Both handlers read block via
-  // findCaseBlock, a plain read of the closure-captured caseData (not
-  // caseDataRef.current, unlike handleUpdateBlock's own internal merge
-  // logic) - so the second call computed its own changes.coding object
-  // from the same, pre-first-call snapshot, and handleUpdateBlock's
-  // shallow merge let that whole object silently overwrite the first
-  // call's own update. This computes both the rejectedCpt and cpt
-  // changes from one single read, then writes them together in one
-  // real update - no second, competing read/write cycle possible.
-  // Real, per direct requirement to make code application genuinely
-  // stain-level: the replacement code inherits the same stainOrderId
-  // as the suggestion it's replacing - an override is still resolving
-  // that specific stain's own billing, just with a different code.
+  // The decline and the replacement are written in one change, from one read
+  // of the block (two writes in a row used to lose one of them). The new code
+  // keeps the suggestion's stain.
   const handleOverrideBillingCode = async (specimenId: string, blockId: string, oldCode: string, newCode: string, stainOrderId?: string) => {
-    let postSignoutContext: PostSignoutChangeContext | undefined;
-    if (isOrchestrationMode && isCaseSignedOutForBilling(caseData?.status)) {
-      try {
-        postSignoutContext = await requestPostSignoutConfirmation(`${oldCode} \u2192 ${newCode}.`);
-      } catch {
-        return; // cancelled - no mutation at all
-      }
-    }
-    const block = findCaseBlock(specimenId, blockId);
-    handleUpdateBlock(specimenId, blockId, {
-      coding: {
-        cpt: [...(block?.coding?.cpt ?? []), { code: newCode, stainOrderId }],
-        rejectedCpt: [...(block?.coding?.rejectedCpt ?? []), { code: oldCode, stainOrderId }],
-      },
-    });
+    if (!caseData || !(await billingReviewAllowed())) return;
+    const postSignoutContext = await postSignoutReason(`${oldCode} \u2192 ${newCode}.`);
+    if (postSignoutContext === null) return;
+    updateBillableMaterial(specimenId, blockId, { coding: codingWithOverride(findCaseBlock(specimenId, blockId)?.coding, oldCode, newCode, stainOrderId) });
     recordChargeTransaction(specimenId, blockId, newCode, postSignoutContext);
-    auditService.logEvent({
-      type: 'user',
-      event: 'AI billing suggestion overridden',
-      detail: `${specimenId}${blockId}${stainOrderId ? ` (stain ${stainOrderId})` : ''}: ${oldCode} overridden, not applied — replaced with ${newCode}`
-        + (postSignoutContext ? ` \u2014 post-sign-out change, reason ${postSignoutContext.reasonId}: "${postSignoutContext.comment}"` : ''),
-      user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-      caseId: caseData?.accession?.fullAccession ?? caseData?.id ?? null,
-      confidence: null,
-    });
+    auditBillingSuggestionDeclined({ caseData, specimenId, blockId, code: oldCode, stainOrderId, replacedWith: newCode, user: signingUser, postSignoutContext });
   };
 
-  // Real feature, per direct request: "we need the delete in case they
-  // want to remove the billing on that item." Removes the code from
-  // coding.cpt only - rejectedCpt is deliberately left untouched, so a
-  // deleted AI-confirmed code is free to reappear as a real, pending
-  // suggestion on the next recompute (the underlying stain evidence on
-  // the block hasn't changed), rather than being silently lost for
-  // this block forever. Matches by both code AND stainOrderId now -
-  // real, necessary precision once multiple entries can share the same
-  // code value but belong to different stains.
-  const handleDeleteBillingCode = (specimenId: string, blockId: string, code: string, stainOrderId?: string) => {
-    const block = findCaseBlock(specimenId, blockId);
-    const cpt = [...(block?.coding?.cpt ?? [])];
-    const idx = cpt.findIndex(c => c.code === code && c.stainOrderId === stainOrderId);
-    if (idx !== -1) cpt.splice(idx, 1);
-    handleUpdateBlock(specimenId, blockId, {
-      coding: { cpt, rejectedCpt: block?.coding?.rejectedCpt ?? [] },
-    });
+  // Removes an applied code (credited); a deleted code can come back as a
+  // suggestion while its stain is still there.
+  const handleDeleteBillingCode = async (specimenId: string, blockId: string, code: string, stainOrderId?: string) => {
+    if (!(await billingReviewAllowed())) return;
+    updateBillableMaterial(specimenId, blockId, { coding: codingWithoutCode(findCaseBlock(specimenId, blockId)?.coding, code, stainOrderId) });
     recordCreditTransaction(specimenId, blockId, code);
   };
 
-  // Real feature, per direct request: "an option to Approve all billing
-  // since they can see it all now... could be a lot in some instances."
-  // Deliberately batched by block, one handleUpdateBlock call per real
-  // affected block, rather than calling handleApproveBillingCode once
-  // per item - a naive loop would have each call read the same real,
-  // pre-update caseData.specimens (React doesn't re-render mid-
-  // synchronous-loop), so several rapid calls to the same block would
-  // all compute their new cpt array from the same stale starting point
-  // and the last call would win, silently dropping the others. Real,
-  // confirmed risk, not theoretical: several real demo blocks (e.g. the
-  // MMR case, O26-0001) carry more than one pending suggestion with the
-  // exact same code value on the exact same block.
-  const handleApproveAllBillingCodes = async (items: { specimenId: string; blockId: string; code: string; stainOrderId?: string }[]) => {
-    let postSignoutContext: PostSignoutChangeContext | undefined;
-    if (isOrchestrationMode && isCaseSignedOutForBilling(caseData?.status) && items.length > 0) {
-      try {
-        postSignoutContext = await requestPostSignoutConfirmation(`${items.length} code${items.length === 1 ? '' : 's'} approved.`);
-      } catch {
-        return; // cancelled - no mutation at all
-      }
+  // "Approve all": one write per block with all of its codes (a loop of
+  // single approvals would read the same stale block and drop some).
+  const handleApproveAllBillingCodes = async (items: BillingApprovalItem[]) => {
+    if (!(await billingReviewAllowed())) return;
+    const postSignoutContext = items.length > 0 ? await postSignoutReason(`${items.length} code${items.length === 1 ? '' : 's'} approved.`) : undefined;
+    if (postSignoutContext === null) return;
+    for (const { specimenId, blockId, codes } of groupApprovalsByUnit(items)) {
+      updateBillableMaterial(specimenId, blockId, { coding: codingWithApproved(findCaseBlock(specimenId, blockId)?.coding, codes) });
     }
-    const byBlock = new Map<string, { specimenId: string; blockId: string; codes: { code: string; stainOrderId?: string }[] }>();
-    for (const item of items) {
-      const key = `${item.specimenId}::${item.blockId}`;
-      if (!byBlock.has(key)) byBlock.set(key, { specimenId: item.specimenId, blockId: item.blockId, codes: [] });
-      byBlock.get(key)!.codes.push({ code: item.code, stainOrderId: item.stainOrderId });
-    }
-    for (const { specimenId, blockId, codes } of byBlock.values()) {
-      const block = findCaseBlock(specimenId, blockId);
-      handleUpdateBlock(specimenId, blockId, {
-        coding: {
-          cpt: [...(block?.coding?.cpt ?? []), ...codes],
-          rejectedCpt: block?.coding?.rejectedCpt ?? [],
-        },
-      });
-    }
-    // Real transaction/audit trail for every real item in the batch -
-    // same recordChargeTransaction helper a single Confirm uses, so
-    // "Confirm All" produces exactly the same real ledger entries a
-    // pathologist confirming each one individually would have.
     for (const item of items) recordChargeTransaction(item.specimenId, item.blockId, item.code, postSignoutContext);
   };
 
-  // Real feature, per direct request: "display the specimen level codes
-  // in the billing area where they can remove the code if need be."
-  // Specimen-level, not block-level - no handleUpdateBlock equivalent
-  // exists for this, so this follows the same real, established
-  // pattern directly: functional setCaseData update (avoids acting on
-  // a stale closure) plus markDirty, same as handleUpdateBlock's own
-  // real persistence path.
-  const handleDeleteSpecimenBaseCode = (specimenId: string, code: string) => {
-    setCaseData(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        specimens: prev.specimens?.map(sp =>
-          sp.id === specimenId
-            ? { ...sp, coding: { ...sp.coding, cpt: (sp.coding?.cpt ?? []).filter(c => c !== code) } }
-            : sp
-        ),
-      } as typeof prev;
-    });
-    markDirty('Billing code removed');
+  const handleDeleteSpecimenBaseCode = async (specimenId: string, code: string) => {
+    if (!(await billingReviewAllowed())) return;
+    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithBaseCodeRemoved(prev.specimens ?? [], specimenId, code) } as typeof prev) : prev));
+    markDirty('billingCodeRemoved');
     recordCreditTransaction(specimenId, undefined, code);
   };
 
-  // Real, per direct guidance's own follow-up: "post-signout additions
-  // may be required if the wrong code was billed... the original bill
-  // is credited and the new billing code submitted." These two
-  // entry points only capture WHICH real code is being corrected -
-  // opening CorrectAppliedCodeModal to collect the new code. The
-  // actual "credit the old, charge the new" orchestration happens in
-  // handleConfirmCodeCorrection below, once the new code is known.
+  // These only capture which applied code is being corrected; the credit and
+  // new charge happen in handleConfirmCodeCorrection once the new code is known.
   const handleCorrectBillingCode = (specimenId: string, blockId: string, oldCode: string, stainOrderId?: string) => {
     setCorrectingCode({ specimenId, blockId, oldCode, stainOrderId });
   };
@@ -1710,14 +1964,8 @@ const SynopticReportPage: React.FC = () => {
     setCorrectingCode({ specimenId, oldCode });
   };
 
-  // Real, per direct guidance's own follow-up. Gates on the real
-  // post-signout reason + comment when the case has already signed
-  // out (same requestPostSignoutConfirmation used by
-  // handleAddCodesToSpecimens), updates the visible code in real case
-  // state, then calls the real, shared correctServiceCharge
-  // orchestration (services/billing/correctServiceCharge.ts) - never
-  // reimplemented inline here, per direct correction that this kind of
-  // financial orchestration belongs in the services layer.
+  // Credits the old code and bills the new one through correctServiceCharge
+  // (services/billing), after the post-sign-out reason when signed out.
   const handleConfirmCodeCorrection = async (newCode: string) => {
     const pending = correctingCode;
     setCorrectingCode(null);
@@ -1729,158 +1977,51 @@ const SynopticReportPage: React.FC = () => {
       showToast(tGrossingNav('synopticReportPage.toast.billingCorrectionNotPermitted'), 'warning');
       return;
     }
+    if (!(await billingReviewAllowed())) return;
     const { specimenId, blockId, oldCode, stainOrderId } = pending;
-
-    let postSignoutContext: PostSignoutChangeContext | undefined;
-    if (isOrchestrationMode && isCaseSignedOutForBilling(caseData.status)) {
-      try {
-        postSignoutContext = await requestPostSignoutConfirmation(`${oldCode} \u2192 ${newCode}.`);
-      } catch {
-        return; // cancelled - no mutation at all
-      }
-    }
+    const postSignoutContext = await postSignoutReason(`${oldCode} \u2192 ${newCode}.`);
+    if (postSignoutContext === null) return;
 
     if (blockId) {
-      const block = findCaseBlock(specimenId, blockId);
-      const cpt = [...(block?.coding?.cpt ?? [])];
-      const idx = cpt.findIndex(c => c.code === oldCode && c.stainOrderId === stainOrderId);
-      if (idx !== -1) cpt[idx] = { code: newCode, stainOrderId };
-      handleUpdateBlock(specimenId, blockId, { coding: { cpt, rejectedCpt: block?.coding?.rejectedCpt ?? [] } });
+      updateBillableMaterial(specimenId, blockId, { coding: codingWithCorrection(findCaseBlock(specimenId, blockId)?.coding, oldCode, newCode, stainOrderId) });
     } else {
-      setCaseData(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          specimens: prev.specimens?.map(sp =>
-            sp.id === specimenId
-              ? { ...sp, coding: { ...sp.coding, cpt: (sp.coding?.cpt ?? []).map(c => c === oldCode ? newCode : c) } }
-              : sp
-          ),
-        } as typeof prev;
-      });
-      markDirty('Billing code corrected');
+      setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithBaseCodeCorrected(prev.specimens ?? [], specimenId, oldCode, newCode) } as typeof prev) : prev));
+      markDirty('billingCodeCorrected');
     }
 
-    if (!isOrchestrationMode) return; // assist mode: RVU-tracking code change only, no real financial transaction - matches every other billing action in this file
-    const activeRes = await serviceChargeService.findActiveChargeForSource(caseData.id, specimenId, blockId, oldCode);
-    const sp = caseData.specimens?.find(s => s.id === specimenId);
-    const block = blockId ? sp?.blocks?.find(b => b.id === blockId) : undefined;
-    const sourceLabel = block ? `${sp?.label ?? ''}${block.label}` : (sp?.label ?? specimenId);
-    if (activeRes.ok && activeRes.data) {
-      const res = await correctServiceCharge(caseData.id, activeRes.data.id, newCode, signingUser?.id ?? 'unknown', postSignoutContext);
-      if (res.ok) {
-        auditService.logEvent({
-          type: 'user',
-          event: 'Billing code corrected',
-          detail: `${sourceLabel}: ${oldCode} \u2192 ${newCode} \u2014 real credit issued reversing charge ${res.data.original.id}, new charge ${res.data.corrected.id} created`
-            + (postSignoutContext ? ` \u2014 post-sign-out change, reason ${postSignoutContext.reasonId}: "${postSignoutContext.comment}"` : ''),
-          user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-          caseId: caseData.accession?.fullAccession ?? caseData.id,
-          confidence: null,
-        });
-      }
-    } else {
-      // Real, honest case: correcting a code with no matching charge
-      // record (e.g. applied before this ledger existed) - same
-      // graceful-proceed posture as recordCreditTransaction's own
-      // "no charge record found" path.
-      auditService.logEvent({
-        type: 'user',
-        event: 'Billing code corrected (no charge record found)',
-        detail: `${sourceLabel}: ${oldCode} \u2192 ${newCode} \u2014 no matching real charge record found to credit`,
-        user: signingUser?.name ?? signingUser?.id ?? 'unknown',
-        caseId: caseData.accession?.fullAccession ?? caseData.id,
-        confidence: null,
-      });
-    }
+    if (!isOrchestrationMode) return; // assist mode: RVU-tracking code change only, no financial transaction
+    await recordCaseCodeCorrection({ caseData, specimenId, blockId, oldCode, newCode, user: signingUser, postSignoutContext });
   };
 
-  // Real feature, per the billing panel's own redesign (a specimen row
-  // can now be selected directly, closing a real, pre-existing gap:
-  // there was previously no way to manually assign a specimen-level
-  // base code through this panel at all, only delete an auto-applied
-  // one). Mirrors handleDeleteSpecimenBaseCode's own structure exactly,
-  // adding rather than removing - and reuses recordChargeTransaction,
-  // the same real charge/audit helper every other billing addition in
-  // this file already goes through.
-  const handleAddSpecimenBaseCode = (specimenId: string, code: string) => {
-    setCaseData(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        specimens: prev.specimens?.map(sp =>
-          sp.id === specimenId
-            ? { ...sp, coding: { ...sp.coding, cpt: [...(sp.coding?.cpt ?? []), code] } }
-            : sp
-        ),
-      } as typeof prev;
-    });
-    markDirty('Billing code added');
+  const handleAddSpecimenBaseCode = async (specimenId: string, code: string) => {
+    if (!(await billingReviewAllowed())) return;
+    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithBaseCodeAdded(prev.specimens ?? [], specimenId, code) } as typeof prev) : prev));
+    markDirty('billingCodeAdded');
     recordChargeTransaction(specimenId, undefined, code);
   };
 
-  // Real, per direct billing-expert guidance (PS-93) — the Evaluated
-  // Cores Checklist's own real write: sets which of a shared
-  // MatrixBlock stain's targeted specimens a pathologist has
-  // explicitly confirmed as evaluated/reviewed for diagnosis. This is
-  // the actual billing trigger — see StainOrder.evaluatedSpecimenIds's
-  // own doc comment (types/case/Specimen.ts) for why this is
-  // deliberately separate from, and never defaulted from,
-  // targetSpecimenIds. Reuses handleUpdateMatrixBlock for the write.
-  const handleSetMatrixEvaluatedCores = (matrixBlockId: string, stainOrderId: string, evaluatedSpecimenIds: string[]) => {
+  // PS-93: which of a matrix-block stain's cores the pathologist confirmed as
+  // evaluated (the billing trigger; never defaulted from targetSpecimenIds).
+  const handleSetMatrixEvaluatedCores = async (matrixBlockId: string, stainOrderId: string, evaluatedSpecimenIds: string[]) => {
+    if (!(await billingReviewAllowed())) return;
     const matrixBlock = (caseData?.matrixBlocks ?? []).find(mb => mb.id === matrixBlockId);
     if (!matrixBlock) return;
-    const updatedSlides = matrixBlock.slides.map(s => s.id === stainOrderId ? { ...s, evaluatedSpecimenIds } : s);
-    handleUpdateMatrixBlock(matrixBlockId, { slides: updatedSlides });
+    handleUpdateMatrixBlock(matrixBlockId, { slides: matrixSlidesWithEvaluatedCores(matrixBlock.slides, stainOrderId, evaluatedSpecimenIds) });
   };
 
-  // Real, per direct billing-expert guidance (PS-93) — applies a real,
-  // computeMatrixStainBillingUnits-derived suggestion for one specimen's
-  // own contribution from a shared MatrixBlock. Deliberately separate
-  // from handleApproveBillingCode above rather than an added branch on
-  // it: the real applied-code storage location is genuinely different
-  // (Specimen.matrixBlockCoding, not HistologyBlock.coding) — same
-  // direct, specimen-level setCaseData pattern handleAddSpecimenBaseCode
-  // above already uses, not the async caseRouter-backed
-  // handleUpdateBlock path (which only ever knows how to address an
-  // ordinary, specimen-owned block).
-  const handleApplyMatrixBillingCode = (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
-    setCaseData(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        specimens: prev.specimens?.map(sp => {
-          if (sp.id !== specimenId) return sp;
-          const existing = sp.matrixBlockCoding ?? [];
-          const entry = existing.find(e => e.matrixBlockId === matrixBlockId);
-          const updatedEntry = { matrixBlockId, cpt: [...(entry?.cpt ?? []), { code, stainOrderId }], rejectedCpt: entry?.rejectedCpt ?? [] };
-          return { ...sp, matrixBlockCoding: [...existing.filter(e => e.matrixBlockId !== matrixBlockId), updatedEntry] };
-        }),
-      } as typeof prev;
-    });
-    markDirty('Billing code added');
+  // PS-93: a matrix-block code for one specimen's cores, kept on
+  // Specimen.matrixBlockCoding (not on a block).
+  const handleApplyMatrixBillingCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
+    if (!(await billingReviewAllowed())) return;
+    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithMatrixCode(prev.specimens ?? [], specimenId, matrixBlockId, code, stainOrderId, 'applied') } as typeof prev) : prev));
+    markDirty('billingCodeAdded');
     recordChargeTransaction(specimenId, undefined, code);
   };
 
-  // Real, per direct billing-expert guidance (PS-93) — the reject
-  // counterpart to handleApplyMatrixBillingCode above, same real
-  // "permanently declined for this exact stain" semantics as
-  // handleRejectBillingCode's own ordinary-block version.
-  const handleRejectMatrixBillingCode = (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
-    setCaseData(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        specimens: prev.specimens?.map(sp => {
-          if (sp.id !== specimenId) return sp;
-          const existing = sp.matrixBlockCoding ?? [];
-          const entry = existing.find(e => e.matrixBlockId === matrixBlockId);
-          const updatedEntry = { matrixBlockId, cpt: entry?.cpt ?? [], rejectedCpt: [...(entry?.rejectedCpt ?? []), { code, stainOrderId }] };
-          return { ...sp, matrixBlockCoding: [...existing.filter(e => e.matrixBlockId !== matrixBlockId), updatedEntry] };
-        }),
-      } as typeof prev;
-    });
-    markDirty('Billing code rejected');
+  const handleRejectMatrixBillingCode = async (specimenId: string, matrixBlockId: string, code: string, stainOrderId?: string) => {
+    if (!(await billingReviewAllowed())) return;
+    setCaseData(prev => (prev ? ({ ...prev, specimens: specimensWithMatrixCode(prev.specimens ?? [], specimenId, matrixBlockId, code, stainOrderId, 'rejected') } as typeof prev) : prev));
+    markDirty('billingCodeRejected');
   };
 
   // Real gate, per direct request: sign-out checks, using the exact
@@ -2014,8 +2155,7 @@ const SynopticReportPage: React.FC = () => {
     } as any;
     setCaseData(updated);
     try {
-      await caseRouter.updateCase(caseData.id, { diagnostic: updated.diagnostic, grossingReports } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { diagnostic: updated.diagnostic, grossingReports } as any);
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: e.actualVersion });
@@ -2023,8 +2163,8 @@ const SynopticReportPage: React.FC = () => {
       }
       console.error(e);
     }
-    markDirty('Gross description');
-    showToast('Block/recut added');
+    markDirty('grossDescription');
+    showToast(tGrossingNav('synopticReportPage.toast.blockRecutAdded'));
     setShowAddOrdersModal(false);
   }, [caseData, setCaseData, knownVersionRef, setConcurrencyConflict, markDirty, showToast, setShowAddOrdersModal]);
 
@@ -2033,7 +2173,7 @@ const SynopticReportPage: React.FC = () => {
   // finalized, starts a real amendment draft so the triage tile can track
   // it (see handleFinalizeConfirm for where it's actually released).
   const handleAddSynopticReports = useCallback(async (newInstances: any[], updatedCase: Case) => {
-    markDirty('Synoptic reports');
+    markDirty('synopticReports');
     setActiveReportInstanceId(newInstances[0].instanceId);
     setActiveSpecimenId(newInstances[0].specimenId);
 
@@ -2094,10 +2234,9 @@ const SynopticReportPage: React.FC = () => {
     const updatedComments = [...caseComments, newComment];
     const patch = { order: { ...caseData.order, caseComments: updatedComments } };
     try {
-      await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, patch as any);
       setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
-      markDirty('Case comment');
+      markDirty('caseComment');
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
         // Comments are naturally append-only, so an actual field-
@@ -2139,10 +2278,9 @@ const SynopticReportPage: React.FC = () => {
     );
     const patch = { specimens: patchedSpecimens };
     try {
-      await caseRouter.updateCase(caseData.id, patch as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, patch as any);
       setCaseData(prev => prev ? ({ ...prev, ...patch } as typeof prev) : prev);
-      markDirty('Specimen comment');
+      markDirty('specimenComment');
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: e.actualVersion });
@@ -2153,22 +2291,21 @@ const SynopticReportPage: React.FC = () => {
   }, [caseData, signingUser, unknownUserName, activeSpecimenCommentId, setCaseData, markDirty, knownVersionRef, setConcurrencyConflict]);
 
 
-  const handleOrchPrint = useCallback(async () => {
-    // Real feature, per direct specification: Post-Sign-Out Release
-    // Buffer, closing a known gap flagged in Phase 3. Same real gate
-    // as BottomActionBar.tsx's CoPilot print button — a confirmation
-    // naming the watermark, never a silent block.
-    if (caseData?.status === 'pending-release' && orchPrintRestricted) {
-      const proceed = window.confirm(
-        'Hardcopy printing is restricted while this report is Pending Release. ' +
-        'The printed copy will carry the "PENDING FINAL RELEASE" watermark. Print anyway?'
-      );
-      if (!proceed) return;
-    }
+  // PS-282 (Batch 437): every report print is audited (print or reprint,
+  // version, destination, status, and a reason when the lab asks for one).
+  // Pressing Print plans it first: a reprint may need a reason, and a
+  // Pending Release report says its copy carries the watermark (this was a
+  // window.confirm in English).
+  const [printPlan, setPrintPlan] = useState<PrintPlan | null>(null);
+
+  const printReport = useCallback(async (plan: PrintPlan, reason: string) => {
     if (!caseData) { window.print(); return; }
     setIsPrinting(true);
     const accession = caseData.accession?.fullAccession
       ?? caseData.accession?.accessionNumber ?? '';
+    // PS-282 (Batch 451): the entry is built in services/printing/reportPrintAudit.ts.
+    const audit = (destination: string, status: 'success' | 'failed' | 'pending', format: 'pdf' | 'html') =>
+      void recordDocumentOutput(reportPrintAuditEvent({ action: plan.action, caseRecord: caseData, reason }, { destination, status, format }));
     try {
       const patient = caseData.patient
         ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '';
@@ -2241,6 +2378,9 @@ const SynopticReportPage: React.FC = () => {
         // Genuinely absent unless a real administrative override was
         // used on this case — see this block's own comment above.
         preAnalyticDisclaimerText,
+        // Batch 461: the anatomical maps the pathologist inserted (snapshots, print colours);
+        // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
+        reportFigures: await reportFiguresWithAuto(caseData, await reportTranslateFor(caseData.order?.facilityId)),
       };
 
       const resp = await fetch(reportPdfEndpoint(), {
@@ -2264,6 +2404,9 @@ const SynopticReportPage: React.FC = () => {
         document.body.appendChild(a);
         a.click();
         a.remove();
+        audit(DOCUMENT_DESTINATION.download(a.download), 'success', 'pdf');
+      } else {
+        audit(DOCUMENT_DESTINATION.pdfInBrowser, 'pending', 'pdf');
       }
       // Revoke once the new tab/download has had time to load the blob —
       // too soon and an opened tab can lose the document mid-render.
@@ -2273,6 +2416,7 @@ const SynopticReportPage: React.FC = () => {
       // Fall back to the old DOM-print path rather than leaving the
       // pathologist with no way to print if the Cloud Function is down.
       const pageEl = document.querySelector('.rp-page') as HTMLElement | null;
+      audit(`${DOCUMENT_DESTINATION.browserPrintDialog} (PDF renderer unavailable)`, 'pending', 'html');
       if (!pageEl) { window.print(); return; }
       // Size to most of the available screen rather than a small fixed
       // popup — Chrome's print preview renders inside this window, so a
@@ -2310,7 +2454,17 @@ const SynopticReportPage: React.FC = () => {
     } finally {
       setIsPrinting(false);
     }
-  }, [caseData, resolvedContext, orchSections, resolvedTemplateName, resolvedBy, showToast, orchPrintRestricted]);
+  }, [caseData, resolvedContext, orchSections, resolvedTemplateName, resolvedBy, showToast]);
+
+  const handleOrchPrint = useCallback(async () => {
+    if (!caseData) { window.print(); return; }
+    const plan = await planReportPrint({
+      document: REPORT_DOCUMENT, caseId: caseData.id, caseRecord: caseData,
+      pendingReleaseRestricted: caseData.status === 'pending-release' && orchPrintRestricted,
+    });
+    if (plan.askReason || plan.warnPendingRelease) { setPrintPlan(plan); return; }
+    await printReport(plan, '');
+  }, [caseData, orchPrintRestricted, printReport]);
 
   // caseComputationalFlags removed along with the Computational tab —
   // this derivation only ever fed that tab's flag list.
@@ -2628,7 +2782,7 @@ const SynopticReportPage: React.FC = () => {
       return;
     }
     if (key !== initialFlagsKey.current) {
-      markDirty('Flags');
+      markDirty('flags');
       initialFlagsKey.current = key;
     }
   }); // intentionally no dep array — runs after every render but only acts when key changes
@@ -2700,7 +2854,7 @@ const SynopticReportPage: React.FC = () => {
   const navigateToCase = useCallback((direction: 'next' | 'prev') => {
     const newIndex = direction === 'next' ? worklistIndex + 1 : worklistIndex - 1;
     if (newIndex >= 0 && newIndex < worklistCases.length) {
-      navigate(`/case/${worklistCases[newIndex]}/synoptic`, {
+      void openCasePage(worklistCases[newIndex], 'synoptic', {
         state: { worklistCaseIds: worklistCases },
       });
     }
@@ -2768,7 +2922,7 @@ const SynopticReportPage: React.FC = () => {
     const r = setWorkupParts(caseData.synopticReports ?? [], (caseData.specimens ?? []).map(sp => sp.id), partsInstanceId, choice, new Date().toISOString());
     if (r.ok === false) return;
     setCaseData({ ...caseData, synopticReports: r.reports, updatedAt: new Date().toISOString() });
-    markDirty('Synoptic reports');
+    markDirty('synopticReports');
     setPartsInstanceId(null);
   }, [caseData, partsInstanceId, setCaseData, markDirty]);
 
@@ -2777,7 +2931,7 @@ const SynopticReportPage: React.FC = () => {
     const remaining = (caseData.synopticReports ?? []).filter(r => r.instanceId !== instanceId);
     const updated: Case = { ...caseData, synopticReports: remaining, updatedAt: new Date().toISOString() };
     setCaseData(updated);
-    markDirty('Synoptic reports');
+    markDirty('synopticReports');
     if (activeReportInstanceId === instanceId) {
       setActiveReportInstanceId(remaining[0]?.instanceId ?? '');
       setActiveSpecimenId(remaining[0]?.specimenId ?? '');
@@ -2858,7 +3012,7 @@ const SynopticReportPage: React.FC = () => {
       const resolved = await Promise.all(instances.map(async (inst: any) => {
         const detail = await templateModule.getTemplate(inst.templateId);
         if (!detail) return [];
-        return resolveAnswers(inst.answers ?? {}, detail.template);
+        return resolveAnswers(inst.answers ?? {}, detail.template, partGridRowsOf(caseData.specimens));
       }));
       copilotSynopticAnswers = resolved.flat();
     }
@@ -2928,6 +3082,9 @@ const SynopticReportPage: React.FC = () => {
       // Batch 392: the report's language, and the wording around it in that language.
       language: reportLocale.language,
       labels: surgicalReportLabelsFor(reportLocale.language),
+      // Batch 461: the anatomical maps the pathologist inserted (snapshots, print colours);
+      // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
+      reportFigures: await reportFiguresWithAuto(caseData, i18nForDates.getFixedT(reportLocale.language) as never),
     };
   }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode]);
 
@@ -3025,6 +3182,7 @@ const SynopticReportPage: React.FC = () => {
   const {
     isEvaluatingSynopticFit, handleGrossComplete,
     pendingProtocolConfirmation, confirmGrossCompleteWithoutProtocol, cancelGrossCompleteWithoutProtocol,
+    showUpdateReasonPrompt, confirmUpdateReason, cancelUpdateReason,
   } = useGrossingCompletion({
     caseData, setCaseData, showToast, log, knownVersionRef,
     setConcurrencyConflict, grossingSnapshotRef, handleProtocolChangesDetected,
@@ -3056,8 +3214,8 @@ const SynopticReportPage: React.FC = () => {
       });
       return { ...prev, specimens: reorderedSpecimens, synopticReports: reorderedReports } as any;
     });
-    markDirty('Report sequence');
-    showToast('Sequence saved');
+    markDirty('reportSequence');
+    showToast(tGrossingNav('synopticReportPage.toast.sequenceSaved'));
   }, [setCaseData, markDirty, showToast]);
 
   // Previously an anonymous inline closure on HeaderBar's onCaseUpdate JSX
@@ -3072,8 +3230,7 @@ const SynopticReportPage: React.FC = () => {
   // specimenFlags) — persisted here directly instead.
   const handleHeaderCaseUpdate = useCallback(async (updated: Case) => {
     try {
-      await caseRouter.updateCase(updated.id, { caseFlags: updated.caseFlags, specimens: updated.specimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(updated.id, { caseFlags: updated.caseFlags, specimens: updated.specimens });
       setCaseData(updated);
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
@@ -3092,8 +3249,7 @@ const SynopticReportPage: React.FC = () => {
   const saveSpellingLocaleOverride = useCallback(async (locale: SpellingLocale | null) => {
     if (!caseData) return;
     try {
-      await caseRouter.updateCase(caseData.id, { spellingLocaleOverride: locale }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { spellingLocaleOverride: locale });
       setCaseData(prev => (prev ? { ...prev, spellingLocaleOverride: locale } : prev));
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
@@ -3185,8 +3341,7 @@ const SynopticReportPage: React.FC = () => {
       : [...(caseData!.specimens ?? []), saved];
     setCaseData(prev => prev ? ({ ...prev, specimens: nextSpecimens }) : prev);
     try {
-      await caseRouter.updateCase(caseData!.id, { specimens: nextSpecimens } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData!.id, { specimens: nextSpecimens } as any);
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: e.actualVersion });
@@ -3250,8 +3405,7 @@ const SynopticReportPage: React.FC = () => {
           const nextGrossingReports = [...((caseData as any)!.grossingReports ?? []), newGrossingReport];
           setCaseData(prev => prev ? ({ ...prev, grossingReports: nextGrossingReports } as any) : prev);
           try {
-            await caseRouter.updateCase(caseData!.id, { grossingReports: nextGrossingReports } as any, knownVersionRef.current);
-            knownVersionRef.current = knownVersionRef.current + 1;
+            await savePagePatch(caseData!.id, { grossingReports: nextGrossingReports } as any);
           } catch (e) {
             if (e instanceof ConcurrencyConflictError) {
               setConcurrencyConflict({ actualVersion: e.actualVersion });
@@ -3259,14 +3413,14 @@ const SynopticReportPage: React.FC = () => {
             }
             console.error(e);
           }
-          markDirty('Specimens');
+          markDirty('specimens');
         } catch (err) {
           console.error('[AddSpecimen] Grossing template auto-assignment failed:', err);
           showToast(tGrossingNav('synopticReportPage.toast.grossingTemplateAssignFailed'), 'warning');
         }
       })();
     }
-    markDirty('Specimens');
+    markDirty('specimens');
     setShowSpecimenEdit(false);
     setEditingSpecimen(null);
   }, [editingSpecimen, caseData, signingUser, setCaseData, knownVersionRef, setConcurrencyConflict, markDirty, showToast, setShowSpecimenEdit, setEditingSpecimen]);
@@ -3350,8 +3504,7 @@ const SynopticReportPage: React.FC = () => {
 
     (async () => {
       try {
-        await caseRouter.updateCase(caseData.id, { grossingReports } as any, knownVersionRef.current);
-        knownVersionRef.current = knownVersionRef.current + 1;
+        await savePagePatch(caseData.id, { grossingReports } as any);
         // Both the snapshot clear AND the local optimistic update are
         // deliberately gated on write success now — not just the
         // snapshot. If setCaseData ran unconditionally (the first pass
@@ -3459,17 +3612,22 @@ const SynopticReportPage: React.FC = () => {
     handleRecordCriticalNotification,
     handleAcknowledgeCriticalFindings,
   } = useSignOutWorkflow({
+    confirmWarnings: warningConfirm.confirm,
     caseData, setCaseData, signingUser, showToast, activeReportInstanceId,
     knownVersionRef, setConcurrencyConflict, sendSynopticReportToLis,
     generateReportPdfSnapshot, isOrchestrationMode, orchSections,
     setCaseSigned, setShowSignOutModal, setPendingReconciliation,
-    countersignFeedback, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking,
+    countersignFeedback, followUpExpected, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking,
+    setClinicalMismatch, setPeerReviewGate,
     setPreAnalyticDateGateSpecimens, setPendingActionIsSignOut,
     setPendingFinalizeArgs, synopticPanelRef, setAlertFieldId, safeSetLeftTab, setAmendmentMode,
     setActiveSpecimenId, setActiveReportType,
     setShowAmendmentModal, setShowFinalizeModal, openAmendmentDraft,
     releasePendingAmendmentOrAddendum, log,
   });
+  // Batch 453 (PS-323): the microscopic findings, for the per-specimen
+  // Microscopic entry panel's highlight (one stable list per findings set).
+  const microscopicFindings = useMemo(() => findingsForField(criticalFindings, 'microscopic'), [criticalFindings]);
 
   // Previously an anonymous inline closure on each "Cannot Finalise"
   // missing-field card's onClick — closes the modal, switches to the
@@ -3479,6 +3637,28 @@ const SynopticReportPage: React.FC = () => {
     if (isOrchestrationMode) safeSetLeftTab('draft');
     setTimeout(() => setAlertFieldId(fieldId), 100);
   }, [isOrchestrationMode, safeSetLeftTab, setAlertFieldId, setShowMissingWarning]);
+
+  // Batch 461: the anatomical map companion (Pete's "Opt-In Companion"). Open or
+  // closed is remembered per user; the map is drawn from the synoptic answers.
+  const mapPreferenceKey = `reportAnatomicalMapOpen:${signingUser?.id ?? ''}`;
+  const [mapOpen, setMapOpen] = useState<boolean>(() => getUiPreference(mapPreferenceKey, false));
+  useEffect(() => { setMapOpen(getUiPreference(mapPreferenceKey, false)); }, [mapPreferenceKey]);
+  const toggleMap = useCallback(() => {
+    setMapOpen(prev => { setUiPreference(mapPreferenceKey, !prev); return !prev; });
+  }, [mapPreferenceKey]);
+  const organMap = useOrganMap({
+    caseData, instanceId: activeReportInstanceId, open: mapOpen,
+    user: signingUser ? { id: signingUser.id, name: signingUser.name ?? signingUser.id } : null,
+    t: tGrossingNav, showToast,
+    reportT: async () => i18nForDates.getFixedT((await resolveReportLocaleForFacility(caseData?.order?.facilityId)).language),
+    onFiguresSaved: saved => takeUp(saved, (saved as any).version ?? knownVersionRef.current, { organMapFigures: saved.organMapFigures }),
+  });
+  const handleOrganMapSectorClick = useCallback((sector: { jumpFieldId?: string }) => {
+    if (!sector.jumpFieldId) return;
+    const fieldId = sector.jumpFieldId;
+    setAlertFieldId(null);
+    setTimeout(() => setAlertFieldId(fieldId), 50);
+  }, [setAlertFieldId]);
 
   // Previously an anonymous inline closure on FixativeTimeGateModal's
   // onContinue JSX prop — persists the pathologist's fixation-time
@@ -3498,8 +3678,7 @@ const SynopticReportPage: React.FC = () => {
     });
 
     try {
-      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { specimens: patchedSpecimens } as any);
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
 
       // Audit trail — one SpecimenDeficiency per resolved specimen,
@@ -3578,6 +3757,24 @@ const SynopticReportPage: React.FC = () => {
     })();
   }, [setStainQcGateBlocking, pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
 
+  // Batch 439 (PS-145, PS-144): resume sign-out after the mismatch decision or
+  // the urgent-care override, exactly as handleStainQcGateContinue does.
+  const resumeAfterGate = useCallback(() => {
+    const args = pendingFinalizeArgs;
+    const isSignOut = pendingActionIsSignOut;
+    setPendingFinalizeArgs([]);
+    setPendingActionIsSignOut(false);
+    (async () => {
+      if (isSignOut) { await handleSignOutConfirm(); return; }
+      const succeeded = await finalizeCase(args);
+      if (succeeded) await releasePendingAmendmentOrAddendum();
+    })();
+  }, [pendingFinalizeArgs, setPendingFinalizeArgs, pendingActionIsSignOut, setPendingActionIsSignOut, finalizeCase, handleSignOutConfirm, releasePendingAmendmentOrAddendum]);
+  const cancelGate = useCallback(() => {
+    setClinicalMismatch(null); setPeerReviewGate(null); setPendingFinalizeArgs([]); setPendingActionIsSignOut(false);
+  }, [setPendingFinalizeArgs, setPendingActionIsSignOut]);
+  const peerReview = usePeerReview(caseData, signingUser?.id);
+
   // Real, per direct follow-up: "Begin AutopsyAuthorizationCompletionForm.tsx
   // persistence — hands back updated data, nothing saves it." The
   // form itself is a real, deliberately presentational component
@@ -3588,8 +3785,7 @@ const SynopticReportPage: React.FC = () => {
   const handleAutopsyAuthCompletionSubmit = useCallback(async (updatedDetails: AutopsyCaseDetails) => {
     if (!caseData) return;
     try {
-      await caseRouter.updateCase(caseData.id, { autopsy: updatedDetails } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { autopsy: updatedDetails } as any);
       setCaseData(prev => prev ? ({ ...prev, autopsy: updatedDetails } as typeof prev) : prev);
       setShowAutopsyAuthCompletion(false);
       showToast(tGrossingNav('synopticReportPage.toast.authorizationRecorded'));
@@ -3612,14 +3808,28 @@ const SynopticReportPage: React.FC = () => {
   // separate handler since the two real actions have genuinely
   // different success messaging and neither should touch the
   // other's modal state.
-  const handleOrganRetentionTierChange = useCallback(async (tier: AutopsyCaseDetails['organRetentionTier']) => {
+  const handleOrganRetentionTierChange = useCallback(async (tier: AutopsyCaseDetails['organRetentionTier'], reasonOverride?: string) => {
     if (!caseData?.autopsy) return;
-    const updatedDetails: AutopsyCaseDetails = { ...caseData.autopsy, organRetentionTier: tier };
+    // Batch 468 (PS-261 §2.4.1/§2.5.1): a hospital-consented case's
+    // retention tier can never exceed what the NOK's consent on file
+    // permits — this is the one real write site for organRetentionTier,
+    // so it's the one real place this is enforced.
+    if (caseData.autopsy.caseAuthority === 'hospital_consented') {
+      const check = resolveRetentionTierConsentCheck(caseData.autopsy.hospitalConsent, tier);
+      if (!check.allowed) {
+        showToast(tGrossingNav(`synopticReportPage.toast.organRetentionConsentRefusal.${check.refusal}`), 'warning');
+        return;
+      }
+    }
+    // Batch 472 — the reason field shares this same write site: a
+    // tier change keeps whatever reason is already on file unless the
+    // reason field itself is what triggered the save (reasonOverride).
+    const reason = reasonOverride !== undefined ? reasonOverride : caseData.autopsy.organRetentionTierReason;
+    const updatedDetails: AutopsyCaseDetails = { ...caseData.autopsy, organRetentionTier: tier, organRetentionTierReason: reason || undefined };
     try {
-      await caseRouter.updateCase(caseData.id, { autopsy: updatedDetails } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { autopsy: updatedDetails } as any);
       setCaseData(prev => prev ? ({ ...prev, autopsy: updatedDetails } as typeof prev) : prev);
-      showToast('Organ retention tier recorded');
+      showToast(tGrossingNav('synopticReportPage.toast.organRetentionRecorded'));
     } catch (err) {
       if (err instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: err.actualVersion, blockOverride: true });
@@ -3660,7 +3870,7 @@ const SynopticReportPage: React.FC = () => {
 
       const result = await signAutopsyReport(caseData.id, tier, {
         id: signingUser.id, name: signingUser.name ?? signingUser.id, isPathologist: true,
-      }, generateReportPdfSnapshot);
+      }, generateReportPdfSnapshot, gateOverrideReason ?? undefined);
       if (!result.ok) {
         signatureGate.release(caseData.id);
         // Signing-authority refusals arrive already translated
@@ -3679,7 +3889,8 @@ const SynopticReportPage: React.FC = () => {
       const refreshed = await caseRouter.getCase(caseData.id);
       if (refreshed) {
         setCaseData(refreshed);
-        knownVersionRef.current = knownVersionRef.current + 1;
+        // PS-71 (Batch 458): the page now holds the saved case, so its version.
+        knownVersionRef.current = refreshed.version ?? knownVersionRef.current;
       }
       await signatureGate.commit(caseData.id, result.outcome === 'released_for_countersign' ? 'released_for_countersign' : 'signed', { kind: 'autopsy-snapshot', tier });
       showToast(result.outcome === 'released_for_countersign'
@@ -3690,8 +3901,10 @@ const SynopticReportPage: React.FC = () => {
       showToast(tGrossingNav('autopsySignOut.toast.failed', { tier }), 'warning');
     } finally {
       setSigningAutopsyTier(null);
+      // Batch 478: never carried over to a later, unrelated sign attempt.
+      setGateOverrideReason(null);
     }
-  }, [caseData, signingUser, orchSections, knownVersionRef, setCaseData, showToast, generateReportPdfSnapshot, tGrossingNav]);
+  }, [caseData, signingUser, orchSections, knownVersionRef, setCaseData, showToast, generateReportPdfSnapshot, tGrossingNav, gateOverrideReason]);
   // compliance research — same shape as handleFixativeGateContinue
   // above, for PreAnalyticDateGateModal. Genuinely different in one
   // way: a specimen resolved via administrative override raises a
@@ -3718,8 +3931,7 @@ const SynopticReportPage: React.FC = () => {
     });
 
     try {
-      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { specimens: patchedSpecimens } as any);
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
 
       // Real, OPEN SpecimenDeficiency per specimen that used an
@@ -3797,120 +4009,11 @@ const SynopticReportPage: React.FC = () => {
     // examination, specimen-specific diagnosis (Specimen.coding.icd10,
     // see that field's own doc comment); no specimenId means the
     // real, case-wide, order-level indication, same as before.
-    const newIcd          = codes.filter(c => c.system === 'ICD' && !(c as any).specimenId);
-    const newIcd10BySpecimenId = new Map<string, { code: string; description: string }[]>();
-    codes.filter(c => c.system === 'ICD' && (c as any).specimenId).forEach(c => {
-      const specId = (c as any).specimenId;
-      if (!newIcd10BySpecimenId.has(specId)) newIcd10BySpecimenId.set(specId, []);
-      newIcd10BySpecimenId.get(specId)!.push({ code: c.code, description: c.display });
-    });
-    // Real, per direct research while scoping the RFP-APLIS-2026-GLOBAL
-    // Broader Cancer Registry Exports gap — same real, per-specimen
-    // linkage as ICD10 immediately above, now genuinely applied to
-    // ICD-O too. Real, honest fix for a real, previously-confirmed
-    // gap: an ICD-O-tagged code reaching this function was previously
-    // silently dropped entirely (this filter only ever matched 'ICD'
-    // and 'SNOMED') — see types/case/Specimen.ts's own coding.icdO
-    // doc comment for the fuller account. A case-wide (no specimenId)
-    // ICD-O code is deliberately not supported — a real ICD-O
-    // diagnosis is inherently specimen-specific (per-specimen
-    // histology), unlike the case-wide clinical-indication ICD-10
-    // fallback above.
-    const newIcdOBySpecimenId = new Map<string, { code: string; description: string }[]>();
-    codes.filter(c => c.system === 'ICD-O' && (c as any).specimenId).forEach(c => {
-      const specId = (c as any).specimenId;
-      if (!newIcdOBySpecimenId.has(specId)) newIcdOBySpecimenId.set(specId, []);
-      newIcdOBySpecimenId.get(specId)!.push({ code: c.code, description: c.display });
-    });
-    // Real fix, per direct guidance: this previously took EVERY SNOMED
-    // code regardless of its own real specimenId and flattened them
-    // all into one, undifferentiated case-wide list — the exact same
-    // bug the ICD entries above already had fixed, never applied here.
-    // Same real split as ICD immediately above: a specimenId means a
-    // real, specimen-specific association (Specimen.coding.snomed, see
-    // that field's own doc comment for the real "never dedupe, retain
-    // every individual association" principle this whole array
-    // follows); no specimenId means the real, case-wide association.
-    const newSnomed = codes.filter(c => c.system === 'SNOMED' && !(c as any).specimenId);
-    const newSnomedBySpecimenId = new Map<string, { code: string; description: string }[]>();
-    codes.filter(c => c.system === 'SNOMED' && (c as any).specimenId).forEach(c => {
-      const specId = (c as any).specimenId;
-      if (!newSnomedBySpecimenId.has(specId)) newSnomedBySpecimenId.set(specId, []);
-      newSnomedBySpecimenId.get(specId)!.push({ code: c.code, description: c.display });
-    });
-    const newCoding = { icd10: newIcd, snomed: newSnomed };
-
-    // Real fix, Phase 1 of specimen-level CPT association: a real
-    // LIS assigns base surgical pathology CPT codes per specimen,
-    // not as one flat, undifferentiated case-level list (see
-    // types/case/Specimen.ts's own doc comment on
-    // Specimen.coding.cpt for the fuller reasoning). The modal
-    // already tells us which real specimen each code was applied
-    // to via c.specimenId.
-    const newCptBySpecimenId = new Map<string, string[]>();
-    codes.filter(c => c.system === 'CPT').forEach(c => {
-      const specId = (c as any).specimenId;
-      if (!specId) return; // a CPT code with no real specimen target isn't meaningful to apply
-      if (!newCptBySpecimenId.has(specId)) newCptBySpecimenId.set(specId, []);
-      newCptBySpecimenId.get(specId)!.push(c.code);
-    });
-
-    // Real, per-specimen diff against what's there today - a real
-    // addition (in the new, resolved list but not the old one) needs
-    // a real charge; a real removal (in the old list but not the new
-    // one) needs a real credit. Count-based, not a plain Set diff, so
-    // a specimen with two real, identical base codes isn't confused
-    // for "nothing changed" when only one of the two was removed.
-    const additionsBySpecimen = new Map<string, string[]>();
-    const removalsBySpecimen  = new Map<string, string[]>();
-    const updatedSpecimens = (caseData.specimens ?? []).map((sp: any) => {
-      // Real, per direct guidance's own follow-up: a specimen counts
-      // as having a real ICD10 change either when the modal's own
-      // final, resolved set includes a real entry for it, OR when it
-      // previously had real entries that are now entirely gone (the
-      // user deleted its only assignment(s) via the modal's trash
-      // icon) - the latter must still clear the stale value, not
-      // silently preserve it.
-      const hadExistingIcd10 = ((sp.coding?.icd10 ?? []) as { code: string }[]).length > 0;
-      const hasIcd10Change = newIcd10BySpecimenId.has(sp.id) || hadExistingIcd10;
-      // Real fix, per direct guidance: same real reasoning as ICD10
-      // immediately above, now genuinely applied to SNOMED — this
-      // specimen's own real, complete, resolved SNOMED set, never the
-      // whole-case flattening the previous version of this function had.
-      const hadExistingSnomed = ((sp.coding?.snomed ?? []) as { code: string }[]).length > 0;
-      const hasSnomedChange = newSnomedBySpecimenId.has(sp.id) || hadExistingSnomed;
-      // Real, per this function's own new ICD-O handling immediately
-      // above — same real "in the modal's own resolved set, OR
-      // previously had entries that are now entirely gone" check.
-      const hadExistingIcdO = ((sp.coding?.icdO ?? []) as { code: string }[]).length > 0;
-      const hasIcdOChange = newIcdOBySpecimenId.has(sp.id) || hadExistingIcdO;
-      if (!newCptBySpecimenId.has(sp.id) && !hasIcd10Change && !hasSnomedChange && !hasIcdOChange && !((sp.coding?.cpt ?? []) as string[]).length) return sp;
-      const oldList = [...((sp.coding?.cpt ?? []) as string[])];
-      const newList = [...(newCptBySpecimenId.get(sp.id) ?? [])];
-      const remaining = [...oldList];
-      const added: string[] = [];
-      for (const code of newList) {
-        const idx = remaining.indexOf(code);
-        if (idx !== -1) remaining.splice(idx, 1); // already existed - not a real addition
-        else added.push(code);
-      }
-      if (added.length) additionsBySpecimen.set(sp.id, added);
-      if (remaining.length) removalsBySpecimen.set(sp.id, remaining); // whatever's left in oldList was never matched in newList - a real removal
-      return {
-        ...sp,
-        coding: {
-          ...(sp.coding ?? {}),
-          cpt: newList,
-          // Real, per direct guidance's own follow-up: the modal's
-          // own complete, resolved set for this specimen - undefined
-          // (not the stale old value) when the user removed every
-          // real assignment it had.
-          icd10: hasIcd10Change ? newIcd10BySpecimenId.get(sp.id) : sp.coding?.icd10,
-          snomed: hasSnomedChange ? newSnomedBySpecimenId.get(sp.id) : sp.coding?.snomed,
-          icdO: hasIcdOChange ? newIcdOBySpecimenId.get(sp.id) : sp.coding?.icdO,
-        },
-      };
-    });
+    // PS-141: the per-specimen split (ICD-10 / SNOMED / ICD-O on each
+    // specimen, unattached ICD-10 / SNOMED case-level) and the count-based
+    // CPT diff live in services/codes/codeManagerCoding.ts.
+    const { newCoding, updatedSpecimens, additionsBySpecimen, removalsBySpecimen } =
+      resolveCodeManagerSave(codes as CodeManagerCode[], (caseData.specimens ?? []) as any[]);
 
     // Real, per direct guidance's own follow-up: billing is one of the
     // few things that can genuinely change after a case signs out, but
@@ -3935,8 +4038,7 @@ const SynopticReportPage: React.FC = () => {
     }
 
     try {
-      await caseRouter.updateCase(caseData.id, { coding: newCoding, specimens: updatedSpecimens } as any, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      await savePagePatch(caseData.id, { coding: newCoding, specimens: updatedSpecimens } as any);
     } catch (e) {
       if (e instanceof ConcurrencyConflictError) {
         setConcurrencyConflict({ actualVersion: e.actualVersion });
@@ -3944,8 +4046,8 @@ const SynopticReportPage: React.FC = () => {
       }
       throw e;
     }
-    setCaseData(prev => prev ? ({ ...prev, coding: newCoding, specimens: updatedSpecimens } as typeof prev) : prev);
-    markDirty('Codes');
+    setCaseData(prev => prev ? ({ ...prev, coding: newCoding, specimens: updatedSpecimens } as unknown as typeof prev) : prev);
+    markDirty('codes');
 
     // Real fix, per direct requirement: this CPT path previously wrote
     // straight to coding.cpt with no real transaction or audit trail
@@ -4075,12 +4177,12 @@ const SynopticReportPage: React.FC = () => {
         <div className="ps-autogen-toast">
           <span className="ps-autogen-toast-spinner" />
           <span className="ps-autogen-toast-text">
-            Synoptic complete — generating narrative draft…
+            {tGrossingNav('synopticReportPage.autoGenerate.generating')}
           </span>
           <button
             onClick={cancelAutoGenerate}
             className="ps-autogen-toast-cancel"
-          >Cancel</button>
+          >{tGrossingNav('common.cancel')}</button>
         </div>
       )}
 
@@ -4137,9 +4239,9 @@ const SynopticReportPage: React.FC = () => {
                 className="ps-alert-banner-row"
               >
                 <div className="ps-alert-banner-text">
-                  ⚠️ Alert — Some required fields are incomplete.{' '}
+                  ⚠️ {tGrossingNav('synopticReportPage.requiredAlert.title')}{' '}
                   <span className="ps-alert-banner-link">
-                    {isOrchestrationMode && leftTab === 'draft' ? 'Review required fields →' : 'Click to review →'}
+                    {isOrchestrationMode && leftTab === 'draft' ? tGrossingNav('synopticReportPage.requiredAlert.reviewLink') : tGrossingNav('synopticReportPage.requiredAlert.clickLink')}
                   </span>
                 </div>
                 <span
@@ -4149,7 +4251,7 @@ const SynopticReportPage: React.FC = () => {
               </div>
               {isAlertExpanded && (
                 <div className="ps-alert-banner-detail">
-                  Review all <strong>required fields</strong> marked with * in the synoptic checklist. Ensure all required data elements are completed before finalizing.
+                  <Trans i18nKey="synopticReportPage.requiredAlert.detail" components={{ strong: <strong /> }} />
                 </div>
               )}
             </div>
@@ -4234,7 +4336,7 @@ const SynopticReportPage: React.FC = () => {
                         <span className="ps-syn-nav-strip-count">{idx + 1} / {allSynoptics.length}</span>
                       </>
                     ) : (
-                      <span className="ps-syn-nav-strip-empty">No synoptic selected</span>
+                      <span className="ps-syn-nav-strip-empty">{tGrossingNav('synopticReportPage.noSynopticSelected')}</span>
                     )}
                   </div>
                   <button
@@ -4251,7 +4353,7 @@ const SynopticReportPage: React.FC = () => {
               {(['draft', 'report', 'material'] as const)
                 .filter(tab => tab !== 'draft' || isOrchestrationMode)
                 .map(tab => {
-                const label = tab === 'draft' ? '✍️ Report Draft' : tab === 'report' ? '📑 Synoptic Reporting' : '🧱 Material';
+                const label = tab === 'draft' ? `✍️ ${tGrossingNav('synopticReportPage.tabs.draft')}` : tab === 'report' ? `📑 ${tGrossingNav('synopticReportPage.tabs.report')}` : `🧱 ${tGrossingNav('synopticReportPage.tabs.material')}`;
                 const isActive = leftTab === tab;
                 const st2 = caseData?.status ?? 'draft';
                 // 'pending-countersign' is a per-synoptic-instance status (SynopticReportInstance),
@@ -4270,7 +4372,7 @@ const SynopticReportPage: React.FC = () => {
                     {label}
                     {tab === 'draft' && isOrchestrationMode && (
                       <span
-                        title={`Report status: ${String(st2)}`}
+                        title={tGrossingNav('synopticReportPage.reportStatusTitle', { status: tGrossingNav(`synopticReportPage.reportStatus.${String(st2)}`, { defaultValue: String(st2) }) })}
                         className={`ps-syn-tab-dot ${dot2Class}`}
                       />
                     )}
@@ -4296,9 +4398,9 @@ const SynopticReportPage: React.FC = () => {
                         setShowDevToolsMenu(v => !v);
                       }}
                       className="ps-syn-dev-btn ps-syn-dev-btn--microscopic"
-                      title="DEV ONLY (not visible in production): simulation triggers for testing real workflows without needing the real external event that normally triggers them."
+                      title={tGrossingNav('synopticReportPage.devTools.menuTitle')}
                     >
-                      🛠️ Dev Tools {showDevToolsMenu ? '▴' : '▾'}
+                      🛠️ {tGrossingNav('synopticReportPage.devTools.menu')} {showDevToolsMenu ? '▴' : '▾'}
                     </button>
                     {showDevToolsMenu && devToolsMenuPos && ReactDOM.createPortal(
                       <div className="ps-syn-devmenu ps-syn-devmenu--portaled" style={{ '--devmenu-top': `${devToolsMenuPos.top}px`, '--devmenu-left': `${devToolsMenuPos.left}px` } as React.CSSProperties}>
@@ -4316,44 +4418,44 @@ const SynopticReportPage: React.FC = () => {
                             reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
                             confidence:           92,
                           }]); }}
-                          title="Simulates a microscopic review finding invasive ductal carcinoma, prompting the real Protocol Change modal to switch this case from a general Breast Core Biopsy template to Breast Invasive Carcinoma — tests that workflow without needing real microscopic findings."
+                          title={tGrossingNav('synopticReportPage.devTools.simMicroscopicTitle')}
                         >
-                          ⚡ Sim Microscopic
+                          ⚡ {tGrossingNav('synopticReportPage.devTools.simMicroscopic')}
                         </button>
                         <button
                           className="ps-syn-devmenu-item"
                           onClick={() => { setShowDevToolsMenu(false); simulateLisAmendmentReceived(); }}
-                          title="Simulates the LIS notifying PathScribe that this case was corrected directly in the LIS, outside PathScribe — creates a real LIS Amendment Notice and sends the signing pathologist an urgent message to review whether their own synoptic report also needs amending. Tests that notification workflow without a real, external LIS integration."
+                          title={tGrossingNav('synopticReportPage.devTools.simLisAmendmentTitle')}
                         >
-                          ⚡ Sim LIS Amendment
+                          ⚡ {tGrossingNav('synopticReportPage.devTools.simLisAmendment')}
                         </button>
                         <button
                           className="ps-syn-devmenu-item"
                           onClick={() => { setShowDevToolsMenu(false); simulateBlockExceptionReceived(); }}
-                          title="Simulates a real inbound BlockExceptionEventPayload — exactly what a real LIS/middleware integration engine would eventually send — marking this case's first block Damaged through the real, working ingestion service (processBlockExceptionEvent). Tests that pipeline without a real, external LIS integration."
+                          title={tGrossingNav('synopticReportPage.devTools.simBlockExceptionTitle')}
                         >
-                          ⚡ Sim Block Exception
+                          ⚡ {tGrossingNav('synopticReportPage.devTools.simBlockException')}
                         </button>
                         <button
                           className="ps-syn-devmenu-item"
                           onClick={() => { setShowDevToolsMenu(false); simulateMaterialLocationReceived(); }}
-                          title="Simulates a real inbound MaterialLocationEventPayload — exactly what a real LIS/middleware integration engine would eventually send — updating this case's first block's real, displayed location through the real, working ingestion service (processMaterialLocationEvent). Tests that pipeline without a real, external LIS integration."
+                          title={tGrossingNav('synopticReportPage.devTools.simLocationTitle')}
                         >
-                          ⚡ Sim Location Update
+                          ⚡ {tGrossingNav('synopticReportPage.devTools.simLocation')}
                         </button>
                         <button
                           className="ps-syn-devmenu-item"
                           onClick={() => { setShowDevToolsMenu(false); simulateCassetteDispatchOutcomeReceived(); }}
-                          title="Simulates a real inbound CassetteDispatchOutcomeEventPayload — exactly what a real Cassette Engine would eventually report back — a Green/Mesh hopper empty, falling back to White, through the real, working ingestion service (processCassetteDispatchOutcomeEvent). Tests the real fallback/hopper-empty notification without real hardware."
+                          title={tGrossingNav('synopticReportPage.devTools.simCassetteDispatchTitle')}
                         >
-                          ⚡ Sim Cassette Dispatch
+                          ⚡ {tGrossingNav('synopticReportPage.devTools.simCassetteDispatch')}
                         </button>
                         <button
                           className="ps-syn-devmenu-item"
                           onClick={() => { setShowDevToolsMenu(false); simulateFullMaterialTreeLocationUpdate(); }}
-                          title="Walks EVERY real material item on this case (every specimen, block, slide, decant, and decant slide) and fires a real, individually-idempotent MaterialLocationEventPayload for each through the same real ingestion service (processMaterialLocationEvent) — leaves every item with a genuine lastKnownLocation, cycling through the real workflow-stage vocabulary so it looks like a case mid-workflow. For testing the tracking UI with full coverage, not just one item."
+                          title={tGrossingNav('synopticReportPage.devTools.simAllLocationsTitle')}
                         >
-                          ⚡ Sim ALL Locations
+                          ⚡ {tGrossingNav('synopticReportPage.devTools.simAllLocations')}
                         </button>
                       </div>,
                       document.body,
@@ -4362,10 +4464,10 @@ const SynopticReportPage: React.FC = () => {
                 )}
                 <button
                   onClick={() => setShowSequencer(true)}
-                  title="Open report sequencer"
+                  title={tGrossingNav('synopticReportPage.sequencer.title')}
                   className="ps-syn-sequencer-btn"
                 >
-                  🔀 Sequencer ↗
+                  🔀 {tGrossingNav('synopticReportPage.sequencer.button')} ↗
                 </button>
               </div>
               )}
@@ -4389,17 +4491,17 @@ const SynopticReportPage: React.FC = () => {
                 <div className="ps-ose-centre-pane-wrap">
                   <div className="ps-ose-centre-header">
                     <div className="ps-ose-centre-header-left">
-                      <span className="ps-ose-centre-tmpl-name">{resolvedTemplateName ?? 'Gold Standard — General Surgical Pathology'}</span>
+                      <span className="ps-ose-centre-tmpl-name">{resolvedTemplateName === GOLD_STANDARD_TEMPLATE_NAME ? tGrossingNav('synopticReportPage.templatePicker.goldStandardGeneral') : resolvedTemplateName}</span>
                       <span className="ps-ose-centre-tmpl-by">
-                        {overrideTemplateId ? 'pathologist override' : `by ${(resolvedBy ?? 'gold-standard').replace(/-/g, ' ')}`}
+                        {overrideTemplateId ? tGrossingNav('synopticReportPage.templatePicker.pathologistOverride') : tGrossingNav('synopticReportPage.templatePicker.resolvedBy', { source: tGrossingNav(`synopticReportPage.templatePicker.sources.${resolvedBy ?? 'gold-standard'}`, { defaultValue: (resolvedBy ?? 'gold-standard').replace(/-/g, ' ') }) })}
                       </span>
                       <div className="ps-ose-tmpl-change-wrap">
-                        <button className="ps-ose-centre-btn" onClick={() => setShowCentreTemplatePicker(v => !v)}>Change ▾</button>
+                        <button className="ps-ose-centre-btn" onClick={() => setShowCentreTemplatePicker(v => !v)}>{tGrossingNav('synopticReportPage.templatePicker.change')} ▾</button>
                         {showCentreTemplatePicker && (
                           <div className="ps-ose-tmpl-picker">
-                            <div className="ps-ose-tmpl-picker-title">Select report template</div>
+                            <div className="ps-ose-tmpl-picker-title">{tGrossingNav('synopticReportPage.templatePicker.title')}</div>
                             {orchSections.some(s => s.text) && (
-                              <div className="ps-ose-tmpl-picker-warn">⚠️ Changing template will regenerate all sections.</div>
+                              <div className="ps-ose-tmpl-picker-warn">⚠️ {tGrossingNav('synopticReportPage.templatePicker.regenerateWarning')}</div>
                             )}
                             {centreTemplates.map(t => (
                               <div
@@ -4412,8 +4514,8 @@ const SynopticReportPage: React.FC = () => {
                               </div>
                             ))}
                             <div className="ps-ose-tmpl-option" onClick={() => { setOverrideTemplateId(null); setShowCentreTemplatePicker(false); }}>
-                              <span className="ps-ose-tmpl-option-name">↺ System-resolved</span>
-                              <span className="ps-ose-tmpl-option-meta">{resolvedTemplateName ?? 'Gold Standard'}</span>
+                              <span className="ps-ose-tmpl-option-name">↺ {tGrossingNav('synopticReportPage.templatePicker.systemResolved')}</span>
+                              <span className="ps-ose-tmpl-option-meta">{resolvedTemplateName === GOLD_STANDARD_TEMPLATE_NAME ? tGrossingNav('synopticReportPage.templatePicker.goldStandard') : resolvedTemplateName}</span>
                             </div>
                           </div>
                         )}
@@ -4435,14 +4537,14 @@ const SynopticReportPage: React.FC = () => {
                             reason:               'Microscopic shows invasive ductal carcinoma, nuclear grade 2, tubule formation score 3.',
                             confidence:           92,
                           }])}
-                          title="DEV ONLY (not visible in production): simulates a microscopic review finding invasive ductal carcinoma, prompting the real Protocol Change modal to switch this case from a general Breast Core Biopsy template to Breast Invasive Carcinoma — tests that workflow without needing real microscopic findings."
-                        >⚡ Sim Microscopic</button>
+                          title={tGrossingNav('synopticReportPage.devTools.simMicroscopicTitle')}
+                        >⚡ {tGrossingNav('synopticReportPage.devTools.simMicroscopic')}</button>
                       )}
-                      <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title="Open report sequencer">
-                        🔀 Sequencer ↗
+                      <button className="ps-ose-centre-btn" onClick={() => setShowSequencer(true)} title={tGrossingNav('synopticReportPage.sequencer.title')}>
+                        🔀 {tGrossingNav('synopticReportPage.sequencer.button')} ↗
                       </button>
-                      <button className="ps-ose-centre-btn" onClick={handleOrchPrint} disabled={isPrinting} title="Print report">
-                        {isPrinting ? '🖨 Printing…' : '🖨 Print'}
+                      <button className="ps-ose-centre-btn" onClick={handleOrchPrint} disabled={isPrinting} title={tGrossingNav('synopticReportPage.print.buttonTitle')}>
+                        🖨 {isPrinting ? tGrossingNav('synopticReportPage.print.printing') : tGrossingNav('synopticReportPage.print.button')}
                       </button>
                     </div>
                   </div>
@@ -4487,6 +4589,7 @@ const SynopticReportPage: React.FC = () => {
                     onGenerateReport={isOrchestrationMode ? handleGenerateReport : undefined}
                     onStartManualEntry={isOrchestrationMode ? handleStartManualEntry : undefined}
                     documentStyle={resolvedContext?.narrativeTemplate.documentStyle}
+                    criticalFindings={criticalFindings}
                   />
                 </div>
               </div>
@@ -4520,11 +4623,11 @@ const SynopticReportPage: React.FC = () => {
                 {pendingLisNotice && (
                   <div className="ps-lis-triage-banner">
                     <div>
-                      <div className="ps-lis-triage-title">⚠ LIS Amendment — Review Required</div>
+                      <div className="ps-lis-triage-title">⚠ {tGrossingNav('synopticReportPage.lisAmendment.title')}</div>
                       <p className="ps-lis-triage-summary">{pendingLisNotice.lisAmendmentSummary}</p>
                     </div>
                     <button className="ps-conf-btn-primary" onClick={handleMarkReviewedNoChanges}>
-                      Mark Reviewed — No PathScribe Changes Required
+                      {tGrossingNav('synopticReportPage.lisAmendment.markReviewed')}
                     </button>
                   </div>
                 )}
@@ -4546,7 +4649,7 @@ const SynopticReportPage: React.FC = () => {
                     separate definition of authorized"). */}
                 {caseData?.autopsy && (
                   <div className="ps-autopsy-intake-status">
-                    <span className={`ps-autopsy-status-badge ps-autopsy-status-badge--${resolveAutopsyAccessionStatus(caseData.autopsy)}`} data-phi="accession">{resolveAutopsyAccessionStatus(caseData.autopsy) === 'fully_authorized' ? 'Autopsy \u2014 Fully Authorized' : 'Autopsy \u2014 Temporary Accession'}</span>
+                    <span className={`ps-autopsy-status-badge ps-autopsy-status-badge--${resolveAutopsyAccessionStatus(caseData.autopsy)}`} data-phi="accession">{resolveAutopsyAccessionStatus(caseData.autopsy) === 'fully_authorized' ? tGrossingNav('synopticReportPage.autopsy.fullyAuthorized') : tGrossingNav('synopticReportPage.autopsy.temporaryAccession')}</span>
                     {/* Real, per direct follow-up: "it all needs to
                         be wired" \u2014 resolveAutopsyTatSlaMatrix.ts
                         had zero real UI callers; this is that real
@@ -4556,6 +4659,23 @@ const SynopticReportPage: React.FC = () => {
                     <p className="ps-conf-section-subtitle ps-conf-section-subtitle--form-gap">
                       {formatAutopsyTatSlaSummary(resolveAutopsyTatSlaMatrix(caseData.autopsy.jurisdiction))}
                     </p>
+                  </div>
+                )}
+
+                {/* Batch 476 (PS-261 follow-up, Module 4 of the FE
+                    feature-complete plan) — the real, unified case
+                    timeline: every forensic order, consent event,
+                    custody transfer, toxicology order/result/
+                    cancellation, organ retention detail/disposal,
+                    ancillary hold, report signing, and addendum
+                    already recorded on this case, merged into one
+                    chronological view (buildAutopsyCaseTimeline.ts)
+                    rather than requiring staff to piece the sequence
+                    together from the separate sections below. */}
+                {caseData?.autopsy && (
+                  <div className="ps-autopsy-timeline-section">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.timeline.title')}</div>
+                    <AutopsyCaseTimeline entries={autopsyTimeline} />
                   </div>
                 )}
 
@@ -4569,33 +4689,759 @@ const SynopticReportPage: React.FC = () => {
                     didn't name). */}
                 {caseData?.autopsy && resolveHtaApplicability(caseData.autopsy.jurisdiction) && (
                   <div className="ps-conf-form-field ps-conf-form-field--narrow">
-                    <label className="ps-conf-label">Organ Retention Tier</label>
+                    <label className="ps-conf-label">{tGrossingNav('synopticReportPage.autopsy.organRetentionTier')}</label>
                     <select
                       className="ps-conf-select"
                       value={caseData.autopsy.organRetentionTier ?? ''}
                       onChange={e => handleOrganRetentionTierChange((e.target.value || undefined) as AutopsyCaseDetails['organRetentionTier'])}
                     >
-                      <option value="">— not yet recorded —</option>
-                      <option value="tier_0_no_retention">Tier 0 — No Retention</option>
-                      <option value="tier_1_diagnostic_tissue_only">Tier 1 — Diagnostic Tissue Only</option>
-                      <option value="tier_2_full_organ_retention">Tier 2 — Full Organ Retention</option>
-                      <option value="tier_3_education_research_genomic">Tier 3 — Education / Research / Genomic</option>
+                      <option value="">{tGrossingNav('synopticReportPage.autopsy.tierNotRecorded')}</option>
+                      <option value="tier_0_no_retention">{tGrossingNav('synopticReportPage.autopsy.tiers.tier_0_no_retention')}</option>
+                      <option value="tier_1_diagnostic_tissue_only">{tGrossingNav('synopticReportPage.autopsy.tiers.tier_1_diagnostic_tissue_only')}</option>
+                      <option value="tier_2_full_organ_retention">{tGrossingNav('synopticReportPage.autopsy.tiers.tier_2_full_organ_retention')}</option>
+                      <option value="tier_3_education_research_genomic">{tGrossingNav('synopticReportPage.autopsy.tiers.tier_3_education_research_genomic')}</option>
                     </select>
+                  </div>
+                )}
+                {/* Batch 472 — an optional reason for the tier
+                    selection itself, saved through the same write
+                    site as the select above. */}
+                {caseData?.autopsy && resolveHtaApplicability(caseData.autopsy.jurisdiction) && (
+                  <div className="ps-conf-form-field ps-conf-form-field--narrow">
+                    <label className="ps-conf-label" htmlFor="organ-retention-tier-reason">{tGrossingNav('synopticReportPage.autopsy.tierReasonLabel')}</label>
+                    <input
+                      id="organ-retention-tier-reason"
+                      className="ps-conf-input"
+                      value={retentionTierReasonDraft}
+                      onChange={e => setRetentionTierReasonDraft(e.target.value)}
+                      onBlur={() => {
+                        if (retentionTierReasonDraft !== (caseData.autopsy?.organRetentionTierReason ?? '')) {
+                          void handleOrganRetentionTierChange(caseData.autopsy?.organRetentionTier, retentionTierReasonDraft);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Batch 471 (PS-261 follow-up) — who holds retained
+                    organs/tissue and where, while retention is
+                    ongoing. Same gate as the disposal panel below:
+                    an HTA-applicable jurisdiction with a retention
+                    tier beyond tier_0_no_retention on file. Shown
+                    before the disposal panel — disposal only makes
+                    sense once retention itself has a real record. */}
+                {caseData?.autopsy && resolveHtaApplicability(caseData.autopsy.jurisdiction)
+                  && caseData.autopsy.organRetentionTier && caseData.autopsy.organRetentionTier !== 'tier_0_no_retention' && (
+                  <div className="ps-autopsy-custody-log">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.retentionDetail.title')}</div>
+                    {caseData.autopsy.organRetentionDetail && !showAutopsyRetentionDetailForm ? (
+                      <div className="ps-autopsy-custody-entry">
+                        <div className="ps-autopsy-custody-entry__transfer">
+                          {tGrossingNav('synopticReportPage.autopsy.retentionDetail.summaryLine', { recipient: caseData.autopsy.organRetentionDetail.recipientName, location: caseData.autopsy.organRetentionDetail.location })}
+                        </div>
+                        <div className="ps-autopsy-custody-entry__meta">
+                          {tGrossingNav('synopticReportPage.autopsy.retentionDetail.metaLine', { at: formatDateTime(caseData.autopsy.organRetentionDetail.recordedAt, i18nForDates.language), by: caseData.autopsy.organRetentionDetail.recordedByName })}
+                          {caseData.autopsy.organRetentionDetail.reason ? tGrossingNav('synopticReportPage.autopsy.retentionDetail.reasonSuffix', { reason: caseData.autopsy.organRetentionDetail.reason }) : ''}
+                        </div>
+                        <button className="ps-conf-btn-secondary" onClick={() => {
+                          const current = caseData.autopsy!.organRetentionDetail!;
+                          setRetentionDetailForm({ recipientName: current.recipientName, location: current.location, reason: current.reason ?? '' });
+                          setShowAutopsyRetentionDetailForm(true);
+                        }}>
+                          {tGrossingNav('synopticReportPage.autopsy.retentionDetail.updateBtn')}
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {!caseData.autopsy.organRetentionDetail && (
+                          <p className="ps-conf-section-subtitle">{tGrossingNav('synopticReportPage.autopsy.retentionDetail.empty')}</p>
+                        )}
+                        {!showAutopsyRetentionDetailForm && (
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyRetentionDetailForm(true)}>
+                            {tGrossingNav('synopticReportPage.autopsy.retentionDetail.recordBtn')}
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {showAutopsyRetentionDetailForm && (
+                      <div className="ps-conf-card">
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="retention-detail-recipient">{tGrossingNav('synopticReportPage.autopsy.retentionDetail.recipientLabel')}</label>
+                            <input id="retention-detail-recipient" className="ps-conf-input" value={retentionDetailForm.recipientName}
+                              onChange={e => setRetentionDetailForm({ ...retentionDetailForm, recipientName: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="retention-detail-location">{tGrossingNav('synopticReportPage.autopsy.retentionDetail.locationLabel')}</label>
+                            <input id="retention-detail-location" className="ps-conf-input" value={retentionDetailForm.location}
+                              onChange={e => setRetentionDetailForm({ ...retentionDetailForm, location: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="retention-detail-reason">{tGrossingNav('synopticReportPage.autopsy.retentionDetail.reasonLabel')}</label>
+                            <input id="retention-detail-reason" className="ps-conf-input" value={retentionDetailForm.reason}
+                              onChange={e => setRetentionDetailForm({ ...retentionDetailForm, reason: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-modal-footer">
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyRetentionDetailForm(false)}>{tGrossingNav('synopticReportPage.autopsy.retentionDetail.cancelBtn')}</button>
+                          <CapabilityButton capability="autopsy:retention-detail:record" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                            disabled={submittingRetentionDetail || !retentionDetailForm.recipientName || !retentionDetailForm.location}
+                            onClick={handleOrganRetentionDetailSubmit}>
+                            {tGrossingNav('synopticReportPage.autopsy.retentionDetail.submitBtn')}
+                          </CapabilityButton>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Batch 469 (PS-261 §2.4.2) — disposal of retained
+                    organs/tissue. Only shown once an HTA-applicable
+                    jurisdiction has a retention tier beyond
+                    tier_0_no_retention on file — the same gate
+                    recordAutopsyOrganRetentionDisposal.ts itself
+                    enforces. */}
+                {caseData?.autopsy && resolveHtaApplicability(caseData.autopsy.jurisdiction)
+                  && caseData.autopsy.organRetentionTier && caseData.autopsy.organRetentionTier !== 'tier_0_no_retention' && (
+                  <div className="ps-autopsy-custody-log">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.disposal.title')}</div>
+                    {caseData.autopsy.organRetentionDisposal ? (
+                      <div className="ps-autopsy-custody-entry">
+                        <div className="ps-autopsy-custody-entry__transfer">
+                          {tGrossingNav(`synopticReportPage.autopsy.disposal.methods.${caseData.autopsy.organRetentionDisposal.disposalMethod}`)}
+                          {' · '}
+                          {tGrossingNav('synopticReportPage.autopsy.disposal.certificateLine', { ref: caseData.autopsy.organRetentionDisposal.certificateReference })}
+                        </div>
+                        <div className="ps-autopsy-custody-entry__meta">
+                          {tGrossingNav('synopticReportPage.autopsy.disposal.metaLine', { at: formatDateTime(caseData.autopsy.organRetentionDisposal.disposalTimestamp, i18nForDates.language), by: caseData.autopsy.organRetentionDisposal.recordedByName })}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="ps-conf-section-subtitle">{tGrossingNav('synopticReportPage.autopsy.disposal.empty')}</p>
+                        {!showAutopsyDisposalForm && (
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyDisposalForm(true)}>
+                            {tGrossingNav('synopticReportPage.autopsy.disposal.recordBtn')}
+                          </button>
+                        )}
+                        {showAutopsyDisposalForm && (
+                          <div className="ps-conf-card">
+                            <div className="ps-conf-form-row">
+                              <div>
+                                <label className="ps-label" htmlFor="disposal-method">{tGrossingNav('synopticReportPage.autopsy.disposal.methodLabel')}</label>
+                                <select id="disposal-method" className="ps-conf-select" value={disposalForm.disposalMethod}
+                                  onChange={e => setDisposalForm({ ...disposalForm, disposalMethod: e.target.value as OrganRetentionDisposalRecord['disposalMethod'] })}>
+                                  <option value="cremation">{tGrossingNav('synopticReportPage.autopsy.disposal.methods.cremation')}</option>
+                                  <option value="incineration">{tGrossingNav('synopticReportPage.autopsy.disposal.methods.incineration')}</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="ps-label" htmlFor="disposal-cert">{tGrossingNav('synopticReportPage.autopsy.disposal.certificateLabel')}</label>
+                                <input id="disposal-cert" className="ps-conf-input" value={disposalForm.certificateReference}
+                                  onChange={e => setDisposalForm({ ...disposalForm, certificateReference: e.target.value })} />
+                              </div>
+                            </div>
+                            <div className="ps-conf-modal-footer">
+                              <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyDisposalForm(false)}>{tGrossingNav('synopticReportPage.autopsy.disposal.cancelBtn')}</button>
+                              <CapabilityButton capability="autopsy:retention-disposal:record" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                                disabled={submittingDisposal || !disposalForm.certificateReference}
+                                onClick={handleOrganRetentionDisposalSubmit}>
+                                {tGrossingNav('synopticReportPage.autopsy.disposal.submitBtn')}
+                              </CapabilityButton>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Batch 468 (PS-261 §2.5.1) — consent-scope warning.
+                    See resolveAutopsyConsentScopeViolation.ts's own
+                    header comment for why this is a warning, not a
+                    hard per-finding block: the grossing template has
+                    no per-field organ tag, only specimen-level organ
+                    codes, so this surfaces the organ(s) the consent
+                    excludes that are nonetheless present among the
+                    case's specimens — a clear flag for the pathologist,
+                    not a silent hide. */}
+                {caseData?.autopsy?.caseAuthority === 'hospital_consented' && (() => {
+                  const excluded = resolveExcludedOrgansPresent(caseData.specimens ?? [], caseData.autopsy.hospitalConsent);
+                  if (excluded.length === 0) return null;
+                  const organNames = excluded.map(o => tGrossingNav(AUTOPSY_ORGAN_LABEL_KEY[o])).join(', ');
+                  return (
+                    <div className="ps-lis-triage-banner" data-testid="autopsy-consent-scope-warning">
+                      <div>
+                        <div className="ps-lis-triage-title">⚠ {tGrossingNav('synopticReportPage.autopsy.consentScope.warningTitle')}</div>
+                        <p className="ps-lis-triage-summary">{tGrossingNav('synopticReportPage.autopsy.consentScope.warningBody', { organs: organNames })}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Batch 468 (PS-261 §2.4.3, §3.3) — forensic chain-of-
+                    custody: a read-only log plus the one action that
+                    appends to it. Forensic-only, same as the capability
+                    and service behind it (recordAutopsyCustodyTransfer.ts). */}
+                {caseData?.autopsy?.caseAuthority === 'statutory_judicial' && (
+                  <div className="ps-autopsy-custody-log">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.custody.title')}</div>
+                    {(caseData.autopsy.custodyLog?.length ?? 0) === 0 && (
+                      <p className="ps-conf-section-subtitle">{tGrossingNav('synopticReportPage.autopsy.custody.empty')}</p>
+                    )}
+                    {caseData.autopsy.custodyLog?.map(entry => (
+                      <div className="ps-autopsy-custody-entry" key={entry.id}>
+                        <div className="ps-autopsy-custody-entry__item">
+                          {entry.itemDescription}
+                          {/* Batch 475 (PS-261 follow-up) — ties this entry back to the
+                              toxicology order it's about, if any. */}
+                          {entry.toxicologyOrderId && (() => {
+                            const linkedOrder = caseData.autopsy?.toxicologyOrders?.find(o => o.id === entry.toxicologyOrderId);
+                            return linkedOrder ? (
+                              <span className="ps-autopsy-custody-entry__tox-link">
+                                {tGrossingNav('synopticReportPage.autopsy.custody.linkedSpecimen', { barcode: linkedOrder.specimenBarcode })}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
+                        <div className="ps-autopsy-custody-entry__transfer">
+                          {tGrossingNav('synopticReportPage.autopsy.custody.transferLine', {
+                            from: tGrossingNav(`synopticReportPage.autopsy.custody.custodianType.${entry.fromCustodianType}`),
+                            fromName: entry.fromCustodianName,
+                            to: tGrossingNav(`synopticReportPage.autopsy.custody.custodianType.${entry.toCustodianType}`),
+                            toName: entry.toCustodianName,
+                          })}
+                        </div>
+                        <div className="ps-autopsy-custody-entry__meta">
+                          {tGrossingNav('synopticReportPage.autopsy.custody.metaLine', { at: formatDateTime(entry.occurredAt, i18nForDates.language), by: entry.releasedByName })}
+                          {entry.receivedByName ? tGrossingNav('synopticReportPage.autopsy.custody.receivedBy', { name: entry.receivedByName }) : ''}
+                        </div>
+                      </div>
+                    ))}
+                    {!showAutopsyCustodyForm && (
+                      <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyCustodyForm(true)}>
+                        {tGrossingNav('synopticReportPage.autopsy.custody.recordTransferBtn')}
+                      </button>
+                    )}
+                    {showAutopsyCustodyForm && (
+                      <div className="ps-conf-card">
+                        {/* Batch 475 (PS-261 follow-up) — optional: ties this
+                            transfer to a specific toxicology specimen, so its
+                            own chain of custody shows under its order too. */}
+                        {(caseData.autopsy.toxicologyOrders?.length ?? 0) > 0 && (
+                          <div className="ps-conf-form-row">
+                            <div>
+                              <label className="ps-label" htmlFor="custody-tox-link">{tGrossingNav('synopticReportPage.autopsy.custody.linkToxOrderLabel')}</label>
+                              <select id="custody-tox-link" className="ps-conf-select" value={custodyForm.toxicologyOrderId ?? ''}
+                                onChange={e => {
+                                  const orderId = e.target.value || null;
+                                  const linkedOrder = caseData.autopsy?.toxicologyOrders?.find(o => o.id === orderId);
+                                  setCustodyForm({
+                                    ...custodyForm, toxicologyOrderId: orderId,
+                                    itemDescription: linkedOrder
+                                      ? tGrossingNav('synopticReportPage.autopsy.custody.toxItemDescription', { barcode: linkedOrder.specimenBarcode, description: linkedOrder.specimenDescription })
+                                      : custodyForm.itemDescription,
+                                  });
+                                }}>
+                                <option value="">{tGrossingNav('synopticReportPage.autopsy.custody.linkToxOrderNone')}</option>
+                                {caseData.autopsy.toxicologyOrders?.map(o => (
+                                  <option key={o.id} value={o.id}>{o.specimenBarcode} — {o.specimenDescription}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="custody-item">{tGrossingNav('synopticReportPage.autopsy.custody.itemLabel')}</label>
+                            <input id="custody-item" className="ps-conf-input" value={custodyForm.itemDescription}
+                              onChange={e => setCustodyForm({ ...custodyForm, itemDescription: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="custody-to-type">{tGrossingNav('synopticReportPage.autopsy.custody.toTypeLabel')}</label>
+                            <select id="custody-to-type" className="ps-conf-select" value={custodyForm.toCustodianType}
+                              onChange={e => setCustodyForm({ ...custodyForm, toCustodianType: e.target.value as AutopsyCustodianType })}>
+                              {(['pathology_department', 'medical_examiner', 'law_enforcement', 'funeral_home', 'family', 'other'] as AutopsyCustodianType[]).map(ct => (
+                                <option key={ct} value={ct}>{tGrossingNav(`synopticReportPage.autopsy.custody.custodianType.${ct}`)}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="custody-to-name">{tGrossingNav('synopticReportPage.autopsy.custody.toNameLabel')}</label>
+                            <input id="custody-to-name" className="ps-conf-input" value={custodyForm.toCustodianName}
+                              onChange={e => setCustodyForm({ ...custodyForm, toCustodianName: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="custody-released-by">{tGrossingNav('synopticReportPage.autopsy.custody.releasedByLabel')}</label>
+                            <input id="custody-released-by" className="ps-conf-input" value={custodyForm.releasedByName}
+                              onChange={e => setCustodyForm({ ...custodyForm, releasedByName: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="custody-received-by">{tGrossingNav('synopticReportPage.autopsy.custody.receivedByLabel')}</label>
+                            <input id="custody-received-by" className="ps-conf-input" value={custodyForm.receivedByName}
+                              onChange={e => setCustodyForm({ ...custodyForm, receivedByName: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="custody-notes">{tGrossingNav('synopticReportPage.autopsy.custody.notesLabel')}</label>
+                            <input id="custody-notes" className="ps-conf-input" value={custodyForm.notes}
+                              onChange={e => setCustodyForm({ ...custodyForm, notes: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-modal-footer">
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyCustodyForm(false)}>{tGrossingNav('synopticReportPage.autopsy.custody.cancelBtn')}</button>
+                          <CapabilityButton capability="autopsy:custody:transfer" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                            disabled={submittingCustodyTransfer || !custodyForm.itemDescription || !custodyForm.toCustodianName || !custodyForm.releasedByName}
+                            onClick={handleCustodyTransferSubmit}>
+                            {tGrossingNav('synopticReportPage.autopsy.custody.submitBtn')}
+                          </CapabilityButton>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Batch 478 (PS-261 follow-up; Pete's own scoping decision) —
+                    per-organ gross-exam findings: a read-only log plus the
+                    one action that appends to it. Available for either
+                    caseAuthority (unlike the forensic-only custody log
+                    above) — recording a gross finding against an organ
+                    isn't a legal/chain-of-custody action. */}
+                {caseData?.autopsy && (
+                  <div className="ps-autopsy-organ-tag-log">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.organTag.title')}</div>
+                    {(caseData.autopsy.organTags?.length ?? 0) === 0 && (
+                      <p className="ps-conf-section-subtitle">{tGrossingNav('synopticReportPage.autopsy.organTag.empty')}</p>
+                    )}
+                    {caseData.autopsy.organTags?.map(tag => (
+                      <div className="ps-autopsy-organ-tag-entry" key={tag.id}>
+                        <div className="ps-autopsy-organ-tag-entry__line">
+                          {tGrossingNav('synopticReportPage.autopsy.organTag.entryLine', {
+                            organ: tGrossingNav(AUTOPSY_ORGAN_LABEL_KEY[tag.organCode]),
+                            status: tGrossingNav(`synopticReportPage.autopsy.organTag.status.${tag.status}`),
+                          })}
+                          {tag.finding && <span className="ps-autopsy-organ-tag-entry__finding"> — {tag.finding}</span>}
+                        </div>
+                        <div className="ps-autopsy-organ-tag-entry__meta">
+                          {tGrossingNav('synopticReportPage.autopsy.organTag.metaLine', { at: formatDateTime(tag.recordedAt, i18nForDates.language), by: tag.recordedByName })}
+                        </div>
+                      </div>
+                    ))}
+                    {!showOrganTagForm && (
+                      <button className="ps-conf-btn-secondary" onClick={() => setShowOrganTagForm(true)}>
+                        {tGrossingNav('synopticReportPage.autopsy.organTag.addBtn')}
+                      </button>
+                    )}
+                    {showOrganTagForm && (
+                      <div className="ps-conf-card">
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="organ-tag-organ">{tGrossingNav('synopticReportPage.autopsy.organTag.organLabel')}</label>
+                            <select id="organ-tag-organ" className="ps-conf-select" value={organTagForm.organCode}
+                              onChange={e => setOrganTagForm({ ...organTagForm, organCode: e.target.value as AutopsyOrganCode })}>
+                              {ALL_AUTOPSY_ORGAN_CODES.map(organ => (
+                                <option key={organ} value={organ}>{tGrossingNav(AUTOPSY_ORGAN_LABEL_KEY[organ])}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="organ-tag-status">{tGrossingNav('synopticReportPage.autopsy.organTag.statusLabel')}</label>
+                            <select id="organ-tag-status" className="ps-conf-select" value={organTagForm.status}
+                              onChange={e => setOrganTagForm({ ...organTagForm, status: e.target.value as AutopsyOrganTagStatus })}>
+                              {(['normal', 'abnormal', 'not_examined'] as AutopsyOrganTagStatus[]).map(s => (
+                                <option key={s} value={s}>{tGrossingNav(`synopticReportPage.autopsy.organTag.status.${s}`)}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="organ-tag-finding">{tGrossingNav('synopticReportPage.autopsy.organTag.findingLabel')}</label>
+                            <input id="organ-tag-finding" className="ps-conf-input" value={organTagForm.finding}
+                              onChange={e => setOrganTagForm({ ...organTagForm, finding: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-modal-footer">
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowOrganTagForm(false)}>{tGrossingNav('synopticReportPage.autopsy.organTag.cancelBtn')}</button>
+                          <CapabilityButton capability="autopsy:organ-tag:record" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                            disabled={submittingOrganTag}
+                            onClick={handleOrganTagSubmit}>
+                            {tGrossingNav('synopticReportPage.autopsy.organTag.submitBtn')}
+                          </CapabilityButton>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Batch 469 (PS-261 §2.5.1 follow-up) — narrowing or
+                    revoking an already-granted next-of-kin consent.
+                    Hospital-consented-only, same as the capability and
+                    service behind it (recordAutopsyConsentStatusChange.ts).
+                    That function itself still only ever narrows — the
+                    Reinstate button below (Batch 471) is a genuinely
+                    separate action, its own capability
+                    (autopsy:consent:reinstate), so this form's own
+                    guarantee is unaffected by reinstatement existing
+                    at all. */}
+                {caseData?.autopsy?.caseAuthority === 'hospital_consented' && caseData.autopsy.hospitalConsent && (
+                  <div className="ps-autopsy-custody-log">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.consent.title')}</div>
+                    <div className="ps-autopsy-custody-entry">
+                      <div className="ps-autopsy-custody-entry__transfer">
+                        {tGrossingNav(`synopticReportPage.autopsy.consent.status.${caseData.autopsy.hospitalConsent.status}`)}
+                      </div>
+                      {caseData.autopsy.hospitalConsent.statusChangedAt && (
+                        <div className="ps-autopsy-custody-entry__meta">
+                          {tGrossingNav('synopticReportPage.autopsy.consent.changedAtLine', { at: formatDateTime(caseData.autopsy.hospitalConsent.statusChangedAt, i18nForDates.language) })}
+                          {caseData.autopsy.hospitalConsent.revocationNote ? tGrossingNav('synopticReportPage.autopsy.consent.noteSuffix', { note: caseData.autopsy.hospitalConsent.revocationNote }) : ''}
+                        </div>
+                      )}
+                    </div>
+                    {caseData.autopsy.hospitalConsent.status !== 'revoked' && !showAutopsyConsentForm && (
+                      <button className="ps-conf-btn-secondary" onClick={() => {
+                        // Real, per independent review: seed the draft from the
+                        // CURRENT record, not a fixed default — otherwise
+                        // submitting without manually re-picking every
+                        // already-excluded organ or re-selecting "No" for
+                        // retention would look like a widening request.
+                        // applyAutopsyConsentStatusChange.ts itself now also
+                        // refuses to actually widen, but the form should never
+                        // invite that in the first place.
+                        const current = caseData.autopsy!.hospitalConsent!;
+                        setConsentForm({
+                          status: current.status === 'active' ? 'narrowed' : current.status,
+                          excludedOrgans: current.excludedOrgans,
+                          retentionPermitted: current.retentionPermitted,
+                          revocationNote: current.revocationNote ?? '',
+                        });
+                        setShowAutopsyConsentForm(true);
+                      }}>
+                        {tGrossingNav('synopticReportPage.autopsy.consent.changeBtn')}
+                      </button>
+                    )}
+                    {/* Batch 471 (PS-261 follow-up) — reinstating an
+                        already-narrowed or revoked consent. Shown
+                        whenever there's actually something to
+                        reinstate (status isn't 'active'); its own
+                        form, its own capability, never sharing state
+                        with the narrowing form above. */}
+                    {caseData.autopsy.hospitalConsent.status !== 'active' && !showAutopsyConsentReinstateForm && (
+                      <button className="ps-conf-btn-secondary" onClick={() => {
+                        const current = caseData.autopsy!.hospitalConsent!;
+                        setReinstateForm({
+                          status: 'active',
+                          excludedOrgans: current.excludedOrgans,
+                          retentionPermitted: current.retentionPermitted,
+                          reinstatementNote: '',
+                        });
+                        setShowAutopsyConsentReinstateForm(true);
+                      }}>
+                        {tGrossingNav('synopticReportPage.autopsy.consent.reinstateBtn')}
+                      </button>
+                    )}
+                    {showAutopsyConsentReinstateForm && (
+                      <div className="ps-conf-card">
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="reinstate-status">{tGrossingNav('synopticReportPage.autopsy.consent.reinstateStatusLabel')}</label>
+                            <select id="reinstate-status" className="ps-conf-select" value={reinstateForm.status}
+                              onChange={e => setReinstateForm({ ...reinstateForm, status: e.target.value as HospitalConsentStatus })}>
+                              <option value="active">{tGrossingNav('synopticReportPage.autopsy.consent.status.active')}</option>
+                              <option value="narrowed">{tGrossingNav('synopticReportPage.autopsy.consent.status.narrowed')}</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="reinstate-retention">{tGrossingNav('synopticReportPage.autopsy.consent.retentionLabel')}</label>
+                            <select id="reinstate-retention" className="ps-conf-select" value={reinstateForm.retentionPermitted ? 'yes' : 'no'}
+                              onChange={e => setReinstateForm({ ...reinstateForm, retentionPermitted: e.target.value === 'yes' })}>
+                              <option value="yes">{tGrossingNav('synopticReportPage.autopsy.consent.retentionYes')}</option>
+                              <option value="no">{tGrossingNav('synopticReportPage.autopsy.consent.retentionNo')}</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="ps-label">{tGrossingNav('synopticReportPage.autopsy.consent.excludedOrgansLabel')}</label>
+                          <div className="ps-autopsy-organ-chip-row">
+                            {ALL_AUTOPSY_ORGAN_CODES.map(organ => {
+                              const checked = reinstateForm.excludedOrgans.includes(organ);
+                              return (
+                                <label key={organ} className={`ps-autopsy-organ-chip${checked ? ' ps-autopsy-organ-chip--checked' : ''}`}>
+                                  <input type="checkbox" checked={checked} onChange={() => {
+                                    const next = checked
+                                      ? reinstateForm.excludedOrgans.filter(o => o !== organ)
+                                      : [...reinstateForm.excludedOrgans, organ];
+                                    setReinstateForm({ ...reinstateForm, excludedOrgans: next });
+                                  }} />
+                                  {tGrossingNav(AUTOPSY_ORGAN_LABEL_KEY[organ])}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="reinstate-note">{tGrossingNav('synopticReportPage.autopsy.consent.reinstateNoteLabel')}</label>
+                            <input id="reinstate-note" className="ps-conf-input" value={reinstateForm.reinstatementNote}
+                              onChange={e => setReinstateForm({ ...reinstateForm, reinstatementNote: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-modal-footer">
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyConsentReinstateForm(false)}>{tGrossingNav('synopticReportPage.autopsy.consent.cancelBtn')}</button>
+                          <CapabilityButton capability="autopsy:consent:reinstate" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                            disabled={submittingReinstate || !reinstateForm.reinstatementNote.trim()}
+                            onClick={handleConsentReinstateSubmit}>
+                            {tGrossingNav('synopticReportPage.autopsy.consent.submitReinstateBtn')}
+                          </CapabilityButton>
+                        </div>
+                      </div>
+                    )}
+                    {showAutopsyConsentForm && (
+                      <div className="ps-conf-card">
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="consent-status">{tGrossingNav('synopticReportPage.autopsy.consent.statusLabel')}</label>
+                            <select id="consent-status" className="ps-conf-select" value={consentForm.status}
+                              onChange={e => setConsentForm({ ...consentForm, status: e.target.value as HospitalConsentStatus })}>
+                              <option value="narrowed">{tGrossingNav('synopticReportPage.autopsy.consent.status.narrowed')}</option>
+                              <option value="revoked">{tGrossingNav('synopticReportPage.autopsy.consent.status.revoked')}</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="consent-retention">{tGrossingNav('synopticReportPage.autopsy.consent.retentionLabel')}</label>
+                            <select id="consent-retention" className="ps-conf-select" value={consentForm.retentionPermitted ? 'yes' : 'no'}
+                              onChange={e => setConsentForm({ ...consentForm, retentionPermitted: e.target.value === 'yes' })}>
+                              <option value="yes">{tGrossingNav('synopticReportPage.autopsy.consent.retentionYes')}</option>
+                              <option value="no">{tGrossingNav('synopticReportPage.autopsy.consent.retentionNo')}</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="ps-label">{tGrossingNav('synopticReportPage.autopsy.consent.excludedOrgansLabel')}</label>
+                          <div className="ps-autopsy-organ-chip-row">
+                            {ALL_AUTOPSY_ORGAN_CODES.map(organ => {
+                              const checked = consentForm.excludedOrgans.includes(organ);
+                              return (
+                                <label key={organ} className={`ps-autopsy-organ-chip${checked ? ' ps-autopsy-organ-chip--checked' : ''}`}>
+                                  <input type="checkbox" checked={checked} onChange={() => {
+                                    const next = checked
+                                      ? consentForm.excludedOrgans.filter(o => o !== organ)
+                                      : [...consentForm.excludedOrgans, organ];
+                                    setConsentForm({ ...consentForm, excludedOrgans: next });
+                                  }} />
+                                  {tGrossingNav(AUTOPSY_ORGAN_LABEL_KEY[organ])}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="consent-note">{tGrossingNav('synopticReportPage.autopsy.consent.noteLabel')}</label>
+                            <input id="consent-note" className="ps-conf-input" value={consentForm.revocationNote}
+                              onChange={e => setConsentForm({ ...consentForm, revocationNote: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-modal-footer">
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyConsentForm(false)}>{tGrossingNav('synopticReportPage.autopsy.consent.cancelBtn')}</button>
+                          <CapabilityButton capability="autopsy:consent:manage" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                            disabled={submittingConsentChange} onClick={handleConsentStatusChangeSubmit}>
+                            {tGrossingNav('synopticReportPage.autopsy.consent.submitBtn')}
+                          </CapabilityButton>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Batch 469 (PS-261 §2.3) — postmortem toxicology: a
+                    read-only order list, an order form, and a
+                    "record result" action per still-ordered row. Not
+                    forensic-only — either caseAuthority may order
+                    toxicology. */}
+                {caseData?.autopsy && (
+                  <div className="ps-autopsy-custody-log">
+                    <div className="ps-conf-form-section-title">{tGrossingNav('synopticReportPage.autopsy.toxicology.title')}</div>
+                    {(caseData.autopsy.toxicologyOrders?.length ?? 0) === 0 && (
+                      <p className="ps-conf-section-subtitle">{tGrossingNav('synopticReportPage.autopsy.toxicology.empty')}</p>
+                    )}
+                    {caseData.autopsy.toxicologyOrders?.map(order => (
+                      <div className="ps-autopsy-custody-entry" key={order.id}>
+                        <div className="ps-autopsy-custody-entry__item">
+                          {order.analytesRequested} — {order.specimenDescription}
+                          <span className="ps-autopsy-custody-entry__tox-link">{order.specimenBarcode}</span>
+                        </div>
+                        <div className="ps-autopsy-custody-entry__transfer">
+                          {tGrossingNav('synopticReportPage.autopsy.toxicology.orderLine', { lab: order.labName, status: tGrossingNav(`synopticReportPage.autopsy.toxicology.status.${order.status}`) })}
+                        </div>
+                        <div className="ps-autopsy-custody-entry__meta">
+                          {tGrossingNav('synopticReportPage.autopsy.toxicology.orderedMetaLine', { at: formatDateTime(order.orderedAt, i18nForDates.language), by: order.orderedByName })}
+                        </div>
+                        {order.status === 'resulted' && order.resultSummary && (
+                          <div className="ps-autopsy-custody-entry__meta">{order.resultSummary}</div>
+                        )}
+                        {/* Batch 475 (PS-261 follow-up) — this specimen's own
+                            chain of custody, when it has one. Forensic-only,
+                            same as custodyLog itself (recordAutopsyCustodyTransfer.ts). */}
+                        {caseData.autopsy?.caseAuthority === 'statutory_judicial' && (() => {
+                          const toxCustody = custodyEventsForToxicologyOrder(caseData.autopsy?.custodyLog, order.id);
+                          return toxCustody.length > 0 ? (
+                            <div className="ps-autopsy-tox-custody">
+                              <div className="ps-autopsy-tox-custody__title">{tGrossingNav('synopticReportPage.autopsy.toxicology.custodyTitle')}</div>
+                              {toxCustody.map(entry => (
+                                <div className="ps-autopsy-custody-entry__meta" key={entry.id}>
+                                  {tGrossingNav('synopticReportPage.autopsy.custody.transferLine', {
+                                    from: tGrossingNav(`synopticReportPage.autopsy.custody.custodianType.${entry.fromCustodianType}`),
+                                    fromName: entry.fromCustodianName,
+                                    to: tGrossingNav(`synopticReportPage.autopsy.custody.custodianType.${entry.toCustodianType}`),
+                                    toName: entry.toCustodianName,
+                                  })} — {formatDateTime(entry.occurredAt, i18nForDates.language)}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
+                        {/* Batch 471 (PS-261 follow-up) — a cancelled
+                            order shows its reason and timestamp,
+                            same meta-line treatment as a resulted
+                            one above. */}
+                        {order.status === 'cancelled' && order.cancelReason && (
+                          <div className="ps-autopsy-custody-entry__meta">
+                            {tGrossingNav('synopticReportPage.autopsy.toxicology.cancelledMetaLine', { at: order.cancelledAt ? formatDateTime(order.cancelledAt, i18nForDates.language) : '', reason: order.cancelReason })}
+                          </div>
+                        )}
+                        {order.status === 'ordered' && toxResultOrderId !== order.id && toxCancelOrderId !== order.id && (
+                          <div className="ps-autopsy-custody-entry__actions">
+                            <button className="ps-conf-btn-secondary" onClick={() => { setToxResultOrderId(order.id); setToxResultSummary(''); }}>
+                              {tGrossingNav('synopticReportPage.autopsy.toxicology.recordResultBtn')}
+                            </button>
+                            <button className="ps-conf-btn-secondary" onClick={() => { setToxCancelOrderId(order.id); setToxCancelReason(''); }}>
+                              {tGrossingNav('synopticReportPage.autopsy.toxicology.cancelOrderBtn')}
+                            </button>
+                          </div>
+                        )}
+                        {order.status === 'ordered' && toxResultOrderId === order.id && (
+                          <div className="ps-conf-card">
+                            <div className="ps-conf-form-row">
+                              <div>
+                                <label className="ps-label" htmlFor={`tox-result-${order.id}`}>{tGrossingNav('synopticReportPage.autopsy.toxicology.resultLabel')}</label>
+                                <input id={`tox-result-${order.id}`} className="ps-conf-input" value={toxResultSummary}
+                                  onChange={e => setToxResultSummary(e.target.value)} />
+                              </div>
+                            </div>
+                            <div className="ps-conf-modal-footer">
+                              <button className="ps-conf-btn-secondary" onClick={() => setToxResultOrderId(null)}>{tGrossingNav('synopticReportPage.autopsy.toxicology.cancelBtn')}</button>
+                              <CapabilityButton capability="autopsy:toxicology:result" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                                disabled={submittingToxResult || !toxResultSummary} onClick={handleToxicologyResultSubmit}>
+                                {tGrossingNav('synopticReportPage.autopsy.toxicology.submitResultBtn')}
+                              </CapabilityButton>
+                            </div>
+                          </div>
+                        )}
+                        {/* Batch 471 (PS-261 follow-up) — cancel-order
+                            mini-form, same per-row toggle pattern as
+                            the result form above, kept in its own
+                            state so recording a result and cancelling
+                            never collide on the same row. */}
+                        {order.status === 'ordered' && toxCancelOrderId === order.id && (
+                          <div className="ps-conf-card">
+                            <div className="ps-conf-form-row">
+                              <div>
+                                <label className="ps-label" htmlFor={`tox-cancel-${order.id}`}>{tGrossingNav('synopticReportPage.autopsy.toxicology.cancelReasonLabel')}</label>
+                                <input id={`tox-cancel-${order.id}`} className="ps-conf-input" value={toxCancelReason}
+                                  onChange={e => setToxCancelReason(e.target.value)} />
+                              </div>
+                            </div>
+                            <div className="ps-conf-modal-footer">
+                              <button className="ps-conf-btn-secondary" onClick={() => setToxCancelOrderId(null)}>{tGrossingNav('synopticReportPage.autopsy.toxicology.cancelBtn')}</button>
+                              <CapabilityButton capability="autopsy:toxicology:cancel" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                                disabled={submittingToxCancel || !toxCancelReason.trim()} onClick={handleToxicologyCancelSubmit}>
+                                {tGrossingNav('synopticReportPage.autopsy.toxicology.submitCancelBtn')}
+                              </CapabilityButton>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {!showAutopsyToxOrderForm && (
+                      <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyToxOrderForm(true)}>
+                        {tGrossingNav('synopticReportPage.autopsy.toxicology.orderBtn')}
+                      </button>
+                    )}
+                    {showAutopsyToxOrderForm && (
+                      <div className="ps-conf-card">
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="tox-specimen">{tGrossingNav('synopticReportPage.autopsy.toxicology.specimenLabel')}</label>
+                            <input id="tox-specimen" className="ps-conf-input" value={toxOrderForm.specimenDescription}
+                              onChange={e => setToxOrderForm({ ...toxOrderForm, specimenDescription: e.target.value })} />
+                          </div>
+                          {/* Batch 475 (PS-261 follow-up) — a real, scannable
+                              identifier for the specimen itself, distinct from
+                              the free-text description above. */}
+                          <div>
+                            <label className="ps-label" htmlFor="tox-barcode">{tGrossingNav('synopticReportPage.autopsy.toxicology.specimenBarcodeLabel')}</label>
+                            <input id="tox-barcode" className="ps-conf-input" value={toxOrderForm.specimenBarcode}
+                              onChange={e => setToxOrderForm({ ...toxOrderForm, specimenBarcode: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-form-row">
+                          <div>
+                            <label className="ps-label" htmlFor="tox-analytes">{tGrossingNav('synopticReportPage.autopsy.toxicology.analytesLabel')}</label>
+                            <input id="tox-analytes" className="ps-conf-input" value={toxOrderForm.analytesRequested}
+                              onChange={e => setToxOrderForm({ ...toxOrderForm, analytesRequested: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="ps-label" htmlFor="tox-lab">{tGrossingNav('synopticReportPage.autopsy.toxicology.labLabel')}</label>
+                            <input id="tox-lab" className="ps-conf-input" value={toxOrderForm.labName}
+                              onChange={e => setToxOrderForm({ ...toxOrderForm, labName: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="ps-conf-modal-footer">
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowAutopsyToxOrderForm(false)}>{tGrossingNav('synopticReportPage.autopsy.toxicology.cancelBtn')}</button>
+                          <CapabilityButton capability="autopsy:toxicology:order" context={{ caseId: caseData?.id ?? null }} className="ps-conf-btn-primary"
+                            disabled={submittingToxOrder || !toxOrderForm.specimenDescription || !toxOrderForm.specimenBarcode || !toxOrderForm.analytesRequested || !toxOrderForm.labName}
+                            onClick={handleToxicologyOrderSubmit}>
+                            {tGrossingNav('synopticReportPage.autopsy.toxicology.submitOrderBtn')}
+                          </CapabilityButton>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {caseData?.autopsy && (() => {
                   const gate = resolveAutopsyGrossExaminationGate(caseData.autopsy);
                   if (gate.allowed) return null;
+                  // Batch 478: the one real way past this now (besides
+                  // actually completing authorization) — an audited
+                  // override, offered only to whoever holds
+                  // autopsy:gross-exam-gate:override. Overrides whichever
+                  // tier is next: PAD, or FAD if PAD is already signed.
+                  const overrideTier: 'PAD' | 'FAD' = caseData.autopsy.padSnapshot ? 'FAD' : 'PAD';
                   return (
                     <div className="ps-lis-triage-banner">
                       <div>
-                        <div className="ps-lis-triage-title">⚠ Autopsy — Temporary Accession, Written Authorization Pending</div>
-                        <p className="ps-lis-triage-summary">{gate.blockedReasons.join(' ')}</p>
+                        <div className="ps-lis-triage-title">⚠ {tGrossingNav('synopticReportPage.autopsy.authorizationPending')}</div>
+                        <p className="ps-lis-triage-summary">
+                          {formatList(gate.blockedReasons.map(r => tGrossingNav(`autopsySignOut.blockedReasons.${r}`)), i18nForDates.language)}
+                        </p>
                       </div>
-                      <button className="ps-conf-btn-primary" onClick={() => setShowAutopsyAuthCompletion(true)}>
-                        Complete Authorization
-                      </button>
+                      <div className="ps-lis-triage-actions">
+                        <button className="ps-conf-btn-primary" onClick={() => setShowAutopsyAuthCompletion(true)}>
+                          {tGrossingNav('synopticReportPage.autopsy.completeAuthorization')}
+                        </button>
+                        {capabilities.has('autopsy:gross-exam-gate:override', { caseId: caseData.id }) && (
+                          <button className="ps-conf-btn-secondary" onClick={() => setShowGateOverridePrompt(overrideTier)}>
+                            {tGrossingNav('synopticReportPage.autopsy.gateOverride.overrideBtn', { tier: overrideTier })}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
@@ -4667,6 +5513,17 @@ const SynopticReportPage: React.FC = () => {
                   showToast={showToast}
                 />
                 <RevisionFeedbackBanner caseId={caseData?.id} isReturned={(caseData as any)?.status === 'returned'} />
+                {caseData && signingUser && (
+                  <PeerReviewBanner
+                    caseId={caseData.id}
+                    accession={caseData.accession?.fullAccession}
+                    caseStatus={caseData.status}
+                    currentUser={{ id: signingUser.id, name: signingUser.name }}
+                    status={peerReview.status}
+                    reviewers={peerReview.reviewers}
+                    onChanged={() => { void peerReview.reload(); }}
+                  />
+                )}
                 {(caseData as any)?.status === 'pending-countersign' && (() => {
                   const residentP = (caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('resident'));
                   const attendingP = (caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('attending'));
@@ -4675,19 +5532,19 @@ const SynopticReportPage: React.FC = () => {
                     <div className="ps-defic-review-banner ps-defic-review-banner--blue">
                       <span>
                         🎓 {viewerIsResident
-                          ? `Released for countersign — awaiting ${attendingP?.staffName ?? 'the attending'}'s review.`
-                          : `Released by ${residentP?.staffName ?? 'the resident'} — your countersign is pending.`}
+                          ? (attendingP?.staffName ? tGrossingNav('synopticReportPage.countersign.awaitingNamed', { name: attendingP.staffName }) : tGrossingNav('synopticReportPage.countersign.awaiting'))
+                          : (residentP?.staffName ? tGrossingNav('synopticReportPage.countersign.releasedByNamed', { name: residentP.staffName }) : tGrossingNav('synopticReportPage.countersign.releasedBy'))}
                       </span>
                     </div>
                   );
                 })()}
-                <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} rawHighlightText={rawHighlightText} onMatchResolved={found => setHighlightNotFound(!found)} />
+                <LeftReportPanel caseData={caseData} highlightText={highlightText ?? undefined} rawHighlightText={rawHighlightText} onMatchResolved={found => setHighlightNotFound(!found)} criticalFindings={criticalFindings} />
               </div>
               <div className={`ps-syn-tab-panel${leftTab === 'material' ? ' ps-syn-tab-panel--visible-block' : ''}`}>
                 <button
                   type="button"
                   className="ps-btn-secondary ps-grossing-screen-nav-btn"
-                  onClick={() => navigate(`/case/${caseData.id}/grossing`)}
+                  onClick={() => void openCasePage(caseData.id, 'grossing')}
                 >
                   {tGrossingNav('grossingScreen.openGrossingScreen')}
                 </button>
@@ -4705,14 +5562,18 @@ const SynopticReportPage: React.FC = () => {
                     // then showed every ordinary block with nothing
                     // decant-related in it at all. Checks blocks first
                     // (the common case), falls through to decants.
-                    const blockIdx = allBlocks.findIndex(b => b.block.id === blockOrDecantId);
-                    if (blockIdx >= 0) {
-                      setFocusedBlockIndex(blockIdx);
+                    // PS-316 (Batch 451): decided in services/billing/billingMaterialSync.ts.
+                    const target = resolveMaterialAssetClick(blockOrDecantId, allBlocks.map(b => b.block.id), allDecants.map(d => d.decant.id));
+                    if (target.kind === 'block') {
+                      setFocusedBlockIndex(target.blockIndex);
                       setFocusedDecantId(null);
-                      setMaterialSelectedBlockId(blockOrDecantId);
-                    } else if (allDecants.some(d => d.decant.id === blockOrDecantId)) {
-                      setFocusedDecantId(blockOrDecantId);
+                      setMaterialSelectedBlockId(target.blockId);
+                    } else if (target.kind === 'decant') {
+                      setFocusedDecantId(target.decantId);
+                      // Batch 452: a decant has a billing row too now.
+                      setMaterialSelectedBlockId(target.decantId);
                     }
+                    if (target.kind !== 'none') setMaterialSelectionSeq(n => n + 1);
                     setShowBlockEditor(true);
                   }}
                   onOpenMatrixBlockEditor={(matrixBlockId) => setViewingMatrixBlockId(matrixBlockId)}
@@ -4724,6 +5585,7 @@ const SynopticReportPage: React.FC = () => {
                   onOverrideTriage={handleOverrideTriage}
                   onRemovePendingBlock={handleRemovePendingBlock}
                   onAddDecant={handleAddDecant}
+                  onDeleteDecant={handleDeleteDecant}
                   onAssignBaseCode={(_specimenId, specimenIndex) => {
                     // Real fix, per direct guidance: "remove [Code
                     // Manager's billing code tab] altogether, and let
@@ -4760,64 +5622,54 @@ const SynopticReportPage: React.FC = () => {
           {/* Right panel — hidden in orchestration draft mode (Sequencer provides synoptic access) */}
           <div className={`ps-syn-right-panel${isOrchestrationMode && leftTab === 'draft' ? ' ps-syn-right-panel--collapsed' : ''}`}>
             <div className="ps-syn-right-panel-scroll">
-              {(isOrchestrationMode || caseData?.reportingMode === 'assist') && (
+              {aiReportToolsVisibility(caseData?.reportingMode).suggestSynoptic && (
                 <div className="ps-syn-right-panel-toolrow">
-                  {(() => {
-                    const availability = resolveBuildReportAvailability({
-                      caseText: {
-                        gross: caseData?.diagnostic?.grossDescription ?? '',
-                        microscopic: caseData?.diagnostic?.microscopicDescription ?? '',
-                        ancillary: caseData?.diagnostic?.ancillaryStudies ?? '',
-                      },
-                      synopticAnswers:
-                        (activeReportInstanceId
-                          ? caseData?.synopticReports?.find(r => r.instanceId === activeReportInstanceId)?.answers
-                          : caseData?.synopticReports?.[0]?.answers
-                        ) ?? caseData?.synopticAnswers ?? {},
-                    });
-                    return (
-                      <>
-                        {/* Real, per direct guidance's own confirmed
-                            direction: available in BOTH assist/LIS
-                            mode and orchestrator mode — PathScribe
-                            reading an externally-authored narrative
-                            and suggesting synoptic answers makes sense
-                            regardless of who owns the report lifecycle. */}
-                        <button
-                          className="ps-btn-ghost-dark ps-syn-toolbtn-sm"
-                          disabled={!availability.canSuggestSynopticFromNarrative || isSuggestingSynoptic}
-                          title={availability.canSuggestSynopticFromNarrative ? 'Suggest synoptic answers from the current Gross/Microscopic/Ancillary text' : 'Enter a Gross, Microscopic, or Ancillary narrative first'}
-                          onClick={handleSuggestSynopticFromNarrative}
-                        >
-                          {isSuggestingSynoptic ? 'Suggesting…' : '✨ Suggest Synoptic from Narrative'}
-                        </button>
-                        {/* Real, per direct guidance's own confirmed
-                            direction: orchestrator-mode only — in
-                            assist/LIS mode, the external LIS owns the
-                            narrative, so PathScribe generating and
-                            writing back narrative text doesn't apply. */}
-                        {isOrchestrationMode && (
-                          <button
-                            className="ps-btn-ghost-dark ps-syn-toolbtn-sm"
-                            disabled={!availability.canGenerateNarrativeFromSynoptic || isGeneratingNarrative}
-                            title={availability.canGenerateNarrativeFromSynoptic ? 'Generate narrative text from the current synoptic answers' : 'Answer some synoptic fields first'}
-                            onClick={handleGenerateNarrativeFromSynoptic}
-                          >
-                            {isGeneratingNarrative ? 'Generating\u2026' : '\u2728 Generate Narrative from Synoptic'}
-                          </button>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {/* PS-274 / PS-275: Suggest Synoptic from Narrative (orchestrator
+                      and assist mode) and Generate Narrative from Synoptic
+                      (orchestrator mode only) — see AiReportToolButtons.tsx and
+                      services/aiIntegration/aiReportTools.ts. */}
+                  <AiReportToolButtons
+                    reportingMode={caseData?.reportingMode}
+                    availability={resolveBuildReportAvailability(aiReportToolsInputs(caseData, activeReportInstanceId))}
+                    isSuggestingSynoptic={isSuggestingSynoptic}
+                    isGeneratingNarrative={isGeneratingNarrative}
+                    onSuggestSynopticFromNarrative={handleSuggestSynopticFromNarrative}
+                    onGenerateNarrativeFromSynoptic={handleGenerateNarrativeFromSynoptic}
+                  />
                   {isOrchestrationMode && (
                     <button
                       className={`${activeReportType === 'billing' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} ps-syn-toolbtn-sm`}
                       onClick={() => setActiveReportType(activeReportType === 'billing' ? 'synoptic' : 'billing')}
                     >
-                      {activeReportType === 'billing' ? '← Back to Synoptic' : '$ Billing Review'}
+                      {activeReportType === 'billing' ? `← ${tGrossingNav('synopticReportPage.billing.backToSynoptic')}` : `$ ${tGrossingNav('synopticReportPage.billing.review')}`}
                     </button>
                   )}
                 </div>
+              )}
+              {activeReportType === 'synoptic' && organMap.context?.binding && (
+                <div className="ps-syn-right-panel-maprow">
+                  <button
+                    type="button"
+                    className="ps-btn-ghost-dark ps-syn-toolbtn-sm ps-organmap-toggle"
+                    aria-expanded={mapOpen}
+                    title={tGrossingNav('organMap.panel.toggleTitle')}
+                    onClick={toggleMap}
+                  >{tGrossingNav('organMap.panel.toggle')}</button>
+                </div>
+              )}
+              {activeReportType === 'synoptic' && mapOpen && organMap.context?.binding && (
+                <OrganMapPanel
+                  context={organMap.context}
+                  loading={organMap.loading}
+                  payload={organMap.payload}
+                  figureState={organMap.figureState}
+                  busy={organMap.busy}
+                  caseId={caseData?.id}
+                  facilityId={caseData?.order?.facilityId ?? null}
+                  onSectorClick={handleOrganMapSectorClick}
+                  onInsert={() => { void organMap.insert(); }}
+                  onRemove={() => { void organMap.remove(); }}
+                />
               )}
               {activeReportType === 'billing' && isOrchestrationMode ? (
                 <BillingReviewPanel
@@ -4838,6 +5690,8 @@ const SynopticReportPage: React.FC = () => {
                   onHighlight={setRawHighlightText}
                   onHighlightStain={setHighlightedStainId}
                   materialSelectedBlockId={materialSelectedBlockId}
+                  materialSelectionSeq={materialSelectionSeq}
+                  caseId={caseData?.id}
                   onFocusBlock={(specimenId) => { setLeftTab('material'); setActiveSpecimenId(specimenId); }}
                   contextLabel="sign-out"
                 />
@@ -4850,6 +5704,7 @@ const SynopticReportPage: React.FC = () => {
                   onSaveDraft={microscopicEntry.saveDraft}
                   onConfirmAndSave={microscopicEntry.confirmAndSave}
                   onClearAndSave={microscopicEntry.clearAndSave}
+                  highlightFindings={microscopicFindings}
                 />
               ) : (
               <RightSynopticPanel
@@ -4861,13 +5716,14 @@ const SynopticReportPage: React.FC = () => {
                 activeSpecimenId={activeSpecimenId}
                 onReportInstanceChange={setActiveReportInstanceId}
                 onReportTypeChange={setActiveReportType}
-                onCaseUpdate={(updated) => { setCaseData(updated); markDirty('Synoptic fields'); }}
+                onCaseUpdate={(updated) => { setCaseData(updated); markDirty('synopticFields'); }}
                 isDirty={hasUnsavedData}
                 scrollToField={alertFieldId}
                 onScrollComplete={() => setAlertFieldId(null)}
                 onHighlight={setHighlightText}
                 highlightNotFound={highlightNotFound}
                 onAiSuggestionsUpdate={setAiSuggestions}
+                onMustHaveFieldsUpdate={setMustHave}
               />
               )}
             </div>
@@ -4899,14 +5755,16 @@ const SynopticReportPage: React.FC = () => {
               return;
             }
             if (result.dispatchedCount === 0) {
-              showToast('Nothing to release yet — no specimen instances on this case.');
+              showToast(tGrossingNav('synopticReportPage.toast.nothingToRelease'));
               return;
             }
             const refreshed = await caseRouter.getCase(caseData.id!);
             if (refreshed) setCaseData(refreshed);
-            showToast(`Preliminary report released (${result.dispatchedCount} ${result.dispatchedCount === 1 ? 'specimen' : 'specimens'})`);
+            showToast(tGrossingNav('synopticReportPage.toast.preliminaryReleased', { count: result.dispatchedCount }));
           } : undefined}
           onRequestAmendment={handleRequestAmendment}
+          followUpOffer={followUpOffer}
+          onMarkFollowUp={handleMarkFollowUpAfterSignOut}
           onPrint={openCopilotReportView}
           onOpenReprints={() => setShowReprintModal(true)}
           
@@ -4939,6 +5797,38 @@ const SynopticReportPage: React.FC = () => {
         onCancel={cancelGrossCompleteWithoutProtocol}
       />
 
+      {/* Quick fix (PS-359): replaces the previous window.prompt() — a
+          correction to an already-finalized Gross requires a typed, audited
+          reason (see useGrossingCompletion's handleGrossComplete). */}
+      <ReasonPromptModal
+        show={showUpdateReasonPrompt}
+        title={tGrossingNav('useGrossingCompletion.prompt.title')}
+        reasonLabel={tGrossingNav('useGrossingCompletion.prompt.reasonForUpdate')}
+        confirmLabel={tGrossingNav('common.confirm')}
+        onConfirm={confirmUpdateReason}
+        onCancel={cancelUpdateReason}
+      />
+
+      {/* Batch 478: the authorization gate's own audited override —
+          autopsy:gross-exam-gate:override. The reason is captured here,
+          then the existing signature-confirm flow runs as usual
+          (setConfirmingAutopsyTier), with the reason carried through to
+          signAutopsyReport.ts via handleSignAutopsyReport. */}
+      <ReasonPromptModal
+        show={showGateOverridePrompt !== null}
+        title={tGrossingNav('synopticReportPage.autopsy.gateOverride.promptTitle', { tier: showGateOverridePrompt ?? 'PAD' })}
+        message={tGrossingNav('synopticReportPage.autopsy.gateOverride.promptMessage')}
+        reasonLabel={tGrossingNav('synopticReportPage.autopsy.gateOverride.reasonLabel')}
+        confirmLabel={tGrossingNav('synopticReportPage.autopsy.gateOverride.overrideBtn', { tier: showGateOverridePrompt ?? 'PAD' })}
+        onConfirm={(reason) => {
+          const tier = showGateOverridePrompt;
+          setShowGateOverridePrompt(null);
+          setGateOverrideReason(reason);
+          if (tier) setConfirmingAutopsyTier(tier);
+        }}
+        onCancel={() => setShowGateOverridePrompt(null)}
+      />
+
       <CaseSignOutModal
         show={showSignOutModal}
         accession={caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? ''}
@@ -4949,6 +5839,8 @@ const SynopticReportPage: React.FC = () => {
         residentName={(caseData as any)?.participants?.find((p: any) => p.status === 'active' && p.participationTypeIds?.includes('resident'))?.staffName}
         countersignFeedback={countersignFeedback}
         onCountersignFeedbackChange={setCountersignFeedback}
+        followUpExpected={followUpExpected}
+        onFollowUpExpectedChange={canMarkFollowUp ? setFollowUpExpected : undefined}
         specimens={caseData?.specimens as any}
         matrixBlocks={(caseData?.matrixBlocks as any) ?? []}
         onAssignBaseCode={(_specimenId, specimenIndex) => {
@@ -4966,33 +5858,25 @@ const SynopticReportPage: React.FC = () => {
         }}
       />
 
-      {concurrencyConflict && (
-        <div data-capture-hide="true" className="ps-overlay">
-          <div className="ps-modal-dark ps-modal-dark--sm ps-modal-dark--centered">
-            <div className="ps-modal-dark-emoji">⚠️</div>
-            <div className="ps-modal-dark-header ps-modal-dark-header--center">
-              <span className="ps-modal-dark-title">Someone else changed this case</span>
-            </div>
-            <p className="ps-modal-dark-body ps-modal-dark-body--center">
-              This case was updated by someone else since you opened it (their version is #{concurrencyConflict.actualVersion}) —
-              after you opened it. {concurrencyConflict.blockOverride
-                ? 'This action affects the finalized report, so it can only proceed against the current version — reload to see their changes before continuing.'
-                : 'Your unsaved changes here haven\'t been lost yet, but saving now would overwrite theirs.'}
-            </p>
-            {!concurrencyConflict.blockOverride && (
-              <p className="ps-modal-dark-hint ps-modal-dark-hint--center">
-                Reload to see their version (your local changes here will be lost), or save yours anyway and overwrite theirs.
-              </p>
-            )}
-            <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch ps-modal-dark-footer--stretch-stacked">
-              <button className="ps-btn-ghost-dark" onClick={() => setConcurrencyConflict(null)}>Keep Working — Decide Later</button>
-              <button className="ps-btn-ghost-dark" onClick={handleConcurrencyReload}>Reload Their Version</button>
-              {!concurrencyConflict.blockOverride && (
-                <button className="ps-btn-amber" onClick={handleConcurrencyForceSave}>Save Mine Anyway</button>
-              )}
-            </div>
-          </div>
-        </div>
+      {mergeReview && (
+        <MergeReviewDialog
+          theirsChanged={mergeReview.theirsChanged}
+          mineChanged={mergeReview.mineChanged}
+          busy={mergeReviewBusy}
+          onSave={() => { void handleMergeReviewSave(); }}
+          onNotYet={handleMergeReviewNotYet}
+        />
+      )}
+      {concurrencyConflict && !mergeReview && (
+        <EditConflictDialog
+          actualVersion={concurrencyConflict.actualVersion}
+          blockOverride={!!concurrencyConflict.blockOverride}
+          rows={conflictRows}
+          onKeepWorking={closeConcurrencyConflict}
+          onViewChanges={() => { void handleConcurrencyViewChanges(); }}
+          onReload={handleConcurrencyReload}
+          onSaveMine={() => { void handleConcurrencyForceSave(); }}
+        />
       )}
 
       {pendingReconciliation && caseData && (
@@ -5029,6 +5913,14 @@ const SynopticReportPage: React.FC = () => {
         />
       )}
 
+      {printPlan && (
+        <ReportPrintPromptModal
+          plan={printPlan}
+          onCancel={() => setPrintPlan(null)}
+          onPrint={(reason) => { const plan = printPlan; setPrintPlan(null); void printReport(plan, reason); }}
+        />
+      )}
+
       <CopilotReportViewModal
         show={showCopilotReportView}
         onClose={() => setShowCopilotReportView(false)}
@@ -5036,6 +5928,7 @@ const SynopticReportPage: React.FC = () => {
         patient={caseData?.patient ? `${caseData.patient.familyNames ?? caseData.patient.lastName}, ${caseData.patient.givenNames ?? caseData.patient.firstName}` : ''}
         mrn={caseData?.patient?.mrn ?? ''}
         instances={copilotReportInstances}
+        caseRecord={caseData}
       />
 
       {showAiReview && (
@@ -5063,26 +5956,28 @@ const SynopticReportPage: React.FC = () => {
         />
       )}
 
+      {warningConfirm.modal}
+
       {showMissingWarning && (
         <div className="ps-cannot-fin-overlay" onClick={() => setShowMissingWarning(false)}>
           <div className="ps-cannot-fin-modal" onClick={e => e.stopPropagation()}>
             <div className="ps-cannot-fin-header">
               <span className="ps-cannot-fin-header-icon">⚠️</span>
               <div>
-                <div className="ps-cannot-fin-header-tag">Cannot Finalise</div>
-                <div className="ps-cannot-fin-header-title">Required Fields Incomplete</div>
+                <div className="ps-cannot-fin-header-tag">{tGrossingNav('synopticReportPage.cannotFinalise.tag')}</div>
+                <div className="ps-cannot-fin-header-title">{tGrossingNav('synopticReportPage.cannotFinalise.title')}</div>
               </div>
             </div>
             <div className="ps-cannot-fin-body">
               <p className="ps-cannot-fin-desc">
-                The following required fields must be completed before this report can be finalised:
+                {tGrossingNav('synopticReportPage.cannotFinalise.body')}
               </p>
               <div className="ps-cannot-fin-list">
                 {missingFields.map((f, i) => (
                   <button
                     key={i}
                     className="ps-cannot-fin-card"
-                    title="Click to jump to this field"
+                    title={tGrossingNav('synopticReportPage.cannotFinalise.jumpTitle')}
                     onClick={() => handleMissingFieldClick(f.fieldId)}
                   >
                     <span className="ps-cannot-fin-card-x">✗</span>
@@ -5095,9 +5990,9 @@ const SynopticReportPage: React.FC = () => {
               </div>
             </div>
             <div className="ps-cannot-fin-footer">
-              <span className="ps-cannot-fin-footer-count">{missingFields.length} field{missingFields.length !== 1 ? 's' : ''} need attention</span>
+              <span className="ps-cannot-fin-footer-count">{tGrossingNav('synopticReportPage.cannotFinalise.count', { count: missingFields.length })}</span>
               <button className="ps-btn-primary" onClick={() => setShowMissingWarning(false)}>
-                Return and Fix
+                {tGrossingNav('synopticReportPage.cannotFinalise.returnAndFix')}
               </button>
             </div>
           </div>
@@ -5357,7 +6252,7 @@ const SynopticReportPage: React.FC = () => {
           retentionHolds={caseData.retentionHolds ?? []}
           currentUserId={signingUser?.id ?? 'unknown'}
           currentUserName={signingUser?.name ?? unknownUserName}
-          onUpdated={(updated, version) => { if (version !== undefined) knownVersionRef.current = version; setCaseData(prev => prev ? { ...prev, retentionHolds: updated } : prev); }}
+          onUpdated={(updated, version) => { knownVersionRef.current = adoptSavedVersion(knownVersionRef.current, version); setCaseData(prev => prev ? { ...prev, retentionHolds: updated } : prev); }}
           onClose={() => setShowRetentionHoldModal(false)}
         />
       )}
@@ -5369,7 +6264,7 @@ const SynopticReportPage: React.FC = () => {
           caseHolds={caseData.caseHolds ?? []}
           currentUserId={signingUser?.id ?? 'unknown'}
           currentUserName={signingUser?.name ?? unknownUserName}
-          onUpdated={(updated, version) => { if (version !== undefined) knownVersionRef.current = version; setCaseData(prev => prev ? { ...prev, caseHolds: updated } : prev); }}
+          onUpdated={(updated, version) => { knownVersionRef.current = adoptSavedVersion(knownVersionRef.current, version); setCaseData(prev => prev ? { ...prev, caseHolds: updated } : prev); }}
           onClose={() => setShowCaseHoldModal(false)}
         />
       )}
@@ -5457,6 +6352,32 @@ const SynopticReportPage: React.FC = () => {
         />
       )}
 
+      {clinicalMismatch && caseData && (
+        <ClinicalMismatchModal
+          caseId={caseData.id}
+          accession={caseData.accession?.fullAccession}
+          caseType={caseData.specimens?.[0]?.description || caseData.id}
+          subspecialtyId={caseData.subspecialtyId}
+          clinicalIndication={caseData.order?.clinicalIndication}
+          suggestion={clinicalMismatch}
+          onCancel={cancelGate}
+          onContinue={() => { setClinicalMismatch(null); resumeAfterGate(); }}
+        />
+      )}
+
+      {peerReviewGate && caseData && signingUser && (
+        <PeerReviewGateModal
+          caseId={caseData.id}
+          accession={caseData.accession?.fullAccession}
+          status={peerReviewGate}
+          reviewers={peerReview.reviewers}
+          currentUserId={signingUser.id}
+          onCancel={cancelGate}
+          onRequested={() => { cancelGate(); void peerReview.reload(); showToast(tGrossingNav('peerReview.gate.requestedToast'), 'info'); }}
+          onContinue={() => { setPeerReviewGate(null); void peerReview.reload(); resumeAfterGate(); }}
+        />
+      )}
+
       {stainQcGateBlocking && caseData && (
         <StainQcGateModal
           blocking={stainQcGateBlocking}
@@ -5530,57 +6451,7 @@ const SynopticReportPage: React.FC = () => {
 
       {showCodesModal && caseData && (
         <AddCodeModal
-          existingCodes={[
-            ...(((caseData as any).coding?.icd10 ?? []) as any[]),
-            ...(((caseData as any).coding?.snomed ?? []) as any[]),
-            // Real fix, Phase 1 of specimen-level CPT association: reads
-            // real CPT codes from each real specimen's own coding.cpt
-            // (bare code strings, matching what computeWorkRvuForCodes
-            // already expects), not a flat, case-level array. Attaches
-            // the real specimenId so the modal's existing left-panel
-            // grouping-by-specimen logic (already used for ICD/SNOMED)
-            // works correctly for CPT too. The modal's own live CPT
-            // search shows the real description when re-selecting.
-            ...((caseData.specimens ?? []) as any[]).flatMap((sp: any) =>
-              ((sp.coding?.cpt ?? []) as string[]).map((code: string) => ({
-                id: `cpt-${sp.id}-${code}`, system: 'CPT' as const, code, display: code, source: 'manual' as const, specimenId: sp.id,
-              }))
-            ),
-            // Real, per direct guidance's own follow-up on structured
-            // linkage: a real, specimen-specific diagnosis
-            // (Specimen.coding.icd10, see that field's own doc
-            // comment) - same real pattern as CPT immediately above,
-            // attaching specimenId so the modal's own existing
-            // left-panel grouping and re-selection description lookup
-            // both work correctly for these too.
-            //
-            // Real fix, per direct guidance: id now includes the real
-            // array index, not just specimen+code - the same real
-            // concept can legitimately appear more than once for one
-            // specimen (multiple observations producing the same
-            // coded concept, the same concept attached to different
-            // components within one specimen) and must never collide
-            // into one, indistinguishable id.
-            ...((caseData.specimens ?? []) as any[]).flatMap((sp: any) =>
-              ((sp.coding?.icd10 ?? []) as { code: string; description: string }[]).map((dx, i) => ({
-                id: `icd10-${sp.id}-${i}-${dx.code}`, system: 'ICD' as const, code: dx.code, display: dx.description, source: 'manual' as const, specimenId: sp.id,
-              }))
-            ),
-            // Real fix, per direct guidance: SNOMED needed the exact
-            // same real, per-specimen reading ICD10 already has —
-            // previously entirely absent, so a specimen-level SNOMED
-            // association (Specimen.coding.snomed, see that field's
-            // own doc comment for the real "never dedupe" reasoning)
-            // never even reached the modal's own existingCodes list at
-            // all, regardless of the handleAddCodesToSpecimens fix
-            // that now actually writes it. Same real index-inclusive
-            // id as ICD10 above, same real reasoning.
-            ...((caseData.specimens ?? []) as any[]).flatMap((sp: any) =>
-              ((sp.coding?.snomed ?? []) as { code: string; description: string }[]).map((dx, i) => ({
-                id: `snomed-${sp.id}-${i}-${dx.code}`, system: 'SNOMED' as const, code: dx.code, display: dx.description, source: 'manual' as const, specimenId: sp.id,
-              }))
-            ),
-          ]}
+          existingCodes={buildCodeManagerExistingCodes((caseData as any).coding, (caseData.specimens ?? []) as any[]) as any[]}
           allSpecimens={(caseData.specimens ?? []).map((sp, i) => ({
             index: i, id: i + 1, specimenId: sp.id,
             name: `${sp.label}: ${sp.description ?? ''}`,
@@ -5661,7 +6532,7 @@ const SynopticReportPage: React.FC = () => {
         <CaseTeamModal
           caseData={caseData}
           onClose={() => setShowTeamModal(false)}
-          onUpdated={(updated) => { setCaseData(updated); }}
+          onUpdated={(updated, version) => { knownVersionRef.current = adoptSavedVersion(knownVersionRef.current, version); setCaseData(updated); }}
           onDirtyChange={handleTeamDirtyChange}
           onDelegate={() => { setShowTeamModal(false); setDelegateReturnTo('team'); setShowDelegateModal(true); }}
         />
@@ -5682,7 +6553,13 @@ const SynopticReportPage: React.FC = () => {
             showToast(tGrossingNav('synopticReportPage.toast.caseDelegated'));
             // Batch 381: delegating changes the case, so the page's next save
             // must know its new version (it was refused as someone else's change).
-            if (caseData?.id) void caseRouter.getCase(caseData.id).then(c => { if (c?.version !== undefined) knownVersionRef.current = c.version; });
+            // PS-71 (Batch 458): take the delegation's team change, and its version
+            // only if nobody else saved in between (adoptSavedVersion).
+            if (caseData?.id) void caseRouter.getCase(caseData.id).then(c => {
+              if (!c) return;
+              knownVersionRef.current = adoptSavedVersion(knownVersionRef.current, c.version);
+              setCaseData(prev => (prev ? { ...prev, participants: c.participants, eligibleFinalizerIds: (c as any).eligibleFinalizerIds, order: c.order } as typeof prev : prev));
+            });
             if (delegateReturnTo === 'team') { setShowTeamModal(true); setDelegateReturnTo(null); }
           }}
           synopticInstances={(caseData?.synopticReports ?? []).map(r => ({
@@ -5698,24 +6575,24 @@ const SynopticReportPage: React.FC = () => {
         <div className="ps-tabswitch-overlay">
           <div className="ps-tabswitch-modal">
             <div className="ps-tabswitch-title">
-              Unsaved draft changes
+              {tGrossingNav('synopticReportPage.tabSwitch.title')}
             </div>
             <div className="ps-tabswitch-body">
-              You have unsaved changes in the report draft. Would you like to save before switching tabs?
+              {tGrossingNav('synopticReportPage.tabSwitch.body')}
             </div>
             <div className="ps-tabswitch-footer">
               <button
                 onClick={() => setPendingTabSwitch(null)}
                 className="ps-tabswitch-btn ps-tabswitch-btn--cancel"
-              >Cancel</button>
+              >{tGrossingNav('common.cancel')}</button>
               <button
                 onClick={handleDiscardAndSwitchTab}
                 className="ps-tabswitch-btn ps-tabswitch-btn--discard"
-              >Discard &amp; Switch</button>
+              >{tGrossingNav('synopticReportPage.tabSwitch.discard')}</button>
               <button
                 onClick={handleSaveAndSwitchTab}
                 className="ps-tabswitch-btn ps-tabswitch-btn--save"
-              >Save &amp; Switch</button>
+              >{tGrossingNav('synopticReportPage.tabSwitch.save')}</button>
             </div>
           </div>
         </div>

@@ -111,8 +111,10 @@ describe('mockCriticalAlertReferenceTokenService — real, per PS-136', () => {
     const res = await mockCriticalAlertReferenceTokenService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.data).toHaveLength(2);
-      expect(res.data.map(t => t.caseId).sort()).toEqual(['case-x', 'case-y']);
+      // Batch 456: the store starts with the demo link (criticalAlertDemoSeed.ts).
+      const issued = res.data.filter(t => !t.id.startsWith('crit-alert-ref-demo-'));
+      expect(issued).toHaveLength(2);
+      expect(issued.map(t => t.caseId).sort()).toEqual(['case-x', 'case-y']);
     }
   });
 

@@ -27,9 +27,9 @@ import type { SynopticResultPayloadV1 } from './synopticResultPayload';
 const REPORT_PDF = resolveServiceEndpoint({
   name: 'report renderer',
   envVar: 'VITE_REPORT_PDF_ENDPOINT',
-  configured: (import.meta as any).env?.VITE_REPORT_PDF_ENDPOINT,
+  configured: import.meta.env.VITE_REPORT_PDF_ENDPOINT,
   devDefault: 'http://localhost:8080/',
-  isProduction: !!(import.meta as any).env?.PROD,
+  isProduction: !!import.meta.env.PROD,
 });
 
 export interface WorkupChange { label: string; from: string; to: string }

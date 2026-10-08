@@ -141,3 +141,81 @@ describe('printMolecularPlateLabel — real, per direct follow-up ("should we up
     expect(openSpy).not.toHaveBeenCalled(); // real, honest confirmation — the browser print dialog was never opened
   });
 });
+
+// PS-231 (Batch 450): the browser-print path, checked by what is actually
+// written to the print window — label count and content — not only the
+// true/false return.
+function capturePrintWindow(): { writes: string[]; openSpy: ReturnType<typeof vi.fn> } {
+  const writes: string[] = [];
+  const openSpy = vi.fn(() => ({
+    document: { write: (html: string) => { writes.push(html); }, close: vi.fn() },
+    focus: vi.fn(),
+    print: vi.fn(),
+  }));
+  vi.stubGlobal('open', openSpy);
+  return { writes, openSpy };
+}
+const labelCount = (html: string) => (html.match(/class="ps-label ps-label--/g) ?? []).length;
+
+describe('molecular label printing (PS-231) — what reaches the print window', () => {
+  it('specimen labels: one label per scanned-in patient specimen well, each carrying its own container barcode and accession', async () => {
+    const { writes, openSpy } = capturePrintWindow();
+    const { printMolecularSpecimenLabels } = await import('./printMolecularLabels');
+    const batch = makeBatch({ wells: [
+      { wellPosition: 'A01', sampleType: 'CONTROL_NTC', containerBarcode: 'CTRL-NTC-001' },
+      { wellPosition: 'A03', sampleType: 'PATIENT_SPECIMEN', containerBarcode: 'SPEC-20260906-00008831', accessionNumber: 'PS26-100452' },
+      { wellPosition: 'A04', sampleType: 'PATIENT_SPECIMEN' },
+      { wellPosition: 'A05', sampleType: 'PATIENT_SPECIMEN', containerBarcode: 'SPEC-20260906-00008832', accessionNumber: 'PS26-100453' },
+    ] });
+    expect(await printMolecularSpecimenLabels(batch)).toBe(true);
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveLength(1);
+    const html = writes[0];
+    expect(labelCount(html)).toBe(2);
+    expect(html).toContain('SPEC-20260906-00008831');
+    expect(html).toContain('PS26-100452');
+    expect(html).toContain('SPEC-20260906-00008832');
+    expect(html).toContain('PS26-100453');
+    expect(html).not.toContain('CTRL-NTC-001');
+  });
+
+  it('specimen labels: a batch with no scanned patient specimen wells opens no print window at all', async () => {
+    const { writes, openSpy } = capturePrintWindow();
+    const { printMolecularSpecimenLabels } = await import('./printMolecularLabels');
+    expect(await printMolecularSpecimenLabels(makeBatch({ wells: [{ wellPosition: 'A01', sampleType: 'CONTROL_NTC' }, { wellPosition: 'A02', sampleType: 'PATIENT_SPECIMEN' }] }))).toBe(false);
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
+  });
+
+  it('plate label: one label with the plate barcode, assay and instrument', async () => {
+    const { writes } = capturePrintWindow();
+    const { printMolecularPlateLabel } = await import('./printMolecularLabels');
+    expect(await printMolecularPlateLabel(makeBatch())).toBe(true);
+    expect(labelCount(writes[0])).toBe(1);
+    expect(writes[0]).toContain('PLT-HPV-20260906-012');
+    expect(writes[0]).toContain('High-Risk HPV Real-Time PCR');
+    expect(writes[0]).toContain('PANTHER_02');
+  });
+
+  it('extraction rack label: one label whose barcode uses the supplied sequence number', async () => {
+    const { writes } = capturePrintWindow();
+    const { printMolecularRackLabel } = await import('./printMolecularLabels');
+    expect(await printMolecularRackLabel(42)).toBe(true);
+    expect(labelCount(writes[0])).toBe(1);
+    expect(writes[0]).toContain('RACK-MOLE-00042');
+  });
+
+  it('deck location label: one label for the assigned deck slot; no print window when there is no slot', async () => {
+    const { writes, openSpy } = capturePrintWindow();
+    const { printMolecularDeckLocationLabel } = await import('./printMolecularLabels');
+    expect(await printMolecularDeckLocationLabel(makeBatch({ deckSlot: 'SLOT_B2' }))).toBe(true);
+    expect(labelCount(writes[0])).toBe(1);
+    expect(writes[0]).toContain('LOC-INST-PANTHER_02-SLOT_B2');
+    expect(writes[0]).toContain('SLOT_B2');
+
+    openSpy.mockClear();
+    expect(await printMolecularDeckLocationLabel(makeBatch({ deckSlot: undefined }))).toBe(false);
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(1);
+  });
+});

@@ -1438,6 +1438,15 @@
           "label": "EGFR Mutation Status",
           "type": "dropdown",
           "required": false,
+          "molecularResult": {
+            "assayCodes": [
+              "st-egfr-pcr"
+            ],
+            "values": {
+              "POSITIVE": "egfr_detected",
+              "NEGATIVE": "egfr_not_detected"
+            }
+          },
           "snomed": "",
           "icd": "",
           "options": [

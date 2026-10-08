@@ -28,6 +28,10 @@ import ValidationStudiesSection from '../components/ValidationStudies/Validation
 import ConfigSearchBar from '../components/Config/Search/ConfigSearchBar';
 import { resetConfigScroll } from '../utils/resetConfigScroll';
 import { ConfigDirtyGuardContext } from '../components/Config/configDirtyGuardContext';
+import { createConfigDirtyRegistry } from '../services/configDirty/configDirtyRegistry';
+import { onConfigWritten } from '../services/authorization/guardConfigWrites';
+import { useConfigEditTracking } from '../hooks/useConfigEditTracking';
+import { useDirtyState } from '../contexts/DirtyStateContext';
 import ConfirmModal from '../components/Common/ConfirmModal';
 import '../pathscribe.css';
 import ConfigRefusalBanner from '../components/Config/ConfigRefusalBanner';
@@ -96,22 +100,45 @@ const ConfigurationPage: React.FC = () => {
   useEffect(() => { setActiveTab(getTabFromSearch(location.search)); }, [location.search]);
   useEffect(() => { const t = setTimeout(() => setIsLoaded(true), 100); return () => clearTimeout(t); }, []);
 
-  // ── PS-128: page-level dirty-flag guard ────────────────────────────────────
-  // Real fix — this page previously had zero awareness of any nested tab's
-  // own unsaved-draft state: the tab bar, the voice-nav listeners below, and
-  // ConfigSearchBar's onNavigate all called navigate()/setActiveTab()
-  // unconditionally, silently discarding whatever a tab like Macros had
-  // half-written. tabIsDirty is fed by ConfigDirtyGuardContext, which
-  // MacroPanel.tsx (the first real, confirmed case — see its own comment)
-  // now populates. A ref mirrors the state so the voice-nav listeners below
-  // (registered once, via a stable effect) can read the CURRENT dirty value
-  // without needing to be re-subscribed on every keystroke.
-  const [tabIsDirty, setTabIsDirty] = useState(false);
-  const tabIsDirtyRef = useRef(false);
-  useEffect(() => { tabIsDirtyRef.current = tabIsDirty; }, [tabIsDirty]);
-  // A tab that just became active starts clean — any dirty flag belonged to
-  // whichever tab was showing a moment ago.
-  useEffect(() => { setTabIsDirty(false); }, [activeTab]);
+  // ── PS-128: unsaved changes anywhere on the page ───────────────────────────
+  // Batch 309 guarded only switching tabs, and only for Macros. Batch 437:
+  // every editor counts (services/configDirty/configDirtyRegistry.ts) —
+  // inline forms report their exact state through ConfigDirtyGuardContext,
+  // and edits in any editor dialog are noticed here (useConfigEditTracking).
+  // The page tells the app-wide guard, so the logo, breadcrumbs, nav bar,
+  // header search and Sign Out ask before leaving too; closing or reloading
+  // the browser tab gets the browser's own warning.
+  const [pageDirty, setPageDirty] = useState(false);
+  const pageDirtyRef = useRef(false);
+  useEffect(() => { pageDirtyRef.current = pageDirty; }, [pageDirty]);
+  const registry = useMemo(() => createConfigDirtyRegistry(dirty => { pageDirtyRef.current = dirty; setPageDirty(dirty); }), []);
+  const pageRootRef = useRef<HTMLDivElement>(null);
+  // Batch 438: closing a dialog with unsaved edits from outside it (a click
+  // on its backdrop, or Escape) asks first; Discard replays the close.
+  const [outsideClose, setOutsideClose] = useState<{ dialog: object; replay: () => void } | null>(null);
+  const handleOutsideClose = useCallback((dialog: object, replay: () => void) => setOutsideClose({ dialog, replay }), []);
+  useConfigEditTracking(pageRootRef, registry, handleOutsideClose);
+  const handleOutsideCloseDiscard = () => {
+    const pending = outsideClose;
+    setOutsideClose(null);
+    if (!pending) return;
+    registry.forgetDialog(pending.dialog);
+    pending.replay();
+    // A dialog that doesn't close on Escape is still open with its edits:
+    // it stays unsaved, so leaving the page still asks.
+    setTimeout(() => { if ((pending.dialog as Element).isConnected) registry.dialogEdited(pending.dialog); }, 0);
+  };
+  useEffect(() => onConfigWritten(() => registry.configSaved()), [registry]);
+
+  const { setDirty: setAppDirty, pendingPath, confirmNavigate, cancelNavigate } = useDirtyState();
+  useEffect(() => { setAppDirty(pageDirty); }, [pageDirty, setAppDirty]);
+  useEffect(() => () => setAppDirty(false), [setAppDirty]);
+  useEffect(() => {
+    if (!pageDirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [pageDirty]);
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const pendingNavRef = useRef<(() => void) | null>(null);
@@ -147,18 +174,23 @@ const ConfigurationPage: React.FC = () => {
     }
   }, [navigate, log]);
 
-  const guardedNavigateToTab = useCallback((tabId: TabId, withScrollReset: boolean, section?: string) => {
-    if (tabIsDirtyRef.current) {
-      pendingNavRef.current = () => performNavigateToTab(tabId, withScrollReset, section);
+  // Runs a navigation now, or after "Discard changes" when anything is unsaved.
+  const guardNavigation = useCallback((action: () => void) => {
+    if (pageDirtyRef.current) {
+      pendingNavRef.current = action;
       setShowDiscardConfirm(true);
     } else {
-      performNavigateToTab(tabId, withScrollReset, section);
+      action();
     }
-  }, [performNavigateToTab]);
+  }, []);
+
+  const guardedNavigateToTab = useCallback((tabId: TabId, withScrollReset: boolean, section?: string) => {
+    guardNavigation(() => performNavigateToTab(tabId, withScrollReset, section));
+  }, [guardNavigation, performNavigateToTab]);
 
   const handleDiscardConfirm = () => {
     setShowDiscardConfirm(false);
-    setTabIsDirty(false);
+    registry.clearAll();
     const perform = pendingNavRef.current;
     pendingNavRef.current = null;
     perform?.();
@@ -187,7 +219,7 @@ const ConfigurationPage: React.FC = () => {
         // Stay on the current tab until a pending discard-confirm resolves;
         // performNavigateToTab (via the effect above) is what actually
         // advances activeTab once the navigation really happens.
-        return tabIsDirtyRef.current ? current : next;
+        return pageDirtyRef.current ? current : next;
       });
     };
 
@@ -196,7 +228,7 @@ const ConfigurationPage: React.FC = () => {
         const idx = tabIds.indexOf(current);
         const prev = tabIds[Math.max(idx - 1, 0)];
         guardedNavigateToTab(prev, false);
-        return tabIsDirtyRef.current ? current : prev;
+        return pageDirtyRef.current ? current : prev;
       });
     };
 
@@ -210,7 +242,15 @@ const ConfigurationPage: React.FC = () => {
 
   const handleTabChange = (tabId: TabId) => guardedNavigateToTab(tabId, true);
 
-  const dirtyGuardContextValue = useMemo(() => ({ setDirty: setTabIsDirty }), []);
+  const dirtyGuardContextValue = useMemo(() => ({
+    setDirty: (dirty: boolean) => registry.report('legacy', dirty),
+    report: registry.report,
+    guard: guardNavigation,
+  }), [registry, guardNavigation]);
+
+  // Leaving Configuration (logo, breadcrumb, nav bar, header search) with
+  // unsaved changes: the app-wide guard holds the address until this answers.
+  const handleLeaveConfirm = () => { registry.clearAll(); confirmNavigate(); };
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -239,7 +279,7 @@ const ConfigurationPage: React.FC = () => {
   if (!isLoaded) return <div className="ps-cfgpage-loading">{t('configuration.loading')}</div>;
 
   return (
-    <div className="ps-cfgpage-shell">
+    <div className="ps-cfgpage-shell" ref={pageRootRef}>
 
       {/* Batch 428: a refused change names the missing permission. */}
       <ConfigRefusalBanner />
@@ -287,6 +327,31 @@ const ConfigurationPage: React.FC = () => {
         cancelLabel={t('common.cancel')}
         onConfirm={handleDiscardConfirm}
         onCancel={handleDiscardCancel}
+        aboveDialogs
+      />
+
+      {/* ── Batch 438: closing a dialog from outside with unsaved edits ── */}
+      <ConfirmModal
+        show={!!outsideClose}
+        title={t('configuration.dirtyGuard.title')}
+        message={t('configuration.dirtyGuard.dialogMessage')}
+        confirmLabel={t('configuration.dirtyGuard.discardButton')}
+        cancelLabel={t('configuration.dirtyGuard.keepEditing')}
+        onConfirm={handleOutsideCloseDiscard}
+        onCancel={() => setOutsideClose(null)}
+        aboveDialogs
+      />
+
+      {/* ── PS-128: leaving Configuration with unsaved changes ── */}
+      <ConfirmModal
+        show={!!pendingPath}
+        title={t('configuration.dirtyGuard.title')}
+        message={t('configuration.dirtyGuard.message')}
+        confirmLabel={t('configuration.dirtyGuard.discardButton')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleLeaveConfirm}
+        onCancel={cancelNavigate}
+        aboveDialogs
       />
     </div>
   );

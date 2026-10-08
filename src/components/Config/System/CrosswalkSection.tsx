@@ -24,6 +24,8 @@ import type { Facility } from '@/services/facilities/IFacilityService';
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 import { SearchableCombobox } from '@/components/Common/SearchableCombobox';
 import { findDuplicate } from '@/utils/validateUnique';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { recordExport } from '@/services';
 
 const CrosswalkSection: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +39,8 @@ const CrosswalkSection: React.FC = () => {
   const [newFacilityId, setNewFacilityId] = useState('');
   const [newExternalCode, setNewExternalCode] = useState('');
   const [newDictionaryEntryId, setNewDictionaryEntryId] = useState('');
+  // PS-128 (Batch 437): a new mapping being typed is unsaved.
+  useReportConfigDirty(showAdd && (newFacilityId !== '' || newExternalCode.trim() !== '' || newDictionaryEntryId !== ''));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // Real, new — per direct guidance on the Order Types & Inbound Rules
@@ -117,6 +121,8 @@ const CrosswalkSection: React.FC = () => {
       Facility: resolveFacilityName(e.clientId), ExternalCode: e.externalCode, ResolvesTo: entryName(e.dictionaryEntryId),
       Source: e.createdBy === 'system' ? 'Auto-learned' : 'Admin-confirmed',
     }));
+    // PS-282 (Batch 437): audited.
+    void recordExport('specimen-code-crosswalk', { filename: 'SpecimenCodeCrosswalk.csv', rowCount: rows.length });
     downloadCsv('SpecimenCodeCrosswalk.csv', toCsv(rows));
   };
 

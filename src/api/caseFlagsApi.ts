@@ -4,6 +4,14 @@
 
 import { CaseWithFlags, FlagInstance } from '../types/flagsRuntime';
 import { mockCaseService } from '../services/cases/mockCaseService';
+import { updateCaseWithRetryOrThrow } from '../services/cases/caseWrite';
+// Batch 452 (PS-57): the typed view replaces the old `any` mapper here.
+import { toCaseWithFlags as toView } from '../services/flags/caseFlagView';
+
+const toCaseWithFlags = (c: Parameters<typeof toView>[0] | null): CaseWithFlags => {
+  if (!c) throw new Error('Case not found after the flag change');
+  return toView(c);
+};
 
 // Real, confirmed resolution to the architectural conflict this file
 // used to document here (Jira PS-57): Case.caseFlags/Specimen.
@@ -44,40 +52,38 @@ function makeInstance(flagDefinitionId: string): FlagInstance {
   };
 }
 
-function toCaseWithFlags(c: any): CaseWithFlags {
-  return {
-    id: c.id,
-    accession: c.accession?.fullAccession ?? c.accession?.accessionNumber ?? c.accession ?? c.id,
-    flags: Array.isArray(c.caseFlags) ? c.caseFlags : [],
-    specimens: (c.specimens ?? []).map((sp: any) => ({
-      ...sp,
-      flags: Array.isArray(sp.specimenFlags) ? sp.specimenFlags : [],
-    })),
-  };
-}
-
 // ─── applyFlags ───────────────────────────────────────────────────────────────
+
+// PS-71 (Batch 458): both operations change one flag (add it if absent, or
+// mark one instance deleted), so each is applied to the newest copy of the
+// case and saved with its version (updateCaseWithRetryOrThrow). On a
+// conflict the same one-flag change is re-applied to the newer case, so a
+// flag someone else added or removed in between is kept, never overwritten
+// by this screen's older list. A save that still conflicts after the
+// retries throws ConcurrencyConflictError to the screen.
 
 export async function applyFlags(payload: ApplyFlagPayload): Promise<CaseWithFlags> {
   const c = await mockCaseService.getCase(payload.caseId);
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
   const inst = makeInstance(payload.flagDefinitionId);
+  const isActive = (f: FlagInstance) => f.flagDefinitionId === payload.flagDefinitionId && !f.deletedAt;
 
-  if (payload.specimenId) {
-    const specimens = (c.specimens ?? []).map((sp) => {
-      if (sp.id !== payload.specimenId) return sp;
-      const flags: FlagInstance[] = Array.isArray(sp.specimenFlags) ? sp.specimenFlags : [];
-      if (flags.some(f => f.flagDefinitionId === payload.flagDefinitionId && !f.deletedAt)) return sp;
-      return { ...sp, specimenFlags: [...flags, inst] };
-    });
-    await mockCaseService.updateCase(payload.caseId, { specimens });
-  } else {
-    const flags: FlagInstance[] = Array.isArray(c.caseFlags) ? c.caseFlags : [];
-    if (!flags.some(f => f.flagDefinitionId === payload.flagDefinitionId && !f.deletedAt)) {
-      await mockCaseService.updateCase(payload.caseId, { caseFlags: [...flags, inst] });
+  await updateCaseWithRetryOrThrow(payload.caseId, current => {
+    if (payload.specimenId) {
+      let changed = false;
+      const specimens = (current.specimens ?? []).map((sp) => {
+        if (sp.id !== payload.specimenId) return sp;
+        const flags: FlagInstance[] = Array.isArray(sp.specimenFlags) ? sp.specimenFlags : [];
+        if (flags.some(isActive)) return sp;
+        changed = true;
+        return { ...sp, specimenFlags: [...flags, inst] };
+      });
+      return changed ? { specimens } : null;
     }
-  }
+    const flags: FlagInstance[] = Array.isArray(current.caseFlags) ? current.caseFlags : [];
+    return flags.some(isActive) ? null : { caseFlags: [...flags, inst] };
+  }, mockCaseService);
 
   const updated = await mockCaseService.getCase(payload.caseId);
   return toCaseWithFlags(updated);
@@ -90,31 +96,24 @@ export async function deleteFlags(payload: DeleteFlagPayload): Promise<CaseWithF
   if (!c) throw new Error(`Case ${payload.caseId} not found`);
 
   const now = new Date().toISOString();
+  const markDeleted = (flags: FlagInstance[]) => flags.map(f =>
+    f.id === payload.flagInstanceId
+      ? { ...f, deletedAt: now, deletedBy: 'current-user' }
+      : f
+  );
 
-  if (payload.specimenId) {
-    const specimens = (c.specimens ?? []).map((sp) => {
-      if (sp.id !== payload.specimenId) return sp;
-      const flags: FlagInstance[] = Array.isArray(sp.specimenFlags) ? sp.specimenFlags : [];
-      return {
-        ...sp,
-        specimenFlags: flags.map(f =>
-          f.id === payload.flagInstanceId
-            ? { ...f, deletedAt: now, deletedBy: 'current-user' }
-            : f
-        ),
-      };
-    });
-    await mockCaseService.updateCase(payload.caseId, { specimens });
-  } else {
-    const flags: FlagInstance[] = Array.isArray(c.caseFlags) ? c.caseFlags : [];
-    await mockCaseService.updateCase(payload.caseId, {
-      caseFlags: flags.map(f =>
-        f.id === payload.flagInstanceId
-          ? { ...f, deletedAt: now, deletedBy: 'current-user' }
-          : f
-      ),
-    });
-  }
+  await updateCaseWithRetryOrThrow(payload.caseId, current => {
+    if (payload.specimenId) {
+      const specimens = (current.specimens ?? []).map((sp) => {
+        if (sp.id !== payload.specimenId) return sp;
+        const flags: FlagInstance[] = Array.isArray(sp.specimenFlags) ? sp.specimenFlags : [];
+        return { ...sp, specimenFlags: markDeleted(flags) };
+      });
+      return { specimens };
+    }
+    const flags: FlagInstance[] = Array.isArray(current.caseFlags) ? current.caseFlags : [];
+    return { caseFlags: markDeleted(flags) };
+  }, mockCaseService);
 
   const updated = await mockCaseService.getCase(payload.caseId);
   return toCaseWithFlags(updated);

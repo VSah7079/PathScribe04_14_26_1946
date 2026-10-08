@@ -40,7 +40,7 @@ export const SLIDE_LABEL_REPRINT_REASON_KEYS: Readonly<Record<SlideLabelReprintR
   'Damaged Label': 'damagedLabel', 'Unreadable Barcode': 'unreadableBarcode', 'Smudged Print': 'smudgedPrint', 'Other': 'other',
 };
 export const DISTRIBUTION_STATUS_KEYS: Readonly<Record<NonNullable<StainOrder['distributionStatus']>, string>> = {
-  'Assigned': 'assigned', 'Checked Out': 'checkedOut', 'In Scanning Queue': 'inScanningQueue', 'Loaded on Scanner': 'loadedOnScanner',
+  'Assigned': 'assigned', 'Checked Out': 'checkedOut', 'In Scanning Queue': 'inScanningQueue', 'Loaded on Scanner': 'loadedOnScanner', 'Scanned': 'scanned',
 };
 export const CASE_PRIORITY_KEYS: Readonly<Record<string, string>> = { STAT: 'stat', Rush: 'rush', Routine: 'routine' };
 

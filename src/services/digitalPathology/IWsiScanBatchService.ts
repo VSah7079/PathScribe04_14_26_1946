@@ -35,6 +35,13 @@
 
 import type { ServiceResult, ID } from '../types';
 
+/** Batch 434: the lifecycle.
+ *  - 'loaded': slides are in the scanner; the manifest hasn't been accepted yet.
+ *  - 'scanning': the interface engine accepted the manifest.
+ *  - 'completed' / 'failed': every slide has a scan outcome (set by the
+ *    inbound status updates); 'failed' when any slide failed to scan.
+ *  - 'unloaded': the tech took the slides out. Before Batch 434, unloading
+ *    set 'completed' or 'failed' and never 'unloaded'. */
 export type WsiScanBatchStatus = 'loaded' | 'scanning' | 'completed' | 'failed' | 'unloaded';
 export type WsiSlideScanStatus = 'pending' | 'scanning' | 'completed' | 'failed';
 /** Real, per direct guidance's own confirmed Surgical Pathology vs.
@@ -55,6 +62,12 @@ export interface WsiScanSlide {
   slidePosition: string;
   caseId: string;
   specimenId: string;
+  /** Batch 434: the physical slide (StainOrder) and its block, when loaded
+   *  from the scanning queue. Absent on batches made before. */
+  blockId?: string;
+  stainId?: string;
+  /** Display label, e.g. "A1 H&E". Data, not translated. */
+  slideLabel?: string;
   scanStatus: WsiSlideScanStatus;
   scanCompletedAt?: string;
   /** Real, per direct guidance's own confirmed Digital Readiness
@@ -104,9 +117,26 @@ export interface WsiScanBatch {
   loadedAt: string;
   dispatchedAt?: string;
   unloadedAt?: string;
+  /** Batch 434: the scanner's lab (the permissions are checked against it). */
+  facilityId?: string;
+  loadedBy?: string;
+  sentBy?: string;
+  unloadedBy?: string;
+  /** Batch 434: why the last attempt to send the manifest failed; cleared when it is accepted. */
+  sendError?: { code: string; message: string; at: string };
 }
 
 export type NewWsiScanBatch = Omit<WsiScanBatch, 'id' | 'batchBarcode' | 'status' | 'loadedAt'>;
+
+/** Batch 434: whether every slide has a scan outcome (pure). */
+export function allSlidesScanned(batch: Pick<WsiScanBatch, 'slides'>): boolean {
+  return batch.slides.length > 0 && batch.slides.every(s => s.scanStatus === 'completed' || s.scanStatus === 'failed');
+}
+
+/** Batch 434: a slide that came out ready to read: scanned, and image QC not failed (pure). */
+export function slideScannedOk(slide: Pick<WsiScanSlide, 'scanStatus' | 'qcPassed'>): boolean {
+  return slide.scanStatus === 'completed' && slide.qcPassed !== false;
+}
 
 export interface IWsiScanBatchService {
   getAll(): Promise<ServiceResult<WsiScanBatch[]>>;
@@ -116,14 +146,15 @@ export interface IWsiScanBatchService {
    *  batch as dispatched (the real manifest sent to the interface
    *  engine), setting `dispatchedAt` and moving status to 'scanning'.
    *  Real, honest refusal if the batch is not currently 'loaded'. */
-  markDispatched(id: ID): Promise<ServiceResult<WsiScanBatch>>;
-  /** Real, per this file's own header — the real, physical "unload"
-   *  action: marks the batch 'unloaded' once every real slide has
-   *  reached a real, terminal per-slide outcome (completed or
-   *  failed). Real, honest refusal if any real slide is still
-   *  pending/scanning — the lab hasn't actually unloaded the real
-   *  instrument yet if a real slide is still being scanned. */
-  markUnloaded(id: ID): Promise<ServiceResult<WsiScanBatch>>;
+  markDispatched(id: ID, sentBy?: string): Promise<ServiceResult<WsiScanBatch>>;
+  /** The physical "unload": marks the batch 'unloaded'. Allowed when every
+   *  slide has a scan outcome, or when the manifest was never accepted
+   *  (status 'loaded': nothing is scanning). Refused while slides are still
+   *  scanning. Batch 434: it now really sets 'unloaded' (it used to set
+   *  'completed' or 'failed'). */
+  markUnloaded(id: ID, unloadedBy?: string): Promise<ServiceResult<WsiScanBatch>>;
+  /** Batch 434: records why sending the manifest failed (the batch stays 'loaded'). */
+  recordSendFailure(id: ID, error: { code: string; message: string }): Promise<ServiceResult<WsiScanBatch>>;
   /** Real, per this file's own header — applies an already-translated
    *  inbound status update to one real slide within one real batch;
    *  never called from manual UI entry. */

@@ -31,7 +31,7 @@ export function printStationLabel(station: Pick<ScanStation, 'name' | 'barcodeCo
     workflowStage: station.workflowStage,
     printedAt: new Date().toISOString(),
   }, preset);
-  return printLabels([html], preset, `Station Label — ${station.name}`);
+  return printLabels([html], preset, `Station Label — ${station.name}`, { document: 'station-label', documentId: station.barcodeCode });
 }
 
 export function printAllStationLabels(stations: Pick<ScanStation, 'name' | 'barcodeCode' | 'workflowStage'>[]): boolean {
@@ -43,5 +43,5 @@ export function printAllStationLabels(stations: Pick<ScanStation, 'name' | 'barc
     workflowStage: s.workflowStage,
     printedAt,
   }, preset));
-  return printLabels(htmlFragments, preset, 'Station Labels');
+  return printLabels(htmlFragments, preset, 'Station Labels', { document: 'station-label' });
 }

@@ -7,19 +7,22 @@
 
 import type { Patient } from '@/types/case/Patient';
 import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
+import { updateCaseWithRetry } from '../cases/caseWrite';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface RecordRegistryConsentDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
-  getCase: (caseId: string) => Promise<{ id: string; patient: Patient } | null | undefined>;
-  updateCase: (caseId: string, patch: { patient: Patient }) => Promise<unknown>;
+  getCase: (caseId: string) => Promise<{ id: string; patient: Patient; version?: number } | null | undefined>;
+  /** PS-71 (Batch 458): saves against the version of the case the change was built from. */
+  updateCase: (caseId: string, patch: { patient: Patient }, expectedVersion: number) => Promise<unknown>;
   setInMpi: (patientId: string, consent: PatientRegistryConsent | undefined) => Promise<unknown>;
   logAudit: (event: any) => unknown;
   now: () => string;
 }
 
 export interface RecordRegistryConsentOutcome {
-  outcome: 'notPermitted' | 'caseNotFound' | 'saved' | 'cleared';
+  /** 'conflict' (PS-71): the case kept changing under the save; nothing was saved. */
+  outcome: 'notPermitted' | 'caseNotFound' | 'saved' | 'cleared' | 'conflict';
   consent?: PatientRegistryConsent;
 }
 
@@ -38,9 +41,19 @@ export async function recordPatientRegistryConsent(
     screeningOptOut: input.screeningOptOut, cancerRegistryOptOut: input.cancerRegistryOptOut,
     recordedAt: deps.now(), recordedBy: user.id, source: input.source ?? 'manual',
   };
-  const { registryConsent: _old, ...rest } = c.patient;
-  const patient: Patient = consent ? { ...rest, registryConsent: consent } : rest;
-  await deps.updateCase(c.id, { patient });
+  // PS-71 (Batch 458): the opt-outs are set on the newest copy of the case's
+  // patient and saved with that case's version (updateCaseWithRetry), so a
+  // patient detail saved in between is kept. Nothing else (MPI, audit)
+  // happens unless the save landed.
+  const w = await updateCaseWithRetry(c.id, current => {
+    const { registryConsent: _old, ...rest } = ((current as any).patient ?? {}) as Patient;
+    const patient: Patient = consent ? { ...rest, registryConsent: consent } : rest;
+    return { patient };
+  }, {
+    getCase: id => deps.getCase(id) as Promise<any>,
+    updateCase: async (id, updates, expectedVersion) => { await deps.updateCase(id, updates as { patient: Patient }, expectedVersion); },
+  });
+  if (w.ok === false) return { outcome: w.reason === 'notFound' ? 'caseNotFound' : 'conflict' };
   if (c.patient.id) await deps.setInMpi(c.patient.id, consent);
   deps.logAudit({
     type: 'user', event: cleared ? 'Registry opt-out cleared' : 'Registry opt-out recorded',

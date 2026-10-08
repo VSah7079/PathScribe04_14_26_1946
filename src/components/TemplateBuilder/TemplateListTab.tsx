@@ -258,7 +258,7 @@ className="tmpl-error-dismiss">✕</button>
               </button>
             ))}
           </div>
-          <input data-config-nav
+          <input data-dirty-ignore data-config-nav
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder={t('templateListTab.searchPlaceholder')}
             className="tmpl-search"

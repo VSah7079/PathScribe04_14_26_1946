@@ -49,6 +49,7 @@ import { resolveAutopsyGrossExaminationGate } from '@/services/autopsy/resolveAu
 
 const EMPTY_FORM: AutopsyAuthorizationCompletionFormState = {
   orderReference: '', orderDate: '', consentGivenAt: '', consentScope: '',
+  excludedOrgans: '', retentionPermitted: true,
 };
 
 interface AutopsyAuthorizationCompletionFormProps {
@@ -92,7 +93,7 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
         </div>
       )}
 
-      {caseDetails.caseAuthority === 'medicolegal_forensic' && caseDetails.forensicAuthorization && (
+      {caseDetails.caseAuthority === 'statutory_judicial' && caseDetails.forensicAuthorization && (
         <>
           <div className="ps-conf-form-section-title">{t('autopsyAuthCompletion.onFileSectionTitle')}</div>
           <p className="ps-conf-section-subtitle ps-conf-section-subtitle--form-gap">
@@ -159,6 +160,31 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
                 placeholder={t('autopsyAuthCompletion.consentScopePlaceholder')}
                 onChange={e => setForm({ ...form, consentScope: e.target.value })}
               />
+            </div>
+          </div>
+
+          <div className="ps-conf-form-row">
+            <div>
+              <label className="ps-label" htmlFor="autopsy-auth-excluded-organs">{t('autopsyAuthCompletion.excludedOrgansLabel')}</label>
+              <input
+                id="autopsy-auth-excluded-organs"
+                className="ps-conf-input"
+                value={form.excludedOrgans}
+                placeholder={t('autopsyAuthCompletion.excludedOrgansPlaceholder')}
+                onChange={e => setForm({ ...form, excludedOrgans: e.target.value })}
+              />
+              <p className="ps-conf-field-hint">{t('autopsyAuthCompletion.excludedOrgansHint')}</p>
+            </div>
+            <div>
+              <label className="ps-autopsy-auth-checkbox-label" htmlFor="autopsy-auth-retention-permitted">
+                <input
+                  id="autopsy-auth-retention-permitted"
+                  type="checkbox"
+                  checked={form.retentionPermitted}
+                  onChange={e => setForm({ ...form, retentionPermitted: e.target.checked })}
+                />
+                {t('autopsyAuthCompletion.retentionPermittedLabel')}
+              </label>
             </div>
           </div>
         </>

@@ -216,5 +216,9 @@ Before, anyone who could open Configuration could change this; now each change i
 
 From the queue: Escalate (an SLA-breached review back to the queue; `cytology:qc-review:record`, reason required) and Supervisor bypass (`cytology:qc-review:bypass`, justification required, shown only to holders). The audit entries name the person who did it.
 
+## Batch 434
+
+`resolveCytologyQcCaseReview(assignments, userId, canRecord)`: without `cytology:qc-review:record`, Assign to Me and the verdict buttons aren't offered. The QC queue's rows now use it too, so the queue also hides Assign to Me from the person who signed the case out, as the case's review bar already did. The service still refuses either way.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

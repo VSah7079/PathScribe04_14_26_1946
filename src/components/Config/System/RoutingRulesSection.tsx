@@ -170,9 +170,9 @@ const RoutingRulesSection: React.FC = () => {
 
       {/* Filters */}
       <div className="ps-routingrules__filters">
-        <input data-config-nav type="text" placeholder={t('routingRulesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('routingRulesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-routingrules__search-input" />
-        <select data-config-nav value={filter} onChange={e => setFilter(e.target.value as any)}
+        <select data-dirty-ignore data-config-nav value={filter} onChange={e => setFilter(e.target.value as any)}
           aria-label={t('routingRulesSection.filterAriaLabel')}
           className="ps-conf-select">
           <option value="all">{t('routingRulesSection.filterOptions.all')}</option>

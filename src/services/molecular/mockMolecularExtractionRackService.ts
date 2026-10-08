@@ -23,6 +23,7 @@ import { normaliseDeckSlotId } from '../equipment/equipmentRules';
 import { mockMolecularAssayControlRuleService } from './mockMolecularAssayControlRuleService';
 import { checkDeckSlot } from './deckSlots';
 import { molecularRackPlacementMissing, rackTypeOf } from '../fieldRequirements/molecularRackChecks';
+import { MOLECULAR_DEMO_RACKS } from './molecularDemoSeed';
 
 const STORE_KEY = 'molecular_extraction_racks';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -71,6 +72,8 @@ const SEED: MolecularExtractionRack[] = [
     createdByUserName: 'Demo Lab Tech',
     rackType: 'sample_tube_rack',
   },
+  // Batch 456: the demo baseline's rack awaiting extraction (molecularDemoSeed.ts).
+  ...MOLECULAR_DEMO_RACKS,
 ];
 
 // Batch 406: the demo rack reaches browsers that stored the racks earlier.

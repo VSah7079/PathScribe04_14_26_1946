@@ -65,6 +65,7 @@ import { useAuditLog } from '../../Audit/useAuditLog';
 export type { TATType, TATUrgency, TATEntry } from '@/types/quality/TatConfigEntry';
 import type { TATType, TATUrgency, TATEntry } from '@/types/quality/TatConfigEntry';
 import { buildTatEntry } from '@/services/tatConfig/tatConfigRules';
+import { saveTatEntry, toggleTatEntry, deleteTatEntry } from '@/services/tatConfig/tatEntryActions';
 import { isSystemDefaultTatEntryId } from '@/services/tatConfig/systemDefaultTatEntries';
 import { duplicateTatEntry } from '@/services/duplication/duplicateEntities';
 
@@ -686,29 +687,20 @@ const TATConfigSection: React.FC = () => {
   // Batch 353: saves go through tatTargetService. Add vs update comes from
   // the editor's mode (a duplicate is an add), not from whether the id is
   // already in the list; the service refuses to delete a system default.
+  // Batch 450 (PS-38): the actions and their audit entries live in
+  // services/tatConfig/tatEntryActions.ts.
   const handleSave = async (saved: TATEntry) => {
-    const mode = modal?.mode ?? 'add';
-    const res = mode === 'edit' ? await tatTargetService.update(saved) : await tatTargetService.add(saved);
-    if (res.ok) {
-      if (mode === 'edit') log('tat_entry_updated', { id: saved.id, type: saved.type, changes: [`targetHours: ${saved.targetHours}h`] });
-      else log('tat_entry_created', { type: saved.type, targetHours: saved.targetHours, facilityId: saved.facilityId ?? null, roleId: saved.roleId ?? null });
-    }
+    await saveTatEntry(tatTargetService, log, saved, modal?.mode ?? 'add');
     await reloadEntries();
     setModal(null);
   };
 
   const toggleActive = async (id: string) => {
-    const target = entries.find(e => e.id === id);
-    if (!target) return;
-    const res = await tatTargetService.update({ ...target, active: !target.active });
-    if (res.ok) log('tat_entry_toggled', { id, type: target.type, active: !target.active });
-    await reloadEntries();
+    if (await toggleTatEntry(tatTargetService, log, entries, id)) await reloadEntries();
   };
 
   const deleteEntry = async (id: string) => {
-    const target = entries.find(e => e.id === id);
-    const res = await tatTargetService.remove(id);
-    if (res.ok && target) log('tat_entry_deleted', { id, type: target.type });
+    await deleteTatEntry(tatTargetService, log, entries, id);
     await reloadEntries();
   };
 
@@ -944,11 +936,11 @@ const TATConfigSection: React.FC = () => {
         {/* Real, per direct guidance: two genuinely independent
             facility filters, usable together or separately. */}
         <div className="ps-tatconfig__facility-filters">
-          <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByPerformingLabAria')} value={performingLabFilter} onChange={e => setPerformingLabFilter(e.target.value)}>
+          <select data-dirty-ignore data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByPerformingLabAria')} value={performingLabFilter} onChange={e => setPerformingLabFilter(e.target.value)}>
             <option value="">{t('tatConfigSection.allPerformingLabs')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
-          <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByOrderingFacilityAria')} value={orderingFacilityFilter} onChange={e => setOrderingFacilityFilter(e.target.value)}>
+          <select data-dirty-ignore data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByOrderingFacilityAria')} value={orderingFacilityFilter} onChange={e => setOrderingFacilityFilter(e.target.value)}>
             <option value="">{t('tatConfigSection.allOrderingFacilities')}</option>
             {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>

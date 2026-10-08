@@ -205,6 +205,27 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 `?section=members|roles|credentialing` opens a sub-tab (Configuration search, links).
 
+## Batch 437
+
+The Members / Roles / Credentialing tabs ask before leaving unsaved changes (PS-128).
+
+## Batch 441
+
+`RoleDictionary.tsx`: on the Cytotechnologist role, the pathologist participation types are shown locked. Saving the role with one is refused (`roleDictionary.saveErrors.cytotechPathologistType`).
+
+## Batch 448
+
+`StaffSignInPassword.tsx` is Staff → edit → **Sign-in password**:
+- It shows the state: set (with date), must change at next sign-in, the built-in demo password, or none.
+- It offers Set / Reset password (new + confirm, with "must choose a new password at next sign-in", on by default) and Remove password.
+- Like Unlink beside it, it takes effect at once.
+- The buttons need `config:staff-password:manage`, and the service checks it too.
+- On a single-sign-on-only build it explains that the organisation's identity provider manages passwords.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+Role Dictionary Capabilities tab (PS-355): click and prompt decisions moved to `services/authorization/capabilityToggle.ts`; the tab is rendered against the real catalog (grouping, counts, prompts, read-only Superadmin).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

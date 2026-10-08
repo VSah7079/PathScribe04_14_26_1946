@@ -29,6 +29,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { CytologyHistologyCorrelationReport } from '@/services/cytology/resolveCytologyHistologyCorrelationReport';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 const pct = (n: number) => `${n.toFixed(1)}%`;
 
@@ -50,7 +51,11 @@ export const CytologyHistologyCorrelationPrintView: React.FC<{ report: CytologyH
             <div className="ps-cyto-histo-print-scope">{t('cytologyHistologyCorrelationPrintView.scopeLine', { scope: scopeLabel, date: new Date().toLocaleString() })}</div>
           </div>
           <div className="ps-cyto-histo-print-header-actions">
-            <button className="ps-btn-small" onClick={() => window.print()}>🖨️ {t('cytologyQaTab.histologyTable.printButton')}</button>
+            <button className="ps-btn-small" onClick={() => {
+              // PS-282 (Batch 437): audited.
+              void recordDocumentOutput({ action: 'print', document: 'qa-cytology-histology-correlation', destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
+              window.print();
+            }}>🖨️ {t('cytologyQaTab.histologyTable.printButton')}</button>
             <button className="ps-btn-small" onClick={onClose}>{t('common.close')}</button>
           </div>
         </div>

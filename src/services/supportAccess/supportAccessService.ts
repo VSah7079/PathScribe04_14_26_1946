@@ -57,6 +57,9 @@ export interface SupportAccessDeps {
   newId?: () => string;
   /** Starting settings per organisation, used until the organisation saves its own (demo seed data). */
   seedSettings?: Readonly<Record<string, Partial<SupportAccessSettings>>>;
+  /** Batch 456: starting requests, used while none are stored (demo seed data;
+   *  a function so its dates are relative to the moment it is read). */
+  seedRequests?: () => SupportAccessRequest[];
 }
 
 export type Refusal<R extends string> = { ok: false; reason: R };
@@ -75,8 +78,8 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
   const readSettings = (): Record<string, Partial<SupportAccessSettings>> =>
     ({ ...(deps.seedSettings ?? {}), ...deps.store.get<Record<string, Partial<SupportAccessSettings>>>(SUPPORT_SETTINGS_KEY, {}) });
   const readRequests = () => {
-    const list = deps.store.get<SupportAccessRequest[]>(SUPPORT_REQUESTS_KEY, []);
-    return list;
+    // Batch 456: nothing stored yet (first run, or after a Full Reset) → the demo seed.
+    return deps.store.get<SupportAccessRequest[] | null>(SUPPORT_REQUESTS_KEY, null) ?? deps.seedRequests?.() ?? [];
   };
   const writeRequests = (list: SupportAccessRequest[]) => deps.store.set(SUPPORT_REQUESTS_KEY, list);
   const readAudit = () => deps.store.get<Record<string, SupportAuditEntry[]>>(SUPPORT_AUDIT_KEY, {});

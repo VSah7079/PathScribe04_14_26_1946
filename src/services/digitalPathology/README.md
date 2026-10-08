@@ -225,6 +225,31 @@ scan-batch status; nothing launched a real vendor's actual viewer.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 434 — WSI scan batches have a screen (PS-359, PS-345)
+
+Pete: a scan batch takes its slides from the scanning queue; scanners come from the Equipment register; the Batch Management roles load, send and unload.
+
+| File | What it does |
+|---|---|
+| `wsiScanQueue.ts` | Pure. `buildScanQueue` (slides the Slide Distribution Station routed to Digital, not in a batch; STAT first), `planScanLoad` (positions: rack-slot when recorded, else the order chosen), `stainLoaded` / `stainUnloaded` (the slide record and its chain-of-custody line), `scanBatchProgress`, `scanBatchActions`. |
+| `wsiScanBatchWorkflow.ts` | `loadScanBatch` (`wsi:scan-batch:load`), `sendScanBatch` (`wsi:scan-batch:send`; the manifest goes through `dispatchInterfaceMessage` as `WSI_SCAN_MANIFEST`; a failed send keeps the batch loaded with `sendError`), `unloadScanBatch` (`wsi:scan-batch:unload`; slides that scanned and passed image QC become `Scanned`, the rest go back to the queue). Each checks the permission against the scanner's lab and writes one audit entry. |
+
+**The unload bug is fixed.** `markUnloaded` used to set the batch to `completed` or `failed` and never `unloaded`. Now the inbound status updates move a scanning batch to `completed` (or `failed`) once every slide has its outcome, and unloading sets `unloaded`. A batch that was never sent can be unloaded as it is. The two seeded batches with an unload time are now `unloaded`, and seeded batches name scanners by their register code (`APERIO_GT450_01`, `APERIO_GT450_02`, `GENIUS_01`).
+
+`IWsiScanBatchService.ts` gains: per-slide `blockId`, `stainId`, `slideLabel`; per-batch `facilityId`, `loadedBy`, `sentBy`, `unloadedBy`, `sendError`; `recordSendFailure`; the helpers `allSlidesScanned` and `slideScannedOk`.
+
+Tests: `wsiScanQueue.test.ts`, `wsiScanBatchWorkflow.test.ts`; `mockWsiScanBatchService.test.ts` rewritten for the corrected lifecycle (its old tests expected the bug).
+
+## Batch 435
+
+`mockWsiScanBatchService.ts` publishes `WsiScanBatchChanged` after every write (as the API server will after its commit), so the Slide scanning page updates when the scanner reports.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+WSI scan batch stain updates are versioned; the count of slides sent back comes from the save that landed.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

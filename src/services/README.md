@@ -378,6 +378,7 @@ other consumers of the root-level file, deleted it. Full detail in
 | [terminologySearch/](./terminologySearch/README.md) | Live REST API terminology search (SNOMED/ICD/LOINC/CPT) |
 | [users/](./users/README.md) | Staff user directory |
 | [validationStudies/](./validationStudies/README.md) | Validation Study governance workflow; `resolveActiveStudyId` (shared by both AI-learning signal captures) |
+| [voice/](./voice/README.md) | Voice commands offered to the screen first (Batch 463: the Mohs stage question) |
 | [voicemacro/](./voicemacro/README.md) | Voice-triggered macro dictionary |
 
 ## Known issues (as of this review — see PRIORITY_FIXES.md in project root)
@@ -1197,3 +1198,264 @@ New: `browserCleanup/` (removes retired browser copies at start-up) and `labSett
 ## Batch 432
 
 Actions nothing called are now wired (see `src/i18n/README.md` → Batch 432); three new capabilities.
+
+## Batch 433
+
+- `billing/`: one billing correction engine (`billingCorrection.ts`, `billingCorrectionCase.ts`) and charge approval (`chargeApproval.ts`). See `billing/README.md`.
+- `biometric/`: the lab's biometric signing policy; enrolment is self-only. See `biometric/README.md`.
+- `index.ts` exports the `BiometricCadence` and `BiometricPolicy` types, so screens don't import the mock file.
+
+## Batch 434
+
+- `digitalPathology/`: WSI scan batches have a workflow (`wsiScanQueue.ts`, `wsiScanBatchWorkflow.ts`), and the unload bug is fixed.
+- `billing/`: charge approval finds the lab for legacy tenant ids; a correction updates the case's own coding.
+- `facilities/resolveCasePerformingLab.ts`: new.
+- `cytologyQc/`: the QC review buttons follow the permission.
+- `equipment/`: slide scanners are seeded.
+- `interfaceDispatch/`: `WSI_SCAN_MANIFEST`.
+
+## Batch 435
+
+- `liveUpdates/`: `WsiScanBatchChanged`.
+- `interfaceDispatch/`: a guard keeps the transaction types, the engine's routing list and the development receiver in step.
+- `mockInterfaceEngine/`: answers every interface message and can play the slide scanner (developer tool).
+- `authorization/`: Admin opens Batch Management.
+
+## Batch 436
+
+- `caseSearch/`: search results show their flags (PS-101).
+- `qualityAssurance/`: a QA scope limited to a client finds its cases (PS-356).
+- `styleRules/`: a guard against identical duplicate rules in `pathscribe.css` (PS-294).
+- `auth/`, `organisation/`, `session/`: citations of a backend document that was never written now point at the real ones (PS-40).
+- `cases/`: demo data fixes (Manchester orders' facility; one invalid case status).
+
+## Batch 437
+
+- `configDirty/` (new): unsaved changes on the Configuration page (PS-128).
+- `printing/`: one audit entry for every print, reprint, preview print and export; an export capability check (PS-282, PS-357).
+- `templates/`: the AI badge counts Must Have fields only (PS-329); `isVisible` moved here.
+- `authorization/`: 8 export capabilities; configuration saves are announced.
+- `printSettings/`: an optional reason for report reprints.
+- `caseSearch/`, `reportChangeLog/`: export check and the shared audit entry.
+
+## Batch 438
+
+The CAPA recommendation engine (`quality/`): PathScribe recommends, a QA lead confirms or dismisses. Revision reasons carry a "clinically significant" switch (`reasons/`). Billing audit times read as UTC (`billing/`). Configuration dialogs ask before closing from outside (`configDirty/`).
+
+## Batch 439
+
+Peer review before sign-out (`quality/peerReview*`), the clinical-pathologic mismatch check (`clinical/`), and assessing outside consult opinions (`consultAccess/`). Every CAPA they lead to is a recommendation.
+
+## Batch 440
+
+`cytology/cytologyQueues.ts` and `cytologyQueuesLive.ts`: the shared GYN QC rescreen queue, the Cytology Review tray for positive GYN cases, and taking a case for pathologist review. Exported from `@/services` (`loadQcRescreenQueue`, `loadCytologyReviewTray`, `takeCytologyReview`). New capability `cytology:pathologist-review:take`.
+
+## Batch 441
+
+- `participationTypes/cytotechParticipationRules.ts`: cytotechnologists never hold a pathologist slot (case team, delegation, pool claim, role catalog).
+- `cases/saveCaseTeam.ts`: the Case Team save, with `case:team:manage`.
+- `cytology/cytologyWorklist*.ts`: the Cytology Workspace worklist, moved out of its page.
+- `quality/capaTriggerSummary.ts`.
+
+## Batch 442
+
+`quality/qaTrendRules.ts`, `qaTrendService.ts`, `qaTrendServiceLive.ts`, `mockQaTrendPolicyService.ts`: discordance patterns over time, set per site (PS-147). `demoReset`: four keys that survived Full Reset are now cleared.
+
+## Batch 443
+
+`users/mockUserService.ts`: the demo Lab Director, Dr. Rachel Okafor (`LD-001`); staff record only, no sign-in yet.
+
+## Batch 444
+
+- `security/` (new): the guard that keeps keys and passwords out of the browser bundle.
+- `aiIntegration/aiProxyStatus.ts`: the AI status check asks the proxy.
+- AI providers and `aiProviderService` lost their direct-to-vendor key paths.
+- `auth`, `liveUpdates`, `deployment`, `reports`, `interfaceDispatch` and `research` read environment settings by name.
+- `scanStations/scanStationList.ts`: the Scan Stations list decisions.
+
+## Batch 445
+
+`reportEditing/dirtySections.ts` (new): the report page's unsaved-change sections, as ids the dialog translates.
+
+## Batch 446
+
+- `caseAddresses/` (new): case pages are addressed by support reference, never accession number.
+- `supportReferences`: `recordIdFor`.
+- `registrySubmission`: `registryExceptionCaseView`.
+
+## Batch 447
+
+`feedback/` (new): the QA feedback button and recipients, set in Configuration → System → Feedback. `enhancementRequestService.loadEnhancementConfigForSubmit` sends with them. `deploymentInstance` is exported.
+
+## Batch 448
+
+`staffPasswords/` (new): sign-in passwords set from the Staff screen, checked first at sign-in.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+Test evidence for the Priority 1 and 2 tickets from the closed-ticket survey. New service modules: `tatConfig/tatEntryActions`, `worklist/worklistTileCounts`, `codes/codeManagerCoding`, `reportEditing/orchestratorSections`, `reports/fullPatientReportRows`, `molecular/plateWellScan`, `molecular/molecularDispatchPanel`, `flags/applyLisSyncFlags`, `abnormalDetection/abnormalTriggerRuleEditing`. Three bugs fixed: cytology sign-out steps erasing each other's results, the Code Manager erasing ICD-O codes, QA exports not recorded as exports. `enhancementRequestService.ts` gained the support-ticket replace step.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+New: `accessioning/resolveAccessionSpecimenCytologyScreening`, `aiIntegration/aiReportTools`, `authorization/capabilityToggle`, `billing/billingMaterialSync`, `molecular/plateBuilderWells`, `printSettings/printSettingsForm`, `printing/reportPrintAudit`, `reportChangeLog` `changeHistoryView`.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+New:
+- `material/`: the case material store, events and atomic decant save;
+- `clinical/negatedFindingCheck`, `clinical/findingHighlight`, `clinical/narrativePlainText`;
+- `cytology/` correlation window settings, resolver and sweep;
+- `flags/caseFlagView`.
+
+`index.ts` exports `cytologyHistologyCorrelationSettingsService` and `facilityCytologyHistologyCorrelationOverrideService`.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+- `cytology/`: backfill of correlation windows; Cytology Workspace decants through the atomic save.
+- `quality/`: a configurable biopsy-to-resection window.
+- `material/`: `decantOnlyUpdates` for the Microtomy workstation.
+- `authorization/`: `config:biopsy-resection-correlation:manage`.
+- `index.ts` exports `biopsyResectionCorrelationSettingsService` and `facilityBiopsyResectionCorrelationOverrideService`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+- New `followUp/`: expected follow-ups (cytology → histology; biopsy → resection), their status, internal alerts, outcomes, the clinician email and the settings. Exported through `index.ts`.
+- `worklist/` and `cytology/`: the Follow-up tiles.
+- `quality/`: `resolveSiteMatchStatus` exported.
+- `authorization/`: five capabilities.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+- `cases/demoBaselineCases.ts`: 19 seeded cases.
+- `auth/demo`: seven sign-ins.
+- `users/`: new staff.
+- `subspecialties/`: pool members.
+- `cytology/`, `delegations/`, `reports/`, `followUp/`: their seeds.
+- `billing/` and `demoReset/`: the Full Reset restores the seeded approvals; the per-user reset is removed.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+- `auth/signInLockout.ts`: password sign-in locks for 15 minutes after 5 failures, audited.
+- `staffPasswords/passwordScreening.ts`: common, patterned, service-named and breached passwords are refused.
+- Demo seeds in `autopsy` (via cases), `molecular`, `material`, `cancerRegistry`, `clinical`, `supportAccess`, `consultAccess`; seeded names corrected in `cytology` and `quality`.
+
+## Batch 457 — Metro General cancer registry, Molecular Order Queue seed
+
+Metro General reports to the US cancer registry (`cancerRegistry`), two cases carry their ICD-O data (`cases`), and the Molecular Order Queue has seeded HPV orders (`molecularOrders`).
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+New `cases/caseWrite.ts` (versioned saves) and a guard that every case save carries its version; 39 files converted.
+
+## Batch 459 — PS-152 discordance report, follow-up after sign-out
+
+- Quality Assurance → Cytology has a "Primary vs Final Diagnosis" report: each case's primary screen compared with the review chosen as its Final Diagnosis (PS-152).
+- A signed-out surgical case can be marked "follow-up expected" from the report page's action bar, not only in the sign-out modal.
+- Stale README notes corrected (cytology correction and addendum, autopsy authorization form).
+
+## Batch 460 — Billing review in the Workspace and at Microtomy, matrix blocks at Microtomy, slide levels, Label Designer resize
+
+- **`billing/`:** `caseBillingCoding.ts`, `caseBillingCharges.ts` (moved from the report page and shared), `materialChargePreview.ts`, and the new permission `billing:applied-code:review`.
+- **`material/`:** `slideLevels.ts` (a slide's level is the printed one) and `materialBillingWrites.ts`.
+- **Slide lookups:** `hl7/`, `retentionPolicy/` and `batches/` now look slides up by printed level.
+- **`cytology/`:** billing saves for the Workspace drawer.
+- **`labelDesigner/`:** `labelFieldGeometry.ts` and the save's edge check.
+- **`index.ts`:** exports for all of the above.
+
+## Batch 461: organ mapping
+
+New folder `organMapping/`: the anatomical maps beside the synoptic (prostate first). **The map's cancer data comes from the synoptic report**: a map is worked out from the synoptic answers every time it is drawn and stores nothing of its own. Also `templates/partGrid.ts` (the results grid question), `documentRendering/svgToPng.ts`, three capabilities (`report:organ-map:insert`, `config:organ-map-scheme:manage`, `config:organ-map-bindings:manage`), and the API contract `docs/architecture/ORGAN_MAPPING_API.md`.
+
+## Batch 462: breast maps
+
+`organMapping/` gains the breast map (clock face, quadrants, foci, six-face margins) and the per-site close-margin threshold; `templates/partGrid.ts` grids with the template's own rows. **The map's cancer data comes from the synoptic report**: the breast map is worked out from the synoptic answers every time it is drawn and stores nothing of its own.
+
+## Batch 463
+
+Mohs: `organMapping/` (Mohs stage maps, maps that are always in the report), `templates/mohsStages.ts` (the stage question), new `voice/` (screen voice commands), `reports/` (stage maps in the signed version; payload observations).
+
+## Batch 463b
+
+`templates/` (Mohs block rules, voice additions, template submit/publish refuse a broken default-histology source), `organMapping/organMapLive.ts` (`findMohsBlockGaps`).
+
+## Batch 464
+
+`organMapping/`: colorectal polyp and rectal resection maps; the malignant-polyp and rectal CRM involved-margin rules (site settings, distance and operator).
+
+## Batch 465
+
+`organMapping/`: oral cavity and neck dissection maps; the oral involved- and close-margin rules (site settings, validated with what a layer inherits). `templates/`: PathScribe's Oral Cavity Resection and Neck Dissection synoptics registered. `reportTemplates/`: both route to the gold-standard report template. `cases/`: composite demo case S26-4466.
+
+## Batch 465b
+
+`templates/`: grid count limits (`notMoreThan`), totals from a grid (`sumOf`), and `synopticEntryChecks.ts` (draft save and sign-out). `organMapping/`: oral rules strictly involved < close; conflicts left in lower layers are warned and audited; maps fall back to the default close rule; a two-layer outline halo.
+
+## Batch 466
+
+`organMapping/`: the renal resection map and the kidney margin rules. `templates/`: whole-number node counts. `cases/`: demo case S26-4467.
+
+## Batch 466b
+
+- `organMapping/`: partial nephrectomy margins, and generic margin questions derived from the map.
+- `templates/`: OR / NOT visibility, question-level "can't exceed", and editor count settings.
+
+## Batch 466c
+
+- `templates/`: the editor's "unless" / "or also when" conditions (`conditionEdits.ts`), and the checked hand-entered total.
+- `organMapping/`:
+  - the partial nephrectomy drawing leaves out vein, vena cava and ureter unless reported;
+  - adenoma at the polyp margin counts as involved. (Replaced in Batch 466d by margins per component.)
+
+## Batch 466d
+
+- `organMapping/`: margins per component (the invasive carcinoma apart from adenoma, DCIS or dysplasia); existing bindings brought up to date or held for review; a sign-out warning for invasive carcinoma with margins unreported.
+- `cases/`: S26-4465 and MFT26-8803 seeds follow the rebuilt Colorectal Local Excision margins (`MOCK_VERSION` 58).
+
+## Batch 466e
+
+`organMapping/`: oral dysplasia margins count as involved only when the dysplasia is high-grade.
+
+## Batch 467 — In-house molecular orders
+
+New engine in `molecularOrders/` (in-house order queue, plate binding, results into the synoptic); `templates/molecularResultBinding.ts`; routing per test and lab in `stains/`; add-on orders feed the engine. The barrel exports `molecularOrderEngine`, `simulateMolecularRunResults`, `molecularRoutingChoices`, `MOLECULAR_ORDER_STATUS_HUE`, `activePerformingLabs`, `normalizeInHouseLabs`.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- `molecularOrders/`: send-out orders and results, choosing a lab, and the sign-out check.
+- `mockInterfaceEngine/`: the simulated molecular instrument.
+
+## Batch 468 — Autopsy: consent-scope enforcement, forensic chain-of-custody
+
+`autopsy/`: `resolveAutopsyConsentScopeViolation.ts` (new — the first real reader of consent scope) and `recordAutopsyCustodyTransfer.ts` (new — the forensic chain-of-custody log). `authorization/`: new `autopsy:custody:transfer` capability. See `autopsy/README.md`.
+- `referral/` and `batches/`: link referral batches and results to molecular orders.
+- `stains/`: KRAS, NRAS and BRAF tests.
+
+## Batch 469 — Autopsy: toxicology, organ-retention disposal, consent narrowing/revocation (PS-261 follow-up)
+
+`autopsy/`: `orderAutopsyToxicology.ts` / `recordAutopsyToxicologyResult.ts` (new — ordering and result recording, sharing the case's single `ancillaryHold`), `recordAutopsyOrganRetentionDisposal.ts` (new — disposal recording, gated on `resolveHtaApplicability`), `applyAutopsyConsentStatusChange.ts` (new — the narrow/revoke write site this folder had been missing). `authorization/`: new `autopsy:toxicology:order`, `autopsy:toxicology:result`, `autopsy:retention-disposal:record`, `autopsy:consent:manage` capabilities. See `autopsy/README.md`.
+
+## Batch 471 — Autopsy: toxicology cancellation, organ-retention detail, consent reinstatement (PS-261 follow-up)
+
+`autopsy/`: `cancelAutopsyToxicologyOrder.ts` (new — cancels an open toxicology order, clearing the ancillary hold only if it's still the exact hold that order set), `recordAutopsyOrganRetentionDetail.ts` (new — recipient/location while retention is ongoing, a single overwritable record distinct from disposal), `applyAutopsyConsentReinstatement.ts` / `recordAutopsyConsentReinstatement.ts` (new — a deliberately separate pure-function/orchestration pair that's allowed to widen consent back, never sharing a file or capability with the narrow-only write site). `authorization/`: new `autopsy:toxicology:cancel`, `autopsy:retention-detail:record`, `autopsy:consent:reinstate` capabilities. See `autopsy/README.md`.
+
+## Batch 472 — Autopsy: capability-greying, retention-tier reason, punctuation sweep (PS-261 follow-up)
+
+No new service files. `authorization/`: no new capabilities — this batch wires the existing eight autopsy capabilities into `CapabilityButton` on the report page, it doesn't add new protected actions. `types/autopsy/AutopsyCaseDetails.ts`: new `organRetentionTierReason`, saved through the existing `organRetentionTier` write site in `SynopticReportPage.tsx` (disclosed: that write site itself still has no capability check and isn't in this folder — see `autopsy/README.md`'s Batch 472 entry).
+
+## Batch 473 — Autopsy case-type key migration (PS-261 follow-up)
+
+`autopsy/`'s forensic-path case-authority value renamed, `'medicolegal_forensic'` → `'statutory_judicial'`, across every gate/orchestration function that compares against it. Also touches `caseSearch/` (`CaseSearchAutopsyAuthority`), `cases/` (demo seed data), `demoReset/` (its assertion test), and `fieldRequirements/` (`reportPageChecks.ts`'s forensic-path check) — each has its own README note. No new capabilities, no behavior change. See `autopsy/README.md`.
+
+## Batch 475 — Autopsy Module 3: toxicology specimen barcode & chain-of-custody link (PS-261 follow-up)
+
+`autopsy/`'s `orderAutopsyToxicology.ts` gains a required specimen barcode; `recordAutopsyCustodyTransfer.ts` gains an optional `toxicologyOrderId` link field and a new pure selector, `custodyEventsForToxicologyOrder()`. No new capability — reuses `autopsy:toxicology:order` and the existing, deliberately forensic-only `autopsy:custody:transfer`. See `autopsy/README.md`.
+
+## Batch 480 — Structured Inking, Module 1: Margin and Ink Application data model (PS-359 follow-up)
+
+Two new folders: `siteSettings/` (new — the per-site analog of `labSettings/`, built ahead of the not-yet-existing Organisation/Site admin UI). `grossing/`: `recordMarginInkApplication.ts`, `resolveInkingValidationSeverity.ts`, `inkingSiteSettings.ts` (all new — margin/ink recording, the severity engine, and the site's `inking_validation_mode` setting). `authorization/`: two new capabilities, `grossing:margin-ink:record` and `config:inking-validation-mode:manage` (the latter granted to Admin/Lab Director by default via `CONFIG_SECTIONS`, same as its config*:manage siblings). Data model + severity engine + site setting only this batch — no grossing-screen UI, no ink-colour admin palette yet. See `grossing/README.md` and `siteSettings/README.md`.
+
+## Batch 481 — Structured Inking, Module 2: grossing-screen UI (PS-359 follow-up)
+
+No new service files — `grossing/recordMarginInkApplication.ts` (Batch 480) now has its first real caller. `pages/GrossingScreenPage/hooks/useGrossingScreen.ts` gains `handleRecordMarginInk`, which calls that service and, on success, re-reads the case (the service doesn't hand back the updated case itself). See `grossing/README.md` and `pages/GrossingScreenPage/README.md`.

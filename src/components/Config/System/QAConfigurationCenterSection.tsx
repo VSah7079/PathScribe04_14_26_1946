@@ -37,6 +37,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatList } from '@/utils/formatList';
+import { capaTriggerSummary } from '@/services/quality/capaTriggerSummary';
 import '../../../pathscribe.css';
 import { qaActivityTypeService, qaSupervisionAssignmentTypeService, deficiencyTypeService, subspecialtyService } from '../../../services';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
@@ -72,7 +74,7 @@ const SEVERITY_LABEL_KEY: Record<QaDiscordanceSeverity, string> = {
 };
 
 const QAConfigurationCenterSection: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<QaConfigTab>('standard');
   const [reviewTypes, setReviewTypes] = useState<QaActivityType[]>([]);
   const [supervisionTypes, setSupervisionTypes] = useState<QaSupervisionAssignmentType[]>([]);
@@ -199,12 +201,19 @@ const QAConfigurationCenterSection: React.FC = () => {
                   {u.entry.description && <div className="ps-conf-identity-sub">{u.entry.description}</div>}
                 </td>
                 <td className="ps-conf-td">{archetypeLabel(u.kind)}</td>
-                {tab === 'standard' && <td className="ps-conf-td">{u.entry.jurisdictions?.join(', ') ?? t('qaConfigurationCenterSection.table.jurisdictionsAll')}</td>}
-                <td className="ps-conf-td">{u.kind === 'review' ? (u.entry.samplingPercentage ? `${u.entry.samplingPercentage}%` : '—') : '—'}</td>
+                {tab === 'standard' && <td className="ps-conf-td">{u.entry.jurisdictions?.length ? formatList(u.entry.jurisdictions.map(j => t(`jurisdictionNames.${j}`, { defaultValue: j })), i18n.language) : t('qaConfigurationCenterSection.table.jurisdictionsAll')}</td>}
+                <td className="ps-conf-td">{u.kind === 'review' && u.entry.samplingPercentage ? t('qaConfigurationCenterSection.table.samplingValue', { value: u.entry.samplingPercentage }) : '—'}</td>
                 <td className="ps-conf-td">
-                  {u.kind === 'review' && u.entry.capaTriggerRule?.triggerSeverities?.length
-                    ? `${u.entry.capaTriggerRule.triggerSeverities.join('/')} → ${deficiencyTypes.find(d => d.id === u.entry.capaTriggerRule?.deficiencyTypeId)?.name ?? u.entry.capaTriggerRule.deficiencyTypeId}`
-                    : '—'}
+                  {(() => {
+                    // Batch 441: severities translated and joined in the user's language; "after sign-out only" shown.
+                    const summary = u.kind === 'review' ? capaTriggerSummary(u.entry.capaTriggerRule, deficiencyTypes) : null;
+                    if (!summary) return '—';
+                    const severities = formatList(summary.severities.map(sev => t(SEVERITY_LABEL_KEY[sev])), i18n.language);
+                    const text = summary.deficiencyName
+                      ? t('qaConfigurationCenterSection.table.capaTriggerSummary', { severities, deficiency: summary.deficiencyName })
+                      : severities;
+                    return summary.postSignOutOnly ? t('qaConfigurationCenterSection.table.capaTriggerPostSignOut', { summary: text }) : text;
+                  })()}
                 </td>
                 <td className="ps-conf-td">
                   <div className="ps-conf-status-cell">
@@ -406,6 +415,12 @@ const ActivityConfigModal: React.FC<{
                   <option value="">{t('qaConfigurationCenterSection.modal.noDeficiencyOption')}</option>
                   {deficiencyTypes.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
+                {/* Batch 441: the PS-148 rule's switch (recommend only for reviews after release). */}
+                <label className="ps-conf-label">
+                  <input type="checkbox" checked={!!draft.entry.capaTriggerRule?.postSignOutOnly}
+                    onChange={e => setEntry({ capaTriggerRule: { ...draft.entry.capaTriggerRule, postSignOutOnly: e.target.checked || undefined } })} />
+                  {' '}{t('qaConfigurationCenterSection.modal.postSignOutOnlyLabel')}
+                </label>
                 <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">
                   {t('qaConfigurationCenterSection.modal.capaTriggerHint')}
                 </p>

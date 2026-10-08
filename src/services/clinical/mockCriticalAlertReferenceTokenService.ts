@@ -11,10 +11,12 @@ import type {
 import { resolveCriticalAlertReferenceTokenStatus } from './ICriticalAlertReferenceTokenService';
 import { computeCriticalAlertReferenceTokenExpiry } from './computeCriticalAlertReferenceTokenExpiry';
 import { mockAuditService } from '../auditlog/mockAuditService';
+import { CRITICAL_ALERT_DEMO_TOKENS } from './criticalAlertDemoSeed';
 
 const TOKENS_KEY = 'critical_alert_reference_tokens_v1';
 
-const loadTokens    = (): CriticalAlertReferenceToken[]   => storageGet<CriticalAlertReferenceToken[]>(TOKENS_KEY, []);
+// Batch 456: until anything is stored (a fresh browser, or after a Full Reset), the demo link (criticalAlertDemoSeed.ts).
+const loadTokens    = (): CriticalAlertReferenceToken[]   => storageGet<CriticalAlertReferenceToken[]>(TOKENS_KEY, CRITICAL_ALERT_DEMO_TOKENS.map(t => ({ ...t })));
 const persistTokens = (data: CriticalAlertReferenceToken[]) => storageSet(TOKENS_KEY, data);
 
 /** Real, deliberately non-cryptographic opaque bearer string — see this

@@ -96,3 +96,11 @@ export function checkNcciBundling(codes: string[], pairs: NcciPtpEditPair[]): Nc
   }
   return violations;
 }
+
+/** PS-48 (Batch 451, moved out of NcciEditRulesSection.tsx): the rows of the
+ *  downloadable upload template (CSV through utils/csv): the column headers
+ *  parseNcciUploadRows reads, with one example pair. */
+export const NCCI_UPLOAD_TEMPLATE_FILENAME = 'NcciPtpEditTemplate.csv';
+export function ncciUploadTemplateRows(): Record<'Column 1' | 'Column 2' | 'Modifier Indicator' | 'Effective Date' | 'Deletion Date', string>[] {
+  return [{ 'Column 1': '88305', 'Column 2': '88300', 'Modifier Indicator': '0', 'Effective Date': '2026-01-01', 'Deletion Date': '' }];
+}

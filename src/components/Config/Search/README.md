@@ -56,6 +56,14 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 Results come from the full index (every tab and section, see `constants/README.md`). A generated section result shows its group (System) instead of a description. Choosing a result passes the section in the address too, so Cytology, Staff and Synoptic Library open on it.
 
+## Batch 437
+
+The Configuration search box is not an unsaved change (`data-dirty-ignore`, PS-128).
+
+## Batch 449
+
+Search now reaches the Report Templates and Validation Studies inner tabs and the staff Sign-in password. Stale and placeholder entries are gone. See `constants/README.md`.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

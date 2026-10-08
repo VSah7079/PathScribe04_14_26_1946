@@ -1,5 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 438: changes need config:revision-reasons:manage (checked in guardConfigWrites.test.ts); allowed here.
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockReasonDictionaryService } from './mockReasonDictionaryService';
 
 describe('mockReasonDictionaryService - real, category-scoped reason dictionary', () => {

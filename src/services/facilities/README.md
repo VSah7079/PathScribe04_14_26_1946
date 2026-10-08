@@ -448,6 +448,18 @@ Before, anyone who could open Configuration could change this; now each change i
 
 Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
 
+## Batch 433
+
+`Facility.requireBillingApproval` now has an editor (Configuration → Facilities → General, "Charges need billing approval"). An enterprise sets it on or off; a performing lab can follow its enterprise (unset) or override it. Resolved by `services/billing/chargeApproval.ts`.
+
+## Batch 434
+
+`resolveCasePerformingLab.ts`: a case's performing lab from its `originHospitalId`, whether a facility id or a legacy tenant id (through `Facility.legacyTenantIds`), and `enterpriseOf(lab)`. Used by charge approval. Test beside it.
+
+## Batch 441
+
+Desert Valley's US demo ordering clients (`c1` to `c5`) now name Desert Valley Medical Center (`c-ent-dvmc`) as their performing lab. Before, their cases had none, so the peer-review gate (and anything else keyed by performing lab) couldn't be set for them. A stored copy without one is filled on load (`withDemoClientPerformingLab`); one an administrator set is kept.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

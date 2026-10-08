@@ -54,3 +54,7 @@ Settings (`pathscribe_support_access_settings`) and requests (`pathscribe_suppor
 - Support's exports and configuration changes are checked by capability and recorded in the main audit log. They aren't copied into the hospital's stream yet, because configuration data isn't tenant-scoped in the mock.
 
 See `docs/architecture/AUTHORIZATION_API.md` § Support access for the server contract.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`demoSupportAccessRequests()` (`demoSupportAccessSeed.ts`, wired through the new optional `seedRequests`): one pending request from Amber Fehrs-Battey (ForMedrixAI support; her staff organisation is Midwest, so it counts as support access) to Desert Valley, ticket FMX-20417. Michelle Nimmo or Pete approves it; only Admin has `config:support-access:approve` by default, so the Lab Director can't. No "requested" entry is seeded in the support audit (it survives a reset and is hash-chained, so it is only written through the service).

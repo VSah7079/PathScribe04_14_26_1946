@@ -117,9 +117,11 @@ export function useEmbeddingStation() {
     const resolved = await resolveMaterialFromScan(rawScanValue);
     if (!resolved) return fail({ key: 'embeddingStation.scanErrors.notResolved' });
     const { caseData, specimenLetter, target } = resolved;
+    // Batch 460: the target is checked first, so a matrix block (no specimen
+    // letter) gets "not supported here" rather than "specimen not found".
+    if (target.level !== 'block' && target.level !== 'slide') return fail({ key: 'embeddingStation.scanErrors.unsupportedTarget' });
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
     if (!specimen) return fail({ key: 'embeddingStation.scanErrors.specimenNotFound' });
-    if (target.level !== 'block' && target.level !== 'slide') return fail({ key: 'embeddingStation.scanErrors.unsupportedTarget' });
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
     if (!block) return fail({ key: 'embeddingStation.scanErrors.blockNotFound', values: { block: `${specimen.label}${target.blockNumber}` } });
     versionRef.current = (caseData as unknown as { version?: number }).version ?? 0;

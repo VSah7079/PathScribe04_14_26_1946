@@ -147,6 +147,45 @@ The free-text boxes in `AmendmentModal`, `CaseSignOutModal` (countersign feedbac
 
 `WorkupPartsModal`: Independent or Combined, with the parts to combine. It reports why a choice isn't allowed (a released workup, or a part already covered by this protocol). The rules are in `services/reports/workupParts.ts`.
 
+## Batch 437
+
+- `ReportPrintPromptModal.tsx` (new): before a report prints, when there is something to say first. It asks for a reprint reason when the lab requires one, and warns about the Pending Release watermark.
+- `CopilotReportViewModal.tsx`, `VersionHistoryModal.tsx`, `MaterialTrackingHistoryModal.tsx`: prints audited.
+- `MatrixBlockEditorModal.tsx`, `BlockStainEditorModal.tsx`: secondary label prints audited.
+
+## Batch 439
+
+- `PeerReviewGateModal.tsx` (PS-144): sign-out stopped by the peer-review gate. Ask for the review, or sign out now for urgent care with a reason (`case:peer-review:override`; the review is owed within 24 hours).
+- `ClinicalMismatchModal.tsx` (PS-145): the suggestion with its confidence and source; the pathologist decides.
+- Tests: `peerReviewAndMismatch.test.tsx` (also covers the banner).
+
+## Batch 445
+
+- `UnsavedWarningModal.tsx` shows section ids through `unsavedWarningModal.sections.<id>`. Its old note said the entries were already-translated text; they were English labels.
+- `VersionHistoryModal.tsx` shows the snapshot's date of birth with `formatDate` in the user's language.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+See `../README.md` (Batch 450): logic moved to services and new tests for PS-57, PS-141, PS-274, PS-275, PS-317, PS-318, PS-324.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`ChangeHistoryModal` uses `changeHistoryView` (PS-353); `printOutputAudit.test.tsx` (PS-282).
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`CaseSignOutModal.tsx`: a "A follow-up specimen (resection or excision) is expected" box. It shows only when the page passes `onFollowUpExpectedChange`. Test: `CaseSignOutModal.followUp.test.tsx`.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`CaseTeamModal`: the team save is versioned; the modal says so if the team changed elsewhere (`caseTeamModal.rejection.teamChangedElsewhere`).
+
+## Batch 460
+
+`ManageReprintsModal.tsx` and `MaterialTrackingHistoryModal.tsx` use each slide's printed level. Before, a reprint after Microtomy reordered the slides printed another slide's barcode.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

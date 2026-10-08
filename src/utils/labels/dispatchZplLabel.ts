@@ -32,6 +32,7 @@ import i18n from '@/i18n/config';
 import { printZplViaQzTray } from './qzTrayBridge';
 import { getPathScribeAgentClient, type PathScribeAgentClient } from './pathscribeAgent/pathscribeAgentClient';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
+import { auditLabelPrint, printerDestination, type LabelPrintAudit } from './labelPrintAudit';
 
 export interface DispatchZplLabelResult {
   ok: true;
@@ -69,6 +70,19 @@ export async function dispatchZplLabel(
   zpl: string,
   copies: number,
   agent: Pick<PathScribeAgentClient, 'printZpl' | 'portsTried'> = getPathScribeAgentClient(),
+  audit?: LabelPrintAudit,
+): Promise<DispatchZplLabelResult | DispatchZplLabelError> {
+  // PS-282 (Batch 437): the outcome is audited when the caller says what the label is.
+  const result = await dispatchZpl(printer, zpl, copies, agent);
+  auditLabelPrint(audit, printerDestination(printer), result.ok === true ? 'success' : 'failed', copies);
+  return result;
+}
+
+async function dispatchZpl(
+  printer: PrinterProfile,
+  zpl: string,
+  copies: number,
+  agent: Pick<PathScribeAgentClient, 'printZpl' | 'portsTried'>,
 ): Promise<DispatchZplLabelResult | DispatchZplLabelError> {
   if (printer.bridgeType === 'qz_tray') {
     const result = await printZplViaQzTray(printer.printerId, zpl, copies);

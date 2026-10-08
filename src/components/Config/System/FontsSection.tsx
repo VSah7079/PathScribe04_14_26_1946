@@ -169,7 +169,7 @@ const FontsSection: React.FC = () => {
       </div>
 
       {/* ── Search ── */}
-      <input data-config-nav
+      <input data-dirty-ignore data-config-nav
         type="text"
         placeholder={t('fontsSection.searchPlaceholder')}
         value={search}

@@ -24,6 +24,8 @@
 //   own roles with case access) also starts with its three overrides.
 //   Batch 405: every role with the Molecular screen (and a hospital's own
 //   roles with case access) also starts with superseding a molecular run.
+//   Batch 467: and with the molecular Order Queue's actions (assign to a
+//   plate, cancel or re-route).
 //   Batch 409: Pathologist, Fellow, Resident and Cytotechnologist (and a
 //   hospital's own roles with case access) also start with signing out a
 //   cytology specimen (Pete: keep today's users).
@@ -53,7 +55,8 @@ import { ALL_CAPABILITY_KEYS, CAPABILITY_CATALOG } from './capabilityCatalog';
 import { SYSTEM_ROLE_IDS } from '../roles/systemRoles';
 
 const EXPORTS = CAPABILITY_CATALOG
-  .filter(c => c.key === 'report:change-history:export' || c.key.startsWith('qa:'))
+  // Batch 438: only the qa: exports (qa:capa-recommendation:decide is not one; it comes with the Quality Assurance screen).
+  .filter(c => c.key === 'report:change-history:export' || (c.key.startsWith('qa:') && c.key.endsWith(':export')))
   .map(c => c.key);
 
 // PS-356 (Batch 370): managing roles and staff, and the full demo reset.
@@ -97,7 +100,10 @@ export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
   [SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST]:      screens('batch-management', 'embedding', 'microtomy', 'slide-distribution', 'search'),
   [SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST]:       screens('cytology-workspace', 'batch-management', 'search'),
   [SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST]: screens('molecular', 'batch-management', 'search'),
-  [SYSTEM_ROLE_IDS.ADMIN]:             [...screens('configuration'), ...QUALITY_COMPLIANCE],
+  // Batch 434 (Pete): Admin also opens Batch Management (it couldn't see Slide
+  // scanning). The screen only: the batch actions stay with the bench roles,
+  // and an administrator can add them to any role in the Role Dictionary.
+  [SYSTEM_ROLE_IDS.ADMIN]:             [...screens('configuration', 'batch-management'), ...QUALITY_COMPLIANCE],
   [SYSTEM_ROLE_IDS.TEMPLATE_AUTHOR]:   screens('configuration'),
   [SYSTEM_ROLE_IDS.TEMPLATE_APPROVER]: screens('configuration'),
   [SYSTEM_ROLE_IDS.LAB_DIRECTOR]:      [...screens('configuration', 'search', 'my-contributions'), ...QUALITY_COMPLIANCE],
@@ -109,8 +115,46 @@ const SCREEN_KEYS = CAPABILITY_CATALOG.filter(c => c.group === 'screens').map(c 
 // Batch 382: correcting an applied billing code. Its own list, not part of
 // CASE_REPORT_ACTIONS, so it can be taken off the clinical roles later.
 const BILLING_CORRECTION = ['billing:applied-code:correct'];
+// Batch 460 (Pete): reviewing a case's billing codes, for the same roles (nobody loses it).
+const BILLING_REVIEW = ['billing:applied-code:review'];
 // Batch 383: releasing an autopsy body, for the roles with case access.
 const AUTOPSY_RELEASE = ['autopsy:body:release'];
+// Batch 468: recording a forensic chain-of-custody transfer — seeded
+// alongside AUTOPSY_RELEASE for the same case-access roles, since both
+// are the same "handles the body/evidence" class of autopsy action.
+const AUTOPSY_CUSTODY_TRANSFER = ['autopsy:custody:transfer'];
+// Batch 469: narrowing/revoking consent, recording organ-retention
+// disposal, and toxicology ordering/results — same "handles the
+// body/evidence/consent" class of autopsy action, same roles.
+const AUTOPSY_CONSENT_MANAGE = ['autopsy:consent:manage'];
+const AUTOPSY_RETENTION_DISPOSAL = ['autopsy:retention-disposal:record'];
+const AUTOPSY_TOXICOLOGY = ['autopsy:toxicology:order', 'autopsy:toxicology:result'];
+// Batch 471 (PS-261 follow-up): cancelling a toxicology order,
+// recording organ-retention detail, and reinstating consent — same
+// "handles the body/evidence/consent" class of autopsy action, same
+// roles as the rest of this group.
+const AUTOPSY_TOXICOLOGY_CANCEL = ['autopsy:toxicology:cancel'];
+const AUTOPSY_RETENTION_DETAIL = ['autopsy:retention-detail:record'];
+const AUTOPSY_CONSENT_REINSTATE = ['autopsy:consent:reinstate'];
+// Batch 478: per-organ tagging during the gross exam — ordinary clinical
+// documentation, seeded alongside case:grossing:complete for the same
+// GROSSERS (Pathologist, Fellow, Resident, PA), not the broader
+// case-access group the consent/custody/retention actions above use.
+// autopsy:gross-exam-gate:override starts with nobody (an administrator
+// assigns it), same as cytology:qc-review:bypass — deliberately absent
+// from every seed list below.
+const AUTOPSY_ORGAN_TAG = ['autopsy:organ-tag:record'];
+// Batch 480: recording a margin's ink application during grossing — same
+// "ordinary clinical documentation, seeded to the roles that gross" posture
+// as AUTOPSY_ORGAN_TAG above. config:inking-validation-mode:manage (the
+// site-level WARN_ONLY/STRICT_ENFORCE toggle) is a group: 'configSystem'
+// capability, so — unlike the true "nobody by default" actions above
+// (cytology:qc-review:bypass, autopsy:gross-exam-gate:override, which are
+// simply never spread into any seed constant) — it IS granted by default,
+// via CONFIG_SECTIONS below, to Admin and (via CONFIG_SECTIONS_LAB_DIRECTOR)
+// Lab Director, same as its siblings config:report-appearance:manage and
+// config:organ-map-scheme:manage.
+const GROSSING_MARGIN_INK = ['grossing:margin-ink:record'];
 // Batch 385: sending messages and secure email, for every role (Pete: keep today's users).
 const MESSAGING = ['message:internal:send', 'message:secure-email:send'];
 // Batch 390 (PS-340): correcting or adding to a signed-out cytology report.
@@ -157,6 +201,14 @@ export const REGISTRY_GO_LIVE_APPROVE = ['registry:live-register:approve'];
 // review queues (Pathologist and Fellow), so nobody loses what they could do.
 const PEER_REVIEW_VERDICTS = ['cytology:qc-review:record', 'surgical:qa-review:record'];
 const PEER_REVIEW_ROLES = ['pathologist', 'fellow'];
+// Batch 439 (PS-144, PS-145, PS-148): asking for a pre-sign-out peer review,
+// deciding a clinical-pathologic mismatch suggestion and assessing an outside
+// consult, for the roles that report cases. The independent read and the
+// urgent-care override are the pathologist's alone.
+export const PEER_REVIEW_CASE_ACTIONS = ['case:peer-review:request', 'case:clinical-mismatch:record', 'case:outside-consult:assess'];
+export const PEER_REVIEW_PATHOLOGIST_ACTIONS = ['case:peer-review:record', 'case:peer-review:override'];
+// Batch 440: taking a positive GYN case for pathologist review, for the roles that review cytology.
+export const CYTOLOGY_REVIEW_TAKE = ['cytology:pathologist-review:take'];
 // Batch 403: placing add-on orders and approving destructive cutting, for the
 // roles that had the Add-On Orders screen (Pete: all three).
 export const ADD_ON_ORDER_ACTIONS = ['add-on:order:place', 'add-on:exception:approve-destructive-cut'];
@@ -166,21 +218,63 @@ const ADD_ON_ORDER_ROLES = ['pathologist', 'fellow', 'resident'];
 export const BATCH_OVERRIDE_ACTIONS = ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge'];
 // Batch 405: superseding a molecular run, for every role with the Molecular screen.
 export const MOLECULAR_SUPERSEDE = ['molecular:batch:supersede'];
+// Batch 467: the in-house molecular Order Queue's actions, for the same roles.
+export const MOLECULAR_ORDER_ACTIONS = ['molecular:order:assign-plate', 'molecular:order:cancel', 'molecular:order:set-lab'];
 // Batch 432 (Pete): resolving Audit Log errors, for everyone who opens the
 // Audit Log (Admin, Lab Director, QA Reviewer); referral transit status for
 // every role with the Batch Management screen. The Cytology QC supervisor
 // bypass (cytology:qc-review:bypass) starts with nobody: an administrator
 // assigns it, and holding it opens the Cytology QC queue for the override.
 export const AUDIT_ERROR_RESOLVE = ['audit:error:resolve'];
+// Batch 437 (PS-282, PS-357): the exports, for the roles that open the screen
+// they sit on (keep today's users).
+export const AUDIT_LOG_EXPORTS = ['audit:audit-log:export', 'audit:error-log:export', 'audit:interface-log:export', 'audit:qa-log:export', 'audit:billing-log:export'];
+export const CASE_SEARCH_EXPORT = ['search:case-results:export'];
+export const CONTRIBUTION_EXPORTS = ['contribution:trainee-case-reference:export', 'contribution:case-mix-summary:export'];
+// Batch 438 (PS-144–148): confirming or dismissing a CAPA recommendation, for the roles that open Quality Assurance.
+export const CAPA_DECIDE = ['qa:capa-recommendation:decide'];
+// Batch 442 (PS-147): discordance patterns are personnel-sensitive: Lab Director only.
+export const QA_TREND = ['qa:pathologist-trend:view', 'qa:pathologist-trend:decide'];
+// Batch 454 (Pete): closing a follow-up and emailing the ordering clinician,
+// for the roles that open Quality Assurance (Admin, Lab Director, QA Reviewer).
+// Marking a surgical case "follow-up expected" at sign-out, for the roles that
+// sign out surgical cases (Pathologist, Fellow); least privilege, so a
+// resident's case is marked by the attending who signs it.
+export const FOLLOW_UP_ACTIONS = ['qa:follow-up:record', 'qa:follow-up-clinician:email'];
+export const FOLLOW_UP_EXPECT = ['case:follow-up:expect'];
+const FOLLOW_UP_EXPECT_ROLES = ['pathologist', 'fellow'];
+// Batch 461: inserting the organ map into the report, for the people who write reports.
+export const ORGAN_MAP_INSERT = ['report:organ-map:insert'];
+const ORGAN_MAP_INSERT_ROLES = ['pathologist', 'fellow', 'resident'];
+// Batch 458 (PS-71, Pete, Oct 4): Overwrite on the Edit Conflict dialog, for
+// Pathologist, Admin and Lab Director. An exception to least privilege (a
+// Pathologist otherwise starts with nothing): pathologists are the final
+// clinical authority on sign-off and amendments, and an administrator-only
+// overwrite would hold up urgent addenda and off-hours work.
+export const CASE_EDIT_CONFLICT_OVERRIDE = ['case:edit-conflict:override'];
 export const REFERRAL_TRANSIT = ['referral:transit-status:update'];
+// Batch 434: WSI scan batches, for every role with the Batch Management screen.
+export const WSI_SCAN_BATCH = ['wsi:scan-batch:load', 'wsi:scan-batch:send', 'wsi:scan-batch:unload'];
 // Batch 407: disposing of retained material, for every role with the Batch Management screen.
-export const MATERIAL_DISPOSAL = ['retention:material:dispose', 'retention:disposal-report:export'];
+// Batch 452: and removing a decant from the material tree, for the same roles.
+export const MATERIAL_DISPOSAL = ['retention:material:dispose', 'retention:disposal-report:export', 'case:decant:delete'];
 const BILLING_CORRECTION_ROLES: string[] = [
   SYSTEM_ROLE_IDS.ADMIN, SYSTEM_ROLE_IDS.LAB_DIRECTOR, SYSTEM_ROLE_IDS.QA_REVIEWER,
 ];
 
 // Batch 381: see CASE_REPORT_ACTIONS below.
-const CASE_REPORT_ACTIONS_FOR_CUSTOM = ['case:hold:place', 'case:hold:release', 'case:retention-hold:place', 'case:retention-hold:release', 'case:delegation:create'];
+const CASE_REPORT_ACTIONS_FOR_CUSTOM = ['case:hold:place', 'case:hold:release', 'case:retention-hold:place', 'case:retention-hold:release', 'case:delegation:create', 'case:team:manage'];
+
+/** Batch 437: the exports that go with the screens a role opens. */
+function screenExports(caps: readonly string[]): string[] {
+  return [
+    ...(caps.includes('screen:audit-log:open') ? AUDIT_LOG_EXPORTS : []),
+    ...(caps.includes('screen:search:open') ? CASE_SEARCH_EXPORT : []),
+    ...(caps.includes('screen:my-contributions:open') ? CONTRIBUTION_EXPORTS : []),
+    ...(caps.includes('screen:quality-assurance:open') ? CAPA_DECIDE : []),
+    ...(caps.includes('screen:quality-assurance:open') ? FOLLOW_UP_ACTIONS : []),
+  ];
+}
 
 /**
  * Batch 374: screens for a role a hospital created itself, so nobody holding
@@ -197,8 +291,19 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     ...(role.caseAccess ? [...CASE_REPORT_ACTIONS_FOR_CUSTOM] : []),
     // Batch 382: and correcting an applied billing code (also for the roles that resolve billing deficiencies).
     ...(role.caseAccess || role.configAccess ? [...BILLING_CORRECTION] : []),
+    ...(role.caseAccess || role.configAccess ? [...BILLING_REVIEW] : []),
     // Batch 383: and releasing an autopsy body.
     ...(role.caseAccess ? [...AUTOPSY_RELEASE] : []),
+    // Batch 468: and recording a forensic chain-of-custody transfer.
+    ...(role.caseAccess ? [...AUTOPSY_CUSTODY_TRANSFER] : []),
+    // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
+    ...(role.caseAccess ? [...AUTOPSY_CONSENT_MANAGE] : []),
+    ...(role.caseAccess ? [...AUTOPSY_RETENTION_DISPOSAL] : []),
+    ...(role.caseAccess ? [...AUTOPSY_TOXICOLOGY] : []),
+    // Batch 471: and cancelling a toxicology order, retention detail, consent reinstatement.
+    ...(role.caseAccess ? [...AUTOPSY_TOXICOLOGY_CANCEL] : []),
+    ...(role.caseAccess ? [...AUTOPSY_RETENTION_DETAIL] : []),
+    ...(role.caseAccess ? [...AUTOPSY_CONSENT_REINSTATE] : []),
     // Batch 417: and recording a national identifier.
     ...(role.caseAccess ? [...NATIONAL_IDENTIFIER_RECORD] : []),
     ...(role.caseAccess ? [...REGISTRY_CONSENT_RECORD] : []),
@@ -208,6 +313,8 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     ...(role.caseAccess ? [...BATCH_OVERRIDE_ACTIONS] : []),
     // Batch 405: and superseding a molecular run.
     ...(role.caseAccess ? [...MOLECULAR_SUPERSEDE] : []),
+    // Batch 467: and the molecular Order Queue's actions.
+    ...(role.caseAccess ? [...MOLECULAR_ORDER_ACTIONS] : []),
     // Batch 409: and signing out a cytology specimen (Batch 410: and the workspace's other actions).
     ...(role.caseAccess ? [...CYTOLOGY_SIGN_OUT] : []),
     ...(role.caseAccess ? [...CYTOLOGY_CT_SIGN_OUT] : []),
@@ -216,7 +323,14 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     // Batch 432: and referral transit status (case access had Batch Management),
     // and resolving Audit Log errors (configuration access had the Audit Log).
     ...(role.caseAccess ? [...REFERRAL_TRANSIT] : []),
+    // Batch 434: and WSI scan batches (case access had Batch Management).
+    ...(role.caseAccess ? [...WSI_SCAN_BATCH] : []),
     ...(role.configAccess ? [...AUDIT_ERROR_RESOLVE] : []),
+    // Batch 437: and the exports on the screens it gets.
+    ...screenExports([
+      ...(role.caseAccess ? SCREEN_KEYS.filter(k => !admin.includes(k)) : []),
+      ...(role.configAccess ? admin : []),
+    ]),
     // Batch 385: and sending messages, for every custom role.
     ...MESSAGING,
     ...(role.configAccess ? admin : []),
@@ -240,12 +354,25 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
   ...Object.fromEntries(Object.entries(SCREEN_SEEDS).map(([r, caps]) => [r, [
     ...caps,
     ...(GROSSERS.includes(r) ? ['case:grossing:complete'] : []),
+    // Batch 478: and per-organ tagging during the gross exam.
+    ...(GROSSERS.includes(r) ? AUTOPSY_ORGAN_TAG : []),
+    // Batch 480: and recording a margin's ink application during grossing.
+    ...(GROSSERS.includes(r) ? GROSSING_MARGIN_INK : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? CASE_REPORT_ACTIONS : []),
     ...(CASE_ACCESS_ROLES.includes(r) || BILLING_CORRECTION_ROLES.includes(r) ? BILLING_CORRECTION : []),
+    ...(CASE_ACCESS_ROLES.includes(r) || BILLING_CORRECTION_ROLES.includes(r) ? BILLING_REVIEW : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RELEASE : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CUSTODY_TRANSFER : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CONSENT_MANAGE : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RETENTION_DISPOSAL : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_TOXICOLOGY : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_TOXICOLOGY_CANCEL : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_RETENTION_DETAIL : []),
+    ...(CASE_ACCESS_ROLES.includes(r) ? AUTOPSY_CONSENT_REINSTATE : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? NATIONAL_IDENTIFIER_RECORD : []),
     ...(CASE_ACCESS_ROLES.includes(r) ? REGISTRY_CONSENT_RECORD : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_RESEND : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? QA_TREND : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_GO_LIVE_APPROVE : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? REGISTRY_REVISION_REVIEW : []),
     ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CONFIG_SECTIONS_LAB_DIRECTOR : []),
@@ -257,17 +384,30 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(r === 'pathologist' ? CYTOLOGY_REVISION : []),
     ...(r === 'pathologist' ? CYTOLOGY_EARLY_FINALIZE : []),
     ...(PEER_REVIEW_ROLES.includes(r) ? PEER_REVIEW_VERDICTS : []),
+    ...(PEER_REVIEW_ROLES.includes(r) ? PEER_REVIEW_CASE_ACTIONS : []),
+    ...(r === 'pathologist' ? PEER_REVIEW_PATHOLOGIST_ACTIONS : []),
+    ...(PEER_REVIEW_ROLES.includes(r) ? CYTOLOGY_REVIEW_TAKE : []),
     ...(ADD_ON_ORDER_ROLES.includes(r) ? ADD_ON_ORDER_ACTIONS : []),
     ...(caps.includes('screen:batch-management:open') ? BATCH_OVERRIDE_ACTIONS : []),
     ...(caps.includes('screen:batch-management:open') ? MATERIAL_DISPOSAL : []),
     ...(caps.includes('screen:batch-management:open') ? REFERRAL_TRANSIT : []),
+    ...(caps.includes('screen:batch-management:open') ? WSI_SCAN_BATCH : []),
     ...(caps.includes('screen:audit-log:open') ? AUDIT_ERROR_RESOLVE : []),
+    ...(caps.includes('screen:audit-log:open') ? AUDIT_LOG_EXPORTS : []),
+    ...(caps.includes('screen:search:open') ? CASE_SEARCH_EXPORT : []),
+    ...(caps.includes('screen:my-contributions:open') ? CONTRIBUTION_EXPORTS : []),
+    ...(caps.includes('screen:quality-assurance:open') ? CAPA_DECIDE : []),
+    ...(caps.includes('screen:quality-assurance:open') ? FOLLOW_UP_ACTIONS : []),
+    ...(FOLLOW_UP_EXPECT_ROLES.includes(r) ? FOLLOW_UP_EXPECT : []),
+    ...(ORGAN_MAP_INSERT_ROLES.includes(r) ? ORGAN_MAP_INSERT : []),
+    ...(r === 'pathologist' || r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? CASE_EDIT_CONFLICT_OVERRIDE : []),
     ...(caps.includes('screen:molecular:open') ? MOLECULAR_SUPERSEDE : []),
+    ...(caps.includes('screen:molecular:open') ? MOLECULAR_ORDER_ACTIONS : []),
     ...MESSAGING,
   ]])),
   [SYSTEM_ROLE_IDS.SUPERADMIN]: ALL_CAPABILITY_KEYS,
-  [SYSTEM_ROLE_IDS.ADMIN]: [...EXPORTS, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...MESSAGING, ...AUDIT_ERROR_RESOLVE],
-  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...MESSAGING, ...AUDIT_ERROR_RESOLVE],
+  [SYSTEM_ROLE_IDS.ADMIN]: [...EXPORTS, ...CASE_EDIT_CONFLICT_OVERRIDE, ...ADMINISTRATION, ...SUPPORT_ACCESS, ...CONFIG_SECTIONS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.ADMIN])],
+  [SYSTEM_ROLE_IDS.QA_REVIEWER]: [...EXPORTS, ...SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER], ...BILLING_CORRECTION, ...BILLING_REVIEW, ...MESSAGING, ...AUDIT_ERROR_RESOLVE, ...screenExports(SCREEN_SEEDS[SYSTEM_ROLE_IDS.QA_REVIEWER])],
 };
 
 /**

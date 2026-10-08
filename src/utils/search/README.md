@@ -41,6 +41,10 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 - **`describeCaseSearch.ts`:** summary parts for every new filter. The date wording follows the basis ("signed out 01/09/2026 — today"), and the role is named with the pathologists.
 - **`caseSearchCsv.ts`:** a sign-out date column.
 
+## Batch 473 — Case-type key migration
+
+`caseSearchLabels.ts`'s autopsy-authority label map key renamed in step with `AutopsyCaseAuthority`: `medicolegal_forensic` → `statutory_judicial` (the i18n key path it points at, `autopsyIntake.caseAuthority.statutory_judicial`, renamed to match in all 5 locales). No behavior change. See `services/autopsy/README.md`.
+
 ---
 *See [utils/README.md](../README.md) for how this folder fits utils/.*
 *When this folder's contents change meaningfully, update THIS file.*

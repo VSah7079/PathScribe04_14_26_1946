@@ -56,6 +56,26 @@ The whole real label-printing architecture: building label data, rendering it, a
 
 Tests only: the label print tests allow Configuration changes in a mocked authorization service (printer and print settings are checked now).
 
+## Batch 437 (PS-282)
+
+`labelPrintAudit.ts`:
+- `printLabels` and `dispatchZplLabel` take an optional audit description (what the label is, and its case).
+- A QZ Tray or agent print records the printer and whether it took the job.
+- A browser-dialog print records `pending`.
+- Requisition, container, decant, cassette, slide, molecular, station and secondary labels all pass one.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-231, PS-243)
+
+`buildMolecularLabelData.ts`: the content of molecular specimen, plate, rack and deck labels, moved out of `printMolecularLabels.ts`; tests count the labels and check their content. `buildLabelHtml.test.ts`: the single requisition label shows "Not Recorded" for a missing MRN or facility.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`safeBarcodeSvg.ts` (PS-256): moved out of the Label Designer; escapes its placeholder text.
+
+## Batch 460
+
+`getAllSlideLabelRequests.ts` uses each slide's printed level (`services/material/slideLevels.ts`), so a reprinted label matches its barcode after a reorder.
+
 ---
 *See [utils/README.md](../README.md) for how this folder fits the whole utils/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -20,6 +20,7 @@
 // and the `.ps-mt-20`/`.ps-mb-8`/`.ps-defic-review-banner-label`
 // utility classes verbatim — no new CSS needed for this batch.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -40,6 +41,7 @@ const hoursSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTi
 export const IntraopLinkageTab: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [entries, setEntries] = useState<IntraoperativeEntry[]>([]);
   const [mergeLogs, setMergeLogs] = useState<AuditLog[]>([]);
@@ -225,7 +227,7 @@ export const IntraopLinkageTab: React.FC = () => {
               {scopedMerged.map(e => {
                 const log = e.mergedIntoCaseId ? logForCase(e.mergedIntoCaseId) : undefined;
                 return (
-                  <tr key={e.id} className="ps-conf-tr-clickable" onClick={() => e.mergedIntoCaseId && navigate(`/case/${e.mergedIntoCaseId}/synoptic`)}>
+                  <tr key={e.id} className="ps-conf-tr-clickable" onClick={() => e.mergedIntoCaseId && void openCasePage(e.mergedIntoCaseId, 'synoptic')}>
                     <td className="ps-conf-td">{e.id}</td>
                     <td className="ps-conf-td">{e.mergedIntoCaseId}</td>
                     <td className="ps-conf-td">{e.mergedAt ? new Date(e.mergedAt).toLocaleString() : ''}</td>

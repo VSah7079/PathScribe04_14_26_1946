@@ -34,5 +34,13 @@ Each form shows "Still required: …", stars required labels, keeps its button o
 
 `cytologyRevision.test.tsx` mocks `submitCytologyRevisionToRegistry` and checks a released correction goes to the registry with `kind: 'correction'`.
 
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`CytologyReviewEligibilityBadge.tsx` (PS-163), moved out of `CytologyScreeningPage.tsx`; same look and behaviour.
+
+## Batch 460
+
+`CytologySlideOverDrawer.tsx` takes `wide` for the billing drawer (`.ps-cytology-slideover--wide`).
+
 ---
 *See [../README.md](../README.md) for how this folder fits the page.*

@@ -4,7 +4,7 @@ import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 
 function baseCase(overrides: Partial<AutopsyCaseDetails>): AutopsyCaseDetails {
   return {
-    jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full',
+    jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full',
     addenda: [], ancillaryHold: { active: false }, ...overrides,
   } as AutopsyCaseDetails;
 }

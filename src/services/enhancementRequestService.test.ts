@@ -9,6 +9,7 @@ import type { ISupportReferenceService } from './supportReferences/ISupportRefer
 const refs: ISupportReferenceService = {
   forRecord: vi.fn(async (kind, recordId) => ({ ok: true as const, data: { ref: 'SR-7K2Q-9MXD', kind, recordId, createdAt: '' } })),
   resolve: vi.fn(),
+  recordIdFor: vi.fn(),
 };
 const user = { id: 'u1', name: 'Dr. Test', role: 'pathologist' };
 

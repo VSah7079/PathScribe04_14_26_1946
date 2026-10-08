@@ -14,9 +14,9 @@
 // export in this feature: patient name, MRN, DOB. Case/accession ID
 // stays in — necessary for the report to be actionable.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { qaActivityRecordService, auditService } from '@/services';
@@ -62,7 +62,7 @@ const ROOT_CAUSE_LABEL_KEY: Record<QaDiscordanceRootCause, string> = {
 
 export const ReconciliationTab: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [records, setRecords] = useState<QaActivityRecord[]>([]);
   const [caseClientById, setCaseClientById] = useState<Record<string, string | undefined>>({});
@@ -242,7 +242,7 @@ export const ReconciliationTab: React.FC = () => {
             <tbody>
               {discordant.length === 0 && <tr><td className="ps-conf-td" colSpan={8}>{t('reconciliationTab.noDiscordant')}</td></tr>}
               {discordant.map(r => (
-                <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+                <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => void openCasePage(r.caseId, 'synoptic')}>
                   <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                   <td className="ps-conf-td">{r.caseType}</td>
                   <td className="ps-conf-td">{t(CATEGORY_LABEL_KEY[r.fieldValues.frozenCategory as FrozenCategory])} → {t(CATEGORY_LABEL_KEY[r.fieldValues.finalCategory as FrozenCategory])}</td>
@@ -266,7 +266,7 @@ export const ReconciliationTab: React.FC = () => {
             <tbody>
               {concordant.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('reconciliationTab.noConcordant')}</td></tr>}
               {concordant.slice(0, 25).map(r => (
-                <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+                <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => void openCasePage(r.caseId, 'synoptic')}>
                   <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                   <td className="ps-conf-td">{r.caseType}</td>
                   <td className="ps-conf-td">{t(CATEGORY_LABEL_KEY[r.fieldValues.finalCategory as FrozenCategory])}</td>

@@ -28,13 +28,13 @@ import { buildReferralManifestPayload } from '../referral/buildReferralManifestP
 import { mockReferralOutboundQueueService } from '../referral/mockReferralOutboundQueueService';
 import { mockReferralTrackingService } from '../referral/mockReferralTrackingService';
 import { caseRouter } from '../cases/CaseRouter';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED, BATCH_ERRORS as E } from './IBatchService';
 import { reconciliationGate } from './batchListView';
 import { batchDemoSeeds } from './batchDemoSeeds';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 export { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED };
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import { mockDpVendorService } from '../digitalPathology/mockDpVendorService';
 import { mockAiScreeningResultService } from '../digitalPathology/mockAiScreeningResultService';
 import { mockMolecularOrderOutboundQueueService } from '../molecularOrders/mockMolecularOrderOutboundQueueService';
@@ -143,39 +143,43 @@ function findBatch(batches: Batch[], id: ID): Batch | undefined {
 // Fire-and-forget, same real posture as dispatchReferralIfApplicable
 // above — a real failure resolving/persisting this must never block
 // the batch's own, already-successful completion.
-async function transitionSlidesToReadyForScreeningIfApplicable(batch: Batch): Promise<void> {
+export async function transitionSlidesToReadyForScreeningIfApplicable(batch: Batch): Promise<void> {
   if (batch.processingNode !== 'Cytology Staining') return;
   try {
     // Real, deliberate per-case grouping — several items in the same
     // rack batch commonly belong to the same case (or even the same
     // specimen), and each needs its own real caseRouter.updateCase
     // call, not one call per item racing against itself.
-    const byCase = new Map<string, { caseId: string; specimens: any[] }>();
+    const byCase = new Map<string, Array<{ specimenLetter: string; displayId: string }>>();
     for (const item of batch.items) {
       const resolved = await resolveMaterialFromScan(item.displayId);
       if (!resolved) continue;
-      const entry = byCase.get(resolved.caseData.id) ?? { caseId: resolved.caseData.id, specimens: (resolved.caseData.specimens as any[]) ?? [] };
-      entry.specimens = entry.specimens.map((sp: any) => {
-        if (sp.label !== resolved.specimenLetter) return sp;
-        const updateStain = (stain: any) => stain.displayId === item.displayId ? { ...stain, status: 'Ready for Review' } : stain;
-        return {
-          ...sp,
-          blocks: (sp.blocks ?? []).map((b: any) => ({ ...b, stains: (b.stains ?? []).map(updateStain) })),
-          decants: (sp.decants ?? []).map((d: any) => ({ ...d, stains: (d.stains ?? []).map(updateStain) })),
-        };
-      });
-      byCase.set(resolved.caseData.id, entry);
+      const targets = byCase.get(resolved.caseData.id) ?? [];
+      targets.push({ specimenLetter: resolved.specimenLetter as string, displayId: item.displayId });
+      byCase.set(resolved.caseData.id, targets);
     }
-    for (const { caseId, specimens } of byCase.values()) {
-      try {
-        await caseRouter.updateCase(caseId, { specimens } as any);
-      } catch (e) {
-        if (e instanceof ConcurrencyConflictError) {
-          await caseRouter.updateCase(caseId, { specimens } as any);
-        } else {
-          throw e;
+    // PS-71 (Batch 458): each case's slides are marked on the newest copy of
+    // the case and saved with its version (updateCaseWithRetryOrThrow); on a
+    // conflict the change is re-applied to the newer case, so another
+    // person's change to other slides is kept. Replaces the old retry that
+    // re-saved the stale specimens array without a version. A final
+    // conflict throws into the catch below (no audit claiming success).
+    for (const [caseId, targets] of byCase) {
+      await updateCaseWithRetryOrThrow(caseId, current => {
+        let specimens = (current.specimens as any[]) ?? [];
+        for (const t of targets) {
+          specimens = specimens.map((sp: any) => {
+            if (sp.label !== t.specimenLetter) return sp;
+            const updateStain = (stain: any) => stain.displayId === t.displayId ? { ...stain, status: 'Ready for Review' } : stain;
+            return {
+              ...sp,
+              blocks: (sp.blocks ?? []).map((b: any) => ({ ...b, stains: (b.stains ?? []).map(updateStain) })),
+              decants: (sp.decants ?? []).map((d: any) => ({ ...d, stains: (d.stains ?? []).map(updateStain) })),
+            };
+          });
         }
-      }
+        return { specimens } as any;
+      }, caseRouter);
     }
     mockAuditService.logEvent({
       type: 'system', event: 'Cytology Staining Batch Complete — Slides Ready for Screening',
@@ -258,9 +262,24 @@ function dispatchReferralIfApplicable(batch: Batch): void {
   if (batch.processingNode !== 'External Referral') return;
   if (!batch.referralDestinationFacilityId) return;
   try {
-    const payload = buildReferralManifestPayload(batch);
-    mockReferralOutboundQueueService.enqueue({ batchId: batch.id, payload }).catch(() => {});
+    const base = buildReferralManifestPayload(batch);
+    const labId = batch.referralDestinationFacilityId;
+    // The tracking record exists from the moment the batch is complete, so a result is never "tracking not found".
     mockReferralTrackingService.createOnDispatch(batch.id).catch(() => {});
+    // Batch 467b: the send-out molecular orders this batch carries (its lab, its requested test, its specimens) go to
+    // the reference lab with it (IN_RUN), and the manifest names them so the lab can echo each order id with its
+    // result. A failure here never blocks the referral.
+    void (async () => {
+      let molecularOrders: { orderId: string; caseAccession: string; assayCode: string }[] = [];
+      try {
+        const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');
+        molecularOrders = await molecularOrderEngine.onReferralDispatched({ batchId: batch.id, labId, testRequested: batch.referralTestRequested, items: batch.items.map(i => ({ caseAccession: i.caseAccession, specimenLabel: i.specimenLabel })) });
+      } catch (e) {
+        console.error('[Batch] referral: molecular orders not marked sent:', e);
+      }
+      const payload = molecularOrders.length ? { ...base, molecularOrders } : base;
+      mockReferralOutboundQueueService.enqueue({ batchId: batch.id, payload }).catch(() => {});
+    })();
   } catch {
     // Real, honest no-op: buildReferralManifestPayload's own real
     // guard clauses (wrong node, missing destination) are already

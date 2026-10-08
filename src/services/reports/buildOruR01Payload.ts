@@ -32,6 +32,7 @@ import { buildWorkupRenderPayload, renderWorkupPdf } from './workupPdf';
 import { resolveFinalDiagnosisText } from '../reportTemplates/resolveFinalDiagnosisText';
 import type { SynopticReportInstance } from '@/types/case/Case';
 import type { OruResultState } from '@/types/case/OutboundResultQueueEntry';
+import { partGridRowsOf } from '@/services/templates/partGrid';
 
 export interface OruR01Payload {
   messageId: string;
@@ -227,7 +228,7 @@ export async function buildOruR01Payload(
       .filter((i: SynopticReportInstance) => resultState === 'PRELIMINARY' ? true : i.status === 'finalized')
       .map(async (i: SynopticReportInstance) => {
         const detail = await getTemplate(i.templateId);
-        const resolved = resolveAnswers(i.answers ?? {}, detail?.template ?? null);
+        const resolved = resolveAnswers(i.answers ?? {}, detail?.template ?? null, partGridRowsOf(caseData.specimens));
         return { instanceId: i.instanceId, specimenId: i.specimenId, templateName: i.templateName, answers: resolved };
       })
   );

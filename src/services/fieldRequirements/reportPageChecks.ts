@@ -318,7 +318,7 @@ export interface AutopsyAuthorizationForm {
 
 /** Required fields still missing for the case's authority: the written order (medicolegal) or the consent grant (hospital-consented). */
 export function autopsyAuthorizationMissing(caseAuthority: string, form: AutopsyAuthorizationForm, requirements: readonly ResolvedFieldRequirement[]): string[] {
-  const forensic = caseAuthority === 'medicolegal_forensic';
+  const forensic = caseAuthority === 'statutory_judicial';
   const consented = caseAuthority === 'hospital_consented';
   const applicable = inGroup(requirements, 'autopsy').filter(f => {
     if (f.id === 'autopsyOrderReference' || f.id === 'autopsyOrderDate') return forensic;

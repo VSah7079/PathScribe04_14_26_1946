@@ -15,10 +15,12 @@
 // be dropped into that later home unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect, useCallback } from 'react';
 import { CytologyQcDiscrepancyModal } from '@/components/CytologyQc/CytologyQcDiscrepancyModal';
 import { useCytologyQcActions } from '@/hooks/useCytologyQcActions';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { resolveCytologyQcCaseReview } from '@/services/cytologyQc/resolveCytologyQcCaseReview';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import ReasonPromptModal from '@/components/Common/ReasonPromptModal';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +28,6 @@ import '../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { cytologyQcCaseAssignmentService } from '@/services';
-import { useNavigate } from 'react-router';
 import { resolveQcQueueTabFilter, type QcQueueTab } from '@/services/cytologyQc/resolveQcQueueTabFilter';
 import { resolveQcSlaStatus, type QcSlaStatus } from '@/services/cytologyQc/resolveQcSlaStatus';
 import { resolvePatientFullDisplayName } from '@/utils/personName';
@@ -44,7 +45,7 @@ const CytologyQcQueuePage: React.FC = () => {
   const { user } = useAuth();
   // Batch 432: the bypass shows only to people whose role holds it.
   const { has: can } = useCapabilities();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [activeTab, setActiveTab] = useState<QcQueueTab>('all');
   const [queue, setQueue] = useState<CytologyQcCaseAssignment[]>([]);
   const [casesById, setCasesById] = useState<Record<string, Case>>({});
@@ -101,6 +102,9 @@ const CytologyQcQueuePage: React.FC = () => {
           const relatedCase = casesById[assignment.caseId];
           const slaStatus = resolveQcSlaStatus(assignment.createdAt, assignment.slaDeadline, now);
           const isAssignedToMe = user && assignment.assignedReviewerId === user.id;
+          // Batch 434: Assign to Me and the verdicts follow cytology:qc-review:record
+          // and the self-review rule (resolveCytologyQcCaseReview), as on the case's own bar.
+          const review = resolveCytologyQcCaseReview([assignment], user?.id, can('cytology:qc-review:record'));
 
           return (
             <div key={assignment.id} className="ps-qcqueue-row">
@@ -118,13 +122,14 @@ const CytologyQcQueuePage: React.FC = () => {
               <div className="ps-qcqueue-row-actions">
                 {/* Batch 396 (Pete): open the case to review it (slides, the
                     primary review) before recording a verdict. Back returns here. */}
-                <button className="ps-conf-btn-secondary" onClick={() => navigate(`/cytology-worklist/${encodeURIComponent(assignment.caseId)}`, { state: { returnTo: '/worklist?view=cytologyQc' } })}>
+                <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(assignment.caseId, 'cytology', { state: { returnTo: '/worklist?view=cytologyQc' } })}>
                   {t('cytologyQcQueue.openCaseBtn')}
                 </button>
-                {assignment.state === 'QC_PENDING' && (
+                {review.canAssignToMe && (
                   <button className="ps-conf-btn-primary" disabled={busy} onClick={() => void assignToMe(assignment.id)}>{t('cytologyQcQueue.assignToMeBtn')}</button>
                 )}
-                {assignment.state === 'QC_IN_REVIEW' && isAssignedToMe && (
+                {review.isOwnCase && <span className="ps-qcqueue-assigned-note">{t('cytologyQcQueue.error.selfReview')}</span>}
+                {review.canRecordVerdict && (
                   <>
                     <button className="ps-conf-btn-primary" disabled={busy} onClick={() => void recordConcurrence(assignment.id)}>{t('cytologyQcQueue.recordConcurrenceBtn')}</button>
                     <button className="ps-conf-btn-secondary" onClick={() => setDiscrepancyTargetId(assignment.id)}>{t('cytologyQcQueue.recordDiscrepancyBtn')}</button>

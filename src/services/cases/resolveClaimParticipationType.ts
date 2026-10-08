@@ -38,6 +38,7 @@
 
 import type { Role } from '@/services/roles/IRoleService';
 import { resolveParticipationTypeAuthority, type ParticipationTypeRecord } from '@/services/participationTypes/IParticipationTypeService';
+import { CYTOTECHNOLOGIST_PARTICIPATION_TYPE_ID, isCytotechOnly, isPathologistParticipationType } from '@/services/participationTypes/cytotechParticipationRules';
 
 const DEFAULT_CLAIM_PARTICIPATION_TYPE_ID = 'primary';
 
@@ -53,7 +54,12 @@ const DEFAULT_CLAIM_PARTICIPATION_TYPE_ID = 'primary';
  */
 export function resolveEligibleParticipationTypeIds(staffUserRoles: string[] | undefined, roles: Role[]): Set<string> {
   const eligibleRoles = roles.filter(r => (staffUserRoles ?? []).includes(r.name));
-  return new Set(eligibleRoles.flatMap(r => r.participationTypeIds ?? []));
+  const ids = new Set(eligibleRoles.flatMap(r => r.participationTypeIds ?? []));
+  // Batch 441 (Pete: "Cytotechs can not be selected for Pathologist roles"):
+  // whatever the Role Dictionary lists, a cytotech-only staff member never
+  // gets a pathologist type.
+  if (isCytotechOnly(staffUserRoles, roles)) for (const id of [...ids]) if (isPathologistParticipationType(id)) ids.delete(id);
+  return ids;
 }
 
 export function resolveClaimParticipationType(
@@ -63,10 +69,14 @@ export function resolveClaimParticipationType(
   performingLabFacilityId?: string | null,
 ): string {
   const allowedIds = resolveEligibleParticipationTypeIds(staffUserRoles, roles);
-  if (allowedIds.size === 0) return DEFAULT_CLAIM_PARTICIPATION_TYPE_ID;
+  // Batch 441: a cytotech never falls back to 'primary' (before this, the
+  // built-in Cytotechnologist role listed no types, so a cytotech claiming a
+  // pool case became its primary pathologist).
+  const fallback = isCytotechOnly(staffUserRoles, roles) ? CYTOTECHNOLOGIST_PARTICIPATION_TYPE_ID : DEFAULT_CLAIM_PARTICIPATION_TYPE_ID;
+  if (allowedIds.size === 0) return fallback;
 
-  const eligibleTypes = participationTypes.filter(t => allowedIds.has(t.id));
-  if (eligibleTypes.length === 0) return DEFAULT_CLAIM_PARTICIPATION_TYPE_ID;
+  const eligibleTypes = participationTypes.filter(t => allowedIds.has(t.id) && !(fallback === CYTOTECHNOLOGIST_PARTICIPATION_TYPE_ID && t.canFinalize === true));
+  if (eligibleTypes.length === 0) return fallback;
 
   const withAuthority = eligibleTypes.map(t => ({
     type: t,

@@ -1,6 +1,6 @@
 {
   "id": "prostate_resection",
-  "name": "Generic Template \u2014 Prostate Resection",
+  "name": "Generic Template — Prostate Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "PROSTATE",
@@ -593,14 +593,17 @@
           "label": "Number Positive",
           "type": "numeric",
           "required": false,
-          "options": []
+          "options": [],
+          "wholeNumber": true,
+          "notMoreThan": "ln_number_examined"
         },
         {
           "id": "ln_number_examined",
           "label": "Number Examined",
           "type": "numeric",
           "required": false,
-          "options": []
+          "options": [],
+          "wholeNumber": true
         },
         {
           "id": "extranodal_extension",
@@ -767,6 +770,867 @@
             {
               "id": "additional_findings_opt_7",
               "label": "Option 7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "psmap_prostate_map",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_tumour_sectors",
+          "label": "Tumour location (PI-RADS v2.1 sectors)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "hint": "Every sector with tumour. Drives the prostate map.",
+          "options": [
+            {
+              "id": "psmap_sector_r_base_as",
+              "label": "Right base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tza",
+              "label": "Right base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tzp",
+              "label": "Right base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pza",
+              "label": "Right base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpl",
+              "label": "Right base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpm",
+              "label": "Right base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_cz",
+              "label": "Right base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_as",
+              "label": "Left base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tza",
+              "label": "Left base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tzp",
+              "label": "Left base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pza",
+              "label": "Left base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpl",
+              "label": "Left base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpm",
+              "label": "Left base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_cz",
+              "label": "Left base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_as",
+              "label": "Right mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tza",
+              "label": "Right mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tzp",
+              "label": "Right mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pza",
+              "label": "Right mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpl",
+              "label": "Right mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpm",
+              "label": "Right mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_as",
+              "label": "Left mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tza",
+              "label": "Left mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tzp",
+              "label": "Left mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pza",
+              "label": "Left mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpl",
+              "label": "Left mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpm",
+              "label": "Left mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_as",
+              "label": "Right apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tza",
+              "label": "Right apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tzp",
+              "label": "Right apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pza",
+              "label": "Right apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpl",
+              "label": "Right apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpm",
+              "label": "Right apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_as",
+              "label": "Left apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tza",
+              "label": "Left apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tzp",
+              "label": "Left apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pza",
+              "label": "Left apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpl",
+              "label": "Left apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpm",
+              "label": "Left apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_sv",
+              "label": "Right seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_sv",
+              "label": "Left seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_us",
+              "label": "Urethral sphincter",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_grade_group",
+          "label": "Grade Group (dominant tumour)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_gg_1",
+              "label": "Grade Group 1 (Gleason 3+3=6)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_2",
+              "label": "Grade Group 2 (Gleason 3+4=7)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_3",
+              "label": "Grade Group 3 (Gleason 4+3=7)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_4",
+              "label": "Grade Group 4 (Gleason score 8)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_5",
+              "label": "Grade Group 5 (Gleason score 9-10)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_epe_sectors",
+          "label": "Extraprostatic extension: location",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "hint": "Sectors where tumour extends beyond the prostate. Leave empty if none.",
+          "options": [
+            {
+              "id": "psmap_sector_r_base_as",
+              "label": "Right base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tza",
+              "label": "Right base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tzp",
+              "label": "Right base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pza",
+              "label": "Right base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpl",
+              "label": "Right base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpm",
+              "label": "Right base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_cz",
+              "label": "Right base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_as",
+              "label": "Left base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tza",
+              "label": "Left base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tzp",
+              "label": "Left base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pza",
+              "label": "Left base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpl",
+              "label": "Left base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpm",
+              "label": "Left base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_cz",
+              "label": "Left base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_as",
+              "label": "Right mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tza",
+              "label": "Right mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tzp",
+              "label": "Right mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pza",
+              "label": "Right mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpl",
+              "label": "Right mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpm",
+              "label": "Right mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_as",
+              "label": "Left mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tza",
+              "label": "Left mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tzp",
+              "label": "Left mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pza",
+              "label": "Left mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpl",
+              "label": "Left mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpm",
+              "label": "Left mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_as",
+              "label": "Right apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tza",
+              "label": "Right apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tzp",
+              "label": "Right apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pza",
+              "label": "Right apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpl",
+              "label": "Right apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpm",
+              "label": "Right apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_as",
+              "label": "Left apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tza",
+              "label": "Left apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tzp",
+              "label": "Left apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pza",
+              "label": "Left apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpl",
+              "label": "Left apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpm",
+              "label": "Left apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_sv",
+              "label": "Right seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_sv",
+              "label": "Left seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_us",
+              "label": "Urethral sphincter",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_margin_sectors",
+          "label": "Positive margin: location",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "hint": "Sectors at a positive surgical margin. Leave empty if margins are negative.",
+          "options": [
+            {
+              "id": "psmap_sector_r_base_as",
+              "label": "Right base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tza",
+              "label": "Right base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tzp",
+              "label": "Right base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pza",
+              "label": "Right base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpl",
+              "label": "Right base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpm",
+              "label": "Right base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_cz",
+              "label": "Right base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_as",
+              "label": "Left base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tza",
+              "label": "Left base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tzp",
+              "label": "Left base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pza",
+              "label": "Left base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpl",
+              "label": "Left base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpm",
+              "label": "Left base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_cz",
+              "label": "Left base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_as",
+              "label": "Right mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tza",
+              "label": "Right mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tzp",
+              "label": "Right mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pza",
+              "label": "Right mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpl",
+              "label": "Right mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpm",
+              "label": "Right mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_as",
+              "label": "Left mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tza",
+              "label": "Left mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tzp",
+              "label": "Left mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pza",
+              "label": "Left mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpl",
+              "label": "Left mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpm",
+              "label": "Left mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_as",
+              "label": "Right apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tza",
+              "label": "Right apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tzp",
+              "label": "Right apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pza",
+              "label": "Right apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpl",
+              "label": "Right apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpm",
+              "label": "Right apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_as",
+              "label": "Left apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tza",
+              "label": "Left apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tzp",
+              "label": "Left apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pza",
+              "label": "Left apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpl",
+              "label": "Left apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpm",
+              "label": "Left apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_sv",
+              "label": "Right seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_sv",
+              "label": "Left seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_us",
+              "label": "Urethral sphincter",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_sv_invasion",
+          "label": "Seminal vesicle invasion",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_sv_none",
+              "label": "Not identified",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sv_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sv_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sv_bilateral",
+              "label": "Bilateral",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }

@@ -84,6 +84,14 @@ deletes it outright (not a soft-disable flag).
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 437 (PS-282)
+
+`requireReprintReason` (optional, off by default; facility overrides apply): when a report that was printed before is printed again, the person gives a reason, which is kept in the audit entry. It is set in Configuration → System → Print Settings.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`printSettingsForm.ts`: Print Settings' preset list, save routing (global or facility) and read-only rule (PS-233).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

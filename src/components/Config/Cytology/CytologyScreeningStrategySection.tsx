@@ -28,6 +28,7 @@ import { mockFacilityService } from '../../../services/facilities/mockFacilitySe
 import type { CytologyScreeningStrategy } from '../../../services/cytology/ICytologyScreeningStrategyService';
 import type { FacilityCytologyScreeningStrategyOverride } from '../../../services/cytology/IFacilityCytologyScreeningStrategyOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const STRATEGIES: { id: CytologyScreeningStrategy; labelKey: string }[] = [
   { id: 'co_testing', labelKey: 'cytologyScreeningStrategySection.strategies.coTesting' },
@@ -43,6 +44,8 @@ const CytologyScreeningStrategySection: React.FC = () => {
   const [facilityOverrides, setFacilityOverrides] = useState<FacilityCytologyScreeningStrategyOverride[]>([]);
   const [addingFacility, setAddingFacility] = useState<{ facilityId: string; strategy: CytologyScreeningStrategy } | null>(null);
   const [saving, setSaving] = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(enterpriseDraft !== savedEnterprise || addingFacility !== null);
 
   const refresh = () => {
     mockCytologyScreeningStrategyService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.screeningStrategy); setSavedEnterprise(r.data.screeningStrategy); } });

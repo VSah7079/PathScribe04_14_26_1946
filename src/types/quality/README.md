@@ -11,6 +11,24 @@ The generic types PS-108's real QA Activity Framework builds on.
 
 - **`TatConfigEntry.ts`** (Batch 317): `TATType`, `TATUrgency` and `TATEntry`, moved out of `components/Config/System/TATConfigSection.tsx` so `services/tatConfig/` and `services/referenceCheck/` don't import types from a component. The component re-exports them.
 
+## Batch 438
+
+- `CapaRecommendation.ts`: a recommendation (source, case, deficiency type, summary, linked events, status pending / confirmed / dismissed, owner, the CAPA it opened, dismiss reason).
+- `QaActivityRecord.ts`: `consensus` (`consensus-reached` or `unresolved`).
+
+## Batch 439
+
+- `PeerReview.ts` (new): requests, overrides and the gate settings.
+- `QaActivityRecord.ts`: `reviewedPathologist` (whose read was reviewed) and `postSignOut`.
+- `QaActivityType.ts`: `capaTriggerRule.postSignOutOnly`; the rule's comments now say it recommends (they still said it raised a deficiency automatically).
+
+## Batch 442 (PS-147)
+
+`QaTrend.ts` holds the site-configurable discordance-trend types:
+- `QaTrendPolicy`: which patterns are watched, the window in months, the minimum reviews, which severities count as major, the count and rate thresholds, and the action (`review-task` | `notify-only`).
+- `QaTrendPolicySettings`: the organisation's policy plus any performing lab's own.
+- `QaTrendRecommendation`: one per pathologist or specimen type per lab. Status is `recommended` | `noted` | `under-review` | `capa-opened` | `dismissed`; it never becomes a CAPA by itself.
+
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master types/README.md if this folder's overall PURPOSE changes.*

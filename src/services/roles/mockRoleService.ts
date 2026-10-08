@@ -2,7 +2,7 @@ import { IRoleService, Role } from './IRoleService';
 import { ServiceResult, ID } from '../types';
 import { DEFAULT_ROLE_PERMISSIONS } from '../../constants/systemActions';
 import { storageGet, storageSet } from '../mockStorage';
-import { SYSTEM_ROLE_IDS, mergeBuiltInRoles, renameRoleInList, withoutRetiredRoleFields } from './systemRoles';
+import { SYSTEM_ROLE_IDS, mergeBuiltInRoles, renameRoleInList, withCytotechParticipationType, withoutRetiredRoleFields } from './systemRoles';
 import { applyCapabilitySeeds, lockPlatformRoles } from '../authorization/capabilitySeeds';
 import { roleCapabilityProblem } from '../authorization/roleCapabilityRules';
 
@@ -63,7 +63,7 @@ const SEED_ROLES: Role[] = [
   // in services/authorization/capabilitySeeds.ts.
   { id: SYSTEM_ROLE_IDS.ACCESSIONER,            name: 'Accessioner',            description: 'Receives specimens and accessions new cases.', color: '#D9F99D', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Accessioner'], builtIn: true, participationTypeIds: [] },
   { id: SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST,      name: 'Histotechnologist',      description: 'Processes, embeds, cuts and stains tissue; runs histology batches and slide distribution.', color: '#E879F9', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Histotechnologist'], builtIn: true, participationTypeIds: [] },
-  { id: SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST,       name: 'Cytotechnologist',       description: 'Prepares and screens cytology specimens.', color: '#2DD4BF', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Cytotechnologist'], builtIn: true, participationTypeIds: [] },
+  { id: SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST,       name: 'Cytotechnologist',       description: 'Prepares and screens cytology specimens.', color: '#2DD4BF', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Cytotechnologist'], builtIn: true, participationTypeIds: ['cytotechnologist'] },
   { id: SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST, name: 'Molecular Technologist', description: 'Runs molecular testing: plates, racks and molecular batches.', color: '#94A3B8', caseAccess: true, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Molecular Technologist'], builtIn: true, participationTypeIds: [] },
   { id: SYSTEM_ROLE_IDS.SUPERADMIN,  name: 'Superadmin',  description: 'PathScribe platform support. Held only through a PathScribe support sign-in; cannot be given to staff.', color: '#F472B6', caseAccess: true, configAccess: true, permissions: DEFAULT_ROLE_PERMISSIONS['Superadmin'], builtIn: true, assignable: false },
 ];
@@ -80,8 +80,12 @@ const load = () => {
   // the hospital's, to change).
   const { roles: locked, changed: relocked } = lockPlatformRoles(seeded);
   // PS-356 (Batch 370): drop the role-level switches that were never enforced.
-  const { roles, stripped } = withoutRetiredRoleFields(locked);
-  if (added.length || changed || relocked || stripped) storageSet('pathscribe_roles', roles);
+  const { roles: unstripped, stripped } = withoutRetiredRoleFields(locked);
+  // Batch 441: the built-in Cytotechnologist role was seeded with no
+  // participation types, so a cytotech claiming a pool case fell back to
+  // 'primary'. A stored copy still empty gets 'cytotechnologist'.
+  const { roles, filled } = withCytotechParticipationType(unstripped);
+  if (added.length || changed || relocked || stripped || filled) storageSet('pathscribe_roles', roles);
   return roles;
 };
 const persist = (data: Role[]) => storageSet('pathscribe_roles', data);

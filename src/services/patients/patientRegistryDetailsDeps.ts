@@ -17,6 +17,12 @@ export const patientRegistryDetailsDeps: PatientRegistryDetailsDeps = {
     const all = await caseRouter.getAll(undefined, { bypassAccessControl: true });
     return all.ok ? (all.data as any[]).filter(c => c.patient?.id === id) : [];
   },
-  updateCase: (caseId, patch) => caseRouter.updateCase(caseId, patch as any),
+  // PS-71 (Batch 458): one case, read the same system-to-system way, and a
+  // save that carries the version it was built from.
+  getCase: async caseId => {
+    const all = await caseRouter.getAll(undefined, { bypassAccessControl: true });
+    return all.ok ? (all.data as any[]).find(c => c.id === caseId) : undefined;
+  },
+  updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   logAudit: event => mockAuditService.logEvent(event),
 };

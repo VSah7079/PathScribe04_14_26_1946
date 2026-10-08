@@ -49,3 +49,13 @@ entirely — not something to resolve unilaterally. Full detail in
 Removed 2 debug `console.log` calls that fired on every real
 flag-apply action in production — safe, uncontroversial, unrelated to
 the architectural question above.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`caseFlagsApi.ts` uses `services/flags/caseFlagView.ts` for its result. New `__tests__/caseFlagsApi.test.ts` (PS-57): apply and remove write the one `FlagInstance` shape at case or specimen level, against the real case store.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`caseFlagsApi`: each call changes one flag on the newest case, so a flag someone else added or removed in between is kept.

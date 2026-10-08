@@ -11,9 +11,9 @@ import { mockEquipmentService } from './mockEquipmentService';
 describe('mockEquipmentService', () => {
   beforeEach(() => localStorage.clear());
 
-  it('seeds the three Panther analysers the demo batches use, and (Batch 359) the Zebra printer', async () => {
+  it('seeds the three Panther analysers the demo batches use, (Batch 467) the EGFR PCR instrument, (Batch 359) the Zebra printer and (Batch 434) the slide scanners', async () => {
     const res = await mockEquipmentService.getAll();
-    expect(res.ok && res.data.map(i => `${i.code}:${i.kind}`)).toEqual(['PANTHER_01:analyser', 'PANTHER_02:analyser', 'PANTHER_03:analyser', 'ZEBRA_ZT411_01:label_printer']);
+    expect(res.ok && res.data.map(i => `${i.code}:${i.kind}`)).toEqual(['PANTHER_01:analyser', 'PANTHER_02:analyser', 'PANTHER_03:analyser', 'PCR_01:analyser', 'ZEBRA_ZT411_01:label_printer', 'APERIO_GT450_01:slide_scanner', 'APERIO_GT450_02:slide_scanner', 'GENIUS_01:slide_scanner']);
     const byCode = await mockEquipmentService.getByCode('panther_02');
     expect(byCode.ok && byCode.data.scanStationId).toBe('station-molecular-1');
   });
@@ -37,7 +37,7 @@ describe('mockEquipmentService', () => {
     expect(await mockEquipmentService.create({ code: 'CAM_1', name: 'Again', kind: 'camera', facilityId: 'c-fenwick-general', status: 'Active' })).toEqual({ ok: false, error: 'duplicateCode' });
     expect(await mockEquipmentService.create({ code: 'X', name: '', kind: 'camera', facilityId: 'c-fenwick-general', status: 'Active' })).toEqual({ ok: false, error: 'invalid' });
     const analysers = await mockEquipmentService.getActive('analyser');
-    expect(analysers.ok && analysers.data.map(e => e.code)).toEqual(['PANTHER_01', 'PANTHER_02', 'PANTHER_03']);
+    expect(analysers.ok && analysers.data.map(e => e.code)).toEqual(['PANTHER_01', 'PANTHER_02', 'PANTHER_03', 'PCR_01']); // Batch 467: PCR_01
   });
 
   it('update keeps the code; deactivate hides it from getActive; a station in another lab is refused', async () => {
@@ -45,7 +45,7 @@ describe('mockEquipmentService', () => {
     expect(res.ok && [res.data.name, res.data.code]).toEqual(['Panther 3 (bay 2)', 'PANTHER_03']);
     await mockEquipmentService.deactivate('inst-panther-03');
     const active = await mockEquipmentService.getActive('analyser');
-    expect(active.ok && active.data.map(i => i.code)).toEqual(['PANTHER_01', 'PANTHER_02']);
+    expect(active.ok && active.data.map(i => i.code)).toEqual(['PANTHER_01', 'PANTHER_02', 'PCR_01']);
     expect(await mockEquipmentService.update('inst-panther-01', { facilityId: 'c-ent-mpa' })).toEqual({ ok: false, error: 'invalid' });
     expect(await mockEquipmentService.update('nope', { name: 'x' })).toEqual({ ok: false, error: 'notFound' });
   });

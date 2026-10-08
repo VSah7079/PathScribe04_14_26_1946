@@ -14,6 +14,7 @@
 // collision with i18next's own `t()`, surfaced only once this sweep added
 // useTranslation() here. Renamed to its own name at both of its two call
 // sites rather than aliasing around the clash.
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
@@ -34,17 +35,19 @@ import type {
 import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorModeConfig";
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router';
-import { actionRegistryService, rvuCodeMapService, tatTargetService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
+import { actionRegistryService, flagService, rvuCodeMapService, tatTargetService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
 import type { Subspecialty } from '../services';
 import { caseRouter } from '../services/cases/CaseRouter';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/reconciliationRecordMapping';
-import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
+import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
 import { specimenDictionaryService } from '@/services';
 import { toCsv, downloadCsv } from '../utils/csv';
 import type { DeficiencyType } from '../services/deficiencies/IDeficiencyService';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import type { QaSupervisionAssignmentType } from '@/types/quality/QaSupervisionAssignmentType';
 import { buildSubspecialtyBreakdown, applyExpectedCaseMix, describeSupervisionProgress, buildCaseMixExportRows } from '@components/Contribution/caseMixCalculations';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { beginExport } from '@/services';
 
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -369,6 +372,7 @@ const ContributionDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { config } = useSystemConfig();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
 
   const [activeTab,           setActiveTab]           = useState<DashboardTab>("overview");
   // Dashboard aggregates across clients/labs, so there's no single case to
@@ -385,13 +389,16 @@ const ContributionDashboardPage: React.FC = () => {
   // just fetching the real data and wiring each real candidate to its
   // real navigation target (deficiencies queue vs. case synoptic view) —
   // the one genuinely React-specific piece that stays here.
+  // Batch 452 (PS-57): the catalogue (flagService) is fetched too, so flags
+  // applied to the pathologist's cases and specimens appear, named from it.
   const [qualityFlags, setQualityFlags] = useState<ContributionFlag[]>([]);
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
       specimenDeficiencyService.getAll(), deficiencyTypeService.getAll(), qaActivityRecordService.getAll(),
       caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
-    ]).then(([defRes, typeRes, discRes, casesRes]) => {
+      flagService.getAll(),
+    ]).then(([defRes, typeRes, discRes, casesRes, flagRes]) => {
       if (!defRes.ok) return;
       const types: DeficiencyType[] = typeRes.ok ? typeRes.data : [];
       const typeNameById = Object.fromEntries(types.map(t => [t.id, t.name]));
@@ -403,14 +410,17 @@ const ContributionDashboardPage: React.FC = () => {
         FROZEN_FINAL_ACTIVITY_TYPE_ID,
         casesRes.ok ? casesRes.data : [],
         user.id,
+        3,
+        Date.now(),
+        flagRes.ok ? flagRes.data : [],
       );
 
       setQualityFlags(candidates.map(flag => ({
         id: flag.id,
         label: flag.caseId,
-        value: flag.value,
+        value: qualityFlagText(flag, t),
         severity: flag.severity,
-        onClick: () => navigate(flag.kind === 'deficiency' ? `/deficiencies?open=${flag.id}` : `/case/${flag.caseId}/synoptic`),
+        onClick: () => { if (flag.kind === 'deficiency') navigate(`/deficiencies?open=${flag.id}`); else void openCasePage(flag.caseId); },
       })));
     });
   }, [user?.id]);
@@ -552,7 +562,10 @@ const ContributionDashboardPage: React.FC = () => {
       };
     });
 
-    downloadCsv(`trainee-case-reference-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
+    // PS-282 + PS-357 (Batch 437): checked (contribution:trainee-case-reference:export) and audited.
+    const filename = `trainee-case-reference-${new Date().toISOString().slice(0, 10)}.csv`;
+    if (!(await beginExport('trainee-case-reference', { filename, rowCount: rows.length }))) return;
+    downloadCsv(filename, toCsv(rows));
   };
 
   // ── Progress/case-mix summary export — real, per direct follow-up.
@@ -562,10 +575,13 @@ const ContributionDashboardPage: React.FC = () => {
   // for the resident to hand to a mentor/program coordinator or open
   // in Excel/a BI tool, not a file meant to be uploaded to ACGME.
   const myCaseMixBreakdown = applyExpectedCaseMix(buildSubspecialtyBreakdown(teachingRecords, subspecialties), myCaseMixTargets, subspecialties);
-  const exportProgressSummary = () => {
+  const exportProgressSummary = async () => {
     if (!user?.id) return;
     const rows = buildCaseMixExportRows(user.id, myCaseMixBreakdown);
-    downloadCsv(`case-mix-progress-summary-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, [
+    // PS-282 + PS-357 (Batch 437): checked (contribution:case-mix-summary:export) and audited.
+    const filename = `case-mix-progress-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+    if (!(await beginExport('case-mix-summary', { filename, rowCount: rows.length }))) return;
+    downloadCsv(filename, toCsv(rows, [
       'Resident_ID', 'Category_Code', 'Category_Description', 'Logged_Count', 'Enterprise_Target_Goal', 'Variance', 'Concordance_Status', 'Compliance_Status',
     ]));
   };
@@ -737,7 +753,7 @@ const ContributionDashboardPage: React.FC = () => {
                   subspecialties={subspecialties}
                   caseMixTargets={myCaseMixTargets}
                   onOpen={() => navigate('/quality-assurance')}
-                  onExport={(e) => { e.stopPropagation(); exportCaseLog(); }}
+                  onExport={(e) => { e.stopPropagation(); void exportCaseLog(); }}
                 />
               )}
 
@@ -755,13 +771,14 @@ const ContributionDashboardPage: React.FC = () => {
                       <div className="ps-contrib-tile-title">{t('contributionDashboard.myProgress.title')}</div>
                       <div className="ps-contrib-tile-subtitle">{mySupervisionType?.name ?? t('contributionDashboard.myProgress.activeAssignmentFallback')} · {t('contributionDashboard.myProgress.supervisedBy', { name: mySupervision.supervisorUserName })}</div>
                     </div>
-                    <button
+                    <CapabilityButton
+                      capability="contribution:case-mix-summary:export"
                       className="ps-conf-btn-secondary ps-contrib-export-btn"
-                      onClick={exportProgressSummary}
+                      onClick={() => { void exportProgressSummary(); }}
                       title={t('contributionDashboard.myProgress.exportTitle')}
                     >
                       {t('contributionDashboard.myProgress.exportButton')}
-                    </button>
+                    </CapabilityButton>
                   </div>
                   {(() => {
                     const progress = describeSupervisionProgress(mySupervision);

@@ -25,6 +25,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MaterialLocation } from '@/types/case/Material';
+import type { AutopsyCustodianType } from '@/types/autopsy/AutopsyCaseDetails';
 
 export interface AutopsyBodyReleaseDetails {
   /** Real, free text — the real, external destination (e.g. "Smith
@@ -37,6 +38,12 @@ export interface AutopsyBodyReleaseDetails {
    *  moment never has to supply this — same real default pattern
    *  resolveCytologySignOutGate.ts's own asOfDate already uses. */
   releasedAt?: string;
+  /** Batch 469 — only used (and only required) for a forensic case:
+   *  releaseAutopsyBody.ts also appends a final custodyLog entry for
+   *  those cases, and this is that entry's `toCustodianType`. Ignored
+   *  for a hospital-consented case, since custodyLog is only ever
+   *  real for caseAuthority === 'statutory_judicial'. */
+  toCustodianType?: AutopsyCustodianType;
 }
 
 export function buildAutopsyBodyReleaseLocationEvent(details: AutopsyBodyReleaseDetails): MaterialLocation {

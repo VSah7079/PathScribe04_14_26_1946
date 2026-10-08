@@ -129,6 +129,74 @@ describe('detectCriticalFindings — real, direct verification', () => {
     }
   });
 
+  // Batch 450 (PS-131, PS-105): every detection request carries the
+  // negation instruction. Batch 452 added the code-side check behind it
+  // (tests further down and in negatedFindingCheck.test.ts).
+  it('every detection request tells the model to ignore negated or ruled-out terms, with the "no evidence of" example', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce({ text: JSON.stringify({ flags: [] }), provider: 'structured_messages' as any, model: 'test-model' });
+    await detectCriticalFindings({ gross: 'x', microscopic: 'No evidence of carcinoma.', ancillary: '' });
+    const { prompt } = vi.mocked(callAi).mock.calls[0][0];
+    expect(prompt).toMatch(/negation-aware/i);
+    expect(prompt).toContain('do NOT flag a term that is explicitly negated or ruled out');
+    expect(prompt).toContain('"no evidence of malignancy"');
+    expect(prompt).toContain('"negative for acid-fast bacilli"');
+    expect(prompt).toContain('only flag findings actually present');
+    expect(prompt).toContain('MICROSCOPIC: No evidence of carcinoma.');
+  });
+
+  it('negated narrative ("no evidence of carcinoma") produces no flag when the model follows the instruction, so Finalize is not blocked', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce({ text: '{"flags":[]}', provider: 'structured_messages' as any, model: 'test-model' });
+    const res = await detectCriticalFindings({ gross: '', microscopic: 'Sections show benign breast tissue. No evidence of carcinoma.', ancillary: 'Negative for acid-fast bacilli.' });
+    expect(res).toEqual({ ok: true, data: { flags: [], negated: [] } });
+  });
+
+  // Batch 452 (PS-131, PS-105): the model's reply is re-checked in code.
+  const reply = (flags: object[]) => ({ text: JSON.stringify({ flags }), provider: 'structured_messages' as any, model: 'test-model' });
+
+  it('drops a flag the model returned for a negated term ("no evidence of carcinoma"), even though the prompt said not to', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce(reply([
+      { term: 'carcinoma', sourceField: 'microscopic', sourceQuote: 'No evidence of carcinoma', severity: 'Malignant', confidence: 80 },
+    ]));
+    const res = await detectCriticalFindings({ gross: '', microscopic: 'Sections show benign breast tissue. No evidence of carcinoma.', ancillary: '' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.flags).toEqual([]);
+      expect(res.data.negated.map(f => f.term)).toEqual(['carcinoma']);
+    }
+  });
+
+  it('keeps the real finding and drops the negated one from the same reply', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce(reply([
+      { term: 'acid-fast bacilli', sourceField: 'ancillary', sourceQuote: 'Negative for acid-fast bacilli', severity: 'Critical', confidence: 70 },
+      { term: 'invasive ductal carcinoma', sourceField: 'microscopic', sourceQuote: 'Invasive ductal carcinoma is present', severity: 'Malignant', confidence: 95 },
+    ]));
+    const res = await detectCriticalFindings({ gross: '', microscopic: 'No lymphovascular invasion. Invasive ductal carcinoma is present.', ancillary: 'AFB stain: negative for acid-fast bacilli.' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.flags.map(f => f.term)).toEqual(['invasive ductal carcinoma']);
+      expect(res.data.negated.map(f => f.term)).toEqual(['acid-fast bacilli']);
+    }
+  });
+
+  it('keeps a flag it cannot locate in the narrative (the model paraphrased): code never drops what it cannot check', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce(reply([
+      { term: 'malignancy', sourceField: 'microscopic', sourceQuote: 'infiltrating tumour cells', severity: 'Malignant', confidence: 60 },
+    ]));
+    const res = await detectCriticalFindings({ gross: '', microscopic: 'Infiltrating tumor cells throughout the stroma.', ancillary: '' });
+    expect(res.ok).toBe(true);
+    if (res.ok) { expect(res.data.flags).toHaveLength(1); expect(res.data.negated).toEqual([]); }
+  });
+
+  it('drops a reply entry with no term or an unknown source field instead of passing it through', async () => {
+    vi.mocked(callAi).mockResolvedValueOnce(reply([
+      { term: '', sourceField: 'microscopic', sourceQuote: 'x', severity: 'Malignant', confidence: 60 },
+      { term: 'melanoma', sourceField: 'clinical history', sourceQuote: 'melanoma', severity: 'Malignant', confidence: 60 },
+    ]));
+    const res = await detectCriticalFindings({ gross: '', microscopic: 'melanoma', ancillary: '' });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.flags).toEqual([]);
+  });
+
   it('never passes patient identifiers - the real function signature only accepts narrative text fields', () => {
     // Real, structural verification of the PHI-minimization boundary:
     // this function's own parameter type has no field a caller could

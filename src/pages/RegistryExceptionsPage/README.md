@@ -22,5 +22,9 @@ Rendering only. The rules are in `services/registrySubmission/` (`registryExcept
 - **Download transmission audit:** screening, cancer or both (`qa:registry-transmission-audit:export`).
 - Only the signed-in user's organisation's cases are listed.
 
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

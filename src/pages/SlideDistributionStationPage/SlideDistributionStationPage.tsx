@@ -190,6 +190,7 @@ const SlideDistributionStationPage: React.FC = () => {
           activeItem={activeItem}
           pathologists={w.pathologists}
           subspecialties={w.subspecialties}
+          scanners={w.scanners}
           defaultRouting={defaultRouting}
           onAssignPhysical={handleAssignPhysical}
           onAssignScanner={handleAssignScanner}

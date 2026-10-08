@@ -96,7 +96,7 @@ export const INTAKE_LABEL_KEY: Record<CaseSearchIntake, string> = {
   standard: 'searchPage.intake.standard', downtime: 'searchPage.intake.downtime', outside: 'searchPage.intake.outside', referenceLab: 'searchPage.intake.referenceLab',
 };
 export const AUTOPSY_AUTHORITY_LABEL_KEY: Record<CaseSearchAutopsyAuthority, string> = {
-  medicolegal_forensic: 'autopsyIntake.caseAuthority.medicolegal_forensic', hospital_consented: 'autopsyIntake.caseAuthority.hospital_consented',
+  statutory_judicial: 'autopsyIntake.caseAuthority.statutory_judicial', hospital_consented: 'autopsyIntake.caseAuthority.hospital_consented',
 };
 export const AUTOPSY_REPORT_LABEL_KEY: Record<CaseSearchAutopsyReport, string> = {
   none: 'searchPage.autopsyReport.none', pad: 'searchPage.autopsyReport.pad', fad: 'searchPage.autopsyReport.fad',

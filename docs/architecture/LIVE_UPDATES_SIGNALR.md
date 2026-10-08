@@ -44,6 +44,7 @@ The screens use it through `hooks/useLiveIntraopUpdates.ts`. It re-reads through
 | client → server | `SetIntraopScope` | `IntraopScope { locationIds: string[], all: bool }` | `SetIntraopScopeResult { acceptedLocationIds: string[], rejectedLocationIds: string[], all: bool }` |
 | server → client | `IntraopChanged` | `IntraopChangedEvent` (below) | — |
 | server → client | `PrintJobStatus` | `PrintJobStatusEvent` (§10) | — |
+| server → client | `WsiScanBatchChanged` | `WsiScanBatchChangedEvent` (§11) | — |
 
 - **Replaces, not adds:** `SetIntraopScope` sets the connection's whole scope. The server removes the connection from the groups it no longer asks for and adds it to the new ones.
 - **When the client calls it:** after every connect and every reconnect (groups don't survive a reconnection), and when a screen's scope changes (e.g. Multi-Suite Overview).
@@ -213,4 +214,29 @@ The detail carries `eventId`, `idempotencyKey`, `attempt`, the status and the pr
 ### Not built yet
 
 - **Re-reading a job's status after a reconnect or reload:** `GET /api/print/jobs/{eventId}`. Today the list lives in the tab's memory, and answers that arrive while a tab is closed are only audited.
+
+## 11. WSI scan batches (Batch 434)
+
+The Batch Management → Slide scanning page updates on its own when a scan batch changes: the scanner reports a slide (through the interface engine, `docs/architecture/INTERFACE_TRANSACTIONS.md`), or another tech loads, sends or unloads.
+
+### `WsiScanBatchChangedEvent`
+
+| Field | Type | |
+|---|---|---|
+| `v` | `1` | contract version |
+| `eventId` | string | unique per event (the outbox row id); duplicates are dropped |
+| `batchId` | string | the scan batch |
+| `change` | `loaded` \| `sent` \| `sendFailed` \| `slideStatus` \| `unloaded` | what happened |
+| `facilityId` | string? | the batch's lab (the scanner's) |
+| `occurredAt` | ISO 8601 | when it was committed |
+
+Ids only, never patient data; the page re-reads through its normal, authorised calls.
+
+### Who gets it
+
+Connections of users who can open Batch Management (`screen:batch-management:open`) in the batch's lab. No client call is needed to join: the server adds the connection to its labs' scan-batch groups when it connects. Publish after the commit (§6), from the same outbox.
+
+### Browser side
+
+`liveUpdateContract.ts` (`HUB_WSI_SCAN_BATCH_CHANGED`, `parseWsiScanBatchChangedEvent`), `subscribeWsiScanBatches` on both transports, and `hooks/useLiveWsiScanBatches.ts`. That hook re-reads, polling every 15 s without a live connection and every 60 s while live. In the demo, `digitalPathology/mockWsiScanBatchService.ts` publishes each write through the local transport.
 

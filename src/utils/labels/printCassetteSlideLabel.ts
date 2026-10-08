@@ -155,7 +155,7 @@ export async function printCassetteLabel(
     blockId: blockLabel, patientName: input.patientName, tissueDescription: input.tissueDescription,
     layout: cassetteLabelLayout, dpi: printer.dpi,
   });
-  return dispatchZplLabel(printer, zpl, input.copies ?? 1);
+  return dispatchZplLabel(printer, zpl, input.copies ?? 1, undefined, { document: 'cassette-label', documentId: cassetteId, caseId: input.fullAccession });
 }
 
 export interface PrintSlideLabelInput {
@@ -219,5 +219,5 @@ export async function printSlideLabel(
     gs1, fullAccession: input.fullAccession, specimenLabel: input.specimenLabel,
     blockLabel, level: input.level, stainName: input.stainName,
   });
-  return dispatchZplLabel(printer, zpl, input.copies ?? 1);
+  return dispatchZplLabel(printer, zpl, input.copies ?? 1, undefined, { document: 'slide-label', documentId: slideId, caseId: input.fullAccession });
 }

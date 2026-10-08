@@ -22,16 +22,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockCytologyQcSettingsService } from '../../../services/cytology/mockCytologyQcSettingsService';
-import { mockFacilityCytologyQcOverrideService } from '../../../services/cytology/mockFacilityCytologyQcOverrideService';
-import { mockStaffCytologyQcOverrideService } from '../../../services/cytology/mockStaffCytologyQcOverrideService';
-import { mockFacilityService } from '../../../services/facilities/mockFacilityService';
-import { mockUserService } from '../../../services/users/mockUserService';
+import {
+  cytologyQcSettingsService, facilityCytologyQcOverrideService, staffCytologyQcOverrideService,
+  facilityService, userService,
+} from '@/services';
 import type { CytologyQcSettingsConfig } from '../../../services/cytology/ICytologyQcSettingsService';
 import type { FacilityCytologyQcOverride } from '../../../services/cytology/IFacilityCytologyQcOverrideService';
 import type { StaffCytologyQcOverride } from '../../../services/cytology/IStaffCytologyQcOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import type { StaffUser } from '../../../services/users/IUserService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
 
 interface RateDraft { negative: number; nonNegative: number; }
 
@@ -45,19 +46,25 @@ const CytologyQcSettingsSection: React.FC = () => {
   const [staffOverrides, setStaffOverrides] = useState<StaffCytologyQcOverride[]>([]);
   const [addingFacility, setAddingFacility] = useState<{ facilityId: string; rate: RateDraft } | null>(null);
   const [addingStaff, setAddingStaff] = useState<{ staffUserId: string; rate: RateDraft } | null>(null);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  const rateUnsaved = enterprise !== null && draftDiffers(
+    { negative: enterprise.negativeRandomSelectionRatePercent, nonNegative: enterprise.nonNegativeRandomSelectionRatePercent },
+    enterpriseDraft,
+  );
+  useReportConfigDirty(rateUnsaved || addingFacility !== null || addingStaff !== null);
 
   const refresh = () => {
-    mockCytologyQcSettingsService.get().then(r => { if (r.ok) { setEnterprise(r.data); setEnterpriseDraft({ negative: r.data.negativeRandomSelectionRatePercent, nonNegative: r.data.nonNegativeRandomSelectionRatePercent }); } });
-    mockFacilityService.getAll().then(r => { if (r.ok) setFacilities(r.data); });
-    mockUserService.getAll().then(r => { if (r.ok) setStaff(r.data); });
-    mockFacilityService.getAll().then(async r => {
+    cytologyQcSettingsService.get().then(r => { if (r.ok) { setEnterprise(r.data); setEnterpriseDraft({ negative: r.data.negativeRandomSelectionRatePercent, nonNegative: r.data.nonNegativeRandomSelectionRatePercent }); } });
+    facilityService.getAll().then(r => { if (r.ok) setFacilities(r.data); });
+    userService.getAll().then(r => { if (r.ok) setStaff(r.data); });
+    facilityService.getAll().then(async r => {
       if (!r.ok) return;
-      const overrides = await Promise.all(r.data.map(f => mockFacilityCytologyQcOverrideService.getForFacility(f.id)));
+      const overrides = await Promise.all(r.data.map(f => facilityCytologyQcOverrideService.getForFacility(f.id)));
       setFacilityOverrides(overrides.filter((o): o is { ok: true; data: FacilityCytologyQcOverride } => o.ok && !!o.data).map(o => o.data));
     });
-    mockUserService.getAll().then(async r => {
+    userService.getAll().then(async r => {
       if (!r.ok) return;
-      const overrides = await Promise.all(r.data.map(u => mockStaffCytologyQcOverrideService.getForStaff(u.id)));
+      const overrides = await Promise.all(r.data.map(u => staffCytologyQcOverrideService.getForStaff(u.id)));
       setStaffOverrides(overrides.filter((o): o is { ok: true; data: StaffCytologyQcOverride } => o.ok && !!o.data).map(o => o.data));
     });
   };
@@ -65,7 +72,7 @@ const CytologyQcSettingsSection: React.FC = () => {
   useEffect(() => { refresh(); }, []);
 
   const saveEnterprise = async () => {
-    await mockCytologyQcSettingsService.update({ negativeRandomSelectionRatePercent: enterpriseDraft.negative, nonNegativeRandomSelectionRatePercent: enterpriseDraft.nonNegative });
+    await cytologyQcSettingsService.update({ negativeRandomSelectionRatePercent: enterpriseDraft.negative, nonNegativeRandomSelectionRatePercent: enterpriseDraft.nonNegative });
     refresh();
   };
 
@@ -102,7 +109,7 @@ const CytologyQcSettingsSection: React.FC = () => {
         <div className="ps-cytqc__enterprise-row">
           <RatePair value={enterpriseDraft} onChange={setEnterpriseDraft} />
           <button className="ps-cytqc__btn" onClick={saveEnterprise}>{t('common.save')}</button>
-          {enterprise && (enterprise.negativeRandomSelectionRatePercent !== enterpriseDraft.negative || enterprise.nonNegativeRandomSelectionRatePercent !== enterpriseDraft.nonNegative) && (
+          {rateUnsaved && (
             <span className="ps-cytqc__unsaved">{t('cytologyQcSettingsSection.enterprise.unsavedChange')}</span>
           )}
         </div>
@@ -121,7 +128,7 @@ const CytologyQcSettingsSection: React.FC = () => {
           <div key={o.id} className="ps-cytqc__row">
             <span className="ps-cytqc__row-name">{facilityName(o.facilityId)}</span>
             <span className="ps-cytqc__row-summary">{rateSummary(o.overrides.negativeRandomSelectionRatePercent, o.overrides.nonNegativeRandomSelectionRatePercent)}</span>
-            <button className="ps-cytqc__btn" onClick={async () => { await mockFacilityCytologyQcOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
+            <button className="ps-cytqc__btn" onClick={async () => { await facilityCytologyQcOverrideService.remove(o.facilityId); refresh(); }}>{t('common.remove')}</button>
           </div>
         ))}
         {facilityOverrides.length === 0 && !addingFacility && (
@@ -136,7 +143,7 @@ const CytologyQcSettingsSection: React.FC = () => {
             </select>
             <RatePair value={addingFacility.rate} onChange={rate => setAddingFacility({ ...addingFacility, rate })} />
             <button className="ps-cytqc__btn" onClick={async () => {
-              await mockFacilityCytologyQcOverrideService.create(addingFacility.facilityId, { negativeRandomSelectionRatePercent: addingFacility.rate.negative, nonNegativeRandomSelectionRatePercent: addingFacility.rate.nonNegative });
+              await facilityCytologyQcOverrideService.create(addingFacility.facilityId, { negativeRandomSelectionRatePercent: addingFacility.rate.negative, nonNegativeRandomSelectionRatePercent: addingFacility.rate.nonNegative });
               setAddingFacility(null); refresh();
             }}>{t('common.save')}</button>
             <button className="ps-cytqc__btn" onClick={() => setAddingFacility(null)}>{t('common.cancel')}</button>
@@ -160,7 +167,7 @@ const CytologyQcSettingsSection: React.FC = () => {
           <div key={o.id} className="ps-cytqc__row">
             <span className="ps-cytqc__row-name">{staffName(o.staffUserId)}</span>
             <span className="ps-cytqc__row-summary">{rateSummary(o.overrides.negativeRandomSelectionRatePercent, o.overrides.nonNegativeRandomSelectionRatePercent)}</span>
-            <button className="ps-cytqc__btn" onClick={async () => { await mockStaffCytologyQcOverrideService.remove(o.staffUserId); refresh(); }}>{t('common.remove')}</button>
+            <button className="ps-cytqc__btn" onClick={async () => { await staffCytologyQcOverrideService.remove(o.staffUserId); refresh(); }}>{t('common.remove')}</button>
           </div>
         ))}
         {staffOverrides.length === 0 && !addingStaff && (
@@ -175,7 +182,7 @@ const CytologyQcSettingsSection: React.FC = () => {
             </select>
             <RatePair value={addingStaff.rate} onChange={rate => setAddingStaff({ ...addingStaff, rate })} />
             <button className="ps-cytqc__btn" onClick={async () => {
-              await mockStaffCytologyQcOverrideService.create(addingStaff.staffUserId, { negativeRandomSelectionRatePercent: addingStaff.rate.negative, nonNegativeRandomSelectionRatePercent: addingStaff.rate.nonNegative });
+              await staffCytologyQcOverrideService.create(addingStaff.staffUserId, { negativeRandomSelectionRatePercent: addingStaff.rate.negative, nonNegativeRandomSelectionRatePercent: addingStaff.rate.nonNegative });
               setAddingStaff(null); refresh();
             }}>{t('common.save')}</button>
             <button className="ps-cytqc__btn" onClick={() => setAddingStaff(null)}>{t('common.cancel')}</button>

@@ -1,6 +1,6 @@
 {
   "id": "colorectal_further_investigations",
-  "name": "Generic Template \u2014 Colorectal Further Investigations",
+  "name": "Generic Template — Colorectal Further Investigations",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -182,11 +182,11 @@
     },
     {
       "id": "msi_testing",
-      "title": "Marker Panel B",
+      "title": "Microsatellite instability (MSI) testing",
       "fields": [
         {
           "id": "msi_status",
-          "label": "Field 1",
+          "label": "Microsatellite instability (MSI) status",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -195,36 +195,45 @@
           "options": [
             {
               "id": "msi_status_opt_1",
-              "label": "Option 1",
+              "label": "MSI-high (MSI-H)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_2",
-              "label": "Option 2",
+              "label": "MSI-low (MSI-L)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_3",
-              "label": "Option 3",
+              "label": "Microsatellite stable (MSS)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_4",
-              "label": "Option 4",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_5",
-              "label": "Option 5",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-msi-pcr"
+            ],
+            "values": {
+              "POSITIVE": "msi_status_opt_1",
+              "NEGATIVE": "msi_status_opt_3"
+            }
+          }
         }
       ]
     },
@@ -272,11 +281,11 @@
     },
     {
       "id": "molecular_testing",
-      "title": "Molecular Testing",
+      "title": "Molecular testing",
       "fields": [
         {
           "id": "braf_v600e_status",
-          "label": "Field 1",
+          "label": "BRAF V600E mutation status",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -285,34 +294,43 @@
           "options": [
             {
               "id": "braf_v600e_status_opt_1",
-              "label": "Option 1",
+              "label": "BRAF V600E detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "braf_v600e_status_opt_2",
-              "label": "Option 2",
+              "label": "BRAF V600E not detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "braf_v600e_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "braf_v600e_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-braf-v600e-pcr"
+            ],
+            "values": {
+              "POSITIVE": "braf_v600e_status_opt_1",
+              "NEGATIVE": "braf_v600e_status_opt_2"
+            }
+          }
         },
         {
           "id": "kras_status",
-          "label": "Field 2",
+          "label": "KRAS mutation status",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -321,34 +339,43 @@
           "options": [
             {
               "id": "kras_status_opt_1",
-              "label": "Option 1",
+              "label": "Mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "kras_status_opt_2",
-              "label": "Option 2",
+              "label": "No mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "kras_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "kras_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-kras-pcr"
+            ],
+            "values": {
+              "POSITIVE": "kras_status_opt_1",
+              "NEGATIVE": "kras_status_opt_2"
+            }
+          }
         },
         {
           "id": "kras_mutation_specify",
-          "label": "Field 3",
+          "label": "KRAS mutation (specify)",
           "type": "text",
           "required": false,
           "core": true,
@@ -359,7 +386,7 @@
         },
         {
           "id": "nras_status",
-          "label": "Field 4",
+          "label": "NRAS mutation status",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -368,34 +395,43 @@
           "options": [
             {
               "id": "nras_status_opt_1",
-              "label": "Option 1",
+              "label": "Mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "nras_status_opt_2",
-              "label": "Option 2",
+              "label": "No mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "nras_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "nras_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-nras-pcr"
+            ],
+            "values": {
+              "POSITIVE": "nras_status_opt_1",
+              "NEGATIVE": "nras_status_opt_2"
+            }
+          }
         },
         {
           "id": "nras_mutation_specify",
-          "label": "Field 5",
+          "label": "NRAS mutation (specify)",
           "type": "text",
           "required": false,
           "core": true,

@@ -17,6 +17,15 @@ export interface AutopsyAuthorizationCompletionFormState {
   orderDate: string;
   consentGivenAt: string;
   consentScope: string;
+  /** Batch 468 — comma-separated AutopsyOrganCode tokens the NOK's
+   *  consent excludes from examination/retention. Optional: an empty
+   *  string means no organ-level exclusion. Not a Field Requirement
+   *  (unlike consentScope) — scope can be unconstrained. */
+  excludedOrgans: string;
+  /** Batch 468 — whether the NOK's consent permits retaining tissue/
+   *  organs beyond the diagnostic gross exam itself. Defaults true
+   *  (unconstrained) in the form. */
+  retentionPermitted: boolean;
 }
 
 export interface AutopsyAuthorizationCompletionValidationResult {

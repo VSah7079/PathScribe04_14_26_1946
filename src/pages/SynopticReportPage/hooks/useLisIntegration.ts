@@ -26,6 +26,7 @@
 // did before this extraction.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CopilotReportInstance } from '../modals/CopilotReportViewModal';
@@ -42,6 +43,7 @@ import type { Specimen } from '@/types/case/Specimen';
 import { getFieldLabel } from '@/utils/synopticFieldLabels';
 import { resolveAnswers } from '@/orchestrator/contextBuilder';
 import type { SigningUser } from './sharedHookTypes';
+import { partGridRowsOf } from '@/services/templates/partGrid';
 
 interface UseLisIntegrationParams {
   caseData:   Case | null;
@@ -462,8 +464,8 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
 
       for (const decant of specimen.decants ?? []) {
         await fireSteps({ level: 'decant' as const, decantLabel: decant.label }, specimen.label, GENERIC_STEP);
-        (decant.stains ?? []).forEach((_stain, i) => {
-          fireSteps({ level: 'decant_slide' as const, decantLabel: decant.label, slideLevel: `L${i + 1}` }, specimen.label, GENERIC_STEP);
+        (decant.stains ?? []).forEach((stain, i) => {
+          fireSteps({ level: 'decant_slide' as const, decantLabel: decant.label, slideLevel: slideLevelOf(stain, i) }, specimen.label, GENERIC_STEP);
         });
       }
     }
@@ -561,7 +563,7 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
               : t('useLisIntegration.copilotVersion.amendment', { number: i }),
           releasedAt: v.createdAt,
           createdByName: v.createdBy?.userName ?? t('useLisIntegration.copilotVersion.unknownCreator'),
-          answers: detail ? resolveAnswers((v.synopticAnswersSnapshot ?? {}) as Record<string, string | string[]>, detail.template) : [],
+          answers: detail ? resolveAnswers((v.synopticAnswersSnapshot ?? {}) as Record<string, string | string[]>, detail.template, partGridRowsOf(caseData?.specimens)) : [],
           explanationOfChange: record?.explanationOfChange,
           notification: record?.notification,
           changedFromPrevious,
@@ -576,7 +578,7 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
         specimenLabel: specimen?.label ?? inst.specimenId,
         specimenDesc: specimen?.description,
         templateName: inst.templateName ?? detail?.name ?? inst.templateId,
-        answers: detail ? resolveAnswers(inst.answers ?? {}, detail.template) : [],
+        answers: detail ? resolveAnswers(inst.answers ?? {}, detail.template, partGridRowsOf(caseData?.specimens)) : [],
         sections: templateSections.map(s => ({ title: s.title, fieldKeys: (s.fields ?? []).map(f => f.id) })),
         versions,
       };

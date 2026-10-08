@@ -18,13 +18,15 @@ export type BillingDeficiencyType =
   | 'NCCI_BUNDLING_VIOLATION'     // e.g. mutually exclusive stain combinations
   | 'UNATTACHED_ANCILLARY_ORDER'  // Special stain executed without an accompanying order/sign-off
   | 'MODIFIER_MISMATCH'           // Professional -26 or Technical -TC component omitted or inverted
-  | 'ZERO_FEE_MAPPING_ERROR';     // Active code mapped to $0.00 fee schedule line without explicit override
+  | 'ZERO_FEE_MAPPING_ERROR'      // Active code mapped to $0.00 fee schedule line without explicit override
+  | 'MISSING_CHARGE'              // Batch 433: a billable item has no charge (found in a billing audit)
+  | 'POST_SIGNOUT_CORRECTION';    // Batch 433: a correction started without a prior finding (payer denial, tariff rejection…)
 
 export type BillingDeficiencySeverity = 'CRITICAL_REJECTION_RISK' | 'COMPLIANCE_WARNING' | 'REVENUE_LEAKAGE';
 
 export type BillingDeficiencyStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'OVERRIDDEN_WITH_JUSTIFICATION';
 
-export type BillingDeficiencyTrigger = 'AUTO_NCCI_CHECK' | 'AUTO_CROSSWALK_CHECK' | 'MANUAL_BILLING_AUDIT';
+export type BillingDeficiencyTrigger = 'AUTO_NCCI_CHECK' | 'AUTO_CROSSWALK_CHECK' | 'MANUAL_BILLING_AUDIT' | 'MANUAL_BILLING_CORRECTION';
 
 export type BillingDeficiencyResolutionReason =
   | 'CODE_CORRECTED' | 'CHARGE_REVERSED' | 'APPROVED_BY_BILLING_ADMIN' | 'PHYSICIAN_ADDENDUM_ADDED';
@@ -36,6 +38,9 @@ export interface BillingDeficiencyRecord {
    *  systemic to the whole case rather than tied to one specific
    *  ServiceChargeRecord (e.g. a case-wide missing-ICD10 flag). */
   chargeRecordId?: string;
+  /** Batch 433: the finding is a charge that's missing (no chargeRecordId to
+   *  point at); resolving it adds the charge. */
+  missingCharge?: boolean;
   deficiencyType: BillingDeficiencyType;
   severity: BillingDeficiencySeverity;
   status: BillingDeficiencyStatus;

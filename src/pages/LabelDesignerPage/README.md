@@ -19,11 +19,8 @@ still a real, complete page-level component (its own data fetching,
 canvas, full layout), not a small, config-form-shaped section like its
 sibling tabs — a real, deliberate judgment call, not an oversight.
 
-**Real, honest, flagged convention gap**: uses inline `style={{...}}`
-throughout, not this app's own established "no inline CSS, named classes
-only" convention for Config-registered UI (see
-`components/Config/System/README.md`'s own header). Found while auditing
-README coverage, not yet reconciled.
+*Superseded (Batch 367):* this note used to say the page used inline
+`style={{...}}` throughout. It doesn't: see the Batch 367 section below.
 
 ## Batch 367 (PS-74): no inline CSS
 
@@ -32,3 +29,16 @@ README coverage, not yet reconciled.
 ## Batch 368
 
 `LabelDesignerPage.tsx` takes `labelLayoutService` and `facilityService` from `@/services`, and is off the deployment baseline.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`LabelDesignerPage.test.tsx`: real barcodes on the canvas per label type, a bad payload shows a placeholder, and the Export ZPL panel (PS-256). `safeBarcodeSvg` moved to `utils/labels/safeBarcodeSvg.ts`, which now escapes its placeholder text.
+
+## Batch 460 (PS-245)
+
+Selected fields have eight resize handles (pointer capture). Placing, moving, resizing and typing are kept inside the label through `services/labelDesigner/labelFieldGeometry.ts`.
+- Fields past the edge are outlined, with a warning and "Fit to label".
+- The save's refusal is translated.
+- A moved field keeps its grab point.
+
+Tests: `LabelDesignerPage.test.tsx` (handle resize stops at the edge, handles only on the selected field, typed width capped, out-of-bounds warning, fit and refusal).

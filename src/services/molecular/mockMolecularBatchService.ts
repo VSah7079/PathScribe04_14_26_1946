@@ -18,6 +18,8 @@ import { authorizationService } from '../authorization/defaultAuthorizationServi
 import { mockEquipmentService } from '../equipment/mockEquipmentService';
 import { checkBatchInstrument, normaliseDeckSlotId } from '../equipment/equipmentRules';
 import { checkDeckSlot } from './deckSlots';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { MOLECULAR_DEMO_BATCHES } from './molecularDemoSeed';
 
 const STORE_KEY = 'molecular_batches';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -64,7 +66,15 @@ const SEED: MolecularBatch[] = [
   },
 ];
 
-const load = (): MolecularBatch[] => storageGet(STORE_KEY, SEED);
+// Batch 456: the demo baseline's batches (molecularDemoSeed.ts) join the
+// spec's worked example. Batches are never deleted (superseded instead), so a
+// seed id missing from storage means it was added since: append it.
+const SEED_WITH_DEMO: MolecularBatch[] = [...SEED, ...MOLECULAR_DEMO_BATCHES];
+const load = (): MolecularBatch[] => {
+  const { records, added } = withMissingSeedRecords(storageGet<MolecularBatch[] | null>(STORE_KEY, null), SEED_WITH_DEMO);
+  if (added > 0) storageSet(STORE_KEY, records);
+  return records;
+};
 const persist = (data: MolecularBatch[]) => storageSet(STORE_KEY, data);
 
 export const mockMolecularBatchService: IMolecularBatchService = {

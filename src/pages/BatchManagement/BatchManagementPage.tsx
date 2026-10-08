@@ -278,6 +278,22 @@ const BatchManagementPage: React.FC = () => {
                 {'\u00A0'}
               </div>
             </button>
+            {/* Batch 434: WSI scan batches (the scanning queue, load, send, unload). */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--wsi-scan"
+              title={t('batchManagement.wsiScanTitle')}
+              onClick={() => navigate('/batch-management/wsi-scan')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.wsiScanTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--wsi-scan">
+                🔬
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--wsi-scan">
+                {'\u00A0'}
+              </div>
+            </button>
             {/* Real feature, per direct guidance's own confirmed
                 architectural verdict on the Engraver Monitor
                 requirement (Option 3: thin, read-only status surface).

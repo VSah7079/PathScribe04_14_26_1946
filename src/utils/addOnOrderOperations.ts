@@ -46,6 +46,7 @@
 // for these specifically is ever asked for.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { nextSlideLevelNumber } from '@/services/material/slideLevels';
 import { slideIdentifier } from '@/types/labels/LabelData';
 import type { HistologyBlock, Specimen, StainOrder, AddOnOrderException, AddOnOrderExceptionEvent } from '@/types/case/Specimen';
 import type { StainType } from '@/services/stains/IStainService';
@@ -55,6 +56,8 @@ import {
   type BlockExceptionReason, type AddOnOrderKind, type ControlMode,
 } from '@/types/case/AddOnOrder';
 import { isExhausted, isLost, isDamaged } from '@/utils/blockExceptionStates';
+import { molecularRoutingChoices } from '@/services/molecularOrders/molecularRouting';
+import type { ExecutionRouting } from '@/services/molecularOrders/molecularOrderTypes';
 
 /** Batch 403: why an order was refused, for the screen's locale key (`addOnOrder.errors.<code>`). */
 export type AddOnOrderErrorCode = 'blockNotFound' | 'blockExhausted' | 'blockLost' | 'blockDamaged' | 'blockCancelled' | 'noLines';
@@ -101,9 +104,10 @@ function appendExceptionEvent(order: StainOrder, action: AddOnOrderExceptionEven
  *  Molecular/send-out orders resolve to no internal workflow stage at
  *  all — they route to an external reference lab facility instead
  *  (see resolveSendOutFacilities below). */
-export function resolveAddOnRouting(orderKind: AddOnOrderKind, category: StainType['category']): { queueLabel: AddOnRouteQueue; workflowStage?: string } {
+export function resolveAddOnRouting(orderKind: AddOnOrderKind, category: StainType['category'], molecularRouting?: ExecutionRouting): { queueLabel: AddOnRouteQueue; workflowStage?: string } {
   if (orderKind === 'recut') return { queueLabel: 'Histology Cutting Queue', workflowStage: 'Microtomy / Sectioning' };
-  if (category === 'Molecular') return { queueLabel: 'Reference/Send-Out Lab Queue' };
+  // Batch 467: a molecular test run in-house goes to the Molecular Order Queue; otherwise it's sent out.
+  if (category === 'Molecular') return molecularRouting === 'IN_HOUSE' ? { queueLabel: 'Molecular In-House Queue' } : { queueLabel: 'Reference/Send-Out Lab Queue' };
   if (category === 'Special Stain') return { queueLabel: 'Special Stains Bench Queue', workflowStage: 'Staining' };
   if (category === 'IHC' || category === 'Immunofluorescence') return { queueLabel: 'IHC/Special Histochemistry Queue', workflowStage: 'Staining' };
   // Routine/Cytology/Other add-on lines (e.g. an extra H&E level) —
@@ -140,6 +144,9 @@ export interface AddOnOrderLineInput {
   /** Batch 403: this line's reference lab (molecular/send-out lines). Wins over the submission's. */
   sendOutReferenceLabFacilityId?: string;
   sendOutReferenceLabName?: string;
+  /** Batch 467: a molecular line's routing — run in-house or send out (services/molecularOrders/molecularRouting.ts).
+   *  Not set: sent out, as before. */
+  molecularRouting?: ExecutionRouting;
 }
 
 export interface AddOnOrderSubmissionInput {
@@ -179,12 +186,13 @@ export function createAddOnOrder(
   if (lines.length === 0) return { ok: false, error: 'Add at least one order line before submitting.', errorCode: 'noLines' };
 
   const newStains: StainOrder[] = [];
-  let nextLevel = block.stains.length;
+  // Batch 460: past the highest level used (a removed slide's level is never reused).
+  let nextLevel = nextSlideLevelNumber(block.stains) - 1;
   const orderedAt = new Date().toISOString();
 
   for (const line of lines) {
     nextLevel += 1;
-    const routing = resolveAddOnRouting(line.orderKind, line.stainType.category);
+    const routing = resolveAddOnRouting(line.orderKind, line.stainType.category, line.molecularRouting);
     const isSendOut = routing.queueLabel === 'Reference/Send-Out Lab Queue';
     // Batch 403: the line's own lab (filled from the test's linked labs) wins.
     const labId = line.sendOutReferenceLabFacilityId ?? submission.sendOutReferenceLabFacilityId;
@@ -474,9 +482,12 @@ export function buildAddOnLines(input: {
   }];
 }
 
-/** A molecular/send-out line starts with its test's default reference lab (or its only approved one). */
-export function withDefaultSendOutLab<F extends { id: string; name: string }>(line: AddOnOrderLineInput, referenceLabs: readonly F[]): AddOnOrderLineInput {
-  if (line.orderKind !== 'molecular' || line.sendOutReferenceLabFacilityId) return line;
+/** A molecular/send-out line starts with its test's default reference lab (or its only approved one). Batch 467: and
+ *  with its routing — in-house when the performing lab runs the test, else send-out. */
+export function withDefaultSendOutLab<F extends { id: string; name: string }>(line: AddOnOrderLineInput, referenceLabs: readonly F[], performingLabFacilityId?: string): AddOnOrderLineInput {
+  if (line.orderKind !== 'molecular') return line;
+  if (!line.molecularRouting) line = { ...line, molecularRouting: molecularRoutingChoices(line.stainType, performingLabFacilityId).defaultRouting };
+  if (line.sendOutReferenceLabFacilityId) return line;
   const { choices, defaultId } = resolveSendOutLabChoices(line.stainType, referenceLabs);
   const lab = choices.find(f => f.id === defaultId);
   return lab ? { ...line, sendOutReferenceLabFacilityId: lab.id, sendOutReferenceLabName: lab.name } : line;
@@ -488,6 +499,7 @@ export const ADD_ON_ROUTE_QUEUE_KEYS: Readonly<Record<AddOnRouteQueue, string>> 
   'Special Stains Bench Queue': 'specialStainsBench',
   'IHC/Special Histochemistry Queue': 'ihcSpecialHistochemistry',
   'Reference/Send-Out Lab Queue': 'referenceSendOut',
+  'Molecular In-House Queue': 'molecularInHouse',
 };
 export const BLOCK_EXCEPTION_REASON_KEYS: Readonly<Record<BlockExceptionReason, string>> = {
   'Block exhausted': 'blockExhausted',

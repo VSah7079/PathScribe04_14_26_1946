@@ -9,6 +9,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { saveRole } from '@/services/roles/roleAdministration';
+import { roleMayListParticipationType } from '@/services/participationTypes/cytotechParticipationRules';
 import '../../../pathscribe.css';
 import {
   ACTION_GROUPS, DEFAULT_ROLE_PERMISSIONS,
@@ -333,7 +334,7 @@ const RoleModal: React.FC<{
                   <span className="ps-rd-action-granted-count">
                     {t('roleDictionary.permissions.grantedCount', { granted: groupIds.filter(id => draft.permissions[id]).length, total: groupIds.length })}
                   </span>
-                  <input data-config-nav value={search} onChange={e => setSearch(e.target.value)}
+                  <input data-dirty-ignore data-config-nav value={search} onChange={e => setSearch(e.target.value)}
                     placeholder={t('roleDictionary.permissions.filterPlaceholder')}
                     className="ps-conf-input ps-rd-action-search" />
                 </div>
@@ -394,6 +395,8 @@ const RoleModal: React.FC<{
                   <div className="ps-rd-part-list">
                     {allTypes.map(pt => {
                       const selected = selectedIds.includes(pt.id);
+                      // Batch 441: the Cytotechnologist role can't list a pathologist type.
+                      const locked = !roleMayListParticipationType(role?.id, pt) && !selected;
                       const attrs = [
                         { label: t('roleDictionary.participation.attr.canFinalize'),       value: pt.canFinalize,           onColor: '#22c55e' },
                         { label: t('roleDictionary.participation.attr.countersignReq'),     value: pt.requiresCountersign,   onColor: '#f59e0b' },
@@ -401,8 +404,9 @@ const RoleModal: React.FC<{
                         { label: t('roleDictionary.participation.attr.fullCaseView'),       value: pt.canViewWholeCase,      onColor: '#8AB4F8' },
                       ];
                       return (
-                        <div key={pt.id} onClick={() => toggle(pt.id)}
-                          className={`ps-rd-part-item ${selected ? 'ps-rd-part-item--on' : 'ps-rd-part-item--off'}`}>
+                        <div key={pt.id} onClick={() => { if (!locked) toggle(pt.id); }} aria-disabled={locked || undefined}
+                          title={locked ? t('roleDictionary.participation.cytotechLocked') : undefined}
+                          className={`ps-rd-part-item ${selected ? 'ps-rd-part-item--on' : 'ps-rd-part-item--off'}${locked ? ' ps-rd-part-item--locked' : ''}`}>
                           <DivCheckbox checked={selected} size={18} />
                           <div className="ps-rd-part-abbr-pad">
                             <span className="ps-rd-role-badge ps-rd-part-abbr-badge" style={hueVar(pt.color)}>
@@ -436,7 +440,7 @@ const RoleModal: React.FC<{
           {activeTab === 'cheatsheet' && (
             <div className="ps-rd-cheat-tab">
               <div className="ps-rd-cheat-header">
-                <input data-config-nav autoFocus value={cheatSearch} onChange={e => setCheatSearch(e.target.value)}
+                <input data-dirty-ignore data-config-nav autoFocus value={cheatSearch} onChange={e => setCheatSearch(e.target.value)}
                   placeholder={t('roleDictionary.cheatsheet.searchPlaceholder')}
                   className="ps-conf-input" />
                 <div className="ps-rd-cheat-count">
@@ -595,7 +599,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
         <CapabilityButton capability="config:roles:manage" className="ps-section-add-btn" onClick={() => setModal({ mode: 'add' })}>{t('roleDictionary.list.addRoleButton')}</CapabilityButton>
       </div>
 
-      <input data-config-nav type="text" placeholder={t('roleDictionary.list.searchPlaceholder')} value={search}
+      <input data-dirty-ignore data-config-nav type="text" placeholder={t('roleDictionary.list.searchPlaceholder')} value={search}
         onChange={e => setSearch(e.target.value)} className="ps-rd-search" />
 
       <div className="ps-rd-table-wrap">

@@ -248,6 +248,12 @@ Real, honest scope note carried over from the queue entries this touches: `'SENT
 - `mockPatientIndexService.removeNationalIdentifier`: a removal now comes off the MPI too.
 - Real services: `patientRegistryDetailsDeps.ts`.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Registry details are saved per case, versioned; conflicts are counted and audited. The editor reports a conflict (`patientRegistryDetails.conflict`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

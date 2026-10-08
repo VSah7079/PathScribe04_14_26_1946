@@ -16,7 +16,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { facilityService } from '@/services';
-import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
+import { enterpriseOf, resolveCasePerformingLab } from '@/services/facilities/resolveCasePerformingLab';
+import { resolveBillingApprovalRequired } from './chargeApproval';
 
 /** Real, per direct guidance - true only when the performing lab's
  *  own requireBillingApproval flag is explicitly true. Undefined/false
@@ -40,11 +41,13 @@ export function shouldRequireBillingApproval(requireBillingApproval: boolean | n
  *  never a fabricated true. */
 export async function resolveRequireBillingApprovalForCase(originHospitalId: string | undefined): Promise<boolean> {
   if (!originHospitalId) return false;
-  const orderingRes = await facilityService.getById(originHospitalId);
-  if (!orderingRes.ok) return false;
-  const labId = resolvePerformingLabFacilityId(orderingRes.data);
-  if (!labId) return false;
-  const labRes = labId === originHospitalId ? orderingRes : await facilityService.getById(labId);
-  if (!labRes.ok) return false;
-  return shouldRequireBillingApproval(labRes.data.requireBillingApproval);
+  // Batch 434: through resolveCasePerformingLab, so a legacy tenant id
+  // ('HOSP-002', most seeded cases) finds its lab too. Before, those cases
+  // never found one, so their lab's approval setting was never applied.
+  const all = await facilityService.getAll();
+  const facilities = all.ok ? all.data : [];
+  const lab = resolveCasePerformingLab({ originHospitalId }, facilities);
+  if (!lab) return false;
+  // Batch 433: the lab's own setting, else its enterprise's.
+  return resolveBillingApprovalRequired(lab, enterpriseOf(lab, facilities) ?? null);
 }

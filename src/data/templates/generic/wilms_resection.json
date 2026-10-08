@@ -1,6 +1,6 @@
 {
   "id": "wilms_resection",
-  "name": "Generic Template \u2014 Wilms Resection",
+  "name": "Generic Template — Wilms Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "KIDNEY",
@@ -815,7 +815,9 @@
           "required": false,
           "snomed": "",
           "icd": "",
-          "options": []
+          "options": [],
+          "wholeNumber": true,
+          "notMoreThan": "ln_number_examined"
         },
         {
           "id": "ln_number_examined",
@@ -824,7 +826,8 @@
           "required": true,
           "snomed": "",
           "icd": "",
-          "options": []
+          "options": [],
+          "wholeNumber": true
         }
       ]
     },

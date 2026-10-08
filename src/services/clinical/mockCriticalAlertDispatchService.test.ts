@@ -39,8 +39,10 @@ describe('mockCriticalAlertDispatchService — real, per PS-136', () => {
     const res = await mockCriticalAlertDispatchService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.data).toHaveLength(2);
-      expect(res.data.map(r => r.caseId).sort()).toEqual(['case-a', 'case-b']);
+      // Batch 456: the store starts with the demo alert (criticalAlertDemoSeed.ts).
+      const recorded = res.data.filter(r => !r.id.startsWith('cad-demo-'));
+      expect(recorded).toHaveLength(2);
+      expect(recorded.map(r => r.caseId).sort()).toEqual(['case-a', 'case-b']);
     }
   });
 

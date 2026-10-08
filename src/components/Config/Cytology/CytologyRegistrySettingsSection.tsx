@@ -36,6 +36,7 @@ import { SCREENING_REGISTRY_DEFINITIONS, screeningRegistryDefinition, type Scree
 import { registryConfigReadiness, registryMappingRows, withRegistryMapping } from '@/services/screeningRegistry/screeningRegistryEngine';
 import { IDENTIFIER_FORMAT_LIBRARY } from '@/types/systemConfig';
 import { RegistryGoLivePanel } from '@/components/Config/RegistryGoLive/RegistryGoLivePanel';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const K = 'screeningRegistry';
 
@@ -53,6 +54,8 @@ const CytologyRegistrySettingsSection: React.FC = () => {
   const [config, setConfig] = useState<ScreeningRegistryConfig | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(enterpriseDraft !== savedEnterprise || addingFacility !== null);
 
   const refresh = () => {
     registrySettingsService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.registryId); setSavedEnterprise(r.data.registryId); } });

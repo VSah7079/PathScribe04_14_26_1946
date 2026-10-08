@@ -35,6 +35,7 @@ import type { RetainableMaterialType } from '@/services/retentionPolicy/Retentio
 import { MATERIAL_TYPE_LABEL, formatRetentionPeriod } from '@/services/retentionPolicy/RetentionPolicy';
 import type { Jurisdiction } from '@/types/systemConfig';
 import { JURISDICTION_LABELS } from '@/types/systemConfig';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 // MATERIAL_TYPE_LABEL (RetentionPolicy.ts) and JURISDICTION_LABELS
 // (types/systemConfig.ts) are both shared constants also consumed by
@@ -520,6 +521,8 @@ const GoverningBodiesSection: React.FC = () => {
   const [retentionTarget, setRetentionTarget] = useState<GoverningBody | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveError,  setSaveError]  = useState<string | null>(null);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(hasChanges);
 
   // Real load — the empty array above is only the pre-load fallback
   // so the list isn't empty for one render (was previously its own,

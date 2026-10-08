@@ -143,7 +143,12 @@ const PROTOCOL_TO_REPORT: Record<string, string> = {
 
   // Dermatopathology — no dedicated derm template exists yet
   'skin_melanoma_bx':                          'tmpl-gold-standard',
+  'mohs_micrographic_surgery':                 'tmpl-gold-standard',
   'skin_invasive_melanoma_biopsy':             'tmpl-gold-standard',
+
+  // Head and neck (Batch 465) — no dedicated head and neck template exists yet
+  'oral_cavity_resection':                     'tmpl-gold-standard',
+  'neck_dissection':                           'tmpl-gold-standard',
 };
 
 // ── Subspecialty → Case Report Template fallback ─────────────────────────────
@@ -190,7 +195,9 @@ const PROTOCOL_TO_SUBSPECIALTY: Record<string, string> = {
   'wilms_resection':                          'uro',
   'wilms_biopsy':                             'uro',
   'skin_melanoma_bx':                         'derm',
+  'mohs_micrographic_surgery':                'derm',
   'skin_invasive_melanoma_biopsy':            'derm',
+  // Batch 465: the head and neck synoptics have no subspecialty here (none exists yet); they route by protocol above.
 };
 
 /**

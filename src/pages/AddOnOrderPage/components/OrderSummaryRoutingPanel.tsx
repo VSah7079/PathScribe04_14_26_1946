@@ -27,7 +27,7 @@ import type { Facility } from '@/services/facilities/IFacilityService';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { ADD_ON_ORDER_PRIORITIES, SLIDE_MEDIA_TYPES, type AddOnOrderPriority, type SlideMediaType } from '@/types/case/AddOnOrder';
 import { resolveSendOutLabChoices, type AddOnOrderLineInput, type AddOnOrderSubmissionInput } from '@/utils/addOnOrderOperations';
-import { actionRegistryService, addOnSubmitMissing, addOnOrderFieldRequired } from '@/services';
+import { actionRegistryService, addOnSubmitMissing, addOnOrderFieldRequired, molecularRoutingChoices } from '@/services';
 import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatList } from '@/utils/formatList';
@@ -49,6 +49,10 @@ export interface OrderSummaryRoutingPanelProps {
   referenceLabs: Facility[];
   /** Batch 403: the reference lab for one molecular/send-out line. */
   onLineLabChange: (cartId: string, labId: string, labName: string) => void;
+  /** Batch 467: run a molecular line in-house or send it out. */
+  onLineRoutingChange?: (cartId: string, routing: 'IN_HOUSE' | 'SEND_OUT') => void;
+  /** Batch 467: the case's performing lab (which molecular tests it runs in-house). */
+  performingLabFacilityId?: string;
   stationsForLine: (line: AddOnOrderLineInput) => ScanStation[];
   performingLabResolved: boolean;
   onSubmit: (submission: AddOnOrderSubmissionInput) => void;
@@ -58,7 +62,7 @@ export interface OrderSummaryRoutingPanelProps {
 
 const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
   cart, onRemoveLine, selectedBlockIds, priority, onPriorityChange, slideMediaType, onSlideMediaTypeChange,
-  cuttingInstructions, onCuttingInstructionsChange, referenceLabs, onLineLabChange,
+  cuttingInstructions, onCuttingInstructionsChange, referenceLabs, onLineLabChange, onLineRoutingChange, performingLabFacilityId,
   stationsForLine, performingLabResolved, onSubmit, requirements, caseId,
 }) => {
   const { t, i18n } = useTranslation();
@@ -100,9 +104,27 @@ const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
                   </div>
                 )}
                 {line.orderKind === 'molecular' && (() => {
+                  // Batch 467: in-house where the performing lab runs the test (services/molecularOrders/molecularRouting.ts).
+                  const routing = molecularRoutingChoices(line.stainType, performingLabFacilityId);
+                  const current = line.molecularRouting ?? routing.defaultRouting;
+                  const routingId = `addon-routing-${line.cartId}`;
+                  const routingRow = (
+                    <div className="ps-addon-cart-row-meta">
+                      {routing.choices.length > 1 ? (
+                        <>
+                          <label className="ps-addon-field-label" htmlFor={routingId}>{t('addOnOrder.summary.molecularRouting')}</label>
+                          <select id={routingId} className="ps-addon-field-input" value={current} onChange={e => onLineRoutingChange?.(line.cartId, e.target.value as 'IN_HOUSE' | 'SEND_OUT')}>
+                            {routing.choices.map(r => <option key={r} value={r}>{t(`molecularOrders.routing.${r}`)}</option>)}
+                          </select>
+                        </>
+                      ) : <div>{t('addOnOrder.summary.sendOutOnly')}</div>}
+                    </div>
+                  );
+                  if (current === 'IN_HOUSE') return <>{routingRow}<div className="ps-addon-cart-row-meta">{t('addOnOrder.summary.inHouseQueue')}</div></>;
                   const { choices, limited } = resolveSendOutLabChoices(line.stainType, referenceLabs);
                   const id = `addon-lab-${line.cartId}`;
                   return (
+                    <>{routingRow}
                     <div className="ps-addon-cart-row-meta">
                       <label className="ps-addon-field-label" htmlFor={id}>{t('addOnOrder.summary.sendOutLab')}{star('sendOutLab')}</label>
                       <select id={id} className="ps-addon-field-input" value={line.sendOutReferenceLabFacilityId ?? ''}
@@ -112,6 +134,7 @@ const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
                       </select>
                       <div>{t(limited ? 'addOnOrder.summary.labsApprovedForTest' : 'addOnOrder.summary.labsAll')}</div>
                     </div>
+                    </>
                   );
                 })()}
               </div>

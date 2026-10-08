@@ -49,3 +49,52 @@ question, not a code-quality one. What *is* in scope, and was checked:
   throughout this codebase) rather than accidental inconsistency, but
   wasn't verified field-by-field against how `templateService.ts`
   actually consumes each variant.
+
+## Batch 461
+
+`templates/generic/`: the prostate templates' "Anatomical map (PathScribe)" questions.
+
+## Batch 463
+
+New template `templates/generic/mohs_micrographic_surgery.json`.
+
+## Batch 463b
+
+PathScribe's Mohs template: stages question required.
+
+## Batch 464
+
+Colorectal map questions in the generic colorectal templates.
+
+## Batch 465
+
+`templates/generic/`: Oral Cavity Resection and Neck Dissection.
+
+## Batch 465b
+
+`templates/generic/neck_dissection.json`: count limit and calculated totals.
+
+## Batch 466
+
+`templates/generic/`: renal map questions; whole-number node counts.
+
+## Batch 466b
+
+`templates/generic/`: partial nephrectomy margins; node count limits.
+
+## Batch 466d
+
+`templates/generic/colorectal_local_excision.json`: the Margins section is now CAP's two blocks, calculated from the map and locked:
+- "Invasive carcinoma margins"
+- "Margin(s) involved by invasive carcinoma"
+- "Adenoma (non-invasive) margins"
+
+They replace three placeholder questions ("Field 1–3"). The adenoma map question is relabelled "Adenoma at the mucosal margin". The total stays at 40 questions.
+
+## Batch 467 — In-house molecular orders
+
+Lung Adeno's EGFR mutation status is bound to an in-house molecular result (`templates/generic/`).
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+More synoptic questions are filled from molecular results (`templates/generic/`).

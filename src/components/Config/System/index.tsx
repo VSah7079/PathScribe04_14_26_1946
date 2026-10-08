@@ -81,10 +81,18 @@ import PhysiciansSection from './PhysiciansSection';
 import DeficienciesSection from './DeficienciesSection';
 import AbnormalTriggerRulesSection from './AbnormalTriggerRulesSection';
 import QAConfigurationCenterSection from './QAConfigurationCenterSection';
+import BiopsyResectionCorrelationSection from './BiopsyResectionCorrelationSection';
+import FollowUpTrackingSection from './FollowUpTrackingSection';
+import OrganMapsSection from './OrganMapsSection';
+import QaTrendPolicySection from './QaTrendPolicySection';
+import FeedbackSection from './FeedbackSection';
 import TemplateGovernanceSection from './TemplateGovernanceSection';
 import { resetConfigScroll } from '../../../utils/resetConfigScroll';
 import ConfigSectionGate from '../ConfigSectionGate';
 import { SECTIONS, GROUP_LABEL_KEY, type SystemSection } from './systemSections';
+import { useConfigNavigationGuard } from '../configDirtyGuardContext';
+import RevisionReasonsSection from './RevisionReasonsSection';
+import PeerReviewGateSection from './PeerReviewGateSection';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
@@ -106,6 +114,8 @@ import { SECTIONS, GROUP_LABEL_KEY, type SystemSection } from './systemSections'
 const GROUPS: string[] = Array.from(new Set(SECTIONS.map(s => s.group)));
 
 const SystemTab: React.FC = () => {
+  // PS-128 (Batch 437): moving to another section asks first when something is unsaved.
+  const guardNav = useConfigNavigationGuard();
   const { t } = useTranslation();
   // Batch 371: the terminology endpoint details are shown to PathScribe
   // support (Superadmin) only; this used to be hard-coded true for everyone.
@@ -220,6 +230,13 @@ const SystemTab: React.FC = () => {
       case 'abnormal_trigger_rules': return <AbnormalTriggerRulesSection />;
       case 'assist_lis_polling': return <AssistLisPollingSection />;
       case 'qa_config_center': return <QAConfigurationCenterSection />;
+      case 'biopsy_resection_correlation': return <BiopsyResectionCorrelationSection />;
+      case 'follow_up_tracking': return <FollowUpTrackingSection />;
+      case 'organ_maps':         return <OrganMapsSection />;
+      case 'revision_reasons': return <RevisionReasonsSection />;
+      case 'peer_review_gate': return <PeerReviewGateSection />;
+      case 'qa_trend_policy': return <QaTrendPolicySection />;
+      case 'feedback': return <FeedbackSection />;
       default:                    return null;
     }
   };
@@ -243,12 +260,12 @@ const SystemTab: React.FC = () => {
         {GROUPS.map(g => (
           <button
             key={g}
-            onClick={() => {
+            onClick={() => guardNav(() => {
               setActiveGroup(g);
               const first = SECTIONS.find(s => s.group === g);
               if (first) setActiveRaw(first.id);
               resetConfigScroll();
-            }}
+            })}
             className={`ps-sub-tab-btn${activeGroup === g ? ' active' : ''}`}
           >
             {t(GROUP_LABEL_KEY[g])}
@@ -286,7 +303,7 @@ const SystemTab: React.FC = () => {
           {SECTIONS.filter(s => s.group === activeGroup).map(s => (
             <button
               key={s.id}
-              onClick={() => { selectSection(s.id); resetConfigScroll(); }}
+              onClick={() => guardNav(() => { selectSection(s.id); resetConfigScroll(); })}
               className={`ps-confsys-nav-btn${active === s.id ? ' ps-confsys-nav-btn--active' : ''}`}
             >
               {s.emoji} {t(s.labelKey)}

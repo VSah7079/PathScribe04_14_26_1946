@@ -71,6 +71,8 @@ vi.mock('./hooks/useGrossingScreen', () => ({
     cancelCompleteWithoutProtocol: vi.fn(), completionReview: null,
     handleRecordFixationEnded: vi.fn(), handleConfirmFixativeRatio: vi.fn(),
     handleRaiseFixationDeficiency: vi.fn(), specimensWithOpenFixationDeficiency: new Set<string>(),
+    // Batch 481 (Structured Inking, Module 2).
+    handleRecordMarginInk: vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-1' }),
     ...hookOverrides.current,
   }),
 }));
@@ -192,5 +194,117 @@ describe('GrossingScreenPage — real render smoke test', () => {
     await renderGrossingScreen({ ...TEST_CASE, status: 'gross-complete' });
     expect(screen.getByText(/grossingScreen.complete.routedForReview/)).not.toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('grossingScreen.complete.reviewNotRaised');
+  });
+});
+
+// Batch 481 (Structured Inking, Module 2; PS-359 follow-up): the UI that
+// calls recordMarginInkApplication.ts (Batch 480). Mocks the hook's own
+// handleRecordMarginInk — the real service and its own real capability
+// check are covered by recordMarginInkApplication.test.ts; this file is
+// about the page rendering margins/ink correctly and wiring the forms to
+// the hook with the right input shape.
+describe('GrossingScreenPage — Margins & Ink Applications (Batch 481)', () => {
+  it('shows the empty state for a specimen with no margins yet', async () => {
+    await renderGrossingScreen();
+    expect(screen.getByText('grossingScreen.margins.empty')).not.toBeNull();
+  });
+
+  it('renders a specimen-level margin with its ink history and examined status', async () => {
+    const caseWithMargin = {
+      ...TEST_CASE,
+      specimens: [{
+        ...TEST_CASE.specimens[0],
+        margins: [{
+          id: 'margin-1', name: 'Deep', orientation: 'posterior', laterality: 'left', examinationStatus: 'examined',
+          inkApplications: [{ id: 'ink-1', colorName: 'Blue', colorCode: '#0000FF', appliedAt: '2026-10-07T00:00:00.000Z', appliedByName: 'Test Tech' }],
+        }],
+      }],
+    };
+    await renderGrossingScreen(caseWithMargin);
+    expect(screen.getByText('Deep')).not.toBeNull();
+    expect(screen.getByText('posterior · left')).not.toBeNull();
+    expect(screen.getByText('grossingScreen.margins.status.examined')).not.toBeNull();
+    expect(screen.getByText(/grossingScreen.margins.inkEntry/)).not.toBeNull();
+    expect(screen.queryByText('grossingScreen.margins.empty')).toBeNull();
+  });
+
+  it('renders a block-level margin under its own block group, separate from specimen-level margins', async () => {
+    const caseWithBlockMargin = {
+      ...TEST_CASE,
+      specimens: [{
+        ...TEST_CASE.specimens[0],
+        blocks: [{
+          ...TEST_CASE.specimens[0].blocks[0],
+          margins: [{ id: 'margin-2', name: 'Lateral', examinationStatus: 'pending', inkApplications: [] }],
+        }],
+      }],
+    };
+    await renderGrossingScreen(caseWithBlockMargin);
+    expect(screen.getByText(/grossingScreen.margins.onBlock/)).not.toBeNull();
+    expect(screen.queryByText('grossingScreen.margins.onSpecimen')).toBeNull(); // no specimen-level margin here
+    expect(screen.getByText('Lateral')).not.toBeNull();
+    expect(screen.getByText('grossingScreen.margins.status.pending')).not.toBeNull();
+  });
+
+  it('submits a new margin with the right input shape, attached to the specimen by default', async () => {
+    const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-new' });
+    hookOverrides.current = { handleRecordMarginInk };
+    await renderGrossingScreen();
+    fireEvent.click(screen.getByText(/grossingScreen.margins.addMargin/));
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder'), { target: { value: 'Deep' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Blue' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#0000FF' } });
+    fireEvent.click(screen.getByText('common.add'));
+    await waitFor(() => expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.objectContaining({
+      specimenId: 'sp1', blockId: undefined, marginName: 'Deep', colorName: 'Blue', colorCode: '#0000FF', examined: true,
+    })));
+  });
+
+  it('submitting a new margin attached to a block passes that blockId', async () => {
+    const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-new' });
+    hookOverrides.current = { handleRecordMarginInk };
+    await renderGrossingScreen();
+    fireEvent.click(screen.getByText(/grossingScreen.margins.addMargin/));
+    fireEvent.change(screen.getByDisplayValue('grossingScreen.margins.attachToSpecimen'), { target: { value: 'blk-1' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder'), { target: { value: 'Deep' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Blue' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#0000FF' } });
+    fireEvent.click(screen.getByText('common.add'));
+    await waitFor(() => expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.objectContaining({ specimenId: 'sp1', blockId: 'blk-1' })));
+  });
+
+  it('appends a further ink application to an existing margin, with its marginId, never re-sending the name', async () => {
+    const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: true, marginId: 'margin-1' });
+    hookOverrides.current = { handleRecordMarginInk };
+    const caseWithMargin = {
+      ...TEST_CASE,
+      specimens: [{
+        ...TEST_CASE.specimens[0],
+        margins: [{ id: 'margin-1', name: 'Deep', examinationStatus: 'examined', inkApplications: [] }],
+      }],
+    };
+    await renderGrossingScreen(caseWithMargin);
+    fireEvent.click(screen.getByText(/grossingScreen.margins.addInk/));
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Green' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#00FF00' } });
+    fireEvent.click(screen.getByText('common.save'));
+    await waitFor(() => expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.objectContaining({
+      specimenId: 'sp1', marginId: 'margin-1', colorName: 'Green', colorCode: '#00FF00',
+    })));
+    expect(handleRecordMarginInk).toHaveBeenCalledWith(expect.not.objectContaining({ marginName: expect.anything() }));
+  });
+
+  it('shows the real error message and leaves the form open when the save fails', async () => {
+    const handleRecordMarginInk = vi.fn().mockResolvedValue({ ok: false, error: 'Recording a margin ink application needs the grossing:margin-ink:record permission' });
+    hookOverrides.current = { handleRecordMarginInk };
+    await renderGrossingScreen();
+    fireEvent.click(screen.getByText(/grossingScreen.margins.addMargin/));
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder'), { target: { value: 'Deep' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorNamePlaceholder'), { target: { value: 'Blue' } });
+    fireEvent.change(screen.getByPlaceholderText('grossingScreen.margins.colorCodePlaceholder'), { target: { value: '#0000FF' } });
+    fireEvent.click(screen.getByText('common.add'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('grossing:margin-ink:record'));
+    // The form stays open on failure, not silently reset — its input is still here.
+    expect(screen.getByPlaceholderText('grossingScreen.margins.namePlaceholder')).not.toBeNull();
   });
 });

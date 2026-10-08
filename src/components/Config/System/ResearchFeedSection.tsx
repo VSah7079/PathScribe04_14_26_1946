@@ -32,6 +32,8 @@ import type {
   ResearchFeedConfig,
   ResearchFeedHealth,
 } from '@/services/research/IResearchFeedConfigService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
 
 const OUTCOME_LABEL_KEY: Record<string, string> = {
   success: 'researchFeedSection.outcomeLabels.success',
@@ -71,10 +73,14 @@ const ResearchFeedSection: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // PS-128 (Batch 437): what was last saved, so leaving with changes warns.
+  const [storedConfig, setStoredConfig] = useState<ResearchFeedConfig | null>(null);
+  useReportConfigDirty(!!storedConfig && draftDiffers(storedConfig, config));
 
   useEffect(() => {
     mockResearchFeedConfigService.getConfig().then((c) => {
       setConfig(c);
+      setStoredConfig(c);
       setLoading(false);
     });
   }, []);
@@ -104,6 +110,7 @@ const ResearchFeedSection: React.FC = () => {
     }
     const stored = await mockResearchFeedConfigService.saveConfig(config);
     setConfig(stored);
+    setStoredConfig(stored);
     setHealth(mockResearchFeedConfigService.getHealth());
     setError(null);
     setSaved(true);

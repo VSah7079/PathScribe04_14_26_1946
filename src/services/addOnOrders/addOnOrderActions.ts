@@ -24,6 +24,8 @@
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, StainOrder } from '@/types/case/Specimen';
 import type { BlockExceptionReason } from '@/types/case/AddOnOrder';
+import type { MolecularOrderIngest } from '../molecularOrders/molecularOrderTypes';
+import { molecularRoutingChoices } from '../molecularOrders/molecularRouting';
 import type { ResolvedFieldRequirement } from '../fieldRequirements/fieldRequirementRules';
 import { addOnSubmitMissing, addOnExceptionMissing, addOnResponseMissing } from '../fieldRequirements/addOnOrderChecks';
 import {
@@ -40,6 +42,8 @@ export interface AddOnOrderActionDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   /** Saves the case's changed specimens (one write). */
   saveSpecimens: (caseData: Case, specimens: Specimen[]) => Promise<void>;
+  /** Batch 467: hands the order's molecular lines to the molecular order engine (services/molecularOrders/). */
+  ingestMolecularOrders?: (requests: MolecularOrderIngest[]) => Promise<{ refused: readonly unknown[] }>;
 }
 
 export interface AddOnNotifyDeps {
@@ -57,6 +61,10 @@ export interface AddOnActionResult {
   refused?: { block: string; code: AddOnOrderErrorCode }[];
   /** Something else stopped it (the order moved, or the exception was already answered). */
   failed?: boolean;
+  /** Batch 467: molecular tests chosen to run in-house that this case's performing lab doesn't run in-house (names). */
+  inHouseNotAvailable?: string[];
+  /** Batch 467: the order was placed, but this many of its molecular orders didn't reach the Order Queue. */
+  molecularNotQueued?: number;
   /** The case's specimens after the change, for the page to show. */
   specimens?: Specimen[];
 }
@@ -95,6 +103,10 @@ export async function placeAddOnOrders(
 
   const missing = addOnSubmitMissing({ blockIds, lines, cuttingInstructions: submission.cuttingInstructions }, input.requirements);
   if (missing.length > 0) return { ok: false, missing };
+  // Batch 467: an in-house molecular line must still be runnable in-house at this lab (checked again by the engine).
+  const notInHouse = lines.filter(l => l.orderKind === 'molecular' && l.molecularRouting === 'IN_HOUSE'
+    && !molecularRoutingChoices(l.stainType, input.performingLabFacilityId).choices.includes('IN_HOUSE')).map(l => l.stainType.name);
+  if (notInHouse.length > 0) return { ok: false, inHouseNotAvailable: [...new Set(notInHouse)] };
 
   const fullAccession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id;
   let specimens = [...(caseData.specimens ?? [])];
@@ -112,7 +124,44 @@ export async function placeAddOnOrders(
   }
   if (refused.length > 0) return { ok: false, refused };
   await deps.saveSpecimens(caseData, specimens);
+  // Batch 467: each molecular line becomes an order the molecular engine routes and queues. The slide orders are
+  // already saved, so a refusal or failure here is reported, never turned into a failed placement (which would invite
+  // a resubmit and duplicate slides).
+  if (deps.ingestMolecularOrders) {
+    const requests = molecularOrderRequests(caseData, specimens, input.lines, input.actor, input.performingLabFacilityId);
+    if (requests.length) {
+      let notQueued = requests.length;
+      try { notQueued = (await deps.ingestMolecularOrders(requests)).refused.length; } catch (e) { console.error('[addOnOrders] molecular orders not queued:', e); }
+      if (notQueued > 0) return { ok: true, specimens, molecularNotQueued: notQueued };
+    }
+  }
   return { ok: true, specimens };
+}
+
+/** Batch 467: the molecular orders an add-on order just made — one per molecular slide order created (not its
+ *  control), with the line's test, routing and lab. Pure. */
+export function molecularOrderRequests(
+  caseData: Case, after: Specimen[], lines: readonly AddOnOrderLineInput[], actor: Actor, performingLabFacilityId?: string,
+): MolecularOrderIngest[] {
+  const before = new Set((caseData.specimens ?? []).flatMap(sp => (sp.blocks ?? []).flatMap(b => (b.stains ?? []).map(s => s.id))));
+  const accession = caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id;
+  const out: MolecularOrderIngest[] = [];
+  for (const sp of after) {
+    for (const b of sp.blocks ?? []) {
+      for (const st of b.stains ?? []) {
+        if (before.has(st.id) || st.isControlSlide) continue;
+        const line = lines.find(l => l.orderKind === 'molecular' && l.stainType.name === st.stainName);
+        if (!line) continue;
+        out.push({
+          caseId: caseData.id, accession, specimenId: sp.id, specimenLabel: sp.label, blockId: b.id, blockLabel: b.label,
+          assayTarget: line.stainType.id, routing: line.molecularRouting ?? 'SEND_OUT',
+          sendOutLabId: st.sendOutReferenceLabFacilityId, sendOutLabName: st.sendOutReferenceLabName,
+          performingLabFacilityId, stainOrderId: st.id, orderedBy: actor.id, orderedByName: actor.name,
+        });
+      }
+    }
+  }
+  return out;
 }
 
 /** The pathologist's answer to a block exception. */

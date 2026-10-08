@@ -16,6 +16,7 @@ import type { Physician } from '../../../services';
 import { SuffixSelect } from '../../Common/SuffixSelect';
 import { formatFullDisplayName } from '../../../utils/personName';
 import { findDuplicate } from '../../../utils/validateUnique';
+import { recordExport } from '@/services';
 
 // Physician imported from services/physicians/IPhysicianService.ts (via
 // the services barrel) rather than redeclared locally — see git history
@@ -312,7 +313,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
             <label className="ps-conf-label">{t('physiciansSection.modal.facilityAffiliationsLabel')}</label>
             <div className="ps-conf-picker">
               <div className="ps-conf-picker-search-wrap">
-                <input data-config-nav type="text" placeholder={t('physiciansSection.modal.facilitySearchPlaceholder')} value={facilitySearch}
+                <input data-dirty-ignore data-config-nav type="text" placeholder={t('physiciansSection.modal.facilitySearchPlaceholder')} value={facilitySearch}
                   onChange={e => setFacilitySearch(e.target.value)} className="ps-conf-picker-search" />
               </div>
               <div className="ps-conf-picker-list">
@@ -430,6 +431,8 @@ const PhysiciansSection: React.FC = () => {
       Facilities: p.clientIds.map(id => facilities.find(c => c.id === id)?.name ?? id).join('; '),
       Status: p.status,
     }));
+    // PS-282 (Batch 437): audited.
+    void recordExport('physicians', { filename: 'Physicians.csv', rowCount: rows.length });
     downloadCsv('Physicians.csv', toCsv(rows));
   };
 
@@ -564,9 +567,9 @@ const PhysiciansSection: React.FC = () => {
       )}
 
       <div className="ps-conf-form-row">
-        <input data-config-nav type="text" placeholder={t('physiciansSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('physiciansSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('physiciansSection.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

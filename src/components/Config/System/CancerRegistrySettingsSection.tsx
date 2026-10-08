@@ -35,6 +35,7 @@ import type { Facility } from '@/services/facilities/IFacilityService';
 import { IDENTIFIER_FORMAT_LIBRARY } from '@/types/systemConfig';
 import { RegistryGoLivePanel } from '@/components/Config/RegistryGoLive/RegistryGoLivePanel';
 import { cancerRegistriesInUse } from '@/services/cancerRegistry/resolveEffectiveCancerRegistrySettings';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const K = 'cancerRegistrySection';
 const REGISTRY_IDS: CancerRegistryId[] = ['none', ...CANCER_REGISTRY_DEFINITIONS.map(d => d.id)];
@@ -82,6 +83,8 @@ export const CancerRegistrySettingsSection: React.FC = () => {
   const definition = draft.registryId === 'none' ? undefined : cancerRegistryDefinition(draft.registryId);
   const identifierLabel = definition?.patientIdentifierFormatId ? IDENTIFIER_FORMAT_LIBRARY.find(f => f.id === definition.patientIdentifierFormatId)?.label : undefined;
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(dirty);
   const options = REGISTRY_IDS.map(id => <option key={id} value={id}>{t(labelKey(id))}</option>);
   const inUse = cancerRegistriesInUse(saved.registryId, overrides.map(o => o.overrides.registryId));
   const goLiveId = inUse.find(id => id === goLiveRegistry) ?? inUse[0];

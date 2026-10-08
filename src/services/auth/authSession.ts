@@ -3,7 +3,9 @@
 // PS-60 (Batch 343): signing in and out, outside React. AuthContext calls
 // this and keeps only React state; the decisions live here.
 //
-//   Password sign-in   demo accounts only (VITE_AUTH_MODE unset or "demo")
+//   Password sign-in   demo accounts only (VITE_AUTH_MODE unset or "demo");
+//                      Batch 456: locks for 15 minutes after 5 failures
+//                      (signInLockout.ts)
 //   SSO sign-in        begin → provider → /auth/callback/<id> → complete:
 //                      tokens checked (ssoClient), then the person resolved
 //                      by the API server, or locally when there is none yet
@@ -32,6 +34,12 @@ import type { ISsoClient } from './sso/ssoClient';
 import { resolveSsoProfileFromApi, resolveSsoProfileLocally, SSO_PROVIDER_AUDIT_NAMES } from './sso/resolveSsoProfile';
 import { profileNeedsStaffFields, staffSessionFields, type SessionProfile } from './sessionProfile';
 import type { DemoAccount } from './demo/demoAccounts';
+import { deriveSessionRole } from './sessionRole';
+import type { StaffPasswordCheck } from '../staffPasswords/mockStaffPasswordService';
+import {
+  SIGN_IN_LOCK_POLICY, currentSignInLock, isSignInLocked, recordSignInFailure, signInLockKey, NO_SIGN_IN_LOCK,
+  type SignInLockStore, type SignInRefusal,
+} from './signInLockout';
 
 export interface SessionMarkers {
   getActiveSessionId(userId: string): string | null;
@@ -47,6 +55,20 @@ export interface AuthSessionDeps {
   config: AuthConfig;
   /** Null when this build has no demo accounts (VITE_AUTH_MODE=sso). */
   verifyDemoCredentials: ((email: string, password: string) => Promise<DemoAccount | null>) | null;
+  /**
+   * Batch 448: passwords set from the Staff screen, checked before the
+   * built-in demo accounts. Null when there is no password sign-in.
+   */
+  verifyStaffPassword?: ((email: string, password: string) => Promise<StaffPasswordCheck>) | null;
+  /** The built-in demo account for a staff id, when there is one. */
+  demoAccountFor?: (staffId: string) => Promise<DemoAccount | undefined>;
+  /**
+   * Batch 456: failed password sign-ins, per email (signInLockout.ts). With
+   * it, a wrong password returns a SignInRefusal instead of null.
+   */
+  signInLocks?: SignInLockStore;
+  /** The name of the account with this email (demo account or staff), for the audit. */
+  accountNameFor?: (email: string) => Promise<string | null>;
   /** Created on first use, so importing this module never touches the browser. */
   ssoClient: () => ISsoClient;
   /** The API server, when there is one (VITE_API_BASE_URL). */
@@ -78,6 +100,38 @@ export function createAuthSession(deps: AuthSessionDeps) {
     return res && res.ok !== false ? res.data.find(s => s.id === id) ?? null : null;
   };
 
+  /**
+   * Batch 448: the session for someone signing in with a password set from the
+   * Staff screen. A built-in demo account keeps its own app role and profile;
+   * anyone else (the demo Lab Director, a site without single sign-on) gets
+   * the app role their staff roles give, exactly as single sign-on does
+   * (sessionRole.deriveSessionRole), and no role means no access.
+   */
+  const profileForStaffSignIn = async (staffId: string): Promise<SessionProfile | null> => {
+    const staff = await staffFor(staffId);
+    if (!staff) return null;
+    const account = await deps.demoAccountFor?.(staffId);
+    if (account) {
+      return { id: account.id, name: account.name, email: account.email, role: account.role, initials: account.initials, voiceProfile: account.voiceProfile, ...staffSessionFields(staff), authMethod: 'password' };
+    }
+    const roles = await deps.roleService.getAll().catch(() => null);
+    if (!roles || roles.ok === false) return null;
+    const role = deriveSessionRole(staff.roles, roles.data);
+    if (!role) return null;
+    const first = staff.firstName ?? '';
+    const last = staff.lastName ?? '';
+    return {
+      id: staff.id,
+      name: [first, last].map(x => x.trim()).filter(Boolean).join(' ') || staff.email,
+      email: staff.email,
+      role,
+      initials: `${first.trim().charAt(0)}${last.trim().charAt(0)}`.toUpperCase() || '?',
+      voiceProfile: (staff.voiceProfile ?? 'EN-US') as SessionProfile['voiceProfile'],
+      ...staffSessionFields(staff),
+      authMethod: 'password',
+    };
+  };
+
   const auditSignIn = (profile: SessionProfile) => {
     const how = profile.authMethod === 'sso'
       ? SSO_PROVIDER_AUDIT_NAMES[profile.ssoProviderId as keyof typeof SSO_PROVIDER_AUDIT_NAMES] ?? 'single sign-on'
@@ -88,14 +142,68 @@ export function createAuthSession(deps: AuthSessionDeps) {
     }).catch(() => {});
   };
 
+  const auditLockout = (event: string, detail: string, user: string) => {
+    void deps.auditService.logEvent({ type: 'user', event, detail, user, caseId: null, confidence: null }).catch(() => {});
+  };
+
+  /** Batch 456: who the audit names; never what was typed when no account has the email. */
+  const lockoutUser = async (email: string) => (await deps.accountNameFor?.(signInLockKey(email)).catch(() => null)) ?? 'Unknown email';
+
+  /** A wrong password: count it, lock at the limit, audit both. */
+  const failSignIn = async (email: string): Promise<SignInRefusal | null> => {
+    const store = deps.signInLocks;
+    if (!store) return null;
+    const key = signInLockKey(email);
+    const next = recordSignInFailure(currentSignInLock(store.read(key), now()), now());
+    store.write(key, next);
+    const user = await lockoutUser(email);
+    auditLockout('Sign-in failed', `Password sign-in failed: wrong email or password; failed attempt ${next.failures} of ${SIGN_IN_LOCK_POLICY.maxFailures}.`, user);
+    if (next.lockedUntil) {
+      auditLockout('Sign-in locked', `Password sign-in locked for ${SIGN_IN_LOCK_POLICY.lockMinutes} minutes after ${SIGN_IN_LOCK_POLICY.maxFailures} failed attempts.`, user);
+      return { refused: 'locked', lockedUntil: next.lockedUntil };
+    }
+    return { refused: 'invalid', attemptsLeft: SIGN_IN_LOCK_POLICY.maxFailures - next.failures };
+  };
+
+  const clearFailures = (email: string) => {
+    const key = signInLockKey(email);
+    const store = deps.signInLocks;
+    if (store && store.read(key)) store.write(key, NO_SIGN_IN_LOCK);
+  };
+
   return {
     config: deps.config,
 
-    /** The demo-account profile for this email and password, or null. */
-    async signInWithPassword(email: string, password: string): Promise<SessionProfile | null> {
+    /**
+     * The profile for this email and password, or null. Batch 448: a password
+     * set from the Staff screen is checked first, and once set, the built-in
+     * demo password for that account no longer works. 'password_change_required'
+     * when the person must choose a new password first (no session starts).
+     *
+     * Batch 456: with a lock store, a wrong password is a SignInRefusal (the
+     * attempts left, or locked until when), and while an email is locked the
+     * password isn't checked at all. null: password sign-in is off here, or
+     * the password was right but the staff record gives no app access.
+     */
+    async signInWithPassword(email: string, password: string): Promise<SessionProfile | 'password_change_required' | SignInRefusal | null> {
       if (!deps.config.passwordSignIn || !deps.verifyDemoCredentials) return null;
+      if (deps.signInLocks) {
+        const lock = currentSignInLock(deps.signInLocks.read(signInLockKey(email)), now());
+        if (isSignInLocked(lock, now())) {
+          auditLockout('Sign-in refused', 'Password sign-in attempted while locked; the password was not checked.', await lockoutUser(email));
+          return { refused: 'locked', lockedUntil: lock.lockedUntil! };
+        }
+      }
+      const own = deps.verifyStaffPassword ? await deps.verifyStaffPassword(email, password) : { result: 'none' as const };
+      if (own.result === 'wrong') return failSignIn(email);
+      if (own.result === 'match') {
+        clearFailures(email);
+        if (own.mustChange) return 'password_change_required';
+        return profileForStaffSignIn(own.staffId);
+      }
       const account = await deps.verifyDemoCredentials(email, password);
-      if (!account) return null;
+      if (!account) return failSignIn(email);
+      clearFailures(email);
       const staff = await staffFor(account.id);
       return {
         id: account.id,

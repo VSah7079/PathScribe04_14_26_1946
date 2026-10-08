@@ -7,6 +7,7 @@
 // escalating an SLA breach, and the supervisor bypass.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { cytologyQcCaseAssignmentService } from '@/services';
@@ -56,6 +57,8 @@ export function useCytologyQcCaseReview(caseId: string | undefined) {
   useEffect(() => { void refresh(); }, [refresh]);
 
   const actions = useCytologyQcActions(refresh);
-  const review: CytologyQcCaseReview = resolveCytologyQcCaseReview(assignments, actions.userId);
+  // Batch 434: the buttons follow cytology:qc-review:record.
+  const { has } = useCapabilities();
+  const review: CytologyQcCaseReview = resolveCytologyQcCaseReview(assignments, actions.userId, has('cytology:qc-review:record'));
   return { review, ...actions };
 }

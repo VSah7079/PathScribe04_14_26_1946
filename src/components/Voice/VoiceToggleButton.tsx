@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useVoice } from '../../contexts/VoiceProvider';
 
-const IS_DEV = (import.meta as any).env?.DEV ?? false;
+const IS_DEV = import.meta.env.DEV ?? false;
 
 export const VoiceToggleButton: React.FC = () => {
   const { t } = useTranslation();

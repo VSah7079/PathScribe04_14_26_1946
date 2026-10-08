@@ -11,6 +11,7 @@
 // themselves.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { nextSlideLevelNumber } from '@/services/material/slideLevels';
 import { getBlockLabel } from '@/utils/specimenLabeling';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
 import type { HistologyBlock, Specimen, StainOrder, SpecimenGrossingOverride } from '@/types/case/Specimen';
@@ -106,7 +107,7 @@ export function addGrossingStain(
     id: genId('stain'),
     stainName: stainType.name,
     status: 'Pending Cut',
-    displayId: slideIdentifier(fullAccession, specimen.label, block.label, `L${block.stains.length + 1}`),
+    displayId: slideIdentifier(fullAccession, specimen.label, block.label, `L${nextSlideLevelNumber(block.stains)}`),
     userAdded: true,
   };
   const updatedBlocks = (specimen.blocks ?? []).map(b =>

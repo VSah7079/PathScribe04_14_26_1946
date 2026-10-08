@@ -11,8 +11,16 @@ import { loadDelegations, saveDelegations } from './delegationStore';
 import { planDelegation } from './delegationRules';
 import { assignSynoptic, delegateCase } from '../cases/mockCaseService';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { mockUserService } from '../users/mockUserService';
+import { mockRoleService } from '../roles/mockRoleService';
+import { isCytotechOnly } from '../participationTypes/cytotechParticipationRules';
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+async function recipientIsCytotechOnly(userId: string): Promise<boolean> {
+  const [staff, roles] = await Promise.all([mockUserService.getById(userId), mockRoleService.getAll()]);
+  return staff.ok && roles.ok && isCytotechOnly(staff.data.roles, roles.data);
+}
 const fail = (error: DelegationError) => ({ ok: false as const, error });
 
 export const mockDelegationService: IDelegationService = {
@@ -28,6 +36,11 @@ export const mockDelegationService: IDelegationService = {
     const decision = await authorizationService.enforce('case:delegation:create', { caseId: request.caseId });
     if (!decision.allowed) return fail('notPermitted');
     const plan = planDelegation(request);
+    // Batch 441 (Pete: "Cytotechs can not be selected for Pathologist
+    // roles"): every delegation to a person makes them primary, second
+    // opinion, consultant or the synoptic's drafter — all pathologist slots.
+    const recipientId = plan.kind === 'assignSynoptic' ? plan.assignedTo : plan.payload.targetUserId;
+    if (recipientId && await recipientIsCytotechOnly(recipientId)) return fail('recipientIsCytotechnologist');
     if (plan.kind === 'assignSynoptic') {
       const record = await assignSynoptic(
         plan.caseId, plan.instanceId, plan.assignedTo, plan.assignedToName, plan.assignedBy, plan.requiresCountersign, plan.note,

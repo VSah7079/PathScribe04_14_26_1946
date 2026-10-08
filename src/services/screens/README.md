@@ -64,3 +64,35 @@ Template Authors and Approvers already hold `screen:configuration:open`, so nobo
 ## Batch 432
 
 `SCREEN_ALSO_OPENED_BY`: an action capability that also opens a screen. Holding `cytology:qc-review:bypass` opens the Cytology QC queue (and the Worklist tile) for the override. The route check evaluates it without auditing (opening a screen isn't the action); `screenGranted` is the pure rule.
+
+## Batch 438
+
+`configSectionAccess.ts`: `revision_reasons` (System → Revision Reasons).
+
+## Batch 439
+
+`configSectionAccess.ts`: `peer_review_gate`.
+
+## Batch 442
+
+`configSectionAccess.ts`: `qa_trend_policy` needs `config:qa-trend-policy:manage`.
+
+## Batch 447
+
+`configSectionAccess.ts`: `feedback` needs `config:feedback:manage`.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`configSectionAccess.ts`: the new `cytology_histology_correlation` section.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`configSectionAccess.ts`: the new Biopsy-to-resection correlation section is gated by `config:biopsy-resection-correlation:manage`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`configSectionAccess.ts`: the Follow-up tracking section is gated by `config:follow-up-tracking:manage`.
+
+## Batch 461
+
+`configSectionAccess.ts`: Configuration → System → **Organ maps** (`organ_maps`) opens for `config:organ-map-scheme:manage` or `config:organ-map-bindings:manage`.

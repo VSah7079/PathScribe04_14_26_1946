@@ -70,6 +70,14 @@ Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace
 - **Demo:** S26-4401-BX-001 has orders at every stage (`services/cases/addOnOrderDemo.ts`), and there are three seeded reference labs.
 - **Tests:** `components/addOnOrderRequirements.test.tsx`.
 
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 467 — In-house molecular orders
+
+`components/OrderSummaryRoutingPanel.tsx`: a molecular line chooses in-house or send-out (in-house only where the case's performing lab runs the test); the reference lab is asked for only when sent out. `hooks/useAddOnOrderStation.ts` passes molecular lines to the molecular order engine.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

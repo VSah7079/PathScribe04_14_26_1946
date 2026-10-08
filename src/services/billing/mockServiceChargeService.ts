@@ -161,6 +161,11 @@ export const mockServiceChargeService: IServiceChargeService = {
     return ok(record);
   },
 
+  async listByApprovalStatus(statuses) {
+    await delay();
+    return ok(loadAll().filter(r => r.approvalStatus !== undefined && statuses.includes(r.approvalStatus)));
+  },
+
   async getChargesForCase(caseId) {
     await delay();
     return ok(loadAll().filter(r => r.caseId === caseId));

@@ -92,7 +92,7 @@ const ConfigSearchBar: React.FC<ConfigSearchBarProps> = ({ onNavigate }) => {
   return (
     <div className="ps-config-search" ref={wrapRef}>
       <span className="ps-config-search__icon">&#128269;</span>
-      <input data-config-nav
+      <input data-dirty-ignore data-config-nav
         className="ps-config-search__input"
         type="text"
         placeholder={t('configSearchIndex.searchPlaceholder')}

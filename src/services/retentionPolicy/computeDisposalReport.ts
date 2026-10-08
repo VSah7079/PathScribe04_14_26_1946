@@ -49,6 +49,7 @@
 // here rather than silently guessed at.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { userService } from '@/services';
 import { getCurrentJurisdiction } from './RetentionPolicy';
@@ -214,7 +215,7 @@ export async function computeDisposalReport(filters: DisposalReportFilters): Pro
 
         for (let i = 0; i < (block.stains ?? []).length; i++) {
           const slide = block.stains![i];
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(slide, i);
           const slideDisplayId = slideIdentifier(fullAccession, specimen.label, block.label, level);
           const slideRow = await evaluateDisposedItem(
             c, [specimen.label], [specimen.specimenDictionaryEntryId], 'slide',
@@ -234,7 +235,7 @@ export async function computeDisposalReport(filters: DisposalReportFilters): Pro
 
         for (let i = 0; i < (decant.stains ?? []).length; i++) {
           const slide = decant.stains![i];
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(slide, i);
           const decantSlideDisplayId = decantSlideIdentifier(fullAccession, specimen.label, decant.label, level);
           const decantSlideRow = await evaluateDisposedItem(
             c, [specimen.label], [specimen.specimenDictionaryEntryId], 'slide',
@@ -263,7 +264,7 @@ export async function computeDisposalReport(filters: DisposalReportFilters): Pro
 
       for (let i = 0; i < (matrixBlock.slides ?? []).length; i++) {
         const slide = matrixBlock.slides[i];
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const matrixSlideDisplayId = matrixSlideIdentifier(fullAccession, matrixBlock.label, level);
         const matrixSlideRow = await evaluateDisposedItem(
           c, participantLabels, participantCategoryIds, 'slide',

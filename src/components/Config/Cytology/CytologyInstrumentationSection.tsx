@@ -43,6 +43,7 @@ import { mockFacilityService } from '../../../services/facilities/mockFacilitySe
 import type { CytologyInstrumentationModality } from '../../../services/cytology/ICytologyInstrumentationService';
 import type { FacilityCytologyInstrumentationOverride } from '../../../services/cytology/IFacilityCytologyInstrumentationOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const MODALITY_LABEL_KEY: Record<CytologyInstrumentationModality, string> = {
   wsi: 'cytologyInstrumentationSection.modality.wsi',
@@ -59,6 +60,8 @@ const CytologyInstrumentationSection: React.FC = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [facilityOverrides, setFacilityOverrides] = useState<FacilityCytologyInstrumentationOverride[]>([]);
   const [addingFacility, setAddingFacility] = useState<{ facilityId: string; modality: CytologyInstrumentationModality } | null>(null);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(draft !== saved || addingFacility !== null);
 
   const refresh = () => {
     mockCytologyInstrumentationService.get().then(r => { if (r.ok) { setDraft(r.data.modality); setSaved(r.data.modality); } });

@@ -27,6 +27,9 @@ import {
   type CaseSearchFlagInfo, type CaseSearchMatchContext, type CaseSearchReferenceData,
 } from './caseSearchMatching';
 
+/** Batch 437: exportRows' refusal. */
+export const CASE_SEARCH_EXPORT_NOT_PERMITTED = 'EXPORT_NOT_PERMITTED';
+
 export interface CaseSearchDependencies {
   /** Every case the signed-in user may see, with access rules already applied. */
   loadAccessibleCases(): Promise<ServiceResult<Case[]>>;
@@ -39,6 +42,8 @@ export interface CaseSearchDependencies {
   loadReferenceData(): Promise<CaseSearchReferenceData>;
   /** Records an export in the audit trail (fire and forget). */
   auditExport(entry: { rowCount: number; total: number }): void;
+  /** Batch 437 (PS-357): the export's capability, search:case-results:export. */
+  authorizeExport?(): Promise<{ allowed: boolean }>;
   /** Batch 372: told which criteria a search used (names only, never values). */
   auditSearch?(entry: { fieldsUsed: string[]; total: number }): void;
   now?: () => Date;
@@ -97,6 +102,8 @@ export function createCaseSearchService(deps: CaseSearchDependencies): ICaseSear
     },
 
     async exportRows(request) {
+      // Batch 437 (PS-357): a refusal makes no rows.
+      if (deps.authorizeExport && !(await deps.authorizeExport()).allowed) return { ok: false, error: CASE_SEARCH_EXPORT_NOT_PERMITTED };
       const res = await run(request);
       if (res.ok === false) return res;
       const { cases, reference } = res.data;

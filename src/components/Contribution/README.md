@@ -326,6 +326,10 @@ charts (recharts) and date-range filtering.
 
 `AIContributionTab`, `MentorTab` and `ProductivityTab` take their service or constant from `@/services`, and are off the deployment baseline.
 
+## Batch 437
+
+Printing the productivity report is audited (PS-282).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -90,9 +90,9 @@ either system needs.
   `printMolecularSpecimenLabels`, `printMolecularPlateLabel`,
   `printMolecularRackLabel`, `printMolecularDeckLocationLabel`), none
   touched yet.
-- **Resize is numeric only** (inspector fields), not a real drag-handle
-  resize on the canvas — a real, honest simplification for this first
-  working slice, not a claim that resize is fully built.
+- *Superseded (Batch 460):* resize used to be numeric only. The selected
+  field now has drag handles, and every move, resize and typed number is
+  kept inside the label (`labelFieldGeometry.ts`).
 
 ## Real verification, per direct follow-up ("add a way for users to output their label so they can verify that they will work")
 
@@ -146,12 +146,9 @@ Per direct guidance's own broader architectural strategy:
 
 - Real integration with actual print output (see the nine real call sites
   named above).
-- Drag-handle resize on the canvas.
-- Physical-bounds validation in the canvas itself (PS-245's own acceptance
-  criteria named this — a field can currently be dragged/sized past the
-  label's own real edge with no warning; the same class of real bug PS-240
-  through PS-249 spent five rounds fixing in the requisition ZPL's own
-  hardcoded rendering could reappear here with no guardrail yet).
+- *Superseded (Batch 460):* drag-handle resize and physical-bounds
+  validation (PS-245's acceptance criteria) were listed here; both are
+  built (see the Batch 460 section below).
 
 24 tests (`ILabelLayoutService.test.ts`, `mockLabelLayoutService.test.ts`), plus
 9 more (`buildLabelLayoutZpl.test.ts`), 33 total.
@@ -162,3 +159,19 @@ Full suite clean: 303/306 files, 2936/2945 tests, 0 failures.
 - `mockLabelLayoutService`: `save`, `reset` need `config:label-layouts:manage`.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 460 — Drag-resize and the label's edge (PS-245)
+
+**`labelFieldGeometry.ts`** (pure, with tests) holds the canvas maths that used to sit in the page:
+- `PX_PER_MM`, `pxToMm` / `mmToPx`.
+- `moveFieldTo`, `resizeFieldFromHandle` (8 handles; the opposite edge stays put), `applyInspectorEdit` (a typed size grows from where the field is; a typed position keeps its size).
+- `clampFieldToLabel`: at least 2 mm and at most the label size, rounded to 0.1 mm, with the font no taller than the field.
+- `fieldsOutOfBounds`.
+
+**The save:** `mockLabelLayoutService.save` refuses a layout with a field past the label's edge (`fieldsOutOfBounds`). The page shows its own message.
+
+**User Guide**
+- Click a field to select it, then drag any of its eight handles to resize it.
+- Fields can't be dragged, dropped, resized or typed past the label's edge.
+- A layout saved before this check that has a field outside is outlined in red, with a warning and a "Fit to label" button.
+- A moved field keeps the spot where it was grabbed.

@@ -33,7 +33,7 @@
 
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
-import type { Jurisdiction } from '@/types/systemConfig';
+import { JURISDICTION_LABELS, type Jurisdiction } from '@/types/systemConfig';
 
 /** Real, verbatim from PS-108's own "Supported Nations & Regulatory Basis"
  *  table — one primary citation per real Jurisdiction enum value this app
@@ -142,4 +142,31 @@ export function resolveQaEvidenceBinder(
     totalRecords: inWindow.length,
     entries,
   };
+}
+
+/**
+ * PS-121 (Batch 451, moved out of InspectionModeTab.tsx): the binder's CSV
+ * export rows, one per QA record across every activity type. Exported data,
+ * so column headers and cell values stay literal English whatever the UI
+ * language (the jurisdiction names come from the English JURISDICTION_LABELS
+ * for that reason). Case and specimen identifiers only, no patient name, MRN
+ * or DOB (the QA export convention, components/QualityAssurance/qaReportUtils.ts).
+ */
+export function qaEvidenceBinderCsvRows(report: QaEvidenceBinderReport): Record<string, string | number>[] {
+  return report.entries.flatMap(entry => entry.records.map(r => ({
+    'Activity Type': entry.activityTypeName,
+    'Regulatory Basis': entry.regulatoryBasis.map(b => `${JURISDICTION_LABELS[b.jurisdiction]}: ${b.clause}`).join(' | ') || 'No jurisdiction configured',
+    Case: r.caseId,
+    Specimen: r.specimenId ?? 'Case-level',
+    Outcome: r.outcome === 'concordant' ? 'Concordant' : 'Discordant',
+    Severity: r.severity ?? '—',
+    'Meets CAPA Threshold': r.meetsCapaThreshold ? 'Yes' : 'No',
+    Recorded: r.recordedAt,
+    Reviewer: r.recordedByName,
+  })));
+}
+
+/** PS-121: the binder export's file name, e.g. qa-inspection-evidence-binder-24mo-2026-09-20.csv. */
+export function qaEvidenceBinderExportFilename(windowMonths: number, now: Date = new Date()): string {
+  return `qa-inspection-evidence-binder-${windowMonths}mo-${now.toISOString().slice(0, 10)}.csv`;
 }

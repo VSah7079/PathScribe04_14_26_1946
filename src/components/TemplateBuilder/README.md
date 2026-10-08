@@ -136,6 +136,14 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 The preview opens at the lab's page size and margins (Document Style). Changing them in the preview is for that preview only.
 
+## Batch 437
+
+Filter boxes are marked `data-dirty-ignore` (PS-128).
+
+## Batch 449
+
+`ReportTemplatesSection.tsx` opens the inner tab named in `?section=` (`templates`, `parts`, `routing`; the list is `TEMPLATE_SECTIONS`), so Configuration search lands on it.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

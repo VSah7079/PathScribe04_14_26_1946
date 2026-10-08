@@ -886,6 +886,10 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-cytology-slideover        { width: 420px; }
 .ps-cytology-slideover-title  { font-size: 15px; font-weight: 700; color: #e5e7eb; margin: 0; }
 .ps-cytology-slideover-body   { flex: 1; overflow-y: auto; padding: 18px 20px; }
+/* Batch 460: the billing review drawer (the panel fills it and scrolls itself). */
+.ps-cytology-slideover--wide { width: min(980px, 94vw); }
+.ps-cytology-slideover--wide .ps-cytology-slideover-body { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.ps-cytology-slideover--wide .ps-cytology-slideover-body > .ps-billing-review-panel { flex: 1; min-height: 0; }
 
 /* Drawer header */
 .ps-drawer-header {
@@ -1232,7 +1236,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-input-dark::placeholder { color: #94a3b8; }
 /* The option-list colours for ps-input-dark selects are now the
    app-wide select rules near the top of this file (PS-62). */
-
 
 /* Form field label */
 .ps-label {
@@ -1820,7 +1823,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   pointer-events: all;
 }
 
-
 /* Sidebar footer */
 .ps-msg-sidebar-footer {
   padding: 14px 18px 34px;
@@ -1884,7 +1886,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border: 1px solid rgba(51, 65, 85, 0.9);
   border-radius: 16px 16px 16px 2px;
 }
-
 
 /* Send button */
 .ps-send-btn {
@@ -2006,7 +2007,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 
 /* Flex spacer */
 .ps-spacer { flex: 1; }
-
 
 /* ============================================================
    14. TOGGLE SWITCH
@@ -2641,7 +2641,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border: 1px solid rgba(8, 145, 178, 0.25);
 }
 
-
 /* =========================================================
    WORKLIST TABLE
    ─────────────────────────────────────────────────────────
@@ -2871,7 +2870,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 /* Text label removed — dot + tooltip saves column space.    */
 /* Colours: draft=slate, in-progress=teal, finalized=green,  */
 /*          pending-review=amber, amended=purple, closed=grey */
-
 
 /* ── Worklist internal scroll ───────────────────────────── */
 .wl-scroll {
@@ -3720,9 +3718,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   50%       { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
 }
 
-
 /* Search bar in sidebar */
-
 
 .ps-msg-search {
   display: flex;
@@ -3880,14 +3876,12 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   flex-shrink: 0;
 }
 
-
 /* Real dead code, found and removed: the Compose Modal section
  * (ps-msg-modal-*, ps-msg-form-row, ps-msg-form-label — 9 classes)
  * had zero live usage anywhere in src/ (grep-confirmed, cross-checked
  * with two independent search methods after the first gave a
  * misleadingly high false-positive count). Same removal convention
  * as this file's other dead-code notes. */
-
 
 /* ── Edit mode (multi-select) ─────────────────────────────────────────────── */
 .ps-msg-row-checkbox {
@@ -3908,7 +3902,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   background: var(--msg-accent);
   border-color: var(--msg-accent);
 }
-
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 680px) {
@@ -4785,7 +4778,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   background: linear-gradient(90deg, #dc2626, #ef4444);
 }
 
-
 /* ============================================================
    WORKLIST TABLE — all missing wl-* classes
    ============================================================ */
@@ -4915,6 +4907,19 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .wl-td-physician{ padding: 9px 10px; font-size: 12px; color: #94a3b8; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
 .wl-td-status   { padding: 9px 10px; font-size: 11px; font-weight: 600; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
 .wl-td-empty    { padding: 48px 24px; text-align: center; color: #94a3b8; font-size: 13px; }
+
+/* Batch 477 (PS-261 follow-up, Module 5): autopsy worklist badges —
+   case authority, ancillary hold, PAD/FAD signed, SLA tooltip. Shown
+   both under the table row's Status dot and in the card layout. */
+.wl-autopsy-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; white-space: normal; }
+.wl-autopsy-badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 600; white-space: nowrap; flex-shrink: 0; max-width: 100%;
+  background: color-mix(in srgb, var(--ps-hue, #64748b) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ps-hue, #64748b) 32%, transparent);
+  color: var(--ps-hue, #b0bec5);
+}
+.wl-autopsy-badge--sla { cursor: help; }
 .wl-td-dot      { width: 28px; padding: 0; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .wl-td-dot-inner{ width: 4px; height: 100%; min-height: 36px; border-radius: 0 2px 2px 0; }
 
@@ -5072,7 +5077,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
    <td> that already provides padding — batch 31, replacing 3 identical
    style={{ padding: 0 }} occurrences. */
 .wl-card-divider--flush { padding: 0; }
-
 
 /* ============================================================
    SYNOPTIC SIDEBAR — all ps-syn-* classes
@@ -5459,7 +5463,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 }
 .ps-btn-amber:disabled { opacity: 0.4; cursor: default; }
 
-
 /* ============================================================
    COMPUTATIONAL FLAG ICON — worklist circular test-panel icon
    ps-comp-flag-btn: the clickable button (border/bg set inline)
@@ -5520,9 +5523,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   50%       { opacity: 0.75; box-shadow: 0 0 0 1.5px #0d1829, 0 0 8px 2px rgba(186,117,23,0.4); }
 }
 
-
 /* Computational Order Modal comp-order-* classes removed — see ComputationalPanel.tsx's deletion. */
-
 
 /* ============================================================
    CONFIG PAGE BUTTON SYSTEM — consistent across all Config tabs
@@ -5707,7 +5708,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size:     13px;
 }
 .registry-search-input:focus { border-color: #38bdf8; }
-
 
 /* ============================================================
    CONFIGURATION — shared button classes used across all config tabs
@@ -5913,6 +5913,12 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .mb-well-btn--filled   { background: color-mix(in srgb, var(--ps-hue) 19%, transparent); border-color: var(--ps-hue); color: var(--ps-hue); }
 .mb-well-btn--selected { border: 2px solid #fff; }
 .mb-well-btn--readonly { cursor: default; }
+/* Batch 467b: a well holding an in-house molecular order (a corner dot), and a saved plate's well facts. */
+.mb-well-btn--order { position: relative; }
+.mb-well-btn--order::after { content: ''; position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; border-radius: 50%; background: var(--ps-hue, currentColor); }
+.mb-well-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 8px; font-size: 13px; }
+.mb-well-facts dt { opacity: 0.7; }
+.mb-well-facts dd { margin: 0; }
 .mb-legend-row { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; font-size: 11px; }
 .mb-legend-item { display: flex; align-items: center; gap: 5px; }
 .mb-legend-swatch { width: 10px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--ps-hue) 19%, transparent); border: 1px solid var(--ps-hue); }
@@ -5947,22 +5953,18 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   font-size:     12px;
   cursor:        grab;
 }
-/* Real, per this same follow-up — width/height are genuinely dynamic
-   (computed from the real, selected label type's own physical mm
-   dimensions), so they remain inline; every static property lives
-   here. */
+/* The canvas size comes from the label type's mm dimensions, set as
+   --canvas-w / --canvas-h (Batch 367; superseded the inline sizes this
+   comment used to describe). */
 .ps-designer-canvas {
   position:   relative;
   background: #fff;
   border:     1px solid #374151;
   margin:     0 auto;
 }
-/* Real, per this same follow-up — left/top/width/height/fontSize are
-   genuinely dynamic (computed per-field from its own real, saved
-   position/size), so they remain inline; the selected/unselected
-   border+background are a real, discrete two-state toggle, handled
-   with a real modifier class instead, matching the
-   `.ps-rack-position--selected` pattern above. */
+/* A field's position, size and font come from its saved mm values, set as
+   --field-x/-y/-w/-h/-font (Batch 367; superseded the inline values this
+   comment used to describe). Selected is a modifier class. */
 .ps-designer-field {
   position:      absolute;
   color:         #000;
@@ -5973,7 +5975,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border:        1px dashed #94a3b8;
   background:    transparent;
 }
-.ps-designer-field--selected { border: 2px solid #38bdf8; background: #38bdf822; }
+.ps-designer-field--selected { border: 2px solid #38bdf8; background: color-mix(in srgb, #38bdf8 13%, transparent); }
 .ps-designer-field-barcode-fill { width: 100%; height: 100%; }
 .ps-designer-barcode-error { font-size: 10px; color: #ef4444; }
 .ps-designer-zpl-textarea { min-height: 220px; font-family: monospace; font-size: 12px; }
@@ -6058,7 +6060,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   margin-top:    4px;
   font-weight:   500;
 }
-
 
 /* ============================================================
    CONFIGURATION — CSS custom properties
@@ -6219,7 +6220,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   color:       var(--ps-conf-text-3);
   line-height: 1.6;
 }
-
 
 /* ============================================================
    TEMPLATE LIST TAB — tmpl-* classes
@@ -6467,7 +6467,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border-top: 1px solid rgba(255,255,255,0.07);
 }
 
-
 /* ============================================================
    APP SHELL — ps-app-root, ps-thread-body
    ============================================================ */
@@ -6554,6 +6553,16 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   line-height: 1.5;
   margin-top: 4px;
 }
+
+/* Batch 458 (PS-71): the Edit Conflict dialog's View changes list. */
+.ps-conflict-changes { margin: 12px 0 4px; text-align: left; }
+.ps-conflict-changes-title { font-size: 12px; font-weight: 600; color: var(--ps-text-muted); margin-bottom: 6px; }
+.ps-conflict-changes-empty { font-size: 12px; color: var(--ps-text-muted); margin: 0; }
+.ps-conflict-changes-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ps-conflict-changes-table th { text-align: left; font-weight: 600; color: var(--ps-text-muted); padding: 4px 6px; border-bottom: 1px solid color-mix(in srgb, var(--ps-text-muted) 30%, transparent); }
+.ps-conflict-changes-table td { padding: 4px 6px; border-bottom: 1px solid color-mix(in srgb, var(--ps-text-muted) 15%, transparent); }
+.ps-conflict-changes-replaced { color: #fbbf24; }
+.ps-conflict-changes-kept { color: var(--ps-text-muted); }
 
 /* ============================================================
    CONFIG PAGE INPUTS & TABLE ELEMENTS — ps-conf-*
@@ -6747,7 +6756,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 
 /* Flag Config Page comp-source-radio* classes removed — the Data
    source type selector they styled was removed from FlagConfigPage.tsx. */
-
 
 /* ============================================================
    REPORT PREVIEW MODAL — ps-rp-*
@@ -8137,7 +8145,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   white-space: nowrap;
 }
 
-
 /* ============================================================
    QUALITY TAB — ps-quality-* / ps-tat-client-* / ps-tat-trend-*
    ============================================================ */
@@ -8153,9 +8160,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-quality-summary-tile__value-row { display:flex; align-items:baseline; gap:4px; }
 .ps-quality-summary-tile__value  { font-size:26px; font-weight:800; }
 .ps-quality-summary-tile__unit   { font-size:12px; color:#64748b; }
-.ps-quality-summary-tile__period { font-size:11px; color:#94a3b8; margin-top:4px; } /* was #475569, ~2.54:1, badly failing WCAG AA */
-
-/* ── Section navigation bar ─────────────────────────────────── */
+.ps-quality-summary-tile__period { font-size:11px; color:#94a3b8; margin-top:4px; } /* ── Section navigation bar ─────────────────────────────────── */
 .ps-quality-nav           { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px; gap:12px; flex-wrap:wrap; }
 .ps-quality-nav__left     { display:flex; gap:4px; flex-wrap:wrap; }
 .ps-quality-nav__right    { display:flex; gap:4px; }
@@ -9087,7 +9092,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-cpa-specimen-list            { max-height: 160px; margin-top: 8px; }
 .ps-cpa-specimen-label           { display: block; }
 
-
 /* ── RvuCodeMapSection.tsx — batch 69 additions ────────────────────────────────
    25 style={{}} spots. Reused .ps-billingdict__info-badge (batch 62) exactly
    for the Component Type tooltip badge - identical properties. Three pairs of
@@ -9117,7 +9121,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-rvu-preview-scroll           { max-height: 240px; overflow-y: auto; }
 .ps-rvu-preview-actions          { display: flex; gap: 8px; margin-top: 12px; }
 
-
 /* ── SpecimenCategoriesSection.tsx — batch 70 additions ────────────────────────
    10 style={{}} spots. Four were exact matches for existing classes and
    reused directly rather than duplicated: .ps-participationtypes__modal-hint,
@@ -9133,7 +9136,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-speccat-retention-row        { color: #94a3b8; }
 .ps-speccat-retention-row--below { color: #f87171; }
 
-
 /* ── DepartmentsSection.tsx — batch 71 additions ───────────────────────────────
    11 style={{}} spots. This screen shares the exact same retention-override/
    below-floor-modal layout as SpecimenCategoriesSection.tsx (batch 70) - all
@@ -9141,7 +9143,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
    directly, exact matches, no duplication. Only 1 spot was unique to this
    file (the "Define a Case Mask" link). */
 .ps-dept-casemask-link           { color: #38bdf8; text-decoration: underline; cursor: pointer; font-size: 13px; }
-
 
 /* ── CytologyCategoriesSection.tsx — batch 76 additions ────────────────────────
    54 style={{}} spots, none reused from elsewhere — this screen had no
@@ -9199,7 +9200,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-cytcat-livesync              { display: flex; align-items: center; gap: 6px; }
 .ps-cytcat-livesync-dot          { color: #22c55e; }
 
-
 /* ── FlagConfigPage.tsx — batch 77 additions ────────────────────────────────
    40 style={{}} spots, on top of already-heavy reuse of shared ps-conf-* and
    fm-* classes. The Toggle sub-component's on/off track, knob, and label
@@ -9248,7 +9248,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-flagcfg-footer-actions       { display: flex; gap: 10px; }
 .ps-flagcfg-confirm-text         { margin: 0; color: #94a3b8; font-size: 14px; }
 
-
 /* ── PatientMatchReviewSection.tsx — batch 58 additions ───────────────────────
    Reused several exact matches: .ps-routingrules__title/--subtitle (page
    heading), .ps-snomed-severity__add-card (record-card border/radius/padding
@@ -9274,7 +9273,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-patientmatch__candidate-name { font-size: 13px; color: #e5e7eb; }
 .ps-patientmatch__candidate-meta { font-size: 11px; color: #6b7280; }
 .ps-patientmatch__actions-row    { display: flex; justify-content: flex-end; }
-
 
 /* ── Quality tab font size uplift ──────────────────────────────────────────── */
 .ps-quality-th            { font-size: 12px !important; }
@@ -9420,7 +9418,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 @media (max-width: 1100px) {
   .ps-syn-sidebar.expanded { width: 200px; min-width: 160px; }
 }
-
 
 /* ============================================================
    RESPONSIVE — Phase 2 (tablet + compact desktop)
@@ -9651,7 +9648,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   h2 { font-size: clamp(18px, 4vw, 24px); }
 }
 
-
 /* i18n/cleanup sweep — batch 160: the "AI Behavior Settings" block that
    used to live here (.ps-ai-loading, -settings, -settings-card, -row,
    -threshold, -actions, -saved-msg, plus .ps-conf-row--last) was dead
@@ -9663,7 +9659,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
    block's 14px/600). Removed rather than reused; AITab's real
    conversion (same batch) added its own `.ps-aitab` family below
    instead, matching its current inline values exactly. */
-
 
 /* ── OtherRoleComment ────────────────────────────────────────────────────── */
 .ps-other-comment                        { margin-bottom: 10px; border-radius: 8px; overflow: hidden; }
@@ -9706,7 +9701,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-hist-card__specimen         { font-size: 12px; color: #9ca3af; margin-top: 2px; }
 .ps-hist-card__diagnosis        { font-size: 12px; color: #cbd5e1; margin-top: 4px; }
 .ps-hist-card__open-btn         { margin-top: 6px; border: none; background: rgba(37,99,235,0.15); color: #93c5fd; border-radius: 999px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
-
 
 /* ── ProtocolChangeModal ─────────────────────────────────────────────────── */
 .ps-proto-modal               { width: min(640px, 94vw); padding: 0; gap: 0; }
@@ -9827,7 +9821,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-prefin-pw-error           { font-size: 11px; color: #ef4444; margin: 3px 0 0; }
 .ps-prefin-nowrap             { white-space: nowrap; }
 
-
 /* ── AiReviewModal ────────────────────────────────────────────────────────── */
 .ps-ai-review-modal         { width: min(600px, 94vw); padding: 0; gap: 0; }
 .ps-overlay--ai-review      { z-index: 9500; }
@@ -9911,7 +9904,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-btn-danger  { padding: 9px 20px; border-radius: 8px; border: none; background: #dc2626; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
 .ps-btn-green   { padding: 12px; border-radius: 8px; border: none; background: #047857; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; transition: background 0.15s; }
 .ps-btn-green:hover { background: #065f46; }
-
 
 /* ── ClientEditorModal ───────────────────────────────────────────────────── */
 .ps-client-editor-shell         { background: #0f172a; border-radius: 16px; width: 600px; max-width: 92vw; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
@@ -9997,7 +9989,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .cem-footer-save            { padding: 9px 24px; border-radius: 8px; border: none; background: #0891b2; color: #ffffff; font-weight: 700; font-size: 13px; cursor: pointer; transition: background 0.2s; }
 .cem-footer-save--saved     { background: #10b981; }
 
-
 /* ── CSS Custom Property colour system ───────────────────────────────────────
    PathScribe uses data-driven colours for flags, delegation types, synoptic
    sections, etc. Instead of 3–5 inline style props per element, components
@@ -10081,329 +10072,25 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-case-team-header  { padding: 18px 24px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .ps-case-team-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
 
-
 /* ── Governing Bodies Section ─────────────────────────────────────────────── */
-.ps-gov-shell                { display: flex; flex-direction: column; gap: 0; }
-.ps-gov-header               { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
-.ps-gov-header-text          { flex: 1; }
-.ps-gov-title                { font-size: 15px; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
-.ps-gov-subtitle             { font-size: 12px; color: #64748b; margin: 0; line-height: 1.6; }
-.ps-gov-subtitle-warn        { color: #f87171; }
-.ps-gov-header-actions       { display: flex; gap: 8px; flex-shrink: 0; margin-left: 16px; align-items: center; }
-.ps-gov-unsaved              { font-size: 11px; color: #f59e0b; font-weight: 500; }
-.ps-gov-callout              { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; margin-bottom: 20px; border-radius: 9px; background: rgba(139,92,246,0.07); border: 1px solid rgba(139,92,246,0.2); }
-.ps-gov-callout-icon         { font-size: 18px; flex-shrink: 0; }
-.ps-gov-callout-title        { font-size: 13px; font-weight: 600; color: #a78bfa; margin-bottom: 3px; }
-.ps-gov-callout-body         { font-size: 12px; color: #64748b; line-height: 1.6; }
-.ps-gov-col-headers          { display: grid; grid-template-columns: 1fr 140px 100px 100px 68px; gap: 0 16px; padding: 0 16px 8px; margin-bottom: 4px; }
-.ps-gov-col-header           { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; }
-.ps-gov-divider-row          { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
-.ps-gov-divider-label        { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; }
-.ps-gov-divider-line         { flex: 1; height: 1px; background: #1e293b; }
-.ps-gov-custom-note          { font-size: 11px; color: #94a3b8; margin-bottom: 10px; line-height: 1.6; }
-.ps-gov-row                  { display: grid; grid-template-columns: 1fr 140px 100px 100px 68px; gap: 0 16px; align-items: center; padding: 12px 16px; margin-bottom: 6px; background: #1e293b; border-radius: 9px; border: 1px solid #334155; transition: all 0.15s; }
-.ps-gov-row--disabled        { opacity: 0.55; border-color: #1e293b; }
-.ps-gov-row-name             { font-size: 12px; font-weight: 800; color: #f1f5f9; font-family: monospace; }
-.ps-gov-row-fullname         { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-.ps-gov-row-link             { color: #94a3b8; margin-left: 6px; text-decoration: none; transition: color 0.12s; }
-.ps-gov-row-link:hover       { color: #0891B2; }
-.ps-gov-row-region           { font-size: 11px; color: #64748b; }
-.ps-gov-row-actions          { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
-.ps-gov-remove-btn           { background: none; border: none; color: #94a3b8; font-size: 14px; cursor: pointer; padding: 2px; line-height: 1; transition: color 0.12s; }
-.ps-gov-remove-btn:hover     { color: #f87171; }
-.ps-gov-custom-badge         { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
 
 /* ── Governing Body Modal ─────────────────────────────────────────────────── */
-.ps-body-modal-overlay       { position: fixed; inset: 0; z-index: 50000; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding-top: 88px; padding-bottom: 32px; box-sizing: border-box; overflow-y: auto; }
-.ps-body-modal               { width: 440px; background: #1e293b; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden; }
-.ps-body-modal-header        { padding: 20px 24px 16px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
-.ps-body-modal-title         { font-size: 15px; font-weight: 700; color: #f1f5f9; }
-.ps-body-modal-subtitle      { font-size: 12px; color: #64748b; margin-top: 2px; }
-.ps-body-modal-close         { background: none; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
-.ps-body-modal-body          { padding: 18px 24px 22px; display: flex; flex-direction: column; gap: 14px; }
-.ps-body-modal-field         { display: flex; flex-direction: column; }
-.ps-body-modal-field-row     { display: flex; gap: 12px; }
 .ps-body-modal-field-row > * { flex: 1; }
-.ps-body-modal-label         { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 6px; }
-.ps-body-modal-label-note    { font-weight: 400; text-transform: none; color: #94a3b8; margin-left: 6px; }
-.ps-body-modal-label-req     { color: #f87171; }
-.ps-body-modal-input         { width: 100%; padding: 9px 12px; background: rgba(255,255,255,0.04); border: 1px solid #334155; border-radius: 7px; font-size: 13px; color: #f1f5f9; outline: none; box-sizing: border-box; font-family: inherit; transition: border-color 0.15s; }
 .ps-body-modal-input:focus   { border-color: #0891B2; }
-.ps-body-modal-input--error  { border-color: #f87171 !important; }
-.ps-body-modal-input--mono   { font-family: monospace; }
-.ps-body-modal-input--disabled { opacity: 0.5; cursor: not-allowed; }
-.ps-body-modal-error         { font-size: 11px; color: #f87171; margin-top: 4px; }
-.ps-body-modal-note          { padding: 10px 13px; border-radius: 7px; background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); font-size: 11px; color: #94a3b8; line-height: 1.6; }
-.ps-body-modal-note-label    { color: #fbbf24; font-weight: 600; }
-.ps-body-modal-footer        { display: flex; gap: 10px; justify-content: flex-end; }
-
-/* ── Governing Bodies Section ─────────────────────────────────────────────── */
-.ps-gov-shell                { display: flex; flex-direction: column; gap: 0; }
-.ps-gov-header               { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
-.ps-gov-header-text          { flex: 1; }
-.ps-gov-title                { font-size: 15px; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
-.ps-gov-subtitle             { font-size: 12px; color: #64748b; margin: 0; line-height: 1.6; }
-.ps-gov-subtitle-warn        { color: #f87171; }
-.ps-gov-header-actions       { display: flex; gap: 8px; flex-shrink: 0; margin-left: 16px; align-items: center; }
-.ps-gov-unsaved              { font-size: 11px; color: #f59e0b; font-weight: 500; }
-.ps-gov-callout              { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; margin-bottom: 20px; border-radius: 9px; background: rgba(139,92,246,0.07); border: 1px solid rgba(139,92,246,0.2); }
-.ps-gov-callout-icon         { font-size: 18px; flex-shrink: 0; }
-.ps-gov-callout-title        { font-size: 13px; font-weight: 600; color: #a78bfa; margin-bottom: 3px; }
-.ps-gov-callout-body         { font-size: 12px; color: #64748b; line-height: 1.6; }
-.ps-gov-col-headers          { display: grid; grid-template-columns: 1fr 140px 100px 100px 68px; gap: 0 16px; padding: 0 16px 8px; margin-bottom: 4px; }
-.ps-gov-col-header           { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; }
-.ps-gov-divider-row          { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
-.ps-gov-divider-label        { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; }
-.ps-gov-divider-line         { flex: 1; height: 1px; background: #1e293b; }
-.ps-gov-custom-note          { font-size: 11px; color: #94a3b8; margin-bottom: 10px; line-height: 1.6; }
-.ps-gov-row                  { display: grid; grid-template-columns: 1fr 140px 100px 100px 68px; gap: 0 16px; align-items: center; padding: 12px 16px; margin-bottom: 6px; background: #1e293b; border-radius: 9px; border: 1px solid #334155; transition: all 0.15s; }
-.ps-gov-row--disabled        { opacity: 0.55; border-color: #1e293b; }
-.ps-gov-row-name             { font-size: 12px; font-weight: 800; color: #f1f5f9; font-family: monospace; }
-.ps-gov-row-fullname         { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-.ps-gov-row-link             { color: #94a3b8; margin-left: 6px; text-decoration: none; transition: color 0.12s; }
-.ps-gov-row-link:hover       { color: #0891B2; }
-.ps-gov-row-region           { font-size: 11px; color: #64748b; }
-.ps-gov-row-actions          { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
-.ps-gov-remove-btn           { background: none; border: none; color: #94a3b8; font-size: 14px; cursor: pointer; padding: 2px; line-height: 1; transition: color 0.12s; }
-.ps-gov-remove-btn:hover     { color: #f87171; }
-.ps-gov-custom-badge         { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
-
-/* ── Governing Body Modal ─────────────────────────────────────────────────── */
-.ps-body-modal-overlay       { position: fixed; inset: 0; z-index: 50000; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding-top: 88px; padding-bottom: 32px; box-sizing: border-box; overflow-y: auto; }
-.ps-body-modal               { width: 440px; background: #1e293b; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden; }
-.ps-body-modal-header        { padding: 20px 24px 16px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
-.ps-body-modal-title         { font-size: 15px; font-weight: 700; color: #f1f5f9; }
-.ps-body-modal-subtitle      { font-size: 12px; color: #64748b; margin-top: 2px; }
-.ps-body-modal-close         { background: none; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
-.ps-body-modal-body          { padding: 18px 24px 22px; display: flex; flex-direction: column; gap: 14px; }
-.ps-body-modal-field         { display: flex; flex-direction: column; }
-.ps-body-modal-field-row     { display: flex; gap: 12px; }
-.ps-body-modal-field-row > * { flex: 1; }
-.ps-body-modal-label         { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 6px; }
-.ps-body-modal-label-note    { font-weight: 400; text-transform: none; color: #94a3b8; margin-left: 6px; }
-.ps-body-modal-label-req     { color: #f87171; }
-.ps-body-modal-input         { width: 100%; padding: 9px 12px; background: rgba(255,255,255,0.04); border: 1px solid #334155; border-radius: 7px; font-size: 13px; color: #f1f5f9; outline: none; box-sizing: border-box; font-family: inherit; transition: border-color 0.15s; }
-.ps-body-modal-input:focus   { border-color: #0891B2; }
-.ps-body-modal-input--error  { border-color: #f87171 !important; }
-.ps-body-modal-input--mono   { font-family: monospace; }
-.ps-body-modal-input--disabled { opacity: 0.5; cursor: not-allowed; }
-.ps-body-modal-error         { font-size: 11px; color: #f87171; margin-top: 4px; }
-.ps-body-modal-note          { padding: 10px 13px; border-radius: 7px; background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); font-size: 11px; color: #94a3b8; line-height: 1.6; }
-.ps-body-modal-note-label    { color: #fbbf24; font-weight: 600; }
-.ps-body-modal-footer        { display: flex; gap: 10px; justify-content: flex-end; }
-
-/* ── Identifier Formats Section ───────────────────────────────────────────── */
-.ps-idf-shell                { display: flex; flex-direction: column; gap: 16px; }
-.ps-idf-header               { display: flex; align-items: flex-start; justify-content: space-between; }
-.ps-idf-header-text          { flex: 1; }
-.ps-idf-title                { font-size: 15px; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
-.ps-idf-subtitle             { font-size: 12px; color: #64748b; margin: 0; line-height: 1.6; }
-.ps-idf-header-actions       { display: flex; gap: 8px; align-items: center; flex-shrink: 0; margin-left: 16px; }
-.ps-idf-unsaved              { font-size: 11px; color: #f59e0b; font-weight: 500; }
 
 /* Locale info card */
-.ps-idf-locale-card          { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 9px; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
-.ps-idf-locale-row           { display: flex; align-items: center; gap: 12px; }
-.ps-idf-locale-label         { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; min-width: 140px; }
-.ps-idf-locale-value         { font-size: 12px; color: #94a3b8; font-family: monospace; }
 
 /* Detection note */
-.ps-idf-detection-note       { font-size: 11px; color: #94a3b8; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 7px; border: 1px solid rgba(255,255,255,0.06); line-height: 1.6; }
-.ps-idf-detection-label      { font-weight: 600; color: #64748b; }
 
 /* LIS filter */
-.ps-idf-lis-row              { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ps-idf-lis-label            { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
-.ps-idf-lis-options          { display: flex; gap: 6px; flex-wrap: wrap; }
-.ps-idf-lis-btn              { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; transition: all 0.15s; font-family: inherit; }
 .ps-idf-lis-btn:hover        { color: #94a3b8; border-color: rgba(255,255,255,0.2); }
-.ps-idf-lis-btn--active      { background: rgba(138,180,248,0.12); border-color: rgba(138,180,248,0.3); color: #8AB4F8; }
-
-/* Section grouping */
-.ps-idf-section              { display: flex; flex-direction: column; gap: 8px; }
-.ps-idf-section-header       { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.ps-idf-section-title        { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; }
-.ps-idf-section-desc         { font-size: 11px; color: #94a3b8; line-height: 1.5; }
-.ps-idf-list                 { display: flex; flex-direction: column; gap: 8px; }
-.ps-idf-empty                { font-size: 12px; color: #94a3b8; padding: 8px 0; }
-
-/* Format row */
-.ps-idf-row                  { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s; }
-.ps-idf-row--disabled        { opacity: 0.5; }
-.ps-idf-row-header           { display: flex; align-items: center; justify-content: space-between; }
-.ps-idf-row-left             { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ps-idf-row-right            { flex-shrink: 0; margin-left: 12px; }
-.ps-idf-row-label            { font-size: 13px; font-weight: 600; color: #e2e8f0; }
-.ps-idf-kind-badge           { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
-.ps-idf-tier-badge           { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
-.ps-idf-tier-badge--1        { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
-.ps-idf-tier-badge--2        { background: rgba(100,116,139,0.12); color: #64748b; border: 1px solid rgba(100,116,139,0.2); }
-.ps-idf-nav-badge            { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
-.ps-idf-barcode-badge        { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
-.ps-idf-barcode-badge--2d    { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
-.ps-idf-desc                 { font-size: 12px; color: #64748b; line-height: 1.6; }
-.ps-idf-barcodes             { display: flex; gap: 6px; flex-wrap: wrap; }
-.ps-idf-barcode-chip         { font-size: 10px; color: #94a3b8; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
 
 /* Test field */
-.ps-idf-test-row             { display: flex; flex-direction: column; gap: 6px; }
-.ps-idf-test-field           { position: relative; }
-.ps-idf-test-input           { width: 100%; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-family: monospace; background: rgba(15,23,42,0.7); border: 1px solid rgba(148,163,184,0.2); color: #f1f5f9; outline: none; box-sizing: border-box; transition: border-color 0.15s; }
 .ps-idf-test-input:focus     { border-color: rgba(138,180,248,0.4); }
-.ps-idf-test-input--pass     { border-color: rgba(16,185,129,0.4); }
-.ps-idf-test-input--fail     { border-color: rgba(239,68,68,0.4); }
-.ps-idf-test-result          { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; }
-.ps-idf-test-result--pass    { color: #10b981; }
-.ps-idf-test-result--fail    { color: #ef4444; }
-.ps-idf-test-banner          { font-size: 11px; padding: 6px 10px; border-radius: 6px; }
-.ps-idf-test-banner--pass    { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; }
-.ps-idf-test-banner--fail    { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
 
 /* Regex toggle */
-.ps-idf-regex-toggle         { display: flex; align-items: center; gap: 12px; }
-.ps-idf-regex-btn            { background: none; border: none; font-size: 11px; color: #94a3b8; cursor: pointer; padding: 0; font-family: inherit; transition: color 0.12s; text-decoration: underline; text-underline-offset: 2px; }
 .ps-idf-regex-btn:hover      { color: #64748b; }
-.ps-idf-schema-hint          { font-size: 10px; color: #94a3b8; font-family: monospace; }
-.ps-idf-regex-display        { display: flex; align-items: baseline; gap: 12px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; }
 .ps-idf-regex-display code   { font-size: 11px; color: #7dd3fc; font-family: monospace; }
-.ps-idf-regex-note           { font-size: 10px; color: #94a3b8; }
-
-/* Enhancement note */
-.ps-idf-enhance-note         { font-size: 11px; color: #94a3b8; padding: 10px 14px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); line-height: 1.6; }
-
-/* ── Governing Bodies Section ─────────────────────────────────────────────── */
-.ps-gov-shell                { display: flex; flex-direction: column; gap: 0; }
-.ps-gov-header               { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
-.ps-gov-header-text          { flex: 1; }
-.ps-gov-title                { font-size: 15px; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
-.ps-gov-subtitle             { font-size: 12px; color: #64748b; margin: 0; line-height: 1.6; }
-.ps-gov-subtitle-warn        { color: #f87171; }
-.ps-gov-header-actions       { display: flex; gap: 8px; flex-shrink: 0; margin-left: 16px; align-items: center; }
-.ps-gov-unsaved              { font-size: 11px; color: #f59e0b; font-weight: 500; }
-.ps-gov-callout              { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; margin-bottom: 20px; border-radius: 9px; background: rgba(139,92,246,0.07); border: 1px solid rgba(139,92,246,0.2); }
-.ps-gov-callout-icon         { font-size: 18px; flex-shrink: 0; }
-.ps-gov-callout-title        { font-size: 13px; font-weight: 600; color: #a78bfa; margin-bottom: 3px; }
-.ps-gov-callout-body         { font-size: 12px; color: #64748b; line-height: 1.6; }
-.ps-gov-col-headers          { display: grid; grid-template-columns: 1fr 140px 100px 100px 68px; gap: 0 16px; padding: 0 16px 8px; margin-bottom: 4px; }
-.ps-gov-col-header           { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; }
-.ps-gov-divider-row          { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
-.ps-gov-divider-label        { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; }
-.ps-gov-divider-line         { flex: 1; height: 1px; background: #1e293b; }
-.ps-gov-custom-note          { font-size: 11px; color: #94a3b8; margin-bottom: 10px; line-height: 1.6; }
-.ps-gov-row                  { display: grid; grid-template-columns: 1fr 140px 100px 100px 68px; gap: 0 16px; align-items: center; padding: 12px 16px; margin-bottom: 6px; background: #1e293b; border-radius: 9px; border: 1px solid #334155; transition: all 0.15s; }
-.ps-gov-row--disabled        { opacity: 0.55; border-color: #1e293b; }
-.ps-gov-row-name             { font-size: 12px; font-weight: 800; color: #f1f5f9; font-family: monospace; }
-.ps-gov-row-fullname         { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-.ps-gov-row-link             { color: #94a3b8; margin-left: 6px; text-decoration: none; transition: color 0.12s; }
-.ps-gov-row-link:hover       { color: #0891B2; }
-.ps-gov-row-region           { font-size: 11px; color: #64748b; }
-.ps-gov-row-actions          { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
-.ps-gov-remove-btn           { background: none; border: none; color: #94a3b8; font-size: 14px; cursor: pointer; padding: 2px; line-height: 1; transition: color 0.12s; }
-.ps-gov-remove-btn:hover     { color: #f87171; }
-.ps-gov-custom-badge         { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
-
-/* ── Governing Body Modal ─────────────────────────────────────────────────── */
-.ps-body-modal-overlay       { position: fixed; inset: 0; z-index: 50000; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding-top: 88px; padding-bottom: 32px; box-sizing: border-box; overflow-y: auto; }
-.ps-body-modal               { width: 440px; background: #1e293b; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden; }
-.ps-body-modal-header        { padding: 20px 24px 16px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
-.ps-body-modal-title         { font-size: 15px; font-weight: 700; color: #f1f5f9; }
-.ps-body-modal-subtitle      { font-size: 12px; color: #64748b; margin-top: 2px; }
-.ps-body-modal-close         { background: none; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
-.ps-body-modal-body          { padding: 18px 24px 22px; display: flex; flex-direction: column; gap: 14px; }
-.ps-body-modal-field         { display: flex; flex-direction: column; }
-.ps-body-modal-field-row     { display: flex; gap: 12px; }
-.ps-body-modal-field-row > * { flex: 1; }
-.ps-body-modal-label         { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 6px; }
-.ps-body-modal-label-note    { font-weight: 400; text-transform: none; color: #94a3b8; margin-left: 6px; }
-.ps-body-modal-label-req     { color: #f87171; }
-.ps-body-modal-input         { width: 100%; padding: 9px 12px; background: rgba(255,255,255,0.04); border: 1px solid #334155; border-radius: 7px; font-size: 13px; color: #f1f5f9; outline: none; box-sizing: border-box; font-family: inherit; transition: border-color 0.15s; }
-.ps-body-modal-input:focus   { border-color: #0891B2; }
-.ps-body-modal-input--error  { border-color: #f87171 !important; }
-.ps-body-modal-input--mono   { font-family: monospace; }
-.ps-body-modal-input--disabled { opacity: 0.5; cursor: not-allowed; }
-.ps-body-modal-error         { font-size: 11px; color: #f87171; margin-top: 4px; }
-.ps-body-modal-note          { padding: 10px 13px; border-radius: 7px; background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); font-size: 11px; color: #94a3b8; line-height: 1.6; }
-.ps-body-modal-note-label    { color: #fbbf24; font-weight: 600; }
-.ps-body-modal-footer        { display: flex; gap: 10px; justify-content: flex-end; }
-
-/* ── Identifier Formats Section ───────────────────────────────────────────── */
-.ps-idf-shell                { display: flex; flex-direction: column; gap: 16px; }
-.ps-idf-header               { display: flex; align-items: flex-start; justify-content: space-between; }
-.ps-idf-header-text          { flex: 1; }
-.ps-idf-title                { font-size: 15px; font-weight: 700; color: #f1f5f9; margin: 0 0 4px; }
-.ps-idf-subtitle             { font-size: 12px; color: #64748b; margin: 0; line-height: 1.6; }
-.ps-idf-header-actions       { display: flex; gap: 8px; align-items: center; flex-shrink: 0; margin-left: 16px; }
-.ps-idf-unsaved              { font-size: 11px; color: #f59e0b; font-weight: 500; }
-
-/* Locale info card */
-.ps-idf-locale-card          { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 9px; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
-.ps-idf-locale-row           { display: flex; align-items: center; gap: 12px; }
-.ps-idf-locale-label         { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; min-width: 140px; }
-.ps-idf-locale-value         { font-size: 12px; color: #94a3b8; font-family: monospace; }
-
-/* Detection note */
-.ps-idf-detection-note       { font-size: 11px; color: #94a3b8; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 7px; border: 1px solid rgba(255,255,255,0.06); line-height: 1.6; }
-.ps-idf-detection-label      { font-weight: 600; color: #64748b; }
-
-/* LIS filter */
-.ps-idf-lis-row              { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ps-idf-lis-label            { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
-.ps-idf-lis-options          { display: flex; gap: 6px; flex-wrap: wrap; }
-.ps-idf-lis-btn              { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #64748b; transition: all 0.15s; font-family: inherit; }
-.ps-idf-lis-btn:hover        { color: #94a3b8; border-color: rgba(255,255,255,0.2); }
-.ps-idf-lis-btn--active      { background: rgba(138,180,248,0.12); border-color: rgba(138,180,248,0.3); color: #8AB4F8; }
-
-/* Section grouping */
-.ps-idf-section              { display: flex; flex-direction: column; gap: 8px; }
-.ps-idf-section-header       { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.ps-idf-section-title        { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; }
-.ps-idf-section-desc         { font-size: 11px; color: #94a3b8; line-height: 1.5; }
-.ps-idf-list                 { display: flex; flex-direction: column; gap: 8px; }
-.ps-idf-empty                { font-size: 12px; color: #94a3b8; padding: 8px 0; }
-
-/* Format row */
-.ps-idf-row                  { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s; }
-.ps-idf-row--disabled        { opacity: 0.5; }
-.ps-idf-row-header           { display: flex; align-items: center; justify-content: space-between; }
-.ps-idf-row-left             { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ps-idf-row-right            { flex-shrink: 0; margin-left: 12px; }
-.ps-idf-row-label            { font-size: 13px; font-weight: 600; color: #e2e8f0; }
-.ps-idf-kind-badge           { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
-.ps-idf-tier-badge           { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
-.ps-idf-tier-badge--1        { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
-.ps-idf-tier-badge--2        { background: rgba(100,116,139,0.12); color: #64748b; border: 1px solid rgba(100,116,139,0.2); }
-.ps-idf-nav-badge            { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
-.ps-idf-barcode-badge        { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
-.ps-idf-barcode-badge--2d    { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
-.ps-idf-desc                 { font-size: 12px; color: #64748b; line-height: 1.6; }
-.ps-idf-barcodes             { display: flex; gap: 6px; flex-wrap: wrap; }
-.ps-idf-barcode-chip         { font-size: 10px; color: #94a3b8; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
-
-/* Test field */
-.ps-idf-test-row             { display: flex; flex-direction: column; gap: 6px; }
-.ps-idf-test-field           { position: relative; }
-.ps-idf-test-input           { width: 100%; padding: 7px 10px; border-radius: 7px; font-size: 12px; font-family: monospace; background: rgba(15,23,42,0.7); border: 1px solid rgba(148,163,184,0.2); color: #f1f5f9; outline: none; box-sizing: border-box; transition: border-color 0.15s; }
-.ps-idf-test-input:focus     { border-color: rgba(138,180,248,0.4); }
-.ps-idf-test-input--pass     { border-color: rgba(16,185,129,0.4); }
-.ps-idf-test-input--fail     { border-color: rgba(239,68,68,0.4); }
-.ps-idf-test-result          { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; }
-.ps-idf-test-result--pass    { color: #10b981; }
-.ps-idf-test-result--fail    { color: #ef4444; }
-.ps-idf-test-banner          { font-size: 11px; padding: 6px 10px; border-radius: 6px; }
-.ps-idf-test-banner--pass    { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; }
-.ps-idf-test-banner--fail    { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
-
-/* Regex toggle */
-.ps-idf-regex-toggle         { display: flex; align-items: center; gap: 12px; }
-.ps-idf-regex-btn            { background: none; border: none; font-size: 11px; color: #94a3b8; cursor: pointer; padding: 0; font-family: inherit; transition: color 0.12s; text-decoration: underline; text-underline-offset: 2px; }
-.ps-idf-regex-btn:hover      { color: #64748b; }
-.ps-idf-schema-hint          { font-size: 10px; color: #94a3b8; font-family: monospace; }
-.ps-idf-regex-display        { display: flex; align-items: baseline; gap: 12px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; }
-.ps-idf-regex-display code   { font-size: 11px; color: #7dd3fc; font-family: monospace; }
-.ps-idf-regex-note           { font-size: 10px; color: #94a3b8; }
-
-/* Enhancement note */
-.ps-idf-enhance-note         { font-size: 11px; color: #94a3b8; padding: 10px 14px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); line-height: 1.6; }
 
 /* .ps-section-add-btn — preserved standalone; was compound-selectored
    with .ps-sub-add-btn (removed below, now redundant with the later,
@@ -10429,25 +10116,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
    ─────────────────────────────────────────────────────────────────────────── */
 
 /* overlay — already exists as .ps-overlay, this adds the modalStyles variant */
-.ps-ms-overlay {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9000;
-  /* Real fix, per direct report: modals "seem a little elevated
-   * which seems to hide the top border." Confirmed live at a
-   * realistic laptop-height viewport before this fix. Same
-   * NavBar-clearing convention already proven in .ps-conf-backdrop. */
-  padding-top: 88px;
-  padding-bottom: 32px;
-  box-sizing: border-box;
-  overflow-y: auto;
-}
 
 .ps-ms-modal {
   background-color: #111827;
@@ -10470,50 +10138,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   margin-bottom: 4px;
 }
 
-.ps-ms-subheader {
-  font-size: 13px;
-  color: #9ca3af;
-  margin-bottom: 4px;
-}
-
-.ps-ms-field-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
-}
-
-.ps-ms-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #9ca3af;
-  margin-bottom: 4px;
-  display: block;
-}
-
-.ps-ms-input,
-.ps-ms-textarea,
-.ps-ms-select {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #374151;
-  background-color: #020617;
-  color: #e5e7eb;
-  font-size: 14px;
-  outline: none;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.ps-ms-textarea {
-  min-height: 90px;
-  resize: vertical;
-}
-
-.ps-ms-select {
-  appearance: none;
-}
-
 .ps-ms-footer {
   display: flex;
   justify-content: flex-end;
@@ -10521,38 +10145,10 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   margin-top: 8px;
 }
 
-.ps-ms-btn-cancel {
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: 1px solid #4b5563;
-  background-color: #111827;
-  color: #e5e7eb;
-  font-size: 14px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
-}
 .ps-ms-btn-cancel:hover {
   background-color: #1f2937;
   border-color: #94a3b8;
 }
-
-.ps-ms-btn-apply {
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: none;
-  background-color: #2563eb;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background-color 0.15s;
-}
-.ps-ms-btn-apply:hover {
-  background-color: #1d4ed8;
-}
-
 
 /* ── Session additions — new classes only ─────────────────────────────────── */
 
@@ -11191,12 +10787,10 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   background-color: #1d4ed8;
 }
 
-
 .ps-conf-select:focus {
   border-color: #0891B2;
   outline: none;
 }
-
 
 /* ── TypeModal specific classes ─────────────────────────────────────────────── */
 .ps-type-cap-list          { display: flex; flex-direction: column; gap: 4px; }
@@ -11301,7 +10895,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .fm-section-label--sm            { margin-bottom: 4px; }
 .fm-section-label--mb6           { margin-bottom: 6px; }
 .fm-section-label--mb8           { margin-bottom: 8px; }
-.fm-del-type-list                { display: flex; flex-direction: column; gap: 4px; padding: 0 8px; }
 
 /* Delegation type button */
 .fm-del-type-btn                 { display: flex; flex-direction: column; text-align: left; cursor: pointer; gap: 6px; padding: 10px 12px; align-items: flex-start; width: 100%; background: transparent; border: 1px solid transparent; border-radius: 8px; transition: background 0.12s, border-color 0.12s; }
@@ -11334,9 +10927,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .fm-del-note__input:focus        { border-color: rgba(8,145,178,0.5); }
 
 /* Panel 3 — Search */
-.fm-del-search-wrap              { padding: 12px 14px 10px; }
 .fm-del-search-inner             { position: relative; }
-.fm-del-search-icon              { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; display: flex; }
 
 /* Column header row */
 .fm-del-col-header               { display: grid; grid-template-columns: 80px 1fr 28px; gap: 12px; padding: 4px 12px 6px; border-bottom: 1px solid rgba(30,41,59,0.9); flex-shrink: 0; }
@@ -11356,7 +10947,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 
 /* Footer actions */
 .fm-footer__actions              { display: flex; gap: 8px; }
-
 
 /* ── Modal utility modifiers ──────────────────────────────────────────────── */
 .ps-modal-dark--sm             { width: min(460px, 90vw); }
@@ -11470,7 +11060,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-casebar-dropdown__col-header      { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
 .ps-casebar-dropdown__scroll          { overflow-y: auto; flex: 1; }
 .ps-casebar-dropdown__row             { display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 10px 14px; background: transparent; border: none; cursor: pointer; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.1s; }
-.ps-casebar-dropdown__row:last-child  { border-bottom: none; }
 .ps-casebar-dropdown__row:hover       { background: rgba(255,255,255,0.05); }
 .ps-casebar-dropdown__main            { display: flex; align-items: center; gap: 10px; width: 100%; }
 .ps-casebar-dropdown__meta            { display: flex; align-items: center; gap: 8px; width: 100%; }
@@ -11514,7 +11103,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 .ps-casebar-dropdown__row:last-child  { border-bottom: none; }
 .ps-casebar-dropdown__grid            { display: grid; grid-template-columns: 180px 1fr 90px 60px 80px 90px; gap: 0 8px; align-items: center; width: 100%; }
 .ps-casebar-dropdown__sub             { display: flex; align-items: center; gap: 8px; padding-top: 2px; }
-
 
 /* ── CaseSearchBar — results modal ──────────────────────────────────────── */
 .ps-casebar-modal-overlay             { position: fixed; inset: 0; background: rgba(4,10,18,0.82); backdrop-filter: blur(6px); z-index: 9000; display: flex; align-items: flex-start; justify-content: center; padding-top: 80px; }
@@ -12189,16 +11777,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
    Add after existing ps-orch3-* block in pathscribe.css
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Shell: full-height flex row ─────────────────────────────────────────── */
-.ps-orch4-shell {
-  display: flex;
-  flex-direction: row;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  background: #0f172a;
-}
-
 /* ── Section Navigator ───────────────────────────────────────────────────── */
 .ps-orch4-nav {
   width: 220px;
@@ -12209,27 +11787,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   background: #0d1829;
   border-right: 1px solid rgba(148, 163, 184, 0.1);
   overflow: hidden;
-}
-
-.ps-orch4-nav-header {
-  padding: 14px 16px 8px;
-  flex-shrink: 0;
-}
-
-.ps-orch4-nav-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #0891b2;
-  text-transform: uppercase;
-}
-
-.ps-orch4-nav-legend {
-  padding: 4px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex-shrink: 0;
 }
 
 .ps-orch4-nav-legend-item {
@@ -12247,29 +11804,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   flex-shrink: 0;
 }
 
-.ps-orch4-nav-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 8px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.ps-orch4-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-  margin-bottom: 2px;
-}
-
 .ps-orch4-nav-item:hover {
   background: rgba(8, 145, 178, 0.08);
 }
@@ -12278,18 +11812,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   background: rgba(8, 145, 178, 0.15);
   border-left: 3px solid #0891b2;
   padding-left: 7px;
-}
-
-.ps-orch4-nav-num {
-  font-size: 10px;
-  font-weight: 700;
-  color: #94a3b8;
-  min-width: 16px;
-  flex-shrink: 0;
-}
-
-.ps-orch4-nav-item--active .ps-orch4-nav-num {
-  color: #38bdf8;
 }
 
 .ps-orch4-nav-label {
@@ -12302,29 +11824,11 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   line-height: 1.3;
 }
 
-.ps-orch4-nav-item--active .ps-orch4-nav-label {
-  color: #e2e8f0;
-  font-weight: 600;
-}
-
-.ps-orch4-nav-dot {
-  font-size: 12px;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
 .ps-orch4-nav-lock {
   font-size: 9px;
   opacity: 0.5;
   flex-shrink: 0;
   line-height: 1;
-}
-
-.ps-orch4-nav-streaming {
-  font-size: 11px;
-  color: #0891b2;
-  animation: ps-orch4-spin 1s linear infinite;
-  flex-shrink: 0;
 }
 
 @keyframes ps-orch4-spin {
@@ -12341,46 +11845,16 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   gap: 4px;
 }
 
-.ps-orch4-nav-gen-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #38bdf8;
-}
-
-.ps-orch4-nav-gen-time {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
 .ps-orch4-nav-edited {
   font-size: 10px;
   color: #a78bfa;
 }
 
 /* ── Pulse dot ───────────────────────────────────────────────────────────── */
-.ps-orch4-dot-pulse {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #38bdf8;
-  animation: ps-orch4-pulse 1.2s ease-in-out infinite;
-}
 
 @keyframes ps-orch4-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.4; transform: scale(0.75); }
-}
-
-/* ── Main column (toolbar + canvas) ─────────────────────────────────────── */
-.ps-orch4-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
 }
 
 /* ── Sticky Toolbar ──────────────────────────────────────────────────────── */
@@ -12424,9 +11898,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   cursor: pointer;
 }
 
-.ps-orch4-tb-font { width: 110px; }
-.ps-orch4-tb-size { width: 52px; }
-
 .ps-orch4-tb-divider {
   width: 1px;
   height: 20px;
@@ -12452,27 +11923,12 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border-color: rgba(148, 163, 184, 0.2);
 }
 
-.ps-orch4-tb-btn--italic  { font-style: italic; }
-.ps-orch4-tb-btn--underline { text-decoration: underline; }
-
 .ps-orch4-tb-regen {
   color: #38bdf8;
   border-color: rgba(56, 189, 248, 0.25);
 }
 
 /* Track changes toggle */
-.ps-orch4-tb-track {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.ps-orch4-tb-track-label {
-  font-size: 11px;
-  color: #64748b;
-  user-select: none;
-}
 
 .ps-orch4-tb-track-toggle {
   display: inline-block;
@@ -12483,41 +11939,7 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   position: relative;
 }
 
-.ps-orch4-tb-track-toggle::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  background: #38bdf8;
-  border-radius: 50%;
-  transition: left 0.15s;
-}
-
 /* Template indicator in toolbar */
-.ps-orch4-tb-tmpl {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-}
-
-.ps-orch4-tb-tmpl-name {
-  font-size: 11px;
-  color: #e2e8f0;
-  font-weight: 600;
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ps-orch4-tb-tmpl-by {
-  font-size: 10px;
-  color: #94a3b8;
-  white-space: nowrap;
-}
 
 .ps-orch4-tb-tmpl-change {
   padding: 2px 8px;
@@ -12545,8 +11967,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   cursor: pointer;
 }
 
-.ps-orch4-tmpl-change-wrap { position: relative; }
-
 .ps-orch4-tmpl-picker {
   position: absolute;
   top: calc(100% + 6px);
@@ -12560,15 +11980,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   padding: 8px 0;
 }
 
-.ps-orch4-tmpl-picker-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 4px 14px 8px;
-}
-
 .ps-orch4-tmpl-picker-warn {
   font-size: 11px;
   color: #fbbf24;
@@ -12579,29 +11990,9 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   margin-bottom: 4px;
 }
 
-.ps-orch4-tmpl-option {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
 .ps-orch4-tmpl-option:hover { background: rgba(8, 145, 178, 0.1); }
 
 .ps-orch4-tmpl-option--active { background: rgba(8, 145, 178, 0.15); }
-
-.ps-orch4-tmpl-option-name {
-  font-size: 12px;
-  color: #e2e8f0;
-  font-weight: 500;
-}
-
-.ps-orch4-tmpl-option-meta {
-  font-size: 10px;
-  color: #64748b;
-}
 
 /* Action buttons (Print / Export PDF) */
 .ps-orch4-tb-action {
@@ -12646,18 +12037,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   flex-wrap: wrap;
 }
 
-.ps-orch4-pending-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fbbf24;
-}
-
-.ps-orch4-pending-btns {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
 .ps-orch4-btn-replace {
   padding: 4px 12px;
   background: rgba(8, 145, 178, 0.15);
@@ -12679,14 +12058,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   cursor: pointer;
 }
 
-/* ── Scrollable canvas ───────────────────────────────────────────────────── */
-.ps-orch4-canvas-wrap {
-  flex: 1;
-  overflow-y: auto;
-  background: #1a2332;
-  padding: 28px 32px 60px;
-}
-
 /* White page */
 .ps-orch4-page {
   max-width: 860px;
@@ -12698,12 +12069,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
 }
 
 /* ── Protected header ────────────────────────────────────────────────────── */
-.ps-orch4-protected-header {
-  padding: 20px 32px 16px;
-  background: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
-  position: relative;
-}
 
 .ps-orch4-protected-badge {
   display: inline-flex;
@@ -12719,53 +12084,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 4px;
   padding: 2px 8px;
-}
-
-.ps-orch4-lock-icon {
-  font-size: 10px;
-  opacity: 0.7;
-}
-
-.ps-orch4-ph-accession {
-  font-size: 22px;
-  font-weight: 700;
-  color: #e2e8f0;
-  letter-spacing: -0.01em;
-  margin-bottom: 10px;
-  font-family: 'Georgia', serif;
-}
-
-.ps-orch4-ph-grid {
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 4px 12px;
-  max-width: 420px;
-}
-
-.ps-orch4-ph-key {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding-top: 1px;
-}
-
-.ps-orch4-ph-val {
-  font-size: 13px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.ps-orch4-ph-rule {
-  height: 1px;
-  background: #e2e8f0;
-  margin-top: 14px;
-}
-
-/* ── Editor body ─────────────────────────────────────────────────────────── */
-.ps-orch4-editor-body {
-  padding: 24px 32px 40px;
 }
 
 /* Section anchor headings rendered inside the editor */
@@ -12787,24 +12105,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   z-index: 5;
   background: #ffffff;
 }
-
-/* ── Empty state ─────────────────────────────────────────────────────────── */
-.ps-orch4-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 48px 32px;
-  text-align: center;
-  gap: 12px;
-}
-
-.ps-orch4-empty-icon  { font-size: 40px; }
-.ps-orch4-empty-title { font-size: 18px; font-weight: 700; color: #e2e8f0; }
-.ps-orch4-empty-body  { font-size: 14px; color: #94a3b8; max-width: 380px; line-height: 1.6; }
-.ps-orch4-empty-hint  { font-size: 12px; color: #94a3b8; max-width: 340px; line-height: 1.5; }
-.ps-orch4-empty-cta   { color: #38bdf8; font-weight: 600; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    Print styles — report body only, no chrome
@@ -12848,7 +12148,6 @@ select optgroup { color: var(--ps-conf-text-2); font-weight: 600; }
   /* Anchors print as static headers */
   .ps-orch4-anchor { position: static !important; }
 }
-
 
 /* Empty state */
 .ps-orch3-empty             { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
@@ -13267,6 +12566,8 @@ h3[data-section-id]:first-child {
 .ps-rd-part-empty                { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 13px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 12px; }
 .ps-rd-part-list                 { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
 .ps-rd-part-item                 { display: flex; align-items: flex-start; gap: 14px; padding: 12px 16px; border-radius: 10px; cursor: pointer; transition: all 0.12s; }
+/* Batch 441: a pathologist type on the Cytotechnologist role. */
+.ps-rd-part-item--locked { opacity: 0.45; cursor: not-allowed; }
 .ps-rd-part-item--on             { background: rgba(138,180,248,0.06); border: 1px solid rgba(138,180,248,0.2); }
 .ps-rd-part-item--off            { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
 .ps-rd-part-item--off:hover      { background: rgba(255,255,255,0.04); }
@@ -14292,7 +13593,6 @@ h3[data-section-id]:first-child {
   color: #38bdf8 !important;
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════════════
    ps-orch4 — Institution header + Page footer (template-driven parts)
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -15147,7 +14447,6 @@ h3[data-section-id]:first-child {
   caret-color: #38bdf8;
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════════════
    Navigator required field indicator + keyboard shortcut tooltip
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -15905,10 +15204,6 @@ h3[data-section-id]:first-child {
   background: rgba(8,145,178,0.15);
   border-color: rgba(8,145,178,0.4);
   color: #38bdf8;
-}
-
-.ps-ose-ruler-row {
-  min-height: 0;
 }
 
 .ps-ose-ruler-row:not(:empty) {
@@ -17954,13 +17249,6 @@ h3[data-section-id]:first-child {
   padding: 24px;
 }
 
-.ps-conf-loading {
-  padding: 40px 24px;
-  text-align: center;
-  color: var(--ps-conf-text-3);
-  font-size: 14px;
-}
-
 .ps-conf-section-subtitle--spaced {
   margin-bottom: 24px;
 }
@@ -18521,6 +17809,119 @@ h3[data-section-id]:first-child {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Margins & Ink Applications (Batch 481, Structured Inking Module 2,
+   PS-359 follow-up) — same dark palette/spacing as the rest of
+   ps-grossing-* above; the inline add-row reuses ps-conf-input/select/btn.
+   ───────────────────────────────────────────────────────────────────────── */
+.ps-grossing-margins-section {
+  margin-bottom: 16px;
+}
+
+.ps-grossing-margins-header {
+  margin-bottom: 8px;
+}
+
+.ps-grossing-margins-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.ps-grossing-margins-empty {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.ps-grossing-margins-group {
+  margin-bottom: 10px;
+}
+
+.ps-grossing-margins-group-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.ps-grossing-margin-row {
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.ps-grossing-margin-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.ps-grossing-margin-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.ps-grossing-margin-detail {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ps-grossing-margin-status {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.ps-grossing-margin-status--pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.ps-grossing-margin-status--examined {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.ps-grossing-margin-ink-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ps-grossing-margin-ink-entry {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.ps-grossing-margin-examined-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ps-grossing-add-margin-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    Microtomy Workstation (PS-284) — real, per direct follow-up ("keep it
    consistent with GrossingScreenPage/SynopticReportPage") — same dark
    palette, spacing, and badge/table conventions as ps-grossing-* above,
@@ -18699,6 +18100,27 @@ h3[data-section-id]:first-child {
   max-height: 160px;
   overflow-y: auto;
 }
+
+/* Batch 460: billing at the bench (read-only list; full review in a wide dialog). */
+.ps-microtomy-billing-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 11px; max-height: 220px; overflow-y: auto; }
+.ps-microtomy-billing-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; color: #cbd5e1; }
+.ps-microtomy-billing-label { font-weight: 600; }
+.ps-microtomy-billing-codes { color: #e2e8f0; font-family: ui-monospace, monospace; text-align: right; }
+.ps-microtomy-billing-state { grid-column: 1 / -1; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ps-hue); }
+.ps-microtomy-billing-state--applied { --ps-hue: #10b981; }
+.ps-microtomy-billing-state--pending { --ps-hue: #f59e0b; }
+.ps-microtomy-billing-state--declined { --ps-hue: #94a3b8; }
+.ps-microtomy-billing-state--noCode { --ps-hue: #64748b; }
+.ps-microtomy-billing-empty { color: #64748b; }
+.ps-microtomy-billing-warning { font-size: 11px; color: #fbbf24; background: color-mix(in srgb, #f59e0b 12%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent); border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; }
+.ps-microtomy-billing-modal { width: min(980px, 94vw); height: min(760px, 88vh); display: flex; flex-direction: column; padding: 0; }
+.ps-microtomy-billing-modal .ps-batch-modal-header { display: flex; align-items: center; justify-content: space-between; }
+.ps-microtomy-billing-modal-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ps-microtomy-billing-modal-body > .ps-billing-review-panel { flex: 1; min-height: 0; }
+/* Batch 460: a matrix block's cores at the bench. */
+.ps-microtomy-matrix-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #cbd5e1; }
+.ps-microtomy-matrix-list strong { color: #e2e8f0; margin-right: 6px; }
+.ps-microtomy-save-error { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #fecaca; background: color-mix(in srgb, #ef4444 14%, transparent); border: 1px solid color-mix(in srgb, #ef4444 35%, transparent); }
 
 .ps-microtomy-slide-table {
   width: 100%;
@@ -21986,7 +21408,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   margin-top: 10px;
 }
 
-
 /* ── Protocol Dictionary editor: 2-column layout ──────────────────────────── */
 .ps-ms-modal--protocol {
   width: 1040px;
@@ -22482,6 +21903,9 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-lis-triage-banner { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: rgba(239,68,68,0.08); border: 2px solid #ef4444; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
 .ps-lis-triage-title { font-size: 14px; font-weight: 800; color: #ef4444; margin-bottom: 4px; }
 .ps-lis-triage-summary { font-size: 12px; color: #e2e8f0; margin: 0; }
+/* Batch 478: the gate-override button sits alongside the existing
+   "Complete Authorization" action, when a second one is offered. */
+.ps-lis-triage-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 /* ── Amended & Addenda Triage Tile ────────────────────────────────────── */
 .ps-triage-tile { background: rgba(239,68,68,0.06); border: 2px solid #ef4444; border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
@@ -22964,139 +22388,15 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 
 /* ── Case Team Modal (CaseTeamModal.tsx) — extracted from inline styles ──── */
 
-.ps-ctm-staff-card {
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-  transition: border-color 0.15s;
-}
-.ps-ctm-staff-card--dragging { background: rgba(138,180,248,0.15); border-color: rgba(138,180,248,0.4); transition: none; }
-.ps-ctm-staff-card--disabled { cursor: default; opacity: 0.4; }
-
-.ps-ctm-staff-row { display: flex; align-items: center; gap: 10px; }
-
-.ps-ctm-staff-avatar {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(138,180,248,0.15); border: 1.5px solid rgba(138,180,248,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #8AB4F8;
-}
-
-.ps-ctm-staff-info { flex: 1; min-width: 0; }
-.ps-ctm-staff-name { font-size: 13px; font-weight: 600; color: #e5e7eb; }
-.ps-ctm-staff-meta  { font-size: 11px; color: #cbd5e1; }
-
-.ps-ctm-staff-grip { font-size: 16px; color: #374151; flex-shrink: 0; cursor: grab; }
-
-.ps-ctm-staff-oncase-badge {
-  font-size: 10px; color: #22c55e; padding: 1px 6px; border-radius: 4px;
-  border: 1px solid rgba(34,197,94,0.2); background: rgba(34,197,94,0.06); flex-shrink: 0;
-}
-
-.ps-ctm-staff-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
 /* --badge-bg / --badge-border / --badge-color set inline per-item from the
    participation type's own color field — genuinely dynamic per-record data,
    pre-computed in the component using this app's existing hex+alpha-suffix
    convention (t.color + '18' etc, same as used throughout the rest of the
    app), not a new pattern introduced here. */
-.ps-ctm-staff-badge {
-  font-size: 10px; padding: 1px 6px; border-radius: 10px;
-  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
-}
 
 /* Drop zones — three live-preview eligibility states, set during drag */
-.ps-ctm-dropzone {
-  border-radius: 10px; padding: 12px; min-height: 80px;
-  transition: all 0.15s;
-  background: rgba(255,255,255,0.02);
-  border: 2px dashed rgba(255,255,255,0.08);
-}
-.ps-ctm-dropzone--role-ineligible { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.04); cursor: not-allowed; }
-.ps-ctm-dropzone--role-ineligible.ps-ctm-dropzone--hover { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.1); }
-.ps-ctm-dropzone--occupied { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.04); }
-.ps-ctm-dropzone--occupied.ps-ctm-dropzone--hover { border-style: solid; border-color: rgba(245,158,11,0.6); background: rgba(245,158,11,0.1); }
-.ps-ctm-dropzone--eligible { border-color: rgba(255,255,255,0.14); }
-.ps-ctm-dropzone--eligible.ps-ctm-dropzone--hover {
-  border-style: solid;
-  border-color: var(--badge-border-strong);
-  background: var(--badge-bg);
-}
-
-.ps-ctm-dropzone-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ps-ctm-dropzone-type-badge {
-  display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
-  background: var(--badge-bg); color: var(--badge-color); border: 1px solid var(--badge-border);
-}
-.ps-ctm-dropzone-label { font-size: 12px; font-weight: 600; color: #e5e7eb; flex: 1; }
-.ps-ctm-dropzone-single-badge { font-size: 9px; font-weight: 700; color: #64748b; letter-spacing: 0.04em; }
-.ps-ctm-dropzone-countersign-badge {
-  font-size: 10px; color: #f59e0b; padding: 1px 5px; border-radius: 4px;
-  border: 1px solid rgba(245,158,11,0.2); background: rgba(245,158,11,0.06);
-}
-.ps-ctm-dropzone-finalize-badge {
-  font-size: 10px; color: #22c55e; padding: 1px 5px; border-radius: 4px;
-  border: 1px solid rgba(34,197,94,0.2); background: rgba(34,197,94,0.06);
-}
-
-.ps-ctm-dropzone-preview { padding: 6px 0; text-align: center; font-size: 11px; font-style: italic; }
-.ps-ctm-dropzone-preview--role-ineligible { color: #f87171; }
-.ps-ctm-dropzone-preview--occupied { color: #fbbf24; }
-.ps-ctm-dropzone-preview--eligible { color: var(--badge-color); }
 
 .ps-ctm-dropzone-empty { padding: 8px 0; text-align: center; font-size: 11px; color: #94a3b8; font-style: italic; }
-
-.ps-ctm-participant-row {
-  display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px;
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-  transition: all 0.2s;
-}
-.ps-ctm-participant-row--removed { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); opacity: 0.7; }
-
-.ps-ctm-participant-avatar {
-  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(138,180,248,0.15); display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700; color: #8AB4F8;
-}
-
-.ps-ctm-participant-name { font-size: 12px; color: #e5e7eb; flex: 1; }
-.ps-ctm-participant-name--removed { color: #8a9db5; text-decoration: line-through; }
-.ps-ctm-participant-tag--you    { font-size: 10px; color: #8AB4F8; margin-left: 5px; }
-.ps-ctm-participant-tag--auto   { font-size: 10px; color: #22c55e; margin-left: 5px; }
-
-.ps-ctm-undo-btn {
-  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 5px;
-  border: 1px solid rgba(138,180,248,0.3); background: transparent; color: #8AB4F8; cursor: pointer;
-}
-
-.ps-ctm-delegate-btn {
-  padding: 3px 6px; border-radius: 5px; border: 1px solid rgba(245,158,11,0.3);
-  background: rgba(245,158,11,0.06); cursor: pointer; color: #f59e0b;
-  display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
-}
-
-.ps-ctm-remove-btn {
-  padding: 3px 6px; border-radius: 5px; border: none; background: transparent;
-  cursor: pointer; color: #94a3b8; display: flex; align-items: center; transition: color 0.15s;
-}
-.ps-ctm-remove-btn:hover { color: #f87171; }
-
-.ps-ctm-rejection-banner {
-  margin: 10px 20px 0; padding: 8px 14px; border-radius: 8px;
-  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-}
-.ps-ctm-rejection-banner-icon { font-size: 13px; }
-.ps-ctm-rejection-banner-text { font-size: 12px; color: #fca5a5; flex: 1; }
-.ps-ctm-rejection-banner-close { background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 13px; }
-
-.ps-ctm-drag-overlay {
-  padding: 10px 14px; background: #1e293b; border: 2px solid #8AB4F8; border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4); cursor: grabbing; opacity: 0.95;
-}
 
 /* ── Case Team Modal (CaseTeamModal.tsx) ──────────────────────────────────
    Layout, empty-states, primary button, and dirty-status styling all
@@ -26988,7 +26288,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-qa-disclaimer { font-size: 12px; color: #94a3b8; line-height: 1.6; margin-bottom: 14px; max-width: 900px; }
 .ps-qa-apac-summary { font-size: 13px; color: #e2e8f0; margin-bottom: 14px; }
 
-
 .ps-batch-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
 .ps-batch-lookup-input {
   flex: 1; background: var(--ps-surface); border: 1px solid var(--ps-border-bright);
@@ -27951,6 +27250,39 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-autopsy-gate-note { margin-top: 8px; font-size: 12px; color: #fcd34d; }
 .ps-autopsy-intake-footer { border-top: none; padding: 16px 0 0; }
 
+/* Batch 468 — consent-scope enforcement form controls. */
+.ps-autopsy-auth-checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 22px; font-size: 13px; color: #cbd5e1; }
+.ps-autopsy-custody-log { margin-top: 16px; }
+.ps-autopsy-custody-entry { padding: 10px 0; border-bottom: 1px solid var(--ps-conf-border, #1e293b); font-size: 13px; }
+.ps-autopsy-custody-entry:last-child { border-bottom: none; }
+.ps-autopsy-custody-entry__item { font-weight: 600; color: #e2e8f0; }
+.ps-autopsy-custody-entry__transfer { color: #94a3b8; }
+.ps-autopsy-custody-entry__meta { color: #64748b; font-size: 12px; margin-top: 2px; }
+/* Batch 475 (PS-261 follow-up): a custody entry tied to a toxicology specimen. */
+.ps-autopsy-custody-entry__tox-link { margin-left: 8px; padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(8,145,178,0.5); color: #67e8f9; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.ps-autopsy-tox-custody { margin-top: 6px; padding-left: 10px; border-left: 2px solid rgba(8,145,178,0.35); }
+.ps-autopsy-tox-custody__title { font-size: 11px; font-weight: 600; color: #67e8f9; text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 2px; }
+/* Batch 471 (PS-261 follow-up): a row's own action buttons (e.g. toxicology's
+   "Record Result" / "Cancel Order"), laid out side by side. */
+.ps-autopsy-custody-entry__actions { display: flex; gap: 8px; margin-top: 6px; }
+
+/* Batch 478 (PS-261 follow-up): per-organ gross-exam tags. Same shape as
+   the custody log above. */
+.ps-autopsy-organ-tag-log { margin-top: 16px; }
+.ps-autopsy-organ-tag-entry { padding: 10px 0; border-bottom: 1px solid var(--ps-conf-border, #1e293b); font-size: 13px; }
+.ps-autopsy-organ-tag-entry:last-child { border-bottom: none; }
+.ps-autopsy-organ-tag-entry__line { font-weight: 600; color: #e2e8f0; }
+.ps-autopsy-organ-tag-entry__finding { font-weight: 400; color: #94a3b8; }
+.ps-autopsy-organ-tag-entry__meta { color: #64748b; font-size: 12px; margin-top: 2px; }
+
+/* Batch 476 (PS-261 follow-up, Module 4): the unified case timeline. */
+.ps-autopsy-timeline-section { margin-top: 16px; }
+.ps-autopsy-timeline { margin-top: 10px; max-height: 320px; overflow-y: auto; }
+.ps-autopsy-timeline-entry { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--ps-conf-border, #1e293b); font-size: 13px; }
+.ps-autopsy-timeline-entry:last-child { border-bottom: none; }
+.ps-autopsy-timeline-entry__line { color: #e2e8f0; }
+.ps-autopsy-timeline-entry__meta { color: #64748b; font-size: 12px; white-space: nowrap; }
+
 /* Real, per direct guidance's own confirmed Digital Readiness spec
    \u00a73 \u2014 the Slide Detail Drawer, integrated into the same, existing
    worklist rather than a second, separate page. */
@@ -28192,14 +27524,17 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 
 .eca-field-hint      { font-size: 10px; color: #475569; margin-top: 2px; }
 .eca-scope-row       { display: flex; gap: 6px; }
-.eca-scope-btn       { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--eca-scope-border); background: var(--eca-scope-bg); color: var(--eca-scope-color); }
+.eca-scope-btn       { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #64748b; }
+/* Batch 439: the chosen scope is a class, not colours set from JSX. */
+.eca-scope-btn--active { border-color: rgba(16,185,129,0.6); background: rgba(16,185,129,0.15); color: #34d399; }
 .eca-slide-list      { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px; }
 .eca-slide-list-empty { font-size: 11px; color: #64748b; }
 .eca-slide-option    { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5e1; cursor: pointer; }
 .eca-expiry-note     { font-size: 11px; color: #64748b; }
 .eca-issue-error     { font-size: 12px; color: #ef4444; }
 .eca-form-actions    { display: flex; justify-content: flex-end; gap: 8px; }
-.eca-submit-btn      { padding: 8px 20px; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.5); border-radius: 8px; color: #34d399; font-size: 13px; font-weight: 600; cursor: var(--eca-submit-cursor); }
+.eca-submit-btn      { padding: 8px 20px; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.5); border-radius: 8px; color: #34d399; font-size: 13px; font-weight: 600; cursor: pointer; }
+.eca-submit-btn:disabled { cursor: default; }
 
 .eca-created-notice      { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); border-radius: 8px; }
 .eca-created-notice-text { font-size: 12px; color: #a7f3d0; }
@@ -29331,6 +28666,9 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
    Assign-now link — all three are this same amber billing-warning
    color, same file family as BillingReviewPanel.tsx's own coding UI. */
 .ps-signout-feedback-field { margin-bottom: 12px; }
+/* Batch 454: "follow-up specimen expected" at surgical sign-out. */
+.ps-signout-followup-field { margin-bottom: 12px; }
+.ps-signout-followup-label { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; }
 .ps-signout-coding-field { margin-bottom: 14px; text-align: left; }
 .ps-signout-coding-box { max-height: 160px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; }
 .ps-signout-coding-row { font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
@@ -30686,7 +30024,6 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   background: rgba(8,145,178,0.08); border: 1px solid rgba(8,145,178,0.2); border-radius: 8px;
   padding: 10px 14px; margin-bottom: 24px; font-size: 12px; color: #38bdf8;
 }
-.ps-aiprovider-devmode-flag { margin-left: 8px; color: #fbbf24; }
 .ps-aiprovider-demo-box {
   background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px;
   padding: 10px 14px; margin-bottom: 24px; font-size: 12px; color: #34d399;
@@ -30698,21 +30035,13 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
   font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;
   letter-spacing: 0.05em; margin-bottom: 6px; display: block;
 }
-.ps-aiprovider-label--warn { color: #f59e0b; }
 .ps-aiprovider-input {
   width: 100%; padding: 8px 12px; border-radius: 8px;
   border: 1px solid rgba(148,163,184,0.3);
   background: #0f172a; color: #e2e8f0; font-size: 13px;
   box-sizing: border-box;
 }
-.ps-aiprovider-input--warn { border-color: rgba(251,191,36,0.3); }
 .ps-aiprovider-hint { font-size: 11px; color: #475569; margin-top: 6px; }
-
-.ps-aiprovider-devkey-box {
-  margin-bottom: 20px; padding: 12px 14px;
-  background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px;
-}
-.ps-aiprovider-devkey-hint { font-size: 11px; color: #78350f; margin-top: 6px; }
 
 .ps-aiprovider-action-row { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
 .ps-aiprovider-test-btn { border: 1.5px solid rgba(148,163,184,0.3); color: #94a3b8; cursor: pointer; }
@@ -31467,6 +30796,12 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-modal-dark-body--warning { color: #f59e0b; }
 
 .ps-overlay--confirm { z-index: 9000; }
+/* Batch 437 (PS-128): the unsaved-changes and sign-out warnings show over an
+   open editor dialog (.ps-ms-overlay and friends sit at 9000). */
+.ps-overlay--above-dialogs { z-index: 9500; }
+/* Batch 437 (PS-282): the reason asked for when a report is reprinted. */
+.ps-report-print-prompt__reason { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
+.ps-report-print-prompt__textarea { min-height: 72px; resize: vertical; }
 .ps-modal-dark-title--confirm { display: block; margin-bottom: 10px; }
 .ps-modal-dark-body--confirm { margin-bottom: 24px; }
 
@@ -31585,6 +30920,8 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-cytoscreen-card--hpv-positive { border-color: #ef444433; }
 .ps-cytoscreen-role-value { font-size: 14px; font-weight: 700; color: #009E73; }
 .ps-cytoscreen-role-hint { font-size: 11px; color: #6b7280; margin-top: 2px; }
+/* Batch 440: you did the primary screen, so the QC rescreen is someone else's. */
+.ps-cytoscreen-role-warning { font-size: 12px; color: #b45309; background: #f59e0b18; border: 1px solid #f59e0b33; border-radius: 8px; padding: 6px 10px; margin-top: 8px; }
 
 .ps-cytoscreen-workload-banner { padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
 .ps-cytoscreen-workload-banner--exceeded { background: #ef444418; border: 1px solid #ef444433; }
@@ -31619,6 +30956,8 @@ button.ps-conf-toggle-track .ps-conf-toggle-thumb { display: block; }
 .ps-cytoscreen-lookback-card { padding: 12px 14px; background: #a855f718; border: 1px solid #a855f733; border-radius: 10px; margin-bottom: 14px; }
 .ps-cytoscreen-lookback-row { font-size: 12px; color: #d1d5db; padding: 4px 0; border-bottom: 1px solid #a855f733; display: flex; justify-content: space-between; gap: 8px; }
 .ps-cytoscreen-lookback-link { color: #a855f7; font-size: 11px; white-space: nowrap; }
+/* Batch 446: the case links are buttons now (they open the case by reference). */
+.ps-cytoscreen-link-button { background: none; border: none; padding: 0; cursor: pointer; font: inherit; font-size: 11px; text-decoration: underline; }
 
 .ps-cytoscreen-review-card { padding: 10px 12px; background: #0f0f0f; border-radius: 9px; margin-bottom: 8px; }
 .ps-cytoscreen-review-card--initial { border: 1px solid #009E7333; }
@@ -32585,6 +31924,19 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-embedding-cassette-module-dot--dim, .ps-microtomy-label-preview-barcode span.ps-microtomy-label-module--dim { opacity: 0.15; }
 .ps-designer-canvas { width: var(--canvas-w); height: var(--canvas-h); }
 .ps-designer-field { left: var(--field-x); top: var(--field-y); width: var(--field-w); height: var(--field-h); font-size: var(--field-font); }
+/* Batch 460 (PS-245): resize handles on the selected field, and fields past the label's edge. */
+.ps-designer-field--selected { overflow: visible; }
+.ps-designer-handle { position: absolute; width: 8px; height: 8px; background: #38bdf8; border: 1px solid #0f172a; border-radius: 2px; z-index: 2; touch-action: none; }
+.ps-designer-handle--nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.ps-designer-handle--n  { left: calc(50% - 4px); top: -5px; cursor: ns-resize; }
+.ps-designer-handle--ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.ps-designer-handle--e  { right: -5px; top: calc(50% - 4px); cursor: ew-resize; }
+.ps-designer-handle--se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.ps-designer-handle--s  { left: calc(50% - 4px); bottom: -5px; cursor: ns-resize; }
+.ps-designer-handle--sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.ps-designer-handle--w  { left: -5px; top: calc(50% - 4px); cursor: ew-resize; }
+.ps-designer-field--outside { --ps-hue: #ef4444; border: 2px solid var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 12%, transparent); }
+.ps-designer-bounds-warning { --ps-hue: #f59e0b; display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px; color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue) 35%, transparent); }
 
 /* Report page pieces (Batch 367). */
 .acd-ctx-menu { left: var(--ctx-x); top: var(--ctx-y); }
@@ -32613,6 +31965,9 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-bab-action-btn--outline:hover:not(:disabled) { background: color-mix(in srgb, var(--ps-hue) 13.3%, transparent); }
 .ps-bab-action-btn--solid:hover:not(:disabled) { background: var(--bab-hover); border-color: var(--bab-hover); }
 .ps-bab-action-btn:disabled { cursor: not-allowed; border-color: #475569; background: transparent; color: #475569; opacity: 0.6; }
+/* Batch 459: "Mark follow-up expected" after sign-out, and the existing mark. */
+.ps-bab-action-btn--follow-up { --ps-hue: #0D9488; }
+.ps-bab-follow-up-marked { font-size: 12px; font-weight: 600; color: #0D9488; padding: 8px 14px; white-space: nowrap; }
 
 /* Tints derived from --ps-hue instead of hex strings built in JSX (Batch 367):
    Case Team badges and drop zones; molecular batch status. */
@@ -32626,6 +31981,10 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-wl-filter-tile--hued { --tile-bg: color-mix(in srgb, var(--ps-hue) 5.1%, transparent); --tile-border: color-mix(in srgb, var(--ps-hue) 18%, transparent); --tile-shadow: none; }
 .ps-wl-filter-tile--hued-active { --tile-bg: color-mix(in srgb, var(--ps-hue) 18%, transparent); --tile-border: var(--ps-hue); --tile-shadow: 0 0 12px color-mix(in srgb, var(--ps-hue) 40%, transparent); }
 .eca-status-badge { --eca-status-border: color-mix(in srgb, var(--eca-status-color) 33.3%, transparent); --eca-status-bg: color-mix(in srgb, var(--eca-status-color) 9.4%, transparent); }
+/* Batch 439: each status's colour is a class (it was a hex value in the JSX). */
+.eca-status-badge--active  { --eca-status-color: #10b981; }
+.eca-status-badge--expired { --eca-status-color: #f59e0b; }
+.eca-status-badge--revoked { --eca-status-color: #ef4444; }
 .ps-home-card { --card-accent-dim: color-mix(in srgb, var(--card-accent) 25.1%, transparent); }
 
 /* ── Batch 368 (PS-353): report change history (ChangeHistoryModal.tsx) ──── */
@@ -32909,7 +32268,6 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-regx-raw { margin: 0; padding: 10px 12px; border-radius: 8px; background: #0b1220; border: 1px solid #1f2937; color: #cbd5e1; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 240px; overflow: auto; }
 .ps-regx-empty { padding: 48px 16px; text-align: center; color: #94a3b8; border: 1px dashed #1f2937; border-radius: 12px; }
 
-
 /* ── Batch 423: registry go-live panel (components/Config/RegistryGoLive/) ── */
 .ps-golive { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .ps-golive-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -33066,3 +32424,289 @@ button.ps-auditlog-row--dispatch:focus-visible { background: rgba(255,255,255,0.
 .ps-dictionary-words-meta { flex: 1; font-size: 12px; color: #94a3b8; }
 .ps-dictionary-words-remove { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #fca5a5; cursor: pointer; }
 .ps-modal-dark--profile-list { width: 560px; max-width: calc(100vw - 32px); text-align: left; }
+/* Batch 433: biometric e-signature policy card */
+.ps-session-security__card--spaced { margin-top: 20px; }
+.ps-session-security__toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #e2e8f0; }
+.ps-session-security__field-label { font-size: 12px; color: #94a3b8; margin: 14px 0 6px; }
+.ps-session-security__days { width: 100px; }
+.ps-biometric-status { color: #93c5fd; }
+
+/* Batch 433: billing correction dialog (components/Billing/BillingCorrectionDialog.tsx). */
+.ps-billing-correction-find { display: flex; gap: 8px; align-items: center; }
+.ps-billing-correction-find > .ps-conf-input { flex: 1; min-width: 0; }
+.ps-billing-correction-case { margin: 4px 0 12px; font-size: 13px; color: #94a3b8; }
+
+/* Batch 434: Batch Management → Slide scanning (pages/BatchManagement/WsiScanBatchesPage.tsx). */
+.ps-batch-tile--wsi-scan { --tile-bg: #a78bfa0d; --tile-border: #a78bfa2e; --tile-shadow: none; }
+.ps-batch-tile-count--wsi-scan { --tile-count-color: #a78bfa; }
+.ps-wsi-load-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px; flex-wrap: wrap; }
+.ps-wsi-load-bar > .ps-conf-label { margin: 0; }
+.ps-wsi-load-bar > .ps-conf-select { width: auto; min-width: 260px; }
+.ps-wsi-message { margin: 0 0 12px; font-size: 13px; color: #34d399; }
+.ps-wsi-slide-row > .ps-conf-td { font-size: 12px; color: #94a3b8; }
+.ps-wsi-batch-toggle { white-space: nowrap; }
+
+/* ── Batch 438 (PS-144–148): Quality Assurance → CAPA → Recommended ── */
+.ps-capa-rec { display: flex; flex-direction: column; gap: 12px; }
+.ps-capa-rec__intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ps-capa-rec__status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.ps-capa-rec__status--pending { background: color-mix(in srgb, #A855F7 18%, transparent); color: #c084fc; }
+.ps-capa-rec__status--confirmed { background: color-mix(in srgb, #10B981 18%, transparent); color: #34d399; }
+.ps-capa-rec__status--dismissed { background: color-mix(in srgb, #94a3b8 18%, transparent); color: #94a3b8; }
+/* Batch 442 (PS-147): discordance-pattern statuses. */
+.ps-qa-trend__status { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.ps-qa-trend__status--recommended { background: color-mix(in srgb, #A855F7 18%, transparent); color: #c084fc; }
+.ps-qa-trend__status--noted { background: color-mix(in srgb, #0EA5E9 18%, transparent); color: #38bdf8; }
+.ps-qa-trend__status--under-review { background: color-mix(in srgb, #F59E0B 18%, transparent); color: #fbbf24; }
+.ps-qa-trend__status--capa-opened { background: color-mix(in srgb, #EF4444 18%, transparent); color: #f87171; }
+.ps-qa-trend__status--dismissed { background: color-mix(in srgb, #94a3b8 18%, transparent); color: #94a3b8; }
+.ps-capa-rec__linked { margin-top: 4px; font-size: 11px; color: #c084fc; }
+.ps-capa-rec__textarea { min-height: 72px; resize: vertical; }
+
+/* ── Batch 439 (PS-144): peer review before sign-out ─────────────────────── */
+.ps-peer-review { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; margin-bottom: 12px; border-radius: 8px; font-size: 13px; color: #cbd5e1; border: 1px solid color-mix(in srgb, var(--ps-hue, #38bdf8) 35%, transparent); background: color-mix(in srgb, var(--ps-hue, #38bdf8) 8%, transparent); }
+.ps-peer-review--info  { --ps-hue: #38bdf8; }
+.ps-peer-review--warn  { --ps-hue: #f59e0b; }
+.ps-peer-review--done  { --ps-hue: #10b981; }
+.ps-peer-review--quiet { --ps-hue: #64748b; padding: 6px 16px; }
+.ps-peer-review__label { font-weight: 700; color: color-mix(in srgb, var(--ps-hue) 80%, #ffffff); }
+.ps-peer-review__message { flex: 1; min-width: 240px; }
+.ps-peer-review__actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.ps-peer-review__form { display: flex; flex-direction: column; gap: 12px; }
+.ps-peer-review__textarea { min-height: 64px; resize: vertical; }
+.ps-peer-review__choices { display: flex; flex-direction: column; gap: 6px; }
+.ps-peer-review__gate-text { margin: 0; font-size: 13px; color: #e2e8f0; }
+.ps-peer-review__gate-section { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid #1f2933; }
+
+/* ── Batch 439 (PS-145): clinical-pathologic mismatch suggestion ─────────── */
+.ps-clin-mismatch__suggestion { padding: 12px 14px; border-radius: 8px; border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent); background: color-mix(in srgb, #f59e0b 8%, transparent); display: flex; flex-direction: column; gap: 4px; }
+.ps-clin-mismatch__kind { font-weight: 700; color: #fbbf24; font-size: 14px; }
+.ps-clin-mismatch__explanation { margin: 4px 0 0; font-size: 13px; color: #e2e8f0; }
+
+/* ── Batch 439 (PS-148): outside consult opinions ────────────────────────── */
+.eca-opinions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.eca-opinion-card { display: flex; flex-direction: column; gap: 6px; }
+.eca-opinion-text { margin: 0; font-size: 13px; color: #e2e8f0; white-space: pre-wrap; }
+.eca-opinion-assess { display: flex; flex-direction: column; gap: 8px; }
+.eca-opinion-assessed { font-size: 12px; padding: 6px 10px; border-radius: 6px; color: #cbd5e1; background: color-mix(in srgb, var(--ps-hue, #10b981) 10%, transparent); border: 1px solid color-mix(in srgb, var(--ps-hue, #10b981) 35%, transparent); }
+.eca-opinion-assessed--agrees { --ps-hue: #10b981; }
+.eca-opinion-assessed--minor-difference { --ps-hue: #f59e0b; }
+.eca-opinion-assessed--major-discordance { --ps-hue: #ef4444; }
+
+/* Batch 448: the sign-in page's "choose a new password" step. */
+.ps-login-change-intro { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--ps-login-text-muted, #94a3b8); }
+.ps-login-change-hint { margin: -4px 0 12px; font-size: 12px; color: var(--ps-login-text-muted, #94a3b8); }
+
+/* Batch 448: Staff → edit → Sign-in password. */
+.ps-st-password-actions { display: flex; gap: 8px; margin-top: 8px; }
+.ps-st-password-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-width: 360px; }
+
+/* Batch 452 (PS-323): detected critical findings highlighted in the narrative
+   (editor decorations and the read-only Full Patient Report rows). Drawn over
+   the text only; never saved into the report. */
+.ps-finding-hl { --ps-hue: #d97706; background: color-mix(in srgb, var(--ps-hue) 22%, transparent); border-bottom: 2px solid var(--ps-hue); border-radius: 2px; color: inherit; padding: 0 1px; }
+.ps-finding-hl--critical { --ps-hue: #ea580c; }
+.ps-finding-hl--malignant { --ps-hue: #dc2626; }
+.ps-finding-hl-note { margin: 0 0 6px; padding: 4px 8px; border-left: 3px solid #dc2626; background: color-mix(in srgb, #dc2626 10%, transparent); color: inherit; font-size: 12px; }
+.ps-corr-days { width: 6em; }
+.ps-billing-material-notice { font-size: 12px; opacity: 0.85; min-height: 0; }
+.ps-billing-material-notice:empty { display: none; }
+/* Batch 452: decant row actions (split a cell block, remove). */
+.ps-material-tree-decant-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.ps-material-tree-decant-action { background: none; border: none; padding: 0; font-size: 11px; color: #60a5fa; cursor: pointer; }
+.ps-material-tree-decant-action:disabled { opacity: 0.45; cursor: not-allowed; }
+.ps-material-tree-decant-action--danger { color: #f87171; }
+
+/* ============================================================
+   Batch 454 — Follow-up not received (QA → Operations)
+   ============================================================ */
+.ps-followup { display: flex; flex-direction: column; gap: 12px; }
+.ps-followup__filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-followup__filter { padding: 4px 12px; border-radius: 14px; border: 1px solid rgba(148,163,184,0.3); background: transparent; color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; }
+.ps-followup__filter:hover { border-color: rgba(148,163,184,0.6); color: #cbd5e1; }
+.ps-followup__filter--active { background: color-mix(in srgb, #EF4444 16%, transparent); border-color: #EF4444; color: #fca5a5; }
+.ps-followup__notice { padding: 8px 12px; border-radius: 6px; background: color-mix(in srgb, #10B981 14%, transparent); color: #6ee7b7; font-size: 13px; }
+.ps-followup__status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.ps-followup__status--overdue { background: color-mix(in srgb, #EF4444 18%, transparent); color: #fca5a5; }
+.ps-followup__status--dueSoon { background: color-mix(in srgb, #F59E0B 18%, transparent); color: #fcd34d; }
+.ps-followup__status--pending { background: color-mix(in srgb, #64748b 18%, transparent); color: #cbd5e1; }
+.ps-followup__status--received { background: color-mix(in srgb, #10B981 18%, transparent); color: #6ee7b7; }
+.ps-followup__status--closed { background: color-mix(in srgb, #94a3b8 18%, transparent); color: #94a3b8; }
+.ps-followup__textarea { min-height: 72px; resize: vertical; }
+.ps-followup__email-body { min-height: 180px; resize: vertical; font-family: inherit; }
+.ps-followup__possible { color: #fcd34d; }
+
+/* Batch 454: Configuration → System → Follow-up tracking. */
+.ps-followup-settings { display: flex; flex-direction: column; gap: 8px; flex: 1 1 100%; }
+.ps-followup-settings__facility { flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+
+/* ── Batch 461: anatomical map companion (components/OrganMap) and the results grid question ──
+   Colours come from the site's scheme as --organmap-<key> on .ps-organmap-panel
+   (organMapSchemeVars); every colour is paired with a pattern. */
+.ps-syn-right-panel-maprow { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 12px 0; }
+.ps-organmap-toggle[aria-expanded="true"] { border-color: #38bdf8; color: #38bdf8; }
+.ps-organmap-panel {
+  margin: 8px 12px 0; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid #334155; background: #0b1324; color: #e2e8f0;
+}
+.ps-organmap-presence:empty { display: none; }
+.ps-organmap-note { margin: 0 0 6px; font-size: 11px; color: #94a3b8; }
+.ps-organmap-note--empty { color: #fbbf24; }
+.ps-organmap-hint { margin: 4px 0 0; font-size: 10px; color: #64748b; }
+.ps-organmap-svg { display: block; width: 100%; height: auto; background: #f8fafc; border-radius: 6px; }
+.ps-organmap-outline { fill: #f1f5f9; stroke: #64748b; stroke-width: 1; }
+.ps-organmap-shape { stroke: #334155; stroke-width: 1; }
+.ps-organmap-sector { cursor: default; outline: none; }
+.ps-organmap-sector--jump { cursor: pointer; }
+.ps-organmap-sector--jump:hover .ps-organmap-shape,
+.ps-organmap-sector:focus-visible .ps-organmap-shape { stroke: #0891b2; stroke-width: 2.5; }
+.ps-organmap-overlay { stroke-width: 3; pointer-events: none; }
+.ps-organmap-overlay--outer { stroke-width: 6; }
+.ps-organmap-sector-text {
+  font-size: 7px; text-anchor: middle; fill: #111827; pointer-events: none;
+  stroke: #ffffff; stroke-width: 2.5px; paint-order: stroke;
+}
+.ps-organmap-sector-text--prostateBiopsy { font-size: 10px; }
+.ps-organmap-caption { font-size: 11px; text-anchor: middle; fill: #334155; }
+.ps-organmap-ink { stroke: #1f2937; stroke-width: 1; opacity: 0.6; }
+.ps-organmap-ink-dot { fill: #1f2937; opacity: 0.7; }
+.ps-organmap-overlay-ink { stroke-width: 1.6; }
+.ps-organmap-fill--benign { fill: var(--organmap-benign); }
+.ps-organmap-fill--notSampled { fill: var(--organmap-notSampled); }
+.ps-organmap-fill--tumour { fill: var(--organmap-tumour); }
+.ps-organmap-fill--gg1 { fill: var(--organmap-gg1); }
+.ps-organmap-fill--gg2 { fill: var(--organmap-gg2); }
+.ps-organmap-fill--ggHigh { fill: var(--organmap-ggHigh); }
+.ps-organmap-stroke--epe { stroke: var(--organmap-epe); }
+.ps-organmap-stroke--positiveMargin { stroke: var(--organmap-positiveMargin); }
+.ps-organmap-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11px; color: #cbd5e1; }
+.ps-organmap-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.ps-organmap-legend-swatch { width: 18px; height: 13px; flex: none; }
+.ps-organmap-legend-overlay { fill: #ffffff; stroke-width: 2; }
+.ps-organmap-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ps-organmap-state { margin-right: auto; font-size: 11px; padding: 2px 8px; border-radius: 10px; border: 1px solid #334155; }
+.ps-organmap-state--current { color: #4ade80; border-color: color-mix(in srgb, #4ade80 40%, transparent); }
+.ps-organmap-state--stale { color: #fbbf24; border-color: color-mix(in srgb, #fbbf24 50%, transparent); }
+.ps-organmap-state--locked { color: #94a3b8; }
+
+.ps-syn-partgrid-wrap { overflow-x: auto; }
+.ps-syn-partgrid { width: 100%; border-collapse: collapse; font-size: 12px; color: #e2e8f0; }
+.ps-syn-partgrid th { text-align: left; font-weight: 600; font-size: 10px; color: #94a3b8; padding: 4px; white-space: nowrap; }
+.ps-syn-partgrid td { padding: 2px; }
+.ps-syn-partgrid-part { color: #e2e8f0; font-size: 12px; }
+.ps-syn-partgrid-input { padding: 4px 6px; font-size: 12px; min-width: 64px; }
+.ps-syn-partgrid-input--numeric { width: 64px; }
+/* Batch 465b: a grid count above its limit (nodes positive > examined); a total calculated from its grid */
+.ps-syn-partgrid-input--problem { border-color: #f87171; }
+.ps-syn-partgrid-problem { margin: 4px 0 0; font-size: 11px; color: #fca5a5; }
+.ps-syn-field-hint { margin-top: 3px; font-size: 11px; color: #94a3b8; }
+.ps-synoptic-checks-message { white-space: pre-line; }
+.ps-syn-partgrid-empty { font-size: 12px; color: #94a3b8; font-style: italic; }
+/* Batch 461: Configuration → Organ maps */
+.ps-organmap-config-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.ps-organmap-config-tab { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--ps-conf-border, #cbd5e1); background: transparent; color: inherit; cursor: pointer; font-size: 13px; }
+.ps-organmap-config-tab--active { border-color: #0891b2; color: #0891b2; font-weight: 600; }
+.ps-organmap-config { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.ps-organmap-config-table td, .ps-organmap-config-table th { vertical-align: middle; }
+.ps-organmap-config-colour { width: 44px; height: 28px; padding: 0; border: 1px solid #94a3b8; border-radius: 4px; background: none; }
+.ps-organmap-config-colour:disabled { opacity: 0.6; }
+.ps-organmap-config-preview { max-width: 660px; }
+.ps-organmap-legend--light { color: inherit; }
+.ps-organmap-config-input, .ps-organmap-config-column { padding: 8px 0; border-top: 1px solid var(--ps-conf-border, #e2e8f0); }
+.ps-organmap-config-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; border: 1px solid #94a3b8; }
+.ps-organmap-config-status--lab { color: #0891b2; border-color: #0891b2; }
+.ps-organmap-config-status--pathScribe { color: #16a34a; border-color: #16a34a; }
+.ps-organmap-config-status--needsReview { color: #b45309; border-color: #b45309; }
+.ps-organmap-config-review { margin: 6px 0; padding: 8px 10px; border-left: 3px solid #b45309; background: color-mix(in srgb, #b45309 8%, transparent); font-size: 13px; color: var(--ps-text-primary, #0f172a); }
+/* Batch 462: breast map (markers, quadrant guides, caption alignment, threshold input) */
+.ps-organmap-guides { fill: none; stroke: #64748b; stroke-width: 1; stroke-dasharray: 4 3; pointer-events: none; }
+.ps-organmap-marker-dot { stroke: #111827; stroke-width: 1.5; }
+.ps-organmap-marker--jump, .ps-organmap-marker.ps-organmap-sector--jump { cursor: pointer; }
+.ps-organmap-marker.ps-organmap-sector--jump:hover .ps-organmap-marker-dot,
+.ps-organmap-marker.ps-organmap-sector--jump:focus-visible .ps-organmap-marker-dot { stroke: #0891b2; stroke-width: 3; }
+.ps-organmap-marker-text { font-size: 10px; font-weight: 700; text-anchor: middle; fill: #111827; stroke: #ffffff; stroke-width: 2.5px; paint-order: stroke; pointer-events: none; }
+.ps-organmap-sector-text--breastClock { font-size: 9px; }
+.ps-organmap-caption--start { text-anchor: start; }
+.ps-organmap-caption--end { text-anchor: end; }
+.ps-organmap-config-number { width: 90px; }
+.ps-organmap-fill--invasive { fill: var(--organmap-invasive); }
+.ps-organmap-fill--dcis { fill: var(--organmap-dcis); }
+.ps-organmap-fill--calcifications { fill: var(--organmap-calcifications); }
+.ps-organmap-fill--marginClear { fill: var(--organmap-marginClear); }
+.ps-organmap-fill--marginClose { fill: var(--organmap-marginClose); }
+.ps-organmap-fill--marginPositive { fill: var(--organmap-marginPositive); }
+/* Batch 463: Mohs stage maps (organ map type mohsStages) and the Mohs stage question in the synoptic */
+.ps-organmap-fill--residualTumour { fill: var(--organmap-residualTumour); }
+.ps-organmap-stroke--perineural { stroke: var(--organmap-perineural); }
+.ps-organmap-sector-text--mohsStages { font-size: 10px; font-weight: 700; }
+.ps-organmap-sector[aria-pressed="true"] .ps-organmap-shape { stroke: #111827; stroke-width: 1.6; }
+.ps-organmap-state--auto { color: #38bdf8; border-color: color-mix(in srgb, #38bdf8 45%, transparent); }
+.ps-mohs { display: flex; flex-direction: column; gap: 10px; }
+.ps-mohs-empty { margin: 0; font-size: 12px; color: #94a3b8; font-style: italic; }
+.ps-mohs-stage { border: 1px solid #334155; border-radius: 8px; padding: 8px; background: #0b1324; }
+.ps-mohs-stage-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 6px; }
+.ps-mohs-stage-title { font-weight: 700; font-size: 13px; color: #e2e8f0; }
+.ps-mohs-stage-status { font-size: 11px; padding: 1px 8px; border-radius: 10px; border: 1px solid #334155; }
+.ps-mohs-stage-status--clear { color: #4ade80; border-color: color-mix(in srgb, #4ade80 40%, transparent); }
+.ps-mohs-stage-status--residual { color: #f87171; border-color: color-mix(in srgb, #f87171 45%, transparent); }
+.ps-mohs-inline-label { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #94a3b8; }
+.ps-mohs .ps-syn-input { font-size: 12px; padding: 3px 6px; }
+.ps-mohs-small { width: 104px; }
+.ps-mohs-stage-body { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+.ps-mohs-canvas { flex: 0 0 190px; max-width: 190px; }
+.ps-mohs-checklist { flex: 1 1 240px; border-collapse: collapse; font-size: 12px; color: #e2e8f0; }
+.ps-mohs-checklist-caption { text-align: left; font-size: 10px; color: #94a3b8; padding-bottom: 2px; }
+.ps-mohs-checklist th { text-align: left; font-weight: 600; font-size: 10px; color: #94a3b8; padding: 2px 4px; white-space: nowrap; }
+.ps-mohs-checklist tbody th { font-weight: 400; font-size: 11px; color: #cbd5e1; }
+.ps-mohs-checklist td { padding: 1px 4px; }
+.ps-mohs-checklist td:nth-child(4) { width: 100%; }
+.ps-mohs-row--positive th, .ps-mohs-row--positive td { background: color-mix(in srgb, var(--organmap-residualTumour, #dc2626) 14%, transparent); }
+.ps-mohs .ps-mohs-block { width: 128px; }
+.ps-mohs-row--problem .ps-mohs-block { border-color: #f59e0b; }
+.ps-mohs-problem { margin: 0 0 6px; font-size: 11px; color: #fbbf24; }
+.ps-mohs-histology { width: 100%; min-width: 120px; }
+.ps-mohs-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ps-mohs-voice-hint { font-size: 10px; color: #64748b; }
+/* Batch 464: colorectal maps (polyp, rectal resection) */
+.ps-organmap-fill--adenoma { fill: var(--organmap-adenoma); }
+.ps-organmap-stroke--adenomaAtMargin { stroke: var(--organmap-adenomaAtMargin); }
+.ps-organmap-sector-text--colorectalPolyp, .ps-organmap-sector-text--rectalResection { font-size: 9px; font-weight: 600; }
+/* Batch 465: head and neck maps (oral cavity, neck dissection); ENEma outlined heavier than ENEmi */
+.ps-organmap-stroke--dysplasiaAtMargin { stroke: var(--organmap-dysplasiaAtMargin); }
+.ps-organmap-stroke--eneMinor { stroke: var(--organmap-eneMinor); }
+.ps-organmap-stroke--eneMajor { stroke: var(--organmap-eneMajor); }
+.ps-organmap-overlay.ps-organmap-stroke--eneMajor { stroke-width: 5; }
+.ps-organmap-overlay-halo { stroke: #ffffff; stroke-width: 6; stroke-linejoin: round; pointer-events: none; }
+.ps-organmap-overlay-halo--outer { stroke-width: 9; }
+.ps-organmap-overlay-halo--heavy { stroke-width: 8; }
+.ps-organmap-overlay-halo--outer.ps-organmap-overlay-halo--heavy { stroke-width: 11; }
+/* Batch 465b (Pete): a two-layer halo — a thin dark edge outside the white one — so the outline reads on light
+   and dark backgrounds alike (screen themes, print). The edge is 1 unit wider than the white (0.5 each side). */
+/* Batch 465b: oral cavity rules that conflict with what a layer inherits */
+.ps-organmap-config-conflicts { margin: 6px 0; padding: 8px 12px 8px 26px; border: 1px solid #f59e0b; border-radius: 6px; color: #fbbf24; font-size: 12px; background: color-mix(in srgb, #f59e0b 10%, transparent); }
+.ps-organmap-overlay-edge { stroke: rgba(17, 24, 39, 0.6); stroke-width: 7; stroke-linejoin: round; pointer-events: none; }
+.ps-organmap-overlay-edge--outer { stroke-width: 10; }
+.ps-organmap-overlay-edge--heavy { stroke-width: 9; }
+.ps-organmap-overlay-edge--outer.ps-organmap-overlay-edge--heavy { stroke-width: 12; }
+.ps-organmap-overlay--outer.ps-organmap-stroke--eneMajor { stroke-width: 8; }
+.ps-organmap-sector-text--oralCavity, .ps-organmap-sector-text--neckDissection { font-size: 8.5px; font-weight: 600; }
+/* Batch 466: renal resection map */
+.ps-organmap-sector-text--renalResection { font-size: 8px; font-weight: 600; }
+/* Batch 466b: the Synoptic Editor's count rules for a grid's numeric columns */
+.ps-syned-count-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ps-syned-count-table th { text-align: left; font-weight: 600; padding: 4px 6px; color: #94a3b8; }
+.ps-syned-count-table td { padding: 3px 6px; }
+/* Batch 466c: the condition picker's "is / unless" choice */
+.ps-syned-condition-mode { flex: 0 1 230px; min-width: 150px; }
+.ps-syned-condition-mode .ps-syned-select { width: 100%; }
+
+/* Batch 467: an in-house molecular result that differs from the synoptic answer ("engine delta"). */
+.ps-syn-molecular-delta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; padding: 6px 8px; border: 1px solid #f59e0b; border-left-width: 3px; border-radius: 4px; background: color-mix(in srgb, #f59e0b 10%, transparent); font-size: 12px; color: var(--ps-text-primary, #0f172a); }
+.ps-syn-molecular-delta-tag { font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; font-size: 10px; color: #b45309; }
+.ps-syn-molecular-delta-btn { margin-left: auto; padding: 3px 10px; border: 1px solid #b45309; border-radius: 4px; background: transparent; color: #b45309; font-size: 12px; cursor: pointer; }
+.ps-syn-molecular-delta-btn:hover { background: color-mix(in srgb, #b45309 12%, transparent); }
+/* Batch 467: the Molecular Workcenter's Order Queue tab. */
+.ps-molq-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0 12px; }
+.ps-molq-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.ps-molq-warning { margin-top: 4px; font-size: 12px; color: #b45309; }
+.ps-molq-lab { margin-top: 4px; max-width: 220px; }

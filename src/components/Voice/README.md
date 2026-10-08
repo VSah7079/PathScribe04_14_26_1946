@@ -79,6 +79,10 @@ a result — see `VoiceToggleButton.tsx` below.
 
 `SpeechConfigTab.tsx` lists your own voice macros and the shared ones, and what you add or import is yours (`addPersonalMacro`, `importPersonalMacros`). Changing a shared macro needs `config:macros:manage`.
 
+## Batch 437
+
+Filter boxes are marked `data-dirty-ignore` (PS-128).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

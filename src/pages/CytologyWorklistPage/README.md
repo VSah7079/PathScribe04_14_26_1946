@@ -135,3 +135,49 @@ After a correction or addendum is released, `hooks/useCytologyRevision.ts` sends
 ## Batch 425
 
 The Cytology Workspace's patient line shows the registry opt-out badge (`RegistryOptOutBadge`) when the patient has opted out.
+
+## Batch 440
+
+- **QC / Rescreen is a shared queue** (`loadQcRescreenQueue`). Whoever is on the QC bench sees every QC-flagged GYN specimen waiting for a rescreen, not only cases assigned to them. A case the viewer did the primary screen on shows a "Your primary screen — needs another screener" badge and an **Ask a colleague** button, which opens the message drawer with the case in the subject (`utils/openComposeTo.ts`, unaddressed so they pick the colleague).
+- `CytologyScreeningPage.tsx`: opening such a case shows the same note under "Your role for this review", and a save of the rescreen is refused (`cytologyScreening.errors.qcByPrimaryScreener`).
+- **Translated.** The worklist's title, tiles, empty texts, badges and buttons now go through `t()` (`cytologyWorklist.*`). Before this batch they were hard-coded English.
+- Still in the page and not moved in this batch: the routing, screening-strategy and membership filtering in `load` (it calls the `resolve…` services, but the per-facility loop that combines them lives in the component).
+
+## Batch 441
+
+The page renders and dispatches only. Loading, per-facility routing and screening strategy, list membership, each tab's contents and counts, the organ-site chips and the simulated HPV event moved to `services/cytology/cytologyWorklist.ts` and `cytologyWorklistLive.ts`. This was the open item from Batch 440.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+The review eligibility badge moved into `components/CytologyReviewEligibilityBadge.tsx` and tested for each gate condition (PS-163). `CytologyWorklistPage.hpvResult.test.tsx`: Record Positive/Negative sends the result through the interface-engine processor (PS-175).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`CytologyScreeningPage.tsx`: when a decant can't be saved (another session changed the material, or the save was refused), the page shows `cytologyScreening.materialDrawer.decantConflict` and, on a conflict, reloads the workspace so the next change is made against the current material and version. The decision and the save are in `services/cytology/cytologyCaseActions.ts`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+A "Follow-up Due" QA tile: abnormal results whose histology follow-up is due soon or overdue.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Losing a pool claim to someone else shows a message. Screening-page saves go through the versioned Workspace service.
+
+## Batch 460 — Billing drawer (Pete: full review)
+
+`CytologyScreeningPage.tsx` has a "$ Billing" button next to "# Codes".
+- It opens Billing review in a wide drawer, using `components/Billing/CaseBillingReview` and `hooks/useCaseBillingReview`.
+- Changes are saved through `saveCytologyUnitCoding` / `saveCytologySpecimenBilling`, then charged or credited.
+- The User and Admin Guide is in `services/billing/README.md` (Batch 460).
+- This closes the Batch 453 open item "No screen shows billing in the Cytology Workspace" (superseded).
+
+**Batch 460, after independent review:**
+- Billing saves read the case as saved and adopt its version, so "Approve all" across decants works.
+- Only an orchestration case is charged, as on the report page.
+- A failed block save has its own message.

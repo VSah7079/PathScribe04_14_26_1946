@@ -57,6 +57,8 @@ import type { BillingAuditLogFilters, BillingAuditLogEntry, BillingAuditLogEvent
 import { userService, facilityService } from '@/services';
 import { downloadCSV, buildMetaHeader } from '@/utils/csvExport';
 import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { beginExport } from '@/services';
 
 const LS_KEY = 'pathscribe:savedBillingLogQueries';
 interface SavedQuery { id: string; name: string; filters: BillingAuditLogFilters; createdAt: string; }
@@ -362,8 +364,11 @@ const BillingLogsSection: React.FC = () => {
    *  (extracted to utils/csvExport.ts for this) - but passes
    *  containsPatientIdentifiers: true, since this export's own rows
    *  genuinely include patient name and MRN/MPI, unlike those 4. */
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (!results || results.length === 0) return;
+    // PS-282 + PS-357 (Batch 437): checked (audit:billing-log:export) and audited.
+    const filename = `pathscribe-billing-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    if (!(await beginExport('billing-log', { filename, rowCount: results.length }))) return;
     const esc = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const meta = buildMetaHeader(
       'Billing Log',
@@ -389,7 +394,7 @@ const BillingLogsSection: React.FC = () => {
         e.billingType ?? '', e.approvalStatus ?? '', e.label, e.detail, e.staff, e.signingPathologist ?? '', e.clientName ?? '',
       ].map(esc).join(',')),
     ];
-    downloadCSV(meta + data.join('\n'), `pathscribe-billing-log-${new Date().toISOString().slice(0, 10)}.csv`);
+    downloadCSV(meta + data.join('\n'), filename);
   };
 
   return (
@@ -571,7 +576,7 @@ const BillingLogsSection: React.FC = () => {
               <div className="ps-search-summary-actions">
                 {results !== null && <span className="ps-searchpage-result-count">{t('billingLogs.resultCount', { count: results.length })}</span>}
                 {results !== null && results.length > 0 && (
-                  <button type="button" onClick={handleExportCSV} className="ps-searchpage-export-btn">{t('billingLogs.exportCsv')}</button>
+                  <CapabilityButton capability="audit:billing-log:export" onClick={() => { void handleExportCSV(); }} className="ps-searchpage-export-btn">{t('billingLogs.exportCsv')}</CapabilityButton>
                 )}
               </div>
             </div>

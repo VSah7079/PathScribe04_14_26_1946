@@ -407,7 +407,8 @@ class CaseRouter implements ICaseService {
   // trail (DSPT/UK GDPR/HIPAA-style requirements exist specifically to
   // attribute actions to a real, identifiable individual). Now resolves
   // the actual session user the same way getCase/getAll already do.
-  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
+  // PS-71 (Batch 458): the expected version is required: no case save without one.
+  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion: number): Promise<void> {
     // Real, automatic denormalization for dimension-4 server-side
     // enforcement (see Case.eligibleFinalizerIds's own doc comment and
     // deriveEligibleFinalizerIds() in caseAccessControl.ts for the full

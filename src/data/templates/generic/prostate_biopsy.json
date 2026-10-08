@@ -1,6 +1,6 @@
 {
   "id": "prostate_biopsy",
-  "name": "Generic Template \u2014 Prostate Biopsy",
+  "name": "Generic Template — Prostate Biopsy",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "PROSTATE",
@@ -100,7 +100,7 @@
         },
         {
           "id": "specimen_type_other_specify",
-          "label": "Type of Specimen \u2014 Other (specify)",
+          "label": "Type of Specimen — Other (specify)",
           "type": "text",
           "required": false,
           "core": true,
@@ -419,7 +419,7 @@
         },
         {
           "id": "histological_tumour_type_other_specify",
-          "label": "Type \u2014 Other (specify)",
+          "label": "Type — Other (specify)",
           "type": "text",
           "required": false,
           "core": true,
@@ -602,7 +602,7 @@
         },
         {
           "id": "gleason_score_total",
-          "label": "Score \u2014 Total",
+          "label": "Score — Total",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -914,6 +914,185 @@
           "icd": "",
           "options": [],
           "note": "Optional"
+        }
+      ]
+    },
+    {
+      "id": "psmap_prostate_map",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_core_results",
+          "label": "Core results",
+          "type": "partGrid",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "One row per core. Drives the biopsy map.",
+          "columns": [
+            {
+              "id": "site",
+              "label": "Site",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_site_r_base_lat",
+                  "label": "Right base lateral"
+                },
+                {
+                  "id": "psmap_site_r_base_med",
+                  "label": "Right base medial"
+                },
+                {
+                  "id": "psmap_site_l_base_lat",
+                  "label": "Left base lateral"
+                },
+                {
+                  "id": "psmap_site_l_base_med",
+                  "label": "Left base medial"
+                },
+                {
+                  "id": "psmap_site_r_mid_lat",
+                  "label": "Right mid-gland lateral"
+                },
+                {
+                  "id": "psmap_site_r_mid_med",
+                  "label": "Right mid-gland medial"
+                },
+                {
+                  "id": "psmap_site_l_mid_lat",
+                  "label": "Left mid-gland lateral"
+                },
+                {
+                  "id": "psmap_site_l_mid_med",
+                  "label": "Left mid-gland medial"
+                },
+                {
+                  "id": "psmap_site_r_apex_lat",
+                  "label": "Right apex lateral"
+                },
+                {
+                  "id": "psmap_site_r_apex_med",
+                  "label": "Right apex medial"
+                },
+                {
+                  "id": "psmap_site_l_apex_lat",
+                  "label": "Left apex lateral"
+                },
+                {
+                  "id": "psmap_site_l_apex_med",
+                  "label": "Left apex medial"
+                },
+                {
+                  "id": "psmap_site_target_1",
+                  "label": "Targeted (MRI region of interest 1)"
+                },
+                {
+                  "id": "psmap_site_target_2",
+                  "label": "Targeted (MRI region of interest 2)"
+                },
+                {
+                  "id": "psmap_site_target_3",
+                  "label": "Targeted (MRI region of interest 3)"
+                }
+              ]
+            },
+            {
+              "id": "cancer",
+              "label": "Carcinoma",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_ca_yes",
+                  "label": "Present"
+                },
+                {
+                  "id": "psmap_ca_no",
+                  "label": "Not identified"
+                }
+              ]
+            },
+            {
+              "id": "gleason_primary",
+              "label": "Gleason primary",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_gp_3",
+                  "label": "3"
+                },
+                {
+                  "id": "psmap_gp_4",
+                  "label": "4"
+                },
+                {
+                  "id": "psmap_gp_5",
+                  "label": "5"
+                }
+              ]
+            },
+            {
+              "id": "gleason_secondary",
+              "label": "Gleason secondary",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_gs_3",
+                  "label": "3"
+                },
+                {
+                  "id": "psmap_gs_4",
+                  "label": "4"
+                },
+                {
+                  "id": "psmap_gs_5",
+                  "label": "5"
+                }
+              ]
+            },
+            {
+              "id": "grade_group",
+              "label": "Grade Group",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_gg_1",
+                  "label": "GG1"
+                },
+                {
+                  "id": "psmap_gg_2",
+                  "label": "GG2"
+                },
+                {
+                  "id": "psmap_gg_3",
+                  "label": "GG3"
+                },
+                {
+                  "id": "psmap_gg_4",
+                  "label": "GG4"
+                },
+                {
+                  "id": "psmap_gg_5",
+                  "label": "GG5"
+                }
+              ]
+            },
+            {
+              "id": "percent",
+              "label": "Core involved",
+              "type": "numeric",
+              "unit": "%"
+            },
+            {
+              "id": "length",
+              "label": "Cancer length",
+              "type": "numeric",
+              "unit": "mm"
+            }
+          ]
         }
       ]
     },

@@ -22,6 +22,7 @@ import type { LabelSizePreset } from '@/types/labels/LabelSizePreset';
 // Imports the already-initialized i18next instance directly and calls its
 // t() method, same resources/language as everywhere else in the app.
 import i18n from '@/i18n/config';
+import { auditLabelPrint, browserDialog, type LabelPrintAudit } from './labelPrintAudit';
 
 const LABEL_STYLES = `
   * { box-sizing: border-box; }
@@ -129,7 +130,7 @@ const LABEL_STYLES = `
  * blocked popup returns false instead of throwing, so the caller can
  * show its own real UI message rather than an unhandled exception.
  */
-export function printLabels(labelHtmlFragments: string[], preset: LabelSizePreset, documentTitle: string): boolean {
+export function printLabels(labelHtmlFragments: string[], preset: LabelSizePreset, documentTitle: string, audit?: LabelPrintAudit): boolean {
   if (labelHtmlFragments.length === 0) return false;
 
   const printWindow = window.open('', '_blank', 'width=900,height=1000');
@@ -137,6 +138,8 @@ export function printLabels(labelHtmlFragments: string[], preset: LabelSizePrese
     alert(i18n.t('printLabels.popupBlockedAlert'));
     return false;
   }
+  // PS-282 (Batch 437): handed to the browser's print dialog.
+  auditLabelPrint(audit, browserDialog, 'pending', labelHtmlFragments.length);
 
   printWindow.document.write(`<!DOCTYPE html>
 <html>

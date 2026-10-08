@@ -15,7 +15,7 @@ function baseForm(overrides: Partial<AutopsyIntakeFormState>): AutopsyIntakeForm
 describe('buildAutopsyCaseDetailsFromIntakeForm', () => {
   it('a real, complete forensic intake form builds a real forensicAuthorization with the written order left genuinely empty', () => {
     const result = buildAutopsyCaseDetailsFromIntakeForm(baseForm({
-      jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', authorityType: 'coroner',
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', authorityType: 'coroner',
       verbalOrderReceivedAt: '2026-09-01T02:15:00Z', verbalOrderReceivedFrom: 'On-call Deputy Coroner',
     }));
     expect(result.forensicAuthorization).toEqual({
@@ -29,7 +29,7 @@ describe('buildAutopsyCaseDetailsFromIntakeForm', () => {
 
   it('the real built case for a temporary, verbal-only forensic intake correctly reads as temporary via resolveAutopsyAccessionStatus \u2014 the two functions genuinely agree', () => {
     const result = buildAutopsyCaseDetailsFromIntakeForm(baseForm({
-      jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', authorityType: 'coroner',
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', authorityType: 'coroner',
       verbalOrderReceivedAt: '2026-09-01T02:15:00Z', verbalOrderReceivedFrom: 'On-call Deputy Coroner',
     }));
     expect(resolveAutopsyAccessionStatus(result)).toBe('temporary');
@@ -42,7 +42,7 @@ describe('buildAutopsyCaseDetailsFromIntakeForm', () => {
     }));
     expect(result.hospitalConsent).toEqual({
       consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner',
-      consentGivenAt: '', consentScope: [],
+      consentGivenAt: '', status: 'active', consentScope: [], excludedOrgans: [], retentionPermitted: true,
     });
     expect(resolveAutopsyAccessionStatus(result)).toBe('temporary');
   });

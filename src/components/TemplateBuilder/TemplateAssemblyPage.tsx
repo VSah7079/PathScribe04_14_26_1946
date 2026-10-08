@@ -139,7 +139,7 @@ const PartPicker: React.FC<{
           <div className="ps-tmpla-picker-subtitle">
             {t('templateAssemblyPage.addingToSlotLabel')} <RoleBadge role={role} />
           </div>
-          <input data-config-nav
+          <input data-dirty-ignore data-config-nav
             autoFocus
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -246,7 +246,7 @@ const PartsPanel: React.FC<{
 
       {/* Search */}
       <div className="ps-tmpla-panel-search-wrap">
-        <input data-config-nav
+        <input data-dirty-ignore data-config-nav
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t('templateAssemblyPage.searchPartsPlaceholder')}
           className="ps-tmpla-panel-search"

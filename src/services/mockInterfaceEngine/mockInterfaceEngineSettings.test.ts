@@ -16,6 +16,8 @@ describe('mockInterfaceEngineSettings — real, per direct follow-up on testing 
     const settings = getMockInterfaceEngineSettings();
     expect(settings.enabled).toBe(false);
     expect(settings.mode).toBe('always_succeed');
+    // Batch 434: the slide scanner is answered for unless switched off.
+    expect(settings.simulateWsiScanner).toBe(true);
   });
 
   it('real, setMockInterfaceEngineSettings correctly persists and getMockInterfaceEngineSettings correctly reads it back', async () => {

@@ -27,6 +27,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Jurisdiction } from '@/types/systemConfig';
+import type { AutopsyOrganCode } from '@/types/autopsy/AutopsyOrganCode';
 
 /** Real, per spec §2 — the two fundamentally different real legal
  *  workflows. Medicolegal/forensic cases proceed under a judicial
@@ -38,7 +39,7 @@ import type { Jurisdiction } from '@/types/systemConfig';
  *  transfer (out of scope for this pass — see this module's own
  *  README for the real, remaining open questions this spec doesn't
  *  resolve). */
-export type AutopsyCaseAuthority = 'medicolegal_forensic' | 'hospital_consented';
+export type AutopsyCaseAuthority = 'statutory_judicial' | 'hospital_consented';
 
 /** Real, per spec §2.A's own named examples — kept as a plain string
  *  rather than a closed union: the spec's own list ("Medical
@@ -88,38 +89,103 @@ export interface ForensicAuthorization {
  *  resolveConsentingRelativePriority.ts, Phase 2 of this build — kept
  *  deliberately OUT of this type: a type should record what actually
  *  happened, not encode the rule that made it valid. */
+/** Real, per spec §2.B — the status this consent is actually in today.
+ *  Batch 468 replaces the old conflated `revokedOrNarrowedAt` +
+ *  free-text `revocationNote` pairing (see the superseded TODO this
+ *  used to carry) with this explicit status plus the two structured
+ *  constraint fields below, so a NARROWED consent can return
+ *  `allowed: true` from the gross-exam gate with its own real
+ *  constraints enforced at the specimen/retention level, while only
+ *  REVOKED hard-blocks. */
+export type HospitalConsentStatus = 'active' | 'narrowed' | 'revoked';
+
 export interface HospitalConsentRecord {
   consentingRelativeName: string;
   /** e.g. 'spouse', 'adult_child', 'parent', 'sibling' — the real
    *  relationship this consent's own priority was validated against. */
   consentingRelativeRelationship: string;
   consentGivenAt: string;
-  /** Real, per spec §2.B — consent can be scoped (e.g. "diagnostic
-   *  tissue only, no organ retention") rather than blanket. Plain
-   *  strings, not a closed union — a real consent form's own scope
-   *  language varies by site and jurisdiction. */
+  /** Real, per spec §2.B — the status the consent is in now.
+   *  'active': unconstrained (subject only to `excludedOrgans`/
+   *  `retentionPermitted`, which both default open). 'narrowed': NOK
+   *  has restricted scope — gross exam proceeds, but the organ/
+   *  retention checks below are enforced. 'revoked': NOK has withdrawn
+   *  consent entirely — resolveAutopsyGrossExaminationGate.ts hard-
+   *  blocks any further examination. */
+  status: HospitalConsentStatus;
+  /** Real, per spec §2.B — "diagnostic tissue only, no organ
+   *  retention" is a real, recorded example of consent scope language.
+   *  Plain strings, not a closed union — a real consent form's own
+   *  scope language varies by site and jurisdiction. Kept as the
+   *  human-readable record of what the NOK actually said; the two
+   *  fields below are what's machine-enforced. */
   consentScope: string[];
-  /** Real, per spec §2.B — "Consent can be withdrawn or narrowed by
-   *  NOK at any point prior to procedure completion." Undefined until
-   *  a real withdrawal/narrowing genuinely happens.
-   *
-   *  TODO — Real, known technical debt (subsequent pass, not this
-   *  one): this one field conflates two genuinely different real
-   *  events — a full revocation (must hard-block gross exam) and a
-   *  mere scope narrowing (should only constrain what's examined/
-   *  retained, e.g. "no brain retention," never block gross exam
-   *  itself) — with only a free-text revocationNote to (unreliably)
-   *  tell them apart. resolveAutopsyGrossExaminationGate.ts cannot
-   *  safely distinguish the two from this shape today, so it blocks
-   *  on either, conservatively. Real, recommended fix: replace this
-   *  with a real, structured `status: 'ACTIVE' | 'NARROWED' |
-   *  'REVOKED'`, separate `revokedAt`/`narrowedAt` timestamps, and a
-   *  real `scopeConstraints: string[]` — so a real NARROWED consent
-   *  can return allowed: true with its own real constraints surfaced
-   *  on the gross-exam workbench banner, while only REVOKED
-   *  hard-blocks. */
-  revokedOrNarrowedAt?: string;
+  /** Real, per spec §2.B — organs the NOK's consent explicitly
+   *  excludes from examination/retention (e.g. brain, for a family
+   *  that declined neuropathology). Empty means no organ-level
+   *  exclusion. Checked against a specimen's own `organCodes` at
+   *  intake — see resolveAutopsyConsentScopeViolation.ts. */
+  excludedOrgans: AutopsyOrganCode[];
+  /** Real, per spec §2.B — whether the NOK's consent permits
+   *  retaining tissue/organs beyond what the diagnostic gross exam
+   *  itself requires. false blocks any `organRetentionTier` beyond
+   *  'tier_0_no_retention' — see resolveAutopsyConsentScopeViolation.ts. */
+  retentionPermitted: boolean;
+  /** When status moved to 'narrowed' or 'revoked'. Undefined while
+   *  status is 'active'. */
+  statusChangedAt?: string;
+  /** Free-text note for the most recent status change — a revocation
+   *  reason, originally, but (Batch 471) reused as-is for a
+   *  reinstatement's own required note rather than adding a second,
+   *  parallel free-text field for "why the status last changed." */
   revocationNote?: string;
+}
+
+/** Real, per spec §2.4.3/§3.3 — who may hold or receive the body,
+ *  evidence, or personal effects during a forensic case's custody
+ *  chain. Kept as a closed union (unlike ForensicInitiatingAuthorityType,
+ *  which names who authorized the case): a custody RECIPIENT is a role
+ *  this module itself reasons about (gating, display grouping),
+ *  whereas an authorizing office is pure display text. */
+export type AutopsyCustodianType =
+  | 'pathology_department'
+  | 'medical_examiner'
+  | 'law_enforcement'
+  | 'funeral_home'
+  | 'family'
+  | 'other';
+
+/** Real, per spec §2.4.3 — "Mandatory chain-of-custody logging for all
+ *  retained items. Immutable audit trail. Transfer events, responsible
+ *  parties, timestamps, receiving entities." Append-only, mirroring
+ *  the existing `MaterialLocation`/`locationHistory` pattern
+ *  (types/case/Material.ts) rather than inventing a parallel one —
+ *  this is the forensic-specific, richer record (named recipient
+ *  type/role, who released, who received) that a generic material
+ *  location entry doesn't carry. Only meaningful for
+ *  caseAuthority === 'statutory_judicial' — see
+ *  recordAutopsyCustodyTransfer.ts. */
+export interface AutopsyCustodyTransferEvent {
+  id: string;
+  occurredAt: string;
+  /** What changed hands, e.g. "Body", "Decedent's personal effects",
+   *  "Clothing", "Retained cardiac specimen". Free text — the real
+   *  item vocabulary varies too much per case to close this union. */
+  itemDescription: string;
+  fromCustodianType: AutopsyCustodianType;
+  fromCustodianName: string;
+  toCustodianType: AutopsyCustodianType;
+  toCustodianName: string;
+  releasedByName: string;
+  receivedByName?: string;
+  notes?: string;
+  /** Batch 475 (PS-261 follow-up) — present when this transfer is of a
+   *  specific toxicology specimen, linking it to that order
+   *  (AutopsyToxicologyOrder.id) so its chain of custody can be shown
+   *  alongside the order itself, not only in the case-wide log.
+   *  Optional: most custody entries (the body, personal effects) are
+   *  never about a toxicology specimen at all. */
+  toxicologyOrderId?: string;
 }
 
 /** Real, per spec §6 — determines which grossing template and
@@ -172,6 +238,25 @@ export type OrganRetentionTier =
   | 'tier_2_full_organ_retention'
   | 'tier_3_education_research_genomic';
 
+/** Batch 471 (PS-261 follow-up) — who actually holds retained organs/
+ *  tissue and where, while retention is ongoing (before any disposal).
+ *  Flagged as a gap by Batch 469's own README: `organRetentionTier`
+ *  recorded only a bare tier, with nothing naming a real recipient or
+ *  location for what's actually retained. A single current record,
+ *  same shape as `OrganRetentionDisposalRecord` below rather than an
+ *  append-only log — a real retention custody chain (should the
+ *  recipient or location change mid-retention) is a further, separate
+ *  extension, not attempted here; each update overwrites the last,
+ *  with its own audit-log entry recording the change. See
+ *  services/autopsy/recordAutopsyOrganRetentionDetail.ts. */
+export interface OrganRetentionRecord {
+  recipientName: string;
+  location: string;
+  reason?: string;
+  recordedAt: string;
+  recordedByName: string;
+}
+
 export interface OrganRetentionDisposalRecord {
   disposalMethod: 'cremation' | 'incineration';
   disposalTimestamp: string;
@@ -179,6 +264,51 @@ export interface OrganRetentionDisposalRecord {
    *  certificates." A real, traceable certificate reference, not a
    *  bare "yes we disposed of it" boolean. */
   certificateReference: string;
+  /** Batch 469 — who recorded the disposal; same audit-attribution
+   *  shape every other autopsy event in this module carries. */
+  recordedByName: string;
+}
+
+/** Batch 469 (PS-261 §2.3) — "Toxicology ordering, specimen tracking,
+ *  and result integration." Deliberately simple (free-text lab name
+ *  and analytes/result, no reference-lab facility or plate/referral
+ *  machinery): postmortem toxicology is ordered rarely compared to
+ *  in-house molecular volume, and this module has no existing
+ *  toxicology-lab facility seed to route to — see
+ *  services/autopsy/orderAutopsyToxicology.ts's own header comment
+ *  for why this isn't built on the molecular send-out engine. */
+export type AutopsyToxicologyOrderStatus = 'ordered' | 'resulted' | 'cancelled';
+
+export interface AutopsyToxicologyOrder {
+  id: string;
+  orderedAt: string;
+  orderedByName: string;
+  specimenDescription: string;
+  /** Batch 475 (PS-261 follow-up) — a real, scannable specimen
+   *  identifier, distinct from `specimenDescription` (which stays
+   *  free text, e.g. "Postmortem blood and vitreous fluid"). Required
+   *  at order time so the specimen itself — not just the order
+   *  record — can be tracked once it leaves the department; a
+   *  statutory_judicial case's custody transfers can link back to it
+   *  (AutopsyCustodyTransferEvent.toxicologyOrderId). */
+  specimenBarcode: string;
+  analytesRequested: string;
+  labName: string;
+  status: AutopsyToxicologyOrderStatus;
+  resultedAt?: string;
+  resultSummary?: string;
+  /** Batch 471 (PS-261 follow-up) — the real write site these two
+   *  fields were waiting on, closing the gap Batch 469's own
+   *  independent review disclosed: a real toxicology order can be
+   *  withdrawn before a result comes back. Set only by
+   *  services/autopsy/cancelAutopsyToxicologyOrder.ts (its own
+   *  capability, since cancelling is a distinct action from ordering
+   *  or resulting), which only ever moves an 'ordered' order to
+   *  'cancelled' — never a 'resulted' one — and clears the
+   *  ancillaryHold the same careful way recordAutopsyToxicologyResult.ts
+   *  does (only if it's still the hold this order itself started). */
+  cancelledAt?: string;
+  cancelReason?: string;
 }
 
 /** Real, per spec §4's own Ancillary Hold Logic — "SLA timers pause
@@ -196,11 +326,61 @@ export interface AncillaryHoldState {
   endedAt?: string;
 }
 
+/** Batch 478 (PS-261 follow-up; Pete's own locked-in decision: "a NEW
+ *  dedicated capability, audited") — resolveAutopsyGrossExaminationGate.ts's
+ *  hard block has a real, audited override now (see signAutopsyReport.ts,
+ *  the only write site that enforces the gate). Every attempted sign while
+ *  the gate is blocked, and permitted only via `autopsy:gross-exam-gate:override`,
+ *  is logged here — append-only, like custodyLog, never replaced or
+ *  reordered, so a reviewer can see every time the hard stop was bypassed
+ *  and why. Undefined until the first override. */
+export interface AutopsyGateOverrideEvent {
+  id: string;
+  occurredAt: string;
+  /** Which tier the override let through. */
+  tier: AutopsyReportTier;
+  /** The gate's own blockedReasons at the moment of the override —
+   *  a real, honest record of what was actually being bypassed.
+   *  Batch 479: these are AutopsyGrossExaminationBlockReason codes
+   *  (not prose) — kept as string[] here to avoid this shared case
+   *  type depending on a service-layer type; signAutopsyReport.ts is
+   *  the only writer and keeps them in sync. */
+  blockedReasons: string[];
+  /** Required: this is a bypass of a legal/consent hard stop, never
+   *  silent. */
+  reason: string;
+  overriddenByName: string;
+}
+
+/** Batch 478 (PS-261 follow-up) — real, per-organ findings during the
+ *  gross examination. Deliberately a separate, case-level, append-only
+ *  log rather than a field on the grossing template itself: the
+ *  template's EditorField has no per-field organ association today
+ *  (only whole sections are organ-derived, via AUTOPSY_ORGAN_TO_SECTION
+ *  — see AutopsyOrganCode.ts), and giving every protocol's shared
+ *  template engine an organ concept it doesn't need would be a far
+ *  bigger, cross-cutting change than this module's own data model
+ *  warrants. Mirrors custodyLog/toxicologyOrders: append-only, each
+ *  entry self-attributed with who recorded it and when. */
+export type AutopsyOrganTagStatus = 'normal' | 'abnormal' | 'not_examined';
+
+export interface AutopsyOrganTag {
+  id: string;
+  organCode: AutopsyOrganCode;
+  status: AutopsyOrganTagStatus;
+  /** Free-text finding, e.g. "Severe atherosclerosis, LAD 90% stenosed."
+   *  Optional — a 'normal' or 'not_examined' tag may carry no further
+   *  detail. */
+  finding?: string;
+  recordedAt: string;
+  recordedByName: string;
+}
+
 export interface AutopsyCaseDetails {
   jurisdiction: Jurisdiction;
   caseAuthority: AutopsyCaseAuthority;
   /** Present when, and only when, caseAuthority is
-   *  'medicolegal_forensic'. */
+   *  'statutory_judicial'. */
   forensicAuthorization?: ForensicAuthorization;
   /** Present when, and only when, caseAuthority is
    *  'hospital_consented'. */
@@ -212,6 +392,37 @@ export interface AutopsyCaseDetails {
    *  a real fadSnapshot already exists. */
   addenda: AutopsyAddendum[];
   organRetentionTier?: OrganRetentionTier;
+  /** Batch 472 — an optional free-text reason for the tier selection
+   *  itself (distinct from `OrganRetentionRecord.reason`, which is the
+   *  reason for the retention *detail* — who holds it and where).
+   *  Set by the same single write site as `organRetentionTier`
+   *  (`SynopticReportPage.tsx`'s `handleOrganRetentionTierChange`);
+   *  not its own append-only record, since the tier itself isn't one
+   *  either. Undefined until a reason is first entered. */
+  organRetentionTierReason?: string;
+  /** Batch 471 (PS-261 follow-up) — see OrganRetentionRecord's own doc
+   *  comment. Undefined until the first real retention detail is
+   *  recorded; only meaningful once organRetentionTier is beyond
+   *  'tier_0_no_retention' for an HTA-applicable jurisdiction, same
+   *  gate organRetentionDisposal below already uses. */
+  organRetentionDetail?: OrganRetentionRecord;
   organRetentionDisposal?: OrganRetentionDisposalRecord;
   ancillaryHold: AncillaryHoldState;
+  /** Real, per spec §2.4.3/§3.3 — only ever appended to, only ever
+   *  real for caseAuthority === 'statutory_judicial'. Undefined
+   *  until the first real custody transfer is recorded, including
+   *  (Batch 469) the body's own final release — see
+   *  releaseAutopsyBody.ts. */
+  custodyLog?: AutopsyCustodyTransferEvent[];
+  /** Batch 469 (PS-261 §2.3) — see AutopsyToxicologyOrder's own doc
+   *  comment. Append-only, like custodyLog; undefined until the
+   *  first order is placed. Available for either caseAuthority —
+   *  postmortem toxicology isn't forensic-only. */
+  toxicologyOrders?: AutopsyToxicologyOrder[];
+  /** Batch 478 — see AutopsyGateOverrideEvent's own doc comment.
+   *  Undefined until the gate is first overridden. */
+  gateOverrides?: AutopsyGateOverrideEvent[];
+  /** Batch 478 — see AutopsyOrganTag's own doc comment. Undefined
+   *  until the first organ is tagged. */
+  organTags?: AutopsyOrganTag[];
 }

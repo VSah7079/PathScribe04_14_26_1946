@@ -343,3 +343,53 @@ The hook now covers both instances:
 ## Batch 432
 
 `useCytologyQcActions`: `escalate` and `bypass`. `useCaseSpellCheck`: `canManageFacility` from the capability.
+
+## Batch 434
+
+`useCytologyQcActions.ts` → `useCytologyQcCaseReview`: the review bar's buttons follow `cytology:qc-review:record`.
+
+## Batch 435
+
+`useLiveWsiScanBatches.ts`: re-reads the Slide scanning page when a scan batch changes. It also re-reads after a reconnection, and polls every 15 s offline and every 60 s live. It returns the state for `LiveStatusBadge`.
+
+## Batch 437 (PS-128)
+
+- `useConfigEditTracking.ts`: notices edits in Configuration's editor dialogs (any dialog fixed on screen, or marked as a dialog) and forgets a dialog once it closes.
+- `useGuardedNavigate.ts`: navigation through the app-wide unsaved-changes guard, for header controls.
+
+## Batch 438
+
+`useConfigEditTracking.ts` takes a third argument, `onOutsideClose(dialog, replay)`. A backdrop click or Escape on a dialog with edits is held and handed to the page; "Discard changes" replays it, so the dialog closes exactly as it would have. Escape with focus outside every dialog goes to the newest open dialog with edits (some dialogs listen for Escape on the whole window). Edits are now noticed after React has handled them (Batch 437 lost the first keystroke).
+
+## Batch 445
+
+`useGlobalMaterialScanTracking.ts`: the grossing-hydration scan event sends `resolvedCassettes` as a number. The report page words the toast in the user's language; it used to receive an English "(N cassettes resolved)".
+
+## Batch 446
+
+- `useOpenCase.ts`: `openCase(caseId, view?, options?)` opens a case page at its reference address. `useOpenCaseGuarded` does the same through the unsaved-changes guard, for the header search.
+- `useRouteCaseId.ts`: the case a case page's address names. A reference resolves to its case; an unknown one shows the neutral "case unavailable" screen; an old accession address is replaced with the reference.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`useGlobalMaterialScanTracking` marks only the engraved slides, by id, on the newest case. `useSurgicalQaReview` forwards the version.
+
+## Batch 460
+
+- **`useCaseBillingReview.ts`** (new, with tests): the billing panel's changes for screens other than the report page. For each change it checks the permission, asks for the post-sign-out reason, saves through the screen's own writer, then charges or credits through `services/billing`. A refused or failed save changes and charges nothing.
+- **`useGlobalMaterialScanTracking.ts`:** slide ids from the printed level (`material/slideLevels.ts`).
+
+## Batch 461
+
+`useOrganMapConfig.ts`: Configuration → Organ maps. Loads the colour layers, bindings, facilities and templates; saves through `services/organMapping/organMapConfig.ts` (checked, validated, audited).
+
+## Batch 465
+
+`useOrganMapConfig.ts`: saving a facility's colour layer passes the facility's jurisdiction, so its thresholds are validated with what it inherits.
+
+## Batch 465b
+
+- `useOrganMapConfig.ts`: passes every facility's jurisdiction, so a save can report conflicts.
+- `useGlobalStationSwitch.ts`: its messages are translated (`stationSwitch.*`). "Not saved" no longer claims a newer version exists, since a check can also stop the save. It uses the services barrel and is off the deployment baseline.

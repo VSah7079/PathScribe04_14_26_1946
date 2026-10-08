@@ -8,6 +8,7 @@ const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }));
 vi.mock('../molecularOrders/mockMolecularOrderOutboundQueueService', () => ({ mockMolecularOrderOutboundQueueService: { enqueue } }));
 
 import { processInboundHpvResultEvent, _resetProcessedHpvMessageIdsForTests } from './processInboundHpvResultEvent';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import type { HpvResultEventPayload } from '@/types/events/HpvResultEventPayload';
 
 const CASE = { id: 'S26-5001-CYT-001', specimens: [{ id: 'S26-5001-SP-1', label: 'A', cytologyScreening: {} }], order: { priority: 'Routine' } };
@@ -112,6 +113,33 @@ describe('processInboundHpvResultEvent — real, "ingest our own specification" 
     it('a real event with no assayStainTypeId at all (existing sending systems, pre-Part-2b) never fires the reflex trigger', async () => {
       await processInboundHpvResultEvent(payload({ hrHpvResult: 'Positive', abnormalFlag: 'A' }));
       expect(enqueue).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('PS-71 (Batch 458): versioned save', () => {
+    it('on a conflict, rebuilds from the newer case so a specimen added meanwhile survives, and saves with its version', async () => {
+      const stale = { ...CASE, version: 1 };
+      const newer = { ...CASE, version: 2, specimens: [...CASE.specimens, { id: 'S26-5001-SP-2', label: 'B', cytologyScreening: {} }] };
+      getCase.mockReset();
+      getCase.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(newer);
+      updateCase.mockRejectedValueOnce(new ConcurrencyConflictError(CASE.id, 1, 2));
+      const result = await processInboundHpvResultEvent(payload());
+      expect(result.outcome).toBe('applied');
+      expect(updateCase).toHaveBeenCalledTimes(2);
+      expect(updateCase.mock.calls[0][2]).toBe(1);
+      const [, patch, version] = updateCase.mock.calls[1];
+      expect(version).toBe(2);
+      expect(patch.specimens.map((s: any) => s.label)).toEqual(['A', 'B']);
+      expect(patch.specimens[0].cytologyScreening.hpvResult).toBe('Positive');
+    });
+
+    it('when every try conflicts it throws, never forces a save, and the message can be redelivered', async () => {
+      updateCase.mockRejectedValue(new ConcurrencyConflictError(CASE.id, 0, 1));
+      await expect(processInboundHpvResultEvent(payload())).rejects.toBeInstanceOf(ConcurrencyConflictError);
+      expect(updateCase.mock.calls.every(c => typeof c[2] === 'number')).toBe(true);
+      expect(enqueue).not.toHaveBeenCalled();
+      updateCase.mockReset(); updateCase.mockResolvedValue(undefined);
+      expect((await processInboundHpvResultEvent(payload())).outcome).toBe('applied');
     });
   });
 });

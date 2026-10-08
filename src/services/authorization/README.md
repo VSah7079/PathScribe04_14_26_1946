@@ -260,6 +260,150 @@ Three new capabilities (177 in all; the `AUTHORIZATION_API.md` catalog is regene
 - `cytology:qc-review:bypass` (casework, high): the Cytology QC supervisor bypass. Pete: nobody by default; an administrator assigns it. Holding it also opens the Cytology QC queue (`services/screens/screenAccess.ts` `SCREEN_ALSO_OPENED_BY`).
 - `referral:transit-status:update` (casework, high): mark a referral batch in transit or delivered. Seeded to every role with the Batch Management screen, and hospital roles with case access.
 
+## Batch 433
+
+`billing:charge:approve` (high risk, billing): approve, reject, hold and release charges waiting for billing approval, checked against the charge's performing lab in `services/billing/chargeApproval.ts`. Nobody holds it by default, custom roles included (Pete: an administrator gives it to whoever does billing audits). The person who drafted a charge can't approve or reject it.
+
+`billing:applied-code:correct` now covers every billing correction (`services/billing/billingCorrection.ts`): code, modifier, reversal and missing charge.
+
+178 capabilities. `docs/architecture/AUTHORIZATION_API.md`: catalog regenerated, and a "Billing corrections and charge approval (Batch 433)" section for the server. The Access Control doc is updated. `authorization.test.ts` checks the capability has no seed.
+
+## Batch 434
+
+`wsi:scan-batch:load`, `wsi:scan-batch:send` and `wsi:scan-batch:unload` (standard risk, casework), checked against the scanner's lab in `services/digitalPathology/wsiScanBatchWorkflow.ts`. They are seeded to every role with the Batch Management screen (Histotechnologist, Cytotechnologist, Molecular Technologist) and to hospital roles with case access. 181 capabilities. The `AUTHORIZATION_API.md` catalog is regenerated, and there is a new "WSI scan batches and corrections to Batch 433" section.
+
+## Batch 435
+
+Admin opens Batch Management (`screen:batch-management:open`), so it sees Slide scanning. It gets the screen only: the scan-batch actions and Batch Management's overrides stay with the bench roles, and an administrator can add them to any role. The catalog in `AUTHORIZATION_API.md` is regenerated.
+
+## Batch 437 (PS-282, PS-357, PS-128)
+
+- 8 new capabilities (189 in all), one per export:
+  - `audit:audit-log:export`, `audit:error-log:export`, `audit:interface-log:export`, `audit:qa-log:export` and `audit:billing-log:export`, for the Audit Log page's CSVs, which had no check;
+  - `search:case-results:export`;
+  - `contribution:trainee-case-reference:export` and `contribution:case-mix-summary:export`.
+- Each is checked in `printing/exportGate.ts` (case search: in its service) and seeded to the roles that open the screen it sits on (keep today's users).
+- `guardConfigWrites.ts` now also tells listeners when a configuration write went through (`onConfigWritten`). The Configuration page's unsaved-changes guard uses it.
+- The catalog in `AUTHORIZATION_API.md` is regenerated, with a new section on exports and the audit.
+
+## Batch 438
+
+Two capabilities (191 in all):
+- `qa:capa-recommendation:decide` (high): confirm or dismiss a CAPA recommendation. Requires `screen:quality-assurance:open`; seeded for every role that opens Quality Assurance. Checked in `quality/capaRecommendationService.ts`.
+- `config:revision-reasons:manage` (high, Configuration): the revision reasons and their switch. Checked in `reasons/mockReasonDictionaryService.ts`.
+
+The Admin and QA Reviewer "exports" seed now takes only the `qa:` keys ending in `:export`; before, any `qa:` key counted, which would have given the decision twice. The catalog in `docs/architecture/AUTHORIZATION_API.md` is regenerated, with a Batch 438 section for the server.
+
+## Batch 439
+
+Six capabilities (197 in all): `case:peer-review:request`, `case:clinical-mismatch:record` and `case:outside-consult:assess` (Pathologist, Fellow); `case:peer-review:record` and `case:peer-review:override` (Pathologist); `config:peer-review:manage` (Configuration; Admin and Lab Director). Catalog regenerated in `docs/architecture/AUTHORIZATION_API.md`, with a Batch 439 server section.
+
+## Batch 440
+
+`cytology:pathologist-review:take` (high risk, casework; Pathologist and Fellow): take a positive GYN cytology case from the Worklist's Cytology Review tile. Checked in `cytology/cytologyQueuesLive.ts` `takeCytologyReview`. 198 capabilities. The server contract is in `docs/architecture/AUTHORIZATION_API.md` ("GYN cytology QC queue and pathologist review tray").
+
+## Batch 441
+
+`case:team:manage` (high risk, casework): change a case's team in Case Team, including its primary pathologist. Seeded with the case-report actions to every role that could open a case report before (Pete's "keep today's users", as for delegation). Checked in `cases/saveCaseTeam.ts`. 199 capabilities. `docs/architecture/AUTHORIZATION_API.md` has a Batch 441 server section for the cytotech rule.
+
+## Batch 442 (PS-147)
+
+- `config:qa-trend-policy:manage` (configQuality): Admin and Lab Director.
+- `qa:pathologist-trend:view` (requires the Quality Assurance screen) and `qa:pathologist-trend:decide` (requires view): Lab Director only. These are personnel-sensitive; the reviewed pathologist doesn't hold them.
+
+202 capabilities. `docs/architecture/AUTHORIZATION_API.md` has the server section.
+
+## Batch 447
+
+`config:feedback:manage` (configSystem, so Admin and Lab Director): the QA feedback button and its recipients. 203 capabilities. `docs/architecture/AUTHORIZATION_API.md` catalog regenerated.
+
+## Batch 448
+
+`config:staff-password:manage` (administration, so Admin; requires `config:staff:edit`): set, reset or remove a staff sign-in password. 204 capabilities. Catalog regenerated in `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`capabilityToggle.ts`: the Role Dictionary's click and prompt decisions (PS-355).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+Two new capabilities:
+- `config:cytology-histology-correlation:manage` (PS-156, configCytology): Admin and Lab Director.
+- `case:decant:delete`, checked in `services/material/caseMaterialService.ts`: given to the same roles as material disposal.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+New capability `config:biopsy-resection-correlation:manage` (high risk, Configuration → quality). Admin and Lab Director start with it. It's checked in `services/quality/biopsyResectionCorrelationSettings.ts`. The catalog now has 207 capabilities.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+Five new capabilities (212 in all):
+- `case:follow-up:expect`: Pathologist, Fellow.
+- `qa:follow-up:record` and `qa:follow-up-clinician:email`: the roles that open Quality Assurance, and a hospital role with configuration access.
+- `qa:follow-up:export`: Admin, QA Reviewer, like every QA export.
+- `config:follow-up-tracking:manage`: Admin, Lab Director.
+
+All are checked in `services/followUp/`.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+New capability `case:edit-conflict:override` (high risk, casework): "Save mine anyway" on the Edit Conflict dialog. Seeded for Pathologist, Admin and Lab Director (Pete's decision). For Pathologist this is an exception to least privilege, recorded in `capabilitySeeds.ts`. Checked in `cases/caseWrite.ts` `overwriteAfterConflict`. Catalog: 213 capabilities.
+
+## Batch 460
+
+`billing:applied-code:review` ("Review a case's billing codes", high risk): approving, declining, overriding, adding and deleting a case's billing codes, on the report page, in the Cytology Workspace and at Microtomy.
+- It's checked in `services/billing/caseBillingCharges.ts` (`enforceBillingReview`) before any change.
+- Seeds (`BILLING_REVIEW`): the same roles as `billing:applied-code:correct`, so nobody loses it.
+- `authorization.test.ts` checks the two always go together in the seeds.
+- `docs/architecture/AUTHORIZATION_API.md` lists it.
+
+## Batch 461: organ maps (217 capabilities)
+
+- `report:organ-map:insert` (casework, standard): insert the anatomical map into the report, insert it again, or remove it; refused once signed out. Seeded to Pathologist, Fellow and Resident (`ORGAN_MAP_INSERT`). Checked in `organMapping/organMapFigures.ts`.
+- `config:organ-map-scheme:manage` (configSystem, high): colours, patterns and legend wording by enterprise, jurisdiction and facility (facility-scoped for a facility layer). Checked in `organMapping/organMapConfig.ts`.
+- `config:organ-map-bindings:manage` (configSystem, high): which of a template's questions feed its map. Checked in `organMapping/organMapConfig.ts`.
+- The two configuration capabilities reach Admin and Lab Director through `CONFIG_SECTIONS` (now 94). `AUTHORIZATION_API.md` has the rows and a new "Anatomical maps" section; `authorization.test.ts` expects the new seeds.
+
+## Batch 467 — In-house molecular orders
+
+Two capabilities (219 in all): `molecular:order:assign-plate` (standard) and `molecular:order:cancel` (high risk, also re-routing), both requiring `screen:molecular:open`; seeded for the roles with the Molecular screen. Checked in `services/molecularOrders/molecularOrderEngine.ts`.
+
+## Batch 467b
+
+`molecular:order:set-lab` (standard; requires `screen:molecular:open`) chooses or changes a queued send-out molecular order's reference lab. It is seeded with the other molecular order actions, which makes 220 capabilities. Checked in `services/molecularOrders/molecularOrderEngine.ts`. `AUTHORIZATION_API.md`: its status line said 88 capabilities (as of Batch 425) and now says 220; Case work is 51.
+
+## Batch 468
+
+`autopsy:custody:transfer` (high risk; no requirements) records a forensic autopsy case's chain-of-custody transfer. Its own capability, never reusing `autopsy:body:release` — a distinct, append-only-log action. Seeded alongside `autopsy:body:release` for the same case-access roles. Makes 221 capabilities. Checked in `services/autopsy/recordAutopsyCustodyTransfer.ts`. `AUTHORIZATION_API.md`: 220 → 221; Autopsy section is now 2.
+
+## Batch 469
+
+Four new autopsy capabilities, all seeded alongside the existing case-access-role autopsy capabilities:
+- `autopsy:toxicology:order` (standard risk) — checked in `services/autopsy/orderAutopsyToxicology.ts`.
+- `autopsy:toxicology:result` (high risk) — checked in `services/autopsy/recordAutopsyToxicologyResult.ts`.
+- `autopsy:retention-disposal:record` (high risk) — checked in `services/autopsy/recordAutopsyOrganRetentionDisposal.ts`. Key kept 3-segment (`domain:object:verb`, hyphen inside a segment) — the first cut used a 4-segment `autopsy:retention:disposal:record`, which silently failed `capabilities.guard.test.ts`'s regex; caught and renamed before delivery.
+- `autopsy:consent:manage` (high risk) — checked in `services/autopsy/applyAutopsyConsentStatusChange.ts`.
+
+Makes 225 capabilities. `AUTHORIZATION_API.md`: 221 → 225; Autopsy section is now 6.
+
+## Batch 478
+
+Two new autopsy capabilities (230 in all; Batch 471 had already taken it to 228 — see `services/autopsy/README.md`'s own Batch 471/477 entries, not repeated here):
+- `autopsy:gross-exam-gate:override` (high risk) — the audited override for `resolveAutopsyGrossExaminationGate.ts`'s hard stop, now actually enforced in `services/autopsy/signAutopsyReport.ts`. Nobody by default, same as `cytology:qc-review:bypass` — an administrator assigns it. Every use is logged on the case (`AutopsyCaseDetails.gateOverrides`) and to the audit trail.
+- `autopsy:organ-tag:record` (standard risk) — recording a per-organ gross-exam finding. Seeded to `GROSSERS` (Pathologist, Fellow, Resident, PA) alongside `case:grossing:complete`, never the broader case-access group the other autopsy capabilities use — this is ordinary clinical documentation, not a legal/custody action. Checked in `services/autopsy/recordAutopsyOrganTag.ts`.
+
+`AUTHORIZATION_API.md`: 228 → 230; Autopsy section is now 11.
+
+## Batch 480 — Structured Inking, Module 1 (PS-359)
+
+Two new capabilities (232 in all):
+- `grossing:margin-ink:record` (standard risk, `casework`) — recording a margin's ink application during grossing. Seeded alongside `case:grossing:complete` for `GROSSERS` (Pathologist, Fellow, Resident, PA). Checked in `services/grossing/recordMarginInkApplication.ts`.
+- `config:inking-validation-mode:manage` (high risk, `configSystem`) — changing a site's `inking_validation_mode` (`WARN_ONLY`/`STRICT_ENFORCE`). `group: 'configSystem'` means `CONFIG_SECTIONS` sweeps it into Admin's and Lab Director's seeds by default, same as its siblings `config:report-appearance:manage` and `config:organ-map-scheme:manage` — **not** "nobody by default" the way `cytology:qc-review:bypass` and `autopsy:gross-exam-gate:override` are. Checked in `services/grossing/inkingSiteSettings.ts`.
+
+`AUTHORIZATION_API.md`: 230 → 232; Case work section 51 → 52, Configuration: security and system 8 → 9 (`capabilityDocs.guard.test.ts` enforces this stays in sync).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

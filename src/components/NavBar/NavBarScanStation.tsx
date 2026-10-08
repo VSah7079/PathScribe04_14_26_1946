@@ -32,7 +32,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
@@ -46,7 +46,8 @@ export function NavBarScanStation() {
   const { effectiveStationId, isDeviceLocked, isUserDefault, setStationId } = useEffectiveScanStation();
   const [stations, setStations] = useState<ScanStation[]>([]);
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
+  // PS-128 (Batch 437): through the unsaved-changes guard.
+  const navigate = useGuardedNavigate();
   // Real fix, per PS-289's own comment thread — the one piece its own
   // addendum named and never actually delivered: "dedicatedPageRoute"
   // was captured by the admin CRUD screen but nothing ever consumed

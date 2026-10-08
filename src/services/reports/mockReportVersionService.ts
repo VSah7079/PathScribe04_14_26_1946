@@ -11,6 +11,9 @@ import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import type { PatientEncounterSnapshot } from '@/types/reports/PatientEncounterSnapshot';
 import type { IReportVersionService } from './IReportVersionService';
 import { caseRouter } from '../cases/CaseRouter';
+import { organMapFiguresForVersion } from '../organMapping/organMapFigures';
+import { autoFigureVersion, autoOrganMapFigures, reportTranslateFor } from '../organMapping/organMapAutoFigures';
+import { sha256Hex } from '../registrySubmission/sha256';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockEncounterService } from '../encounters/mockEncounterService';
 import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
@@ -92,6 +95,18 @@ export const mockReportVersionService: IReportVersionService = {
       // patientEncounterSnapshot immediately above.
       createdFromStation: getEffectiveScanStationId(),
     };
+    // Batch 461: the report's organ-map images as signed, with their hashes,
+    // and the PDF's hash. Never blocks the sign-out.
+    try {
+      const signed = await caseRouter.getCase(record.caseId);
+      // Batch 463: maps that are part of the report (Mohs) are drawn now, as signed.
+      const auto = (await autoOrganMapFigures(signed, await reportTranslateFor(signed?.order?.facilityId)))
+        .filter(a => !record.instanceId || a.instanceId === record.instanceId).map(autoFigureVersion);
+      const autoIds = new Set(auto.map(a => a.instanceId));
+      const figures = [...organMapFiguresForVersion(signed, record.instanceId).filter(f => !autoIds.has(f.instanceId)), ...auto];
+      if (figures.length) newRecord.organMapFigures = figures;
+    } catch { /* the version is still created */ }
+    if (record.pdfBase64) newRecord.pdfSha256 = sha256Hex(record.pdfBase64);
     persist([...load(), newRecord]);
 
     // Real, per direct guidance (Pathology HL7 Outbound Feature Spec,

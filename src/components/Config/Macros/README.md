@@ -49,6 +49,10 @@ Pete: "dark text is hard to read; admins should see all macros sorted by type; u
 
 Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
 
+## Batch 437
+
+Batch 309's `setDirty` still works; it is one report among many now (PS-128).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

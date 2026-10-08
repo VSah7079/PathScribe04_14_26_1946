@@ -40,11 +40,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseCsv, toCsv, downloadCsv, isCsvFile, readFileAsText } from '../../../utils/csv';
 import '../../../pathscribe.css';
-import { stainTypeService, sectioningProtocolService, stainOrderMacroService, molecularTargetService, facilityService, activeReferenceLabs, normalizeReferenceLabLink } from '../../../services';
+import { stainTypeService, sectioningProtocolService, stainOrderMacroService, molecularTargetService, facilityService, activeReferenceLabs, normalizeReferenceLabLink, activePerformingLabs, normalizeInHouseLabs } from '../../../services';
 import type { StainType, StainCategory, SectioningProtocol, StainOrderMacro } from '../../../services';
 import type { MolecularTarget, MolecularMethodology, BillingModel, CptMappingRule } from '@/types/billing/MolecularBillingRule';
 import { duplicateStainType, duplicateSectioningProtocol, duplicateStainOrderMacro, duplicateMolecularTarget } from '@/services/duplication/duplicateEntities';
 import { findDuplicate } from '../../../utils/validateUnique';
+import { recordExport } from '@/services';
 
 type SubTab = 'types' | 'protocols' | 'macros' | 'targets';
 
@@ -78,8 +79,10 @@ interface StainTypeModalProps {
   onClose: () => void;
   /** Batch 403: the active reference labs a molecular test can be linked to. */
   referenceLabs: { id: string; name: string }[];
+  /** Batch 467: the labs that can run a molecular test in-house. */
+  performingLabs?: { id: string; name: string }[];
 }
-const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEntries, masterTargets, onAddTarget, onSave, onClose, referenceLabs }) => {
+const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEntries, masterTargets, onAddTarget, onSave, onClose, referenceLabs, performingLabs = [] }) => {
   const { t } = useTranslation();
   const [name, setName] = useState(entry?.name ?? '');
   const [category, setCategory] = useState<StainCategory>(entry?.category ?? 'Routine');
@@ -115,6 +118,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
   // Batch 403 (Pete): the reference labs approved to perform this test, and its default.
   const [labIds, setLabIds] = useState<string[]>(entry?.referenceLabFacilityIds ?? []);
   const [defaultLabId, setDefaultLabId] = useState(entry?.defaultReferenceLabFacilityId ?? '');
+  const [inHouseIds, setInHouseIds] = useState<string[]>(entry?.inHouseFacilityIds ?? []);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -156,6 +160,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
       methodology: category === 'Molecular' && methodology ? methodology : undefined,
       defaultTargets: category === 'Molecular' && selectedTargets.length > 0 ? selectedTargets : undefined,
       ...normalizeReferenceLabLink(category, labIds, defaultLabId || undefined),
+      ...normalizeInHouseLabs(category, inHouseIds),
       billingRule,
       active,
     });
@@ -296,6 +301,25 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
                 </select>
               </div>
 
+              {/* Batch 467 (Pete): per test and facility, run in-house or send out. */}
+              <div className="ps-conf-form-field">
+                <p className="ps-conf-label">{t('stainDictionarySection.typeModal.inHouseLabsLabel')}</p>
+                {performingLabs.length === 0
+                  ? <span className="ps-conf-hint">{t('stainDictionarySection.typeModal.inHouseLabsNone')}</span>
+                  : (
+                    <div className="ps-conf-checkbox-grid">
+                      {performingLabs.map(lab => (
+                        <label key={lab.id} className="ps-conf-toggle-label-row">
+                          <input type="checkbox" className="ps-conf-radio-input" checked={inHouseIds.includes(lab.id)}
+                            onChange={e => setInHouseIds(prev => e.target.checked ? [...prev, lab.id] : prev.filter(id => id !== lab.id))} />
+                          <span className="ps-conf-option-text">{lab.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">{t('stainDictionarySection.typeModal.inHouseLabsHint')}</p>
+              </div>
+
               <div className="ps-conf-form-field">
                 <p className="ps-conf-label">{t('stainDictionarySection.typeModal.referenceLabsLabel')}</p>
                 {referenceLabs.length === 0
@@ -339,7 +363,7 @@ const StainTypeModal: React.FC<StainTypeModalProps> = ({ mode, entry, existingEn
                   ))}
                   {selectedTargets.length === 0 && <span className="ps-conf-hint">{t('stainDictionarySection.typeModal.noDefaultTargets')}</span>}
                 </div>
-                <input data-config-nav
+                <input data-dirty-ignore data-config-nav
                   className="ps-conf-input"
                   placeholder={t('stainDictionarySection.typeModal.targetSearchPlaceholder')}
                   value={targetSearch}
@@ -698,6 +722,7 @@ const StainDictionarySection: React.FC = () => {
   const [macros, setMacros] = useState<StainOrderMacro[]>([]);
   const [masterTargets, setMasterTargets] = useState<MolecularTarget[]>([]);
   const [referenceLabs, setReferenceLabs] = useState<{ id: string; name: string }[]>([]);
+  const [performingLabs, setPerformingLabs] = useState<{ id: string; name: string }[]>([]);
   const [search, setSearch] = useState('');
   const [typeModal, setTypeModal] = useState<{ mode: 'add' | 'edit'; entry?: StainType } | null>(null);
   const [protocolModal, setProtocolModal] = useState<{ mode: 'add' | 'edit'; entry?: SectioningProtocol } | null>(null);
@@ -709,7 +734,7 @@ const StainDictionarySection: React.FC = () => {
     sectioningProtocolService.getAll().then(res => { if (res.ok) setProtocols(res.data); });
     stainOrderMacroService.getAll().then(res => { if (res.ok) setMacros(res.data); });
     molecularTargetService.getAll().then(res => { if (res.ok) setMasterTargets(res.data); });
-    facilityService.getAll().then(res => { if (res.ok) setReferenceLabs(activeReferenceLabs(res.data)); });
+    facilityService.getAll().then(res => { if (res.ok) { setReferenceLabs(activeReferenceLabs(res.data)); setPerformingLabs(activePerformingLabs(res.data)); } });
   };
   useEffect(() => { loadAll(); }, []);
 
@@ -767,6 +792,8 @@ const StainDictionarySection: React.FC = () => {
       AntibodyClone: s.antibodyClone ?? '', Vendor: s.vendor ?? '',
       DefaultTurnaroundHours: s.defaultTurnaroundHours ?? '', Active: s.active ? 'Yes' : 'No',
     }));
+    // PS-282 (Batch 437): audited.
+    void recordExport('stain-dictionary', { filename: 'StainDictionary.csv', rowCount: rows.length });
     downloadCsv('StainDictionary.csv', toCsv(rows));
   };
 
@@ -854,7 +881,7 @@ const StainDictionarySection: React.FC = () => {
       {subTab === 'types' && (
         <>
           <div className="ps-conf-form-row--3">
-            <input data-config-nav type="text" placeholder={t('stainDictionarySection.searchTypesPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+            <input data-dirty-ignore data-config-nav type="text" placeholder={t('stainDictionarySection.searchTypesPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
             <div className="ps-specdict-header-actions">
               <button className="ps-conf-btn-secondary" onClick={handleDownloadStainTypes}>{t('common.export')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => stainImportFileInputRef.current?.click()}>{t('stainDictionarySection.importSpreadsheetBtn')}</button>
@@ -1015,7 +1042,7 @@ const StainDictionarySection: React.FC = () => {
 
       {typeModal && (
         <StainTypeModal mode={typeModal.mode} entry={typeModal.entry} existingEntries={stainTypes}
-          masterTargets={masterTargets} onAddTarget={handleAddTarget} referenceLabs={referenceLabs}
+          masterTargets={masterTargets} onAddTarget={handleAddTarget} referenceLabs={referenceLabs} performingLabs={performingLabs}
           onSave={async draft => {
             if (typeModal.mode === 'edit' && typeModal.entry) await stainTypeService.update(typeModal.entry.id, draft);
             else await stainTypeService.add(draft);

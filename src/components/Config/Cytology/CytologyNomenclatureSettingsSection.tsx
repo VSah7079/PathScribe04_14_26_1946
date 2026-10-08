@@ -31,6 +31,7 @@ import { mockFacilityService } from '../../../services/facilities/mockFacilitySe
 import type { CytologyNomenclatureSystem } from '../../../services/cytology/ICytologyCategoryService';
 import type { FacilityCytologyNomenclatureOverride } from '../../../services/cytology/IFacilityCytologyNomenclatureOverrideService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const SYSTEMS: { id: CytologyNomenclatureSystem; labelKey: string }[] = [
   { id: 'bethesda', labelKey: 'cytologyCategoriesSection.nomenclatureSystems.bethesda' },
@@ -48,6 +49,8 @@ const CytologyNomenclatureSettingsSection: React.FC = () => {
   const [facilityOverrides, setFacilityOverrides] = useState<FacilityCytologyNomenclatureOverride[]>([]);
   const [addingFacility, setAddingFacility] = useState<{ facilityId: string; system: CytologyNomenclatureSystem } | null>(null);
   const [saving, setSaving] = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(enterpriseDraft !== savedEnterprise || addingFacility !== null);
 
   const refresh = () => {
     mockCytologyNomenclatureSettingsService.get().then(r => { if (r.ok) { setEnterpriseDraft(r.data.nomenclatureSystem); setSavedEnterprise(r.data.nomenclatureSystem); } });

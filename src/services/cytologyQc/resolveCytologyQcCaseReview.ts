@@ -23,7 +23,10 @@ export interface CytologyQcCaseReview {
 
 const ACTIVE = new Set(['QC_PENDING', 'QC_IN_REVIEW']);
 
-export function resolveCytologyQcCaseReview(assignments: CytologyQcCaseAssignment[], userId: string | null | undefined): CytologyQcCaseReview {
+/** `canRecord`: whether the reader holds cytology:qc-review:record (Batch 434:
+ *  without it, Assign to Me and the verdict buttons aren't offered; the
+ *  service refuses them anyway). */
+export function resolveCytologyQcCaseReview(assignments: CytologyQcCaseAssignment[], userId: string | null | undefined, canRecord = true): CytologyQcCaseReview {
   const active = assignments.filter(a => ACTIVE.has(a.state));
   // The reader's own review first, then one waiting for a reviewer, then any.
   const assignment = active.find(a => a.state === 'QC_IN_REVIEW' && a.assignedReviewerId === userId)
@@ -37,8 +40,8 @@ export function resolveCytologyQcCaseReview(assignments: CytologyQcCaseAssignmen
   const eligible = resolveQcReviewerEligibility(userId, assignment.primarySignOutProviderId);
   return {
     assignment,
-    canAssignToMe: pending && eligible,
-    canRecordVerdict: assignment.state === 'QC_IN_REVIEW' && assignment.assignedReviewerId === userId,
+    canAssignToMe: pending && eligible && canRecord,
+    canRecordVerdict: assignment.state === 'QC_IN_REVIEW' && assignment.assignedReviewerId === userId && canRecord,
     assignedToOther: assignment.state === 'QC_IN_REVIEW' && assignment.assignedReviewerId !== userId,
     isOwnCase: pending && !eligible,
   };

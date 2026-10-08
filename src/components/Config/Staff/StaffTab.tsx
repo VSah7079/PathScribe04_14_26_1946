@@ -13,6 +13,7 @@ import { saveStaffMember } from '@/services/staff/staffAdministration';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { LinkedSignInAccounts } from './LinkedSignInAccounts';
+import { StaffSignInPassword } from './StaffSignInPassword';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { ProviderCredential } from '@/types/staff/ProviderCredential';
 import { JURISDICTION_LABELS, type Jurisdiction } from '@/types/systemConfig';
@@ -28,6 +29,7 @@ const JURISDICTION_CODES = Object.keys(JURISDICTION_LABELS) as Jurisdiction[];
 import { ServiceResult } from '../../../services/types';
 import { Dropdown } from '@/components/Common/Dropdown';
 import ConfigSectionGate from '../ConfigSectionGate';
+import { useConfigNavigationGuard } from '../configDirtyGuardContext';
 
 // i18n note (batch 117): role names (Role.name / StaffUser.roles),
 // subspecialty names (Subspecialty.name), and VOICE_PROFILES' own
@@ -523,6 +525,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
           </fieldset>
 
           {/* Batch 345: linked single-sign-on accounts (edit only). */}
+          {mode === 'edit' && user?.id && <StaffSignInPassword staffId={user.id} />}
           {mode === 'edit' && user?.id && <LinkedSignInAccounts staffId={user.id} />}
 
           {/* Row 8: Status | Signature */}
@@ -767,9 +770,9 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       </div>
 
       <div data-capture-hide="true" className="ps-st-filter-bar">
-        <input data-config-nav type="text" placeholder={t('staffTab.list.searchPlaceholder')} value={search}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('staffTab.list.searchPlaceholder')} value={search}
           onChange={e => setSearch(e.target.value)} className="ps-st-search" />
-        <select data-config-nav value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+        <select data-dirty-ignore data-config-nav value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
           title={t('staffTab.list.roleFilterTitle')} className="ps-st-role-filter">
           <option value="All">{t('staffTab.list.allRoles')}</option>
           {roles.filter(r => r.name !== 'Physician').map(r => (
@@ -839,6 +842,8 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
 type StaffSubTab = 'members' | 'roles' | 'credentialing';
 
 const StaffTab: React.FC = () => {
+  // PS-128 (Batch 437): moving to another section asks first when something is unsaved.
+  const guardNav = useConfigNavigationGuard();
   const { t } = useTranslation();
   // Batch 431: ?section= opens a sub-tab (Configuration search, links).
   const location = useLocation();
@@ -881,11 +886,11 @@ const StaffTab: React.FC = () => {
     <div>
       <div className="ps-st-tab-bar">
         <button className={`ps-st-tab ${subTab === 'members' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
-          onClick={() => setSubTab('members')}>{t('staffTab.tabs.members')}</button>
+          onClick={() => guardNav(() => setSubTab('members'))}>{t('staffTab.tabs.members')}</button>
         <button className={`ps-st-tab ${subTab === 'roles' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
-          onClick={() => setSubTab('roles')}>{t('staffTab.tabs.roles')}</button>
+          onClick={() => guardNav(() => setSubTab('roles'))}>{t('staffTab.tabs.roles')}</button>
         <button className={`ps-st-tab ${subTab === 'credentialing' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
-          onClick={() => setSubTab('credentialing')}>{t('staffTab.tabs.credentialing')}</button>
+          onClick={() => guardNav(() => setSubTab('credentialing'))}>{t('staffTab.tabs.credentialing')}</button>
       </div>
       {subTab === 'members' && <StaffMembers roles={roles} />}
       {subTab === 'roles'   && <RoleDictionary onRolesChange={setRoles} />}

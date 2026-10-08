@@ -27,12 +27,12 @@ import {
   RequestPriority,
   captureMetadata,
   submitEnhancementRequest,
-  loadEnhancementConfig,
+  loadEnhancementConfigForSubmit,
 } from '../../services/enhancementRequestService';
 import { useScreenCapture, ScreenCaptureResult } from '../../hooks/useScreenCapture';
 import { caseService, supportReferenceService } from '@/services';
-import { supportReferencesForCaseNumbers } from '../../services/enhancementRequestService';
-import { findIdentifiersInText, replaceIdentifiers, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
+import { replaceCaseNumbersWithReferences } from '../../services/enhancementRequestService';
+import { identifierWarningOnSend, canReplaceCaseNumbers, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
 
 // ─── Screenshot compression ───────────────────────────────────────────────────
 // Resizes and re-encodes to JPEG to stay under EmailJS 50KB request limit.
@@ -220,24 +220,20 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
 
   const canSubmit = title.trim().length > 0 && description.trim().length > 0 && !submitting;
 
+  // Batch 450 (PS-349): the replace step and the warn-or-send decision live in
+  // enhancementRequestService.ts / supportReferences/supportTicketRules.ts.
   const handleReplaceCaseNumbers = async () => {
-    const caseNumbers = (identifiersFound ?? []).filter(f => f.kind === 'accession').map(f => f.text);
-    const refs = await supportReferencesForCaseNumbers(caseNumbers, { caseService, supportReferenceService });
-    const nextTitle = replaceIdentifiers(title, refs);
-    const nextDescription = replaceIdentifiers(description, refs);
-    setTitle(nextTitle);
-    setDescription(nextDescription);
-    setReplacedCount(refs.size);
-    const remaining = findIdentifiersInText(`${nextTitle}\n${nextDescription}`);
-    setIdentifiersFound(remaining.length > 0 ? remaining : null);
+    const out = await replaceCaseNumbersWithReferences({ title, description, found: identifiersFound ?? [] }, { caseService, supportReferenceService });
+    setTitle(out.title);
+    setDescription(out.description);
+    setReplacedCount(out.replacedCount);
+    setIdentifiersFound(out.remaining);
   };
 
   const handleSubmit = async (sendAnyway = false) => {
     if (!canSubmit) return;
-    if (!sendAnyway) {
-      const found = findIdentifiersInText(`${title}\n${description}`);
-      if (found.length > 0) { setIdentifiersFound(found); setReplacedCount(null); return; }
-    }
+    const warnAbout = identifierWarningOnSend({ title, description, sendAnyway });
+    if (warnAbout) { setIdentifiersFound(warnAbout); setReplacedCount(null); return; }
     setIdentifiersFound(null);
     setSubmitting(true);
     setError(null);
@@ -268,7 +264,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     };
 
     try {
-      const config = loadEnhancementConfig();
+      const config = await loadEnhancementConfigForSubmit();
       const result = await submitEnhancementRequest(payload, config);
       if (result.success) {
         setTicketUrl(result.ticketUrl);
@@ -448,7 +444,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                     <div className="erm-identifier-warning-note">{t('enhancementRequestModal.identifierWarning.replaced', { count: replacedCount })}</div>
                   )}
                   <div className="erm-identifier-warning-actions">
-                    {identifiersFound.some(f => f.kind === 'accession') && (
+                    {canReplaceCaseNumbers(identifiersFound) && (
                       <button type="button" className="ps-conf-btn-primary" onClick={handleReplaceCaseNumbers}>{t('enhancementRequestModal.identifierWarning.replaceButton')}</button>
                     )}
                     <button type="button" className="ps-conf-btn-secondary" onClick={() => setIdentifiersFound(null)}>{t('enhancementRequestModal.identifierWarning.keepEditing')}</button>

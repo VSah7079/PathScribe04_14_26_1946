@@ -300,4 +300,36 @@ describe('Specimen-level disposal — real, first wiring of RetainableMaterialTy
       if (result.outcome === 'rejected') expect(result.reason).toContain('retention hold');
     });
   });
+
+  describe('PS-71 (Batch 458): the disposal save carries the case version', () => {
+    it('a specimen added by someone else between the scan and the save is kept', async () => {
+      const { caseId, scanValue } = await seedCaseWithSpecimen({ finalizedAt: SIX_MONTHS_AGO });
+      const original = caseRouter.updateCase.bind(caseRouter);
+      const spy = vi.spyOn(caseRouter, 'updateCase').mockImplementationOnce(async (id, u, v) => {
+        const c = await caseRouter.getCase(id);
+        await original(id, { specimens: [...(c!.specimens ?? []), { id: `${id}-SP-B`, label: 'B', description: 'Added meanwhile', blocks: [] } as any] }, v);
+        return original(id, u, v);
+      });
+      const result = await disposeItemByScan(scanValue, undefined, 'PATH-001', 'Dr. Test Pathologist');
+      spy.mockRestore();
+      expect(result.outcome).toBe('disposed');
+      const after = await caseRouter.getCase(caseId);
+      expect(after?.specimens?.map((s: any) => s.label)).toEqual(['A', 'B']);
+      expect(after?.specimens?.find((s: any) => s.label === 'A')?.disposedAt).toBeDefined();
+    });
+
+    it('a hold set between the scan and the save stops the disposal', async () => {
+      const { caseId, scanValue } = await seedCaseWithSpecimen({ finalizedAt: SIX_MONTHS_AGO });
+      const original = caseRouter.updateCase.bind(caseRouter);
+      const spy = vi.spyOn(caseRouter, 'updateCase').mockImplementationOnce(async (id, u, v) => {
+        await original(id, { retentionHolds: [{ id: 'hold-x', reason: 'legal_hold', note: 'Set meanwhile', setAt: YESTERDAY, setByUserId: 'P', setByUserName: 'P', active: true }] } as any, v);
+        return original(id, u, v);
+      });
+      const result = await disposeItemByScan(scanValue, undefined, 'PATH-001', 'Dr. Test Pathologist');
+      spy.mockRestore();
+      expect(result).toMatchObject({ outcome: 'rejected', code: 'onHold' });
+      const after = await caseRouter.getCase(caseId);
+      expect(after?.specimens?.find((s: any) => s.label === 'A')?.disposedAt).toBeUndefined();
+    });
+  });
 });

@@ -26,6 +26,7 @@ import type { OutboundChargeQueueEntry } from '@/types/billing/OutboundChargeQue
 import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
 import type { AuditLog } from '@/services/auditlog/IAuditService';
 import type { ServiceResult } from '../types';
+import { parseStoredUtc } from '@/utils/formatDate';
 
 export type BillingAuditLogEventKind = 'charge' | 'credit' | 'deficiency' | 'code_review' | 'dispatch' | 'amendment' | 'audit';
 
@@ -245,7 +246,9 @@ function buildEventsForCase(
   }
 
   for (const log of auditLogs) {
-    events.push({ ...base, id: log.id, timestamp: log.timestamp, kind: 'audit', label: log.event, detail: log.detail, staff: log.user });
+    // Batch 437 follow-up: the audit log stores UTC without a zone; as ISO so it
+    // filters, sorts and shows like every other event here.
+    events.push({ ...base, id: log.id, timestamp: parseStoredUtc(log.timestamp).toISOString(), kind: 'audit', label: log.event, detail: log.detail, staff: log.user });
   }
 
   return events;

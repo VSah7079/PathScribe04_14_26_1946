@@ -36,7 +36,7 @@
 //   - handleProtocolChangesDetected: from useAmendmentWorkflow.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, type MutableRefObject } from 'react';
+import { useState, useCallback, useRef, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { routeCase, routeStatCase } from '@/services/cases/casePoolAssignmentService';
@@ -101,6 +101,28 @@ export function useGrossingCompletion({
   // Specimens with neither a protocol nor a Grossing template, waiting for the
   // user to confirm completing them (the protocol rule switched off).
   const [pendingProtocolConfirmation, setPendingProtocolConfirmation] = useState<string[] | null>(null);
+  // Batch 474-prep quick fix: the "reason for updating Gross" capture used to
+  // be a blocking window.prompt() (see the comment at its call site below for
+  // the original MVP rationale). Promise + ref here is what lets an async
+  // function `await` a React modal instead of a synchronous browser prompt —
+  // ReasonPromptModal (rendered in SynopticReportPage.tsx) resolves it via
+  // confirmUpdateReason/cancelUpdateReason.
+  const [showUpdateReasonPrompt, setShowUpdateReasonPrompt] = useState(false);
+  const updateReasonResolverRef = useRef<((reason: string | null) => void) | null>(null);
+  const promptForUpdateReason = useCallback(() => new Promise<string | null>(resolve => {
+    updateReasonResolverRef.current = resolve;
+    setShowUpdateReasonPrompt(true);
+  }), []);
+  const confirmUpdateReason = useCallback((reason: string) => {
+    setShowUpdateReasonPrompt(false);
+    updateReasonResolverRef.current?.(reason);
+    updateReasonResolverRef.current = null;
+  }, []);
+  const cancelUpdateReason = useCallback(() => {
+    setShowUpdateReasonPrompt(false);
+    updateReasonResolverRef.current?.(null);
+    updateReasonResolverRef.current = null;
+  }, []);
   const missingText = useCallback((missing: MissingGrossingItem[]) => t('fieldRequirements.stillRequired', {
     fields: formatList(missing.map(m => m.where.length
       ? t('grossingScreen.complete.missingAt', { field: t(`fieldRequirements.fields.grossing.${m.fieldId}`), where: formatList(m.where, i18n.language) })
@@ -164,10 +186,10 @@ export function useGrossingCompletion({
       // Matches the Grossing SOP's own audited-correction precedent for
       // post-handoff cassette edits ("must be flagged, logged with a
       // timestamp, and require a user-entered reason for modification").
-      // MVP reason capture via prompt() — a dedicated modal (matching
-      // RequestReviewModal/PoolClaimModal's pattern) is the real long-term
-      // UI here, not a browser prompt.
-      const entered = window.prompt(t('useGrossingCompletion.prompt.reasonForUpdate'));
+      // Reason capture via ReasonPromptModal (matching
+      // RequestReviewModal/PoolClaimModal's pattern), not a browser prompt —
+      // see promptForUpdateReason above.
+      const entered = await promptForUpdateReason();
       if (!entered || !entered.trim()) {
         showToast(t('useGrossingCompletion.toast.updateCancelledReasonRequired'), 'warning');
         return;
@@ -589,7 +611,7 @@ export function useGrossingCompletion({
       console.error('[Gross Complete] Failed:', err);
       showToast(t(isUpdate ? 'useGrossingCompletion.toast.updateGrossFailed' : 'useGrossingCompletion.toast.grossCompleteFailed'), 'warning');
     }
-  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t, i18n.language, grossingRequirements, missingText, user]);
+  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t, i18n.language, grossingRequirements, missingText, user, promptForUpdateReason]);
 
   const confirmGrossCompleteWithoutProtocol = useCallback(async () => {
     setPendingProtocolConfirmation(null);
@@ -603,5 +625,8 @@ export function useGrossingCompletion({
     pendingProtocolConfirmation,
     confirmGrossCompleteWithoutProtocol,
     cancelGrossCompleteWithoutProtocol,
+    showUpdateReasonPrompt,
+    confirmUpdateReason,
+    cancelUpdateReason,
   };
 }

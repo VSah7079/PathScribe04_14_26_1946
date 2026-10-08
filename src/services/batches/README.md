@@ -44,6 +44,20 @@ Container/batch chain-of-custody for cassettes and slides moving through downstr
 - `openBatches`, `closedBatches` and `openCountByNode`, for the Batch Management list;
 - `reconciliationGate`: missing items, unexpected scans and an unacknowledged cold-chain excursion, in the order the service checks them. `mockBatchService.completeReconciliation` uses it too, so the Complete button and the service can't disagree.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Moving slides to Ready for Screening is versioned per case; a lasting conflict reaches the existing failure path with no success audit.
+
+## Batch 460
+
+`computePendingBatchQueue.ts` names each slide by its printed level (`material/slideLevels.ts`), so a reordered slide's queue entry matches its barcode.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+When a referral batch is dispatched, its send-out molecular orders are marked sent, and the manifest names them (`molecularOrders`). This happens asynchronously and never blocks the referral.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

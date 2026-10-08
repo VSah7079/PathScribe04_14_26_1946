@@ -228,7 +228,7 @@ const CassetteColorsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('cassetteColorsSection.allLabsLabel')}</option>
           <option value="Global">{t('cassetteColorsSection.labFilter.globalOnly')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

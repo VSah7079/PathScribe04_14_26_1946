@@ -80,6 +80,16 @@ Two further, real, notification-only siblings exist alongside the mutating funct
 
 `adtParser.ts` keeps CX.5 (`identifierTypeCode`) on each PID-3 repetition. `processAdtMessage.ts` classifies every repetition with `services/patientIdentifiers/classifyHl7PatientIdentifier.ts` (an `NHS` authority, an `NH` type code in a UK lab…) and records the national ones in the MPI with their check digit run, source `hl7`. A bad check digit is kept as `failedChecksum`, never silently verified. The MRN crosswalk rows are unchanged.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+The block-exception, HPV result, molecular batch and material-location handlers rebuild their change from the newest case on a conflict. The old retry that re-saved without a version is gone. If a message still can't be saved, it throws and isn't marked processed, so it is redelivered.
+
+## Batch 460
+
+`materialLocationMutation.ts` finds a scanned slide by its printed level (`material/slideLevels.ts`), not its position, so a slide moved after Microtomy reordered the list updates the right slide.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

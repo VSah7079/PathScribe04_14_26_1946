@@ -16,6 +16,7 @@ import type { AutopsyOrganCode } from "@/types/autopsy/AutopsyOrganCode";
 import type { CytologyCategorySelection } from "@/types/cytology/CytologyReviewRecord";
 import type { RecordedClinicalHistoryEntry } from "@/types/clinicalHistory/RecordedClinicalHistoryEntry";
 import type { CytologyRoseEvaluation } from "@/types/cytology/CytologyRoseEvaluation";
+import type { Margin } from "./Margin";
 
 export interface SpecimenCollection {
   collectedAt?: string;
@@ -399,7 +400,13 @@ export interface StainOrder {
    *  (physical) and "In Scanning Queue/Loaded on Scanner" (digital) —
    *  one shared real status field covering both real destinations,
    *  since a slide is only ever routed one way at a time. */
-  distributionStatus?: 'Assigned' | 'Checked Out' | 'In Scanning Queue' | 'Loaded on Scanner';
+  distributionStatus?: 'Assigned' | 'Checked Out' | 'In Scanning Queue' | 'Loaded on Scanner' | 'Scanned';
+  /** Batch 434: the WSI scan batch this slide is loaded in
+   *  (services/digitalPathology/). Set when it is loaded from the scanning
+   *  queue; cleared when the batch is unloaded and the slide goes back to the
+   *  queue (not scanned, failed, or failed image QC). A slide scanned
+   *  successfully keeps it and becomes 'Scanned'. */
+  wsiScanBatchId?: string;
   /** Real FK to services/users/ IUserService's own StaffUser.id — the
    *  real attending pathologist this slide was routed to for physical
    *  checkout. assignedPathologistName is cached for display, same
@@ -534,7 +541,7 @@ export interface StainOrder {
    *  render, so the Order Tracking dashboard shows a stable value
    *  even if a stain's own dictionary category is edited later. See
    *  resolveAddOnRouting in utils/addOnOrderOperations.ts. */
-  routedQueueLabel?: 'Histology Cutting Queue' | 'Special Stains Bench Queue' | 'IHC/Special Histochemistry Queue' | 'Reference/Send-Out Lab Queue';
+  routedQueueLabel?: 'Histology Cutting Queue' | 'Special Stains Bench Queue' | 'IHC/Special Histochemistry Queue' | 'Reference/Send-Out Lab Queue' | 'Molecular In-House Queue';
   /** Real, per direct follow-up on this ticket's own Jira comment:
    *  "everything it creates should ultimately land in the same real
    *  vocabulary PS-284/285/286 are tying into" — SCAN_STATION_WORKFLOW_STAGES
@@ -604,7 +611,7 @@ export interface StainOrder {
 /** See StainOrder.distributionEvents's own doc comment. */
 export interface SlideDistributionEvent {
   id: string;
-  action: 'assigned' | 'checked_out' | 'loaded_on_scanner' | 'exception_flagged' | 'exception_resolved' | 'label_reprint_requested';
+  action: 'assigned' | 'checked_out' | 'loaded_on_scanner' | 'unloaded_from_scanner' | 'exception_flagged' | 'exception_resolved' | 'label_reprint_requested';
   timestamp: string;
   techUserId: string;
   /** Real, human-readable summary of what this event recorded (target
@@ -1000,6 +1007,11 @@ export interface HistologyBlock {
   lastCassetteReprintOrderedBy?: string;
   lastCassetteReprintOrderedAt?: string;
   cassetteReprintCount?: number;
+  /** Batch 480 (Structured Inking, Module 1) — real margins examined on
+   *  THIS block, for a grossing protocol that inks per-cassette. See
+   *  types/case/Margin.ts's own header for why this also exists on
+   *  `Specimen` below, and why never both for the same margin. */
+  margins?: Margin[];
 }
 
 /** Real, per PS-285 (Embedding Station) — the ticket's own five named
@@ -1449,6 +1461,12 @@ export interface Specimen {
    *  post-sign-out peer-review selection or biopsy-to-resection
    *  candidate detection — genuinely different from an empty object. */
   surgicalPeerReview?: SurgicalPeerReviewRecord;
+  /** Batch 480 (Structured Inking, Module 1) — real margins examined on
+   *  THIS specimen, for a grossing protocol that inks before blocking
+   *  (margins assessed on the intact specimen, not per-cassette). See
+   *  types/case/Margin.ts's own header, and HistologyBlock.margins
+   *  above — never both for the same margin. */
+  margins?: Margin[];
   /** Audit metadata */
   createdAt?: string;
   updatedAt?: string;
@@ -1623,6 +1641,16 @@ export interface CytologyScreeningRecord {
     flaggedBy: string;
     flaggedByName: string;
     flaggedAt: string;
+  };
+  /** Batch 452 (PS-156): the correlation window this abnormal cytology
+   *  specimen was given at sign-out (from collection by default; see
+   *  services/cytology/cytologyHistologyCorrelationWindow.ts), kept so a
+   *  biopsy that arrives after sign-out is still matched against the rule
+   *  that applied. Absent on a negative sign-out and on sign-outs before
+   *  Batch 452. */
+  histologyCorrelationWindow?: import('@/services/cytology/cytologyHistologyCorrelationWindow').CorrelationWindow & {
+    diagnosticRank: number;
+    reviewId: string;
   };
   /** Real, per direct guidance: CYT-QA-04 (Cyto-Histologic Correlation
    *  and Discrepancy Matrix). Real, honest scope, found by direct

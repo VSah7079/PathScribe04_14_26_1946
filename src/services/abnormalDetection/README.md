@@ -116,6 +116,10 @@ PS-137's one remaining gap was that agreement signals never recorded which activ
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-129)
+
+`abnormalTriggerRuleEditing.ts`: add, edit, deactivate and reactivate trigger rules, moved out of `AbnormalTriggerRulesSection.tsx`; refused without the configuration capability.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

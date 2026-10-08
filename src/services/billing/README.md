@@ -220,6 +220,95 @@ Before, anyone who could open Configuration could change this; now each change i
 
 New billing rule versions always start as drafts: `createVersion` no longer accepts a status, which let a caller skip approval. Approving any billing table (rules, modifiers, RVU, NCCI, code imports) is `config:billing-tables:approve`; the approver-isn't-uploader rule stays.
 
+## Batch 433 — one billing correction engine, charge approval (PS-345, PS-359)
+
+Pete: every correction after sign-out uses the same credit/rebill engine, needs a reason, is audited, works without opening the case, for Orchestration and Assist cases, with or without a deficiency. Charges can wait for a billing-office approval, set per enterprise with facility overrides.
+
+| File | What it does |
+|---|---|
+| `billingCorrection.ts` | The engine. `planBillingCorrection` (pure) builds the records for a correction: change the CPT code, change the modifier, reverse, or add a missing charge (resolved against the Billing Dictionary for the specimen's date of service). `applyBillingCorrection` checks `billing:applied-code:correct` for the case, requires a reason and comment, marks the records awaiting approval when the lab requires it, saves them, resolves the deficiency it came from (or records and resolves a `POST_SIGNOUT_CORRECTION` one), and writes one "Billing correction" audit entry. A credit or new charge never inherits the original's approval (`withoutApproval`). |
+| `billingCorrectionCase.ts` | What the correction dialog needs: find a case by case id or accession number (through the case router, so case access applies), its active charges, specimens and blocks, the billing codes with an active rule, where the dialog starts for a deficiency (`initialCorrection`) and the form → correction step (`correctionFromForm`). |
+| `chargeApproval.ts` | Whether a facility's charges need approval (`resolveBillingApprovalRequired`: the lab's own setting, else its enterprise's, else off), `markAwaitingApproval`, the queue (`listChargesAwaitingApproval`, with each charge's performing lab) and `decideCharge` (approve, reject with a reason, hold, release), which checks `billing:charge:approve` for the charge's lab and refuses a person's own draft (`OWN_DRAFT`). Also the facility editor's choice helpers. |
+| `correctServiceCharge.ts` | Now a wrapper over the engine for the report page's own code change (no reason before sign-out, no deficiency record). |
+| `shouldRequireBillingApproval.ts` | `resolveRequireBillingApprovalForCase` now follows the enterprise when the lab has no setting. |
+| `mockServiceChargeService.ts` | `listByApprovalStatus(statuses)`. |
+
+Sign-out charges and credits on the report page wait as `PENDING_APPROVAL` (they used to be `DRAFT`, which nothing ever submitted). The outbound sweep already skips `PENDING_APPROVAL` and `HOLD`.
+
+Deficiency records gained `MISSING_CHARGE`, `POST_SIGNOUT_CORRECTION`, trigger `MANUAL_BILLING_CORRECTION` and `missingCharge` (`types/billing/BillingDeficiencyRecord.ts`).
+
+Tests: `billingCorrection.test.ts`, `billingCorrectionCase.test.ts`, `chargeApproval.test.ts`; `correctServiceCharge.test.ts` updated.
+
+## Batch 434 — follow-ups to Batch 433
+
+- **The performing lab is found for every case.** Most seeded cases carry a legacy tenant id (`HOSP-002`) as their origin, which Batch 433 looked up directly and never found. `chargeApproval.ts` and `shouldRequireBillingApproval.ts` now use `facilities/resolveCasePerformingLab.ts`.
+  - Before, those cases showed a blank "Performing lab", had the approval permission checked with no facility, and never applied their lab's "Charges need billing approval" setting.
+  - A charge whose lab still can't be found is refused (`LAB_UNKNOWN`) rather than checked without a facility.
+- **A correction updates the case's own coding.** `applyBillingCorrection` also changes the specimen or block `coding.cpt` (`applyCorrectionToSpecimens`), so the case page agrees with the charge ledger.
+  - Before, a correction made from Quality Assurance changed only the ledger, and the case kept showing the old code.
+  - The report page's own code change passes `updateCaseCoding: false`, since it saves the case itself.
+
+## Batch 438
+
+`searchBillingAuditLog.ts` reads audit times as UTC (`parseStoredUtc`); they were stored without a zone and read as local time.
+
+## Batch 441
+
+`jsonWebhookBuilder.test.ts`: the "no performing lab" case now uses Fairview Family Practice (`c-auto-000001`). Metro General (`c1`) names Desert Valley Medical Center as its performing lab as of this batch.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`billingMaterialSync.ts` (PS-316); CPT modifier and NCCI template rows moved here; `dictionaryCsvRoundTrip.test.ts` (PS-48).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`billingMaterialSync.ts`: `billingReactionToMaterialEvent`, the billing panel's response to `MATERIAL_DECANTED` and `MATERIAL_ROLLED_BACK`. Decant billing rows come from `services/material/billableMaterial.ts`.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`BILLING_RULE_SEED_VERSIONS` and `MODIFIER_DICTIONARY_SEED_VERSIONS` are exported, so the demo Full Reset can put the seeded versions back to their seeded state, pending approvals included.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Billing correction's case-coding save is versioned; a save that never lands is noted in the audit.
+
+## Batch 460 — Billing review on the Cytology Workspace and at Microtomy
+
+Pete: full billing review in the Cytology Workspace; read-only charges at the Microtomy bench, with a switch to full review for people allowed to change billing; a permission of its own for reviewing codes.
+
+**Shared by all three screens** (report page, Cytology Workspace, Microtomy). These were inline in `SynopticReportPage.tsx`; the page now calls them too.
+- **`caseBillingCoding.ts`** (pure): every coding change the billing panel makes.
+  - `codingWithApproved`, `codingWithRejected`, `codingWithOverride`, `codingWithoutCode`, `codingWithCorrection`, `groupApprovalsByUnit`.
+  - Specimen base codes: `specimensWithBaseCodeAdded`, `specimensWithBaseCodeRemoved`, `specimensWithBaseCodeCorrected`.
+  - Matrix blocks (PS-93): `specimensWithMatrixCode`, `matrixSlidesWithEvaluatedCores`.
+- **`caseBillingCharges.ts`:** the ledger side.
+  - `enforceBillingReview` checks `billing:applied-code:review`.
+  - `recordCaseCharge`: the date of service is Date Collected, else Date Received; with neither, the charge is withheld and audited. The charge waits for approval when the lab requires it.
+  - `recordCaseCredit`, `recordCaseCodeCorrection` (through `correctServiceCharge`), `auditBillingSuggestionDeclined`.
+  - Audit text is unchanged from the report page's.
+- **`materialChargePreview.ts`** (pure): Microtomy's read-only view.
+  - One row per slide with its codes and state (applied, pending review, declined, no billing code). A matrix block gets one row per participating specimen.
+  - The charge's ledger status (charged, waiting for billing approval, approved, exported, on hold, rejected).
+  - Warnings: a billable matrix-block slide whose evaluated cores aren't confirmed yet; charges waiting for approval.
+
+**Permission:** `billing:applied-code:review` (high risk). It covers approving, declining, overriding, adding and deleting a case's billing codes.
+- It's given to every role that already had `billing:applied-code:correct` (every case-access role, Admin, Lab Director, QA Reviewer, and hospital roles with case or configuration access), so nobody loses anything.
+- Before this batch, these actions weren't checked at all; only correcting an applied code was.
+
+**User Guide**
+- **Cytology Workspace:** "$ Billing" next to "# Codes" opens Billing review, the same panel as the report page, with Approve, Decline, Override, Add, Delete and Correct.
+  - Each change is saved to the case and then charged or credited.
+  - On a signed-out case it asks for the post-sign-out reason first.
+  - An Assist-mode case changes codes without charging (the LIS bills it).
+- **Microtomy:** the Billing box under Prior history lists each slide's codes and their status, with any warnings. "$ Full billing review" opens the full panel. It's greyed out without the permission, and the tooltip says why.
+- Without the permission, a change is refused with a message and nothing changes.
+
+**Admin Guide:** to stop a role changing billing (for example histotechs), remove "Review a case's billing codes" from it in the Role Dictionary. Its users keep the read-only charges at Microtomy.
+
+Tests: `caseBillingCoding.test.ts`, `caseBillingCharges.test.ts`, `materialChargePreview.test.ts`, and `hooks/useCaseBillingReview.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

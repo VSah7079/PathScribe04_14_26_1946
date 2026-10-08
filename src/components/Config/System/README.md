@@ -1324,6 +1324,130 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 `SurgicalPeerReviewRiskWeights.tsx` (new), shown in the QA Configuration Center editor for the Surgical Post-Sign-Out Peer Review type.
 
+## Batch 433
+
+`BiometricPolicyCard.tsx` in Session security: the lab's biometric e-signature policy (on/off, how often, days). Saving needs `config:session-security:manage` (`services/biometric/mockBiometricService.ts` `saveBiometricPolicy`).
+
+## Batch 437
+
+Sections that keep a draft report it (`useReportConfigDirty`, PS-128): Cytology QC settings, Cancer Registry, Country Signing Rules, Governing Bodies, Retention, Crosswalk, SNOMED cervical severity mapping, Support Access, Research Feed. The section list and group tabs ask before leaving unsaved changes. Print Settings has a new card, "Ask for a reason when a report is reprinted" (PS-282). Configuration exports are audited (PS-282).
+
+## Batch 438 (PS-146)
+
+`RevisionReasonsSection.tsx`: Configuration → System → Revision Reasons (Administration & Compliance). The amendment and correction reasons with their "clinically significant" switch. A change saves at once and needs `config:revision-reasons:manage`.
+
+## Batch 439 (PS-144)
+
+`PeerReviewGateSection.tsx`: Configuration → System → Peer Review Before Sign-Out. Where sign-out waits for a first-time malignancy's review: the organisation, each performing lab, each department (subspecialty); inherit / on / off. Off by default. Saves at once; `config:peer-review:manage`.
+
+## Batch 441
+
+`QAConfigurationCenterSection.tsx`:
+- an "Only for reviews after the report was released" checkbox (`capaTriggerRule.postSignOutOnly`, PS-148);
+- the CAPA Trigger column now comes from `services/quality/capaTriggerSummary.ts`, with severities translated and joined in the user's language, and "(after release only)" when set;
+- jurisdictions show their translated names, and the sampling percentage is formatted per language.
+
+## Batch 442 (PS-147)
+
+`QaTrendPolicySection.tsx` is **Discordance Trend Policy** (Administration & Compliance):
+- the organisation's policy, plus "has its own policy" for any performing lab;
+- the fields are: watch pathologists / specimen types, window (months), minimum reviews, major severities, count, rate, and what crossing produces;
+- saving is validated, checked (`config:qa-trend-policy:manage`) and audited.
+
+Registered in `systemSections.ts`, `index.tsx`, `services/screens/configSectionAccess.ts` and `constants/configSearchIndex.ts`.
+
+## Batch 444
+
+`ScanStationsSection.tsx` is translated. The `scanStationsSection.*` keys already existed in all five languages, but the screen never used them; it does now.
+- New keys: the four validation messages, the eight suggested workflow stages, and plainer wording for the subtitle and four hints.
+- It reaches stations through `@/services` instead of the mock service, so it's off the deployment baseline.
+- The list filter moved to `services/scanStations/scanStationList.ts`.
+
+## Batch 447
+
+`FeedbackSection.tsx` is **Feedback** (Administration & Compliance):
+- whether the QA feedback button shows: the default for this instance, always shown, or always hidden;
+- the QA recipients and the administrator cc.
+
+Saving is checked, validated and audited. Registered in `systemSections.ts`, `index.tsx`, `configSectionAccess.ts` and `configSearchIndex.ts`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+`TATConfigSection.tsx` calls `services/tatConfig/tatEntryActions.ts` (PS-38); `AbnormalTriggerRulesSection.tsx` calls `services/abnormalDetection/abnormalTriggerRuleEditing.ts` (PS-129).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+Tests for the Cytology QC Settings section (PS-155), Print Settings (PS-233; decisions moved to `services/printSettings/printSettingsForm.ts`), the CPT Modifier and NCCI dictionaries' template export and re-upload (PS-48; template rows moved to the billing services), and `addButtonsNoWrap.guard.test.ts` (PS-90). `CytologyQcSettingsSection`, `ModifierDictionarySection` and `NcciEditRulesSection` now reach their services through `@/services` and are off the deployment baseline (99 left). `ModifierDictionarySection`'s hidden upload errors and fixed `'en-US'` date were fixed in Batch 452.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`ModifierDictionarySection`: errors before a preview opens (wrong file type, empty file, unreadable file) are now shown. A failed or refused save, an invalid effective date, or an exception is shown in the preview and never left silent. Dates follow the user's language, and the default version label is translated.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+New section `BiopsyResectionCorrelationSection.tsx` ("Biopsy-to-resection correlation", under Administration & Compliance). It sets the surgical window's length and start date per enterprise, jurisdiction and facility. It is the shared `CorrelationWindowSettings` from `Config/Cytology/CytologyHistologyCorrelationSection.tsx`, wired to the surgical services. It's registered in `systemSections.ts` and `index.tsx`. Test: `BiopsyResectionCorrelationSection.test.tsx`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+New `FollowUpTrackingSection.tsx` (Configuration → System → Follow-up tracking, under Administration & Compliance). It sets the warning days, whether the clinician email is offered and its wording, for the enterprise and per facility. The wording fields show only when the email is on, and an unknown placeholder can't be saved. It is registered in `systemSections.ts` and `index.tsx`. Test: `FollowUpTrackingSection.test.tsx`.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`DemoResetTab.tsx` now has only the Full Reset; the "My data only" card was removed. The card text says what is restored.
+
+## Batch 461: Organ maps (Clinical Lookups, `organ_maps`)
+
+**`OrganMapsSection`**, two tabs:
+- **Colours & patterns**: choose a level (Enterprise, a jurisdiction, a facility). Each row shows what a map category or outline looks like at that level; **Override here** starts from what it inherits, then colour, pattern and legend wording can change; **Use inherited** gives it back. A preview map shows every colour and pattern. Every colour keeps a pattern (only "No tumour" and "Not sampled" may have none). **Save** / **Remove this level's overrides** need `config:organ-map-scheme:manage` (for that facility, on a facility level).
+- **Map bindings**: choose a synoptic template. PathScribe's own prostate templates (and copies of them) show "PathScribe map questions" and need nothing. For a lab's own template, choose the map, then for each input the question and what each of its answers means (for the biopsy map: the results grid question, its columns, and what the site, carcinoma, Grade Group and Gleason answers mean). **Save** / **Remove your lab's binding** need `config:organ-map-bindings:manage`.
+
+**The maps are always drawn from the synoptic answers**; nothing here stores case data. Rendering only: edits in `services/organMapping/organMapConfigDraft.ts`, saves in `organMapConfig.ts` (checked, validated, audited), loading in `hooks/useOrganMapConfig.ts`. Registered in `systemSections.ts`, `index.tsx`, `services/screens/configSectionAccess.ts` and `constants/configSearchIndex.ts` (`sys-organ-maps`).
+
+## Batch 462: Organ maps — breast
+
+- **Colours & patterns**: the breast categories, a second preview (a sample breast map that follows the level's colours and close-margin threshold), and "Breast: a margin is close below (mm)" with **Override here** / **Use inherited** (2 mm unless set; 0.1–10).
+- **Map bindings**: the map "Breast" binds a side question, a foci grid (columns and the meaning of type and clock answers) and a margins grid (only one with its own rows; each row → a margin). Choosing another column starts that column's meanings again.
+
+## Batch 463
+
+`OrganMapsSection.tsx`: a Mohs binding editor (which Mohs stage question) and a Mohs map in the colours preview, so "Residual tumour" and "Perineural invasion" can be seen while changing them.
+
+## Batch 464
+
+`OrganMapsSection.tsx`: the thresholds are rows from `THRESHOLD_ROWS` — the breast close margin, and the malignant-polyp and rectal CRM involved margins, each a distance with its operator (≤, <, =), overridden or inherited together; a generic binding editor for the colorectal maps (each input a question, and for a choice input what its answers mean); colorectal previews.
+
+## Batch 465
+
+`OrganMapsSection.tsx`: the oral cavity involved and close margin rows (from `THRESHOLD_ROWS`); a neck dissection binding editor (the levels grid, each fixed row's level, the four columns, the ENE answers' meanings); the field-input editor names oral answers by their subsite or value (`fieldInputValueKey`); head and neck previews.
+
+## Batch 465b
+
+`OrganMapsSection.tsx`: a standing warning for each layer whose oral cavity rules conflict with what it inherits, and the save message lists them.
+
+## Batch 466
+
+`OrganMapsSection.tsx`: kidney margin rule rows, and renal previews (radical right, partial left). The renal map's questions use the generic field-input editor.
+
+## Batch 466b
+
+`OrganMapsSection.tsx`: a "Generic margin questions (calculated from the map)" block in Map bindings. It sets which question is the margin status and which lists the margins involved, and what each answer means.
+
+## Batch 466c
+
+- `OrganMapsSection.tsx`: under the colorectal polyp's generic margin questions, a checkbox "Adenoma at the lateral margin counts as involved". It is on by default. (Replaced in Batch 466d by margins per component.)
+
+## Batch 466d
+
+`OrganMapsSection.tsx`:
+- Margin questions are bound per component ("Invasive carcinoma: margin status question", "Adenoma: …", "DCIS: …", "Dysplasia: …").
+- Binding problems name the role.
+- A pre-466d binding shows "Margin questions to review".
+- The 466c adenoma checkbox is removed.
+
+## Batch 467 — In-house molecular orders
+
+Stain Dictionary: a molecular test's "Run in-house at" (the performing labs that run it in-house).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

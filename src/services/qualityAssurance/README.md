@@ -77,6 +77,14 @@ Someone whose staff assignment is limited to some facilities can therefore expor
 
 **Found, not fixed:** `caseMatchesScope`'s client branch matches `order.clientId`, which no seeded case has. Cases carry `order.facilityId`, so a client scope currently matches no cases.
 
+## Batch 436 (PS-356)
+
+**Fixed:** `qaScope.ts` matched a QA scope's client against `order.clientId`, a field no case has, so limiting a scope to a client showed no cases. It now matches the ordering facility (`order.facilityId`), falling back to `clientId`. Test: `qaScope.test.ts`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-282)
+
+`exportQaReport` now records each export in the audit log as `DOCUMENT_EXPORTED` (document `qa-<report>`, filename, rows, facility), like every other export. Before, only the permission check was audited. Tested in `qaExport.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

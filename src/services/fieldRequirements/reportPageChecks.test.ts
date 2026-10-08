@@ -168,8 +168,8 @@ describe('Case report page, group 3 (Batch 382): reconciliation and billing chan
 describe('Case report page: autopsy forms (Batch 383)', () => {
   const form = (over: Record<string, string> = {}) => ({ orderReference: '', orderDate: '', consentGivenAt: '', consentScope: '', ...over });
   it('a medicolegal case needs the written order and its date, as before', () => {
-    expect(autopsyAuthorizationMissing('medicolegal_forensic', form(), defaults)).toEqual(['autopsyOrderReference', 'autopsyOrderDate']);
-    expect(autopsyAuthorizationMissing('medicolegal_forensic', form({ orderReference: ' CO-1 ', orderDate: '2026-09-01' }), defaults)).toEqual([]);
+    expect(autopsyAuthorizationMissing('statutory_judicial', form(), defaults)).toEqual(['autopsyOrderReference', 'autopsyOrderDate']);
+    expect(autopsyAuthorizationMissing('statutory_judicial', form({ orderReference: ' CO-1 ', orderDate: '2026-09-01' }), defaults)).toEqual([]);
   });
   it('a hospital-consented case needs the consent time; the scope only when an organisation requires it', () => {
     expect(autopsyAuthorizationMissing('hospital_consented', form(), defaults)).toEqual(['autopsyConsentGivenAt']);
@@ -179,7 +179,7 @@ describe('Case report page: autopsy forms (Batch 383)', () => {
   });
   it('the fields of the other authority are never asked for', () => {
     const strict = resolveFieldRequirements('report', { autopsyConsentScope: true });
-    expect(autopsyAuthorizationMissing('medicolegal_forensic', form({ orderReference: 'X', orderDate: '2026-09-01' }), strict)).toEqual([]);
+    expect(autopsyAuthorizationMissing('statutory_judicial', form({ orderReference: 'X', orderDate: '2026-09-01' }), strict)).toEqual([]);
   });
   it('the order, its date and the consent time can\'t be switched off', () => {
     const tried = resolveFieldRequirements('report', { autopsyOrderReference: false, autopsyOrderDate: false, autopsyConsentGivenAt: false });

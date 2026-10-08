@@ -17,5 +17,9 @@ Batch 367 (PS-74): the check behind standing rule 1, **no inline CSS**.
 - Pass per-instance values as custom properties.
 - For a colour, pass `--ps-hue` and derive tints with `color-mix(in srgb, var(--ps-hue) N%, transparent)`. N is the old hex alpha as a percentage (`18` ≈ 9.4%, `22` ≈ 13.3%, `33` = 20%, `66` = 40%).
 
+## Batch 436 (PS-294)
+
+`duplicateCss.guard.test.ts` fails when `pathscribe.css` has two identical top-level rules (same selector, same declarations). Batch 436 removed 377 such copies, keeping the last copy of each, which is the one the browser used. Every selector's final declarations and the order of the surviving rules were checked to be unchanged. The file went from 33,089 to 32,219 lines. Rules that share a selector but differ are left alone: those are real overrides.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

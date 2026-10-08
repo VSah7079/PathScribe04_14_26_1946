@@ -60,3 +60,13 @@ mechanism needs this file served alongside the app.
 
 3 tests (`mockInterfaceEngineSettings.test.ts`). Full suite clean: 302/305
 files, 2924/2933 tests, 0 failures.
+
+## Batch 435
+
+The developer tool now also answers the interface engine's receiving end (`VITE_INTERFACE_RECEIVER_ENDPOINT`, every outbound message from `dispatchInterfaceMessage`), with the same three modes. With **Answer for the slide scanner** on (the default), it plays the scanner after accepting a `WSI_SCAN_MANIFEST` (`simulateWsiScanner.ts`): each slide is reported as scanning, then scanned with image QC passed. The replies go through the real inbound processor, so the Slide scanning page can be shown end to end.
+
+It is still developer-only, with the same double gate (a development build, and switched on at `/dev/mock-interface-engine`). Test: `simulateWsiScanner.test.ts`.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+`simulateMolecularInstrument.ts`: after the mock engine accepts a molecular worklist, it plays the instrument. A few seconds later it reports the call set on the page (`molecularInstrumentCall`: Positive, Negative, off) for each patient sample, with controls as expected and each order id echoed, through `processInboundMolecularRunResults`. Development builds only, like the WSI scanner simulation. The default is `off`, so nothing fills a report unless someone chooses a call.

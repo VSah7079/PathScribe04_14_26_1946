@@ -28,5 +28,13 @@ The Validation tab is view only without its capabilities; the store link and "Ho
 
 Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
 
+## Batch 437
+
+Printing a validation study report is audited (PS-282).
+
+## Batch 449
+
+`ValidationStudiesSection.tsx` opens the inner tab named in `?section=` (`studies`, `dashboard`, `reports`; the list is `VALIDATION_SECTIONS`).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

@@ -29,6 +29,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { mockSessionTimeoutService } from '../../../services/session/mockSessionTimeoutService';
+import BiometricPolicyCard from './BiometricPolicyCard';
 
 const PRESET_MINUTES = [5, 10, 15, 20, 30, 60];
 
@@ -86,6 +87,9 @@ const SessionSecuritySection: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Batch 433: the biometric e-signature policy. */}
+      <BiometricPolicyCard />
     </div>
   );
 };

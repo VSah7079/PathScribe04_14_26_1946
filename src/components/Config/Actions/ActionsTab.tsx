@@ -7,6 +7,9 @@ import { toTitleCase } from '../../../utils/formatLabel';
 import { WORKSTATION_DISCIPLINES, FUNCTIONAL_AREAS_BY_DISCIPLINE } from '../../../services/workstationGroups/IWorkstationGroupService';
 import { resolveShortcutConflict, suggestAlternateShortcut } from '../../../services/actionRegistry/resolveShortcutConflict';
 import { parseActionRegistryImportCsv, type ActionImportRowOutcome } from '../../../services/actionRegistry/parseActionRegistryImportCsv';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
+import { recordExport } from '@/services';
 
 // Real, per PS-289's own comment thread — every real, populated
 // functional area across every real discipline, flattened for this
@@ -77,6 +80,12 @@ export const ActionsTab: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [shortcutError, setShortcutError] = useState('');
   const [shortcutSuggestion, setShortcutSuggestion] = useState('');
+  // PS-128 (Batch 437): a recorded shortcut is set by key presses, not typed,
+  // so the edit dialog reports its own unsaved state.
+  useReportConfigDirty(!!editingAction && draftDiffers(
+    { shortcut: editingAction.shortcut, triggers: editingAction.voiceTriggers.join(', '), stations: editingAction.stationProfiles ?? [] },
+    { shortcut: tempShortcut, triggers: tempTriggers, stations: tempStationProfiles },
+  ));
 
   const openEditModal = (action: SystemAction) => {
     setEditingAction(action);
@@ -191,6 +200,8 @@ export const ActionsTab: React.FC = () => {
       ],
     ]);
 
+    // PS-282 (Batch 437): audited.
+    void recordExport('action-registry', { filename: 'pathscribe_system_config.csv', rowCount: rows.length });
     const csvContent = [...instructions, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob(["﻿", csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -254,7 +265,7 @@ export const ActionsTab: React.FC = () => {
         </div>
       </div>
 
-      <input data-config-nav type="text" placeholder={t('actionsTab.search.placeholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="registry-search-input" />
+      <input data-dirty-ignore data-config-nav type="text" placeholder={t('actionsTab.search.placeholder')} value={search} onChange={(e) => setSearch(e.target.value)} className="registry-search-input" />
 
       <div className="ps-actionstab-filter-row">
         {filterOptions.map(cat => (

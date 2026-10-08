@@ -27,8 +27,8 @@ describe('mockMolecularExtractionRackService — real, per direct follow-up (§2
     const res = await mockMolecularExtractionRackService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      // Batch 406: and the demo rack ready to place.
-      expect(res.data.map(r => r.rackBarcode)).toEqual(['RACK-MOLE-00001', 'RK-HPV-0417']);
+      // Batch 406: and the demo rack ready to place. Batch 456: and the demo baseline's rack awaiting extraction.
+      expect(res.data.map(r => r.rackBarcode)).toEqual(['RACK-MOLE-00001', 'RK-HPV-0417', 'RACK-MOLE-00456']);
       expect(res.data[0].positions).toHaveLength(24);
       expect(res.data[0].positions[0].containerBarcode).toBe('SPEC-20260906-8831');
     }

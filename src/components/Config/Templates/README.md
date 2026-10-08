@@ -83,6 +83,10 @@ non-trivial open bug (now fixed — see Notes).
 
 `TemplateRenderer.tsx` saves trial answers through `services/templates/templateReviewWork.ts` and no longer keeps its own copy of the lifecycle state (the template service's status is the one record).
 
+## Batch 463b
+
+`TemplateRenderer.tsx`: a refused review or publish because a Mohs stage question's default-histology source is missing or not a choice question (`MOHS_HISTOLOGY_SOURCE`, from templateService) is shown in the user's language.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*

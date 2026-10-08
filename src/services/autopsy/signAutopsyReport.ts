@@ -37,9 +37,24 @@
 // case-level status transition — matching resolveAutopsyBodyReleaseGate.ts's
 // own design, which already reads padSnapshot directly rather than
 // any CaseStatus value.
+//
+// Batch 478 (PS-261 follow-up; Pete's own locked-in scoping decision):
+// resolveAutopsyGrossExaminationGate.ts's hard block, verified before
+// this batch to NOT actually be wired to anything — SynopticReportPage.tsx
+// only used it to decide whether to show a warning banner; nothing
+// stopped a sign from here. This is the one real write site PAD/FAD
+// signing goes through, so it's the one real place the gate becomes an
+// actual hard stop: a blocked gate now refuses the sign outright
+// (AUTHORIZATION_GATE_BLOCKED) unless the caller supplies a written
+// `overrideReason`, in which case the brand-new, audited
+// `autopsy:gross-exam-gate:override` capability is enforced and, if
+// held, the sign proceeds with the override logged to
+// AutopsyCaseDetails.gateOverrides (append-only) and to the shared
+// audit trail — never silent.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { countersignService, qaSupervisionAssignmentService, userService } from '@/services';
 import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
 import { resolveResidentCountersignRequired } from '@/services/cases/resolveResidentCountersignRequired';
@@ -47,7 +62,10 @@ import { publishReportReleasedEvent } from '@/services/reports/publishReportRele
 import { canFinalizeCase, getSessionUser, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
 import { resolveFinalizeAuthorityContext } from '@/services/auth/resolveFinalizeAuthorityContext';
 import { resolveForensicSignOutAuthority } from './resolveForensicSignOutAuthority';
-import type { AutopsyReportTier, AutopsyReportSnapshot } from '@/types/autopsy/AutopsyCaseDetails';
+import { resolveAutopsyGrossExaminationGate } from './resolveAutopsyGrossExaminationGate';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import type { AutopsyReportTier, AutopsyReportSnapshot, AutopsyGateOverrideEvent } from '@/types/autopsy/AutopsyCaseDetails';
 
 interface OrchestratorSectionLike { id: string; label: string; text?: string }
 
@@ -94,6 +112,13 @@ export type SignAutopsyReportErrorCode =
   /** A forensic case, and the signer holds no active appointment for its
    *  jurisdiction (resolveForensicSignOutAuthority). */
   | 'NO_FORENSIC_APPOINTMENT'
+  /** Batch 478: resolveAutopsyGrossExaminationGate.ts is blocked and no
+   *  `overrideReason` was supplied; `error` names the real blocked
+   *  reason(s), joined. */
+  | 'AUTHORIZATION_GATE_BLOCKED'
+  /** Batch 478: an `overrideReason` was supplied, but the signer holds no
+   *  `autopsy:gross-exam-gate:override`. */
+  | 'GATE_OVERRIDE_NOT_PERMITTED'
   | 'SAVE_FAILED';
 
 export interface SignAutopsyReportResult {
@@ -114,6 +139,12 @@ export async function signAutopsyReport(
    *  Same real, established pattern as releasePreliminaryReport.ts's
    *  own identical parameter. */
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  /** Batch 478: a written reason, supplied only when the caller already
+   *  knows (from a prior, refused attempt) that resolveAutopsyGrossExaminationGate
+   *  is blocked and wants to proceed anyway. Ignored when the gate is
+   *  actually allowed — never a way to "pre-authorize" a sign that
+   *  didn't need overriding. */
+  overrideReason?: string,
 ): Promise<SignAutopsyReportResult> {
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return { ok: false, errorCode: 'CASE_NOT_FOUND', error: 'Case not found.' };
@@ -125,6 +156,31 @@ export async function signAutopsyReport(
   // FAD, never the reverse).
   if (tier === 'FAD' && !caseData.autopsy.padSnapshot) {
     return { ok: false, errorCode: 'PAD_REQUIRED', error: 'The PAD must be signed before the FAD can be signed.' };
+  }
+
+  // Batch 478: the real hard stop. Checked here — the one real write
+  // site a PAD/FAD sign goes through — rather than only in the UI's own
+  // warning banner (SynopticReportPage.tsx), which never actually
+  // stopped anything before this batch.
+  const gate = resolveAutopsyGrossExaminationGate(caseData.autopsy);
+  let gateOverrideEvent: AutopsyGateOverrideEvent | undefined;
+  if (!gate.allowed) {
+    const trimmedReason = overrideReason?.trim();
+    if (!trimmedReason) {
+      return { ok: false, errorCode: 'AUTHORIZATION_GATE_BLOCKED', error: gate.blockedReasons.join(' ') };
+    }
+    const overrideDecision = await authorizationService.enforce('autopsy:gross-exam-gate:override', { caseId });
+    if (!overrideDecision.allowed) {
+      return { ok: false, errorCode: 'GATE_OVERRIDE_NOT_PERMITTED', error: 'Overriding the authorization gate needs the autopsy:gross-exam-gate:override permission.' };
+    }
+    gateOverrideEvent = {
+      id: `gate-override-${caseId}-${tier}-${Date.now()}`,
+      occurredAt: new Date().toISOString(),
+      tier,
+      blockedReasons: gate.blockedReasons,
+      reason: trimmedReason,
+      overriddenByName: signingUser.name,
+    };
   }
 
   const provisionalParticipant = caseData.participants?.some(
@@ -174,8 +230,12 @@ export async function signAutopsyReport(
       autopsyReportTier: tier,
     });
 
+    // PS-71 (Batch 458): a status-only change, saved against the newest
+    // version (updateCaseWithRetry); a conflict re-reads and re-saves the
+    // same status, so nothing anyone else saved is overwritten.
     try {
-      await caseRouter.updateCase(caseId, { status: 'pending-countersign' } as any);
+      const w = await updateCaseWithRetry(caseId, () => ({ status: 'pending-countersign' } as any), caseRouter);
+      if (!w.ok) return { ok: false, errorCode: 'SAVE_FAILED', error: 'The case changed while it was being released for countersign; reopen it and try again.' };
     } catch (e) {
       return { ok: false, errorCode: 'SAVE_FAILED', error: e instanceof Error ? e.message : 'Failed to release for countersign.' };
     }
@@ -196,7 +256,7 @@ export async function signAutopsyReport(
 
   // Forensic cases also need the signer's active jurisdictional
   // appointment, read live from their staff record. No admin override.
-  if (caseData.autopsy.caseAuthority === 'medicolegal_forensic') {
+  if (caseData.autopsy.caseAuthority === 'statutory_judicial') {
     const staff = await userService.getById(signingUser.id).catch(() => null);
     const forensic = resolveForensicSignOutAuthority({
       caseAuthority: caseData.autopsy.caseAuthority,
@@ -220,10 +280,9 @@ export async function signAutopsyReport(
     signedAt: new Date().toISOString(),
   };
 
-  const updatedAutopsy = {
-    ...caseData.autopsy,
-    ...(tier === 'PAD' ? { padSnapshot: snapshot } : { fadSnapshot: snapshot }),
-  };
+  // PS-71 (Batch 458): the signed content, as the signer saw it (used below
+  // to refuse a save over content that changed since).
+  const signedContent = JSON.stringify(snapshot.frozenPayload);
 
   // Real attending-side countersign completion — mirrors
   // useSignOutWorkflow.ts's own real pattern exactly: the attending
@@ -248,13 +307,44 @@ export async function signAutopsyReport(
     }).catch(() => {});
   }
 
+  // PS-71 (Batch 458): the snapshot is added to the newest copy of the
+  // autopsy record and saved with its version (updateCaseWithRetry), so a
+  // change to another part of the record saved in between is kept. A
+  // signature is never applied to content the signer didn't see: if the
+  // report content on the newest copy differs from what was signed (or the
+  // PAD an FAD needs is gone), nothing is saved and the sign fails.
   try {
-    await caseRouter.updateCase(caseId, {
-      autopsy: updatedAutopsy,
-      ...(tier === 'FAD' ? { status: 'finalized' } : {}),
-    } as any);
+    const w = await updateCaseWithRetry(caseId, current => {
+      const autopsy = (current as any).autopsy;
+      if (!autopsy || (tier === 'FAD' && !autopsy.padSnapshot)) return null;
+      const content = { scope: autopsy.scope, jurisdiction: autopsy.jurisdiction, ...buildReportTextSnapshot(current) };
+      if (JSON.stringify(content) !== signedContent) return null;
+      return {
+        autopsy: {
+          ...autopsy,
+          ...(tier === 'PAD' ? { padSnapshot: snapshot } : { fadSnapshot: snapshot }),
+          ...(gateOverrideEvent ? { gateOverrides: [...(autopsy.gateOverrides ?? []), gateOverrideEvent] } : {}),
+        },
+        ...(tier === 'FAD' ? { status: 'finalized' } : {}),
+      } as any;
+    }, caseRouter);
+    if (!w.ok) return { ok: false, errorCode: 'SAVE_FAILED', error: 'The case changed while it was being signed; reopen it to see the latest report and sign again.' };
   } catch (e) {
     return { ok: false, errorCode: 'SAVE_FAILED', error: e instanceof Error ? e.message : 'Failed to sign the report.' };
+  }
+
+  // Batch 478: an override is never silent — the shared audit trail
+  // always gets an entry, same real choke point recordAutopsyCustodyTransfer.ts
+  // already uses, in addition to the append-only record on the case itself.
+  if (gateOverrideEvent) {
+    mockAuditService.logEvent({
+      type: 'system',
+      event: 'AUTOPSY_GATE_OVERRIDDEN',
+      detail: `${tier} signed over a blocked authorization gate: ${gateOverrideEvent.blockedReasons.join(' ')} Reason: ${gateOverrideEvent.reason}`,
+      user: signingUser.name,
+      caseId,
+      confidence: null,
+    }).catch(() => {});
   }
 
   // Real, per direct follow-up ("wire in Autopsy") — routes through

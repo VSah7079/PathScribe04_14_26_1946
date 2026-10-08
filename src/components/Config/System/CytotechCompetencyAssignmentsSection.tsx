@@ -135,7 +135,7 @@ const CytotechCompetencyAssignmentsSection: React.FC = () => {
         <div className="ps-conf-form-row ps-mb-16">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cytotechCompetencyAssignmentsSection.filter.label')}</label>
-            <select data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
+            <select data-dirty-ignore data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
               <option value="">{t('cytotechCompetencyAssignmentsSection.filter.allFacilities')}</option>
               {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>

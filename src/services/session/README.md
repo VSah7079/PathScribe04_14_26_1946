@@ -65,8 +65,8 @@ in from a second tab correctly warns and, if confirmed, signs the first
 tab out with drafts preserved. Explicitly does NOT cover cross-device or
 cross-browser sessions (a phone and a laptop can't signal each other
 without something shared between them) — that's real, separate,
-backend-dependent follow-on work, tracked in
-`backend-requirements-concurrency-security.md` §9.
+backend-dependent follow-on work, tracked on the API server (PS-345; the backend-requirements document once
+cited here was never written, PS-40).
 
 - **`sessionSupersedeService.ts`** — The real storage primitives, and the
   ONLY file here without an interface/mock split, deliberately: this is
@@ -145,6 +145,10 @@ backend-dependent follow-on work, tracked in
 - `mockSessionTimeoutService`: `setOrgDefault` need `config:session-security:manage`.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 436 (PS-40)
+
+References to `backend-requirements-concurrency-security.md`, which was never written, now point at the API server's session work (PS-345). `firestore.rules` at the repo root is marked NOT DEPLOYED: production is SQL Server.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

@@ -321,6 +321,35 @@ def test_validate_envelope_rejects_missing_fields():
         check(err is not None and field in err, f"missing '{field}' is rejected with a real, specific error message")
 
 
+WSI_ENVELOPE = {
+    "queueEntryId": "wsi-batch-1",
+    "transactionType": "WSI_SCAN_MANIFEST",
+    "dispatchedAt": "2026-10-02T12:00:00.000Z",
+    "payload": {
+        "messageId": "m-1", "eventType": "WSI_SCAN_MANIFEST", "eventTimestamp": "2026-10-02T12:00:00.000Z",
+        "batchId": "wsi-batch-1", "batchBarcode": "WSI-20261002-0001", "scannerInstrumentId": "APERIO_GT450_01",
+        "slides": [{"slidePosition": "1", "caseId": "S26-1", "specimenId": "sp-1", "blockId": "b-1", "stainId": "st-1", "slideLabel": "A1 H&E"}],
+    },
+}
+
+
+def test_validate_envelope_accepts_every_browser_transaction_type():
+    print("test_validate_envelope_accepts_every_browser_transaction_type")
+    for t in ('REGISTRY_REPORT', 'CANCER_REGISTRY_REPORT', 'PRINT_JOB', 'CRITICAL_ALERT'):
+        check(main.validate_envelope({**VALID_ENVELOPE, "transactionType": t}) is None, f"{t} is accepted (Batch 434: it was refused before)")
+    check(main.validate_envelope(WSI_ENVELOPE) is None, "a complete WSI_SCAN_MANIFEST is accepted")
+
+
+def test_validate_envelope_checks_the_wsi_manifest():
+    print("test_validate_envelope_checks_the_wsi_manifest")
+    no_slides = {**WSI_ENVELOPE, "payload": {**WSI_ENVELOPE["payload"], "slides": []}}
+    check('at least one slide' in (main.validate_envelope(no_slides) or ''), "a manifest with no slides is refused")
+    no_scanner = {**WSI_ENVELOPE, "payload": {**WSI_ENVELOPE["payload"], "scannerInstrumentId": ""}}
+    check('scannerInstrumentId' in (main.validate_envelope(no_scanner) or ''), "a manifest with no scanner is refused")
+    bad_slide = {**WSI_ENVELOPE, "payload": {**WSI_ENVELOPE["payload"], "slides": [{"slidePosition": "1", "caseId": "S26-1"}]}}
+    check('specimenId' in (main.validate_envelope(bad_slide) or ''), "a slide without its specimen is refused")
+
+
 def test_validate_envelope_rejects_unknown_transaction_type():
     print("test_validate_envelope_rejects_unknown_transaction_type")
     bad = {**VALID_ENVELOPE, "transactionType": "A99_MADE_UP"}
@@ -394,6 +423,48 @@ def test_receive_interface_message_storage_failure_returns_clean_500():
     check(body.get('ok') is False, "response shape has ok: false on real storage failure")
 
 
+def test_report_figures_drawn_in_pdf():
+    """Batch 461: an inserted anatomical map is drawn into the PDF; a broken one is skipped."""
+    print("test_report_figures_drawn_in_pdf")
+    import base64
+    from io import BytesIO as _BytesIO
+    from PIL import Image as _PILImage
+    buf = _BytesIO()
+    _PILImage.new('RGB', (66, 32), (255, 255, 255)).save(buf, format='PNG')
+    png = base64.b64encode(buf.getvalue()).decode('ascii')
+    base = {"caseHeader": {"accession": "S26-4404"}}
+    plain = main.build_report_pdf(base)
+    with_fig = main.build_report_pdf(dict(base, reportFigures=[{"instanceId": "i1", "mapType": "prostateBiopsy", "pngBase64": png, "svg": "<svg/>", "width": 460, "height": 300}]))
+    check(b"/Subtype /Image" in with_fig and b"/Subtype /Image" not in plain, "the figure is embedded as an image")
+    long_grid = "A (right apex): Site: Right apex lateral; Carcinoma: Present; Grade Group: 2; Core involved: 40 %\nB (right mid): Site: Right mid lateral; Carcinoma: Present"
+    wrapped = main.build_report_pdf(dict(base, synopticAnswers=[{"fieldId": "g", "fieldLabel": "Core results", "displayValue": long_grid}], bodyAssembly=[{"order": 0, "nodes": [{"type": "synoptic-block"}]}]))
+    check(wrapped[:4] == b"%PDF", "a long multi-line grid answer renders (wrapped in its cell)")
+    broken = main.build_report_pdf(dict(base, reportFigures=[{"instanceId": "i1", "pngBase64": "not base64!!"}, {"instanceId": "i2", "svg": "<svg/>"}]))
+    check(broken[:4] == b"%PDF" and b"/Subtype /Image" not in broken, "a broken or PNG-less figure is skipped, the report still renders")
+
+
+def test_report_figure_notice_when_not_drawn():
+    """Batch 463: a map that is part of the report (Mohs) but has no usable PNG prints a notice with its content as text, never a silent gap."""
+    print("test_report_figure_notice_when_not_drawn")
+    lines = ["Stage 1, 09:15, 3 blocks cut, residual tumour, 12 o'clock, peripheral, block A, BCC <nodular>", "Stage 2, 10:30, clear"]
+    for fig in ({"instanceId": "m1", "mapType": "mohsStages", "svg": "<svg/>", "notice": True, "fallbackLines": lines},
+                {"instanceId": "m1", "mapType": "mohsStages", "pngBase64": "not base64!!", "notice": True, "fallbackLines": lines}):
+        flows = main.figure_flows({"reportFigures": [fig]})
+        check(len(flows) == 1, "one notice in the map's place")
+        table = flows[0]._content[0]
+        texts = [row[0].getPlainText() for row in table._cellvalues]
+        check(texts[0] == main.DEFAULT_LABELS['figureNotDrawn'] and texts[1:] == lines, "the notice heading, then the stage lines (escaped markup kept as text)")
+    token = main._current_labels.set(main.report_labels({"labels": {"figureNotDrawn": "Avis : la carte n'a pas pu être dessinée."}}))
+    try:
+        fr = main.figure_flows({"reportFigures": [{"instanceId": "m1", "notice": True}]})
+        check(fr[0]._content[0]._cellvalues[0][0].getPlainText() == "Avis : la carte n'a pas pu être dessinée.", "in the report's language; no lines when none are given")
+    finally:
+        main._current_labels.reset(token)
+    check(main.figure_flows({"reportFigures": [{"instanceId": "i2", "svg": "<svg/>"}]}) == [], "an optional inserted figure without an image is still left out")
+    pdf = main.build_report_pdf({"caseHeader": {"accession": "S26-4463"}, "reportFigures": [{"instanceId": "m1", "notice": True, "fallbackLines": lines}]})
+    check(pdf[:4] == b"%PDF", "the report renders with the notice")
+
+
 if __name__ == '__main__':
     test_labels_follow_the_report_language()
     test_korean_report_uses_pretendard()
@@ -402,6 +473,8 @@ if __name__ == '__main__':
     test_text_path_every_node_type()
     test_one_workup_pdf()
     test_combined_workups_pdf()
+    test_report_figures_drawn_in_pdf()
+    test_report_figure_notice_when_not_drawn()
     test_entrypoint_default_is_pdf()
     test_entrypoint_explicit_pdf_same_as_default()
     test_entrypoint_text_format()
@@ -411,6 +484,8 @@ if __name__ == '__main__':
     test_validate_envelope_rejects_missing_fields()
     test_validate_envelope_rejects_unknown_transaction_type()
     test_validate_envelope_accepts_all_six_real_transaction_types()
+    test_validate_envelope_accepts_every_browser_transaction_type()
+    test_validate_envelope_checks_the_wsi_manifest()
     test_validate_envelope_rejects_non_object_payload()
     test_receive_interface_message_success()
     test_receive_interface_message_validation_failure()

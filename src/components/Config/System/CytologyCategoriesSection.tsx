@@ -21,6 +21,7 @@ import type {
   CytologyNomenclatureSystem,
   NewCytologyCategoryEntry,
 } from '../../../services/cytology/ICytologyCategoryService';
+import { recordExport } from '@/services';
 
 // ─── Small chip helpers ─────────────────────────────────────────────────────
 
@@ -258,6 +259,8 @@ const CytologyCategoriesSection: React.FC = () => {
       Id: e.id, Section: e.section, EnglishLabel: e.label, EnglishDescription: e.description ?? '',
       FrenchLabel: e.labelFr ?? '', FrenchDescription: e.descriptionFr ?? '',
     }));
+    // PS-282 (Batch 437): audited.
+    void recordExport('bethesda-french-translations', { filename: 'BethesdaFrenchTranslations.csv', rowCount: rows.length });
     downloadCsv('BethesdaFrenchTranslations.csv', toCsv(rows));
   };
 

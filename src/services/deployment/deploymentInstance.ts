@@ -28,7 +28,7 @@ export const registryEnvironmentFor = (role: InstanceRole): 'test' | 'production
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const deploymentInstance = {
-  role: instanceRoleFrom((import.meta as any).env?.VITE_APP_ENV) as InstanceRole,
+  role: instanceRoleFrom(import.meta.env.VITE_APP_ENV) as InstanceRole,
   /** The PathScribe release running here; a validation record names the release it validated. */
   release: typeof __APP_VERSION__ === 'string' && __APP_VERSION__ ? __APP_VERSION__ : 'unknown',
 };

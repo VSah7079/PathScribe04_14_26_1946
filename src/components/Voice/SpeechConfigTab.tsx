@@ -183,7 +183,7 @@ const SpeechConfigTab: React.FC = () => {
       <div className="sct-toolbar">
         <div className="sct-search-wrap">
           <Search size={14} className="sct-search-icon" />
-          <input data-config-nav
+          <input data-dirty-ignore data-config-nav
             type="text"
             placeholder={t('speechConfigTab.searchPlaceholder')}
             value={searchTerm}
@@ -192,7 +192,7 @@ const SpeechConfigTab: React.FC = () => {
           />
         </div>
 
-        <select data-config-nav
+        <select data-dirty-ignore data-config-nav
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
           className="sct-status-select"

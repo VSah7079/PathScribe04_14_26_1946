@@ -115,6 +115,8 @@ export const CAPABILITY_CATALOG = [
   { key: 'case:retention-hold:place',   labelId: 'caseRetentionHoldPlace',    group: 'casework', risk: 'high', requires: [] },
   { key: 'case:retention-hold:release', labelId: 'caseRetentionHoldRelease',  group: 'casework', risk: 'high', requires: [] },
   { key: 'case:delegation:create',      labelId: 'caseDelegationCreate',      group: 'casework', risk: 'high', requires: [] },
+  // Batch 441: changing a case's team (Case Team), including who its primary pathologist is.
+  { key: 'case:team:manage',            labelId: 'caseTeamManage',            group: 'casework', risk: 'high', requires: [] },
   // Batch 417 (Registry Engine SRS v2.1, FR-004.3): recording or removing a
   // patient's national identifier (NHS number, BSN, IHI…), the number every
   // registry keys on. Checked in services/patientIdentifiers/recordNationalPatientIdentifier.ts.
@@ -175,6 +177,24 @@ export const CAPABILITY_CATALOG = [
   { key: 'cytology:qc-review:bypass',   labelId: 'cytologyQcReviewBypass',    group: 'casework', risk: 'high', requires: [] },
   { key: 'surgical:qa-review:record',   labelId: 'surgicalQaReviewRecord',    group: 'casework', risk: 'high', requires: [] },
 
+  // Batch 439 (PS-144): peer review before sign-out. Asking for one (and
+  // withdrawing it), the reviewer's independent read, and signing out ahead
+  // of it for urgent care when the sign-out gate is on. Checked in
+  // services/quality/peerReviewService.ts.
+  { key: 'case:peer-review:request',    labelId: 'casePeerReviewRequest',     group: 'casework', risk: 'high', requires: [] },
+  { key: 'case:peer-review:record',     labelId: 'casePeerReviewRecord',      group: 'casework', risk: 'high', requires: [] },
+  { key: 'case:peer-review:override',   labelId: 'casePeerReviewOverride',    group: 'casework', risk: 'high', requires: [] },
+  // Batch 439 (PS-145): the pathologist's decision on a clinical-pathologic
+  // mismatch suggestion (services/clinical/clinicalMismatchDecision.ts).
+  { key: 'case:clinical-mismatch:record', labelId: 'caseClinicalMismatchRecord', group: 'casework', risk: 'high', requires: [] },
+  // Batch 439 (PS-148): assessing an outside consultant's opinion against the
+  // case (services/consultAccess/mockConsultTokenService.ts).
+  { key: 'case:outside-consult:assess', labelId: 'caseOutsideConsultAssess',  group: 'casework', risk: 'high', requires: [] },
+  // Batch 440 (PS-271 follow-up): a pathologist takes a positive GYN case
+  // from the Cytology Review tray and becomes its primary
+  // (services/cytology/cytologyQueuesLive.ts).
+  { key: 'cytology:pathologist-review:take', labelId: 'cytologyPathologistReviewTake', group: 'casework', risk: 'high', requires: [] },
+
   // Batch 403 (Pete: "Both, all 3 roles"): placing a pathologist's add-on order
   // (recuts, special stains, IHC, molecular/send-out; also cancelling one or
   // modifying and resubmitting it after a block exception), and approving
@@ -194,6 +214,14 @@ export const CAPABILITY_CATALOG = [
   { key: 'batch:cold-chain-excursion:acknowledge', labelId: 'batchColdChainExcursionAcknowledge', group: 'casework', risk: 'high', requires: [] },
   // Batch 432: recording where a referral batch is (in transit, delivered).
   { key: 'referral:transit-status:update', labelId: 'referralTransitStatusUpdate', group: 'casework', risk: 'high', requires: [] },
+  // Batch 434 (Pete): WSI scan batches. Loading slides from the scanning queue
+  // into a batch on a slide scanner, sending its manifest to the scanner
+  // through the interface engine, and unloading it. Checked in
+  // services/digitalPathology/wsiScanBatchWorkflow.ts against the scanner's
+  // lab; seeded to every role with the Batch Management screen.
+  { key: 'wsi:scan-batch:load',   labelId: 'wsiScanBatchLoad',   group: 'casework', risk: 'standard', requires: [] },
+  { key: 'wsi:scan-batch:send',   labelId: 'wsiScanBatchSend',   group: 'casework', risk: 'standard', requires: [] },
+  { key: 'wsi:scan-batch:unload', labelId: 'wsiScanBatchUnload', group: 'casework', risk: 'standard', requires: [] },
   // Batch 407 (Pete: "Keep today's users"): disposing of retained material
   // (wet tissue, blocks, slides) by scanning it on the Disposal Queue. The one
   // irreversible step in the retention workflow. Checked in
@@ -201,17 +229,45 @@ export const CAPABILITY_CATALOG = [
   // seeded to every role with the Batch Management screen (where the Disposal
   // Queue lives) and to a hospital's own roles with case access.
   { key: 'retention:material:dispose',             labelId: 'retentionMaterialDispose',           group: 'casework', risk: 'high', requires: [] },
+  // Batch 452: removing a decant from the material tree.
+  { key: 'case:decant:delete',                     labelId: 'caseDecantDelete',                   group: 'casework', risk: 'high', requires: [] },
+  // Batch 454 (Pete): marking a signed-out surgical case "follow-up specimen
+  // expected" (a resection or excision), so the lab is told if none arrives in
+  // the biopsy-to-resection window. Checked in services/followUp/followUpActions.ts.
+  { key: 'case:follow-up:expect',                  labelId: 'caseFollowUpExpect',                 group: 'casework', risk: 'standard', requires: [] },
+  // Batch 461 (organ maps): placing the anatomical map image in the report, or
+  // taking it out. Checked in services/organMapping/organMapFigures.ts.
+  { key: 'report:organ-map:insert',                labelId: 'reportOrganMapInsert',               group: 'casework', risk: 'standard', requires: [] },
+  // Batch 458 (PS-71): "Overwrite" on the report page's Edit Conflict dialog:
+  // save this session's changes over a newer version someone else saved.
+  // Checked in services/cases/caseWrite.ts overwriteAfterConflict.
+  { key: 'case:edit-conflict:override',             labelId: 'caseEditConflictOverride',           group: 'casework', risk: 'high', requires: [] },
   // Batch 407: exporting the disposal (waste-tracking) report, which lists
   // accession numbers. Before, the export had no check at all. Checked in
   // services/retentionPolicy/exportDisposalReport.ts with the report's
   // facility; seeded like disposal itself (Pete: keep today's users).
   { key: 'retention:disposal-report:export',       labelId: 'retentionDisposalReportExport',      group: 'casework', risk: 'high', requires: [] },
+  // Batch 437 (PS-282, PS-357): exports that list cases. The case search CSV
+  // was audited but unchecked; the two contribution CSVs were neither.
+  // Checked in services/caseSearch (exportRows) and
+  // services/contribution/contributionExports.ts; seeded to the roles that
+  // open Search and My Contributions (keep today's users).
+  { key: 'search:case-results:export',                labelId: 'searchCaseResultsExport',               group: 'casework', risk: 'high', requires: ['screen:search:open'] },
+  { key: 'contribution:trainee-case-reference:export', labelId: 'contributionTraineeCaseReferenceExport', group: 'casework', risk: 'high', requires: ['screen:my-contributions:open'] },
+  { key: 'contribution:case-mix-summary:export',      labelId: 'contributionCaseMixSummaryExport',      group: 'casework', risk: 'high', requires: ['screen:my-contributions:open'] },
 
   // Batch 405 (Pete: "Permission, keep users"): Clone & Supersede retires a
   // molecular run and starts its replacement. Checked in
   // services/molecular/mockMolecularBatchService.ts; seeded to every role with
   // the Molecular screen.
   { key: 'molecular:batch:supersede', labelId: 'molecularBatchSupersede', group: 'casework', risk: 'high', requires: [] },
+  // Batch 467 (Pete's spec: in-house molecular order queue): putting in-house orders on a plate or taking them off,
+  // and cancelling (or re-routing to send-out) an order. Checked in
+  // services/molecularOrders/molecularOrderEngine.ts; seeded like superseding a run.
+  { key: 'molecular:order:assign-plate', labelId: 'molecularOrderAssignPlate', group: 'casework', risk: 'standard', requires: ['screen:molecular:open'] },
+  { key: 'molecular:order:cancel', labelId: 'molecularOrderCancel', group: 'casework', risk: 'high', requires: ['screen:molecular:open'] },
+  // Batch 467b: choosing a queued send-out order's reference lab (its own action, not cancelling).
+  { key: 'molecular:order:set-lab', labelId: 'molecularOrderSetLab', group: 'casework', risk: 'standard', requires: ['screen:molecular:open'] },
 
   // ── Billing (Batch 382) ───────────────────────────────────────────────────
   // Correcting an applied billing code credits the original charge and bills
@@ -220,6 +276,18 @@ export const CAPABILITY_CATALOG = [
   // roles without changing the service. Checked in services/billing/
   // correctServiceCharge.ts (enforceAppliedCodeCorrection).
   { key: 'billing:applied-code:correct', labelId: 'billingAppliedCodeCorrect', group: 'billing', risk: 'high', requires: [] },
+  // Batch 460 (Pete): approving, rejecting, overriding, adding and deleting a
+  // case's billing codes (each one charges or credits). Given to every role
+  // that works cases, like the correction above, so nobody loses it; taken
+  // off per role in the Role Dictionary. Checked in services/billing/
+  // caseBillingCharges.ts (enforceBillingReview) for the report page, the
+  // Cytology Workspace and Microtomy.
+  { key: 'billing:applied-code:review', labelId: 'billingAppliedCodeReview', group: 'billing', risk: 'high', requires: [] },
+  // Batch 433 (Pete): approving, rejecting, holding and releasing charges
+  // that wait for billing approval. Nobody by default: each facility approves
+  // access to its own billing (the staff member's facility assignment limits
+  // whose charges they can decide).
+  { key: 'billing:charge:approve', labelId: 'billingChargeApprove', group: 'billing', risk: 'high', requires: [] },
 
   // ── Autopsy (Batch 383) ───────────────────────────────────────────────────
   // Releasing a body ends the mortuary's custody: it records who received it
@@ -227,6 +295,92 @@ export const CAPABILITY_CATALOG = [
   // correction), for the roles with case access today. Checked in
   // services/autopsy/releaseAutopsyBody.ts.
   { key: 'autopsy:body:release', labelId: 'autopsyBodyRelease', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 468 (PS-261): recording a forensic chain-of-custody transfer
+  // (body, evidence, or personal effects — who held it, who it was
+  // transferred to, when). Its own capability, never reusing
+  // autopsy:body:release — a distinct action, an append-only log
+  // rather than a one-shot release. Checked in
+  // services/autopsy/recordAutopsyCustodyTransfer.ts.
+  { key: 'autopsy:custody:transfer', labelId: 'autopsyCustodyTransfer', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 469 (PS-261 §2.5.1 follow-up): narrowing or revoking an
+  // already-granted hospital next-of-kin consent. Its own capability
+  // — a distinct, later action from the authorization-completion
+  // submit (no capability of its own; part of the normal accession
+  // workflow). Checked in services/autopsy/recordAutopsyConsentStatusChange.ts.
+  { key: 'autopsy:consent:manage', labelId: 'autopsyConsentManage', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 469 (PS-261 §2.4.2): recording the disposal of retained
+  // organs/tissue (method, timestamp, certificate). Checked in
+  // services/autopsy/recordAutopsyOrganRetentionDisposal.ts.
+  { key: 'autopsy:retention-disposal:record', labelId: 'autopsyRetentionDisposalRecord', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 469 (PS-261 §2.3): ordering postmortem toxicology and
+  // recording its result — two distinct actions, never one blanket
+  // "toxicology" flag (Pete: no blanket flags). Checked in
+  // services/autopsy/orderAutopsyToxicology.ts and
+  // services/autopsy/recordAutopsyToxicologyResult.ts.
+  { key: 'autopsy:toxicology:order', labelId: 'autopsyToxicologyOrder', group: 'autopsy', risk: 'standard', requires: [] },
+  { key: 'autopsy:toxicology:result', labelId: 'autopsyToxicologyResult', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 471 (PS-261 follow-up): cancelling a toxicology order before
+  // a result arrives. Its own capability, never reusing
+  // autopsy:toxicology:order or autopsy:toxicology:result — a
+  // distinct action from either. Checked in
+  // services/autopsy/cancelAutopsyToxicologyOrder.ts.
+  { key: 'autopsy:toxicology:cancel', labelId: 'autopsyToxicologyCancel', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 471 (PS-261 follow-up): recording who holds retained
+  // organs/tissue and where, while retention is ongoing — distinct
+  // from autopsy:retention-disposal:record, which only covers final
+  // disposal. Checked in
+  // services/autopsy/recordAutopsyOrganRetentionDetail.ts.
+  { key: 'autopsy:retention-detail:record', labelId: 'autopsyRetentionDetailRecord', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 471 (PS-261 follow-up): reinstating an already-narrowed or
+  // revoked hospital consent. Its own capability, never reusing
+  // autopsy:consent:manage — narrowing/revoking and reinstating are
+  // opposite-direction actions a hospital may want to grant
+  // separately. Checked in
+  // services/autopsy/recordAutopsyConsentReinstatement.ts.
+  { key: 'autopsy:consent:reinstate', labelId: 'autopsyConsentReinstate', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 478 (PS-261 follow-up; Pete's own locked-in decision: "a NEW
+  // dedicated capability, audited"): resolveAutopsyGrossExaminationGate.ts's
+  // hard stop (missing legal authorization, or revoked hospital consent)
+  // now actually blocks PAD/FAD signing (services/autopsy/signAutopsyReport.ts) —
+  // before this batch it only drove a warning banner. Overriding it is a
+  // bypass of a legal/consent block, same class of action as
+  // cytology:qc-review:bypass: nobody by default, an administrator assigns
+  // it. Every override is logged (AutopsyCaseDetails.gateOverrides,
+  // append-only, plus the shared audit trail).
+  { key: 'autopsy:gross-exam-gate:override', labelId: 'autopsyGrossExamGateOverride', group: 'autopsy', risk: 'high', requires: [] },
+
+  // Batch 478 (PS-261 follow-up; Pete's own scoping decision): recording a
+  // per-organ finding during the gross exam, using the existing 31-code
+  // AutopsyOrganCode vocabulary (SNOMED mapping deferred, pending PS-343
+  // licensing). Its own capability, distinct from the consent/custody/
+  // retention actions above — this is ordinary clinical documentation, not
+  // a legal or chain-of-custody action. Checked in
+  // services/autopsy/recordAutopsyOrganTag.ts.
+  { key: 'autopsy:organ-tag:record', labelId: 'autopsyOrganTagRecord', group: 'autopsy', risk: 'standard', requires: [] },
+
+  // Batch 480 (Structured Inking, Module 1; PS-359 follow-up). Recording a
+  // margin's ink application during grossing — ordinary clinical
+  // documentation, same posture as autopsy:organ-tag:record above. Checked
+  // in services/grossing/recordMarginInkApplication.ts.
+  { key: 'grossing:margin-ink:record', labelId: 'grossingMarginInkRecord', group: 'casework', risk: 'standard', requires: [] },
+  // Changing a site's inking_validation_mode (WARN_ONLY vs STRICT_ENFORCE,
+  // services/grossing/inkingSiteSettings.ts) — a policy change, high-risk
+  // like its siblings config:report-appearance:manage and
+  // config:organ-map-scheme:manage. Those are group: 'configSystem', so this
+  // one is too: CONFIG_SECTIONS sweeps every configSystem (and other
+  // config*) capability into the Admin seed (and, via
+  // CONFIG_SECTIONS_LAB_DIRECTOR, Lab Director's) automatically — it is NOT
+  // "nobody by default" the way cytology:qc-review:bypass or
+  // autopsy:gross-exam-gate:override are (see capabilitySeeds.ts).
+  { key: 'config:inking-validation-mode:manage', labelId: 'configInkingValidationModeManage', group: 'configSystem', risk: 'high', requires: [] },
 
   // ── Messaging (Batch 385) ─────────────────────────────────────────────────
   // Sending a message or a reply, and sending a secure email to an outside
@@ -243,6 +397,12 @@ export const CAPABILITY_CATALOG = [
   { key: 'qa:deficiencies:export',            labelId: 'qaDeficienciesExport',           group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:intraop-linkage:export',         labelId: 'qaIntraopLinkageExport',         group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:reconciliation:export',          labelId: 'qaReconciliationExport',         group: 'qaOperations', risk: 'high', requires: [] },
+  // Batch 454 (Pete): the "Follow-up not received" report. Closing a follow-up
+  // with a disposition, and emailing the ordering clinician when the lab
+  // decides to (never automatic). Checked in services/followUp/.
+  { key: 'qa:follow-up:export',               labelId: 'qaFollowUpExport',               group: 'qaOperations', risk: 'high', requires: [] },
+  { key: 'qa:follow-up:record',               labelId: 'qaFollowUpRecord',               group: 'qaOperations', risk: 'high', requires: [] },
+  { key: 'qa:follow-up-clinician:email',      labelId: 'qaFollowUpClinicianEmail',       group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:countersign-turnaround:export',  labelId: 'qaCountersignTurnaroundExport',  group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:fppe-tracking:export',           labelId: 'qaFppeTrackingExport',           group: 'qaOperations', risk: 'high', requires: [] },
   { key: 'qa:drift-correction:export',        labelId: 'qaDriftCorrectionExport',        group: 'qaOperations', risk: 'high', requires: [] },
@@ -255,6 +415,16 @@ export const CAPABILITY_CATALOG = [
 
   // ── Quality assurance: CAPA pillar ────────────────────────────────────────
   { key: 'qa:management-reviews:export', labelId: 'qaManagementReviewsExport', group: 'qaCapa', risk: 'high', requires: [] },
+  // Batch 438 (PS-144–148, Pete Oct 2): PathScribe recommends a CAPA; a QA
+  // lead confirms it (opens and assigns the CAPA) or dismisses it with a
+  // reason. Checked in services/quality/capaRecommendationService.ts; seeded
+  // to the roles that open Quality Assurance (Admin, Lab Director, QA Reviewer).
+  { key: 'qa:capa-recommendation:decide', labelId: 'qaCapaRecommendationDecide', group: 'qaCapa', risk: 'high', requires: ['screen:quality-assurance:open'] },
+  // Batch 442 (PS-147): discordance patterns over time (a pathologist's, or a
+  // specimen type's). Personnel-sensitive: Lab Director only to start; the
+  // reviewed pathologist doesn't hold it.
+  { key: 'qa:pathologist-trend:view',   labelId: 'qaPathologistTrendView',   group: 'qaCapa', risk: 'high', requires: ['screen:quality-assurance:open'] },
+  { key: 'qa:pathologist-trend:decide', labelId: 'qaPathologistTrendDecide', group: 'qaCapa', risk: 'high', requires: ['qa:pathologist-trend:view'] },
 
   // ── Quality assurance: Financials pillar ─────────────────────────────────
   { key: 'qa:billing-deficiencies:export', labelId: 'qaBillingDeficienciesExport', group: 'qaFinancials', risk: 'high', requires: [] },
@@ -270,6 +440,15 @@ export const CAPABILITY_CATALOG = [
   // totals, so anyone who can export it can export the dashboard's figures.
   { key: 'qa:inspection-evidence:export', labelId: 'qaInspectionEvidenceExport', group: 'qaOversight', risk: 'high', requires: ['qa:activity-dashboard:export'] },
   { key: 'qa:enterprise-rollup:export',   labelId: 'qaEnterpriseRollupExport',   group: 'qaOversight', risk: 'high', requires: [] },
+  // Batch 437 (PS-282, PS-357): the Audit Log page's five CSV exports. They
+  // had no check at all. One per log (Pete: no blanket flags). Checked in
+  // services/auditlog/auditLogExports.ts; seeded to the roles that open the
+  // Audit Log (keep today's users). Every export is also audited.
+  { key: 'audit:audit-log:export',     labelId: 'auditAuditLogExport',     group: 'qaOversight', risk: 'high', requires: ['screen:audit-log:open'] },
+  { key: 'audit:error-log:export',     labelId: 'auditErrorLogExport',     group: 'qaOversight', risk: 'high', requires: ['screen:audit-log:open'] },
+  { key: 'audit:interface-log:export', labelId: 'auditInterfaceLogExport', group: 'qaOversight', risk: 'high', requires: ['screen:audit-log:open'] },
+  { key: 'audit:qa-log:export',        labelId: 'auditQaLogExport',        group: 'qaOversight', risk: 'high', requires: ['screen:audit-log:open'] },
+  { key: 'audit:billing-log:export',   labelId: 'auditBillingLogExport',   group: 'qaOversight', risk: 'high', requires: ['screen:audit-log:open'] },
 
   // ── Administration (PS-356, Batch 370) ───────────────────────────────────
   // Before these, anyone signed in could edit roles (their own capabilities
@@ -279,6 +458,8 @@ export const CAPABILITY_CATALOG = [
   // Roles, facility assignments, pediatric/orchestration/cross-tenant flags
   // and jurisdictional credentials: what someone is allowed to do or see.
   { key: 'config:staff-access:assign', labelId: 'configStaffAccessAssign',  group: 'administration', risk: 'high', requires: ['config:staff:edit'] },
+  // Batch 448: set or remove a staff member's sign-in password (sites without single sign-on, and the demo).
+  { key: 'config:staff-password:manage', labelId: 'configStaffPasswordManage', group: 'administration', risk: 'high', requires: ['config:staff:edit'] },
   { key: 'config:demo-data:reset',     labelId: 'configDemoDataReset',      group: 'administration', risk: 'high', requires: [] },
   // PS-359 (Batch 376): which fields each page requires, for the person's own organisation.
   { key: 'config:field-requirements:manage', labelId: 'configFieldRequirementsManage', group: 'administration', risk: 'high', requires: [] },
@@ -360,6 +541,13 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:cytology-nomenclature:manage', labelId: 'configCytologyNomenclatureManage', group: 'configCytology', risk: 'high', requires: [] },
   { key: 'config:cytology-routing:manage', labelId: 'configCytologyRoutingManage', group: 'configCytology', risk: 'high', requires: [] },
   { key: 'config:cytology-screening-strategy:manage', labelId: 'configCytologyScreeningStrategyManage', group: 'configCytology', risk: 'high', requires: [] },
+  // Batch 452 (PS-156): the cyto-histo correlation window (length and start date).
+  // Batch 453 (PS-324): the surgical biopsy-to-resection correlation window.
+  { key: 'config:biopsy-resection-correlation:manage', labelId: 'configBiopsyResectionCorrelationManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 454: follow-up tracking (the warning period, whether the clinician
+  // email is offered, and its wording), per enterprise and facility.
+  { key: 'config:follow-up-tracking:manage', labelId: 'configFollowUpTrackingManage', group: 'configQuality', risk: 'high', requires: [] },
+  { key: 'config:cytology-histology-correlation:manage', labelId: 'configCytologyHistologyCorrelationManage', group: 'configCytology', risk: 'high', requires: [] },
   { key: 'config:cytology-instrumentation:manage', labelId: 'configCytologyInstrumentationManage', group: 'configCytology', risk: 'high', requires: [] },
   { key: 'config:cytology-qc-rates:manage', labelId: 'configCytologyQcRatesManage', group: 'configCytology', risk: 'high', requires: [] },
   { key: 'config:cytology-workload-cap:manage', labelId: 'configCytologyWorkloadCapManage', group: 'configCytology', risk: 'high', requires: [] },
@@ -391,6 +579,15 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:abnormal-triggers:manage', labelId: 'configAbnormalTriggersManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:concordance-review:manage', labelId: 'configConcordanceReviewManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:qa-types:manage', labelId: 'configQaTypesManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 438 (PS-146): the revision reason dictionary (amendment and
+  // correction reasons, and which are clinically significant). Its service
+  // had no check and no screen; Configuration → System → Revision Reasons.
+  { key: 'config:revision-reasons:manage', labelId: 'configRevisionReasonsManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 439 (PS-144): where the peer-review sign-out gate is on
+  // (organisation, facility, department). Off by default.
+  { key: 'config:peer-review:manage', labelId: 'configPeerReviewManage', group: 'configQuality', risk: 'high', requires: [] },
+  // Batch 442 (PS-147): each site's discordance-trend thresholds.
+  { key: 'config:qa-trend-policy:manage', labelId: 'configQaTrendPolicyManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:validation-studies:manage', labelId: 'configValidationStudiesManage', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'validation:approval:record', labelId: 'validationApprovalRecord', group: 'configQuality', risk: 'high', requires: [] },
   { key: 'config:retention-policy:manage', labelId: 'configRetentionPolicyManage', group: 'configQuality', risk: 'high', requires: [] },
@@ -433,9 +630,15 @@ export const CAPABILITY_CATALOG = [
   // Security and system
   { key: 'config:session-security:manage', labelId: 'configSessionSecurityManage', group: 'configSystem', risk: 'high', requires: [] },
   { key: 'config:report-appearance:manage', labelId: 'configReportAppearanceManage', group: 'configSystem', risk: 'high', requires: [] },
+  // Batch 461 (Pete: sites set the map colours and patterns; labs bind their own
+  // synoptic questions). Checked in services/organMapping/organMapConfig.ts.
+  { key: 'config:organ-map-scheme:manage', labelId: 'configOrganMapSchemeManage', group: 'configSystem', risk: 'high', requires: [] },
+  { key: 'config:organ-map-bindings:manage', labelId: 'configOrganMapBindingsManage', group: 'configSystem', risk: 'high', requires: [] },
   { key: 'config:contribution-settings:manage', labelId: 'configContributionSettingsManage', group: 'configSystem', risk: 'high', requires: [] },
   { key: 'config:external-resources:manage', labelId: 'configExternalResourcesManage', group: 'configSystem', risk: 'high', requires: [] },
   { key: 'config:research-feed:manage', labelId: 'configResearchFeedManage', group: 'configSystem', risk: 'high', requires: [] },
+  // Batch 447: the QA feedback button and where QA feedback goes.
+  { key: 'config:feedback:manage', labelId: 'configFeedbackManage', group: 'configSystem', risk: 'high', requires: [] },
 
   // ── Support access (Batch 372) ───────────────────────────────────────────
   // The hospital's control over ForMedrixAI support reaching its data (Pete's

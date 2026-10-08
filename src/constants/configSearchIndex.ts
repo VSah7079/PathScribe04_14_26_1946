@@ -42,6 +42,20 @@ export const STAFF_SECTIONS: readonly { id: string; labelKey: string }[] = [
   { id: 'credentialing', labelKey: 'staffTab.tabs.credentialing' },
 ];
 
+/** Batch 449: the Report Templates tab's inner tabs (TemplateBuilder/ReportTemplatesSection.tsx reads ?section=). */
+export const TEMPLATE_SECTIONS = [
+  { id: 'templates', labelKey: 'templateListTab.title' },
+  { id: 'parts',     labelKey: 'templateAssemblyPage.partLibraryTitle' },
+  { id: 'routing',   labelKey: 'reportTemplatesSection.subtabs.routingRules' },
+] as const;
+
+/** Batch 449: the Validation Studies tab's inner tabs (ValidationStudies/ValidationStudiesSection.tsx reads ?section=). */
+export const VALIDATION_SECTIONS = [
+  { id: 'studies',   labelKey: 'validationStudies.tabs.studies' },
+  { id: 'dashboard', labelKey: 'validationStudies.tabs.dashboard' },
+  { id: 'reports',   labelKey: 'validationStudies.tabs.reports' },
+] as const;
+
 /** The Synoptic Library tab's sections (Config/Protocols/index.tsx reads ?section=). */
 export const PROTOCOL_SECTIONS: readonly { id: string; labelKey: string }[] = [
   { id: 'active', labelKey: 'activeProtocolsSection.title' },
@@ -95,9 +109,6 @@ const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
   { id: 'ai-model', labelKey: 'aiProviderSettings.modelLabel', tabId: 'ai', confidence: 'verified',
     descriptionKey: 'configSearchIndex.entries.ai-model.description',
     synonyms: ['claude sonnet', 'llm', 'ai model version'] },
-  { id: 'ai-api-mode', labelKey: 'navBar.systemInfo.apiMode', tabId: 'ai', confidence: 'verified',
-    descriptionKey: 'configSearchIndex.entries.ai-api-mode.description',
-    synonyms: ['proxy', 'direct mode'] },
   { id: 'ai-confidence-threshold', labelKey: 'aiTab.confidenceThreshold.title', tabId: 'ai', confidence: 'verified',
     descriptionKey: 'configSearchIndex.entries.ai-confidence-threshold.description',
     synonyms: ['threshold', 'ai triage', 'not found'] },
@@ -110,9 +121,8 @@ const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
   { id: 'ai-auto-insert', labelKey: 'configSearchIndex.entries.ai-auto-insert.label', tabId: 'ai', confidence: 'verified',
     descriptionKey: 'configSearchIndex.entries.ai-auto-insert.description',
     synonyms: ['auto apply', 'auto accept'] },
-  { id: 'ai-voice', labelKey: 'navBar.systemInfo.voiceAi', tabId: 'ai', confidence: 'verified',
-    descriptionKey: 'configSearchIndex.entries.ai-voice.description',
-    synonyms: ['voice recognition', 'voice commands ai'] },
+  // Batch 449: "API mode" (removed with the developer key path in Batch 444)
+  // and "Voice AI" (no such switch on this tab) are gone.
 
   // ── System tab ─────────────────────────────────────────────────────────────
   { id: 'sys-dp-vendors', labelKey: 'configSearchIndex.entries.sys-dp-vendors.label', tabId: 'system', confidence: 'verified', section: 'vendor_integrations',
@@ -202,6 +212,27 @@ const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
   // home (Config/Integrations/index.tsx, a genuine duplicate at the
   // time this was first written, has since been deleted entirely —
   // see components/Config/Integrations/README.md).
+  { id: 'sys-revision-reasons', labelKey: 'systemTab.sections.revisionReasons', tabId: 'system', confidence: 'verified', section: 'revision_reasons',
+    descriptionKey: 'configSearchIndex.entries.sys-revision-reasons.description',
+    synonyms: ['amendment reason', 'correction reason', 'clinically significant', 'capa recommendation', 'revision reason'] },
+  { id: 'sys-biopsy-resection-correlation', labelKey: 'biopsyResectionCorrelationSection.title', tabId: 'system', confidence: 'verified', section: 'biopsy_resection_correlation',
+    descriptionKey: 'configSearchIndex.entries.sys-biopsy-resection-correlation.description',
+    synonyms: ['correlation', 'biopsy', 'resection', 'follow-up window', '180 days', 'collection date', 'surgical qa'] },
+  { id: 'sys-follow-up-tracking', labelKey: 'followUpTrackingSection.title', tabId: 'system', confidence: 'verified', section: 'follow_up_tracking',
+    descriptionKey: 'configSearchIndex.entries.sys-follow-up-tracking.description',
+    synonyms: ['follow-up', 'overdue', 'not received', 'ordering clinician', 'email clinician', 'warning days', 'resection expected'] },
+  { id: 'sys-organ-maps', labelKey: 'systemTab.sections.organMaps', tabId: 'system', confidence: 'verified', section: 'organ_maps',
+    descriptionKey: 'configSearchIndex.entries.sys-organ-maps.description',
+    synonyms: ['anatomical map', 'prostate map', 'pi-rads', 'sector map', 'biopsy map', 'map colours', 'map colors', 'patterns', 'legend', 'map bindings'] },
+  { id: 'sys-peer-review-gate', labelKey: 'systemTab.sections.peerReviewGate', tabId: 'system', confidence: 'verified', section: 'peer_review_gate',
+    descriptionKey: 'configSearchIndex.entries.sys-peer-review-gate.description',
+    synonyms: ['peer review', 'second opinion', 'first-time malignancy', 'sign-out gate', 'independent review'] },
+  { id: 'sys-qa-trend-policy', labelKey: 'systemTab.sections.qaTrendPolicy', tabId: 'system', confidence: 'verified', section: 'qa_trend_policy',
+    descriptionKey: 'configSearchIndex.entries.sys-qa-trend-policy.description',
+    synonyms: ['discordance trend', 'pathologist trend', 'pattern', 'threshold', 'rolling window', 'administrative review', 'specimen type trend'] },
+  { id: 'sys-feedback', labelKey: 'systemTab.sections.feedback', tabId: 'system', confidence: 'verified', section: 'feedback',
+    descriptionKey: 'configSearchIndex.entries.sys-feedback.description',
+    synonyms: ['qa feedback', 'feedback button', 'bug report', 'testing feedback', 'validation', 'qa recipients'] },
   { id: 'sys-deficiencies', labelKey: 'systemTab.sections.deficiencies', tabId: 'system', confidence: 'verified', section: 'deficiencies',
     descriptionKey: 'configSearchIndex.entries.sys-deficiencies.description',
     synonyms: ['deficiency type', 'resolution type', 'specimen deficiency', 'requisition deficiency', 'could not match specimen'] },
@@ -247,6 +278,9 @@ const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
   { id: 'cyt-screening-strategy', labelKey: 'cytologyScreeningStrategySection.title', tabId: 'cytology', confidence: 'verified', section: 'cytology_screening_strategy',
     descriptionKey: 'configSearchIndex.entries.cyt-screening-strategy.description',
     synonyms: ['cytology', 'screening strategy', 'co-testing', 'primary hpv', 'reflex'] },
+  { id: 'cyt-histology-correlation', labelKey: 'cytologyHistologyCorrelationSection.title', tabId: 'cytology', confidence: 'verified', section: 'cytology_histology_correlation',
+    descriptionKey: 'configSearchIndex.entries.cyt-histology-correlation.description',
+    synonyms: ['cytology', 'correlation', 'cyto-histo', 'follow-up window', '180 days', 'collection date', 'biopsy'] },
   { id: 'cyt-workload-cap', labelKey: 'cytologyWorkloadCapSettingsSection.title', tabId: 'cytology', confidence: 'verified', section: 'cytology_workload_cap',
     descriptionKey: 'configSearchIndex.entries.cyt-workload-cap.description',
     synonyms: ['cytology', 'workload cap', 'daily slide cap', 'clia', 'cytotechnologist'] },
@@ -261,7 +295,10 @@ const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
   { id: 'staff-roles', labelKey: 'configSearchIndex.entries.staff-roles.label', tabId: 'staff', confidence: 'verified',
     descriptionKey: 'configSearchIndex.entries.staff-roles.description',
     synonyms: ['pathologist role', 'resident role', 'admin role', 'permissions'] },
-  { id: 'staff-deactivate', labelKey: 'configSearchIndex.entries.staff-deactivate.label', tabId: 'staff', confidence: 'verified',
+  { id: 'staff-sign-in-password', labelKey: 'staffTab.signInPassword.title', tabId: 'staff', section: 'members', confidence: 'verified',
+    descriptionKey: 'configSearchIndex.entries.staff-sign-in-password.description',
+    synonyms: ['password', 'reset password', 'temporary password', 'change password', 'sign-in', 'login', 'locked out'] },
+  { id: 'staff-deactivate', labelKey: 'configSearchIndex.entries.staff-deactivate.label', tabId: 'staff', section: 'members', confidence: 'verified',
     descriptionKey: 'configSearchIndex.entries.staff-deactivate.description',
     synonyms: ['disable user', 'block login'] },
 
@@ -299,15 +336,15 @@ const HAND_WRITTEN_ENTRIES: ConfigSearchEntry[] = [
     descriptionKey: 'configSearchIndex.entries.protocols-library.description',
     synonyms: ['cap protocols', 'rcpath', 'synoptic templates'] },
 
-  // ── Macros tab — PLACEHOLDER, not documented anywhere yet ────────────────
-  { id: 'macros-placeholder', labelKey: 'configuration.tabs.macros', tabId: 'macros', confidence: 'placeholder',
-    descriptionKey: 'configSearchIndex.entries.macros-placeholder.description',
-    synonyms: ['text expansion', 'shortcuts'] },
+  // ── Macros tab (Batch 449: described; it was a placeholder entry) ─────────
+  { id: 'macros-library', labelKey: 'configuration.tabs.macros', tabId: 'macros', confidence: 'verified',
+    descriptionKey: 'configSearchIndex.entries.macros-library.description',
+    synonyms: ['macro', 'text expansion', 'trigger', 'quick text', 'canned text', 'standard phrase', 'shortcuts'] },
 
-  // ── Validation Studies tab — PLACEHOLDER, not documented anywhere yet ────
-  { id: 'validation-placeholder', labelKey: 'configuration.tabs.validation', tabId: 'validation', confidence: 'placeholder',
-    descriptionKey: 'configSearchIndex.entries.validation-placeholder.description',
-    synonyms: ['validation', 'studies'] },
+  // ── Validation Studies tab (Batch 449: described; it was a placeholder entry) ─
+  { id: 'validation-studies', labelKey: 'configuration.tabs.validation', tabId: 'validation', confidence: 'verified',
+    descriptionKey: 'configSearchIndex.entries.validation-studies.description',
+    synonyms: ['validation', 'ai validation', 'parallel run', 'irb', 'ethics review', 'study'] },
 ];
 
 // ── Batch 431: generated entries ─────────────────────────────────────────────
@@ -333,6 +370,14 @@ export function generatedConfigSearchEntries(): ConfigSearchEntry[] {
   }
   for (const s of PROTOCOL_SECTIONS) {
     out.push({ id: `section-protocols-${s.id}`, labelKey: s.labelKey, tabId: 'protocols', section: s.id, confidence: 'verified', synonyms: [] });
+  }
+  for (const s of TEMPLATE_SECTIONS) {
+    out.push({ id: `section-templates-${s.id}`, labelKey: s.labelKey, tabId: 'templates', section: s.id, confidence: 'verified',
+      contextKey: 'configuration.tabs.templates', synonyms: [`template ${s.id}`, `report template ${s.id}`] });
+  }
+  for (const s of VALIDATION_SECTIONS) {
+    out.push({ id: `section-validation-${s.id}`, labelKey: s.labelKey, tabId: 'validation', section: s.id, confidence: 'verified',
+      contextKey: 'configuration.tabs.validation', synonyms: [`validation ${s.id}`, `validation study ${s.id}`] });
   }
   return out;
 }

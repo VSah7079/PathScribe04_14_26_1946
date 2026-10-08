@@ -55,5 +55,9 @@ there's no other "case panel" concept it was distinguishing itself from).
 
 `PatientHistoryModal.tsx`: the breadcrumb's case number and the compose panel's case number are tagged.
 
+## Batch 436 (PS-40)
+
+`PatientHistoryModal.tsx`'s comment cited `backend-requirements-concurrency-security.md`, which was never written; it now points at `docs/architecture/CASE_PRIVACY_MODEL.md` (the API server's job, PS-345).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

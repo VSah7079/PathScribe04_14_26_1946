@@ -24,7 +24,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { applyBlockException } from './blockExceptionMutation';
 import type { BlockExceptionEventPayload } from '@/types/events/BlockExceptionEventPayload';
 
@@ -79,37 +79,28 @@ export async function processBlockExceptionEvent(payload: BlockExceptionEventPay
     return { messageId: payload.messageId, outcome: 'case-not-found', reason: `No case found for '${lookupId}'.` };
   }
 
-  const found = applyBlockException(caseData.specimens ?? [], {
-    specimenLetter: payload.specimenLetter,
-    blockNumber: payload.blockNumber,
-    status: payload.status,
-    note: payload.note,
-    reportedAt: payload.reportedAt,
-    timestamp: payload.timestamp,
-  });
-  if (!found) {
+  // PS-71 (Batch 458): the block change is rebuilt from the newest case on
+  // every try (updateCaseWithRetryOrThrow), so a concurrent edit to another
+  // block or specimen is kept. This replaces the old "force through" retry
+  // that re-saved the stale specimens array without a version. If every try
+  // conflicts, the ConcurrencyConflictError propagates and the messageId is
+  // NOT marked processed, so the sender's redelivery applies it.
+  let blockId: string | undefined;
+  const write = await updateCaseWithRetryOrThrow(caseData.id, current => {
+    const found = applyBlockException(current.specimens ?? [], {
+      specimenLetter: payload.specimenLetter,
+      blockNumber: payload.blockNumber,
+      status: payload.status,
+      note: payload.note,
+      reportedAt: payload.reportedAt,
+      timestamp: payload.timestamp,
+    });
+    if (!found) return null;
+    blockId = found.blockId;
+    return { specimens: found.specimens };
+  }, caseRouter);
+  if (!write.ok) {
     return { messageId: payload.messageId, outcome: 'block-not-found', reason: `Case ${caseData.id} has no block ${payload.specimenLetter}${payload.blockNumber}.` };
-  }
-
-  const { specimens: updatedSpecimens, blockId } = found;
-
-  try {
-    await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
-  } catch (e) {
-    // Real, deliberate "force through" posture — same reasoning
-    // already established for every other real, external-system-
-    // initiated write in this app (e.g. useSpecimenBlockManagement.ts's
-    // own LIS-confirmation writes): the real, physical exception this
-    // event describes already happened at the bench/in the sending
-    // system regardless of a local version conflict, so there's no
-    // safe "discard and reload" option — retrying without the
-    // expected-version guard is the only response that doesn't lose
-    // this real update.
-    if (e instanceof ConcurrencyConflictError) {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
-    } else {
-      throw e;
-    }
   }
 
   processedMessageIds.add(payload.messageId);

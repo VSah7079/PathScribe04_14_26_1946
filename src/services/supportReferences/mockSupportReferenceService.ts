@@ -43,4 +43,9 @@ export const mockSupportReferenceService: ISupportReferenceService = {
     }).catch(() => undefined);
     return { ok: true, data: found };
   },
+
+  async recordIdFor(ref, kind) {
+    const found = load().find(r => r.ref === ref && r.kind === kind);
+    return found ? { ok: true, data: found.recordId } : { ok: false, error: SUPPORT_REFERENCE_NOT_FOUND };
+  },
 };

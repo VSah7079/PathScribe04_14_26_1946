@@ -6,6 +6,7 @@ const { enforce } = vi.hoisted(() => ({ enforce: vi.fn(async (_key: string) => (
 vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (k: string) => enforce(k) } }));
 import { storageSet, storageGet } from '../mockStorage';
 import type { MolecularBatch } from './IMolecularBatchService';
+import { MOLECULAR_DEMO_BATCHES } from './molecularDemoSeed';
 
 beforeEach(() => {
   const store: Record<string, string> = {};
@@ -22,7 +23,8 @@ describe('mockMolecularBatchService — real, per direct specification', () => {
     const res = await mockMolecularBatchService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.data).toHaveLength(1);
+      // Batch 456: plus the demo baseline's batches (molecularDemoSeed.ts).
+      expect(res.data).toHaveLength(1 + MOLECULAR_DEMO_BATCHES.length);
       expect(res.data[0].batchBarcode).toBe('BATCH-20260906-0042');
     }
   });
@@ -49,7 +51,7 @@ describe('mockMolecularBatchService — real, per direct specification', () => {
     });
     expect(res.ok).toBe(false);
     const all = await mockMolecularBatchService.getAll();
-    if (all.ok) expect(all.data).toHaveLength(1); // still just the seed — nothing created
+    if (all.ok) expect(all.data).toHaveLength(1 + MOLECULAR_DEMO_BATCHES.length); // still just the seed — nothing created
   });
 
   it('create refuses a target instrument that is not an active instrument in the list (Batch 356, PS-326)', async () => {
@@ -268,7 +270,7 @@ describe('Batch 405: create refuses a patient well with no specimen', () => {
     expect(res.ok).toBe(false);
     expect('error' in res && res.error).toBe('wellSpecimenMissing');
     const all = await mockMolecularBatchService.getAll();
-    expect(all.ok && all.data).toHaveLength(1);
+    expect(all.ok && all.data).toHaveLength(1 + MOLECULAR_DEMO_BATCHES.length);
   });
 });
 

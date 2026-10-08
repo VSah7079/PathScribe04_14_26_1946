@@ -28,4 +28,7 @@ export interface ReferralManifestEventPayload {
   testRequested?: string;
   priority: 'STAT' | 'Routine';
   items: ReferralManifestItem[];
+  /** Batch 467b: the send-out molecular orders in this batch, for the reference lab to echo each order id with its
+   *  result (ReferralResultEventPayload.orderResults). */
+  molecularOrders?: { orderId: string; caseAccession: string; assayCode: string }[];
 }

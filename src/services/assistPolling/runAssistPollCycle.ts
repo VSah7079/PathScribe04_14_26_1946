@@ -29,6 +29,8 @@ import type { SynopticEvaluationInput } from '@/services/aiIntegration/IAIIntegr
 import type { NewAuditLog } from '@/services/auditlog/IAuditService';
 import type { LisPollAdapter, LisPushAdapter, StagedLisEvent } from '../lisIngestion/types';
 import { workupParts } from '../reports/workupParts';
+import { updateCaseWithRetryOrThrow, caseVersionOf } from '../cases/caseWrite';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import { stageUpdates, workableEvents, recordAttempt, retryFailed, trimQueue } from '../lisIngestion/stagingRules';
 import type { AssistPollingState, AssistPollRun, AssistPollItemResult, AssistMilestone, AssistCaseRecords } from './types';
 import {
@@ -44,7 +46,8 @@ export interface AssistPollDeps {
   loadQueue: () => Promise<StagedLisEvent[]>;
   saveQueue: (queue: StagedLisEvent[]) => Promise<void>;
   getCase: (caseId: string) => Promise<Case | null | undefined>;
-  updateCase: (caseId: string, updates: Partial<Case>) => Promise<void>;
+  /** PS-71 (Batch 458): every save carries the version it was built from. */
+  updateCase: (caseId: string, updates: Partial<Case>, expectedVersion: number) => Promise<void>;
   /** Published diagnostic synoptic templates the AI may choose from. */
   listDiagnosticTemplates: () => Promise<TemplateSummary[]>;
   getTemplateFields: (templateId: string) => Promise<TemplateFieldSpec[]>;
@@ -68,6 +71,11 @@ const MILESTONE_AUDIT_LABEL: Record<AssistMilestone, string> = {
 const SOURCE_AUDIT_LABEL: Record<StagedLisEvent['source'], string> = {
   poll: 'poll', hl7v2: 'HL7 v2 message', webhook: 'webhook',
 };
+
+const DRAFT_INPUT_FIELDS = ['diagnostic', 'specimens', 'synopticReports', 'pendingProtocolChanges'] as const;
+/** True when the parts of the case the AI draft reads are unchanged. */
+const sameDraftInputs = (a: Case, b: Case) =>
+  DRAFT_INPUT_FIELDS.every(f => JSON.stringify(a[f] ?? null) === JSON.stringify(b[f] ?? null));
 
 /** Builds and saves the AI draft for one case. Returns counts. */
 async function draftCase(
@@ -111,7 +119,20 @@ async function draftCase(
     reports.push(inst.aiDraftSource ? { ...merged.instance, aiDraftSource: { ...inst.aiDraftSource, milestone, generatedAt: now } } : merged.instance);
   }
 
-  await deps.updateCase(caseData.id, { synopticReports: reports, pendingProtocolChanges: applied.pendingProtocolChanges });
+  // PS-71 (Batch 458): the AI draft was built from `caseData` (async, so it
+  // can't be rebuilt inside the retry). It is saved only while what it was
+  // built from (text, parts, synoptic reports, pending changes) is unchanged
+  // on the newest case: a conflict in some other field is retried against
+  // the newer version; a change to those inputs fails the event, which
+  // stays in the staging queue and is redrafted from the newer case on the
+  // next run. Never a save without a version.
+  const write = await updateCaseWithRetryOrThrow(caseData.id, current =>
+    sameDraftInputs(current, caseData) ? { synopticReports: reports, pendingProtocolChanges: applied.pendingProtocolChanges } : null,
+  deps);
+  if (!write.ok) {
+    const latest = await deps.getCase(caseData.id);
+    throw new ConcurrencyConflictError(caseData.id, caseVersionOf(caseData), caseVersionOf(latest));
+  }
   return { draftsCreated: applied.draftsCreated, fieldsSuggested, pendingReviewChanges: applied.pendingReviewChanges };
 }
 
@@ -133,11 +154,18 @@ async function processEvent(
   const plan = planMilestoneWork({ snapshot: ev, milestone, caseData, record: records[ev.accession], aiEnabled: cache.aiEnabled });
   if (plan.kind === 'skip') { item.outcome = plan.outcome; return item; }
 
-  const textPatch = lisTextPatch(caseData!, ev);
-  await deps.updateCase(caseData!.id, textPatch);
+  // PS-71 (Batch 458): the LIS text is merged into the newest case on every
+  // try (updateCaseWithRetryOrThrow), saved with that case's version; the
+  // draft below starts from the case exactly as that save left it.
+  let base: Case = caseData!;
+  const textWrite = await updateCaseWithRetryOrThrow(caseData!.id, current => {
+    base = current;
+    return lisTextPatch(current, ev);
+  }, deps);
   if (plan.kind === 'draft') {
     cache.templates ??= await deps.listDiagnosticTemplates();
-    Object.assign(item, await draftCase(deps, { ...caseData!, ...textPatch }, milestone!, plan.fill, cache.templates));
+    const afterText = textWrite.ok ? { ...base, ...textWrite.updates, version: textWrite.version } as Case : base;
+    Object.assign(item, await draftCase(deps, afterText, milestone!, plan.fill, cache.templates));
     item.outcome = 'draft_prepared';
   } else {
     item.outcome = plan.outcome;

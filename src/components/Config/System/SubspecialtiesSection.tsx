@@ -373,11 +373,11 @@ const SubspecialtiesSection: React.FC = () => {
 
       {/* ── Toolbar ── */}
       <div className="ps-sub-toolbar">
-        <input data-config-nav
+        <input data-dirty-ignore data-config-nav
           type="text" placeholder={t('subspecialtiesSection.searchPlaceholder')} value={search}
           onChange={e => setSearch(e.target.value)} className="ps-sub-search"
         />
-        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label={t('subspecialtiesSection.filterByStatusAriaLabel')} className="ps-sub-filter">
+        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label={t('subspecialtiesSection.filterByStatusAriaLabel')} className="ps-sub-filter">
           <option value="All">{t('subspecialtiesSection.filterAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

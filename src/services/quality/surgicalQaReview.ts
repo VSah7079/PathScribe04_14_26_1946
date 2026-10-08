@@ -22,6 +22,7 @@ import type { QaReviewCaptureSubmission } from '@/components/QualityAssurance/Qa
 import { SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID } from './mockQaActivityTypeService';
 import { resolveSurgicalPeerReviewPoolMembership } from './resolveSurgicalPeerReviewPoolMembership';
 import { resolveSurgicalBiopsyToResectionCorrelationPoolMembership } from './resolveSurgicalBiopsyToResectionCorrelationPoolMembership';
+import { updateCaseWithRetry } from '../cases/caseWrite';
 
 export const SURGICAL_QA_RECORD_CAPABILITY = 'surgical:qa-review:record';
 
@@ -70,22 +71,37 @@ export function activityTypeForSurgicalQaRow(row: SurgicalQaRow, activityTypes: 
   return activityTypes.find(t => t.id === (row.kind === 'peer_review' ? SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID : SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID));
 }
 
+/**
+ * Batch 442 (PS-147): whose work a retrospective peer review looks at: the
+ * case's active primary pathologist, or its assignee when it has no team.
+ * Pure.
+ */
+export function reviewedPathologistOf(c: Pick<Case, 'participants' | 'order'>): { userId: string; userName: string } | undefined {
+  const primary = (c.participants ?? []).find(p => p.status === 'active' && p.participationTypeIds.includes('primary'));
+  if (primary) return { userId: primary.staffId, userName: primary.staffName };
+  const assigned = c.order?.assignedTo;
+  return assigned ? { userId: assigned, userName: assigned } : undefined;
+}
+
 export interface SurgicalQaReviewDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
   createRecord: (record: Omit<QaActivityRecord, 'id' | 'recordedAt'>) => Promise<ServiceResult<QaActivityRecord>>;
   getCase: (caseId: string) => Promise<Case | undefined>;
-  updateCase: (caseId: string, updates: Partial<Case>) => Promise<void>;
+  /** PS-71 (Batch 458): saves carry the version of the case they were built from. */
+  updateCase: (caseId: string, updates: Partial<Case>, expectedVersion: number) => Promise<void>;
 }
 
 // One flat shape: this project's tsconfig doesn't narrow unions reliably.
 export interface SurgicalQaActionResult { ok: boolean; notPermitted?: boolean; failed?: boolean }
 
 async function patchSpecimen(deps: SurgicalQaReviewDeps, caseId: string, specimenId: string, mutate: (s: Specimen) => Specimen): Promise<boolean> {
-  const fresh = await deps.getCase(caseId);
-  if (!fresh) return false;
-  const patched = (fresh.specimens ?? []).map(s => (s.id === specimenId ? mutate(s as Specimen) : s));
-  await deps.updateCase(caseId, { specimens: patched } as Partial<Case>);
-  return true;
+  // PS-71 (Batch 458): applied to the case as read, saved with its version;
+  // on a conflict, re-read and re-applied. A save that keeps conflicting is
+  // reported as failed (never claimed as saved).
+  const r = await updateCaseWithRetry(caseId, current => ({
+    specimens: (current.specimens ?? []).map(s => (s.id === specimenId ? mutate(s as Specimen) : s)),
+  } as Partial<Case>), deps);
+  return r.ok;
 }
 
 export async function recordSurgicalQaReview(
@@ -112,6 +128,9 @@ export async function recordSurgicalQaReview(
     rootCauseNote: submission.rootCauseNote,
     comments: submission.comments,
     recordedBy,
+    // Batch 442 (PS-147): a peer review names whose work it reviewed, so the
+    // discordance trend can count it. A correlation doesn't.
+    ...(row.kind === 'peer_review' && reviewedPathologistOf(row.caseData) ? { reviewedPathologist: reviewedPathologistOf(row.caseData) } : {}),
   } as Omit<QaActivityRecord, 'id' | 'recordedAt'>);
   if (!record.ok) return { ok: false, failed: true };
 

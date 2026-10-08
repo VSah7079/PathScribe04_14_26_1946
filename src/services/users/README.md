@@ -32,6 +32,19 @@ Staff records for the four bench demo users (ACC-001, HT-001, CT-001, MT-001) an
 
 Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
 
+## Batch 443
+
+A demo Lab Director: **Dr. Rachel Okafor** (`LD-001`, MD FCAP, Desert Valley, role Lab Director only). She's in `LATER_SEED_USERS` and is added to a browser's stored staff list when missing (`withMissingSeedRecords`), so existing staff edits are kept (no `USERS_VERSION` bump). She opens Quality Assurance and Configuration, sees and decides Discordance Patterns, and sets the trend policy (PS-147). **No sign-in yet** (Pete's choice): add a `demoAccounts.ts` entry with a hash from `scripts/auth/hash-demo-password.mjs` when wanted.
+
+## Batch 448
+
+The demo Lab Director (LD-001) can now be given a sign-in from Staff → edit → Sign-in password. Her Lab Director role gives her app access.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+- `USERS_VERSION` is 12. Priya Desai (CT-001), Sarah Johnson, Michelle Nimmo and Rossana Babakhani get `canViewOrchestration`, and James Okafor gets his demo email.
+- `LATER_SEED_USERS` adds FEL-001, CT-002, TA-001, TAP-001 and QA-001.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -35,3 +35,7 @@ Every file here that used `react-router-dom` now imports the same hooks and comp
 ## Batch 396
 
 `synopticLoader.ts` decides through `services/cases/openCaseForView.ts`. A case the reader can't open, missing or restricted, goes to `/report/:caseId`, which shows the one neutral "no access" screen. It used to go to the Worklist, with a toast naming the restriction for pediatric and Orchestration cases.
+
+## Batch 446
+
+`synopticLoader.ts` resolves the reference in the address. An old accession address is redirected to the reference before the page opens, and an unknown reference goes to the neutral no-access screen.

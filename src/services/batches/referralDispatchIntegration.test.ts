@@ -101,6 +101,31 @@ describe('mockBatchService — real referral dispatch on completion, per direct 
     if (tracking?.ok) expect(tracking.data?.transitStatus).toBe('dispatched');
   });
 
+  it('Batch 467b: the batch\'s send-out molecular orders are marked sent (its lab and requested test), and the manifest names them', async () => {
+    const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');
+    const spy = vi.spyOn(molecularOrderEngine, 'onReferralDispatched').mockResolvedValue([{ orderId: 'MO-9', caseAccession: 'S26-9', assayCode: 'st-her2-fish' }]);
+    const { mockBatchService } = await import('./mockBatchService');
+    const { mockReferralOutboundQueueService } = await import('../referral/mockReferralOutboundQueueService');
+    const { mockReferralTrackingService } = await import('../referral/mockReferralTrackingService');
+    const created = await mockBatchService.create({
+      processingNode: 'External Referral', protocol: 'External Referral', priority: 'Routine',
+      createdByUserId: 'u1', createdByUserName: 'Tech A', referralDestinationFacilityId: 'ref-summit', referralTestRequested: 'HER2 FISH',
+    });
+    if (!created.ok) throw new Error('setup failed');
+    await mockBatchService.startReconciliation(created.data.id, 'u1', 'Tech A');
+    await mockBatchService.overrideAndComplete(created.data.id, 'u1', 'Tech A', 'No items scanned for this test.');
+    const entries = await pollUntil(async () => {
+      const res = await mockReferralOutboundQueueService.getByBatchId(created.data.id);
+      return res.ok && res.data.length > 0 ? res : null;
+    });
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ batchId: created.data.id, labId: 'ref-summit', testRequested: 'HER2 FISH' }));
+    if (entries?.ok) expect((entries.data[0].payload as { molecularOrders?: unknown }).molecularOrders).toEqual([{ orderId: 'MO-9', caseAccession: 'S26-9', assayCode: 'st-her2-fish' }]);
+    else throw new Error('no manifest');
+    // The tracking record exists as soon as the batch completes.
+    expect((await mockReferralTrackingService.getByBatchId(created.data.id)).ok).toBe(true);
+    spy.mockRestore();
+  }, 20000);
+
   it('real, completing a genuine, non-referral batch (e.g. Processing) never enqueues anything to the referral queue', async () => {
     const { mockBatchService } = await import('./mockBatchService');
     const { mockReferralOutboundQueueService } = await import('../referral/mockReferralOutboundQueueService');

@@ -106,9 +106,17 @@ export function formatDateLong(iso: string | undefined, locale?: string): string
 
 // ── UTC audit timestamp (always unambiguous) ──────────────────────────────────
 
+/** Batch 437: a stored timestamp without a zone ('2026-10-02 22:06:32', how
+ *  the audit log stores them) is UTC. The browser reads that shape as local
+ *  time, which moved every Audit Log time by the viewer's UTC offset. */
+export function parseStoredUtc(ts: string): Date {
+  const noZone = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(ts);
+  return new Date(noZone ? ts.replace(' ', 'T') + 'Z' : ts);
+}
+
 export function formatAuditTimestamp(iso: string | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseStoredUtc(iso);
   if (isNaN(d.getTime())) return iso;
   return d.toISOString().replace('T', ' ').slice(0, 23) + ' UTC';
 }

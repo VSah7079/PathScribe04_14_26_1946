@@ -36,6 +36,7 @@
 // Returns what happened; the page shows it.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { qcByPrimaryScreener } from './cytologyQueues';
 import type { Case } from '@/types/case/Case';
 import type { CytologyReviewAgreement, CytologyReviewMode, CytologyReviewRecord, CytologyReviewRole, CytologyReviewVersion } from '@/types/cytology/CytologyReviewRecord';
 import { allCytologyInterpretationIds } from '@/types/cytology/CytologyReviewRecord';
@@ -89,7 +90,7 @@ export interface SaveCytologyReviewInput {
 
 /** One flat shape: this project's tsconfig doesn't narrow unions reliably. */
 export interface SaveCytologyReviewOutcome {
-  outcome: 'notPermitted' | 'incomplete' | 'invalid' | 'workloadBlocked' | 'saved' | 'failed';
+  outcome: 'notPermitted' | 'incomplete' | 'invalid' | 'workloadBlocked' | 'saved' | 'failed' | 'qcByPrimaryScreener';
   /** CISOE-A: the score's errors and warnings (empty when valid). */
   validation?: { errors: string[]; warnings: string[] };
   /** The workload check (null when the settings couldn't be read). */
@@ -113,6 +114,9 @@ export async function saveCytologyReview(input: SaveCytologyReviewInput, deps: C
 
   const decision = await deps.enforce('cytology:review:record', { caseId: caseData.id });
   if (!decision.allowed) return { outcome: 'notPermitted' };
+  // Batch 440: a QC rescreen is an independent second look; the person who
+  // did the primary screen can't record it (editing a review is unaffected).
+  if (!input.editingReviewId && qcByPrimaryScreener(input.resolvedRole, input.reviews, user.id)) return { outcome: 'qcByPrimaryScreener' };
 
   // 1. The review's fields.
   let fields: Record<string, unknown>;
@@ -281,10 +285,16 @@ function reviewVersionOf(r: CytologyReviewRecord): CytologyReviewVersion {
 
 /** One write to the specimen: a QC flag (new initial screen) and the review notes this save settles. */
 async function patchSpecimen(input: SaveCytologyReviewInput, reviewId: string, patch: Record<string, unknown>, deps: CytologyWorkspaceDeps) {
-  const notes = reviewNotesAfterSave(input.specimen,
-    { reviewId, byUserId: input.user.id, byUserName: input.user.name, isPathologistReview: input.isPathologist }, deps.now().toISOString());
-  const all = notes ? { ...patch, reviewNotes: notes } : patch;
-  if (Object.keys(all).length) await patchCytologyScreening(input.caseData, input.specimenId, all, deps);
+  const saved = { reviewId, byUserId: input.user.id, byUserName: input.user.name, isPathologistReview: input.isPathologist };
+  const at = deps.now().toISOString();
+  // Skip the write when nothing would change, judged on the page's copy; the
+  // notes themselves are worked out from the specimen as saved (PS-71, Batch
+  // 458), so a note someone else added or acknowledged in between is kept.
+  if (!Object.keys(patch).length && !reviewNotesAfterSave(input.specimen, saved, at)) return;
+  await patchCytologyScreening(input.caseData, input.specimenId, sp => {
+    const notes = reviewNotesAfterSave(sp, saved, at);
+    return notes ? { ...patch, reviewNotes: notes } : patch;
+  }, deps);
 }
 
 /**

@@ -26,6 +26,7 @@ import { PROTOCOL_REGISTRY, Protocol, LifecycleState, notifyRegistryChanged, sav
 import { getSessionUser } from '../auth/caseAccessControl';
 import { fromLegacyName, formatFullDisplayName } from '../../utils/personName';
 import { inheritedCopyAttributes } from './protocolLifecycle';
+import { mohsTemplateProblems } from './mohsStages';
 import {
   calcTemplateCoverage, canDraftTemplates, decideApprove, decidePublish, withEditor, SNOMED_PUBLISH_THRESHOLD,
   type TemplateActor,
@@ -197,7 +198,15 @@ const GOVERNANCE_MESSAGES: Record<string, string> = {
   ALREADY_APPROVED:       'You have already approved this template.',
   NOT_ENOUGH_APPROVALS:   'This template does not yet have the required number of independent approvals.',
   SNOMED_BELOW_THRESHOLD: `Templates require at least ${SNOMED_PUBLISH_THRESHOLD}% SNOMED coverage before publishing.`,
+  MOHS_HISTOLOGY_SOURCE:  'A Mohs stage question takes its default histology from a question that no longer exists or is not a choice question.',
 };
+
+/** Batch 463b: a template whose Mohs stage question names a missing or
+ *  non-choice default-histology source can't go to review or be published. */
+function assertMohsHistologySources(id: string): void {
+  const stored = editorStore.get(id);
+  if (stored && mohsTemplateProblems(stored as never).length) throw governanceError('MOHS_HISTOLOGY_SOURCE');
+}
 
 function governanceError(code: string, extra: { coverage?: number; approvalCount?: number } = {}): ServiceError {
   return {
@@ -444,6 +453,7 @@ export async function submitForReview(id: string, note?: string): Promise<Submit
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
+  assertMohsHistologySources(id);
 
   const ts = now();
   upsertRegistry({ id, status: 'in_review', lastModified: ts.slice(0, 10), reviewNote: note, approvals: [] });
@@ -506,6 +516,7 @@ export async function publishTemplate(id: string, _note?: string, publishedBy?: 
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
 
+  assertMohsHistologySources(id);
   const ts = now();
   // PS-63: approver role, no self-publishing (unless the site allows it),
   // enough approvals, and ≥80% SNOMED coverage for diagnostic templates.
@@ -606,6 +617,7 @@ export async function resubmitForReview(id: string, _note?: string): Promise<Sub
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
 
+  assertMohsHistologySources(id);
   const ts = now();
   upsertRegistry({ id, status: 'in_review', reviewNote: undefined, lastModified: ts.slice(0, 10), approvals: [] });
 
@@ -907,6 +919,11 @@ import KIDNEY_BIOPSY_JSON       from '../../data/templates/generic/kidney_biopsy
 import WILMS_RESECTION_JSON     from '../../data/templates/generic/wilms_resection.json';
 import WILMS_BIOPSY_JSON        from '../../data/templates/generic/wilms_biopsy.json';
 import AUTOPSY_GROSS_EXAM_JSON  from '../../data/templates/Autopsy/autopsy_gross_examination.json';
+// Batch 463: PathScribe's own Mohs synoptic (labs copy and customise it like any other).
+import MOHS_JSON                from '../../data/templates/generic/mohs_micrographic_surgery.json';
+// Batch 465: PathScribe's head and neck synoptics.
+import ORAL_CAVITY_JSON         from '../../data/templates/generic/oral_cavity_resection.json';
+import NECK_DISSECTION_JSON     from '../../data/templates/generic/neck_dissection.json';
 
 // Seed all generic templates (see comment block above)
 editorStore.set('breast_invasive',        BREAST_INVASIVE_JSON   as any);
@@ -920,6 +937,9 @@ editorStore.set('kidney_biopsy',       KIDNEY_BIOPSY_JSON       as unknown as Ed
 editorStore.set('wilms_resection',     WILMS_RESECTION_JSON     as unknown as EditorTemplate);
 editorStore.set('wilms_biopsy',        WILMS_BIOPSY_JSON        as unknown as EditorTemplate);
 editorStore.set('autopsy_gross_examination', AUTOPSY_GROSS_EXAM_JSON as unknown as EditorTemplate);
+editorStore.set('mohs_micrographic_surgery', MOHS_JSON as unknown as EditorTemplate);
+editorStore.set('oral_cavity_resection',     ORAL_CAVITY_JSON as unknown as EditorTemplate);
+editorStore.set('neck_dissection',           NECK_DISSECTION_JSON as unknown as EditorTemplate);
 editorStore.set('prostate_resection',        PROSTATE_RESECTION_JSON  as any);
 editorStore.set('lung_resection',            LUNG_RESECTION_JSON      as any);
 // Alias — internal protocol ID used by the generic seed template above

@@ -25,6 +25,9 @@ import { slideIdentifier } from '@/types/labels/LabelData';
 import type { HistologyBlock, Specimen, StainOrder } from '@/types/case/Specimen';
 import type { Decant } from '@/types/case/Material';
 import type { MaterialComment } from '@/types/case/MaterialComment';
+import type { MatrixBlock } from '@/types/case/MatrixBlock';
+import type { Case } from '@/types/case/Case';
+import { nextSlideLevelNumber } from '@/services/material/slideLevels';
 import type { StainType } from '@/services/stains/IStainService';
 import type { CytologyPrepSuggestion } from '@/services/cytology/computeCytologyPrepSuggestions';
 
@@ -103,7 +106,8 @@ export function addMicrotomyStain(
 
   const duplicateCount = Math.max(1, options.duplicateCount ?? 1);
   const newStains: StainOrder[] = [];
-  let nextLevel = block.stains.length;
+  // Batch 460: past the highest level used (a removed slide's level is never reused).
+  let nextLevel = nextSlideLevelNumber(block.stains) - 1;
 
   for (let i = 0; i < duplicateCount; i++) {
     nextLevel += 1;
@@ -179,6 +183,8 @@ export function removeMicrotomyStain(
 export function markStainPrinting(specimen: Specimen, blockId: string, stainId: string): MicrotomyOperationResult {
   const block = findBlock(specimen, blockId);
   if (!block) return { ok: false, error: 'Block not found.' };
+  // Batch 460: a slide removed meanwhile (on a newer copy of the case) is not printed.
+  if (!block.stains.some(s => s.id === stainId)) return { ok: false, error: 'Stain not found.' };
   const updatedStains = block.stains.map(s => s.id !== stainId ? s : { ...s, printStatus: 'Printing' as const, printFailureReason: undefined });
   return { ok: true, specimen: replaceBlockStains(specimen, blockId, updatedStains) };
 }
@@ -369,7 +375,7 @@ export function applyCytologyPrepSuggestions(
   const decant = findDecant(specimen, decantId);
   if (!decant) return { ok: false, error: 'Decant not found.' };
   const newStains: StainOrder[] = [];
-  let nextLevel = decant.stains.length;
+  let nextLevel = nextSlideLevelNumber(decant.stains) - 1;
   for (const suggestion of suggestions) {
     for (let i = 0; i < suggestion.count; i++) {
       nextLevel += 1;
@@ -405,7 +411,7 @@ export function addDecantStain(
     id: genId('stain'),
     stainName: stainType.name,
     status: 'Pending Cut',
-    displayId: slideIdentifier(fullAccession, specimen.label, decant.label, `L${decant.stains.length + 1}`),
+    displayId: slideIdentifier(fullAccession, specimen.label, decant.label, `L${nextSlideLevelNumber(decant.stains)}`),
     userAdded: true,
     preparationMethod,
     printStatus: 'Pending',
@@ -429,4 +435,93 @@ export function removeDecantStain(
     ? decant.stains.map(s => s.id !== stainId ? s : { ...s, status: 'Cancelled' as const, printStatus: 'Canceled' as const, printFailureReason: reason })
     : decant.stains.filter(s => s.id !== stainId);
   return { ok: true, specimen: replaceDecantStains(specimen, decantId, updatedStains) };
+}
+
+// ── Batch 460: slide order and matrix blocks ────────────────────────────────
+
+/** The chosen slides in the grid's order (the order the tech arranged them
+ *  in), not the order they were ticked. */
+export function stainsInGridOrder(stains: readonly StainOrder[], chosenIds: Iterable<string>): StainOrder[] {
+  const chosen = new Set(chosenIds);
+  return stains.filter(s => chosen.has(s.id));
+}
+
+/** A matrix block worked at Microtomy is shown to every block operation as a
+ *  one-block "specimen" with this id, so add/remove/print/reprint/reorder/
+ *  comment/flags work on it unchanged. Its slides' ids come out as
+ *  ACC-M1-L1 (matrixSlideIdentifier), since the view has no specimen letter. */
+export const MATRIX_VIEW_SPECIMEN_ID = '__matrix-block-view__';
+
+export function matrixBlockAsSpecimenView(matrixBlock: MatrixBlock): Specimen {
+  const block = {
+    id: matrixBlock.id, label: matrixBlock.label, status: matrixBlock.status,
+    stains: matrixBlock.slides ?? [], comments: matrixBlock.comments,
+    tinyTissue: matrixBlock.tinyTissue, fragile: matrixBlock.fragile, requiresDecal: matrixBlock.requiresDecal,
+  } as unknown as HistologyBlock;
+  return { id: MATRIX_VIEW_SPECIMEN_ID, label: '', blocks: [block] } as unknown as Specimen;
+}
+
+export function isMatrixView(specimen: Pick<Specimen, 'id'>): boolean {
+  return specimen.id === MATRIX_VIEW_SPECIMEN_ID;
+}
+
+/** The matrix block as changed through its view. A slide added at the bench
+ *  is cut through every core, so it targets every participant (the
+ *  pathologist still confirms which cores were evaluated, for billing). */
+export function matrixBlockFromSpecimenView(matrixBlock: MatrixBlock, view: Specimen): MatrixBlock {
+  const block = (view.blocks ?? [])[0];
+  if (!block) return matrixBlock;
+  const everyone = matrixBlock.participants.map(p => p.specimenId);
+  return {
+    ...matrixBlock,
+    slides: block.stains.map(s => (s.targetSpecimenIds ? s : { ...s, targetSpecimenIds: everyone })),
+    comments: block.comments,
+    tinyTissue: (block as { tinyTissue?: boolean }).tinyTissue,
+    fragile: (block as { fragile?: boolean }).fragile,
+    requiresDecal: block.requiresDecal,
+  };
+}
+
+/** What a Microtomy work item is, by id, so a save can find it again on a
+ *  newer copy of the case. */
+export type MicrotomyTarget =
+  | { kind: 'block'; specimenId: string; blockId: string }
+  | { kind: 'decant'; specimenId: string; decantId: string }
+  | { kind: 'matrix'; matrixBlockId: string };
+
+/** The specimen (or matrix-block view) the operations work on, from a case. */
+export function microtomyViewOf(caseData: Pick<Case, 'specimens' | 'matrixBlocks'>, target: MicrotomyTarget): Specimen | null {
+  if (target.kind === 'matrix') {
+    const mb = (caseData.matrixBlocks ?? []).find(m => m.id === target.matrixBlockId);
+    return mb ? matrixBlockAsSpecimenView(mb) : null;
+  }
+  return (caseData.specimens ?? []).find(sp => sp.id === target.specimenId) ?? null;
+}
+
+/** The case change that stores an operation's result: the matrix block, or the specimens. */
+export function microtomyCaseUpdates(caseData: Pick<Case, 'specimens' | 'matrixBlocks'>, view: Specimen): Pick<Case, 'specimens'> | Pick<Case, 'matrixBlocks'> {
+  if (isMatrixView(view)) {
+    const id = (view.blocks ?? [])[0]?.id;
+    return { matrixBlocks: (caseData.matrixBlocks ?? []).map(mb => (mb.id === id ? matrixBlockFromSpecimenView(mb, view) : mb)) };
+  }
+  return { specimens: (caseData.specimens ?? []).map(sp => (sp.id === view.id ? view : sp)) };
+}
+
+/** Batch 460: a decant slide's print state (moved from the Microtomy hook). */
+export function markDecantStainPrinting(specimen: Specimen, decantId: string, stainId: string): MicrotomyOperationResult {
+  const decant = findDecant(specimen, decantId);
+  if (!decant) return { ok: false, error: 'Decant not found.' };
+  if (!decant.stains.some(s => s.id === stainId)) return { ok: false, error: 'Stain not found.' };
+  return { ok: true, specimen: replaceDecantStains(specimen, decantId, decant.stains.map(s => (s.id !== stainId ? s : { ...s, printStatus: 'Printing' as const, printFailureReason: undefined }))) };
+}
+
+export function markDecantStainPrintResult(specimen: Specimen, decantId: string, stainId: string, result: { ok: boolean; message?: string }, actor: string): MicrotomyOperationResult {
+  const decant = findDecant(specimen, decantId);
+  if (!decant) return { ok: false, error: 'Decant not found.' };
+  return {
+    ok: true,
+    specimen: replaceDecantStains(specimen, decantId, decant.stains.map(s => (s.id !== stainId ? s : (result.ok
+      ? { ...s, printStatus: 'Printed' as const, printedAt: new Date().toISOString(), printedBy: actor, printFailureReason: undefined }
+      : { ...s, printStatus: 'Failed' as const, printFailureReason: result.message ?? 'Print failed.' })))),
+  };
 }

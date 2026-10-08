@@ -13,6 +13,7 @@ import type { CytologyCategoryEntry } from './ICytologyCategoryService';
 import { resolveCytologyQaComparisonPairs } from './resolveCytologyQaComparisonPairs';
 import { resolveCytologyPeerReviewComparisonPairs, type CytologySpecimenFinalDiagnosisRef } from './resolveCytologyPeerReviewComparisonPairs';
 import { resolveCytologyQaAggregateReport, type CytologyQaAggregateReport } from './resolveCytologyQaAggregateReport';
+import { resolveCytologyFinalDiagnosisDiscordancePairs } from './resolveCytologyFinalDiagnosisDiscordancePairs';
 
 /** The real, mandatory 10% random rescreening report: primary_screen
  *  (Cytotechnologist) vs. qc_random_selection. */
@@ -62,4 +63,17 @@ export function resolveCytologyPostSignOutPeerReviewCorrelationReport(
 ): CytologyQaAggregateReport {
   const pairs = resolveCytologyPeerReviewComparisonPairs(reviews, specimenFinalDiagnoses);
   return resolveCytologyQaAggregateReport(pairs, categories);
+}
+
+/**
+ * Batch 459 (PS-152): Primary screen vs Final Diagnosis. The screener's
+ * initial read against the review signed out as the Final Diagnosis
+ * (resolveCytologyFinalDiagnosisDiscordancePairs.ts).
+ */
+export function resolveCytologyPrimaryVsFinalDiagnosisReport(
+  reviews: CytologyReviewRecord[],
+  specimenFinalDiagnoses: CytologySpecimenFinalDiagnosisRef[],
+  categories: CytologyCategoryEntry[],
+): CytologyQaAggregateReport {
+  return resolveCytologyQaAggregateReport(resolveCytologyFinalDiagnosisDiscordancePairs(reviews, specimenFinalDiagnoses), categories);
 }

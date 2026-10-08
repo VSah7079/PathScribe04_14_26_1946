@@ -6,6 +6,7 @@
  * The case is status-locked to 'claimed' while this modal is open.
  * ─────────────────────────────────────────────────────────────────────────────
  */
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -68,6 +69,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [step,      setStep]      = useState<Step>('claiming');
   const [blockedBy, setBlockedBy] = useState<string | null>(null);
   // Real feature, per direct product decision: pool-restricted cases
@@ -97,7 +99,7 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
 
   const handleViewReport = () => {
     if (!caseId) return;
-    navigate(`/report/${caseId}`, { state: { fromFilter: 'pool' } });
+    void openCasePage(caseId, 'report', { state: { fromFilter: 'pool' } });
     onClose();
   };
 
@@ -134,9 +136,11 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
   const handleAccept = async () => {
     if (!caseId) return;
     setStep('accepting');
-    await acceptPoolCase(caseId, currentUserId, currentUserName);
+    // PS-71 (Batch 458): two people accepting at once: only the first wins.
+    try { await acceptPoolCase(caseId, currentUserId, currentUserName); }
+    catch { setBlockedBy(null); setStep('blocked'); return; }
     if (continueToReport) {
-      navigate(`/case/${caseId}/synoptic`);
+      void openCasePage(caseId, 'synoptic');
     }
     onAccepted();
   };
@@ -199,7 +203,9 @@ export const PoolClaimModal: React.FC<PoolClaimModalProps> = ({
             <div className="ps-pool-icon">🔒</div>
             <div className="ps-pool-blocked-title">{t('poolClaimModal.caseUnavailable')}</div>
             <div className="pcm-body-text">
-              {boldSubstrings(t('poolClaimModal.reviewedByMessage', { name: blockedBy ?? '' }), [blockedBy ?? ''])}
+              {blockedBy
+                ? boldSubstrings(t('poolClaimModal.reviewedByMessage', { name: blockedBy }), [blockedBy])
+                : t('poolClaimModal.takenMessage')}
             </div>
             <div className="pcm-close-row">
               <button className="ps-btn-secondary" onClick={onClose}>{t('poolClaimModal.close')}</button>

@@ -149,3 +149,30 @@ describe('changeDraftType (Batch 380)', () => {
     expect((await mockAmendmentService.changeDraftType(draft.data.id, 'addendum')).ok).toBe(false);
   });
 });
+
+// Batch 438 (PS-146): releasing a clinically significant revision recommends a CAPA.
+describe('mockAmendmentService.release recommends a CAPA for a clinically significant revision', () => {
+  beforeEach(() => { localStorage.clear(); });
+  const release = async (caseId: string, type: 'amendment' | 'correction' | 'addendum', reasonId: string) => {
+    const draft = await mockAmendmentService.startDraft({ caseId, type, authoringPathologist });
+    if (!draft.ok) throw new Error('draft failed');
+    return mockAmendmentService.release(draft.data.id, {
+      body: 'Revised.', addendumTitle: type === 'addendum' ? 'Molecular' : undefined, reasonId,
+      explanationOfChange: 'Stage revised after re-review.',
+      notification: { clinicianName: 'Dr. Referring', method: 'verbal_phone', notifiedAt: new Date().toISOString() },
+    });
+  };
+  const recsFor = async (caseId: string) => {
+    const { mockCapaRecommendationService } = await import('../quality/mockCapaRecommendationService');
+    const r = await mockCapaRecommendationService.getAll();
+    return r.ok ? r.data.filter(x => x.caseId === caseId) : [];
+  };
+  it('a staging amendment recommends one; a typo correction and an addendum do not', async () => {
+    expect((await release('CASE-SIG', 'amendment', 'AMEND_STAGE')).ok).toBe(true);
+    expect(await recsFor('CASE-SIG')).toEqual([expect.objectContaining({ source: 'clinical-correction', status: 'pending' })]);
+    await release('CASE-TYPO', 'correction', 'CORR_TYPO');
+    await release('CASE-ADD', 'addendum', 'ADD_IHC');
+    expect(await recsFor('CASE-TYPO')).toHaveLength(0);
+    expect(await recsFor('CASE-ADD')).toHaveLength(0);
+  });
+});

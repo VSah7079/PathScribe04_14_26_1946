@@ -233,14 +233,14 @@ const PartLibraryTab: React.FC = () => {
             </button>
           ))}
         </div>
-        <input data-config-nav
+        <input data-dirty-ignore data-config-nav
           className="ps-plib__search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={t('templateAssemblyPage.searchPartsPlaceholder')}
         />
         {labs.length > 0 && (
-          <select data-config-nav className="ps-conf-select" value={labFilter} onChange={e => setLabFilter(e.target.value as any)}>
+          <select data-dirty-ignore data-config-nav className="ps-conf-select" value={labFilter} onChange={e => setLabFilter(e.target.value as any)}>
             <option value="all">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

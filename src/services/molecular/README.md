@@ -376,3 +376,31 @@ How PathScribe knows and checks a rack's deck slot:
 - `molecularActor` and `UNKNOWN_STATION_NAME` in `resolveMolecularMovementRecord.ts`.
 
 **Still open:** a browser that stored the batches before this change keeps `mb-001` in SLOT_A1, which no longer takes a plate. A supersede of it leaves the slot blank.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-235, PS-236)
+
+`plateWellScan.ts` (movement record with user and station when a specimen is scanned into a well) and `molecularDispatchPanel.ts` (Confirm Dispatch only after both scans; a mismatch blocks), moved out of the plate builder page and tested.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`plateBuilderWells.ts`: auto-fill, empty plates and `plateGridWells` (the grid by position; fixes column-major and view-only layouts).
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+Demo seeds (`molecularDemoSeed.ts`), HPV on Panther 2 for the baseline Paps:
+- `mb-demo-456-run`: S26-4650, worklist sent, running.
+- `mb-demo-456-fail`: S26-4651, positive control low, results blocked, repeat required (Clone & Supersede).
+- Extraction rack `rack-demo-456` (RACK-MOLE-00456): S26-4652, awaiting extraction.
+
+Merged into the batch and rack seeds with `withMissingSeedRecords`, so existing browsers get them without a reset. No breast or colon runs: the catalog's HER2 FISH, NGS and MSI tests are FISH or send-out, and the only in-house instruments run HPV. The Molecular Order Queue is still empty. The Panthers are registered at `c-fenwick-general`, not Metro General (unchanged).
+
+## Batch 467 — In-house molecular orders
+
+- `MolecularWell.orderId`: the in-house order a sample well holds (spec wellBindingContract).
+- `dispatchMolecularWorklist.ts` tells the molecular order engine the plate is running (orders → IN_RUN); `processInboundMolecularRunResults.ts` hands it the results (orders → RESULTED, synoptic filled).
+- Seeds: control rule `rule-467-egfr` (NTC A01, high positive A02) and the draft EGFR plate `mb-demo-467-egfr` on PCR_01. The rule reaches browsers that stored the rules earlier once only, so a deleted rule stays deleted.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- `resolveMolecularWorklistPayload` puts `order_id` on sample wells holding an order. Results may echo `order_id` (`MolecularWellResult`).
+- `plateBuilderWells.plateWellTitle`: a well's tooltip (sample, accession, order).

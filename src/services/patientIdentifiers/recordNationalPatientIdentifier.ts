@@ -20,12 +20,14 @@
 import type { Patient } from '@/types/case/Patient';
 import type { NationalPatientIdentifier } from '@/types/patient/NationalPatientIdentifier';
 import { normalizeNationalIdentifier, verifyNationalIdentifier, type CheckDigitResult } from './checkDigits';
+import { updateCaseWithRetry, type CaseWriteResult } from '../cases/caseWrite';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface RecordNationalIdentifierDeps {
   enforce: (capability: string, context?: Record<string, unknown>) => Promise<{ allowed: boolean }>;
-  getCase: (caseId: string) => Promise<{ id: string; patient: Patient } | null | undefined>;
-  updateCase: (caseId: string, patch: { patient: Patient }) => Promise<unknown>;
+  getCase: (caseId: string) => Promise<{ id: string; patient: Patient; version?: number } | null | undefined>;
+  /** PS-71 (Batch 458): saves against the version of the case the change was built from. */
+  updateCase: (caseId: string, patch: { patient: Patient }, expectedVersion: number) => Promise<unknown>;
   recordInMpi: (patientId: string, identifier: NationalPatientIdentifier) => Promise<unknown>;
   /** Batch 425: removes one system's identifier from the MPI. */
   removeFromMpi?: (patientId: string, system: string) => Promise<unknown>;
@@ -36,7 +38,8 @@ export interface RecordNationalIdentifierDeps {
 }
 
 export interface RecordNationalIdentifierOutcome {
-  outcome: 'notPermitted' | 'caseNotFound' | 'saved' | 'removed';
+  /** 'conflict' (PS-71): the case kept changing under the save; nothing was saved. */
+  outcome: 'notPermitted' | 'caseNotFound' | 'saved' | 'removed' | 'conflict';
   identifier?: NationalPatientIdentifier;
   check?: CheckDigitResult;
 }
@@ -46,6 +49,22 @@ export function withNationalIdentifier(list: NationalPatientIdentifier[] | undef
   const others = (list ?? []).filter(i => i.system !== system);
   return identifier ? [...others, identifier] : others;
 }
+
+/**
+ * PS-71 (Batch 458): one system's identifier is set on the newest copy of the
+ * case's patient and saved with that case's version (updateCaseWithRetry), so
+ * another identifier or patient detail saved in between is kept. Returns the
+ * write result; nothing else (MPI, A08, audit) happens unless it saved.
+ */
+function savePatient(caseId: string, build: (patient: Patient) => Patient, deps: RecordNationalIdentifierDeps): Promise<CaseWriteResult> {
+  return updateCaseWithRetry(caseId, current => ({ patient: build((current as any).patient) }), {
+    getCase: id => deps.getCase(id) as Promise<any>,
+    updateCase: async (id, updates, expectedVersion) => { await deps.updateCase(id, updates as { patient: Patient }, expectedVersion); },
+  });
+}
+
+const writeFailure = (w: CaseWriteResult): RecordNationalIdentifierOutcome =>
+  ({ outcome: w.ok === false && w.reason === 'notFound' ? 'caseNotFound' : 'conflict' });
 
 export async function recordNationalPatientIdentifier(
   input: { caseId: string; system: string; value: string; source?: NationalPatientIdentifier['source']; announce?: boolean },
@@ -59,8 +78,8 @@ export async function recordNationalPatientIdentifier(
 
   const value = normalizeNationalIdentifier(input.value);
   if (!value) {
-    const patient = { ...c.patient, nationalIdentifiers: withNationalIdentifier(c.patient.nationalIdentifiers, input.system, null) };
-    await deps.updateCase(c.id, { patient });
+    const w = await savePatient(c.id, p => ({ ...p, nationalIdentifiers: withNationalIdentifier(p?.nationalIdentifiers, input.system, null) }), deps);
+    if (!w.ok) return writeFailure(w);
     if (c.patient.id && deps.removeFromMpi) await deps.removeFromMpi(c.patient.id, input.system);
     if (c.patient.id && input.announce && deps.announceDemographicUpdate) await deps.announceDemographicUpdate(c.patient.id);
     deps.logAudit({ type: 'user', event: 'National identifier removed', detail: `Case ${c.id}: ${input.system}`, user: user.name || user.id, caseId: c.id, confidence: null });
@@ -71,8 +90,8 @@ export async function recordNationalPatientIdentifier(
   const identifier: NationalPatientIdentifier = {
     system: input.system, value, verificationStatus: check.status, verifiedAt: deps.now(), source: input.source ?? 'manual',
   };
-  const patient = { ...c.patient, nationalIdentifiers: withNationalIdentifier(c.patient.nationalIdentifiers, input.system, identifier) };
-  await deps.updateCase(c.id, { patient });
+  const w = await savePatient(c.id, p => ({ ...p, nationalIdentifiers: withNationalIdentifier(p?.nationalIdentifiers, input.system, identifier) }), deps);
+  if (!w.ok) return writeFailure(w);
   if (c.patient.id) await deps.recordInMpi(c.patient.id, identifier);
   if (c.patient.id && input.announce && deps.announceDemographicUpdate) await deps.announceDemographicUpdate(c.patient.id);
   // The value is patient PHI and stays out of the audit text; the system and the check result are the record.

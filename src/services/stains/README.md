@@ -39,6 +39,16 @@ Seeded links:
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 467 — In-house molecular orders
+
+`StainType.inHouseFacilityIds`: the performing labs that run a molecular test in-house (Stain Dictionary, "Run in-house at"). New test `st-egfr-pcr` (EGFR mutation PCR): in-house at Desert Valley, send-out to Summit or Pacific. `referenceLabLink.ts`: `activePerformingLabs`, `normalizeInHouseLabs`.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+New tests:
+- `st-kras-pcr` and `st-nras-pcr`: in-house at Desert Valley, or send-out to Summit or Pacific.
+- `st-braf-v600e-pcr`: send-out.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

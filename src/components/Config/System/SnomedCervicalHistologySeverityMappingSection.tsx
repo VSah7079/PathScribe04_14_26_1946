@@ -28,6 +28,8 @@ import { mockSnomedCervicalHistologySeverityMappingService } from '../../../serv
 import type { SnomedCervicalHistologySeverityMappingEntry } from '../../../services/cytology/ISnomedCervicalHistologySeverityMappingService';
 import { getSessionUser } from '../../../services/auth/caseAccessControl';
 import type { ServiceResult } from '../../../services/types';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
 
 interface Draft { snomedCode: string; description: string; severityRank: string }
 const emptyDraft: Draft = { snomedCode: '', description: '', severityRank: '' };
@@ -39,6 +41,10 @@ const SnomedCervicalHistologySeverityMappingSection: React.FC = () => {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(emptyDraft);
+  // PS-128 (Batch 437): a half-typed new mapping, or an edit in progress.
+  const editing = entries.find(e => e.id === editingId);
+  useReportConfigDirty(draftDiffers(emptyDraft, draft) || (!!editing && draftDiffers(
+    { snomedCode: editing.snomedCode, description: editing.description, severityRank: String(editing.severityRank) }, editDraft)));
   const [error, setError] = useState<string | null>(null);
 
   const refresh = () => {

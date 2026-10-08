@@ -25,7 +25,9 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+import { useTranslation } from 'react-i18next';
+// Batch 465b: through the services barrel (deployment-neutral), not the mock file.
+import { scanStationService } from '@/services';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { useEffectiveScanStation } from './useEffectiveScanStation';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
@@ -41,29 +43,30 @@ export function useGlobalStationSwitch() {
   const { setStationId } = useEffectiveScanStation();
   const { isDirty, getSaveHandler, getDiscardHandler } = useDirtyState();
   const [pending, setPending] = useState<PendingStationSwitch | null>(null);
+  const { t } = useTranslation();
 
   const handleScan = useCallback(async (scanEvent: ScanEvent) => {
     const raw = scanEvent.raw?.trim() ?? '';
     if (!raw.toUpperCase().startsWith(STATION_PREFIX)) return; // Not a station barcode — leave it entirely to material-scan tracking.
 
     const code = raw.slice(STATION_PREFIX.length).trim();
-    const result = await mockScanStationService.getByBarcodeCode(code);
+    const result = await scanStationService.getByBarcodeCode(code);
     if (!result.ok) {
-      toast.warn(`Scanned an unrecognized station barcode ("${code}").`);
+      toast.warn(t('stationSwitch.unknownBarcode', { code }));
       return;
     }
     const station = result.data;
 
     if (!isDirty) {
       setStationId(station.id);
-      toast.info(`📍 Switched to ${station.name}.`);
+      toast.info(t('stationSwitch.switched', { station: station.name }));
       return;
     }
 
     // Real, critical safety rule: real unsaved data blocks the
     // immediate switch — hands off to the real guard modal instead.
     setPending({ station });
-  }, [isDirty, setStationId]);
+  }, [isDirty, setStationId, t]);
 
   useEffect(() => {
     const listener = (e: Event) => {
@@ -80,24 +83,25 @@ export function useGlobalStationSwitch() {
     if (save) {
       const saved = await save();
       if (!saved) {
-        toast.error('Could not save — a newer version exists. Station not switched.');
+        // Batch 465b: a save can also be stopped by a check (nodes positive > examined), which says why itself.
+        toast.error(t('stationSwitch.notSaved'));
         setPending(null);
         return;
       }
     }
     setStationId(pending.station.id);
-    toast.success(`📍 Saved and switched to ${pending.station.name}.`);
+    toast.success(t('stationSwitch.savedAndSwitched', { station: pending.station.name }));
     setPending(null);
-  }, [pending, getSaveHandler, setStationId]);
+  }, [pending, getSaveHandler, setStationId, t]);
 
   const discardAndSwitch = useCallback(() => {
     if (!pending) return;
     const discard = getDiscardHandler();
     if (discard) discard();
     setStationId(pending.station.id);
-    toast.info(`📍 Discarded changes and switched to ${pending.station.name}.`);
+    toast.info(t('stationSwitch.discardedAndSwitched', { station: pending.station.name }));
     setPending(null);
-  }, [pending, getDiscardHandler, setStationId]);
+  }, [pending, getDiscardHandler, setStationId, t]);
 
   const cancelSwitch = useCallback(() => {
     setPending(null);

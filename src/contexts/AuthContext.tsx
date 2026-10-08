@@ -15,11 +15,13 @@ import { authSession, authConfig } from "@/services";
 import type { SessionProfile } from "@/services/auth/sessionProfile";
 import type { SsoDenialReason } from "@/services/auth/externalIdentity";
 import type { SsoProviderConfig } from "@/services/auth/authConfig";
+import type { SignInRefusal } from "@/services/auth/signInLockout";
 
 /** The signed-in user. See services/auth/sessionProfile.ts for the fields. */
 export type User = SessionProfile;
 
-export type SignInOutcome = 'success' | 'invalid_credentials' | 'session_conflict';
+/** Batch 456: a wrong password reports the attempts left, or the lock (signInLockout.ts). */
+export type SignInOutcome = 'success' | 'invalid_credentials' | 'session_conflict' | 'password_change_required' | SignInRefusal;
 
 export type SsoCompletionOutcome =
   | { outcome: 'success'; returnPath: string }
@@ -71,6 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await authSession.signInWithPassword(email, password);
       if (!profile) return 'invalid_credentials';
+      if (typeof profile === 'object' && 'refused' in profile) return profile;
+      // Batch 448: a password set from the Staff screen that must be changed
+      // first. No session starts until it is (LoginPage asks).
+      if (profile === 'password_change_required') return profile;
       return start(profile, forceSupersede);
     } catch (e) {
       console.error("Login error:", e);

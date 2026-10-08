@@ -52,6 +52,10 @@ The page follows the organisation's Field Requirements (page "embedding", `servi
 - Tests: `components/embeddingRequirements.test.tsx`.
 - Not changed: the split-block panel and the Tissue Discrepancy deficiency's comment text (a stored QA record, English).
 
+## Batch 460
+
+`useEmbeddingStation.ts` checks the scan target before the specimen. A matrix block now gets "Embedding takes block cassettes only" instead of "specimen not found". Matrix blocks at Embedding are still not supported.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

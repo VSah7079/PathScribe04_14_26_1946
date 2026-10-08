@@ -90,6 +90,22 @@ With this, no Batch Management page is on the deployment baseline, and none has 
 
 Batch detail (external referral): "Mark in transit" / "Mark delivered" (`referral:transit-status:update`, forward only).
 
+## Batch 434
+
+`WsiScanBatchesPage.tsx` (route `/batch-management/wsi-scan`, tile "Slide scanning" on the hub, behind the Batch Management screen):
+- the scanning queue, with a slide scanner picked from the Equipment register, slide checkboxes and **Load**;
+- the scan batches, with **Send to scanner** (or **Send again**, showing why the last send failed), progress as the scanner reports it, **Unload**, and each batch's slides on expand.
+
+The rules are in `services/digitalPathology/wsiScanQueue.ts` and `wsiScanBatchWorkflow.ts`.
+
+## Batch 435
+
+`WsiScanBatchesPage.tsx` updates on its own (`useLiveWsiScanBatches`) and shows the live-update badge; Refresh stays. Admin can now open the page (screen only).
+
+## Batch 437
+
+Printing a new container's label is audited (PS-282).
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -21,10 +21,12 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/utils/formatDate';
 import type { TFunction } from 'i18next';
 import '../../../pathscribe.css';
 import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import type { PatientEncounterSnapshot } from '@/types/reports/PatientEncounterSnapshot';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 interface Props {
   versions: ReportVersionRecord[];
@@ -46,11 +48,11 @@ const TRIGGER_LABEL_KEY: Record<string, string> = {
  *  are shown; a version created before this field existed (or where
  *  capture failed) shows the real, honest "not available" message
  *  below instead, never a grid of blanks. */
-function snapshotFields(s: PatientEncounterSnapshot, t: TFunction): { label: string; value: string }[] {
+function snapshotFields(s: PatientEncounterSnapshot, t: TFunction, lang: string): { label: string; value: string }[] {
   const fields: { label: string; value: string }[] = [
     { label: t('reportPreviewRenderer.fieldPatient'), value: `${s.lastName}, ${s.firstName}` },
     { label: t('reportPreviewRenderer.fieldMrn'), value: s.mrn },
-    { label: t('reportPreviewRenderer.fieldDob'), value: s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString() : '—' },
+    { label: t('reportPreviewRenderer.fieldDob'), value: formatDate(s.dateOfBirth, lang) },
   ];
   if (s.encounterNumber) fields.push({ label: t('versionHistoryModal.snapshotField.encounterNumber'), value: s.encounterNumber });
   if (s.encounterClass) fields.push({ label: t('versionHistoryModal.snapshotField.encounterClass'), value: s.encounterClass });
@@ -67,23 +69,30 @@ function snapshotFields(s: PatientEncounterSnapshot, t: TFunction): { label: str
  *  already uses (SynopticReportPage.tsx) - falls back to a direct
  *  download if the popup is blocked, same fallback the live pipeline
  *  already has. */
-function openHistoricalPdf(pdfBase64: string, versionNumber: number) {
+function openHistoricalPdf(pdfBase64: string, versionNumber: number, caseId: string) {
   const byteChars = atob(pdfBase64);
   const byteNumbers = new Array(byteChars.length);
   for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
   const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
+  let destination: string = DOCUMENT_DESTINATION.pdfInBrowser;
   if (!win) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `version-${versionNumber}.pdf`;
     a.click();
+    destination = DOCUMENT_DESTINATION.download(a.download);
   }
+  // PS-282 (Batch 437): opening a stored version's PDF is audited.
+  void recordDocumentOutput({
+    action: 'render', document: 'report-version', documentId: caseId, version: versionNumber,
+    caseId, destination, status: 'success', format: 'pdf',
+  });
 }
 
 export const VersionHistoryModal: React.FC<Props> = ({ versions, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [pdfError, setPdfError] = useState<string | null>(null);
   const sorted = [...versions].sort((a, b) => b.versionNumber - a.versionNumber);
 
@@ -116,7 +125,7 @@ export const VersionHistoryModal: React.FC<Props> = ({ versions, onClose }) => {
                   <div className="ps-verhist-snapshot">
                     <div className="ps-verhist-snapshot-title">{t('versionHistoryModal.snapshotTitle')}</div>
                     <div className="ps-verhist-snapshot-grid">
-                      {snapshotFields(snapshot, t).map(f => (
+                      {snapshotFields(snapshot, t, i18n.language).map(f => (
                         <div key={f.label}>
                           <span className="ps-verhist-snapshot-field-label">{f.label}: </span>
                           <span className="ps-verhist-snapshot-field-value" data-phi="true">{f.value}</span>
@@ -139,7 +148,7 @@ export const VersionHistoryModal: React.FC<Props> = ({ versions, onClose }) => {
                     className="ps-verhist-pdf-link"
                     onClick={() => {
                       setPdfError(null);
-                      try { openHistoricalPdf(v.pdfBase64!, v.versionNumber); }
+                      try { openHistoricalPdf(v.pdfBase64!, v.versionNumber, v.caseId); }
                       catch { setPdfError(t('versionHistoryModal.pdfOpenError')); }
                     }}
                   >

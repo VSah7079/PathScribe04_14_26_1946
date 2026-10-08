@@ -26,6 +26,8 @@ export type SlideMediaType = typeof SLIDE_MEDIA_TYPES[number];
 export const ADD_ON_ROUTE_QUEUES = [
   'Histology Cutting Queue', 'Special Stains Bench Queue',
   'IHC/Special Histochemistry Queue', 'Reference/Send-Out Lab Queue',
+  // Batch 467: a molecular test run in-house (services/molecularOrders/).
+  'Molecular In-House Queue',
 ] as const;
 export type AddOnRouteQueue = typeof ADD_ON_ROUTE_QUEUES[number];
 

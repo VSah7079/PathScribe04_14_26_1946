@@ -21,7 +21,6 @@ import type {
   AIConnectionTest,
 } from '../IAIProvider';
 import { streamOpenAiStyleResponse, parseOpenAiStyleError } from './openAiStyleStreaming';
-import { isDevMode } from '@/components/Config/AI/aiProviderConfig';
 
 const DEFAULT_MAX_TOKENS = 1024;
 
@@ -35,26 +34,17 @@ export class ChatCompletionsManagedProvider implements IAIProvider {
   readonly modelId:     string;
   readonly displayName: string;
 
-  private managedEndpoint?:       string;
-  private managedDeploymentName?: string;
-  private devApiKey?:             string;
-
-  constructor(modelId: string, managedEndpoint?: string, managedDeploymentName?: string, devApiKey?: string) {
-    this.modelId               = modelId;
-    this.displayName           = `Azure OpenAI · ${modelId}`;
-    this.managedEndpoint       = managedEndpoint;
-    this.managedDeploymentName = managedDeploymentName;
-    this.devApiKey             = devApiKey;
+  // Batch 444: always through the proxy, which holds the endpoint's key
+  // (vite.config.ts in development, the API server in production). The
+  // endpoint and deployment are kept for display; the proxy is configured
+  // with them server-side.
+  constructor(modelId: string, _managedEndpoint?: string, _managedDeploymentName?: string) {
+    this.modelId     = modelId;
+    this.displayName = `Azure OpenAI · ${modelId}`;
   }
 
   private buildRequest(): { url: string; headers: Record<string, string> } {
-    const devMode = isDevMode() && !!this.devApiKey && !!this.managedEndpoint;
-    const url = devMode
-      ? `${this.managedEndpoint}/openai/deployments/${this.managedDeploymentName}/chat/completions?api-version=2024-02-15-preview`
-      : `/api/ai/azure/chat/completions`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (devMode) headers['api-key'] = this.devApiKey!;
-    return { url, headers };
+    return { url: '/api/ai/azure/chat/completions', headers: { 'Content-Type': 'application/json' } };
   }
 
   async generate(request: AIGenerationRequest): Promise<AIGenerationResult> {

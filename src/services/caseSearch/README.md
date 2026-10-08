@@ -84,6 +84,19 @@ Pete chose "all 15" of the new searchable case data.
 
 `createCaseSearchService` takes an optional `auditSearch({ fieldsUsed, total })`, called on every run. `usedCriteria(criteria)` gives the names of the criteria that were filled in, never their values. The mock wires it to `supportAccess/recordSearch`, so a search by ForMedrixAI support is recorded in the support audit of each organisation it can currently reach.
 
+## Batch 436 (PS-101)
+
+`searchHitFlags.ts`: the flag chips on a header-search result. It reads the case's `caseFlags`, both references to flag definitions and inline flags. It keeps administrative and computational flags, skips deleted ones, and shows at most four, in the flag's own colour (slate when it has none). The search bar used to read a `flags` field that cases don't have, so no result ever showed a flag. Test: `searchHitFlags.test.ts`.
+
+## Batch 437 (PS-357)
+
+- `exportRows` checks `search:case-results:export` first (`deps.authorizeExport`). A refusal returns `EXPORT_NOT_PERMITTED` and no rows; before, anyone who could search could export.
+- The export's audit entry is now the shared document-export entry (`printing/documentOutputAudit.ts`).
+
+## Batch 473 — Case-type key migration
+
+`CaseSearchAutopsyAuthority` and `CASE_SEARCH_AUTOPSY_AUTHORITIES` renamed in step with `AutopsyCaseAuthority`: `'medicolegal_forensic'` → `'statutory_judicial'`. No behavior change. See `services/autopsy/README.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -7,6 +7,10 @@ export { mockRoleService          as roleService          } from './roles/mockRo
 export { mockParticipationTypeService as participationTypeService } from './participationTypes/mockParticipationTypeService';
 export { mockPhysicianService     as physicianService     } from './physicians/mockPhysicianService';
 export { mockFlagService          as flagService          } from './flags/mockFlagService';
+// Batch 452 (PS-156): the cyto-histo correlation window settings.
+// Batch 453: the surgical biopsy-to-resection window, configured the same way.
+export { mockBiopsyResectionCorrelationSettingsService as biopsyResectionCorrelationSettingsService, mockFacilityBiopsyResectionCorrelationOverrideService as facilityBiopsyResectionCorrelationOverrideService } from './quality/biopsyResectionCorrelationSettings';
+export { mockCytologyHistologyCorrelationSettingsService as cytologyHistologyCorrelationSettingsService, mockFacilityCytologyHistologyCorrelationOverrideService as facilityCytologyHistologyCorrelationOverrideService } from './cytology/mockCytologyHistologyCorrelationSettingsService';
 export { resolveLisFlagDefinitionId } from './flags/resolveLisFlagDefinition';
 export { mockContainerTypeService as containerTypeService } from './containerTypes/mockContainerTypeService';
 export { mockIntraoperativeService as intraoperativeService } from './intraop/mockIntraoperativeService';
@@ -19,6 +23,7 @@ export { authSession, authConfig, signerConfirmation, signatureGate } from './au
 export { mockSignatureRecordService as signatureRecordService } from './signatures/mockSignatureRecordService';
 // Batch 344: the biometric enrolment and (simulated) WebAuthn check.
 export * as biometricService from './biometric/mockBiometricService';
+export type { BiometricCadence, BiometricPolicy } from './biometric/mockBiometricService';
 export { mockOrSuiteTerminalService as orSuiteTerminalService } from './intraopDashboard/mockOrSuiteTerminalService';
 export { mockOrEventLogService as orEventLogService } from './intraopDashboard/mockOrEventLogService';
 // PS-113, Stage 5. reconciliationService/mockReconciliationService.ts
@@ -91,6 +96,27 @@ export { mockResolutionTypeService as resolutionTypeService } from './deficienci
 export { mockAbnormalTriggerRuleService as abnormalTriggerRuleService } from './abnormalDetection/mockAbnormalTriggerRuleService';
 export { mockAbnormalDetectionSignalService as abnormalDetectionSignalService } from './abnormalDetection/mockAbnormalDetectionSignalService';
 export { mockSpecimenDeficiencyService as specimenDeficiencyService } from './deficiencies/mockSpecimenDeficiencyService';
+// Batch 438 (PS-144–148): CAPA recommendations, confirmed or dismissed by a QA lead.
+export { mockCapaRecommendationService as capaRecommendationService } from './quality/mockCapaRecommendationService';
+export { decisionProblem as capaDecisionProblem, capaOwnerOptions, capaQueueOrder } from './quality/capaRecommendationRules';
+export { isClinicallySignificant, REVISION_REASON_CATEGORIES } from './reasons/revisionReasonRules';
+// Batch 439 (PS-144, PS-145, PS-148): peer review before sign-out, the
+// clinical-pathologic mismatch check, and outside-consult assessment.
+export { mockPeerReviewService as peerReviewService } from './quality/mockPeerReviewService';
+export { mockPeerReviewSettingsService as peerReviewSettingsService } from './quality/mockPeerReviewSettingsService';
+export { peerReviewStatusFor } from './quality/peerReviewStatusLive';
+export type { PeerReviewStatus } from './quality/peerReviewStatus';
+export {
+  peerReviewerOptions, OVERRIDE_REASONS as PEER_REVIEW_OVERRIDE_REASONS, overrideProblem as peerReviewOverrideProblem,
+  readProblem as peerReviewReadProblem, resolutionProblem as peerReviewResolutionProblem, requestProblem as peerReviewRequestProblem,
+  withdrawProblem as peerReviewWithdrawProblem, peerReviewGateOn, caseSignedOut, gateChoice as peerReviewGateChoice, withGateChoice as withPeerReviewGateChoice, performingLabs as peerReviewPerformingLabs, DEFAULT_PEER_REVIEW_GATE_SETTINGS,
+} from './quality/peerReviewRules';
+export { clinicalMismatchService } from './clinical/clinicalMismatchService';
+export { clinicalMismatchProblem, CLINICAL_MISMATCH_DECISIONS } from './clinical/clinicalMismatchDecision';
+export type { ClinicalMismatchDecision } from './clinical/clinicalMismatchDecision';
+export type { ClinicalMismatchSuggestion, ClinicalMismatchKind } from './clinical/detectClinicalPathologicMismatch';
+export { assessmentProblem as outsideConsultAssessmentProblem, OUTSIDE_CONSULT_ASSESSMENTS, reportReleased } from './consultAccess/outsideConsultRules';
+export type { OutsideConsultAssessment } from './consultAccess/outsideConsultRules';
 export { mockSystemConfigService  as systemConfigService  } from './systemConfig/mockSystemConfigService';
 export { mockMacroService         as macroService         } from './macros/mockMacroService';
 export { mockVoiceMacroService    as voiceMacroService    } from './voicemacro/mockVoiceMacroService';
@@ -98,6 +124,11 @@ export { mockFontService          as fontService          } from './fonts/mockFo
 export { mockAIBehaviorService    as aiBehaviorService    } from './aiBehavior/mockAIBehaviorService';
 export { mockPrintSettingsService as printSettingsService } from './printSettings/mockPrintSettingsService';
 export { mockFacilityPrintSettingsService as facilityPrintSettingsService } from './printSettings/mockFacilityPrintSettingsService';
+// PS-282 (Batch 437): print and export audit.
+export { recordDocumentOutput, planReportPrint } from './printing/recordDocumentOutput';
+export { DESTINATION as DOCUMENT_DESTINATION, printPromptComplete } from './printing/documentOutputAudit';
+export type { DocumentOutputEvent, PrintPlan } from './printing/documentOutputAudit';
+export { beginExport, recordExport, type GatedExport } from './printing/exportGate';
 export { mockModelService         as modelService         } from './models/mockModelService';
 export { mockSavedSearchService   as savedSearchService   } from './savedSearches/mockSavedSearchService';
 // Batch 350: server-side case search (filter, sort, count, one page) and CSV export rows.
@@ -114,6 +145,10 @@ export { mockGrossingHardwareProfileService as grossingHardwareProfileService } 
 export type { GrossingHardwareProfile, GrossingHardwareKind, GrossingHardwareBridgeType } from './grossingHardware/IGrossingHardwareProfileService';
 export { mockScanStationService   as scanStationService   } from './scanStations/mockScanStationService';
 export type { ScanStation } from './scanStations/IScanStationService';
+// Batch 444: the Scan Stations screen's decisions and validation codes.
+export { SCAN_STATION_WORKFLOW_STAGES } from './scanStations/IScanStationService';
+export { filterScanStations, activeScanStations, workflowStageKey, type ScanStationStatusFilter } from './scanStations/scanStationList';
+export { validateScanStationDraft, type ScanStationDraftValidationErrors, type ScanStationDraftError } from './scanStations/validateScanStationDraft';
 export type { IEquipmentService, Equipment, EquipmentDraft, EquipmentError, EquipmentKind } from './equipment/IEquipmentService';
 export { EQUIPMENT_KINDS, EQUIPMENT_LINK_INVALID, DECK_RACK_TYPES, type DeckSlot, type DeckRackType } from './equipment/IEquipmentService';
 // Batch 360: each device's maintenance, calibration and service history (append-only).
@@ -223,7 +258,7 @@ export { mockCassetteColorService as cassetteColorService } from './cassetteColo
 // Batch 381: the block/stain editor used it by its mock file path.
 export { mockMolecularTargetService as molecularTargetService } from './stains/mockMolecularTargetService';
 // Batch 403: which reference labs perform a molecular/send-out test.
-export { activeReferenceLabs, normalizeReferenceLabLink } from './stains/referenceLabLink';
+export { activeReferenceLabs, normalizeReferenceLabLink, activePerformingLabs, normalizeInHouseLabs } from './stains/referenceLabLink';
 export { mockMolecularBatchService as molecularBatchService } from './molecular/mockMolecularBatchService';
 // Batch 405: so the plate builder doesn't import the mocks directly.
 export { mockMolecularAssayControlRuleService as molecularAssayControlRuleService } from './molecular/mockMolecularAssayControlRuleService';
@@ -380,6 +415,10 @@ export { mockClinicalHistoryDictionaryService as clinicalHistoryDictionaryServic
 export { mockAccessionOutboundQueueService as accessionOutboundQueueService } from './accessioning/mockAccessionOutboundQueueService';
 export { mockMolecularOrderOutboundQueueService as molecularOrderOutboundQueueService } from './molecularOrders/mockMolecularOrderOutboundQueueService';
 export { queueEntriesNewestFirst, isMolecularOrderPayload } from './molecularOrders/orderQueueView';
+// Batch 467: the in-house molecular order engine (spec "In-House Molecular Order Queue & Plate Binding Engine").
+export { molecularOrderEngine, simulateMolecularRunResults, simulateSendOutResult } from './molecularOrders/molecularOrderEngineLive';
+export { molecularRoutingChoices } from './molecularOrders/molecularRouting';
+export { MOLECULAR_ORDER_STATUS_HUE } from './molecularOrders/molecularOrderTypes';
 export { mockInterfaceEngineService as interfaceEngineService } from './interfaceEngine/mockInterfaceEngineService';
 export { mockEncounterService as encounterService } from './encounters/mockEncounterService';
 export { mockCaseMaskService as caseMaskService } from './caseRegistry/mockCaseMaskService';
@@ -441,8 +480,70 @@ export { mockStaffCytologyWorkloadCapOverrideService as staffCytologyWorkloadCap
 export { claimPoolCase, acceptPoolCase, passPoolCase } from './cases/mockCaseService';
 export { signOutCytologyCase, type CytologySignOutOutcome, type CytologySignOutInput } from './cytology/signOutCytologyCase';
 export { signOutCytologyCaseDeps } from './cytology/signOutCytologyCaseDeps';
+export { saveCaseTeam, caseTeamUpdates, withAssigneeOnTeam, type SaveCaseTeamResult } from './cases/saveCaseTeam';
+export { caseTeamSaveDeps } from './cases/caseTeamSaveDeps';
+export { mockQaTrendPolicyService as qaTrendPolicyService } from './quality/mockQaTrendPolicyService';
+export { qaTrendService } from './quality/qaTrendServiceLive';
+export {
+  DEFAULT_QA_TREND_POLICY, SEVERITIES as QA_TREND_SEVERITIES, effectiveQaTrendPolicy, isOpenTrend, qaTrendDecisionProblem,
+  qaTrendPolicyProblem, qaTrendQueueOrder, qaTrendPendingCount, toggledMajorSeverity, withLabQaTrendPolicy, type QaTrendDecision, type TrendCandidate,
+} from './quality/qaTrendRules';
+export { availableOrganSites, cytologyWorklistView, simulatedHpvResultEvent, type CytologyDomain, type CytologyWorklistCase, type CytologyWorklistTab } from './cytology/cytologyWorklist';
+export { loadCytologyWorklist } from './cytology/cytologyWorklistLive';
+export { loadQcRescreenQueue, loadCytologyReviewTray, takeCytologyReview, type GynSpecimenRef, type QcRescreenRef } from './cytology/cytologyQueuesLive';
 export { CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID } from './quality/mockQaActivityTypeService';
 // Batch 428: the retention policy, saved with config:retention-policy:manage.
 export { loadRetentionPolicy, saveRetentionPolicy, DEFAULT_RETENTION_POLICY, type RetentionPolicy } from './retention/retentionPolicyService';
 // Batch 432: per-subspecialty risk weights for surgical peer review sampling.
 export { mockSurgicalPeerReviewRiskWeightService as surgicalPeerReviewRiskWeightService } from './quality/mockSurgicalPeerReviewRiskWeightService';
+// Batch 444: the System Info AI check asks the proxy; no key in the browser.
+export { checkAiProxyStatus, AI_PROXY_STATUS_ROUTES, type AiProxyStatus } from './aiIntegration/aiProxyStatus';
+// Batch 445: the report page's unsaved-change sections, as ids the dialog translates.
+export { DIRTY_SECTION_IDS, dirtySectionList, type DirtySectionId } from './reportEditing/dirtySections';
+// Batch 446: case pages are addressed by support reference, never by accession.
+export { CASE_ADDRESS_VIEWS, isCaseAddressReference, createCaseAddresses, type CaseView, type CaseAddresses, type CaseIdFromAddress } from './caseAddresses/caseAddresses';
+export { caseAddresses } from './caseAddresses/caseAddressesInstance';
+// Batch 447: the QA feedback button and recipients, a Configuration setting.
+export { mockFeedbackSettingsService as feedbackSettingsService, FEEDBACK_SETTINGS_STORAGE_KEY, type IFeedbackSettingsService } from './feedback/mockFeedbackSettingsService';
+export { qaButtonShown, parseEmailList, feedbackSettingsProblem, QA_BUTTON_MODES, DEFAULT_FEEDBACK_SETTINGS, type FeedbackSettings, type QaButtonMode, type FeedbackSettingsProblem } from './feedback/feedbackSettingsRules';
+export { deploymentInstance, type InstanceRole } from './deployment/deploymentInstance';
+// Batch 448: staff sign-in passwords set from the Staff screen.
+export { mockStaffPasswordService as staffPasswordService, STAFF_PASSWORD_STORAGE_KEY, type IStaffPasswordService, type StaffPasswordStatus, type StaffPasswordCheck, type StaffPasswordError } from './staffPasswords/mockStaffPasswordService';
+export { passwordPolicyProblem, passwordConfirmProblem, staffPasswordState, PASSWORD_MIN_LENGTH, type StaffPasswordState } from './staffPasswords/staffPasswordRules';
+// Batch 456: the sign-in lockout.
+export { signInRefusalNotice, SIGN_IN_LOCK_POLICY, SIGN_IN_LOCK_STORAGE_KEY, type SignInRefusal } from './auth/signInLockout';
+// Batch 454: follow-up tracking (overdue cytology and surgical follow-ups, the lab's dispositions and clinician emails).
+export { loadFollowUpItems, loadFollowUpCaseIdsForUser, sendFollowUpAlertsLive, markFollowUpExpectedLive, loadFollowUpMarkOffer, markFollowUpExpectedAfterSignOutLive, recordFollowUpDispositionLive, reopenFollowUpLive, draftFollowUpClinicianEmailLive, emailOrderingClinicianLive, type LoadedFollowUps } from './followUp/followUpLive';
+export { followUpSettingsService, facilityFollowUpOverrideService, validateFollowUpSettings, followUpDraftOf, followUpRuleFromDraft, followUpDraftDirty, FOLLOW_UP_PLACEHOLDERS_AS_WRITTEN, type FollowUpSettingsDraft, FOLLOW_UP_EMAIL_PLACEHOLDERS, DEFAULT_FOLLOW_UP_SETTINGS, MAX_FOLLOW_UP_WARNING_DAYS, MAX_FOLLOW_UP_EMAIL_SUBJECT, MAX_FOLLOW_UP_EMAIL_BODY, type FollowUpSettingsRule, type FacilityFollowUpOverride, type FollowUpSettingsProblem } from './followUp/followUpSettings';
+export { filterFollowUpItems, countFollowUpItems, followUpCaseView, followUpExportRows, followUpOutcomeAction, type FollowUpFilter } from './followUp/followUpTracking';
+export { canOfferClinicianEmail, clinicianEmailProblem, type FollowUpEmailDraft } from './followUp/followUpClinicianEmail';
+export { dispositionProblem, followUpMarkFailureKey, followUpMarkOffer, MAX_FOLLOW_UP_NOTE, type FollowUpMarkOffer } from './followUp/followUpActions';
+export { FOLLOW_UP_DISPOSITIONS, isOpenFollowUp, needsFollowUpAttention, type FollowUpItem, type FollowUpDisposition, type FollowUpStatus, type FollowUpKind } from './followUp/followUpTypes';
+// Batch 458 (PS-71): versioned case saves and the Edit Conflict dialog.
+export { updateCaseWithRetry, updateCaseWithRetryOrThrow, overwriteAfterConflict, caseConflictRows, adoptSavedVersion, caseVersionOf, CONFLICT_FIELDS, type ConflictRow, type ConflictField, type CaseWriteResult, type OverwriteResult } from './cases/caseWrite';
+export { savePageChange, commitMergeReview, takeUpSavedCase, MergeReviewPendingError, type PageSaveOutcome, type PendingChange, type MergeReview } from './cases/caseWrite';
+export { caseWriteDeps, caseOverwriteDeps } from './cases/caseWriteDeps';
+export { saveDraftParts, mergeDraftParts, DRAFT_LIST_KEYS, type DraftSaveResult, type DraftMerge } from './cases/caseWrite';
+// Batch 460: the billing review panel's changes, shared by the report page, the Cytology Workspace and Microtomy.
+export { recordCaseCharge, recordCaseCredit, recordCaseCodeCorrection, enforceBillingReview, auditBillingSuggestionDeclined, billingSourceLabel, caseBillingChargeDeps, type CaseBillingChargeDeps, type CaseChargeOutcome } from './billing/caseBillingCharges';
+export { codingWithApproved, codingWithRejected, codingWithOverride, codingWithoutCode, codingWithCorrection, groupApprovalsByUnit, specimensWithBaseCodeAdded, specimensWithBaseCodeRemoved, specimensWithBaseCodeCorrected, specimensWithMatrixCode, matrixSlidesWithEvaluatedCores, type BillingApprovalItem, type UnitCoding } from './billing/caseBillingCoding';
+export { enforceAppliedCodeCorrection } from './billing/correctServiceCharge';
+export { isCaseSignedOutForBilling } from './billing/isCaseSignedOutForBilling';
+export { saveCytologyUnitCoding, saveCytologySpecimenBilling } from './cytology/cytologyCaseActions';
+// Batch 460: a slide's level is the one printed on its label (not its position).
+export { slideLevelOf, stainAtLevel, stainIndexAtLevel, isSlideAtLevel, nextSlideLevelNumber } from './material/slideLevels';
+export { materialChargePreview, type MaterialChargePreview, type MaterialChargeRow, type MaterialChargeWarning, type MaterialChargeTarget, type MaterialChargeState, type MaterialChargeLedgerStatus } from './billing/materialChargePreview';
+export { saveUnitCodingOnCase, saveSpecimensOnCase, materialBillingWriteDeps, MaterialBillingNotSaved, type MaterialBillingWriteDeps } from './material/materialBillingWrites';
+// Batch 461: the organ-mapping engine (prostate first).
+export * from './organMapping/organMapTypes';
+export { PROSTATE_PIRADS_SECTORS, PROSTATE_BIOPSY_SITES, PROSTATE_SECTOR_IDS, type ProstateSector, type ProstateBiopsySite } from './organMapping/prostateSectors';
+export { resolveProstateMap, organMapFingerprint, categoryForGradeGroup } from './organMapping/resolveProstateMap';
+export { BUILT_IN_ORGAN_MAP_SCHEME, resolveOrganMapScheme, validateOrganMapScheme, organMapSchemeVars, type PartialScheme, type OrganMapSchemeLayers, type ResolvedOrganMapScheme, type OrganMapSchemeProblem } from './organMapping/organMapScheme';
+export { pathScribeDefaultBinding, resolveOrganMapBinding, validateOrganMapBinding, allowedBindingValues, SECTORS_INPUTS, type OrganMapBinding, type ChoiceBinding, type ProstateSectorsBinding, type ProstateBiopsyBinding, type SectorsInput, type OrganMapBindingProblem } from './organMapping/organMapBindings';
+export { saveOrganMapSchemeLayer, saveOrganMapBinding, schemeLayerOf, browserOrganMapConfigStore, type OrganMapSchemeScope } from './organMapping/organMapConfig';
+export { insertOrganMapFigure, removeOrganMapFigure, organMapFigureState, figureForInstance, organMapFiguresForVersion, isReportLockedForFigures, organMapFigureOutcomeKey, organMapReportFigures, type OrganMapReportFigure, type OrganMapFigure, type OrganMapFigureState } from './organMapping/organMapFigures';
+export { organMapLayout, renderOrganMapSvg, patternMarks, usesPatternFill, patternId, type OrganMapDrawingLabels } from './organMapping/organMapDrawing';
+export { loadOrganMapContext, organMapConfigDeps, organMapFigureDeps, type OrganMapContext } from './organMapping/organMapLive';
+export { svgToPngDataUrl } from './documentRendering/svgToPng';
+export { organMapDrawingLabels, organMapInlineText, organMapPartsText, organMapSectorName, organMapSectorSummary, organMapLegendLabel, type Translate as OrganMapTranslate } from './organMapping/organMapLabels';
+export { partGridKey, partGridRowsOf, partGridRowValues, partGridHasAnswer, partGridDisplay, isPartGridKey, synopticFieldAnswered, clearSynopticFieldAnswers, type PartGridColumn, type PartGridRow } from './templates/partGrid';

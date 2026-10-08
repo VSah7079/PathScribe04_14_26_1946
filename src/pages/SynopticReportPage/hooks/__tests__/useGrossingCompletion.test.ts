@@ -78,6 +78,29 @@ function makeTestCase(overrides: Partial<Case> = {}): Case {
   } as unknown as Case;
 }
 
+// The "reason for updating Gross" capture used to be a blocking
+// window.prompt() — now it's a promise the hook awaits, resolved by
+// ReasonPromptModal via confirmUpdateReason/cancelUpdateReason (see
+// useGrossingCompletion.ts). A re-finalize test drives that modal
+// through this helper: kick off handleGrossComplete, flush a microtask
+// so the hook's awaited promise registers and the modal opens, then
+// resolve it exactly as the rendered modal would.
+async function runGrossCompleteViaReasonPrompt(result: { current: ReturnType<typeof useGrossingCompletion> }, reason: string | null) {
+  let completion!: Promise<void>;
+  await act(async () => {
+    completion = result.current.handleGrossComplete();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    if (reason === null) {
+      result.current.cancelUpdateReason();
+    } else {
+      result.current.confirmUpdateReason(reason);
+    }
+    await completion;
+  });
+}
+
 function baseParams(overrides: Partial<Parameters<typeof useGrossingCompletion>[0]> = {}) {
   return {
     caseData: makeTestCase(),
@@ -106,7 +129,6 @@ beforeEach(async () => {
   enforce.mockResolvedValue({ allowed: true });
   raiseDeficiency.mockResolvedValue({ ok: true });
   fieldReqOverrides.current = {};
-  window.prompt = vi.fn().mockReturnValue('Real correction reason');
   const { generateGrossingFieldSuggestionsFromDictation } = await import('@/services/cases/mockCaseService');
   (generateGrossingFieldSuggestionsFromDictation as ReturnType<typeof vi.fn>).mockResolvedValue({});
 });
@@ -335,17 +357,27 @@ describe('useGrossingCompletion — first completion vs. update (correction) pat
     expect(patch.status).toBe('gross-complete');
   });
 
-  it('on a re-finalize (isUpdate), prompts for a reason via window.prompt, and cancels cleanly if the pathologist provides none', async () => {
-    window.prompt = vi.fn().mockReturnValue(null);
+  it('on a re-finalize (isUpdate), prompts for a reason via the ReasonPromptModal, and cancels cleanly if the pathologist provides none', async () => {
     const showToast = vi.fn();
     const setCaseData = vi.fn();
     const caseData = makeTestCase({
       grossingReports: [{ instanceId: 'GR-1', specimenId: 'SP-1', templateId: 'tmpl-1', templateName: 'T1', status: 'draft', previouslyFinalized: true, answers: { f1: 'x' }, createdAt: '', updatedAt: '' }] as any,
     });
     const { result } = renderHook(() => useGrossingCompletion(baseParams({ caseData, setCaseData, showToast })));
-    await act(async () => { await result.current.handleGrossComplete(); });
 
-    expect(window.prompt).toHaveBeenCalled();
+    let completion!: Promise<void>;
+    await act(async () => {
+      completion = result.current.handleGrossComplete();
+      await Promise.resolve();
+    });
+    expect(result.current.showUpdateReasonPrompt).toBe(true);
+
+    await act(async () => {
+      result.current.cancelUpdateReason();
+      await completion;
+    });
+
+    expect(result.current.showUpdateReasonPrompt).toBe(false);
     expect(setCaseData).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith('Update cancelled — a reason is required', 'warning');
   });
@@ -357,7 +389,7 @@ describe('useGrossingCompletion — first completion vs. update (correction) pat
       diagnostic: { microscopicDescription: 'Real pathologist work already written here.' },
     });
     const { result } = renderHook(() => useGrossingCompletion(baseParams({ caseData, setCaseData })));
-    await act(async () => { await result.current.handleGrossComplete(); });
+    await runGrossCompleteViaReasonPrompt(result, 'Real correction reason');
 
     // Inspect the real, unmerged patch sent to caseRouter.updateCase —
     // NOT setCaseData's argument, which is `{ ...caseData, ...patch }`
@@ -371,12 +403,11 @@ describe('useGrossingCompletion — first completion vs. update (correction) pat
 
   it('logs the real reason with the gross_updated event on a re-finalize', async () => {
     const log = vi.fn();
-    window.prompt = vi.fn().mockReturnValue('Corrected margin measurement');
     const caseData = makeTestCase({
       grossingReports: [{ instanceId: 'GR-1', specimenId: 'SP-1', templateId: 'tmpl-1', templateName: 'T1', status: 'draft', previouslyFinalized: true, answers: { f1: 'x' }, createdAt: '', updatedAt: '' }] as any,
     });
     const { result } = renderHook(() => useGrossingCompletion(baseParams({ caseData, log })));
-    await act(async () => { await result.current.handleGrossComplete(); });
+    await runGrossCompleteViaReasonPrompt(result, 'Corrected margin measurement');
 
     expect(log).toHaveBeenCalledWith('gross_updated', expect.objectContaining({ reason: 'Corrected margin measurement' }));
   });
@@ -410,7 +441,7 @@ describe('useGrossingCompletion — pool routing', () => {
       diagnostic: { microscopicDescription: 'Already written.' },
     });
     const { result } = renderHook(() => useGrossingCompletion(baseParams({ caseData })));
-    await act(async () => { await result.current.handleGrossComplete(); });
+    await runGrossCompleteViaReasonPrompt(result, 'Real correction reason');
 
     expect(routeCase).not.toHaveBeenCalled();
     expect(routeStatCase).not.toHaveBeenCalled();

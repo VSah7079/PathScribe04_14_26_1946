@@ -1,6 +1,6 @@
 // src/utils/formatAuditTimestamp.test.ts
 import { describe, it, expect } from 'vitest';
-import { formatAuditTimestamp } from './formatDate';
+import { formatAuditTimestamp, parseStoredUtc } from './formatDate';
 
 describe('formatAuditTimestamp — real fix: AuditLogPage was displaying raw, unformatted ISO timestamps', () => {
   it('formats a real ISO timestamp as an explicit, unambiguous UTC string', () => {
@@ -21,5 +21,11 @@ describe('formatAuditTimestamp — real fix: AuditLogPage was displaying raw, un
     const b = formatAuditTimestamp('2026-01-15T09:30:00.000Z');
     expect(a).toBe(b);
     expect(a).toContain('UTC');
+  });
+
+  it('Batch 437: the audit log stores UTC without a zone; it is shown as that UTC time, not shifted by the viewer\'s offset', () => {
+    expect(formatAuditTimestamp('2026-10-02 22:06:32')).toBe('2026-10-02 22:06:32.000 UTC');
+    expect(parseStoredUtc('2026-10-02 22:06:32').toISOString()).toBe('2026-10-02T22:06:32.000Z');
+    expect(parseStoredUtc('2026-10-02').toISOString()).toBe('2026-10-02T00:00:00.000Z');
   });
 });

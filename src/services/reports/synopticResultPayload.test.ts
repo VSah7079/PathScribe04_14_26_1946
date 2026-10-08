@@ -77,3 +77,19 @@ describe('synoptic result payload v1.0.0 (Batch 426)', () => {
     expect(buildSynopticResultPayload({ ...base, mode: 'assist', template: null }).header.template).toEqual({ id: 'CAP_COLON_RESECTION', name: null, version: null });
   });
 });
+
+describe('Batch 461: a results grid question in the structured result', () => {
+  it('each answered cell is an observation (part and column named), dropdowns as their labels', () => {
+    const gridTemplate: TemplateLike = { id: 'NB', sections: [{ fields: [{
+      id: 'cores', label: 'Core results', type: 'partGrid',
+      columns: [{ id: 'ca', label: 'Carcinoma', type: 'dropdown', options: [{ id: 'y', label: 'Present' }] }, { id: 'pct', label: 'Core involved', type: 'numeric', unit: '%' }],
+    } as never] }] };
+    const p = buildSynopticResultPayload({ ...base, template: gridTemplate, mode: 'orchestrator',
+      instance: { ...instance, answers: { cores__sp2__ca: 'y', cores__sp1__pct: '40', cores__sp1__ca: 'y' }, aiSuggestions: {} } });
+    expect(p.synoptic_observations.map(o => [o.field_id, o.label, o.value, o.unit])).toEqual([
+      ['cores__sp1__ca', 'Core results / A / Carcinoma', 'Present', null],
+      ['cores__sp1__pct', 'Core results / A / Core involved', '40', '%'],
+      ['cores__sp2__ca', 'Core results / B / Carcinoma', 'Present', null],
+    ]);
+  });
+});

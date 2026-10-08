@@ -161,6 +161,14 @@ export interface Decant {
   /** e.g. "D1" — decant's own label sequence, parallel to a block's. */
   label: string;
   decantType: DecantType;
+  /** Batch 452: the decant this one was split from, when it wasn't taken
+   *  straight from the specimen (e.g. a cell block made from a residual
+   *  fluid decant). Undefined: taken from the specimen. */
+  parentDecantId?: string;
+  /** Batch 452: billing codes applied to or rejected for this decant's
+   *  stains, the same shape a HistologyBlock keeps (block.coding), so the
+   *  billing review panel can code a decant like a block. */
+  coding?: { cpt?: import('./Specimen').AppliedBlockCode[]; rejectedCpt?: import('./Specimen').AppliedBlockCode[] };
   /** Reuses StainOrder from Specimen.ts directly — a decant's slides
    *  need the exact same real lifecycle a block's slides already have,
    *  not a second, competing status enum. */

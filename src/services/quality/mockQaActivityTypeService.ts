@@ -33,6 +33,10 @@ import type { IQaActivityTypeService } from './IQaActivityTypeService';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { standardQaTypeChangeRefusal } from './standardQaTypeRules';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { PRE_SIGN_OUT_PEER_REVIEW_ACTIVITY_TYPE_ID } from './peerReviewRules';
+import { CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID } from './capaRecommendationRules';
+import { OUTSIDE_CONSULT_CORRELATION_ACTIVITY_TYPE_ID } from '../consultAccess/outsideConsultRules';
 
 const STORAGE_KEY = 'qa_activity_types';
 
@@ -283,9 +287,84 @@ const SEED_TYPES: QaActivityType[] = [
     createdAt: '2026-09-19T00:00:00.000Z',
     createdBy: 'system-seed',
   },
+  // Batch 439 (PS-144): independent peer review before sign-out. Pete (Oct 2):
+  // a single prospective discordance is consultation working as designed, so
+  // severity alone recommends nothing (no rule). A disagreement left
+  // unresolved recommends a CAPA (capaRecommendationRules); consensus
+  // reached never does. Written by services/quality/peerReviewService.ts.
+  {
+    id: PRE_SIGN_OUT_PEER_REVIEW_ACTIVITY_TYPE_ID,
+    name: 'Pre-Sign-Out Peer Review',
+    description: 'A second, independent pathologist reviews the case before sign-out, by default for a first-time malignancy (judged from the patient\'s prior cases). Agreement, disagreement resolved by consensus, or disagreement left unresolved. Only an unresolved disagreement recommends a CAPA, which the QA lead confirms or dismisses.',
+    tabScope: 'standard',
+    jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
+    fields: [
+      { id: 'primaryDiagnosis', label: 'Primary Pathologist\'s Diagnosis', type: 'text', required: false, options: [] },
+      { id: 'reviewerDiagnosis', label: 'Reviewer\'s Independent Diagnosis', type: 'text', required: true, options: [] },
+      { id: 'consensusDiagnosis', label: 'Consensus Diagnosis', type: 'text', required: false, options: [] },
+      { id: 'trigger', label: 'Trigger', type: 'dropdown', required: true, options: [
+        { id: 'first-time-malignancy', label: 'First-Time Malignancy' },
+        { id: 'requested', label: 'Requested by the Pathologist' },
+      ] },
+    ],
+    teachingOnboardingEnabled: false,
+    active: true,
+    createdAt: '2026-10-02T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
+  // Batch 439 (PS-145): the pathologist's decision on a clinical-pathologic
+  // mismatch suggestion. A mismatch they resolve (the clinician corrected the
+  // history, say) recommends nothing; one left unresolved recommends a CAPA.
+  {
+    id: CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID,
+    name: 'Clinical-Pathologic Correlation',
+    description: 'The pathologist\'s decision on a suggested mismatch between the order\'s clinical indication or history and the microscopic findings. Not a mismatch, a mismatch resolved, or a mismatch left unresolved; only the last recommends a CAPA.',
+    tabScope: 'standard',
+    jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
+    fields: [
+      { id: 'clinicalIndication', label: 'Clinical Indication', type: 'text', required: false, options: [] },
+      { id: 'mismatchKind', label: 'Kind of Mismatch', type: 'dropdown', required: false, options: [
+        { id: 'unexpected-malignancy', label: 'Unexpected Malignancy' },
+        { id: 'expected-malignancy-absent', label: 'Expected Malignancy Not Found' },
+        { id: 'site-or-organ', label: 'Site or Organ Does Not Match' },
+        { id: 'other', label: 'Other' },
+      ] },
+      { id: 'suggestionSource', label: 'Suggested By', type: 'dropdown', required: false, options: [
+        { id: 'ai', label: 'AI Evaluation' },
+        { id: 'rule', label: 'Rule-Based Check' },
+        { id: 'pathologist', label: 'The Pathologist' },
+      ] },
+    ],
+    teachingOnboardingEnabled: false,
+    active: true,
+    createdAt: '2026-10-02T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
+  // Batch 439 (PS-148): how an outside consultant's opinion compares with the
+  // report. A major discordance on a report already released recommends a
+  // CAPA (postSignOutOnly); before release it is consultation working.
+  {
+    id: OUTSIDE_CONSULT_CORRELATION_ACTIVITY_TYPE_ID,
+    name: 'Outside Consult Correlation',
+    description: 'The pathologist\'s assessment of an outside consultant\'s opinion against the case diagnosis: agrees, minor difference, or major discordance. A major discordance on a report already released recommends a CAPA, which the QA lead confirms or dismisses.',
+    tabScope: 'standard',
+    jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
+    fields: [
+      { id: 'consultant', label: 'Consultant', type: 'text', required: true, options: [] },
+      { id: 'consultantOpinion', label: 'Consultant\'s Opinion', type: 'longtext', required: true, options: [] },
+      { id: 'caseDiagnosis', label: 'Case Diagnosis', type: 'text', required: false, options: [] },
+    ],
+    teachingOnboardingEnabled: false,
+    active: true,
+    capaTriggerRule: { triggerSeverities: ['high'], deficiencyTypeId: 'def-outside-consult-discordance', postSignOutOnly: true },
+    createdAt: '2026-10-02T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
 ];
 
-const load    = (): QaActivityType[] => storageGet<QaActivityType[]>(STORAGE_KEY, SEED_TYPES);
+// Batch 439: standard types added after a browser stored its list still
+// appear (types are deactivated, never deleted, so a missing id is new).
+const load    = (): QaActivityType[] => withMissingSeedRecords(storageGet<QaActivityType[] | null>(STORAGE_KEY, null), SEED_TYPES).records;
 const persist = (data: QaActivityType[]) => storageSet(STORAGE_KEY, data);
 
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });

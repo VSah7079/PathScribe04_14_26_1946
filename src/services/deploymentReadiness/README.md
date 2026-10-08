@@ -127,5 +127,21 @@ Off the baseline: `RetentionSection.tsx` (now a service), `DepartmentsSection.ts
 
 The browser-storage baseline went from 24 files to 6. What's left is the workstation's own settings (scan station, OR terminal, display profile, companion window, foot pedal) and the demo-reset key audit. Moved: per-person settings, lab-wide settings, template review work, AI drafts (removed), access badges (records), and session flags and the preview window position (`utils/uiPreferences.ts`).
 
+## Batch 444
+
+`components/Config/System/ScanStationsSection.tsx` left the mock-import baseline (it uses `@/services` now).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+Three Configuration sections left the mock-import baseline (99 left).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`pages/Synoptic/useSynopticFlags.ts` now uses `@/services` and is off the mock-import baseline (98 left).
+
+## Batch 465b
+
+`hooks/useGlobalStationSwitch.ts` is off the baseline: it now reads the scan stations through `@/services`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

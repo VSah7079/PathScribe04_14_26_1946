@@ -320,6 +320,32 @@ patient data, not stuck showing "Restricted Pooled Case."
 - The "access requested" badges (pool, pediatric, Orchestration) come from the person's own pending access requests; each request is saved as a record.
 - The worklist sort order is the person's own setting.
 
+## Batch 440
+
+`WorklistTable` takes an optional `interceptOpen(caseId) => boolean`. A filter can open its cases its own way; the Worklist's Cytology Review tile uses it to take a case before opening it in the Cytology Workspace. It runs after the pediatric and Outreach access checks and before the pool claim.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`WorklistAbnormalBadge.test.tsx`: the abnormal badge in row and card views, its colour and that it doesn't pulse (PS-133), and the synthetic codes in its tooltip (PS-130).
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`PoolClaimModal`: if someone else accepted the case first, the modal says so instead of failing silently.
+
+## Batch 477 — Autopsy worklist badges (PS-261 follow-up, Module 5)
+
+Pete's own scoping call: given the Autopsy branch tab + grouping (`autopsyGrouping.ts`) already here since September — his own "there are so few, can we just group the records?" — a "dedicated autopsy worklist" means real autopsy state on the rows already shown there, not a second screen.
+
+New `AutopsyWorklistBadges.tsx`, shown in both the table row's Status cell and the card layout's body: case authority (reuses `autopsyIntake.caseAuthority.*`, the Search page's own label keys), an active ancillary hold (`searchPage.holdType.autopsyAncillary`), PAD/FAD signed (`searchPage.autopsyReport.*`, not mutually exclusive — a case can show both), and a tooltip-only "SLA" chip (domain abbreviation, same treatment as "RES" on the Staff chip) carrying the jurisdiction's real, static TAT/SLA target. Decision logic lives in `services/autopsy/resolveAutopsyWorklistBadges.ts`, same split `resolveWorklistDpBadges.ts` already established. Renders nothing for a non-autopsy row.
+
+**Disclosed, not fixed:** no real elapsed-time/deadline calculation exists yet (`resolveAutopsyTatSlaMatrix.ts`'s own header already flags this as "a later phase"), so the SLA chip shows the jurisdiction's static target only, never a computed on-track/overdue verdict — fabricating one here would be dishonest. The SLA tooltip text itself reuses `formatAutopsyTatSlaSummary.ts` verbatim, including that function's own pre-existing, disclosed hardcoded-English gap (already shown the same way on the report page) — not a new gap, not fixed here either.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

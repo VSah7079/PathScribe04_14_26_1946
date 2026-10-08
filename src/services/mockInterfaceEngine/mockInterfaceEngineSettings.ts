@@ -36,6 +36,13 @@ export interface MockInterfaceEngineSettings {
    *  rejected this worklist dispatch — HTTP {status}" message with a
    *  real, specific code, not just a generic failure. */
   failureStatus: number;
+  /** Batch 434: after accepting a WSI_SCAN_MANIFEST, answer for the slide
+   *  scanner too (each slide scanning, then scanned and passing QC), so the
+   *  Slide scanning page can be shown end to end. On unless switched off. */
+  simulateWsiScanner?: boolean;
+  /** Batch 467b: after accepting a molecular worklist, answer for the instrument with this call for every patient
+   *  sample (controls as expected), echoing each well's order id. 'off': no results come back. */
+  molecularInstrumentCall?: 'POSITIVE' | 'NEGATIVE' | 'off';
 }
 
 const STORE_KEY = 'mock_interface_engine_settings';
@@ -44,10 +51,13 @@ const DEFAULT_SETTINGS: MockInterfaceEngineSettings = {
   enabled: false,
   mode: 'always_succeed',
   failureStatus: 500,
+  simulateWsiScanner: true,
+  molecularInstrumentCall: 'off', // nothing fills a report unless someone chooses a call
 };
 
 export function getMockInterfaceEngineSettings(): MockInterfaceEngineSettings {
-  return storageGet(STORE_KEY, DEFAULT_SETTINGS);
+  // Batch 434: settings saved before a field existed get its default.
+  return { ...DEFAULT_SETTINGS, ...storageGet<Partial<MockInterfaceEngineSettings>>(STORE_KEY, DEFAULT_SETTINGS) };
 }
 
 export function setMockInterfaceEngineSettings(settings: MockInterfaceEngineSettings): void {

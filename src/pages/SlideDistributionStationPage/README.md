@@ -52,6 +52,17 @@ The page follows the organisation's Field Requirements (page "slideDistribution"
 - The pathologist/pool search filter moved to `utils/slideDistributionOperations.ts` (`filterRoutingDirectory`).
 - Tests: `components/slideDistributionRequirements.test.tsx`.
 
+## Batch 434
+
+- **Digital destination:** the scanner is picked from the Equipment register's active slide scanners (it was free text). The hook loads them (`scanners`), and the panel shows a select. The test is updated.
+- **New slide status `Scanned`:** set when the slide's scan batch is unloaded after a good scan.
+- **Back in the queue:** a slide that didn't scan, failed, or failed image QC returns to `In Scanning Queue`, with an `unloaded_from_scanner` chain-of-custody line.
+- **Batch link:** while a slide is in a scan batch, `StainOrder.wsiScanBatchId` links them.
+
+## Batch 460
+
+`useSlideDistributionStation.ts` finds a scanned slide by its printed level (`services/material/slideLevels.ts`), not its position, so a slide Microtomy reordered is queued correctly.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

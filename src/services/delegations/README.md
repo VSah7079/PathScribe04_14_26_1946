@@ -36,6 +36,14 @@ The informal-review banner and `findPendingInformalReview` were deleted. The ban
 
 `delegate()` checks `case:delegation:create` first and returns `notPermitted` without changing anything. The capability is seeded to every role with case access (Pete: keep today's users).
 
+## Batch 441
+
+`delegate()` refuses a recipient who is a cytotechnologist (`recipientIsCytotechnologist`). Every delegation to a person puts them in a pathologist slot (primary, second opinion, consultant, or the synoptic's drafter). The Delegate dialog already listed only Pathologists and Residents; now the service checks too.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`delegationStore.ts` adds two pending second opinions between Sarah Johnson and Pete Nimmo, one each way (S26-4603, S26-4604).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

@@ -36,7 +36,7 @@ import { printSettingsService, facilityPrintSettingsService, printerProfileServi
 import type { PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { FacilityPrintSettings } from '@/services/printSettings/IFacilityPrintSettingsService';
 import { resolveEffectivePrintSettings } from '@/services/printSettings/IFacilityPrintSettingsService';
-import { LABEL_SIZE_PRESETS } from '@/types/labels/LabelSizePreset';
+import { containerLabelSizePresets, requisitionLabelSizePresets, isPrintSettingsReadOnly, savePrintSettingsChanges } from '@/services/printSettings/printSettingsForm';
 import type { LabelBarcodeSymbology } from '@/types/labels/LabelSizePreset';
 import { CONTAINER_TYPES } from '@/services/hardwareContainers/IHardwareContainerRegistryService';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
@@ -90,18 +90,16 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
 
   // Real, deliberate branch — see this file's own header for the full
   // "why" behind read-only-when-inheriting.
-  const readOnly = !!selectedFacilityId && !hasOverride;
+  // PS-233 (Batch 451): the read-only rule and where a change is saved live in
+  // services/printSettings/printSettingsForm.ts.
+  const readOnly = isPrintSettingsReadOnly(selectedFacilityId, facilityOverride);
 
   const update = async (changes: Partial<PrintSettingsConfig>) => {
     if (!effective || readOnly) return;
     setSaving(true);
-    if (selectedFacilityId) {
-      const res = await facilityPrintSettingsService.update(selectedFacilityId, changes);
-      if (res.ok) setFacilityOverride(res.data);
-    } else {
-      const res = await printSettingsService.update(changes);
-      if (res.ok) setGlobalConfig(res.data);
-    }
+    const res = await savePrintSettingsChanges(changes, selectedFacilityId, { printSettingsService, facilityPrintSettingsService });
+    if (res.saved === 'facility') setFacilityOverride(res.override);
+    else if (res.saved === 'global') setGlobalConfig(res.config);
     setSaving(false);
   };
 
@@ -225,6 +223,27 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         </div>
       </div>
 
+      {/* ── PS-282 (Batch 437): reason for a report reprint ── */}
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-row">
+          <div>
+            <div className="ps-conf-card-title">
+              {t('printSettingsSection.reprintReason.title')}
+            </div>
+            <div className="ps-conf-card-description--tight">
+              {t('printSettingsSection.reprintReason.description')}
+            </div>
+          </div>
+          <label className="ps-conf-toggle-label-row">
+            <input type="checkbox" checked={effective.requireReprintReason === true}
+              onChange={e => update({ requireReprintReason: e.target.checked })}
+              disabled={readOnly}
+              className="ps-conf-radio-input" />
+            <span className="ps-conf-option-text">{t('printSettingsSection.enabledLabel')}</span>
+          </label>
+        </div>
+      </div>
+
       {/* ── Container Label Size ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">
@@ -244,7 +263,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
           disabled={readOnly}
           className="ps-input-dark ps-conf-select-wide"
         >
-          {LABEL_SIZE_PRESETS.filter(p => p.id !== 'requisition_full_page_letter' && p.id !== 'requisition_full_page_a4').map(preset => (
+          {containerLabelSizePresets().map(preset => (
             <option key={preset.id} value={preset.id}>{preset.name}</option>
           ))}
         </select>
@@ -264,7 +283,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
           disabled={readOnly}
           className="ps-input-dark ps-conf-select-wide"
         >
-          {LABEL_SIZE_PRESETS.map(preset => (
+          {requisitionLabelSizePresets().map(preset => (
             <option key={preset.id} value={preset.id}>{preset.name}</option>
           ))}
         </select>

@@ -51,6 +51,9 @@ export interface MolecularWellResult {
   well_position: string;
   specimen_uuid: string | null;
   accession_number?: string;
+  /** Batch 467b: the PathScribe order id the worklist gave this well, when the instrument (or interface engine)
+   *  echoes it back. A result naming another order is never applied to this one. */
+  order_id?: string;
   raw_data: MolecularRawResultData;
   interpretation: MolecularInterpretation;
   flag: MolecularResultFlag;

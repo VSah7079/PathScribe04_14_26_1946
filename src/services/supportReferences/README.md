@@ -46,5 +46,19 @@ A support analyst must never need a patient's case number. Instead they quote a 
 
 `/batch-management/equipment-log` added to the known routes.
 
+## Batch 434
+
+`SUPPORT_ROUTE_PATTERNS` gains `/batch-management/wsi-scan` (Slide scanning).
+
+## Batch 446
+
+- `recordIdFor(ref, kind)`: the record a page address names. It takes the exact form only and isn't audited, because opening the record is checked and audited by its own service.
+- Case pages are now addressed by reference (`services/caseAddresses/`).
+- A support ticket from a case page carries the reference already in the address (`enhancementRequestService.captureMetadata`).
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-349)
+
+`supportTicketRules.ts`: whether to warn before sending a support ticket and the offer to replace case numbers, moved out of `EnhancementRequestModal.tsx` and tested.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

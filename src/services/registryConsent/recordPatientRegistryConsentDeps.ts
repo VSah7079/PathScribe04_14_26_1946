@@ -10,7 +10,8 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 export const recordPatientRegistryConsentDeps: RecordRegistryConsentDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   getCase: caseId => caseRouter.getCase(caseId) as any,
-  updateCase: (caseId, patch) => caseRouter.updateCase(caseId, patch as any),
+  // PS-71 (Batch 458): forwards the version the service built the save from.
+  updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   setInMpi: (patientId, consent) => mockPatientIndexService.setRegistryConsent(patientId, consent),
   logAudit: event => mockAuditService.logEvent(event),
   now: () => new Date().toISOString(),

@@ -1,6 +1,6 @@
 {
   "id": "breast_dcis_resection",
-  "name": "Generic Template \u2014 Breast Dcis Resection",
+  "name": "Generic Template — Breast Dcis Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "BREAST",
@@ -619,6 +619,202 @@
           "icd": "",
           "options": [],
           "note": ""
+        }
+      ]
+    },
+    {
+      "id": "psmap_breast_map",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_breast_side",
+          "label": "Specimen side (for the map)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_side_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_side_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "Which breast: sets which clock positions are inner and outer, and where medial and lateral lie."
+        },
+        {
+          "id": "psmap_breast_foci",
+          "label": "Tumour foci",
+          "type": "partGrid",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "One row per focus (invasive carcinoma, DCIS or calcifications), at its clock position as viewed facing the patient, and its distance from the nipple. Drives the breast map.",
+          "rows": {
+            "kind": "numbered",
+            "count": 6,
+            "label": "Focus"
+          },
+          "columns": [
+            {
+              "id": "type",
+              "label": "Type",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_ftype_invasive",
+                  "label": "Invasive carcinoma"
+                },
+                {
+                  "id": "psmap_ftype_dcis",
+                  "label": "DCIS"
+                },
+                {
+                  "id": "psmap_ftype_calcifications",
+                  "label": "Calcifications"
+                }
+              ]
+            },
+            {
+              "id": "clock",
+              "label": "Clock position",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_clock_1",
+                  "label": "1 o'clock"
+                },
+                {
+                  "id": "psmap_clock_2",
+                  "label": "2 o'clock"
+                },
+                {
+                  "id": "psmap_clock_3",
+                  "label": "3 o'clock"
+                },
+                {
+                  "id": "psmap_clock_4",
+                  "label": "4 o'clock"
+                },
+                {
+                  "id": "psmap_clock_5",
+                  "label": "5 o'clock"
+                },
+                {
+                  "id": "psmap_clock_6",
+                  "label": "6 o'clock"
+                },
+                {
+                  "id": "psmap_clock_7",
+                  "label": "7 o'clock"
+                },
+                {
+                  "id": "psmap_clock_8",
+                  "label": "8 o'clock"
+                },
+                {
+                  "id": "psmap_clock_9",
+                  "label": "9 o'clock"
+                },
+                {
+                  "id": "psmap_clock_10",
+                  "label": "10 o'clock"
+                },
+                {
+                  "id": "psmap_clock_11",
+                  "label": "11 o'clock"
+                },
+                {
+                  "id": "psmap_clock_12",
+                  "label": "12 o'clock"
+                },
+                {
+                  "id": "psmap_clock_central",
+                  "label": "Central / subareolar"
+                }
+              ]
+            },
+            {
+              "id": "distance",
+              "label": "Distance from nipple",
+              "type": "numeric",
+              "unit": "cm"
+            },
+            {
+              "id": "size",
+              "label": "Size",
+              "type": "numeric",
+              "unit": "mm"
+            }
+          ]
+        },
+        {
+          "id": "psmap_breast_margins",
+          "label": "Margin distances",
+          "type": "partGrid",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "Distance (mm) from each oriented margin to invasive carcinoma and to DCIS; 0 = at the inked margin. Leave blank when not applicable. Drives the margin diagram (close is below the site's threshold, 2 mm unless set otherwise).",
+          "rows": {
+            "kind": "fixed",
+            "heading": "Margin",
+            "rows": [
+              {
+                "id": "superior",
+                "label": "Superior"
+              },
+              {
+                "id": "inferior",
+                "label": "Inferior"
+              },
+              {
+                "id": "medial",
+                "label": "Medial"
+              },
+              {
+                "id": "lateral",
+                "label": "Lateral"
+              },
+              {
+                "id": "anterior",
+                "label": "Anterior (superficial)"
+              },
+              {
+                "id": "posterior",
+                "label": "Posterior (deep)"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "id": "invasive",
+              "label": "Invasive carcinoma",
+              "type": "numeric",
+              "unit": "mm"
+            },
+            {
+              "id": "dcis",
+              "label": "DCIS",
+              "type": "numeric",
+              "unit": "mm"
+            }
+          ]
         }
       ]
     },

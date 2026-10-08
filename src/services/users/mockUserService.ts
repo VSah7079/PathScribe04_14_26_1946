@@ -1,6 +1,7 @@
 import { IUserService, StaffUser } from './IUserService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { withMissingSeedRecords } from '../mockSeedMerge';
 
 // ─── Seed data (Updated with standardized Voice Profiles) ─────────────────────
 // organisationId added June 2026 — see IUserService.ts's own doc comment
@@ -13,7 +14,7 @@ import { storageGet, storageSet } from '../mockStorage';
 // lock any of them out of the case data they could already see.
 const SEED_USERS: StaffUser[] = [
   { id: '1',  firstName: 'Sarah',   middleName: 'Li',        lastName: 'Chen',    credentials: 'MD, FCAP',    email: 'schen@hospital.org',    roles: ['Pathologist'], npi: '1234567890', license: 'MD-12345', phone: '555-0101',  status: 'Active',   voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
-  { id: '2',  firstName: 'James',   middleName: 'Emeka',     lastName: 'Okafor',  credentials: 'MD',  email: 'jokafor@hospital.org',  roles: ['Resident'],    npi: '1234567891', license: 'MD-12346', phone: '555-0102',  status: 'Active',   voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
+  { id: '2',  firstName: 'James',   middleName: 'Emeka',     lastName: 'Okafor',  credentials: 'MD',  email: 'james.okafor@demo.pathscribe.ai',  roles: ['Resident'],    npi: '1234567891', license: 'MD-12346', phone: '555-0102',  status: 'Active',   voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: '3',  firstName: 'Pete',    middleName: '',           lastName: 'Nimmo',   credentials: '',   email: 'pnimmo@hospital.org',   roles: ['Admin'],       npi: '',           license: '',         phone: '555-0103',       status: 'Active',   voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: '4',  firstName: 'Maria',   middleName: 'Elena',     lastName: 'Santos',  credentials: 'MD, FCAP',  email: 'msantos@hospital.org',  roles: ['Pathologist'], npi: '1234567892', license: 'MD-12347', phone: '555-0104',   status: 'Inactive', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: '5',  firstName: 'Kevin',   middleName: 'James',     lastName: 'Park',    credentials: 'MD',    email: 'kpark@hospital.org',    roles: ['Resident'],    npi: '1234567893', license: 'MD-12348', phone: '555-0105',  status: 'Active',   voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
@@ -46,7 +47,7 @@ const SEED_USERS: StaffUser[] = [
   // just clinical case access like Paul/Oliver above.
   { id: 'PATH-UK-003', firstName: 'Bronwyn', lastName: 'Prior',        credentials: 'MBChB, FRCPath', canViewOrchestration: true,      email: 'bronwyn.prior@mft.nhs.uk',    roles: ['Pathologist', 'Admin'], npi: '', license: 'GMC-12364', phone: '+44-161-555-2005', status: 'Active', voiceProfile: 'EN-GB', organisationId: 'ORG-MFT' },
   { id: 'PATH-RB-001', firstName: 'Rossana', lastName: 'Babakhani',    credentials: '', email: 'rossana.babakhani@pathscribe.ai',
-  roles: ['Pathologist', 'Admin'], npi: '', license: '',  phone: '', status: 'Active',  voiceProfile: 'EN-US', canViewPediatric: true, organisationId: 'ORG-DVMC' },
+  roles: ['Pathologist', 'Admin'], npi: '', license: '',  phone: '', status: 'Active',  voiceProfile: 'EN-US', canViewPediatric: true, canViewOrchestration: true, organisationId: 'ORG-DVMC' },
 
   // ── PA (Pathologists' Assistant) test user — Stage 0 Requirements §4.4
   // (S0-CF-16). No PA-role SEED_USERS entry existed before this — the 'pa'
@@ -58,28 +59,49 @@ const SEED_USERS: StaffUser[] = [
   // Batch 371: Dr. Sarah Johnson's demo sign-in (PATH-SJ-001) had no staff
   // record. It worked only because her account was superadmin; as a
   // pathologist she needs an organisation to open any case.
-  { id: 'PATH-SJ-001', firstName: 'Sarah', lastName: 'Johnson', credentials: 'MD, FCAP', canViewPediatric: false, email: 'sarah.johnson@demo.pathscribe.ai', roles: ['Pathologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
+  { id: 'PATH-SJ-001', firstName: 'Sarah', lastName: 'Johnson', credentials: 'MD, FCAP', canViewPediatric: false, canViewOrchestration: true, email: 'sarah.johnson@demo.pathscribe.ai', roles: ['Pathologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   // Batch 374: bench staff (one per new built-in bench role) and a staff
   // record for Michelle Nimmo's pathologist-admin sign-in, which had none and
   // so held no role at all.
   { id: 'ACC-001', firstName: 'Maria', lastName: 'Lopez', credentials: '', email: 'maria.lopez@demo.pathscribe.ai', roles: ['Accessioner'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: 'HT-001', firstName: 'Kevin', lastName: 'Brooks', credentials: 'HT(ASCP)', email: 'kevin.brooks@demo.pathscribe.ai', roles: ['Histotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
-  { id: 'CT-001', firstName: 'Priya', lastName: 'Desai', credentials: 'CT(ASCP)', email: 'priya.desai@demo.pathscribe.ai', roles: ['Cytotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
+  { id: 'CT-001', firstName: 'Priya', lastName: 'Desai', credentials: 'CT(ASCP)', canViewOrchestration: true, email: 'priya.desai@demo.pathscribe.ai', roles: ['Cytotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: 'MT-001', firstName: 'Daniel', lastName: 'Kim', credentials: 'MB(ASCP)', email: 'daniel.kim@demo.pathscribe.ai', roles: ['Molecular Technologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
-  { id: 'PATH-MN-001', firstName: 'Michelle', lastName: 'Nimmo', credentials: '', email: 'michelle.nimmo@ai.com', roles: ['Pathologist', 'Admin'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
+  { id: 'PATH-MN-001', firstName: 'Michelle', lastName: 'Nimmo', credentials: '', canViewOrchestration: true, email: 'michelle.nimmo@ai.com', roles: ['Pathologist', 'Admin'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: 'PA-001', firstName: 'Connor', lastName: 'Whitlock', credentials: "PA(ASCP)", canViewOrchestration: true, canViewPediatric: false, email: 'connor.whitlock@pathscribe.ai', roles: ["Pathologists' Assistant (PA)"], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
 ];
 
 // Increment USERS_VERSION whenever SEED_USERS is changed.
-const USERS_VERSION = '11'; // bumped: bench staff (ACC-001, HT-001, CT-001, MT-001) and Michelle Nimmo (PATH-MN-001), Batch 374. (10: Dr. Sarah Johnson, Batch 371.)
+const USERS_VERSION = '12'; // bumped: Batch 455 demo baseline (orchestrator access for CT-001, Sarah Johnson, Michelle Nimmo and Rossana Babakhani; James Okafor's demo email). (11: bumped: bench staff (ACC-001, HT-001, CT-001, MT-001) and Michelle Nimmo (PATH-MN-001), Batch 374. (10: Dr. Sarah Johnson, Batch 371.)
 const USERS_VERSION_KEY = 'pathscribe_users_version';
 if (localStorage.getItem(USERS_VERSION_KEY) !== USERS_VERSION) {
   localStorage.removeItem('pathscribe_mock_pathscribe_users');
   localStorage.setItem(USERS_VERSION_KEY, USERS_VERSION);
 }
 
+// Batch 443 (Pete): a demo Lab Director, for the Lab Director's screens
+// (Discordance Patterns, PS-147; the trend policy). Added to a stored staff
+// list that lacks her, without the version bump that would wipe staff edits
+// (same pattern as the Batch 403 reference labs). Batch 448: give her a
+// sign-in from Staff → edit → Sign-in password; her Lab Director role
+// gives her app access, as single sign-on would.
+export const LATER_SEED_USERS: StaffUser[] = [
+  { id: 'LD-001', firstName: 'Rachel', lastName: 'Okafor', credentials: 'MD, FCAP', canViewPediatric: true, canViewOrchestration: true, email: 'rachel.okafor@demo.pathscribe.ai', roles: ['Lab Director'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  // Batch 455 (Pete: two-person workflows need a second person with the right
+  // role): a fellow, a second cytotechnologist (QC rescreens Priya Desai's
+  // primary screens), a template author and approver, and a QA reviewer. Each
+  // has a built-in demo sign-in (services/auth/demo/demoAccounts.ts).
+  { id: 'FEL-001', firstName: 'Lucas', lastName: 'Moreau', credentials: 'MD', canViewPediatric: false, canViewOrchestration: true, email: 'lucas.moreau@demo.pathscribe.ai', roles: ['Fellow'], npi: '1234567899', license: 'MD-12360', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  { id: 'CT-002', firstName: 'Nadia', lastName: 'Rahman', credentials: 'SCT(ASCP)', canViewOrchestration: true, email: 'nadia.rahman@demo.pathscribe.ai', roles: ['Cytotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  { id: 'TA-001', firstName: 'Hannah', lastName: 'Price', credentials: '', email: 'hannah.price@demo.pathscribe.ai', roles: ['Template Author'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  { id: 'TAP-001', firstName: 'Samuel', lastName: 'Osei', credentials: 'MD, FCAP', email: 'samuel.osei@demo.pathscribe.ai', roles: ['Template Approver'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  { id: 'QA-001', firstName: 'Grace', lastName: 'Liu', credentials: 'MT(ASCP)', email: 'grace.liu@demo.pathscribe.ai', roles: ['QA Reviewer'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+];
+
 const load = () => {
-  const data = storageGet<StaffUser[]>('pathscribe_users', SEED_USERS);
+  const stored = storageGet<StaffUser[] | null>('pathscribe_users', null);
+  const { records: data, added } = withMissingSeedRecords(stored ?? [...SEED_USERS, ...LATER_SEED_USERS], LATER_SEED_USERS);
+  if (stored && added > 0) storageSet('pathscribe_users', data);
   // Migration: Ensure all loaded users have a default voice profile if missing
   return data.map(u => ({ ...u, voiceProfile: u.voiceProfile || 'EN-US' }));
 };

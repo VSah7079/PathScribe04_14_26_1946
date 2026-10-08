@@ -312,6 +312,9 @@ export interface SynopticReportInstance {
   answers: Record<string, string | string[]>;
   /** AI-suggested values per field — keyed by fieldId */
   aiSuggestions?: Record<string, AiFieldSuggestion>;
+  /** Batch 467: the questions an in-house molecular result answered (or suggested an answer for), by question id
+   *  (services/molecularOrders/molecularOrderEngine.ts). */
+  resultSources?: Record<string, { orderId: string; assayName: string; call: string; at: string }>;
   /** Draft | finalized */
   status: 'draft' | 'finalized' | 'pending-countersign';
   /** Per-report comment (html) */
@@ -714,6 +717,8 @@ export interface Case {
   // ── Multi-report synoptic system ──────────────────────────
   // Each entry is one template instance attached to one specimen.
   synopticReports?: SynopticReportInstance[];
+  /** Batch 461: organ-map images the pathologist inserted into the report (services/organMapping/organMapFigures.ts). */
+  organMapFigures?: import('@/services/organMapping/organMapFigures').OrganMapFigure[];
 
   // ── Grossing report system (Orchestration Stage 0/1) ──────
   // Each entry is one Grossing Template instance attached to one specimen,

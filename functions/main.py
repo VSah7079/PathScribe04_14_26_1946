@@ -52,6 +52,11 @@
 #                       # per synoptic workup). With it, the body is that workup's identity block,
 #                       # its synopticAnswers table and, for a correction, what changed; no
 #                       # bodyAssembly is needed (an Assist case has no report layout).
+#     "reportFigures": [ {"instanceId","mapType","pngBase64","svg","width","height"} ],
+#                       # Batch 461, optional: the anatomical maps the pathologist inserted into
+#                       # the report (snapshots in print colours, drawn from the synoptic
+#                       # answers). Each is drawn after the report body at its proportions,
+#                       # at most the text width; one without a PNG is skipped.
 #     "workups": [ {...the workup block above..., "synopticAnswers": [...]} ],
 #                       # Batch 427, optional: every workup of a case in ONE PDF (a site whose
 #                       # LIS takes one PDF per accession). Each is drawn as above, one after
@@ -99,7 +104,7 @@ from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.fonts import addMapping
@@ -355,7 +360,15 @@ def render_node(node: dict, scope: dict, sections_by_id: dict) -> list:
         answers = scope.get('__synopticAnswers__') or []
         if not answers:
             return [Paragraph(_label('noSynopticData'), _styles['RPCaption'])]
-        rows = [[a.get('fieldLabel', ''), a.get('displayValue', '')] for a in answers]
+        # Batch 461: a long or multi-line answer (a results grid prints a line per
+        # part) wraps inside its cell instead of running past the margin.
+        def _value_cell(v):
+            v = '' if v is None else str(v)
+            if '\n' not in v and len(v) <= 60:
+                return v
+            from xml.sax.saxutils import escape
+            return Paragraph(escape(v).replace('\n', '<br/>'), ParagraphStyle('rp-answer', parent=_styles['RPLabel'], textColor=colors.black, leading=11))
+        rows = [[a.get('fieldLabel', ''), _value_cell(a.get('displayValue', ''))] for a in answers]
         t = Table(rows, colWidths=[70 * mm, None])
         t.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), _font(False)),
@@ -679,6 +692,8 @@ DEFAULT_LABELS = {
     'workupFinal': 'Final',
     'workupCorrected': 'Corrected',
     'workupAddendum': 'Addendum',
+    # Batch 463: a map that couldn't be drawn as an image is never left out silently.
+    'figureNotDrawn': 'Map notice: the map could not be drawn as an image. What it shows:',
 }
 _current_labels = contextvars.ContextVar('report_labels', default=DEFAULT_LABELS)
 
@@ -769,6 +784,62 @@ def build_report_pdf(payload: dict) -> bytes:
         _current_fonts.reset(token)
 
 
+FIGURE_MAX_WIDTH = 170 * mm
+
+
+def figure_notice(fig: dict) -> list:
+    """Batch 463: in place of a map that couldn't be drawn (no PNG, or one that
+    can't be read), a boxed notice, never a silent gap: the label in the
+    report's language, then the map's content as text when the request gives
+    it (`fallbackLines`: a Mohs map's stage lines). Only for figures that are
+    part of the report (`notice`: true); an optional inserted figure without an
+    image is still left out, as before."""
+    from xml.sax.saxutils import escape
+    style = ParagraphStyle('rp-figure-notice', parent=_styles['RPLabel'], textColor=colors.black, leading=11)
+    rows = [[Paragraph('<b>%s</b>' % escape(_label('figureNotDrawn')), style)]]
+    rows += [[Paragraph(escape(str(line)), style)] for line in (fig.get('fallbackLines') or []) if str(line).strip()]
+    box = Table(rows, colWidths=[FIGURE_MAX_WIDTH])
+    box.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#b45309')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fef3c7')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    return [KeepTogether([box, Spacer(1, 10)])]
+
+
+def figure_flows(payload: dict) -> list:
+    """Batch 461: the report's anatomical map figures (reportFigures), each
+    scaled to at most the text width with its proportions kept. A figure
+    without a PNG, or whose PNG can't be read, never stops the report: a map
+    that is part of the report (Batch 463, `notice`: true) prints a notice in
+    its place (figure_notice); an optional inserted one is left out."""
+    import base64
+    flows = []
+    for fig in payload.get('reportFigures') or []:
+        png = fig.get('pngBase64')
+        drawn = None
+        if png:
+            try:
+                data = base64.b64decode(png, validate=True)
+                w = float(fig.get('width') or 0)
+                h = float(fig.get('height') or 0)
+                img = Image(BytesIO(data))
+                if w <= 0 or h <= 0:
+                    w, h = float(img.imageWidth), float(img.imageHeight)
+                width = min(FIGURE_MAX_WIDTH, w * 0.75)  # CSS px → points
+                img.drawWidth = width
+                img.drawHeight = width * h / w
+                drawn = [KeepTogether([img, Spacer(1, 10)])]
+            except Exception:  # noqa: BLE001 — a bad image never stops the report
+                drawn = None
+        if drawn:
+            flows += drawn
+        elif fig.get('notice'):
+            flows += figure_notice(fig)
+    return flows
+
+
 def _build_report_pdf(payload: dict) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(
@@ -844,6 +915,8 @@ def _build_report_pdf(payload: dict) -> bytes:
         for node in part.get('nodes', []):
             flows += render_node(node, scope, sections_by_id)
         flows.append(Spacer(1, 10))
+
+    flows += figure_flows(payload)
 
     flows.append(Spacer(1, 16))
     flows.append(Paragraph(labels['confidential'], _styles['RPCaption']))
@@ -1007,7 +1080,9 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
 # validation for:
 #   {
 #     "queueEntryId": str,  # the real DLQ queue entry id this dispatch came from
-#     "transactionType": "A08" | "A40" | "A47" | "ORU_R01" | "LIS_SYNC" | "ORDER_CREATED",
+#     "transactionType": "A08" | "A40" | "A47" | "ORU_R01" | "LIS_SYNC" | "ORDER_CREATED"
+#                        | "REGISTRY_REPORT" | "CANCER_REGISTRY_REPORT" | "PRINT_JOB"
+#                        | "CRITICAL_ALERT" | "WSI_SCAN_MANIFEST",
 #     "dispatchedAt": str,  # real ISO timestamp of this dispatch attempt
 #     "payload": { ... },   # the real, actual payload — Adt08DemographicUpdatePayload /
 #                           # Adt40MergePatientPayload / Adt47ChangeIdentifierPayload /
@@ -1034,7 +1109,37 @@ def render_report(req: https_fn.Request) -> https_fn.Response:
 #   Validation failure: {"ok": false, "error": str}, HTTP 422.
 # ─────────────────────────────────────────────────────────────────────────────
 
-_VALID_TRANSACTION_TYPES = {'A08', 'A40', 'A47', 'ORU_R01', 'LIS_SYNC', 'ORDER_CREATED'}
+# Batch 434: every InterfaceTransactionType the browser sends
+# (src/services/interfaceDispatch/dispatchInterfaceMessage.ts). This list had
+# stopped at ORDER_CREATED, so registry reports, cancer registry reports, print
+# jobs and critical alerts were refused here with 422; WSI_SCAN_MANIFEST is new.
+# interfaceTransactions.guard.test.ts (frontend) keeps the two lists, and
+# docs/architecture/INTERFACE_TRANSACTIONS.md, in step.
+_VALID_TRANSACTION_TYPES = {
+    'A08', 'A40', 'A47', 'ORU_R01', 'LIS_SYNC', 'ORDER_CREATED',
+    'REGISTRY_REPORT', 'CANCER_REGISTRY_REPORT', 'PRINT_JOB', 'CRITICAL_ALERT',
+    'WSI_SCAN_MANIFEST',
+}
+
+
+def validate_wsi_scan_manifest(payload: dict) -> str | None:
+    """Batch 434: a scanner can't act on a manifest without its batch and
+    slides, so this one payload is checked beyond the envelope: batchId,
+    batchBarcode, scannerInstrumentId, and at least one slide with
+    slidePosition, caseId and specimenId."""
+    for field in ('batchId', 'batchBarcode', 'scannerInstrumentId'):
+        if not payload.get(field):
+            return f'WSI_SCAN_MANIFEST payload is missing {field}'
+    slides = payload.get('slides')
+    if not isinstance(slides, list) or not slides:
+        return 'WSI_SCAN_MANIFEST payload needs at least one slide'
+    for i, slide in enumerate(slides):
+        if not isinstance(slide, dict):
+            return f'WSI_SCAN_MANIFEST slide {i} is not an object'
+        for field in ('slidePosition', 'caseId', 'specimenId'):
+            if not slide.get(field):
+                return f'WSI_SCAN_MANIFEST slide {i} is missing {field}'
+    return None
 
 
 def validate_envelope(body: dict) -> str | None:
@@ -1051,6 +1156,8 @@ def validate_envelope(body: dict) -> str | None:
         return f'Unknown transactionType: {transaction_type!r}. Expected one of {sorted(_VALID_TRANSACTION_TYPES)}.'
     if not isinstance(body['payload'], dict):
         return 'payload must be a real JSON object, not a string/array/primitive.'
+    if transaction_type == 'WSI_SCAN_MANIFEST':
+        return validate_wsi_scan_manifest(body['payload'])
     return None
 
 

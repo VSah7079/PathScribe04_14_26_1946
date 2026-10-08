@@ -55,6 +55,11 @@ Four new built-in roles, so each bench screen has a role to hold it by default: 
 
 `caseAccess` and `configAccess` stay as they were: they decide whether an SSO sign-in gets the app at all (`auth/sessionRole.ts`), and now also which screens a hospital's own role is first offered.
 
+## Batch 441
+
+- The built-in Cytotechnologist role now lists the `cytotechnologist` participation type. A stored copy with an empty list (the seed before this batch) is filled on load (`systemRoles.withCytotechParticipationType`); a list an administrator set is kept.
+- `roleAdministration.saveRole` refuses the Cytotechnologist role listing a pathologist type (`cytotechPathologistType`). The Role Dictionary shows those types locked for that role.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

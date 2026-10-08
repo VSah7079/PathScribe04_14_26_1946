@@ -115,7 +115,7 @@ describe('exportChangeLog', async () => {
     expect(checks).toEqual([{ capability: 'report:change-history:export', context: { caseId: 'C1', facilityId: null } }]);
     expect(res).toMatchObject({ ok: true, rowCount: 1 });
     expect(res.ok && res.csv.split('\r\n')[0]).toBe('Saved,User,Workstation,Area,Field,Change,Before,After');
-    expect(logged).toEqual([expect.objectContaining({ event: 'Report change history exported', caseId: 'C1', user: 'Admin' })]);
+    expect(logged).toEqual([expect.objectContaining({ event: 'DOCUMENT_EXPORTED', caseId: 'C1', user: 'Admin' })]);
   });
 
   it('refuses when the capability is not held, and builds nothing', async () => {

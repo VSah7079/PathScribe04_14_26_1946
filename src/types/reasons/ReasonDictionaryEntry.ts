@@ -48,6 +48,11 @@ export interface ReasonDictionaryEntry {
   name: string;
   description: string;
   status: 'Active' | 'Inactive';
+  /** Batch 438 (PS-146), AMENDMENT and CORRECTION reasons: a revision for
+   *  this reason means the original report may have affected clinical
+   *  management, so releasing one recommends a CAPA. Absent: the starting
+   *  value (services/reasons/revisionReasonRules.ts). */
+  clinicallySignificant?: boolean;
 }
 
 export interface IReasonDictionaryService {

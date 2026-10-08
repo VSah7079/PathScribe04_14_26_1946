@@ -40,5 +40,9 @@ Pete: TAT targets "will need to move to services the API server owns". This is t
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-38)
+
+`tatEntryActions.ts`: the TAT screen's add, edit, switch-on/off and delete actions, moved out of `TATConfigSection.tsx`. Each calls the service and writes its audit entry only when the service accepts the change; deleting a system default is refused and not audited. Tested in `tatEntryActions.test.ts` against the real mock service.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

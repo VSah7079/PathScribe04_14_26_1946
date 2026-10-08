@@ -19,6 +19,7 @@ import type { IAuditService } from '../auditlog/IAuditService';
 import type { IRoleService, Role } from './IRoleService';
 import type { IAuthorizationService } from '../authorization/authorizationService';
 import { roleCapabilityChangeAudit, roleCapabilityProblem } from '../authorization/roleCapabilityRules';
+import { cytotechRoleProblem } from '../participationTypes/cytotechParticipationRules';
 
 export const ROLE_MANAGE_CAPABILITY = 'config:roles:manage';
 
@@ -26,7 +27,7 @@ export type RoleDraft = Omit<Role, 'id'>;
 
 export type SaveRoleResult =
   | { ok: true; role: Role }
-  | { ok: false; reason: 'notPermitted' | 'invalidCapabilities' | 'lastRoleManager' | 'notFound' | 'platformRole' | 'error'; detail?: string };
+  | { ok: false; reason: 'notPermitted' | 'invalidCapabilities' | 'lastRoleManager' | 'notFound' | 'platformRole' | 'cytotechPathologistType' | 'error'; detail?: string };
 
 export interface RoleAdministrationDeps {
   roleService: Pick<IRoleService, 'getAll' | 'add' | 'update'>;
@@ -58,6 +59,12 @@ export async function saveRole(
   // A new or edited role here is always a hospital (assignable) role.
   const problem = roleCapabilityProblem(input.draft.capabilities ?? [], { assignable: true });
   if (problem) return { ok: false, reason: 'invalidCapabilities', detail: problem };
+
+  // Batch 441 (Pete: "Cytotechs can not be selected for Pathologist roles").
+  if (input.mode === 'edit') {
+    const bad = cytotechRoleProblem({ id: input.id, participationTypeIds: input.draft.participationTypeIds });
+    if (bad.length) return { ok: false, reason: 'cytotechPathologistType', detail: bad.join(', ') };
+  }
 
   if (input.mode === 'edit') {
     const after = all.data.map(r => (r.id === input.id ? { ...r, ...input.draft } : r));

@@ -73,10 +73,14 @@ const SEED_ASSIGNMENTS: QaSupervisionAssignment[] = [
     status: 'completed', completedAt: '2026-05-30T00:00:00.000Z', completedReason: 'case_count_met',
   },
   // Completed via real manual graduation — proves the early-completion path.
+  // Batch 456: this used to make Oliver Pemberton (Manchester) Pete's FPPE
+  // supervisor, someone at another organisation supervising Desert Valley's
+  // attending. It is now Michelle Nimmo, supervised by Pete, both at Desert
+  // Valley.
   {
     id: 'qa-supervision-seed-003', activityTypeId: FPPE_ACTIVITY_TYPE_ID,
-    superviseeUserId: 'PATH-001', superviseeUserName: 'Pete Nimmo',
-    supervisorUserId: 'PATH-UK-002', supervisorUserName: 'Oliver Pemberton',
+    superviseeUserId: 'PATH-MN-001', superviseeUserName: 'Michelle Nimmo',
+    supervisorUserId: 'PATH-001', supervisorUserName: 'Pete Nimmo',
     subspecialtyId: 'breast',
     startedAt: '2026-01-15T00:00:00.000Z',
     endCondition: { type: 'duration_days', threshold: 90 },

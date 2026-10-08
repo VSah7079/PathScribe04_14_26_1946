@@ -158,3 +158,46 @@ consuming side of this fix.
 ## Batch 431: the Configuration search covers everything
 
 Pete: "I was searching for Field Requirements, but the system couldn't find any entries." `configSearchIndex.ts` now adds one entry for every tab and every System, Cytology, Staff and Synoptic Library section, generated from the sidebar lists (`Config/System/systemSections.ts`, `Config/Cytology/cytologySections.ts`), to the hand-written entries. `configSearchCoverage.test.ts` fails if a section can't be found or an entry points at a section that doesn't exist. `CONFIG_TABS` is shared with ConfigurationPage.
+
+## Batch 438
+
+`configSearchIndex.ts`: `sys-revision-reasons`, so Configuration search finds Revision Reasons.
+
+## Batch 439
+
+`configSearchIndex.ts`: `sys-peer-review-gate`.
+
+## Batch 442
+
+`configSearchIndex.ts`: the Discordance Trend Policy section is searchable ("discordance trend", "threshold", "rolling window", …).
+
+## Batch 447
+
+`configSearchIndex.ts`: the Feedback section is searchable ("qa feedback", "feedback button", "bug report", …).
+
+## Batch 449
+
+`configSearchIndex.ts`:
+- **Inner tabs:** `TEMPLATE_SECTIONS` and `VALIDATION_SECTIONS` give the Report Templates and Validation Studies inner tabs generated entries (with their tab as context), so search opens them directly.
+- **Removed:** "API mode" (removed in Batch 444) and "Voice AI" (no such switch).
+- **Macros and Validation Studies:** real descriptions replace developer notes.
+- **Action Registry:** describes "every registered action" instead of a fixed, wrong count.
+- **New entry:** the staff Sign-in password (search "password", "locked out", …).
+
+`configSearchCoverage.test.ts`: the two new inner-tab lists must be covered, there are no placeholder entries, and no label or description in any language reads like a developer note.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`configSearchIndex.ts`: the Correlation window section (PS-156).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`configSearchIndex.ts`: new entry `sys-biopsy-resection-correlation`, so configuration search finds the new section.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`configSearchIndex.ts`: new entry `sys-follow-up-tracking`.
+
+## Batch 461
+
+`configSearchIndex.ts`: `sys-organ-maps` (Configuration → System → Organ maps), with synonyms such as "anatomical map", "pi-rads", "map colours".

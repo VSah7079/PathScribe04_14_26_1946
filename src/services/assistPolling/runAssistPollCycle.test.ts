@@ -8,6 +8,7 @@ import type { NormalizedLisUpdate, StagedLisEvent } from '../lisIngestion/types'
 import { MAX_ATTEMPTS, stageUpdates } from '../lisIngestion/stagingRules';
 import { webhookJsonAdapter } from '../lisIngestion/adapters/webhookJsonAdapter';
 import { hl7v2StatusAdapter } from '../lisIngestion/adapters/hl7v2StatusAdapter';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 
 function makeCase(id: string, over: Partial<Case> = {}): Case {
   return {
@@ -26,6 +27,8 @@ function harness(opts: { lis: NormalizedLisUpdate[]; cases: Case[]; aiEnabled?: 
   let clock = 0;
   let ids = 0;
   const lis = { updates: opts.lis, down: false };
+  /** Runs just before a save lands: lets a test slip in someone else's save. */
+  const onSave: Array<(id: string) => void> = [];
   const evaluate = vi.fn(async (input: { specimens: Array<{ specimenId: string; currentSynoptics: unknown[] }> }) => ({
     warnings: [],
     changes: input.specimens.filter(s => s.currentSynoptics.length === 0).map((s, i): ProtocolChange => ({
@@ -48,7 +51,14 @@ function harness(opts: { lis: NormalizedLisUpdate[]; cases: Case[]; aiEnabled?: 
     loadQueue: async () => structuredClone(queue),
     saveQueue: async q => { queue = structuredClone(q); },
     getCase: async id => structuredClone(cases.get(id)),
-    updateCase: async (id, u) => { cases.set(id, { ...cases.get(id)!, ...structuredClone(u) }); },
+    // PS-71 (Batch 458): a versioned store, like mockCaseService.
+    updateCase: async (id, u, expectedVersion) => {
+      const cur = cases.get(id)!;
+      const v = cur.version ?? 0;
+      if (expectedVersion !== v) throw new ConcurrencyConflictError(id, expectedVersion, v);
+      onSave.forEach(f => f(id));
+      cases.set(id, { ...cases.get(id)!, ...structuredClone(u), version: v + 1 });
+    },
     listDiagnosticTemplates: async () => [{ id: 'colon_resection', name: 'Colon Resection', category: 'GI' }],
     getTemplateFields: async () => [{ id: 'tumor_size', label: 'Tumor size' }, { id: 'lvi', label: 'LVI' }],
     evaluateSynopticAssignment: evaluate as never,
@@ -60,7 +70,7 @@ function harness(opts: { lis: NormalizedLisUpdate[]; cases: Case[]; aiEnabled?: 
     now: () => `2026-09-24T15:${String(Math.floor(clock / 60)).padStart(2, '0')}:${String(clock++ % 60).padStart(2, '0')}.000Z`,
     newId: () => `id-${ids++}`,
   };
-  return { deps, cases, lis, state: () => state, queue: () => queue, audit, evaluate, suggest };
+  return { deps, cases, lis, state: () => state, queue: () => queue, audit, evaluate, suggest, onSave };
 }
 
 const gross: NormalizedLisUpdate = { accession: 'C1', lisStatus: 'GROSSED', updatedAt: '2026-09-24T10:00:00.000Z', grossText: 'Hemicolectomy, tumour 5.8 cm.' };
@@ -191,5 +201,40 @@ describe('retryFailedEvents', () => {
     const run = await retryFailedEvents(h.deps);
     expect(run.items.map(i => i.outcome)).toEqual(['draft_prepared']);
     expect(h.queue()[0]).toMatchObject({ state: 'processed', attempts: 1 });
+  });
+});
+
+describe('PS-71 (Batch 458): versioned saves', () => {
+  it('a save to another field in between is kept: the LIS text is merged into the newer case', async () => {
+    const h = harness({ lis: [gross], cases: [makeCase('C1')] });
+    let once = true;
+    // Someone else saves a case hold just before the worker's first save.
+    h.onSave.push(id => {
+      if (!once) return; once = false;
+      const c = h.cases.get(id)!;
+      h.cases.set(id, { ...c, caseHolds: [{ id: 'k1' }] as never, version: (c.version ?? 0) + 1 });
+      throw new ConcurrencyConflictError(id, 0, 1);
+    });
+    const run = await runAssistPollCycle(h.deps, 'manual');
+    expect(run.items[0].outcome).toBe('draft_prepared');
+    const c = h.cases.get('C1')!;
+    expect(c.caseHolds).toEqual([{ id: 'k1' }]);
+    expect(c.diagnostic?.grossDescription).toBe(gross.grossText);
+    expect(c.synopticReports).toHaveLength(1);
+  });
+
+  it('a synoptic report added while the AI drafted is never overwritten: the event fails and is redrafted next run', async () => {
+    const h = harness({ lis: [gross], cases: [makeCase('C1')] });
+    h.suggest.mockImplementationOnce(async () => {
+      const c = h.cases.get('C1')!;
+      h.cases.set('C1', { ...c, synopticReports: [{ instanceId: 'theirs', templateId: 'other', specimenId: 'C1-A', status: 'draft' }] as never, version: (c.version ?? 0) + 1 });
+      return {} as never;
+    });
+    const run = await runAssistPollCycle(h.deps, 'manual');
+    expect(run.items[0].outcome).toBe('failed');
+    expect(h.cases.get('C1')!.synopticReports?.map(r => r.instanceId)).toEqual(['theirs']);
+    const retry = await runAssistPollCycle(h.deps, 'manual');
+    expect(retry.items[0].outcome).toBe('draft_prepared');
+    expect(h.cases.get('C1')!.synopticReports?.map(r => r.instanceId)).toContain('theirs');
   });
 });

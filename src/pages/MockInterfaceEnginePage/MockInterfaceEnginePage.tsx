@@ -114,6 +114,25 @@ const MockInterfaceEnginePage: React.FC = () => {
           </label>
         ))}
 
+        {/* Batch 434: the slide scanner's replies after a WSI scan manifest. */}
+        <label className="ps-mie-radio-label ps-mt-12">
+          <input type="checkbox" checked={settings.simulateWsiScanner !== false} onChange={e => updateSettings({ simulateWsiScanner: e.target.checked })} className="ps-mr-8" />
+          <strong>{t('mockInterfaceEnginePage.simulateWsiScanner')}</strong>
+          <div className="ps-helper-text ps-ml-22">{t('mockInterfaceEnginePage.simulateWsiScannerHint')}</div>
+        </label>
+
+        {/* Batch 467b: the molecular instrument's results after a worklist (each well's order id echoed). */}
+        <div className="ps-mt-12">
+          <label className="ps-label" htmlFor="mie-molecular-call">{t('mockInterfaceEnginePage.molecularInstrument')}</label>
+          <select id="mie-molecular-call" className="ps-input-dark" value={settings.molecularInstrumentCall ?? 'off'}
+            onChange={e => updateSettings({ molecularInstrumentCall: e.target.value as 'POSITIVE' | 'NEGATIVE' | 'off' })}>
+            <option value="POSITIVE">{t('mockInterfaceEnginePage.molecularCall.POSITIVE')}</option>
+            <option value="NEGATIVE">{t('mockInterfaceEnginePage.molecularCall.NEGATIVE')}</option>
+            <option value="off">{t('mockInterfaceEnginePage.molecularCall.off')}</option>
+          </select>
+          <div className="ps-helper-text">{t('mockInterfaceEnginePage.molecularInstrumentHint')}</div>
+        </div>
+
         {settings.mode === 'always_fail' && (
           <div className="ps-mt-12">
             <label className="ps-label" htmlFor="mie-failure-status">{t('mockInterfaceEnginePage.failureHttpStatusLabel')}</label>

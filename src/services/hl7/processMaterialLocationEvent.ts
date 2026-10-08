@@ -47,7 +47,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockAssetLocationDictionaryService } from '../assetLocation/mockAssetLocationDictionaryService';
 import { applyMaterialLocation } from './materialLocationMutation';
@@ -96,36 +96,35 @@ export async function processMaterialLocationEvent(payload: MaterialLocationEven
     return { messageId: payload.messageId, outcome: 'case-not-found', reason: `No case found for '${lookupId}'.` };
   }
 
-  const mutation = applyMaterialLocation(caseData.specimens ?? [], caseData.matrixBlocks ?? [], {
-    specimenLetter: payload.specimenLetter,
-    target: payload.target,
-    location: payload.location,
-    workflowStage: payload.workflowStage,
-    action: payload.action,
-    observedAt: payload.observedAt,
-    timestamp: payload.timestamp,
-    sourceSystem: payload.sourceSystem,
-    performedByName: payload.performedByName,
-  });
+  // PS-71 (Batch 458): the location change is rebuilt from the newest case
+  // on every try (updateCaseWithRetryOrThrow), so a concurrent edit to
+  // another specimen/block is kept. Replaces the old "force through" retry
+  // that re-saved the stale array without a version. If every try
+  // conflicts, the ConcurrencyConflictError propagates and the messageId is
+  // NOT marked processed, so the sender's redelivery applies it.
+  let mutation: ReturnType<typeof applyMaterialLocation> | undefined;
+  await updateCaseWithRetryOrThrow(caseData.id, current => {
+    mutation = applyMaterialLocation(current.specimens ?? [], current.matrixBlocks ?? [], {
+      specimenLetter: payload.specimenLetter,
+      target: payload.target,
+      location: payload.location,
+      workflowStage: payload.workflowStage,
+      action: payload.action,
+      observedAt: payload.observedAt,
+      timestamp: payload.timestamp,
+      sourceSystem: payload.sourceSystem,
+      performedByName: payload.performedByName,
+    });
+    if (mutation.outcome === 'target-not-found') return null;
+    const r = mutation.result;
+    return r.level === 'matrix' ? { matrixBlocks: r.matrixBlocks } : { specimens: r.specimens };
+  }, caseRouter);
 
-  if (mutation.outcome === 'target-not-found') {
-    return { messageId: payload.messageId, outcome: 'target-not-found', reason: `Case ${caseData.id}: ${mutation.reason}` };
+  if (!mutation || mutation.outcome === 'target-not-found') {
+    const why = mutation && mutation.outcome === 'target-not-found' ? mutation.reason : 'target not found';
+    return { messageId: payload.messageId, outcome: 'target-not-found', reason: `Case ${caseData.id}: ${why}` };
   }
-
   const { result } = mutation;
-  const updates = result.level === 'matrix' ? { matrixBlocks: result.matrixBlocks } : { specimens: result.specimens };
-
-  try {
-    await caseRouter.updateCase(caseData.id, updates);
-  } catch (e) {
-    // Real, deliberate "force through" posture — same reasoning as
-    // processBlockExceptionEvent.ts's own identical block.
-    if (e instanceof ConcurrencyConflictError) {
-      await caseRouter.updateCase(caseData.id, updates);
-    } else {
-      throw e;
-    }
-  }
 
   processedMessageIds.add(payload.messageId);
 

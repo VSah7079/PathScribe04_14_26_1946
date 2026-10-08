@@ -26,9 +26,19 @@ describe('mockDelegationService', () => {
     expect(delegateCase).not.toHaveBeenCalled();
   });
 
+  it('Batch 441: a case can\'t be delegated to a cytotechnologist (every delegation is a pathologist slot); a pathologist is fine', async () => {
+    const toCt = await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'TRANSFER', recipient: { kind: 'user', id: 'CT-001', name: 'Priya Desai' } });
+    expect(toCt).toEqual({ ok: false, error: 'recipientIsCytotechnologist' });
+    const toSynoptic = await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'SYNOPTIC_ASSIGN', synopticInstanceId: 'S1', recipient: { kind: 'user', id: 'CT-001', name: 'Priya Desai' } });
+    expect(toSynoptic).toEqual({ ok: false, error: 'recipientIsCytotechnologist' });
+    expect(delegateCase).not.toHaveBeenCalled();
+    expect(assignSynoptic).not.toHaveBeenCalled();
+    expect((await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'TRANSFER', recipient: { kind: 'user', id: 'PATH-001', name: 'Pete Nimmo' } })).ok).toBe(true);
+  });
+
   it('lists the seeded demo delegations, all or one case', async () => {
     const all = await mockDelegationService.list();
-    expect(all.ok && all.data.length).toBe(5);
+    expect(all.ok && all.data.length).toBe(7); // Batch 455: + two pending second opinions between Sarah Johnson and Pete Nimmo
     const one = await mockDelegationService.list({ caseId: 'S26-4404' });
     expect(one.ok && one.data.map(d => d.id)).toEqual(['deleg-seed-2']);
   });

@@ -171,6 +171,10 @@ Notes.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 444
+
+`VITE_NCBI_API_KEY` stays the one allowed browser key (`services/security/envExposure.guard.test.ts` lists it with the reason above). It's now read as `import.meta.env.VITE_NCBI_API_KEY`. The old `(import.meta as …).env?.` form was one of the reads that made Vite copy every `VITE_` variable into the bundle.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

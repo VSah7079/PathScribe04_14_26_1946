@@ -35,13 +35,17 @@
 // the named function, same as every other handler in this file.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useCallback, type MutableRefObject } from 'react';
+import { countBlockMessage, findSynopticEntryChecks, totalWarningsMessage } from '@/services/templates/synopticEntryChecks';
+import { useEffect, useCallback, useRef, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatList } from '@/utils/formatList';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { OrchestratorSection } from '../components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
 import type { SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
+import { saveDraftParts, caseWriteDeps, caseConflictRows, type MergeReview } from '@/services';
+import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
 
 // orchSections genuinely isn't declared on the shared Case type — it's
 // real, persisted data (see writeCaseDraft below), just never added to
@@ -69,45 +73,42 @@ type CaseWithOrchSections = Case & { orchSections?: OrchestratorSection[] };
 // handleConcurrencyForceSave (defined very early in the main file, before
 // useOrchestratorDraft is even called) can import and call it directly
 // without needing to go through the hook's return value or be reordered.
+/**
+ * What a draft save writes, by reporting mode (the comments below explain
+ * why each field is there). PS-71 (Batch 458): shared by the versioned save
+ * and the Edit Conflict dialog's Overwrite.
+ */
+export function caseDraftUpdates(caseData: Case, orchSections: OrchestratorSection[]): Partial<Case> {
+  // Real fix, per direct follow-up: "the case prefix can't determine
+  // assist vs. orchestration case, we need to use a real flag."
+  // reportingMode is the real, authoritative field (reportingModeRouting.ts).
+  if (caseData.reportingMode === 'orchestrator') {
+    // Real fix, per direct report: synopticReports and grossingReports are
+    // edited for Orchestration cases too, and caseRouter.updateCase does a
+    // shallow merge, so omitting them here meant Save Draft silently
+    // discarded edits to either field.
+    return {
+      orchSections,
+      synopticReports: caseData.synopticReports,
+      grossingReports: caseData.grossingReports,
+    } as Partial<CaseWithOrchSections> as Partial<Case>;
+  }
+  // CoPilot mode persists synopticReports; orchSections means nothing there.
+  return { synopticReports: caseData.synopticReports };
+}
+
 export async function writeCaseDraft(
   caseData: Case,
   _caseId: string | undefined,
   orchSections: OrchestratorSection[],
-  expectedVersion?: number,
+  // PS-71 (Batch 458): required. A save without a version could overwrite
+  // someone else's newer save; the Edit Conflict dialog's Overwrite goes
+  // through services/cases/caseWrite.ts overwriteAfterConflict instead.
+  expectedVersion: number,
 ): Promise<void> {
-  // Real fix, per direct follow-up: "the case prefix can't determine
-  // assist vs. orchestration case, we need to use a real flag."
-  // caseData is already a real parameter here — reportingMode is the
-  // real, authoritative field (see reportingModeRouting.ts's own
-  // header comment); isOrchCaseId(caseId) was never actually needed
-  // in this function at all once caseData is already in hand.
-  if (caseData.reportingMode === 'orchestrator') {
-    // Real fix, per direct report: "it has the attached synoptic
-    // report attached to the specimen, why is it not displaying the
-    // template?" — traced to here. This previously only persisted
-    // orchSections, on the assumption Orchestration-mode cases only
-    // ever edit that field. Not true: synopticReports and
-    // grossingReports are both genuinely, actively edited for
-    // Orchestration cases too (Stage 0/1 grossing, diagnostic
-    // synoptic answers) — caseRouter.updateCase does a shallow merge,
-    // so omitting them here meant Save Draft silently discarded any
-    // edit to either field on every single save for every
-    // Orchestration-mode case, not just this one flow.
-    await caseRouter.updateCase(caseData.id, {
-      orchSections,
-      synopticReports: caseData.synopticReports,
-      grossingReports: caseData.grossingReports,
-    } as Partial<CaseWithOrchSections>, expectedVersion);
-    // Batch 431: no browser copy. The case record (with its version) is the
-    // one copy, so a copy left on another workstation can't override it.
-  } else {
-    // Real fix found while consolidating the save paths: this previously
-    // always wrote orchSections regardless of mode — both save paths were
-    // silently broken for CoPilot-mode cases, since orchSections means
-    // nothing there and synopticReports (the field CoPilot actually
-    // persists) was never touched.
-    await caseRouter.updateCase(caseData.id, { synopticReports: caseData.synopticReports }, expectedVersion);
-  }
+  // Batch 431: no browser copy. The case record (with its version) is the
+  // one copy, so a copy left on another workstation can't override it.
+  await caseRouter.updateCase(caseData.id, caseDraftUpdates(caseData, orchSections), expectedVersion);
 }
 
 interface UseOrchestratorDraftParams {
@@ -125,14 +126,32 @@ interface UseOrchestratorDraftParams {
   clearDirty: () => void;
   discardDraft: () => void;
   showToast: (message: string, kind?: import('@/utils/toastPolicy').ToastKind) => void;
+  /** PS-71 (Batch 458): the draft as last loaded or saved, owned by the page so
+   *  the browser draft copy can carry it (a restored draft then merges too). */
+  draftBaseRef?: MutableRefObject<Partial<Case>>;
+  /** PS-71 (Batch 458): a change that stopped at the Edit Conflict dialog;
+   *  saved (merged) with the next draft save, then cleared. */
+  pendingPartsRef?: MutableRefObject<{ parts: Partial<Case>; base: Partial<Case> } | null>;
+  /** Batch 458 (Pete: "an option to abort or accept the changes"): someone
+   *  else saved other parts since; the page shows what changed and the
+   *  person decides. Without it, the merge is saved straight away. */
+  onMergeReview?: (review: MergeReview) => void;
+  /** Batch 465b: asks the person to go past a warning (a hand-entered total that differs from its grid); false = don't save. */
+  confirmWarnings?: (message: string) => Promise<boolean>;
 }
 
 export function useOrchestratorDraft({
   caseData, setCaseData, caseId, orchSections, setOrchSections,
   activeSectionId, setActiveSectionId, isOrchestrationMode, leftTab,
-  knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast,
+  knownVersionRef, setConcurrencyConflict, clearDirty, discardDraft, showToast, draftBaseRef, pendingPartsRef, onMergeReview, confirmWarnings,
 }: UseOrchestratorDraftParams) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // PS-71 (Batch 458): the draft as this page last loaded or saved it, so a
+  // refused save can be merged section by section onto someone else's newer
+  // save (services/cases/caseWrite.ts saveDraftParts).
+  const ownBaseRef = useRef<Partial<Case>>({});
+  const baseDraftRef = draftBaseRef ?? ownBaseRef;
 
   // ── Save ──────────────────────────────────────────────────────────────
   // The real consolidation — ONE implementation of "save the draft,"
@@ -162,9 +181,48 @@ export function useOrchestratorDraft({
       showToast(t('useOrchestratorDraft.toast.draftSaved'));
       return true;
     }
+    // Batch 465b (Pete): a grid count above its limit (nodes positive > examined) stops the save; a hand-entered
+    // total that differs from its grid asks first.
+    const checks = await findSynopticEntryChecks(caseData);
+    if (checks.blocking.length) {
+      showToast(t('synopticChecks.saveBlocked', { problem: countBlockMessage(t, checks.blocking[0]) }), 'error');
+      return false;
+    }
+    if (checks.warnings.length && confirmWarnings && !(await confirmWarnings(totalWarningsMessage(t, checks.warnings)))) return false;
+    // PS-71 (Batch 458): saved against the page's version. If someone else
+    // saved since, the draft is merged section by section onto their save
+    // and saved with no dialog; only when both changed the same section does
+    // the Edit Conflict dialog open.
+    let merged = false;
+    let mergedParts: string[] = [];
     try {
-      await writeCaseDraft(caseData, caseId, orchSections, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
+      const pending = pendingPartsRef?.current ?? null;
+      const mine = { ...(pending?.parts ?? {}), ...caseDraftUpdates(caseData, orchSections) };
+      const base = { ...(pending?.base ?? {}), ...baseDraftRef.current };
+      const r = await saveDraftParts(caseData.id, mine, base, knownVersionRef.current, caseWriteDeps, { review: !!onMergeReview, before: caseData });
+      if (r.ok === false) {
+        if (r.reason === 'review') { onMergeReview?.(r.review); return false; }
+        if (r.reason === 'overlap') {
+          handleConcurrencyConflict(new ConcurrencyConflictError(caseData.id, knownVersionRef.current, r.actualVersion), setConcurrencyConflict, { actionName: `draft save (same section changed by both: ${r.overlap.join(', ') || 'repeated saves'})` });
+          return false;
+        }
+        console.error('Failed to persist draft: case not found');
+      } else {
+        knownVersionRef.current = r.version;
+        if (pendingPartsRef) pendingPartsRef.current = null;
+        if (r.merged) {
+          merged = true;
+          const saved = r.saved as CaseWithOrchSections;
+          // Which parts the other person had changed, for the message.
+          mergedParts = caseConflictRows(caseData, saved, []).map(row => row.field).filter(f => !(f in mine));
+          baseDraftRef.current = caseDraftUpdates(saved, saved.orchSections ?? []);
+          // Take up the other person's changes; keep this page's narrative view.
+          setCaseData(prev => (prev ? { ...saved, diagnostic: isOrchestrationMode ? prev.diagnostic : saved.diagnostic } as Case : prev));
+          if (isOrchestrationMode && Array.isArray(saved.orchSections)) setOrchSections(saved.orchSections);
+        } else {
+          baseDraftRef.current = caseDraftUpdates(caseData, orchSections);
+        }
+      }
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return false;
       console.error('Failed to persist draft:', e);
@@ -179,9 +237,12 @@ export function useOrchestratorDraft({
     // "unsaved draft found" for work that had already been persisted.
     discardDraft();
     clearDirty();
-    showToast(t('useOrchestratorDraft.toast.draftSaved'));
+    showToast(!merged ? t('useOrchestratorDraft.toast.draftSaved')
+      : mergedParts.length
+        ? t('useOrchestratorDraft.toast.draftSavedMergedParts', { parts: formatList(mergedParts.map(f => t(`synopticReportPage.concurrency.parts.${f}`)), i18n.language) })
+        : t('useOrchestratorDraft.toast.draftSavedMerged'));
     return true;
-  }, [caseData, caseId, orchSections, clearDirty, showToast, discardDraft, knownVersionRef, setConcurrencyConflict, t]);
+  }, [caseData, orchSections, clearDirty, showToast, discardDraft, knownVersionRef, setConcurrencyConflict, setCaseData, setOrchSections, isOrchestrationMode, t, i18n.language, pendingPartsRef, baseDraftRef, onMergeReview, confirmWarnings]);
 
   // ── Restore on load ──────────────────────────────────────────────────
   // Batch 431 (Pete: the saved case is the single source of truth): the
@@ -194,6 +255,8 @@ export function useOrchestratorDraft({
 
     let restored: OrchestratorSection[] | null = null;
     const fromCase = (caseData as CaseWithOrchSections | null)?.orchSections;
+    // PS-71 (Batch 458): the draft as loaded, the base for merging a later save.
+    if (caseData) baseDraftRef.current = caseDraftUpdates(caseData, fromCase ?? []);
     if (Array.isArray(fromCase) && fromCase.length > 0) {
       restored = fromCase;
     }

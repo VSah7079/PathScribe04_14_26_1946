@@ -1,6 +1,7 @@
+import { useOpenCaseGuarded } from '@/hooks/useOpenCase';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { useNavigate } from 'react-router';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
 import { useVoice } from '../../contexts/VoiceProvider';
@@ -9,7 +10,9 @@ import { mockOnDemandCaseFetchService } from '@/services/cases/mockOnDemandCaseF
 import { useEnabledIdentifierFormats } from '../../hooks/useEnabledIdentifierFormats';
 import { useAuditLog } from '../Audit/useAuditLog';
 import { useAuth } from '../../contexts/AuthContext';
-import { supportReferenceService } from '@/services';
+import { flagService, supportReferenceService } from '@/services';
+import { searchHitFlags } from '@/services/caseSearch/searchHitFlags';
+import type { Flag } from '@/services/flags/IFlagService';
 import { isSupportReference } from '@/services/supportReferences/supportReferenceRules';
 import type { IdentifierFormat } from '../../types/systemConfig';
 
@@ -102,6 +105,8 @@ async function lookupCases(
     // Access control is enforced server-side; the search bar is a
     // clinical lookup tool, not a worklist filter.
     const all: any[] = await caseRouter.listCasesForUser('all');
+    const flagDefs = await flagService.getAll().catch(() => null);
+    const flagDefById = new Map<string, Flag>(flagDefs && flagDefs.ok ? flagDefs.data.map(f => [f.id, f]) : []);
     const hits: CaseHit[] = [];
     const qNorm = q.toUpperCase().replace(/[\s-]/g, '');
 
@@ -189,9 +194,8 @@ async function lookupCases(
           facilityName:  cas.order?.facilityName ?? '—',
           specimenCount: (cas.specimens ?? []).length,
           assignedTo:    cas.order?.assignedTo ?? '—',
-          flags:         ((cas as any).flags ?? [])
-                           .filter((f: any) => f.tagClass === 'ADMINISTRATIVE' || f.tagClass === 'COMPUTATIONAL')
-                           .slice(0, 4),
+          // Batch 436 (PS-101): from caseFlags (it read `flags`, which no case has).
+          flags:         searchHitFlags(cas as { caseFlags?: unknown[] }, flagDefById),
           matchScore:    (cas as any).__matchScore ?? 1,
           matchedValue:  (cas as any).__matchedValue ?? '',
         });
@@ -265,7 +269,9 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
   const [hits,       setHits]       = useState<CaseHit[]>([]);
   const [notFound,   setNotFound]   = useState(false);
   const inputRef    = useRef<HTMLInputElement>(null);
-  const navigate    = useNavigate();
+  // PS-128 (Batch 437): opening a case goes through the unsaved-changes guard.
+  const navigate    = useGuardedNavigate();
+  const openCasePage = useOpenCaseGuarded();
 
   const { log } = useAuditLog();
   const { user } = useAuth();
@@ -295,7 +301,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       setSearching(false);
       if (!found.ok) { setNotFound(true); setTimeout(() => setNotFound(false), 3000); return; }
       setCaseNumber('');
-      navigate(found.data.kind === 'case' ? `/case/${found.data.recordId}/synoptic` : `/audit?supportRef=${found.data.ref}`);
+      if (found.data.kind === 'case') void openCasePage(found.data.recordId); else navigate(`/audit?supportRef=${found.data.ref}`);
       return;
     }
 
@@ -318,7 +324,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
         // during that session are instant."
         await caseRouter.createCase(fetchResult.data.caseData);
         log('case_fetched_on_demand_from_lis', { query: q, caseId: fetchResult.data.caseData.id });
-        navigate(`/case/${fetchResult.data.caseData.id}/synoptic`);
+        void openCasePage(fetchResult.data.caseData.id, 'synoptic');
         setCaseNumber('');
         return;
       }
@@ -332,14 +338,14 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
 
     // Auto-navigate if: single result AND (caller says ok OR format is direct-nav e.g. slide barcode)
     if (results.length === 1 && (autoNavOnSingle || autoNav)) {
-      navigate(`/case/${results[0].id}/synoptic`);
+      void openCasePage(results[0].id, 'synoptic');
       setCaseNumber('');
       return;
     }
 
     // Multiple matches or non-direct format — show dropdown
     setHits(results);
-  }, [navigate, activeFormats, log, user]);
+  }, [navigate, openCasePage, activeFormats, log, user]);
 
   // ── Scanner events ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -404,7 +410,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       accession: hit.accession,
       matchedField: hit.matchedValue || undefined,
     });
-    navigate(`/case/${hit.id}/synoptic`);
+    void openCasePage(hit.id, 'synoptic');
     setCaseNumber('');
     setHits([]);
   };

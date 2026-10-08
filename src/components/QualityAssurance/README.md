@@ -195,8 +195,9 @@ context, and renders real charts/tables client-side.
   `caseAccessControl.ts` itself documents.** It models the correct SHAPE
   of the access decision; it is not itself a security boundary against a
   modified client. Real server-side query enforcement is tracked as its
-  own backend requirement — see `backend-requirements-concurrency-security.md`
-  §11 — not yet built.
+  own backend requirement — the API server applies it on every query
+  (`docs/architecture/CASE_PRIVACY_MODEL.md`, PS-345; the backend-requirements
+  document once cited here was never written, PS-40).
 - **Two ID systems, genuinely different, both real:** `order.clientId`
   (the referring provider who sent a case to the lab) and
   `Case.originHospitalId` → `Organisation.id` (the lab organisation
@@ -271,6 +272,47 @@ The cytology QA tab's registry transmission audit adds three columns: Sent, Regi
 ## Batch 432
 
 Access Request Response: pending requests have a Deny button (reason required; the requester gets a message). Denying needs the permission that gives that access: pool `config:staff:edit`; pediatric and Orchestration `config:staff-access:assign`.
+
+## Batch 436 (PS-40)
+
+The citation of `backend-requirements-concurrency-security.md` (never written) now points at `docs/architecture/CASE_PRIVACY_MODEL.md`. The same correction is in `services/auth/` and `services/organisation/` READMEs.
+
+## Batch 437
+
+Printing the cytology–histology correlation view is audited (PS-282).
+
+## Batch 438
+
+- `CapaRecommendationsTab.tsx`: the QA lead's queue. Confirm needs an owner (and takes an optional note); Dismiss needs a reason. Both are `CapabilityButton`s on `qa:capa-recommendation:decide`. "Open the CAPA" goes to it in Operations.
+- `DriftCorrectionTab.tsx`: audit times read as UTC (they were stored without a zone and shown shifted by the viewer's offset); the CSV column says `Timestamp (UTC)`.
+
+## Batch 442 (PS-147)
+
+`QaTrendReviewsTab.tsx` is Quality Assurance → CAPA → **Discordance Patterns**, the Lab Director's list:
+- Opening it runs the evaluation.
+- Each pattern can have a review started, then be concluded with a CAPA (a note is required) or dismissed (a reason is required).
+- "Show every pathologist and specimen type" lists each group's numbers against its policy.
+- The tile shows only to holders of `qa:pathologist-trend:view`; the service checks too.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-216, PS-217)
+
+`CytologyQaTab.test.tsx`: the Post-Sign-Out Peer Review and Secondary Screening Audit tiles fetch and show their reports for the chosen scope.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`CytologyQaTab.test.tsx` extended: every report tile, the new tables' figures, the aggregate card and the registry selector (PS-204). `InspectionModeTab`: the binder's CSV rows moved to `services/quality/resolveQaEvidenceBinder.ts` (`qaEvidenceBinderCsvRows`); one-click export (refused without `qa:inspection-evidence:export`) and drill-down tested (PS-121). Jurisdiction badges now use `t('jurisdictionNames.*')`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+New `FollowUpTab.tsx`: Operations → Follow-up not received. It covers the filters, the summary tiles, the outcome dialog, the clinician email dialog (reviewed and edited before Send) and the CSV download. Accessions and the email fields are tagged `data-phi`. Test: `FollowUpTab.test.tsx`.
+
+## Batch 459
+
+`CytologyQaTab.tsx`: new "Primary vs Final Diagnosis" tile (🎯, report key `final-dx`). It loads `getPrimaryVsFinalDiagnosisReport` for the selected scope and shows it as an agreement report card (PS-152). `CytologyQaTab.test.tsx` covers the tile.
 
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

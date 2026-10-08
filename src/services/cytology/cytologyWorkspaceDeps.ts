@@ -5,6 +5,7 @@
 // here so CytologyScreeningPage.tsx doesn't import them (deployment-neutral UI).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { materialEventBus } from '../material/materialEvents';
 import type { CytologyWorkspaceDeps } from './cytologyWorkspacePorts';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { caseRouter } from '../cases/CaseRouter';
@@ -48,10 +49,14 @@ export const cytologyWorkspaceDeps: CytologyWorkspaceDeps = {
   now: () => new Date(),
   random: () => Math.random(),
   newId: () => Date.now().toString(36),
+  // Batch 453: decants through the atomic, versioned material save.
+  saveDecantChange: async (caseId, change, expectedVersion) => (await import('../material/caseMaterialService')).applyDecantChangeLive(caseId, change, expectedVersion),
+  publishMaterialEvent: event => materialEventBus.publish(event),
 
   getCase: (caseId, userId) => caseRouter.getCase(caseId, userId),
   getAllCases: filter => caseRouter.getAll(filter as any) as any,
-  updateCase: (caseId, patch) => caseRouter.updateCase(caseId, patch as any),
+  // PS-71 (Batch 458): forwards the version the change was built from.
+  updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   listCasesForUser: userId => caseRouter.listCasesForUser(userId),
   returnToCytologyPool: caseData => applyPoolRouting(caseData, '1', 'Cytology'),
 

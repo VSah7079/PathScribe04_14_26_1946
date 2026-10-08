@@ -18,9 +18,9 @@
 // `r.type`/`r.status` themselves (the persisted enum values) are never
 // touched.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { accessRequestService } from '@/services';
@@ -67,7 +67,7 @@ function accessRequestMatchesScope(r: AccessRequest, scope: QaScope): boolean {
 
 export const AccessRequestResponseTab: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,7 +222,7 @@ export const AccessRequestResponseTab: React.FC = () => {
           <tbody>
             {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{t('accessRequestResponseTab.noPendingMessage')}</td></tr>}
             {pending.map(r => (
-              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => navigate(`/case/${r.caseId}/synoptic`) : undefined}>
+              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => void openCasePage(r.caseId, 'synoptic') : undefined}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
                 <td className="ps-conf-td">{r.requestingUserName}</td>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId ?? <span className="ps-conf-td--muted-italic">—</span>}</td>
@@ -255,7 +255,7 @@ export const AccessRequestResponseTab: React.FC = () => {
           <tbody>
             {resolved.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('accessRequestResponseTab.noResolvedMessage')}</td></tr>}
             {resolved.map(r => (
-              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => navigate(`/case/${r.caseId}/synoptic`) : undefined}>
+              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => void openCasePage(r.caseId, 'synoptic') : undefined}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
                 <td className="ps-conf-td">{r.requestingUserName}</td>
                 <td className={`ps-conf-td ${r.status === 'granted' ? 'ps-accessreq-status--granted' : 'ps-accessreq-status--denied'}`}>{t(STATUS_LABEL_KEY[r.status as 'granted' | 'denied'])}</td>

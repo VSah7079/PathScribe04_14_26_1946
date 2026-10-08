@@ -110,6 +110,14 @@ Before, anyone who could open Configuration could change this; now each change i
 
 Recording a service log entry (`mockEquipmentLogService.add`) needs `equipment:maintenance:record`, its own capability now (Pete), held by Histotechnologist, Cytotechnologist and Molecular Technologist as well as Admin and Lab Director. Adding or changing equipment still needs `config:equipment:manage`.
 
+## Batch 434
+
+Three slide scanners are seeded (kind `slide_scanner`, Desert Valley Medical Center): `APERIO_GT450_01`, `APERIO_GT450_02`, `GENIUS_01`. WSI scan batches and the Slide Distribution Station's Digital destination now pick scanners from the register; the code is what the slide and the batch carry.
+
+## Batch 467 — In-house molecular orders
+
+Seed `inst-pcr-01` (PCR_01, "Real-time PCR 1", QuantStudio 5) at Desert Valley: the EGFR plate's instrument.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

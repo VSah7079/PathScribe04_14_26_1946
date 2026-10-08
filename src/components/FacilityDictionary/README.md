@@ -197,5 +197,13 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 Facility editor: a Spelling tab for performing labs (edit mode) lists the lab's spelling dictionary, with add and remove (`config:facilities:manage`, audited).
 
+## Batch 433
+
+General tab: **Charges need billing approval**, shown for a performing lab or an enterprise. An enterprise picks On or Off; a lab picks Same as the enterprise, On or Off (`services/billing/chargeApproval.ts` choice helpers). Tests in `FacilityEditorModal.test.tsx`.
+
+## Batch 437
+
+Filter boxes are marked `data-dirty-ignore` (PS-128).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

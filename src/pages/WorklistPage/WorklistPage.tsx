@@ -1,11 +1,12 @@
 // src/pages/WorklistPage/WorklistPage.tsx
+import { useOpenCase } from '@/hooks/useOpenCase';
 import { useReviewQueueCounts } from '@/hooks/useReviewQueueCounts';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { externalResourceService, facilityService, actionRegistryService, wsiScanBatchService, aiScreeningResultService, specimenDictionaryService } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
-import { getSessionUser, resolvePediatricAccess, resolveOrchestrationAccess } from '@/services/auth/caseAccessControl';
+import { getSessionUser } from '@/services/auth/caseAccessControl';
 import type { Case } from '@/types/case/Case';
 import { useNavigate, useLocation } from 'react-router';
 import { useLogout } from '@hooks/useLogout';
@@ -17,12 +18,11 @@ import { useAuditLog } from '../../components/Audit/useAuditLog';
 import { PoolClaimModal } from '../../components/Worklist/PoolClaimModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
-import { getFacilityDateParts } from '@/utils/facilityTime';
-import { isUrgentCase } from '@/utils/caseUrgency';
 import { AmendedAddendaTriageTile } from './AmendedAddendaTriageTile';
 import { PendingGrossingTriageTile } from './PendingGrossingTriageTile';
 import { flagService }    from '@/services';
-import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService } from '@/services';
+import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService, peerReviewService, loadCytologyReviewTray, takeCytologyReview, loadFollowUpCaseIdsForUser } from '@/services';
+import ConfirmModal from '@/components/Common/ConfirmModal';
 import { pendingDelegationsTo } from '@/services/delegations/delegationRules';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
 import type { WsiScanSlide } from '@/services/digitalPathology/IWsiScanBatchService';
@@ -31,8 +31,7 @@ import { worklistViews, resolveWorklistView, type WorklistView } from '@/service
 import { useCapabilities } from '@/hooks/useCapabilities';
 import CytologyQcQueuePage from '../CytologyQcQueuePage';
 import SurgicalQaWorklistPage from '../SurgicalQaWorklistPage';
-import { resolveCaseHasSpecimenCategory } from '@/services/specimenDictionary/resolveCaseHasSpecimenCategory';
-import { resolveCaseDisciplineBranch } from '@/services/specimenDictionary/resolveCaseDisciplineBranch';
+import { computeWorklistTileCounts, filterWorklistCases, type WorklistCountDeps } from '@/services/worklist/worklistTileCounts';
 import { caseViewTrackingService } from '@/services';
 import { SlideDetailDrawer } from '@/components/Worklist/SlideDetailDrawer';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
@@ -86,6 +85,9 @@ const FILTER_LABEL_KEY: Record<string, string> = {
   finalizing:    'worklistPage.filterLabel.finalizing',
   amended:       'worklistPage.filterLabel.amended',
   informalreview: 'worklistPage.filterLabel.informalreview',
+  peerreview:    'worklistPage.filterLabel.peerreview',
+  followup:      'worklistPage.filterLabel.followup',
+  cytologyreview: 'worklistPage.filterLabel.cytologyreview',
   completed:     'worklistPage.filterLabel.completed',
   physician:     'worklistPage.filterLabel.physician',
   accessioned:   'worklistPage.filterLabel.accessioned',
@@ -120,6 +122,7 @@ const WorklistPage: React.FC = () => {
   // case-open event gets logged here), not something intentionally
   // left out.
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const location  = useLocation();
 
   // Batch 396: synopticLoader.ts and FullReportPage.tsx no longer redirect
@@ -167,7 +170,7 @@ const WorklistPage: React.FC = () => {
   }, [branchFilter]);
 
   // activeFilter:  which sub-filter within that context
-  const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases'>('all');
+  const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'peerreview' | 'cytologyreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases' | 'followup'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
 
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
@@ -213,6 +216,17 @@ const WorklistPage: React.FC = () => {
   // above (which tracks amendment/addendum/correction work, not
   // informal peer-review asks).
   const [informalReviewCaseIds, setInformalReviewCaseIds] = useState<Set<string>>(new Set());
+  // Batch 439 (PS-144): cases with a peer review waiting on this pathologist
+  // (their independent read, or a consensus they are part of).
+  const [peerReviewCaseIds, setPeerReviewCaseIds] = useState<Set<string>>(new Set());
+  // Batch 454: my signed-out cases with a follow-up due soon or overdue.
+  const [followUpCaseIds, setFollowUpCaseIds] = useState<Set<string>>(new Set());
+  // Batch 440: positive GYN cytology waiting for a pathologist — the open
+  // ones anyone may take, plus the viewer's own (loadCytologyReviewTray).
+  // Kept apart from realCases so open cases don't join the viewer's All list.
+  const [cytologyReviewCases, setCytologyReviewCases] = useState<Case[]>([]);
+  const [cytologyReviewState, setCytologyReviewState] = useState<Map<string, 'open' | 'mine'>>(new Map());
+  const [cytologyTake, setCytologyTake] = useState<{ caseId: string; error?: string } | null>(null);
   const [physicianFilter, setPhysicianFilter] = useState<string>('');
   const [physicianPrompt, setPhysicianPrompt] = useState<string | null>(null);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
@@ -243,28 +257,9 @@ const WorklistPage: React.FC = () => {
     }).catch(() => {});
   }, []);
 
-  // Load cases via the unified CaseRouter (routes LIS / Orchestrator by case ID prefix)
-  // Also load client pediatric thresholds so we can filter cases the user can't access
-  const [clientThresholds, setClientThresholds] = useState<Record<string, number | null>>({});
-  const [clientAuthorized, setClientAuthorized] = useState<Record<string, string[]>>({});
-  const [thresholdsLoaded, setThresholdsLoaded] = useState(false);
-  useEffect(() => {
-    import('@/services').then(({ facilityService }) => {
-      facilityService.getAll().then(res => {
-        if (!res.ok) return;
-        const threshMap: Record<string, number | null> = {};
-        const authMap: Record<string, string[]> = {};
-        for (const c of res.data) {
-          threshMap[c.id] = (c as any).pediatricAgeThreshold ?? null;
-          authMap[c.id] = (c as any).authorizedPediatricPathologistIds ?? [];
-        }
-        setClientThresholds(threshMap);
-        setClientAuthorized(authMap);
-        setThresholdsLoaded(true);
-      }).catch(() => setThresholdsLoaded(true));
-    });
-  }, [location.key]);
-
+  // Load cases via the unified CaseRouter (routes LIS / Orchestrator by case ID prefix).
+  // Batch 452: the facility pediatric thresholds loaded here only fed the
+  // tile counts' access check, which is gone (counts match the redacted rows).
   useEffect(() => {
     // Load cases from both services via the unified router
     caseRouter.listCasesForUser(user?.id ?? 'current')
@@ -357,6 +352,49 @@ const WorklistPage: React.FC = () => {
     }).catch(() => {});
   }, [user?.id, location.key]);
 
+  useEffect(() => {
+    if (!user?.id) { setPeerReviewCaseIds(new Set()); return; }
+    peerReviewService.getOpenForUser(user.id).then(res => {
+      if (res.ok) setPeerReviewCaseIds(new Set(res.data.map(r => r.caseId)));
+    }).catch(() => {});
+  }, [user?.id, location.key]);
+
+  useEffect(() => {
+    if (!user?.id) { setFollowUpCaseIds(new Set()); return; }
+    loadFollowUpCaseIdsForUser(user.id).then(setFollowUpCaseIds).catch(() => {});
+  }, [user?.id, location.key]);
+
+  const canTakeCytologyReview = capabilities.has('cytology:pathologist-review:take');
+  const refreshCytologyReview = useCallback(() => {
+    if (!user?.id || !canTakeCytologyReview) { setCytologyReviewCases([]); setCytologyReviewState(new Map()); return; }
+    loadCytologyReviewTray(user.id).then(refs => {
+      setCytologyReviewCases(refs.map(r => r.caseData));
+      setCytologyReviewState(new Map(refs.map(r => [r.caseData.id, r.state])));
+    }).catch(() => {});
+  }, [user?.id, canTakeCytologyReview]);
+  useEffect(() => { refreshCytologyReview(); }, [refreshCytologyReview, location.key]);
+
+  // A Cytology Review case opens in the Cytology Workspace; an open one is taken first.
+  const openCytologyReviewCase = useCallback((caseId: string): boolean => {
+    const state = cytologyReviewState.get(caseId);
+    if (!state) return false;
+    if (state === 'mine') void openCasePage(caseId, 'cytology');
+    else setCytologyTake({ caseId });
+    return true;
+  }, [cytologyReviewState, navigate]);
+  const confirmCytologyTake = async () => {
+    if (!cytologyTake) return;
+    const res = await takeCytologyReview(cytologyTake.caseId);
+    if (res.ok === false) {
+      setCytologyTake({ caseId: cytologyTake.caseId, error: t(`worklistPage.cytologyReview.errors.${res.error}`, { defaultValue: t('worklistPage.cytologyReview.errors.generic') }) });
+      refreshCytologyReview();
+      return;
+    }
+    const caseId = cytologyTake.caseId;
+    setCytologyTake(null);
+    void openCasePage(caseId, 'cytology');
+  };
+
   // Real fix, per direct follow-up: "A case could be sitting in the
   // queue for an informal review." Confirmed directly: delegatedCaseIds
   // / amendmentAddendaCaseIds / informalReviewCaseIds were only ever
@@ -377,6 +415,8 @@ const WorklistPage: React.FC = () => {
       ...delegatedCaseIds,
       ...amendmentAddendaCaseIds.keys(),
       ...informalReviewCaseIds,
+      ...peerReviewCaseIds,
+      ...followUpCaseIds,
     ]);
     const existingIds = new Set(realCases.map(c => c.id));
     const missingIds = [...referencedIds].filter(id => id && !existingIds.has(id));
@@ -392,7 +432,7 @@ const WorklistPage: React.FC = () => {
         });
       })
       .catch(() => {});
-  }, [delegatedCaseIds, amendmentAddendaCaseIds, informalReviewCaseIds, realCases, user?.id]);
+  }, [delegatedCaseIds, amendmentAddendaCaseIds, informalReviewCaseIds, peerReviewCaseIds, followUpCaseIds, realCases, user?.id]);
 
   // Batch 431: the "access requested" badges come from the person's own
   // pending access requests (WorklistTable.tsx), so the browser markers this
@@ -477,347 +517,43 @@ const WorklistPage: React.FC = () => {
   }, [displayOrder]); // fires once displayOrder arrives from the table
 
 
-  // Returns true if the current user is allowed to see this case. Real,
-  // per direct investigation: delegates to caseAccessControl.ts's
-  // resolvePediatricAccess/resolveOrchestrationAccess — the same real
-  // functions synopticLoader.ts and FullReportPage.tsx now enforce
-  // against — rather than its own, separate implementation. This used
-  // to independently re-implement the same Option C pediatric gate with
-  // OR instead of the documented AND (Facility.
-  // authorizedPediatricPathologistIds's own doc comment, IFacilityService.ts:
-  // "Both this AND canViewPediatric... must be true") — exactly the kind
-  // of drift a single, shared source of truth prevents.
-  const canViewCase = React.useCallback((c: any): boolean => {
-    if (!thresholdsLoaded) return false;
-
-    if (!resolveOrchestrationAccess(user as any, c).granted) return false;
-
-    const facilityId = c?.order?.facilityId;
-    const facility = facilityId ? {
-      id: facilityId,
-      pediatricAgeThreshold: clientThresholds[facilityId] ?? null,
-      authorizedPediatricPathologistIds: clientAuthorized[facilityId] ?? [],
-    } : null;
-    return resolvePediatricAccess(user as any, c, facility).granted;
-  }, [thresholdsLoaded, user, clientThresholds, clientAuthorized]);
-
-  // Split by reporting mode
-  const lisCases  = React.useMemo(() => realCases.filter(c => (c as any).reportingMode !== 'orchestrator'), [realCases]);
-  const orchCases = React.useMemo(() => realCases.filter(c => (c as any).reportingMode === 'orchestrator'),  [realCases]);
-
-  // filteredCases (below) handles the LIS/Outreach split explicitly —
-  // a prior displayCases = realCases variable was fully superseded by
-  // it and has been removed.
-
-  // Outreach sub-counts (always from orchCases regardless of active filter)
-  const orchAssignedCount = React.useMemo(() => orchCases.filter(c => c.status !== 'pool').length,                                    [orchCases]);
-  const orchUrgentCount   = React.useMemo(() => orchCases.filter(c => isUrgentCase(c) && c.status !== 'pool').length, [orchCases]);
-  const orchPoolCount     = React.useMemo(() => orchCases.filter(c => c.status === 'pool').length,                                    [orchCases]);
-  const hasUrgentPool     = React.useMemo(() => orchCases.some(c => c.status === 'pool' && isUrgentCase(c)),             [orchCases]);
-  // Real fix (PS-305) — same real mismatch as lisTotalCount below,
-  // Outreach side: the Outreach tile is meant to answer "how many
-  // cases are in the Outreach queue, period," same question "All
-  // Cases" answers while contextFilter === 'outreach'.
-  const orchTotalCount    = orchAssignedCount + orchPoolCount;
-
-  // Source cases — driven by contextFilter (which worklist is "home")
-  const sourceCases = contextFilter === 'outreach' ? orchCases : lisCases;
-
-  // Real fix (PS-307 — "Worklist filter counts are incorrect"):
-  // confirmed live — filteredCases (below) applies the branch check
-  // (Surg Path/Cytology/Autopsy) UNCONDITIONALLY, before any status
-  // filter, so picking e.g. Surg Path and then clicking the Urgent
-  // tile only ever showed Surg Path's urgent cases. But every status
-  // tile's own count (Urgent, Pool, Countersign, Needs Revision,
-  // etc.) was computed straight from sourceCases/statsCases — the
-  // real, full, branch-UNfiltered population — so the tile could read
-  // "7" while clicking it showed 4 rows, with zero indication the
-  // other 3 belonged to a different branch. Branch-scoping this one
-  // shared array (rather than each individual count) fixes every
-  // status tile in the row at once, the same way sourceCases itself
-  // already does for contextFilter. Deliberately NOT applied to
-  // stats.allBranches/surgpathBranch/cytologyBranch/autopsy (the
-  // branch TAB counts themselves, further below) — those must keep
-  // counting every branch, unfiltered, or all four tabs would
-  // collapse to the same number the moment one was selected.
-  const branchFilteredSourceCases = React.useMemo(
-    () => branchFilter === 'all'
-      ? sourceCases
-      : sourceCases.filter(c => resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) === branchFilter),
-    [sourceCases, branchFilter, specimenDictionary],
-  );
-
-  // Real count for the countersign filter tab — derived from already-
-  // loaded case data, same as the filter branch itself; no separate
-  // fetch needed.
-  const countersignPendingCount = useMemo(
-    () => branchFilteredSourceCases.filter((c: any) => c.status === 'pending-countersign'
-      && c?.participants?.some((p: any) => p.status === 'active' && p.staffId === user?.id && p.participationTypeIds?.includes('attending'))
-    ).length,
-    [branchFilteredSourceCases, user?.id]
-  );
-
-  // Real feature, per direct specification: Post-Sign-Out Release
-  // Buffer. Scoped to the current user's own signed cases
-  // (caseData.finalizedBy — the real signer, per the Phase 4 fix that
-  // gates the actual Recall action the same way), same reasoning as
-  // countersignPendingCount immediately above: a system-wide count of
-  // every pending-release case wouldn't be actionable for this
-  // specific viewer, since only the real signer can recall one.
-  const pendingReleaseCount = useMemo(
-    () => branchFilteredSourceCases.filter((c: any) => c.status === 'pending-release' && c.finalizedBy === user?.id).length,
-    [branchFilteredSourceCases, user?.id]
-  );
-
-  // Real, per direct guidance ("Yes we should scope 'Return to
-  // Trainee'/'Reject with Notes'... one unified tile instead of
-  // two"): deliberately counts BOTH real sides of the same real
-  // event — cases returned TO this user (they're the resident,
-  // order.assignedTo now points back to them via
-  // syncPrimaryAssignee()) OR returned BY this user (they're the
-  // attending who sent it back, still awaiting the resident's
-  // revision). A given viewer is usually only ever on one side for
-  // any real case, but the same real filter/tile correctly serves
-  // both.
-  const needsRevisionCount = useMemo(
-    () => branchFilteredSourceCases.filter((c: any) => c.status === 'returned'
-      && (c.order?.assignedTo === user?.id || c.returnedBy === user?.id)
-    ).length,
-    [branchFilteredSourceCases, user?.id]
-  );
-
-  // filteredCases — applies sub-filter within the current context
-  // thresholdsLoaded + clientThresholds must be deps since canViewCase gates on them.
-  const filteredCases = React.useMemo(() => {
-    return sourceCases.filter(c => {
-      // Real, per direct follow-up ("Surg Path, Cytology and
-      // Autopsy... almost belong together") — an independent, real
-      // constraint that combines with (never replaces) the status
-      // filter below: a real case must match both the selected
-      // branch AND the selected status to appear at all.
-      if (branchFilter !== 'all' && resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) !== branchFilter) {
-        return false;
-      }
-      // Deliberately NOT excluding restricted cases here (canViewCase used to
-      // gate this, fully hiding them) — a case the user can't view still
-      // needs to appear, redacted, in WorklistTable so they can actually see
-      // it exists and use the request-access flow. A fully-excluded case can
-      // never be requested. WorklistTable's isRestricted/restrictionKind
-      // already handle redaction for both pediatric and Orchestration; this
-      // list just needs to let them through.
-      if (activeFilter === 'pool')       return c.status === 'pool';
-      if (activeFilter === 'all')        return true;
-      // Real, per direct follow-up recalling a real, prior
-      // requirement ("I do not want to send the Pathologist to
-      // multiple worklist") — deliberately placed BEFORE the pool
-      // catch-all line right below, so a real pool case that
-      // qualifies isn't silently excluded before ever reaching this
-      // check. "Their assigned cases and pool cases... related to
-      // those" means both real statuses genuinely qualify here.
-      if (activeFilter === 'gyncyto')    return resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'GYN_CYTOLOGY');
-      if (activeFilter === 'nongyncyto') return resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'NON_GYN_CYTOLOGY');
-      if (activeFilter === 'autopsy')    return !!(c as any).autopsy;
-      // Real, per direct follow-up recalling the messaging system's
-      // own unread pattern — same real "before the pool catch-all"
-      // placement as the specialty filters above, so a real new pool
-      // case genuinely counts.
-      if (activeFilter === 'newcases')   return !viewedCaseIds.has(c.id);
-      if (c.status === 'pool')           return activeFilter === 'urgent' && isUrgentCase(c);
-      if (activeFilter === 'urgent')     return isUrgentCase(c);
-      if (activeFilter === 'draft')      return c.status === 'draft';
-      if (activeFilter === 'inprogress') return c.status === 'in-progress';
-      if (activeFilter === 'amended')    return amendmentAddendaCaseIds.has(c.id);
-      if (activeFilter === 'informalreview') return informalReviewCaseIds.has(c.id);
-      if (activeFilter === 'accessioned')   return c.status === 'accessioned';
-      if (activeFilter === 'grosscomplete') return c.status === 'gross-complete';
-      if (activeFilter === 'onhold')        return (c.caseHolds ?? []).some(h => h.active);
-      // Real, per direct follow-up ("I want a DP Tile to filter away
-      // non DP cases") — a real case counts as DP-relevant when it
-      // has real digital slide data, a real AI screening result, or
-      // both; never a fabricated distinction between the two.
-      if (activeFilter === 'dp')            return wsiSlidesByCaseId.has(c.id) || dpResultByCaseId.has(c.id);
-      if (activeFilter === 'physician')  return (c.order?.requestingProvider ?? '').toLowerCase().includes(physicianFilter.toLowerCase());
-      // Real fix: this branch previously only checked c.status ===
-      // 'finalized' with no real "today" restriction at all, despite
-      // this filter's own title being "Completed Today" - the visible
-      // table happened to look correct anyway, since WorklistTable's
-      // own, separate filteredCases memo re-filters this same list a
-      // second time with the real, correct facility-timezone "today"
-      // check. But THIS filteredCases (not WorklistTable's) is also
-      // used directly below for voice navigation (next/previous/first/
-      // last case) and the worklistCaseIds passed to the report page -
-      // both of which were silently operating over every finalized
-      // case ever, not just today's, whenever this filter was active.
-      // Matches the same real logic as stats.completedToday above.
-      if (activeFilter === 'completed') {
-        if (c.status !== 'finalized' || !c.updatedAt) return false;
-        const updateParts = getFacilityDateParts(c.updatedAt, config.facilityTimezone);
-        const todayParts = getFacilityDateParts(new Date(), config.facilityTimezone);
-        return updateParts.year === todayParts.year &&
-               updateParts.month === todayParts.month &&
-               updateParts.day === todayParts.day;
-      }
-      // Real fix found while adding the countersign filter below: this
-      // branch was missing entirely — the "Delegated to Me" tab showed a
-      // real count badge (delegatedToMeCount, delegatedCaseIds both
-      // genuinely fetched above) but selecting it fell through to
-      // `return true` and showed every case, not just delegated ones.
-      if (activeFilter === 'delegated')  return delegatedCaseIds.includes(c.id);
-      // Cases genuinely awaiting THIS user's countersign — real case
-      // data already has everything needed (status + participants[]),
-      // no separate countersignService fetch required for this filter.
-      if (activeFilter === 'countersign') return c.status === 'pending-countersign'
-        && (c as any)?.participants?.some((p: any) => p.status === 'active' && p.staffId === user?.id && p.participationTypeIds?.includes('attending'));
-      // Real feature, per direct specification: Post-Sign-Out Release
-      // Buffer. Same real scoping reasoning as pendingReleaseCount's
-      // own comment above.
-      if (activeFilter === 'pendingrelease') return c.status === 'pending-release' && (c as any).finalizedBy === user?.id;
-      // Real, per direct guidance: same real dual-sided scoping as
-      // needsRevisionCount above.
-      if (activeFilter === 'needsrevision') return c.status === 'returned'
-        && ((c as any).order?.assignedTo === user?.id || (c as any).returnedBy === user?.id);
-      return true;
-    });
-  }, [sourceCases, activeFilter, physicianFilter, amendmentAddendaCaseIds, informalReviewCaseIds, delegatedCaseIds, user?.id, config.facilityTimezone, branchFilter, specimenDictionary, wsiSlidesByCaseId, dpResultByCaseId, viewedCaseIds]);
-
-  // Stats — always from sourceCases so tile counts match the current context.
-  // Real fix (PS-307): branch-scoped, same real reasoning and same
-  // shared array as branchFilteredSourceCases above — every status
-  // tile (Pool, Urgent, New Cases, etc.) reads from this so its count
-  // matches what selecting it actually shows once a Surg Path/
-  // Cytology/Autopsy branch is also selected. The three branch TAB
-  // counts (surgpathBranch/cytologyBranch/allBranches, and the
-  // Autopsy tab's own `autopsy` field) below deliberately use
-  // statsCasesAllBranches instead, unfiltered — they're what a real
-  // Surg Path/Cytology/Autopsy/All Cases choice would each total, so
-  // filtering them by whichever branch happens to be selected right
-  // now would collapse all four tabs to the same number.
-  const statsCasesAllBranches = sourceCases;
-  const statsCases   = branchFilteredSourceCases;
-  // Real, per direct follow-up recalling the messaging system's own
-  // "unread + urgent → red" pattern (AppShell.tsx's own ps-unread-urgent).
-  const hasUrgentNewCase = React.useMemo(
-    () => statsCases.some(c => canViewCase(c) && !viewedCaseIds.has(c.id) && isUrgentCase(c)),
-    [statsCases, viewedCaseIds],
-  );
-  const nonPoolStats = React.useMemo(() => statsCases.filter(c => c.status !== 'pool' && canViewCase(c)),
-    [statsCases, canViewCase]);
-  // Urgent cases sitting in the pool — previously invisible in the
-  // Urgent tile's own count entirely (stats.urgent below deliberately
-  // excludes pool cases, same as every other tile). A real, confirmed
-  // gap: the tile could read "4" with 2 more urgent cases waiting,
-  // unassigned, with zero indication they existed. Same statsCases
-  // source as the main urgent count, just the pool half of it.
-  //
-  // Real fix, per direct follow-up: this was previously named
-  // urgentRestrictedCount and displayed as "X Restricted" — genuinely
-  // misleading, since this app has a real, separate "Restricted
-  // Patient" concept (pediatric access gating) that this has nothing
-  // to do with. Renamed to say what it actually counts.
-  const urgentPoolCount = React.useMemo(
-    () => statsCases.filter(c => c.status === 'pool' && canViewCase(c) && isUrgentCase(c)).length,
-    [statsCases, canViewCase]);
-
-  // LIS counts — always fixed, never switch with context
-  const lisNonPool      = React.useMemo(() => lisCases.filter(c => c.status !== 'pool' && canViewCase(c)),
-    [lisCases, canViewCase]);
-  const lisNonPoolCount = lisNonPool.length;
-  const lisUrgentCount  = React.useMemo(() => lisNonPool.filter(c => isUrgentCase(c)).length, [lisNonPool]);
-  const lisPoolCount    = React.useMemo(() => lisCases.filter(c => c.status === 'pool').length, [lisCases]);
-  // Real fix (PS-305 — "Selecting 'LIS' filter should make LIS Cases
-  // count match total case count"): confirmed live — with the LIS
-  // filter active and the "All Cases" branch tab selected, the LIS
-  // Cases tile showed lisNonPoolCount (pool cases excluded) while the
-  // "All Cases" tab right next to it showed stats.allBranches, which
-  // is computed from the exact same sourceCases but WITHOUT excluding
-  // pool status — so the two adjacent numbers genuinely disagreed by
-  // however many cases sat in the LIS pool. Same real mismatch on the
-  // Outreach side (orchAssignedCount vs. stats.allBranches while
-  // contextFilter === 'outreach'). The LIS/Outreach tiles are meant to
-  // answer "how many cases are in this queue, period" — same question
-  // "All Cases" answers — so the tile itself was the wrong number, not
-  // the branch tab; fixed by having the tile add its own pool count
-  // back in rather than changing what "All Cases" counts (which also
-  // feeds the Surg Path/Cytology/Autopsy branch tabs and must keep
-  // including pool cases for THOSE to stay correct, per PS-306/307).
-  const lisTotalCount   = lisNonPoolCount + lisPoolCount;
-  const hasUrgentLisPool = React.useMemo(() => lisCases.some(c => c.status === 'pool' && isUrgentCase(c)), [lisCases]);
-  const stats = {
-    total:          nonPoolStats.length,
-    pool:           statsCases.filter(c => c.status === 'pool').length,
-    outreach:       orchCases.length,
-    urgent:         nonPoolStats.filter(c => isUrgentCase(c)).length,
-    inProgress:     nonPoolStats.filter(c => c.status === 'in-progress').length,
-    amended:        nonPoolStats.filter(c => amendmentAddendaCaseIds.has(c.id)).length,
-    informalReview: nonPoolStats.filter(c => informalReviewCaseIds.has(c.id)).length,
-    draft:          nonPoolStats.filter(c => c.status === 'draft').length,
-    finalizing:     nonPoolStats.filter(c => c.status === 'finalizing').length,
-    accessioned:    nonPoolStats.filter(c => c.status === 'accessioned').length,
-    grossComplete:  nonPoolStats.filter(c => c.status === 'gross-complete').length,
-    // Real feature, per direct follow-up: "add a tile in their
-    // worklist for Cases on Hold." Reads Case.caseHolds directly —
-    // the same real data every case already carries, no separate
-    // service query needed (unlike informalReviewCaseIds below, which
-    // does need one).
-    onHold:         nonPoolStats.filter(c => (c.caseHolds ?? []).some(h => h.active)).length,
-    // Real, per direct follow-up ("I want a DP Tile to filter away
-    // non DP cases") — same real dp-relevant test as the filter
-    // condition above, never a second, separate definition of
-    // "DP-relevant" that could drift from it.
-    dpRelevant:     nonPoolStats.filter(c => wsiSlidesByCaseId.has(c.id) || dpResultByCaseId.has(c.id)).length,
-    // Real, per direct follow-up recalling a real, prior requirement
-    // ("I do not want to send the Pathologist to multiple worklist")
-    // — deliberately computed from statsCases (the real, full,
-    // access-controlled set BEFORE pool exclusion), not nonPoolStats,
-    // since "their assigned cases and pool cases... related to
-    // those" means a real pool case genuinely counts here too —
-    // matching the same real base set the filter condition above
-    // uses, never a second, separate count that could drift from it.
-    gynCytology:    statsCases.filter(c => canViewCase(c) && resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'GYN_CYTOLOGY')).length,
-    nonGynCytology: statsCases.filter(c => canViewCase(c) && resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'NON_GYN_CYTOLOGY')).length,
-    // Real fix (PS-307): this `autopsy` field doubles as the Autopsy
-    // BRANCH TAB's own count (rendered next to All Cases/Surg Path/
-    // Cytology below), not a status-row tile, so — unlike every other
-    // field in this object — it deliberately reads from
-    // statsCasesAllBranches (branch-unfiltered), same real reasoning
-    // as cytologyBranch/surgpathBranch/allBranches just below.
-    autopsy:        statsCasesAllBranches.filter(c => canViewCase(c) && !!(c as any).autopsy).length,
-    // Real, per direct follow-up recalling the messaging system's
-    // own unread pattern — a real case counts as "new" when this
-    // real user has never opened it, computed from statsCases (the
-    // real, full, access-controlled set) so a real new pool case
-    // counts too, same real posture as the specialty tiles above.
-    newCases:       statsCases.filter(c => canViewCase(c) && !viewedCaseIds.has(c.id)).length,
-    // Real, per direct follow-up ("Surg Path, Cytology and
-    // Autopsy... almost belong together") — the real branch tab
-    // counts, computed the exact same way the branch filter itself
-    // classifies a case, never a second, separate definition. Real
-    // fix (PS-307): branch-UNfiltered (statsCasesAllBranches) is
-    // correct and unchanged here — these ARE the per-branch totals,
-    // so they must count every branch regardless of which one (if
-    // any) happens to be selected right now.
-    cytologyBranch: statsCasesAllBranches.filter(c => canViewCase(c) && resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) === 'cytology').length,
-    surgpathBranch: statsCasesAllBranches.filter(c => canViewCase(c) && resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) === 'surgpath').length,
-    // Real, per direct follow-up — the same, real pool-inclusive base
-    // population as the three branch counts above, so "All Cases"
-    // genuinely equals their real sum, never a different, smaller
-    // (nonPoolStats-based) total that would visibly not add up. Real
-    // fix (PS-307): also branch-UNfiltered (statsCasesAllBranches),
-    // same reasoning — "All Cases" must stay the real total across
-    // every branch no matter which branch tab is currently active,
-    // or selecting Surg Path would make "All Cases" itself shrink to
-    // the Surg Path count instead of staying the real grand total.
-    allBranches:    statsCasesAllBranches.filter(c => canViewCase(c)).length,
-    completedToday: nonPoolStats.filter(c => {
-      if (c.status !== 'finalized') return false;
-      if (!c.updatedAt) return false;
-      const updateParts = getFacilityDateParts(c.updatedAt, config.facilityTimezone);
-      const todayParts = getFacilityDateParts(new Date(), config.facilityTimezone);
-      return updateParts.year === todayParts.year &&
-             updateParts.month === todayParts.month &&
-             updateParts.day === todayParts.day;
-    }).length,
+  // Tile counts and the list each tile opens (PS-305/PS-307/PS-309) — the
+  // deciding logic lives in services/worklist/worklistTileCounts.ts, so a
+  // tile's count and its click are computed from the same rules.
+  // Batch 452: no access check here; counts include restricted cases,
+  // which the list shows as redacted rows (canViewCase decides the redaction).
+  const worklistCountDeps: WorklistCountDeps = {
+    specimenDictionary,
+    userId: user?.id,
+    viewedCaseIds,
+    amendmentAddendaCaseIds,
+    informalReviewCaseIds,
+    peerReviewCaseIds,
+    followUpCaseIds,
+    delegatedCaseIds,
+    wsiSlidesByCaseId,
+    dpResultByCaseId,
+    facilityTimezone: config.facilityTimezone,
+    now: new Date(),
   };
+
+  // filteredCases — context, then branch, then the active status filter.
+  const filteredCases = React.useMemo(
+    () => filterWorklistCases(
+      { cases: realCases, contextFilter, branchFilter, activeFilter, physicianFilter, cytologyReviewCases },
+      worklistCountDeps,
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [realCases, contextFilter, cytologyReviewCases, activeFilter, physicianFilter, amendmentAddendaCaseIds, informalReviewCaseIds, peerReviewCaseIds, followUpCaseIds, delegatedCaseIds, user?.id, config.facilityTimezone, branchFilter, specimenDictionary, wsiSlidesByCaseId, dpResultByCaseId, viewedCaseIds],
+  );
+
+  const tileCounts = computeWorklistTileCounts(
+    { cases: realCases, contextFilter, branchFilter, cytologyReviewCount: cytologyReviewCases.length },
+    worklistCountDeps,
+  );
+  const { stats, urgentPoolCount, hasUrgentNewCase, countersignPendingCount, pendingReleaseCount, needsRevisionCount } = tileCounts;
+  const { urgentCount: lisUrgentCount, poolCount: lisPoolCount, totalCount: lisTotalCount, hasUrgentPool: hasUrgentLisPool } = tileCounts.lis;
+  const { urgentCount: orchUrgentCount, poolCount: orchPoolCount, totalCount: orchTotalCount, hasUrgentPool } = tileCounts.outreach;
 
 
 
@@ -999,10 +735,11 @@ const WorklistPage: React.FC = () => {
       // hook does, never a second path that could leave voice-opened
       // cases permanently "new."
       if (user?.id) caseViewTrackingService.recordView(user.id, id);
+      if (activeFilter === 'cytologyreview' && openCytologyReviewCase(id)) return;
       if (activeFilter === 'informalreview') {
-        navigate(`/report/${id}`, { state: { fromFilter: activeFilter, openInternalNotes: true } });
+        void openCasePage(id, 'report', { state: { fromFilter: activeFilter, openInternalNotes: true } });
       } else {
-        navigate(`/case/${id}/synoptic`, { state: worklistState });
+        void openCasePage(id, 'synoptic', { state: worklistState });
       }
     };
 
@@ -1091,7 +828,7 @@ const WorklistPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_NAV_PREVIOUS_CASE',      prevCase);
       window.removeEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES',    openResources);
     };
-  }, [filteredCases, selectedIndex, navigate, realCases, selectedCaseId]);
+  }, [filteredCases, selectedIndex, navigate, realCases, selectedCaseId, activeFilter, openCytologyReviewCase]);
 
   // Batch 375: hoisted out of the JSX; the table now renders only in the case view, and a hook can't be conditional.
   const handleDisplayOrder = useCallback((ids: string[]) => setDisplayOrder(ids), []);
@@ -1373,6 +1110,11 @@ const WorklistPage: React.FC = () => {
                   // "Needs Review" tile used that green before it was
                   // removed) or grosscomplete's cyan.
                   { key: 'informalreview', label: activeFilter === 'informalreview' ? backToLabel : t(FILTER_LABEL_KEY.informalreview), count: stats.informalReview, color: '#8B5CF6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  activeBg: 'rgba(139,92,246,0.18)',  activeBorder: '#8B5CF6',  glow: '0 0 12px rgba(139,92,246,0.4)',  sublabel: undefined },
+                  // Batch 439 (PS-144): peer reviews waiting on this pathologist. Shown only when there are some.
+                  { key: 'peerreview', label: activeFilter === 'peerreview' ? backToLabel : t(FILTER_LABEL_KEY.peerreview), count: stats.peerReview, color: '#F59E0B', bg: 'rgba(245,158,11,0.05)',  border: 'rgba(245,158,11,0.18)',  activeBg: 'rgba(245,158,11,0.18)',  activeBorder: '#F59E0B',  glow: '0 0 12px rgba(245,158,11,0.4)',  sublabel: undefined },
+                  { key: 'followup', label: activeFilter === 'followup' ? backToLabel : t(FILTER_LABEL_KEY.followup), count: stats.followUp, color: '#DC2626', bg: 'rgba(220,38,38,0.05)',  border: 'rgba(220,38,38,0.18)',  activeBg: 'rgba(220,38,38,0.18)',  activeBorder: '#DC2626',  glow: '0 0 12px rgba(220,38,38,0.4)',  sublabel: undefined },
+                  // Batch 440: positive GYN cytology waiting for a pathologist. Shown only when there are some.
+                  { key: 'cytologyreview', label: activeFilter === 'cytologyreview' ? backToLabel : t(FILTER_LABEL_KEY.cytologyreview), count: stats.cytologyReview, color: '#EF4444', bg: 'rgba(239,68,68,0.05)',  border: 'rgba(239,68,68,0.18)',  activeBg: 'rgba(239,68,68,0.18)',  activeBorder: '#EF4444',  glow: '0 0 12px rgba(239,68,68,0.4)',  sublabel: undefined },
                 ] as const)
                   // Real, per direct guidance ("let's not display
                   // tiles with 0 entries" — deliberately scoped to
@@ -1384,7 +1126,7 @@ const WorklistPage: React.FC = () => {
                   // active and its count later drops to 0 — the table
                   // below just shows its own real "no cases" state,
                   // it doesn't reset or break.
-                  .filter(tile => tile.key !== 'needsrevision' || tile.count > 0)
+                  .filter(tile => (tile.key !== 'needsrevision' && tile.key !== 'peerreview' && tile.key !== 'followup' && tile.key !== 'cytologyreview') || tile.count > 0)
                   .map(tile => {
                   const isActive = activeFilter === tile.key;
                   return (
@@ -1457,6 +1199,7 @@ const WorklistPage: React.FC = () => {
                 onOpenDpDrawer={setDpDrawerCaseId}
                 branchFilter={branchFilter}
                 delegatedCaseIds={delegatedCaseIds}
+                interceptOpen={activeFilter === 'cytologyreview' ? openCytologyReviewCase : undefined}
                 onPoolCaseClick={(caseId, summary) => {
                   const c = realCases.find(c => c.id === caseId);
                   // Real, separate bug found and fixed here: this used
@@ -1522,7 +1265,7 @@ const WorklistPage: React.FC = () => {
             onClose={() => setDpDrawerCaseId(null)}
             onOpenCaseWorkspace={() => {
               setDpDrawerCaseId(null);
-              navigate(`/case/${dpDrawerCaseId}/synoptic`, { state: { worklistCaseIds: filteredCases.map(c => c.id) } });
+              void openCasePage(dpDrawerCaseId, 'synoptic', { state: { worklistCaseIds: filteredCases.map(c => c.id) } });
             }}
           />
         );
@@ -1548,6 +1291,14 @@ const WorklistPage: React.FC = () => {
         }}
         onPassed={() => setClaimModal(null)}
         onClose={() => setClaimModal(null)}
+      />
+      <ConfirmModal
+        show={!!cytologyTake}
+        title={t('worklistPage.cytologyReview.takeTitle')}
+        message={cytologyTake?.error ?? t('worklistPage.cytologyReview.takeMessage')}
+        confirmLabel={t('worklistPage.cytologyReview.takeConfirm')}
+        onConfirm={confirmCytologyTake}
+        onCancel={() => setCytologyTake(null)}
       />
 
     </div>

@@ -16,12 +16,13 @@
 
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 import type { AutopsyAuthorizationCompletionFormState } from './resolveAutopsyAuthorizationCompletionValidation';
+import { parseAutopsyOrganCodeList } from '@/types/autopsy/AutopsyOrganCode';
 
 export function applyAutopsyAuthorizationCompletion(
   caseDetails: AutopsyCaseDetails,
   form: AutopsyAuthorizationCompletionFormState,
 ): AutopsyCaseDetails {
-  if (caseDetails.caseAuthority === 'medicolegal_forensic') {
+  if (caseDetails.caseAuthority === 'statutory_judicial') {
     return {
       ...caseDetails,
       forensicAuthorization: {
@@ -36,9 +37,22 @@ export function applyAutopsyAuthorizationCompletion(
     return {
       ...caseDetails,
       hospitalConsent: {
-        ...(caseDetails.hospitalConsent ?? { consentingRelativeName: '', consentingRelativeRelationship: '' }),
+        ...(caseDetails.hospitalConsent ?? {
+          consentingRelativeName: '',
+          consentingRelativeRelationship: '',
+          status: 'active',
+          excludedOrgans: [],
+          retentionPermitted: true,
+        }),
         consentGivenAt: form.consentGivenAt,
         consentScope: form.consentScope.split(',').map(s => s.trim()).filter(Boolean),
+        // Batch 468: the two structured, machine-enforced fields —
+        // see resolveAutopsyConsentScopeViolation.ts. A completion form
+        // submit never changes `status`: narrowing/revoking consent
+        // after the initial grant has no UI yet (pre-existing gap,
+        // disclosed — see services/autopsy/README.md).
+        excludedOrgans: parseAutopsyOrganCodeList(form.excludedOrgans),
+        retentionPermitted: form.retentionPermitted,
       },
     };
   }

@@ -25,3 +25,7 @@ What it shows depends on the instance (`services/deployment/`):
 Before Batch 424 the panel had a "Return to test system" button. A production instance never sends to a test system, so that button became **Stop live reporting**.
 
 The panel is rendering only. State is in `hooks/useRegistryGoLive.ts`, and decisions are in `services/registryGoLive/`.
+
+## Batch 437
+
+The validation file download is audited (PS-282).

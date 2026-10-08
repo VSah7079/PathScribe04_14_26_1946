@@ -3,18 +3,18 @@ import { resolveFieldRequirements } from '../fieldRequirements/fieldRequirementR
 import { resolveAutopsyAuthorizationCompletionValidation, type AutopsyAuthorizationCompletionFormState } from './resolveAutopsyAuthorizationCompletionValidation';
 
 function baseForm(overrides: Partial<AutopsyAuthorizationCompletionFormState>): AutopsyAuthorizationCompletionFormState {
-  return { orderReference: '', orderDate: '', consentGivenAt: '', consentScope: '', ...overrides };
+  return { orderReference: '', orderDate: '', consentGivenAt: '', consentScope: '', excludedOrgans: '', retentionPermitted: true, ...overrides };
 }
 
 describe('resolveAutopsyAuthorizationCompletionValidation', () => {
   it('a real forensic case with no real written order reference or date is invalid', () => {
-    const result = resolveAutopsyAuthorizationCompletionValidation('medicolegal_forensic', baseForm({}));
+    const result = resolveAutopsyAuthorizationCompletionValidation('statutory_judicial', baseForm({}));
     expect(result.valid).toBe(false);
     expect(result.missingFieldIds).toEqual(['autopsyOrderReference', 'autopsyOrderDate']);
   });
 
   it('a real forensic case with a real, complete written order is valid', () => {
-    const result = resolveAutopsyAuthorizationCompletionValidation('medicolegal_forensic', baseForm({ orderReference: 'CO-2026-4471', orderDate: '2026-09-01' }));
+    const result = resolveAutopsyAuthorizationCompletionValidation('statutory_judicial', baseForm({ orderReference: 'CO-2026-4471', orderDate: '2026-09-01' }));
     expect(result.valid).toBe(true);
   });
 

@@ -32,6 +32,16 @@ Retention-eligibility resolution, the two real computed disposal-related queues,
 
 `getCurrentJurisdiction()` reads the system configuration through `services/systemConfig/systemConfigStore.ts`.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Disposal by scan is versioned, and every try re-checks for an active hold.
+
+## Batch 460
+
+Disposal by scan, the disposal queue and the disposal report find a slide by its printed level (`material/slideLevels.ts`), not its position in the list. See `services/material/README.md` (Batch 460).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

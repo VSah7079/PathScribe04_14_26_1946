@@ -1923,6 +1923,16 @@ const CASES: Case[] = (() => {
   return stored?.length ? stored : ORCH_CASES;
 })();
 
+// Batch 458 (PS-71): another tab of this browser saved Orchestration cases:
+// take its copy (same reason as mockCaseService.ts).
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', e => {
+    if (e.key === 'pathscribe_mock_' + STORAGE_KEY && e.newValue) {
+      try { const next = JSON.parse(e.newValue) as Case[]; CASES.splice(0, CASES.length, ...next); } catch { /* keep this tab's copy */ }
+    }
+  });
+}
+
 // ─── Service implementation ───────────────────────────────────
 
 export const mockOrchestratorCaseService: ICaseService = {

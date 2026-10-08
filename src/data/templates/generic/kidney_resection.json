@@ -1,6 +1,6 @@
 {
   "id": "kidney_resection",
-  "name": "Generic Template \u2014 Kidney Resection",
+  "name": "Generic Template — Kidney Resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "KIDNEY",
@@ -672,7 +672,9 @@
           "required": false,
           "snomed": "",
           "icd": "",
-          "options": []
+          "options": [],
+          "wholeNumber": true,
+          "notMoreThan": "ln_number_examined"
         },
         {
           "id": "ln_number_examined",
@@ -681,7 +683,8 @@
           "required": true,
           "snomed": "",
           "icd": "",
-          "options": []
+          "options": [],
+          "wholeNumber": true
         }
       ]
     },
@@ -916,6 +919,344 @@
               "icd": ""
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "psmap_renal",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_ren_procedure",
+          "label": "Procedure (for the map)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_procedure_partial",
+              "label": "Partial nephrectomy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_procedure_radical",
+              "label": "Radical nephrectomy",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_ren_kidney",
+          "label": "Kidney (for the map)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_kidney_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_kidney_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_ren_poles",
+          "label": "Tumour location: pole(s)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_poles_upper",
+              "label": "Upper pole",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_poles_middle",
+              "label": "Middle (interpolar)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_poles_lower",
+              "label": "Lower pole",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_ren_halves",
+          "label": "Tumour location: lateral / medial",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_halves_lateral",
+              "label": "Lateral (convex border)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_halves_medial",
+              "label": "Medial (hilar side)",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "Leave blank when not stated: the map shows both halves of each pole chosen."
+        },
+        {
+          "id": "psmap_ren_aspect",
+          "label": "Tumour location: aspect",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_aspect_anterior",
+              "label": "Anterior",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_aspect_posterior",
+              "label": "Posterior",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_ren_extent",
+          "label": "Tumour extent (for the map and pT)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_extent_limited",
+              "label": "Limited to the kidney",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_perinephricFat",
+              "label": "Perinephric fat",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_sinusFat",
+              "label": "Renal sinus fat",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_pelvicalyceal",
+              "label": "Pelvicalyceal system",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_renalVein",
+              "label": "Renal vein or its segmental branches",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_ivcBelow",
+              "label": "Vena cava below the diaphragm",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_ivcAbove",
+              "label": "Vena cava above the diaphragm, or its wall",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_gerota",
+              "label": "Beyond Gerota’s fascia",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extent_adrenal",
+              "label": "Ipsilateral adrenal gland, by direct (contiguous) spread",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "AJCC 8th. A separate adrenal nodule is distant metastasis (M1), not extent."
+        },
+        {
+          "id": "psmap_ren_extraMargins",
+          "label": "Add non-standard margin (partial nephrectomy)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_extraMargins_renalVein",
+              "label": "Renal vein segment submitted",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_extraMargins_ureter",
+              "label": "Ureter segment submitted",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "psmap_ren_procedure",
+            "answerId": "psmap_ren_procedure_partial"
+          },
+          "hint": "Only when the surgeon submitted a tagged segment of renal vein or ureter with the partial nephrectomy: its margin question then appears."
+        },
+        {
+          "id": "psmap_ren_veinMargin",
+          "label": "Renal vein margin",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_veinMargin_involved",
+              "label": "Involved",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_veinMargin_notInvolved",
+              "label": "Not involved",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "psmap_ren_procedure",
+            "answerId": "",
+            "notAnswerIds": [
+              "psmap_ren_procedure_partial"
+            ],
+            "or": [
+              {
+                "fieldId": "psmap_ren_extraMargins",
+                "answerId": "psmap_ren_extraMargins_renalVein"
+              }
+            ]
+          },
+          "hint": "A radical nephrectomy’s margin. Not shown for a partial nephrectomy unless added as a non-standard margin."
+        },
+        {
+          "id": "psmap_ren_ureterMargin",
+          "label": "Ureteral margin",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_ren_ureterMargin_involved",
+              "label": "Involved",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_ren_ureterMargin_notInvolved",
+              "label": "Not involved",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "psmap_ren_procedure",
+            "answerId": "",
+            "notAnswerIds": [
+              "psmap_ren_procedure_partial"
+            ],
+            "or": [
+              {
+                "fieldId": "psmap_ren_extraMargins",
+                "answerId": "psmap_ren_extraMargins_ureter"
+              }
+            ]
+          },
+          "hint": "A radical nephrectomy’s margin. Not shown for a partial nephrectomy unless added as a non-standard margin."
+        },
+        {
+          "id": "psmap_ren_softTissueMarginMm",
+          "label": "Soft tissue margin: distance of carcinoma (mm) — perinephric / Gerota’s (radical), perinephric / capsular (partial)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm",
+          "hint": "0 = carcinoma at the inked margin. Judged by the site’s rule (involved at 0.0 mm, on ink, unless the site sets another)."
+        },
+        {
+          "id": "psmap_ren_parenchymalMarginMm",
+          "label": "Parenchymal resection margin: distance of carcinoma (mm) — partial nephrectomy",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm",
+          "hint": "0 = carcinoma at the inked margin. Judged by the site’s rule (involved at 0.0 mm, on ink, unless the site sets another).",
+          "visibleWhen": {
+            "fieldId": "psmap_ren_procedure",
+            "answerId": "",
+            "notAnswerIds": [
+              "psmap_ren_procedure_radical"
+            ]
+          }
         }
       ]
     },

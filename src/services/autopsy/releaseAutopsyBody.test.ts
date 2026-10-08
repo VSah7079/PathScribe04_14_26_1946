@@ -7,8 +7,11 @@ vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getCase, updateCas
 // Batch 383: releasing a body needs autopsy:body:release; the default is "allowed" here.
 const { enforce } = vi.hoisted(() => ({ enforce: vi.fn() }));
 vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce } }));
+const { logEvent } = vi.hoisted(() => ({ logEvent: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../auditlog/mockAuditService', () => ({ mockAuditService: { logEvent } }));
 
 import { releaseAutopsyBody } from './releaseAutopsyBody';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import type { Case } from '@/types/case/Case';
 
 const signedPad = {
@@ -31,7 +34,7 @@ function baseCase(overrides: Partial<Case>): Case {
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
     autopsy: {
-      jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full',
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full',
       addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad,
     },
     ...overrides,
@@ -43,6 +46,7 @@ beforeEach(() => {
   updateCase.mockReset();
   enforce.mockReset();
   enforce.mockResolvedValue({ allowed: true });
+  logEvent.mockClear();
 });
 
 describe('releaseAutopsyBody', () => {
@@ -56,7 +60,7 @@ describe('releaseAutopsyBody', () => {
   });
 
   it('a real case that fails the real gate is never persisted \u2014 updateCase is never called', async () => {
-    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: true } } as any }));
+    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: true } } as any }));
     const result = await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
     expect(result.ok).toBe(false);
     expect(result.blockedReasons?.length).toBeGreaterThan(0);
@@ -105,5 +109,77 @@ describe('releaseAutopsyBody', () => {
     const result = await releaseAutopsyBody('case-1', 'sp-unknown', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
     expect(result.ok).toBe(false);
     expect(updateCase).not.toHaveBeenCalled();
+  });
+
+  it('a real release writes the audit log once (Batch 469 — releaseAutopsyBody was previously missing this)', async () => {
+    getCase.mockResolvedValue(baseCase({}));
+    await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    expect(logEvent).toHaveBeenCalledWith(expect.objectContaining({ event: 'AUTOPSY_BODY_RELEASED', caseId: 'case-1', user: 'Tech: M. Davis' }));
+  });
+
+  it('Batch 469: a forensic case’s release also appends a final custodyLog entry, in the same write', async () => {
+    getCase.mockResolvedValue(baseCase({}));
+    const result = await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis', releasedAt: '2026-09-10T09:00:00Z', toCustodianType: 'funeral_home' });
+    expect(result.ok).toBe(true);
+    expect(updateCase).toHaveBeenCalledTimes(1);
+    const updates = updateCase.mock.calls[0][1];
+    expect(updates.autopsy.custodyLog).toEqual([
+      expect.objectContaining({ itemDescription: 'Body', fromCustodianType: 'pathology_department', toCustodianType: 'funeral_home', toCustodianName: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis', occurredAt: '2026-09-10T09:00:00Z' }),
+    ]);
+  });
+
+  it('Batch 469: a forensic case’s custody entry starts FROM wherever a prior custody transfer left it', async () => {
+    getCase.mockResolvedValue(baseCase({ autopsy: {
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad,
+      custodyLog: [{ id: 'c1', occurredAt: '2026-09-09T00:00:00Z', itemDescription: 'Blood', fromCustodianType: 'pathology_department', fromCustodianName: 'Pathology Department', toCustodianType: 'medical_examiner', toCustodianName: 'County ME Lab', releasedByName: 'Pete' }],
+    } as any }));
+    await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
+    const updates = updateCase.mock.calls[0][1];
+    expect(updates.autopsy.custodyLog[1].fromCustodianType).toBe('medical_examiner');
+    expect(updates.autopsy.custodyLog[1].fromCustodianName).toBe('County ME Lab');
+  });
+
+  it('Batch 469: a hospital-consented case’s release never touches custodyLog', async () => {
+    getCase.mockResolvedValue(baseCase({ autopsy: {
+      jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad,
+    } as any }));
+    await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis' });
+    const updates = updateCase.mock.calls[0][1];
+    expect(updates.autopsy).toBeUndefined();
+  });
+
+  it('Batch 469: toCustodianType defaults to funeral_home when not given', async () => {
+    getCase.mockResolvedValue(baseCase({}));
+    await releaseAutopsyBody('case-1', 'sp-1', { releasedTo: 'Family (Jane Doe)', releasedByName: 'Tech: M. Davis' });
+    const updates = updateCase.mock.calls[0][1];
+    expect(updates.autopsy.custodyLog[0].toCustodianType).toBe('funeral_home');
+  });
+});
+
+describe('releaseAutopsyBody — PS-71 (Batch 458) versioned save', () => {
+  const details = { releasedTo: 'Smith Funeral Home', releasedByName: 'Tech: M. Davis', releasedAt: '2026-09-10T09:00:00Z' };
+
+  it('on a conflict, the release is appended to the newer case so a specimen added meanwhile survives', async () => {
+    const stale = baseCase({ version: 1 } as any);
+    const newer = baseCase({ version: 2, specimens: [{ id: 'sp-1', label: 'A', description: 'Body' }, { id: 'sp-2', label: 'B', description: 'Heart' }] } as any);
+    getCase.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(newer);
+    updateCase.mockRejectedValueOnce(new ConcurrencyConflictError('case-1', 1, 2)).mockResolvedValue(undefined);
+    expect((await releaseAutopsyBody('case-1', 'sp-1', details)).ok).toBe(true);
+    expect(updateCase.mock.calls.map(c => c[2])).toEqual([1, 2]);
+    const updates = updateCase.mock.calls[1][1];
+    expect(updates.specimens.map((s: any) => s.id)).toEqual(['sp-1', 'sp-2']);
+    expect(updates.specimens[0].locationHistory).toHaveLength(1);
+  });
+
+  it('a hold placed in between closes the gate: nothing is saved', async () => {
+    const stale = baseCase({ version: 1 } as any);
+    const held = baseCase({ version: 2, autopsy: { ...stale.autopsy!, ancillaryHold: { active: true } } } as any);
+    getCase.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(held);
+    updateCase.mockRejectedValueOnce(new ConcurrencyConflictError('case-1', 1, 2));
+    const result = await releaseAutopsyBody('case-1', 'sp-1', details);
+    expect(result.ok).toBe(false);
+    expect(result.blockedReasons?.length).toBeGreaterThan(0);
+    expect(updateCase).toHaveBeenCalledTimes(1);
   });
 });

@@ -47,6 +47,9 @@ import type { StainType } from '@/services/stains/IStainService';
 import { CODE_MAP_TABLE, computeCaseCodingSummary, type SpecimenCodingSummary } from '@/services/billing/codeMapTable';
 import type { AppliedBlockCode } from '@/types/case/Specimen';
 import { CodeSearchModal } from '@/components/Common/CodeSearchModal';
+import { billingSelectionForMaterialBlock, billingHighlightsForSelection, billingReactionToMaterialEvent, type BillingSelection } from '@/services/billing/billingMaterialSync';
+import { billableMaterialOf } from '@/services/material/billableMaterial';
+import { materialEventBus } from '@/services/material/materialEvents';
 
 interface PendingCode {
   specimenId: string;
@@ -174,6 +177,13 @@ interface BillingReviewPanelProps {
    *  match. Set by the parent whenever a real (non-decant) block gets
    *  selected there. */
   materialSelectedBlockId?: string;
+  /** Batch 452: bumped on every Material click, so clicking the block that
+   *  is already selected there brings its billing row back (the id alone
+   *  doesn't change, so the panel never re-synced). */
+  materialSelectionSeq?: number;
+  /** Batch 452: the open case, whose material events (MATERIAL_DECANTED,
+   *  MATERIAL_ROLLED_BACK) this panel listens to. */
+  caseId?: string;
   /** Real, per direct follow-up: LeftReportPanel and MaterialTreePanel
    *  are both always mounted (leftTab just toggles a CSS visibility
    *  class between them - see SynopticReportPage.tsx's own
@@ -215,9 +225,14 @@ function resolveRealCptCode(code: string): string | null {
 }
 
 const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
-  specimens, matrixBlocks = [], onSetMatrixEvaluatedCores, onApplyMatrixCode, onRejectMatrixCode, onApprove, onOverride, onRejectOnly, onDelete, onDeleteBaseCode, onCorrect, onCorrectBaseCode, onAddBaseCode, onApproveAll, onHighlight, onHighlightStain, materialSelectedBlockId, onFocusBlock, contextLabel,
+  specimens: materialSpecimens, matrixBlocks = [], onSetMatrixEvaluatedCores, onApplyMatrixCode, onRejectMatrixCode, onApprove, onOverride, onRejectOnly, onDelete, onDeleteBaseCode, onCorrect, onCorrectBaseCode, onAddBaseCode, onApproveAll, onHighlight, onHighlightStain, materialSelectedBlockId, materialSelectionSeq, caseId, onFocusBlock, contextLabel,
 }) => {
   const { t } = useTranslation();
+  // Batch 452 (Pete, Oct 4 2026): billing is derived from the current
+  // material tree, decants included (services/material/billableMaterial.ts).
+  // Every lookup below works on these billable units, so a decant is listed,
+  // suggested, coded and selected exactly like a block.
+  const specimens = React.useMemo(() => billableMaterialOf(materialSpecimens), [materialSpecimens]);
   const effectiveContextLabel = contextLabel ?? t('billingReviewPanel.defaultContextLabel');
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   useEffect(() => {
@@ -225,6 +240,33 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
   }, []);
 
   const summary = computeCaseCodingSummary(specimens, stainTypes, matrixBlocks);
+
+  // Batch 452: react to material changes as they happen (optimistically,
+  // before the save lands). A new or changed decant's billing row is
+  // selected and announced; a rolled-back change is announced too. The
+  // charges themselves need no fetch: they recompute from the specimens.
+  const [materialNotice, setMaterialNotice] = useState<string | null>(null);
+  const [eventFocusId, setEventFocusId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!caseId) return;
+    return materialEventBus.subscribe(caseId, event => {
+      const reaction = billingReactionToMaterialEvent(event);
+      if (reaction.focusMaterialId) setEventFocusId(reaction.focusMaterialId);
+      if (reaction.clearMaterialId) setSelected(prev => (prev?.type === 'block' && prev.blockId === reaction.clearMaterialId ? null : prev));
+      setMaterialNotice(t(reaction.notice.key, reaction.notice.params));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId]);
+  // The event arrives before the new specimens do; select once they're here.
+  useEffect(() => {
+    if (!eventFocusId) return;
+    const found = billingSelectionForMaterialBlock(specimens, eventFocusId);
+    if (!found) return;
+    setManualAddTargetStainId(null);
+    setSelected(found);
+    setEventFocusId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventFocusId, specimens]);
 
   const pending: PendingCode[] = summary.flatMap(sp =>
     sp.blocks.flatMap(block => {
@@ -297,7 +339,7 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
     });
   };
 
-  type Selection = { type: 'specimen'; specimenId: string } | { type: 'block'; specimenId: string; blockId: string };
+  type Selection = BillingSelection;
   const [selected, setSelected] = useState<Selection | null>(null);
 
   // Real feature, per direct request: "since the stains and blocks are
@@ -308,13 +350,13 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
   // with the user manually selecting a different row within this
   // panel's own tree, which doesn't touch this prop at all.
   useEffect(() => {
-    if (!materialSelectedBlockId) return;
-    const owningSpecimen = specimens.find(sp => sp.blocks?.some(b => b.id === materialSelectedBlockId));
-    if (!owningSpecimen) return;
+    // PS-316 (Batch 451): the match is decided in services/billing/billingMaterialSync.ts.
+    const fromMaterial = billingSelectionForMaterialBlock(specimens, materialSelectedBlockId);
+    if (!fromMaterial) return;
     setManualAddTargetStainId(null);
-    setSelected({ type: 'block', specimenId: owningSpecimen.id, blockId: materialSelectedBlockId });
+    setSelected(fromMaterial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materialSelectedBlockId]);
+  }, [materialSelectedBlockId, materialSelectionSeq]);
 
   // Real, per direct feedback, default selection: the first real block
   // with something pending, so opening this tab lands directly on the
@@ -352,15 +394,12 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
   // source stain if it has one pending, or just its own stain list
   // otherwise.
   useEffect(() => {
-    if (!effectiveSelection) { onHighlight(undefined); onHighlightStain?.(undefined); return; }
-    onFocusBlock?.(effectiveSelection.specimenId);
-    if (effectiveSelection.type === 'block') {
-      onHighlight(activePendingItem?.sourceStainName || selectedBlockSummary?.stainNames?.[0] || undefined);
-      onHighlightStain?.(activePendingItem?.sourceStainId);
-    } else {
-      onHighlight(undefined);
-      onHighlightStain?.(undefined);
-    }
+    // PS-316 (Batch 451): what a selection highlights is decided in services/billing/billingMaterialSync.ts.
+    const highlights = billingHighlightsForSelection(effectiveSelection, activePendingItem, selectedBlockSummary?.stainNames);
+    if (highlights.focusSpecimenId) onFocusBlock?.(highlights.focusSpecimenId);
+    onHighlight(highlights.reportText);
+    onHighlightStain?.(highlights.stainId);
+    if (!effectiveSelection) return;
     return () => { onHighlight(undefined); onHighlightStain?.(undefined); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSelection?.type, effectiveSelection?.specimenId, (effectiveSelection as any)?.blockId, activePendingItem?.code, activePendingItem?.sourceStainId]);
@@ -494,6 +533,8 @@ const BillingReviewPanel: React.FC<BillingReviewPanelProps> = ({
 
   return (
     <div className="ps-billing-review-panel">
+      {/* Batch 452: material changes, announced as they happen. */}
+      <div className="ps-billing-material-notice" role="status" aria-live="polite">{materialNotice ?? ''}</div>
       <div className="ps-billing-review-panel-header">
         <div>
           <div className="fm-eyebrow ps-billing-eyebrow">

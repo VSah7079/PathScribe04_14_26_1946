@@ -57,3 +57,29 @@ describe('surgicalQaReview (Batch 396)', () => {
     expect(specimens.find(s => s.id === 'SP-2').surgicalPeerReview.biopsyToResectionCandidates[0].dismissedAsNotRelevant).toBe(true);
   });
 });
+
+// PS-71 (Batch 458): the specimen link is applied to the case as read and saved
+// with its version; on a conflict it is re-applied to the newer case.
+describe('surgicalQaReview — versioned saves (PS-71)', () => {
+  it('a conflict re-reads the case and keeps what the other person saved', async () => {
+    const { ConcurrencyConflictError } = await import('../cases/ConcurrencyConflictError');
+    const v1 = { ...theCase, version: 1 };
+    const v2 = { ...theCase, version: 2, specimens: [{ ...flagged, description: 'Colon (edited)' }, candidate] };
+    const getCase = vi.fn().mockResolvedValueOnce(v1).mockResolvedValue(v2);
+    const updateCase = vi.fn(async (_id: string, _u: any, v: number) => { if (v !== 2) throw new ConcurrencyConflictError('S26-1', v, 2); });
+    const d = deps({ getCase, updateCase });
+    const [row] = buildSurgicalQaRows([theCase]);
+    expect(await recordSurgicalQaReview(row, { id: 'T' } as any, submission, { userId: 'u', userName: 'U' }, d)).toEqual({ ok: true });
+    expect(updateCase.mock.calls.map(c => c[2])).toEqual([1, 2]);
+    const saved = (updateCase.mock.calls[1][1].specimens as any[]).find(s => s.id === 'SP-1');
+    expect(saved.description).toBe('Colon (edited)');
+    expect(saved.surgicalPeerReview.peerReviewRecordedActivityRecordId).toBe('REC-1');
+  });
+
+  it('a save that keeps conflicting is reported as failed, never as done', async () => {
+    const { ConcurrencyConflictError } = await import('../cases/ConcurrencyConflictError');
+    const d = deps({ updateCase: vi.fn(async (_id: string, _u: any, v: number) => { throw new ConcurrencyConflictError('S26-1', v, v + 1); }) });
+    const row = buildSurgicalQaRows([theCase])[1] as any;
+    expect(await dismissSurgicalCorrelationCandidate(row, d)).toEqual({ ok: false, failed: true });
+  });
+});

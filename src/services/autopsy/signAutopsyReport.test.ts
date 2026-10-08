@@ -5,6 +5,13 @@ const { getCase, updateCase } = vi.hoisted(() => ({
 }));
 vi.mock('@/services/cases/CaseRouter', () => ({ caseRouter: { getCase, updateCase } }));
 
+// Batch 478: resolveAutopsyGrossExaminationGate.ts's override
+// (autopsy:gross-exam-gate:override) and the audit entry it writes.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn().mockResolvedValue({ allowed: false }) }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce } }));
+const { logEvent } = vi.hoisted(() => ({ logEvent: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../auditlog/mockAuditService', () => ({ mockAuditService: { logEvent } }));
+
 const { releaseMock, countersignMock, getForCaseMock, getActiveAssignmentForUser } = vi.hoisted(() => ({
   releaseMock: vi.fn().mockResolvedValue({ ok: true, data: {} }),
   countersignMock: vi.fn().mockResolvedValue({ ok: true, data: {} }),
@@ -38,6 +45,7 @@ vi.mock('@/services/reports/publishReportReleasedEvent', () => ({
 }));
 
 import { signAutopsyReport } from './signAutopsyReport';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import type { Case } from '@/types/case/Case';
 
 const signedPad = {
@@ -61,8 +69,14 @@ function baseCase(overrides: Partial<Case> = {}, participants: any[] = []): Case
     updatedAt: '2026-09-01T00:00:00Z',
     participants,
     autopsy: {
-      jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full',
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full',
       addenda: [], ancillaryHold: { active: false },
+      // Batch 478: resolveAutopsyGrossExaminationGate.ts is now a real
+      // hard stop in signAutopsyReport.ts itself, so every test case
+      // that expects a sign to succeed needs a real, gate-passing
+      // forensicAuthorization by default; tests of the gate/override
+      // behavior itself override this back out.
+      forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' },
     },
     ...overrides,
   } as Case;
@@ -84,6 +98,9 @@ beforeEach(() => {
   session.current = { id: 'user-attending', role: 'superadmin' };
   getStaffById.mockReset();
   getStaffById.mockResolvedValue({ ok: true, data: { providerCredentials: [US_APPOINTMENT] } });
+  enforce.mockReset();
+  enforce.mockResolvedValue({ allowed: false });
+  logEvent.mockClear();
 });
 
 describe('signAutopsyReport', () => {
@@ -124,7 +141,7 @@ describe('signAutopsyReport', () => {
   });
 
   it('an attending signing the FAD (with a real, prior signed PAD) writes a real fadSnapshot and transitions CaseStatus to finalized', async () => {
-    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad } as any }));
+    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad, forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' } } as any }));
     const result = await signAutopsyReport('case-1', 'FAD', attendingUser);
     expect(result.ok).toBe(true);
     const updates = updateCase.mock.calls[0][1];
@@ -133,7 +150,7 @@ describe('signAutopsyReport', () => {
   });
 
   it('signing the FAD never touches an already-real, existing padSnapshot', async () => {
-    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad } as any }));
+    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad, forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' } } as any }));
     await signAutopsyReport('case-1', 'FAD', attendingUser);
     const updates = updateCase.mock.calls[0][1];
     expect(updates.autopsy.padSnapshot).toEqual(signedPad);
@@ -156,7 +173,7 @@ describe('signAutopsyReport', () => {
   it('a real, active FPPE provisional hire with an active assignment signing the FAD is intercepted with the correct tier', async () => {
     getActiveAssignmentForUser.mockResolvedValue({ ok: true, data: { supervisorUserId: 'user-attending' } });
     getCase.mockResolvedValue(baseCase(
-      { autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad } as any },
+      { autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad, forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' } } as any },
       [{ status: 'active', staffId: 'user-resident', participationTypeIds: ['provisional_hire'] }],
     ));
     const result = await signAutopsyReport('case-1', 'FAD', residentUser);
@@ -225,7 +242,7 @@ describe('signAutopsyReport', () => {
 
   it('an attending signing the FAD never completes a real, pending PAD-tier CountersignRecord \u2014 tiers must match exactly', async () => {
     getForCaseMock.mockResolvedValue({ ok: true, data: { status: 'pending', autopsyReportTier: 'PAD', caseId: 'case-1' } });
-    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad } as any }));
+    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad, forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' } } as any }));
     const result = await signAutopsyReport('case-1', 'FAD', attendingUser);
     expect(result.ok).toBe(true);
     expect(countersignMock).not.toHaveBeenCalled();
@@ -243,7 +260,7 @@ describe('signAutopsyReport — Report_Released_Event wiring, per direct follow-
   });
 
   it("a real, direct FAD sign publishes a real FINAL event — the case's own real terminal event", async () => {
-    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad } as any }));
+    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad, forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' } } as any }));
     await signAutopsyReport('case-1', 'FAD', attendingUser);
     expect(publishReportReleasedEventMock).toHaveBeenCalledWith(expect.objectContaining({ caseId: 'case-1', reportType: 'FINAL' }));
   });
@@ -264,7 +281,7 @@ describe('signAutopsyReport — Report_Released_Event wiring, per direct follow-
 
 describe('signAutopsyReport — signing authority (Batch 331, PS-327)', () => {
   const hospitalCase = (participants: any[] = []) => baseCase({
-    autopsy: { jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false } } as any,
+    autopsy: { jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false }, hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse', consentGivenAt: '2026-09-01T00:00:00Z', status: 'active', consentScope: [], excludedOrgans: [], retentionPermitted: true } } as any,
   }, participants);
 
   it('refuses a signer who is neither an eligible participant nor an administrator', async () => {
@@ -305,5 +322,109 @@ describe('signAutopsyReport — signing authority (Batch 331, PS-327)', () => {
     getCase.mockResolvedValue(baseCase({}, [{ staffId: 'user-resident', status: 'active', participationTypeIds: ['resident'] }]));
     const result = await signAutopsyReport('case-1', 'PAD', residentUser);
     expect(result).toMatchObject({ ok: true, outcome: 'released_for_countersign' });
+  });
+});
+
+describe('signAutopsyReport — the authorization gate, now a real hard stop (Batch 478)', () => {
+  const noAuthCase = () => baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false } } as any });
+  const revokedConsentCase = () => baseCase({ autopsy: {
+    jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false },
+    hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse', consentGivenAt: '2026-09-01T00:00:00Z', status: 'revoked', consentScope: [], excludedOrgans: [], retentionPermitted: true, statusChangedAt: '2026-09-05T00:00:00Z' },
+  } as any });
+
+  it('refuses a sign outright when the gate is blocked and no override reason is supplied — never silently proceeding, as it did before this batch', async () => {
+    getCase.mockResolvedValue(noAuthCase());
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser);
+    expect(result).toMatchObject({ ok: false, errorCode: 'AUTHORIZATION_GATE_BLOCKED' });
+    // Batch 479: the gate's blockedReasons are reason codes now, not
+    // English prose (see resolveAutopsyGrossExaminationGate.ts) — this
+    // internal `error` string just joins the codes, never shown to a
+    // user (the sign-error toast is keyed by errorCode, Batch 478).
+    expect(result.error).toMatch(/missing_judicial_authorization/);
+    expect(updateCase).not.toHaveBeenCalled();
+    expect(enforce).not.toHaveBeenCalled();
+  });
+
+  it('refuses a revoked-consent hospital case the same way', async () => {
+    getCase.mockResolvedValue(revokedConsentCase());
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser);
+    expect(result).toMatchObject({ ok: false, errorCode: 'AUTHORIZATION_GATE_BLOCKED' });
+    expect(result.error).toMatch(/consent_revoked/);
+  });
+
+  it('a blank or whitespace-only override reason is treated as no reason at all', async () => {
+    getCase.mockResolvedValue(noAuthCase());
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser, undefined, '   ');
+    expect(result).toMatchObject({ ok: false, errorCode: 'AUTHORIZATION_GATE_BLOCKED' });
+    expect(enforce).not.toHaveBeenCalled();
+  });
+
+  it('refuses the override itself when the signer holds no autopsy:gross-exam-gate:override', async () => {
+    enforce.mockResolvedValue({ allowed: false });
+    getCase.mockResolvedValue(noAuthCase());
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser, undefined, 'Family needs the body released before the formal order arrives.');
+    expect(result).toMatchObject({ ok: false, errorCode: 'GATE_OVERRIDE_NOT_PERMITTED' });
+    expect(enforce).toHaveBeenCalledWith('autopsy:gross-exam-gate:override', { caseId: 'case-1' });
+    expect(updateCase).not.toHaveBeenCalled();
+  });
+
+  it('a held override capability lets the sign proceed, logs the override on the case (append-only) and to the audit trail, and never applies to an un-blocked gate', async () => {
+    enforce.mockResolvedValue({ allowed: true });
+    getCase.mockResolvedValue(noAuthCase());
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser, undefined, 'Verbal order from the ME confirmed by phone; written order in transit.');
+    expect(result).toMatchObject({ ok: true, outcome: 'signed' });
+    const updates = updateCase.mock.calls[0][1];
+    expect(updates.autopsy.padSnapshot).toBeDefined();
+    expect(updates.autopsy.gateOverrides).toHaveLength(1);
+    expect(updates.autopsy.gateOverrides[0]).toMatchObject({
+      tier: 'PAD', reason: 'Verbal order from the ME confirmed by phone; written order in transit.', overriddenByName: 'Dr. E. Reed',
+    });
+    expect(updates.autopsy.gateOverrides[0].blockedReasons.length).toBeGreaterThan(0);
+    expect(logEvent).toHaveBeenCalledWith(expect.objectContaining({ event: 'AUTOPSY_GATE_OVERRIDDEN', caseId: 'case-1', user: 'Dr. E. Reed' }));
+  });
+
+  it('an override reason is simply ignored when the gate already allows the sign — no capability check, no override record', async () => {
+    getCase.mockResolvedValue(baseCase());
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser, undefined, 'not needed here');
+    expect(result).toMatchObject({ ok: true, outcome: 'signed' });
+    expect(enforce).not.toHaveBeenCalled();
+    expect(updateCase.mock.calls[0][1].autopsy.gateOverrides).toBeUndefined();
+    expect(logEvent).not.toHaveBeenCalled();
+  });
+
+  it('a prior override event on the case is kept (append-only) when a later sign on the same case needs none', async () => {
+    const priorOverride = { id: 'gate-override-case-1-PAD-1', occurredAt: '2026-09-01T00:00:00Z', tier: 'PAD' as const, blockedReasons: ['x'], reason: 'earlier reason', overriddenByName: 'Dr. E. Reed' };
+    getCase.mockResolvedValue(baseCase({ autopsy: { jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false }, padSnapshot: signedPad, gateOverrides: [priorOverride], forensicAuthorization: { authorityType: 'MEDICAL_EXAMINER', orderReference: 'ME-2026-0042', orderDate: '2026-09-01' } } as any }));
+    const result = await signAutopsyReport('case-1', 'FAD', attendingUser);
+    expect(result).toMatchObject({ ok: true, outcome: 'signed' });
+    expect(updateCase.mock.calls[0][1].autopsy.gateOverrides).toEqual([priorOverride]);
+  });
+});
+
+describe('signAutopsyReport — PS-71 (Batch 458) versioned save', () => {
+  const sections = (text: string) => [{ id: 'diagnosis', label: 'Diagnosis', text, aiGenerated: '', userEdited: true, isStreaming: false }];
+
+  it('saves with the version it read; a change to another part of the record saved in between is kept', async () => {
+    const stale = baseCase({ version: 3, orchSections: sections('MI') } as any);
+    const newer = baseCase({ version: 4, orchSections: sections('MI'), autopsy: { ...stale.autopsy!, addenda: [{ id: 'ad-1' }] } } as any);
+    getCase.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(newer);
+    updateCase.mockRejectedValueOnce(new ConcurrencyConflictError('case-1', 3, 4)).mockResolvedValue(undefined);
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser);
+    expect(result).toMatchObject({ ok: true, outcome: 'signed' });
+    expect(updateCase.mock.calls.map(c => c[2])).toEqual([3, 4]);
+    const updates = updateCase.mock.calls[1][1];
+    expect(updates.autopsy.addenda).toEqual([{ id: 'ad-1' }]);
+    expect(updates.autopsy.padSnapshot.frozenPayload.sections[0].text).toBe('MI');
+  });
+
+  it('never signs content the signer did not see: report text changed in between → not saved, SAVE_FAILED', async () => {
+    const stale = baseCase({ version: 3, orchSections: sections('MI') } as any);
+    const newer = baseCase({ version: 4, orchSections: sections('MI, revised by someone else') } as any);
+    getCase.mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue(newer);
+    updateCase.mockRejectedValueOnce(new ConcurrencyConflictError('case-1', 3, 4)).mockResolvedValue(undefined);
+    const result = await signAutopsyReport('case-1', 'PAD', attendingUser);
+    expect(result).toMatchObject({ ok: false, errorCode: 'SAVE_FAILED' });
+    expect(updateCase).toHaveBeenCalledTimes(1);
+    expect(publishReportReleasedEventMock).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@
 // `@/services` exports whichever applies as `liveUpdateService`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { IntraopChangedEvent, IntraopScope, PrintJobStatusEvent } from './liveUpdateContract';
+import type { IntraopChangedEvent, IntraopScope, PrintJobStatusEvent, WsiScanBatchChangedEvent } from './liveUpdateContract';
 import type { LiveConnectionState } from './liveUpdatePolicy';
 
 export interface LiveUpdateSubscription {
@@ -22,6 +22,8 @@ export interface ILiveUpdateService {
   /** Calls `onEvent` for each network print result sent to this user
    *  (Batch 347, PS-54). Connects on first use, like subscribeIntraop. */
   subscribePrintJobs(onEvent: (event: PrintJobStatusEvent) => void): LiveUpdateSubscription;
+  /** Calls `onEvent` for each WSI scan batch change (Batch 434). Connects on first use. */
+  subscribeWsiScanBatches(onEvent: (event: WsiScanBatchChangedEvent) => void): LiveUpdateSubscription;
   getState(): LiveConnectionState;
   onStateChange(listener: (state: LiveConnectionState) => void): () => void;
   /** Called after a (re)connection: events may have been missed, so re-read. */

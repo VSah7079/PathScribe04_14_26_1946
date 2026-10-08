@@ -153,7 +153,7 @@ const RuleModal: React.FC<RuleModalProps> = ({ mode, rule, pools, labs, specimen
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('casePoolAssignmentSection.ruleModal.mappedSpecimenTypesLabel')}</label>
-            <input data-config-nav className="ps-conf-search" placeholder={t('casePoolAssignmentSection.ruleModal.specimenSearchPlaceholder')} value={specimenSearch} onChange={e => setSpecimenSearch(e.target.value)} />
+            <input data-dirty-ignore data-config-nav className="ps-conf-search" placeholder={t('casePoolAssignmentSection.ruleModal.specimenSearchPlaceholder')} value={specimenSearch} onChange={e => setSpecimenSearch(e.target.value)} />
             <div className="ps-conf-table-scroll ps-cpa-specimen-list">
               {filteredSpecimenEntries.length === 0
                 ? <p className="ps-conf-section-subtitle">{t('casePoolAssignmentSection.ruleModal.noSpecimenEntriesMatch')}</p>
@@ -470,13 +470,13 @@ const CasePoolAssignmentSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input data-config-nav type="text" placeholder={t('casePoolAssignmentSection.rulesTable.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
-        <select data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('casePoolAssignmentSection.rulesTable.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('casePoolAssignmentSection.rulesTable.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>
         </select>
-        <select data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('casePoolAssignmentSection.rulesTable.allLabsOption')}</option>
           <option value="Global">{t('casePoolAssignmentSection.rulesTable.globalOnlyOption')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

@@ -20,9 +20,9 @@
 // the signed-in user's own organisation's cases are listed.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import '../../pathscribe.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +32,7 @@ import { PatientRegistryDetailsModal } from '@/components/Common/PatientRegistry
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatDateTime } from '@/utils/formatDate';
 import { screeningRegistryDefinition } from '@/services/screeningRegistry/screeningRegistryDefinitions';
-import { registryExceptionCaseRoute, registryLabelKey, type RegistryExceptionKind, type RegistryExceptionRow, type RegistryQueueName } from '@/services/registrySubmission/registryExceptions';
+import { registryExceptionCaseView, registryLabelKey, type RegistryExceptionKind, type RegistryExceptionRow, type RegistryQueueName } from '@/services/registrySubmission/registryExceptions';
 import { useRegistryExceptions, type RegistryExceptionFilter } from './hooks/useRegistryExceptions';
 
 const K = 'registryExceptions';
@@ -41,7 +41,7 @@ const screeningLabelId = (id: string) => screeningRegistryDefinition(id)?.labelI
 
 export default function RegistryExceptionsPage() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const { user } = useAuth();
   const { pushCrumb } = useBreadcrumb();
   const { config } = useSystemConfig();
@@ -164,7 +164,7 @@ export default function RegistryExceptionsPage() {
                           <td className="ps-regx-when">{formatDateTime(row.at, i18n.language)}</td>
                           <td className="ps-regx-actions">
                             <button className="ps-btn-ghost-dark" onClick={() => setOpen(open === id ? null : id)} aria-expanded={open === id}>{t(open === id ? `${K}.hideDetails` : `${K}.details`)}</button>
-                            <button className="ps-btn-ghost-dark" onClick={() => navigate(registryExceptionCaseRoute(row))}>{t(`${K}.openCase`)}</button>
+                            <button className="ps-btn-ghost-dark" onClick={() => { const c = registryExceptionCaseView(row); void openCasePage(c.caseId, c.view); }}>{t(`${K}.openCase`)}</button>
                             <button className="ps-btn-ghost-dark" onClick={() => setDetailsCase(row.caseId)}>{t(`${K}.patientDetails`)}</button>
                             {row.kind === 'revisedPostAcceptance' && (
                               <CapabilityButton capability="registry:revision:review" className="ps-conf-btn-primary" disabled={busyEntry === row.entryId} onClick={() => onMarkReviewed(row)}>

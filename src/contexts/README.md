@@ -185,3 +185,23 @@ Every file here that used `react-router-dom` now imports the same hooks and comp
 
 - `SystemConfigContext`: reads and saves through `services/systemConfig/systemConfigStore.ts`.
 - `MessagingContext`, `VoiceProvider`: session flags (`utils/uiPreferences.ts`).
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 448
+
+`AuthContext.login` can return `'password_change_required'`: the password was set by an administrator to be changed first, and no session has started.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`AuthContext.login` can now return a `SignInRefusal` (attempts left, or locked until) from `services/auth/signInLockout.ts`.
+
+## Batch 463
+
+`VoiceProvider.tsx`: before the action registry, what was heard is offered to the screen (`services/voice/voiceCommandEvents.ts`) in the voice profile's language; when the screen takes it (the Mohs stage question), the status says so (`voiceProvider.status.screenCommandApplied`).

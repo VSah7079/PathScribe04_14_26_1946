@@ -156,3 +156,7 @@ export const mockModifierDictionaryService: IModifierDictionaryService = guardCo
   ['config:billing-tables:approve', ['approveVersion', 'rejectVersion', 'activateVersion']],
   ['config:billing-modifiers:manage', ['createVersion']],
 ]);
+
+/** Batch 455: the seeded versions, so a demo Full Reset can put them back to
+ *  their seeded state (services/demoReset/demoReset.ts). */
+export const MODIFIER_DICTIONARY_SEED_VERSIONS: readonly ModifierTableVersion[] = [SEED_VERSION, SEED_PENDING_LICENSED_VERSION];

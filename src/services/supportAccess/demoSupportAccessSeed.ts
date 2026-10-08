@@ -19,7 +19,7 @@
 // required.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { SupportAccessSettings } from './supportAccessRules';
+import type { SupportAccessRequest, SupportAccessSettings } from './supportAccessRules';
 
 const ALWAYS_ALLOWED_IN_DEMO = [
   'c-ent-hfhs', 'c-trust-fenwick',
@@ -29,3 +29,39 @@ const ALWAYS_ALLOWED_IN_DEMO = [
 
 export const DEMO_SUPPORT_ACCESS_SETTINGS: Readonly<Record<string, Partial<SupportAccessSettings>>> =
   Object.fromEntries(ALWAYS_ALLOWED_IN_DEMO.map(id => [id, { policy: 'alwaysAllowed' }]));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 456: one support access request waiting for Desert Valley's decision,
+// so approving (or rejecting) it can be demoed straight after a Full Reset.
+//
+// The requester is Amber Fehrs-Battey (PATH-US-001): a Superadmin, so
+// ForMedrixAI support, whose staff organisation is Midwest (ORG-MPA), which
+// makes Desert Valley another organisation for her. Pete Nimmo's own staff
+// record is at Desert Valley, so a request from him wouldn't be support
+// access at all. Approver: Michelle Nimmo (Admin), at Configuration → System
+// → Support access; Pete Nimmo can approve as well (a Desert Valley member,
+// not the requester). Dr. Rachel Okafor (Lab Director) can't by default:
+// config:support-access:approve is seeded to Admin only, and the hospital
+// grants it to other roles if it chooses.
+//
+// Seeded only as the fallback while no requests are stored, so it returns
+// after every Full Reset. The approvers' in-app message and the "requested"
+// entry in the organisation's support audit aren't seeded: the audit stream
+// survives a reset (DELIBERATELY_NOT_RESET) and is hash-chained, so it is
+// only ever written through the service.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const DEMO_PENDING_SUPPORT_REQUEST_ID = 'sa-demo-dvmc-pending';
+
+export function demoSupportAccessRequests(now: number = Date.now()): SupportAccessRequest[] {
+  return [{
+    id: DEMO_PENDING_SUPPORT_REQUEST_ID,
+    tenantId: 'c-ent-dvmc',
+    agentId: 'PATH-US-001',
+    agentName: 'Amber Fehrs-Battey',
+    ticketId: 'FMX-20417',
+    reason: 'Signed-out breast resection reports print without the margin table in the PDF. Need to reproduce on the affected case and compare its template version with the one in use.',
+    requestedAt: new Date(now - 25 * 60_000).toISOString(),
+    status: 'pending',
+  }];
+}

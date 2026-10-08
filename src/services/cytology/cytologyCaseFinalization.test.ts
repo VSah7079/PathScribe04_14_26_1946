@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { finalizeCytologyCaseEarly, resolveCytologyCaseFinalization } from './cytologyCaseFinalization';
 import { makeWorkspaceDeps } from './cytologyWorkspaceTestDeps';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import { cytologyCaseProgress } from './cytologyWorkspaceView';
 
 const caseData = { id: 'C1', accession: { fullAccession: 'S26-1' }, status: 'in-progress' } as never;
@@ -46,5 +47,17 @@ describe('cytologyCaseProgress', () => {
     expect(cytologyCaseProgress(tabs, { status: 'in-progress' } as never)).toEqual({ multiSpecimen: true, signedOut: 1, total: 2, canFinalizeEarly: true });
     expect(cytologyCaseProgress(tabs, { status: 'finalized' } as never).canFinalizeEarly).toBe(false);
     expect(cytologyCaseProgress([{ status: 'draft' }], null)).toMatchObject({ multiSpecimen: false, canFinalizeEarly: false });
+  });
+});
+
+// PS-71 (Batch 458): saved with the version the screen loaded; if someone saved
+// since, applied to the newer case (their changes kept), never over it.
+describe('finalizeCytologyCaseEarly — versioned (PS-71)', () => {
+  it('a stale copy conflicts, then the finalization is saved against the newer version', async () => {
+    const updateCase = vi.fn(async (_id: string, _p: Record<string, unknown>, v: number) => { if (v !== 8) throw new ConcurrencyConflictError('C1', v, 8); });
+    const { deps } = makeWorkspaceDeps({ getCase: async () => ({ id: 'C1', version: 8, status: 'in-progress' }) as never, updateCase });
+    expect(await finalizeCytologyCaseEarly({ ...base, caseData: { ...(caseData as any), version: 7 } as never }, deps)).toBe('finalized');
+    expect(updateCase.mock.calls.map(c => c[2])).toEqual([7, 8]);
+    expect(updateCase.mock.calls[1][1]).toMatchObject({ status: 'finalized' });
   });
 });

@@ -50,6 +50,7 @@ import type { MicroscopicReportInstance } from '@/types/case/Case';
 import PathScribeEditor from '@/components/Editor/PathScribeEditor';
 import { SpellingLanguageControl } from '@/components/SpellCheck/SpellingLanguageControl';
 import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEditorRef';
+import type { FindingHighlightTarget } from '@/services/clinical/findingHighlight';
 import '../../../pathscribe.css';
 
 /** Same real "strip tags, then check for actual text" convention
@@ -67,11 +68,15 @@ interface MicroscopicEntryPanelProps {
   onSaveDraft: (specimenId: string, text: string, entryMethod?: MicroscopicReportInstance['entryMethod']) => void;
   onConfirmAndSave: (specimenId: string, text: string) => Promise<boolean>;
   onClearAndSave: (specimenId: string) => Promise<boolean>;
+  /** Batch 453 (PS-323): microscopic critical findings detected at the
+   *  last Finalize attempt, highlighted where their words appear in this
+   *  specimen's text (never saved; see components/Editor/findingHighlightExtension.ts). */
+  highlightFindings?: readonly FindingHighlightTarget[];
 }
 
 const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
   specimenId, specimenLabel, specimenDesc, instance,
-  onSaveDraft, onConfirmAndSave, onClearAndSave,
+  onSaveDraft, onConfirmAndSave, onClearAndSave, highlightFindings,
 }) => {
   const { t } = useTranslation();
   const [text, setText] = useState(instance?.text ?? '');
@@ -212,6 +217,7 @@ const MicroscopicEntryPanel: React.FC<MicroscopicEntryPanelProps> = ({
         <PathScribeEditor
           ref={editorRef}
           key={`micro-editor-${specimenId}`}
+          highlightFindings={highlightFindings}
           content={text}
           onChange={handleTextChange}
           placeholder={t('microscopicEntryPanel.editorPlaceholder')}

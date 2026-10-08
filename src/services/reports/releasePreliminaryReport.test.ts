@@ -129,3 +129,21 @@ describe('releasePreliminaryReport', () => {
     expect(publishReportReleasedEvent).toHaveBeenCalledTimes(2);
   });
 });
+
+// PS-71 (Batch 458): the attestation is saved with the version of the case it
+// was built from; a diagnostic change saved meanwhile is kept.
+describe('releasePreliminaryReport — versioned attestation (PS-71)', () => {
+  it('a conflict re-reads the case and applies the attestation to the newer diagnostic', async () => {
+    const { ConcurrencyConflictError } = await import('../cases/ConcurrencyConflictError');
+    vi.mocked(caseRouter.getCase)
+      .mockResolvedValueOnce(makeCase({ version: 1 }) as any)   // the release's own read
+      .mockResolvedValueOnce(makeCase({ version: 1 }) as any)   // the save's first read (stale by the time it lands)
+      .mockResolvedValue(makeCase({ version: 2, diagnostic: { finalDiagnosis: 'theirs' } }) as any);
+    vi.mocked(caseRouter.updateCase).mockImplementation(async (_id: string, _u: any, v?: number) => { if (v !== 2) throw new ConcurrencyConflictError('CASE-1', v ?? -1, 2); });
+    const result = await releasePreliminaryReport('CASE-1', releasingUser);
+    expect(result).toEqual({ ok: true, dispatchedCount: 1 });
+    const calls = vi.mocked(caseRouter.updateCase).mock.calls;
+    expect(calls.map(c => c[2])).toEqual([1, 2]);
+    expect((calls[1][1] as any).diagnostic).toMatchObject({ finalDiagnosis: 'theirs', reviewerRole: 'Pathologist' });
+  });
+});

@@ -21,6 +21,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { ResolvedAnswer } from '@/orchestrator/contextBuilder';
+import { recordDocumentOutput, planReportPrint, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
+import ReportPrintPromptModal from './ReportPrintPromptModal';
 
 // Real, persisted notification-method enum values stay as data; only the
 // displayed label is translated (this sweep's usual LABEL_KEY pattern).
@@ -70,10 +72,14 @@ interface Props {
   patient: string;
   mrn: string;
   instances: CopilotReportInstance[];
+  /** PS-282 (Batch 437): the case, so the print is audited (print or
+   *  reprint, with a reason when the lab requires one). */
+  caseRecord?: { id: string; version?: number; originHospitalId?: string | null } | null;
 }
 
-export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accession, patient, mrn, instances }) => {
+export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accession, patient, mrn, instances, caseRecord }) => {
   const { t } = useTranslation();
+  const [printPlan, setPrintPlan] = React.useState<PrintPlan | null>(null);
   // Default every instance to its most recent version.
   const [selectedVersion, setSelectedVersion] = React.useState<Record<string, number>>({});
   const [activeInstanceId, setActiveInstanceId] = React.useState<string | null>(null);
@@ -92,7 +98,17 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
 
   if (!show) return null;
 
-  const handlePrint = () => {
+  // PS-282 (Batch 437): plan first (a reprint may need a reason), then print
+  // and record it. Pending Release is confirmed before this view opens
+  // (BottomActionBar), so it isn't asked again here.
+  const handlePrint = async () => {
+    if (!caseRecord) { printNow(null, ''); return; }
+    const plan = await planReportPrint({ document: 'report', caseId: caseRecord.id, caseRecord, pendingReleaseRestricted: false });
+    if (plan.askReason) { setPrintPlan(plan); return; }
+    printNow(plan, '');
+  };
+
+  const printNow = (plan: PrintPlan | null, reason: string) => {
     // ROOT FIX for the persistent blank-print issue — every previous fix
     // patched one more ancestor in the ps-overlay/ps-synrp-root/ps-app-root
     // chain, and each time revealed another one Chrome's actual print
@@ -110,6 +126,12 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
     if (!printWindow) {
       alert(t('copilotReportViewModal.popupBlockedAlert'));
       return;
+    }
+    if (caseRecord) {
+      void recordDocumentOutput({
+        action: plan?.action ?? 'print', document: 'report', documentId: caseRecord.id, version: caseRecord.version ?? null,
+        caseId: accession || caseRecord.id, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', reason, format: 'html',
+      });
     }
     printWindow.document.write(`<!DOCTYPE html>
 <html>
@@ -169,7 +191,7 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
         <div className="ps-copilot-report-view-toolbar" data-print-hide="true">
           <span className="ps-copilot-report-view-title">{t('copilotReportViewModal.toolbarTitle')}</span>
           <div>
-            <button className="ps-btn-ghost-dark" onClick={handlePrint}>🖨 {t('copilotReportViewModal.printButton')}</button>
+            <button className="ps-btn-ghost-dark" onClick={() => { void handlePrint(); }}>🖨 {t('copilotReportViewModal.printButton')}</button>
             <button className="ps-btn-ghost-dark" onClick={onClose}>{t('common.close')}</button>
           </div>
         </div>
@@ -318,6 +340,13 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
           </div>
         </div>
       </div>
+      {printPlan && (
+        <ReportPrintPromptModal
+          plan={printPlan}
+          onCancel={() => setPrintPlan(null)}
+          onPrint={(reason) => { const plan = printPlan; setPrintPlan(null); printNow(plan, reason); }}
+        />
+      )}
     </div>
   );
 };

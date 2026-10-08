@@ -11,10 +11,11 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-// i18n note: `dirtySections` entries are section names passed in by the
-// caller (already-resolved display text from the synoptic form's own
-// section list), not literal UI chrome authored in this file, so they
-// are rendered as-is here. Title reuses
+// i18n note: `dirtySections` entries are section ids
+// (services/reportEditing/dirtySections.ts), shown through
+// `unsavedWarningModal.sections.<id>`. (Corrected in Batch 445: they used
+// to be English labels written by the report page, and an earlier note here
+// wrongly said they were already-translated text.) Title reuses
 // `synopticEditor.discardConfirm.title` and the Save & Leave button
 // reuses `synopticEditor.discardConfirm.saveDraftAndLeaveButton`
 // (exact-text matches from that dialog's own equivalent copy, the
@@ -24,10 +25,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
+import type { DirtySectionId } from '@/services';
 
 interface UnsavedWarningModalProps {
   show:            boolean;
-  dirtySections?:  string[];           // which sections have unsaved changes
+  dirtySections?:  DirtySectionId[];   // which sections have unsaved changes
   onSaveAndLeave?: () => void;         // save draft then navigate
   onConfirm:       () => void;         // discard and navigate
   onCancel:        () => void;         // stay on page
@@ -67,7 +69,7 @@ const UnsavedWarningModal: React.FC<UnsavedWarningModalProps> = ({
             {dirtySections.map(s => (
               <div key={s} className="ps-unsaved-section-row">
                 <span className="ps-unsaved-section-dot">●</span>
-                <span className="ps-unsaved-section-label">{s}</span>
+                <span className="ps-unsaved-section-label">{t(`unsavedWarningModal.sections.${s}`)}</span>
               </div>
             ))}
           </div>

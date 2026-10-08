@@ -1569,6 +1569,8 @@ test files, 4714/4714 tests passing.
 
 ## Real, deliberate scope not yet built
 
+*Superseded (Batch 459): both points below are out of date. The correction and addendum actions are on `CytologyScreeningPage.tsx` (`pages/CytologyWorklistPage/hooks/useCytologyRevision.ts`, Batch 390), and the release path is covered by `cytologyRevision.test.tsx`.*
+
 - **No UI trigger exists for either mechanism yet.** Both `releaseCytologyCorrection.ts` and `releaseCytologyAddendum.ts` are real, tested, and ready to be called, but there's no "Correct Diagnosis" or "Add Addendum" action in `CytologyScreeningPage.tsx` to call them. Given that page's own size, this was scoped as its own, separate follow-up rather than attempted in the same pass as the underlying mechanism.
 - Reaching a genuine, pathologist-level Cytology sign-out through browser automation proved hard this session (needs a real role handoff — Primary Screener review, then a separate pathologist Final Review) — confirmed the page and its forms work correctly with zero errors across multiple attempts, but the actual dispatch trigger itself was never exercised live. Relying on the layered, direct unit coverage across `dispatchCytologyCaseInstances.test.ts`, `generateCytologyReportPdfSnapshot.test.ts`, `releaseCytologyCorrection.test.ts`, `releaseCytologyAddendum.test.ts`, and `publishReportReleasedEvent.test.ts`'s own source-routing tests instead.
 
@@ -1765,6 +1767,128 @@ The registry queue gains `setRegistryStatus`; `markSent` sets `registryStatus: '
 - `mockSnomedCervicalHistologySeverityMappingService`: `add`, `update`, `remove` need `config:cytology-severity-mapping:manage`.
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 434
+
+`buildWsiScanBatchManifestPayload.ts`: each slide also carries `blockId`, `stainId` and `slideLabel` when it came from the scanning queue. The manifest is now really sent, by `services/digitalPathology/wsiScanBatchWorkflow.ts`.
+
+## Batch 438 (PS-146)
+
+`releaseCytologyCorrection.ts`: a released cytology diagnosis correction recommends a CAPA to the QA lead. Its reason is free text, so every one recommends.
+
+## Batch 440 (PS-271 follow-up): the shared QC queue and the Cytology Review tray
+
+Pete (Oct 2): "The QC worklist is essentially an unassigned worklist. Whomever is assigned to the qc bench would go to that worklist and start rescreening." Before this batch the Cytology Workspace's QC / Rescreen tile was built from `caseRouter.listCasesForUser`, so it only showed the cases assigned to the viewer. A QC-bench cytotech saw only cases they had screened themselves, which meant self-QC by design. Positive GYN cases were also never routed to a pathologist, and a pathologist could not be given the QC role.
+
+- `cytologyQueues.ts` (pure, `cytologyQueues.test.ts`):
+  - `primaryScreenerId`, `isQcRole`.
+  - `isOwnPrimaryScreen`: the viewer did the primary screen. Such a case is shown in their queue, marked, not hidden (Pete: "show badge"), so a small lab never strands one unseen.
+  - `qcByPrimaryScreener`: a new QC rescreen by the primary screener. Refused.
+  - `awaitingPathologistReview`: a primary, QC or secondary screen asked for a pathologist, none has reviewed, and the case isn't signed out (`finalized`, `closed`, `pending-release`).
+  - `pathologistsOnCase`, `cytologyReviewTrayState` (`open` / `mine` / `hidden`), `takeCytologyReviewProblem` (`NOT_AWAITING`, `ALREADY_TAKEN`).
+- `cytologyQueuesLive.ts`, read across every case the viewer may open (`caseRouter.getAll`, which applies the organisation and pool walls):
+  - `loadQcRescreenQueue(viewerId)`: every QC-flagged GYN specimen still waiting for its rescreen, each marked `ownPrimaryScreen`.
+  - `loadCytologyReviewTray(viewerId)`: positive GYN cases with no pathologist yet (`open`), plus the viewer's own (`mine`).
+  - `takeCytologyReview(caseId)`: checks `cytology:pathologist-review:take`. The caller becomes the case's primary (`syncPrimaryAssignee`), and a cytotech who claimed the case from the pool stays on it as `cytotechnologist`. Audited as `CYTOLOGY_REVIEW_TAKEN`. No auto-assignment. (**Correction, Batch 441:** this wasn't true when Batch 440 shipped. The built-in Cytotechnologist role listed no participation types, so a cytotech claiming a pool case became its `primary`; the tray then counted them as the pathologist, and a take demoted them to `attending`. Batch 441 fixed all three.)
+- `saveCytologyReview.ts`: a new QC rescreen by the primary screener returns `qcByPrimaryScreener` and saves nothing. CLIA doesn't name a different person for the rescreen, but an independent second look is the point of it, and NHS practice requires each person's own opinion.
+- `resolveCytologyReviewerRole.ts`: a pathologist doing the QC (rare) records it as the QC role, when a QC flag is pending and no screen has asked for a pathologist yet. Before this batch a pathologist always resolved to `pathologist_review`.
+- A QC rescreen that finds an abnormality goes to the Cytology Review tray like any positive. No discrepancy is recorded automatically; the secondary-screening QA record still notes the disagreement as before.
+
+## Batch 441
+
+- **`cytologyWorklist.ts` / `cytologyWorklistLive.ts`** (`cytologyWorklist.test.ts`) hold the Cytology Workspace worklist, moved out of `CytologyWorklistPage.tsx`:
+  - per-case routing and screening strategy (enterprise default, then facility override, then the patient's age);
+  - which list each case belongs on, and each row's flags (now including `hasFinalDiagnosis` and `qcReason`);
+  - what each tab shows and the counts (`cytologyWorklistView`), the organ-site chips, and the simulated HPV result event.
+  - The page only renders.
+- **`cytologyQueues.ts`** takes an optional `CaseStaffContext`:
+  - a cytotech who became primary under the old claim fallback is still not the case's pathologist, so the case stays open in the Cytology Review tray;
+  - with no participants list, `order.assignedTo` decides (an earlier open item).
+  - `cytologyQueuesLive.ts` builds it from the staff directory.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+- **Bug fixed in `signOutCytologyCase.ts`.** Three sign-out steps (ROSE discrepancy link, post-sign-out peer-review flag, correlation candidates) each saved the whole specimen list built from the case as loaded, so the last write erased the others. An HSIL sign-out with a later biopsy lost its targeted peer-review flag and never entered the peer-review pool. Each step now builds on the specimens the previous step saved. Regression tests in `signOutCytologyCase.test.ts` fail without the fix.
+- **Bug fixed in `cytologyCaseActions.ts` (`resolveHistologyCorrelations`):** the histology diagnosis label came from the first matching mapping entry, not the one that set the rank (a case coded CIN 1 and CIN 3 got rank 4 but was labelled "CIN 1").
+- New tests: final diagnosis authority per condition (PS-207, `cytologyFinalDiagnosisAuthority.test.ts`); sign-out peer-review flag and correlation candidates (PS-214, PS-156); HPV order reason never changes triage (PS-179, `cytologyHpvOrderReasonTriage.test.ts`); registry 'none' dispatches nothing (PS-179); facility workload-cap tier on save (PS-188, `cytologyWorkspaceDeps.test.ts`); partial QC-rate overrides (PS-157); secondary-screening QA records and no CAPA (PS-151, PS-217, `gynCytologySecondaryScreeningQa.test.ts`); QA report scope and peer-review correlation report contents (PS-216, PS-217, `mockCytologyQaReportService.scope.test.ts`); correlation codes pooled across specimens and dismissal flag (PS-221); pathologist's own findings as Final Diagnosis (PS-152).
+- **Open (PS-152), superseded in Batch 459:** nothing compared a case's stored Final Diagnosis with its primary screen; the "Primary vs Final Diagnosis" QA report now does. **Open (PS-156, for Pete):** the 180-day correlation window starts at sign-out, not collection; a biopsy that arrives after sign-out is never picked up.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`cytologyWorkspaceEncounters.test.ts`: the patient's encounters feed targeted high-risk QC on save (PS-209).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+**PS-156, the cyto-histo correlation window (Pete, Oct 4).** The window now starts at the Pap's **collection** date by default, not at cytology sign-out. If the collection date is missing it falls back to receipt, then to sign-out, and it records which one it used. The length (180 days by default) and the start date are configuration:
+- an enterprise default (`ICytologyHistologyCorrelationSettingsService.ts`, `mockCytologyHistologyCorrelationSettingsService.ts`);
+- a rule per jurisdiction;
+- a facility override.
+
+They are resolved by `cytologyHistologyCorrelationWindow.ts` and managed with `config:cytology-histology-correlation:manage`.
+
+A later case matches when any of its specimens was collected or received inside the window. Sign-out stores the window on the specimen (`histologyCorrelationWindow`). `sweepCytologyHistologyCorrelationCandidates.ts` re-checks the stored windows against the patient's current cases, so a biopsy accessioned after sign-out is no longer missed (Pete's example: a biopsy 175 days after collection and 157 after sign-out is matched). The Cytology Workspace runs the sweep when its worklist loads (`cytologyHistologyCorrelationLive.ts`). In production the server should run it whenever a case is received for a patient with an open window.
+
+**Open at Batch 452, closed in Batch 453:** sign-outs from before Batch 452 had no stored window, so the sweep couldn't revisit them (now backfilled; see Batch 453 below). The surgical biopsy-to-resection correlation (`services/quality/resolveSurgicalBiopsyToResectionCorrelationCandidates.ts`) used a fixed 180-day window (now configurable).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+- `backfillCytologyHistologyCorrelationWindows.ts` (new) gives pre-Batch 452 sign-outs the window they would have had: specimens whose latest sign-out has an abnormal interpretation (rank 1 or more) and no stored window. `latestSignOutBySpecimen()` picks each specimen's latest sign-out. Tests: `backfillCytologyHistologyCorrelationWindows.test.ts`.
+- `cytologyHistologyCorrelationLive.ts`: the refresh now backfills, then sweeps, and saves both. Each change reports `windowsBackfilled`.
+- `mockCytologyHistologyCorrelationSettingsService.ts`: the store is built by `createCorrelationSettingsServices({ settingsKey, overridesKey })`, which the surgical window reuses. Each export wraps it with its own capability check.
+- `cytologyCaseActions.ts`: adding a decant and changing its stains go through the atomic save (`saveDecantChange`) and publish `MATERIAL_DECANTED` when the ports are wired. A conflict or refusal throws `CytologyDecantNotSaved`, and nothing is saved. New decant labels come from `nextDecantLabel`.
+- `cytologyWorkspacePorts.ts` / `cytologyWorkspaceDeps.ts`: new ports `saveDecantChange` and `publishMaterialEvent`, wired to `applyDecantChangeLive` and the material event bus.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+- `cytologyWorklist.ts` adds the `follow_up_due` tab and the `isFollowUpDue` row fact. Those rows stay off the primary tabs, like the other QA tiles.
+- `cytologyWorklistLive.ts` loads which cytology cases have a follow-up due soon or overdue (`services/followUp/`), and sends any internal alerts that are now due.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`mockCytologyReviewRecordService.ts` (seed version 10) adds primary screens by CT-001 and CT-002 for the QC demo Paps (S26-4650/4651/4652), and for the HSIL Paps behind the follow-up and correlation demos (S26-4640/4641).
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+Seeded reviews that named the wrong person are corrected (seed version 11):
+- PATH-UK-001 is Paul Carter (Manchester), not "Dr. Priya Shah", who is the Fenwick requesting clinician. The Fenwick primary screen (and S26-9101's diagnosis) now belong to Fenwick's cytopathologist, PATH-FW-001, Dr. Eleanor Hughes (not a sign-in).
+- PATH-US-002 is Dr. J. Mark Tuthill, not "Dr. Rachel Kim". The S26-5007 high-risk rescreen is now Dr. Sarah Johnson's.
+- CT-QC-001 was no one. The S26-5002 and S26-5006 random rescreens are now Nadia Rahman's.
+
+Only a review's author may edit it, so these were attributed to the wrong person or to no one. `demoBaseline.test.ts` now checks every seeded review by a staff id carries that person's name.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+- Every cytology case save is versioned:
+  - sign-out and its side effects;
+  - Workspace actions (`patchCytologyScreening` now also takes a function of the saved specimen);
+  - correlation;
+  - finalization;
+  - review notes;
+  - code changes.
+- `cytologyCaseWriteDeps.ts`: `saveCaseChangeFrom`, used by `saveWorkspaceCaseChange`. A person's save first goes against the version the screen loaded; on a conflict the case is re-read and the change re-applied.
+- Review notes are added to, and acknowledged on, the notes as saved, so a note someone else added in between is kept.
+
+## Batch 459 — PS-152: primary screen vs Final Diagnosis
+
+PS-152's last open point (Pete: "That Final Diagnosis is what is used in discordance reporting against the Primary Cytotechs initial review").
+- **`resolveCytologyFinalDiagnosisDiscordancePairs.ts`** (new, pure, with tests): pairs each signed-out specimen's first primary screen with the review chosen as its Final Diagnosis, whatever that review's role.
+  - A primary screen chosen as the Final Diagnosis counts as exact agreement.
+  - A specimen with no primary screen, or a Final Diagnosis pointing at a review that isn't on file, is left out.
+- **`resolveCytologyPrimaryVsFinalDiagnosisReport`** in `resolveCytologyQaReports.ts` classifies the pairs with the same engine as the other cytology QA reports (`classifyCytologyAgreement`), so exact, minor and major discrepancies read the same way.
+- **`ICytologyQaReportService.getPrimaryVsFinalDiagnosisReport(scope)`**, in the mock through the shared `finalDiagnosisRefs` helper (also used by the peer-review report). Same scope rules as the other reports.
+- Shown on Quality Assurance → Cytology as the "Primary vs Final Diagnosis" tile.
+
+**Superseded statements in this file:** "Real, deliberate scope not yet built" (the correction and addendum actions are on the screening page since Batch 390), and the Batch 450 "Open (PS-152)" line. Both are marked where they appear. The peer-review side-by-side view was already closed in Phase 61.
+
+## Batch 460 — Billing review in the Workspace
+
+`cytologyCaseActions.ts` has two new functions for the Billing drawer:
+- `saveCytologyUnitCoding` saves a decant's codes through the material save, or a block's codes on the case as saved. It returns the new specimens and, for a decant, the advanced version.
+- `saveCytologySpecimenBilling` saves base and matrix codes.
+
+Both apply the change to the codes as saved, so a save in between isn't overwritten. Also removed a stray duplicate doc comment above `CytologyDecantNotSaved`. See `services/billing/README.md` (Batch 460) for the User and Admin Guide.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

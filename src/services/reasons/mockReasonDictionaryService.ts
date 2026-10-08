@@ -9,6 +9,7 @@
 
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import type { ReasonDictionaryEntry, IReasonDictionaryService } from '@/types/reasons/ReasonDictionaryEntry';
 
@@ -153,7 +154,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockReasonDictionaryService: IReasonDictionaryService = {
+const reasonDictionaryServiceUnchecked: IReasonDictionaryService = {
   async getAll(category) {
     await delay();
     return ok(load().filter(r => r.category === category));
@@ -179,6 +180,11 @@ export const mockReasonDictionaryService: IReasonDictionaryService = {
     return ok(updated);
   },
 
-  async deactivate(id) { return mockReasonDictionaryService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockReasonDictionaryService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return reasonDictionaryServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return reasonDictionaryServiceUnchecked.update(id, { status: 'Active' }); },
 };
+
+/** Batch 438 (PS-146): changing the dictionary needs its Configuration capability. */
+export const mockReasonDictionaryService: IReasonDictionaryService = guardConfigWrites(reasonDictionaryServiceUnchecked, [
+  ['config:revision-reasons:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

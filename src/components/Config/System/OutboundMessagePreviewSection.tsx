@@ -29,6 +29,7 @@ import { buildAdt08Payload, buildAdt40Payload, buildAdt47Payload } from '@/servi
 import { prepareOruR01Dispatch } from '@/services/reports/prepareOruR01Dispatch';
 import { permitInterfacePreview } from '@/services/interfacePreview/permitInterfacePreview';
 import type { OruResultState } from '@/types/case/OutboundResultQueueEntry';
+import { recordExport } from '@/services';
 
 type MessageType = 'A08' | 'A40' | 'A47' | 'ORU_R01';
 
@@ -111,7 +112,10 @@ const OutboundMessagePreviewSection: React.FC = () => {
 
   const handleDownload = () => {
     if (!payload) return;
-    downloadJson(payload, `${messageType}_${Date.now()}.json`);
+    const filename = `${messageType}_${Date.now()}.json`;
+    // PS-282 (Batch 437): audited.
+    void recordExport('outbound-message-preview', { filename, rowCount: 1, format: 'json' });
+    downloadJson(payload, filename);
   };
 
   const canPreview = (() => {

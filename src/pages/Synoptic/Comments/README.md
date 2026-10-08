@@ -23,6 +23,10 @@ Case- and specimen-level comment modals, sharing one dialog-position-memory shel
 - Voice: "post comment".
 - Timestamps use the user's locale.
 
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`CommentModals.test.tsx`: the footer button reads Close and only closes; Post Comment is disabled for an empty or blank draft (PS-312).
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -26,5 +26,9 @@ Real, local, developer-run Node scripts — never deployed, never part of the ap
 
 `tag-phi.mjs` still auto-tags simple cases, but its line-by-line audit over-reports (class names, comments, filters and props all match). The count that decides PS-72 is `src/services/phi/phiTagging.guard.test.ts`, which reads the code structure; see `src/services/phi/README.md`.
 
+## Batch 448
+
+`auth/hash-demo-password.mjs` is now a developer tool only, for changing the built-in starting passwords. Administrators set and reset passwords in Staff → edit → Sign-in password.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

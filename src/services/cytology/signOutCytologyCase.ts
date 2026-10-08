@@ -49,7 +49,8 @@ import { resolveNewQcCaseAssignmentFromRoseDiscrepancy } from '../cytologyQc/res
 import { resolveCytologyPeerReviewTargetedSelection } from './resolveCytologyPeerReviewTargetedSelection';
 import { resolveEffectiveCytologyQcSettings } from './resolveEffectiveCytologyQcSettings';
 import { resolveCytologyRandomQcSelection } from './resolveCytologyRandomQcSelection';
-import { resolveCytologyHistologyCorrelationCandidates } from './resolveCytologyHistologyCorrelationCandidates';
+import { resolveCytologyHistologyCorrelationCandidates, otherPatientCasesForCorrelation } from './resolveCytologyHistologyCorrelationCandidates';
+import { resolveCorrelationWindow, resolveEffectiveCorrelationRule, type EffectiveCorrelationRule } from './cytologyHistologyCorrelationWindow';
 import { resolveCytologyReportContent } from './resolveCytologyReportContent';
 import type { ScreeningRegistryConfig } from '../screeningRegistry/IScreeningRegistryConfigService';
 import { submitScreeningRegistryResult } from '../screeningRegistry/submitScreeningRegistryResult';
@@ -57,6 +58,8 @@ import type { RegistrySubmissionHeader, PriorRegistrySubmission } from '../regis
 import { FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '../quality/mockQaSupervisionAssignmentService';
 import { resolveCytologyCaseFinalization } from './cytologyCaseFinalization';
 import { resolveCytologyComplianceFeatures } from './cytologyComplianceFeatures';
+import { updateCaseWithRetry, updateCaseWithRetryOrThrow } from '../cases/caseWrite';
+import { caseWriteDepsFrom, type VersionedCaseUpdate } from './cytologyCaseWriteDeps';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
 // Loose on purpose: these are the page's existing calls, typed as the page used them.
@@ -74,7 +77,9 @@ export interface CytologySignOutDeps {
   resolveFinalizeAuthorityContext: (caseData: Case) => Promise<any>;
   getActiveSupervisionAssignment: (activityTypeId: string, userId: string, subspecialtyId?: string) => Promise<{ supervisorUserId?: string } | null>;
   releaseForCountersign: (input: { caseId: string; subspecialtyId?: string; residentId: string; residentName: string; releasedAnswersSnapshot: Record<string, Record<string, string | string[]>> }) => Promise<unknown>;
-  updateCase: (caseId: string, patch: Record<string, unknown>) => Promise<unknown>;
+  /** PS-71 (Batch 458): every case save reads the case and carries its version (updateCaseWithRetry). */
+  getCase: (caseId: string) => Promise<Case | null | undefined>;
+  updateCase: VersionedCaseUpdate;
   getAllCases: () => Promise<Result<any[]>>;
   getUserEmail: (userId: string) => Promise<string | undefined>;
   sendEmail: (message: { to: string[]; subject: string; bodyText: string; bodyHtml: string; metadata: Record<string, string> }) => Promise<unknown>;
@@ -86,6 +91,10 @@ export interface CytologySignOutDeps {
   getQcSettings: (facilityId: string, userId: string) => Promise<{ enterprise: any; facility: any; staff: any } | null>;
   random: () => number;
   getSpecimenDictionary: () => Promise<Result<{ id: string; type?: string }[]>>;
+  /** Batch 452 (PS-156): the cyto-histo correlation rule for the case's
+   *  facility (enterprise → jurisdiction → facility). Optional: absent means
+   *  the built-in default, 180 days from collection. */
+  getHistologyCorrelationRule?: (facilityId: string | undefined) => Promise<EffectiveCorrelationRule>;
   resolveReportLocale: (facilityId?: string) => Promise<any>;
   /** Batch 411: every sign-out record on the case (which specimens are signed out). */
   getCaseSignOutRecords: (caseId: string) => Promise<Result<CytologySignOutRecord[]>>;
@@ -153,6 +162,8 @@ export interface CytologySignOutOutcome {
 
 const activeParticipant = (participants: CaseParticipant[] | undefined, userId: string, typeId: string) =>
   !!participants?.some(p => p.status === 'active' && p.staffId === userId && p.participationTypeIds?.includes(typeId));
+
+const writeDeps = (deps: Pick<CytologySignOutDeps, 'getCase' | 'updateCase'>) => caseWriteDepsFrom(deps.getCase, deps.updateCase);
 
 /** The specimen with a screening patch applied, as a case update. */
 function specimensWithScreeningPatch(caseData: Case, specimenId: string, patch: Record<string, unknown>) {
@@ -225,7 +236,11 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
         },
       },
     });
-    try { await deps.updateCase(caseData.id, { status: 'pending-countersign' }); } catch (e) { console.error(e); }
+    // PS-71 (Batch 458): versioned; a save that still conflicts after the retries is logged, as a failed save was.
+    try {
+      const r = await updateCaseWithRetry(caseData.id, () => ({ status: 'pending-countersign' }), writeDeps(deps));
+      if (r.ok === false) console.error(`Case ${caseData.id}: pending-countersign not saved (${r.reason})`);
+    } catch (e) { console.error(e); }
     const attending = caseData.participants?.find(p => p.status === 'active' && p.participationTypeIds?.includes('attending'));
     const reviewerId = fppe?.supervisorUserId ?? ctCompetency?.supervisorUserId ?? attending?.staffId;
     if (reviewerId) {
@@ -261,9 +276,17 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
 
   const rankOf = (id: string | undefined) => categories.find(c => c.id === id)?.diagnosticRank;
   const retrospectiveFlagged = await applyFiveYearLookback(input, rankOf(finalReview.primaryInterpretationId), deps);
-  await applyRoseDiscrepancy(input, deps);
-  await applyPostSignOutPeerReview(input, rankOf(finalReview.primaryInterpretationId), deps);
-  await applyHistologyCorrelationCandidates(input, rankOf(finalReview.primaryInterpretationId), deps);
+  // Batch 450: each step below saves the whole specimen list, so each one
+  // starts from the specimens the step before it saved. Before, all three
+  // started from the case as loaded, and the last write erased the others
+  // (an HSIL sign-out with a later biopsy lost its peer-review flag).
+  let working = input;
+  const carry = (specimens: any[] | undefined) => {
+    if (specimens) working = { ...working, caseData: { ...working.caseData, specimens } as Case, specimen: specimens.find(sp => sp.id === specimenId) ?? working.specimen };
+  };
+  carry(await applyRoseDiscrepancy(working, deps));
+  carry(await applyPostSignOutPeerReview(working, rankOf(finalReview.primaryInterpretationId), deps));
+  carry(await applyHistologyCorrelationCandidates(working, rankOf(finalReview.primaryInterpretationId), deps));
 
   // 7. The record, the release and the registry.
   const screener = reviews.find(r => r.role === 'primary_screen');
@@ -298,7 +321,8 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
   const caseRecords = await deps.getCaseSignOutRecords(caseData.id);
   const finalization = resolveCytologyCaseFinalization(input.cytologySpecimenIds ?? [specimenId],
     [...(caseRecords.ok ? caseRecords.data.map(r => r.specimenId) : []), specimenId]);
-  if (finalization.allSignedOut) await deps.updateCase(caseData.id, { status: 'finalized' });
+  // PS-71 (Batch 458): versioned; a lasting conflict throws, as a failed save did.
+  if (finalization.allSignedOut) await updateCaseWithRetryOrThrow(caseData.id, () => ({ status: 'finalized' }), writeDeps(deps));
   await deps.signatureGate.commit(caseData.id, 'signed', { kind: 'cytology-sign-out', id: record.id });
   await deps.publishReportReleased({
     caseId: caseData.id, reportType: 'FINAL', releasedAt: deps.now().toISOString(),
@@ -307,7 +331,7 @@ export async function signOutCytologyCase(input: CytologySignOutInput, deps: Cyt
     generatePdf: () => deps.generatePdfSnapshot(record.reportContent),
   });
 
-  await dispatchToRegistry(input, record, deps);
+  await dispatchToRegistry(working, record, deps);
   return { outcome: 'signedOut', retrospectiveFlagged, caseFinalized: finalization.allSignedOut, specimensRemaining: finalization.remaining.length };
 }
 
@@ -336,7 +360,11 @@ async function applyFiveYearLookback(input: CytologySignOutInput, triggeringRank
   for (const [targetCaseId, items] of byCase) {
     const target = otherCases.find(c => c.id === targetCaseId);
     if (!target) continue;
-    const specimens = (target.specimens as any[]).map(sp => {
+    const triggeredAt = deps.now().toISOString();
+    // PS-71 (Batch 458): the flags are applied to the case as read for the
+    // save (not the copy from getAllCases), with its version; on a conflict
+    // they are re-applied to the newer case.
+    await updateCaseWithRetryOrThrow(targetCaseId, current => ({ specimens: ((current.specimens as any[]) ?? []).map(sp => {
       if (!items.some(i => i.specimenId === sp.id)) return sp;
       return {
         ...sp,
@@ -344,18 +372,17 @@ async function applyFiveYearLookback(input: CytologySignOutInput, triggeringRank
           ...sp.cytologyScreening,
           retrospectiveReviewFlag: {
             reason: 'five_year_lookback_on_new_high_grade_diagnosis',
-            triggeredByCaseId: caseData.id, triggeredBySpecimenId: specimenId, triggeredAt: deps.now().toISOString(),
+            triggeredByCaseId: caseData.id, triggeredBySpecimenId: specimenId, triggeredAt,
           },
         },
       };
-    });
-    await deps.updateCase(targetCaseId, { specimens });
+    }) }), writeDeps(deps));
   }
   return flagged.length;
 }
 
 /** A ROSE bedside adequacy call the final lab call contradicts opens a QC assignment. */
-async function applyRoseDiscrepancy(input: CytologySignOutInput, deps: CytologySignOutDeps): Promise<void> {
+async function applyRoseDiscrepancy(input: CytologySignOutInput, deps: CytologySignOutDeps): Promise<any[] | undefined> {
   const { caseData, specimenId, specimen, finalReview, categories } = input;
   const evaluations = specimen?.roseEvaluations as any[] | undefined;
   if (!evaluations?.length) return;
@@ -366,13 +393,18 @@ async function applyRoseDiscrepancy(input: CytologySignOutInput, deps: CytologyS
   if (!resolveCytologyRoseDiscrepancy(lastPass.adequacyAssessment, finalIsUnsatisfactory)) return;
   const created = await deps.createQcAssignment(resolveNewQcCaseAssignmentFromRoseDiscrepancy(caseData.id, specimenId, finalReview.recordedBy.userId));
   if (!created.ok) return;
-  const updatedEvaluations = evaluations.map(ev => (ev.id === mostRecent.id ? { ...ev, qcCaseAssignmentId: created.data.id } : ev));
-  const specimens = ((caseData.specimens as any[]) ?? []).map(sp => (sp.id === specimen.id ? { ...sp, roseEvaluations: updatedEvaluations } : sp));
-  await deps.updateCase(caseData.id, { specimens });
+  // PS-71 (Batch 458): the QC link is applied to the case as read for the save, with its version.
+  const qcCaseAssignmentId = created.data.id;
+  const r = await updateCaseWithRetryOrThrow(caseData.id, current => ({
+    specimens: ((current.specimens as any[]) ?? []).map(sp => (sp.id === specimen.id
+      ? { ...sp, roseEvaluations: ((sp.roseEvaluations as any[]) ?? []).map(ev => (ev.id === mostRecent.id ? { ...ev, qcCaseAssignmentId } : ev)) }
+      : sp)),
+  }), writeDeps(deps));
+  return r.ok ? (r.updates.specimens as any[]) : undefined;
 }
 
 /** Post-sign-out peer review: targeted high-risk first, else random at the QC rate cascade. */
-async function applyPostSignOutPeerReview(input: CytologySignOutInput, signedOutRank: number | undefined, deps: CytologySignOutDeps): Promise<void> {
+async function applyPostSignOutPeerReview(input: CytologySignOutInput, signedOutRank: number | undefined, deps: CytologySignOutDeps): Promise<any[] | undefined> {
   const { caseData, specimenId, user, finalReview } = input;
   const isTargeted = resolveCytologyPeerReviewTargetedSelection(signedOutRank);
   let isRandom = false;
@@ -384,45 +416,59 @@ async function applyPostSignOutPeerReview(input: CytologySignOutInput, signedOut
       isRandom = resolveCytologyRandomQcSelection(!finalReview.requiresPathologistReview, effective, deps.random());
     }
   }
-  if (!isTargeted && !isRandom) return;
-  await deps.updateCase(caseData.id, {
-    specimens: specimensWithScreeningPatch(caseData, specimenId, {
-      postSignOutPeerReviewFlag: {
-        reason: isTargeted ? 'targeted_high_risk' : 'random_selection',
-        flaggedBy: 'system', flaggedByName: 'Automatic Post-Sign-Out Peer Review Selection', flaggedAt: deps.now().toISOString(),
-      },
-    }),
-  });
+  if (!isTargeted && !isRandom) return undefined;
+  const flag = {
+    reason: isTargeted ? 'targeted_high_risk' : 'random_selection',
+    flaggedBy: 'system', flaggedByName: 'Automatic Post-Sign-Out Peer Review Selection', flaggedAt: deps.now().toISOString(),
+  };
+  // PS-71 (Batch 458): applied to the case as read for the save, with its version.
+  const r = await updateCaseWithRetryOrThrow(caseData.id, current => ({
+    specimens: specimensWithScreeningPatch(current, specimenId, { postSignOutPeerReviewFlag: flag }),
+  }), writeDeps(deps));
+  return r.ok ? (r.updates.specimens as any[]) : undefined;
 }
 
-/** CYT-QA-04: the patient's other cases with a non-cytology specimen, as correlation candidates. */
-async function applyHistologyCorrelationCandidates(input: CytologySignOutInput, finalRank: number | undefined, deps: CytologySignOutDeps): Promise<void> {
+/** CYT-QA-04: the patient's other cases with a non-cytology specimen, as correlation candidates.
+ *  Batch 452 (PS-156): the window comes from the configured rule (180 days
+ *  from collection by default, deps.getHistologyCorrelationRule) and is kept
+ *  on the specimen, so biopsies that arrive later are matched by
+ *  sweepCytologyHistologyCorrelationCandidates. The window is stored even
+ *  when nothing matches yet. */
+async function applyHistologyCorrelationCandidates(input: CytologySignOutInput, finalRank: number | undefined, deps: CytologySignOutDeps): Promise<any[] | undefined> {
   const { caseData, specimenId, finalReview } = input;
   const patientId = (caseData.patient as any)?.id;
   if (!patientId || finalRank === undefined || finalRank < 1) return;
+  const specimen = (caseData.specimens as any[] ?? []).find(sp => sp.id === specimenId);
+  const rule = deps.getHistologyCorrelationRule
+    ? await deps.getHistologyCorrelationRule((caseData.order as any)?.facilityId)
+    : resolveEffectiveCorrelationRule(null, null, null);
+  const window = resolveCorrelationWindow(specimen ?? {}, deps.now().toISOString(), rule);
+  if (!window) return;
   const [allCases, dict] = await Promise.all([deps.getAllCases(), deps.getSpecimenDictionary()]);
-  if (!allCases.ok || !dict.ok) return;
-  const dictById = new Map(dict.data.map(e => [e.id, e]));
-  const otherPatientCases = allCases.data.filter(c => c.id !== caseData.id && c.patient?.id === patientId).map(c => {
-    const specimens = (c.specimens as any[]) ?? [];
-    // A specimen with no dictionary entry counts as non-cytology: surface a candidate rather than hide one.
-    const hasNonCytologySpecimen = specimens.some(sp => {
-      const entry = sp.specimenDictionaryEntryId ? dictById.get(sp.specimenDictionaryEntryId) : undefined;
-      return !(entry && (entry.type === 'Cytology' || entry.type === 'FNA'));
-    });
-    const receivedDates = specimens.map(sp => sp.receivedAt).filter(Boolean).sort();
-    return { caseId: c.id, hasNonCytologySpecimen, earliestSpecimenReceivedAt: receivedDates[0] };
-  });
+  const others = allCases.ok && dict.ok
+    ? otherPatientCasesForCorrelation(allCases.data, caseData.id, patientId, new Map(dict.data.map(e => [e.id, e])))
+    : [];
   const candidates = resolveCytologyHistologyCorrelationCandidates(
-    [{ id: finalReview.id, caseId: caseData.id, specimenId, diagnosticRank: finalRank, recordedAt: deps.now().toISOString() }],
-    otherPatientCases,
+    [{ reviewId: finalReview.id, caseId: caseData.id, specimenId, diagnosticRank: finalRank, window }],
+    others,
   );
-  if (candidates.length === 0) return;
-  await deps.updateCase(caseData.id, {
-    specimens: specimensWithScreeningPatch(caseData, specimenId, {
-      histologyCorrelationCandidates: candidates.map(c => ({ candidateCaseId: c.candidateCaseId, detectedAt: deps.now().toISOString() })),
-    }),
-  });
+  const detectedAt = deps.now().toISOString();
+  // PS-71 (Batch 458): the candidates already on the specimen are read from
+  // the case as read for the save (with its version), so one added by a
+  // concurrent sweep is kept.
+  const r = await updateCaseWithRetryOrThrow(caseData.id, current => {
+    const sp = ((current.specimens as any[]) ?? []).find(s => s.id === specimenId);
+    const existing: any[] = sp?.cytologyScreening?.histologyCorrelationCandidates ?? [];
+    const known = new Set(existing.map(c => c.candidateCaseId));
+    const added = candidates.filter(c => !known.has(c.candidateCaseId)).map(c => ({ candidateCaseId: c.candidateCaseId, detectedAt }));
+    return {
+      specimens: specimensWithScreeningPatch(current, specimenId, {
+        histologyCorrelationWindow: { ...window, diagnosticRank: finalRank, reviewId: finalReview.id },
+        ...(added.length || existing.length ? { histologyCorrelationCandidates: [...existing, ...added] } : {}),
+      }),
+    };
+  }, writeDeps(deps));
+  return r.ok ? (r.updates.specimens as any[]) : undefined;
 }
 
 /**

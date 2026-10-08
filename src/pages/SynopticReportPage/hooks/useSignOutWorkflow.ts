@@ -44,6 +44,7 @@
 //     useAmendmentWorkflow, per the dependency direction above.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { countBlockMessage, findSynopticEntryChecks, totalWarningsMessage } from '@/services/templates/synopticEntryChecks';
 import { useState, useCallback, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSessionUser, canFinalizeCase, resolveCountersignRequiredTypeIds } from '@/services/auth/caseAccessControl';
@@ -83,6 +84,7 @@ import { mockOutboundChargeQueueService } from '@/services/billing/mockOutboundC
 import { shouldRandomlySampleForCodeReview } from '@/services/billing/shouldRandomlySampleForCodeReview';
 import { mockCodeReviewPoolService } from '@/services/billing/mockCodeReviewPoolService';
 import { facilityService } from '@/services';
+import { markFollowUpExpectedLive, followUpMarkFailureKey } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { resolveFinalizeAuthorityContext } from '@/services/auth/resolveFinalizeAuthorityContext';
 import { sweepChargesForOutbox } from '@/services/billing/sweepChargesForOutbox';
@@ -111,7 +113,13 @@ import type { OrchestratorSection } from '../components/OrchestratorSectionEdito
 import type { SigningUser, SetConcurrencyConflict, SendSynopticReportToLisFn, GenerateReportPdfSnapshotFn } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { checkStainQcGate } from './checkStainQcGate';
+import { checkClinicalMismatch, checkPeerReviewGate } from './checkPeerReviewAndMismatch';
+import type { ClinicalMismatchSuggestion, PeerReviewStatus } from '@/services';
 import type { StainQcGateBlockingItem } from './checkStainQcGate';
+import { partGridRowsOf, synopticFieldAnswered } from '@/services/templates/partGrid';
+import { findDerivedMarginConflicts, findInvasiveMarginGaps, findMohsBlockGaps, findStaleOrganMapFigures } from '@/services/organMapping/organMapLive';
+import { invasiveMarginGapsMessage } from '@/services/organMapping/organMapLabels';
+import { findMolecularResultDifferencesLive, molecularDifferencesMessage } from '@/services/molecularOrders/molecularSignOutCheck';
 
 // PreFinalisationModal imported only for its co-located SynopticForReview
 // type re-export — not rendered from this hook.
@@ -119,6 +127,8 @@ void PreFinalisationModal;
 
 interface UseSignOutWorkflowParams {
   caseData: Case | null;
+  /** Batch 465b: asks the person to go past a warning (a hand-entered total that differs from its grid); false = stop. */
+  confirmWarnings?: (message: string) => Promise<boolean>;
   setCaseData: React.Dispatch<React.SetStateAction<Case | null>>;
   signingUser: SigningUser;
   /** The report page's toast; messages naming the case pass `{ containsPhi: true }`. */
@@ -141,6 +151,8 @@ interface UseSignOutWorkflowParams {
   setShowSignOutModal: (show: boolean) => void;
   setPendingReconciliation: (rec: { specimenId: string; caseType: string; frozenCategory: FrozenCategory; frozenDx: string } | null) => void;
   countersignFeedback: string;
+  /** Batch 454: the signer ticked "follow-up specimen expected" in the sign-out modal. */
+  followUpExpected?: boolean;
   specimenDictionary: SpecimenEntry[];
   setFixativeGateSpecimens: (specs: FixativeGateSpecimen[] | null) => void;
   /** Real, per PS-289/PS-292's own Gating Strategy — see
@@ -148,6 +160,11 @@ interface UseSignOutWorkflowParams {
    *  real "hard block, own gate-resolution modal" shape as the
    *  fixative/pre-analytic gates above. */
   setStainQcGateBlocking: (items: StainQcGateBlockingItem[] | null) => void;
+  /** Batch 439 (PS-145): a suggested clinical-pathologic mismatch to decide
+   *  before sign-out (ClinicalMismatchModal). Same resume shape as the gates. */
+  setClinicalMismatch: (suggestion: ClinicalMismatchSuggestion | null) => void;
+  /** Batch 439 (PS-144): the peer-review gate stopped sign-out (PeerReviewGateModal). */
+  setPeerReviewGate: (status: PeerReviewStatus | null) => void;
   setPreAnalyticDateGateSpecimens: (specs: PreAnalyticDateGateSpecimen[] | null) => void;
   setPendingFinalizeArgs: (args: string[]) => void;
   /** Real, per direct guidance (retiring Finalize for Orchestration
@@ -203,6 +220,9 @@ const BILLING_DEFICIENCY_SEVERITY: Record<BillingDeficiencyType, BillingDeficien
   UNATTACHED_ANCILLARY_ORDER: 'COMPLIANCE_WARNING',
   MODIFIER_MISMATCH: 'CRITICAL_REJECTION_RISK',
   ZERO_FEE_MAPPING_ERROR: 'REVENUE_LEAKAGE',
+  // Batch 433: raised by billing staff, not at sign-out.
+  MISSING_CHARGE: 'REVENUE_LEAKAGE',
+  POST_SIGNOUT_CORRECTION: 'COMPLIANCE_WARNING',
 };
 
 // Real, per direct guidance (retiring Finalize for Orchestration Mode,
@@ -278,12 +298,12 @@ export function useSignOutWorkflow({
   knownVersionRef, setConcurrencyConflict, sendSynopticReportToLis,
   generateReportPdfSnapshot, isOrchestrationMode, orchSections,
   setCaseSigned, setShowSignOutModal, setPendingReconciliation,
-  countersignFeedback, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking,
+  countersignFeedback, followUpExpected, specimenDictionary, setFixativeGateSpecimens, setStainQcGateBlocking, setClinicalMismatch, setPeerReviewGate,
   setPreAnalyticDateGateSpecimens, setPendingActionIsSignOut,
   setPendingFinalizeArgs, synopticPanelRef, setAlertFieldId, safeSetLeftTab, setAmendmentMode,
   setActiveSpecimenId, setActiveReportType,
   setShowAmendmentModal, setShowFinalizeModal, openAmendmentDraft,
-  releasePendingAmendmentOrAddendum, log,
+  releasePendingAmendmentOrAddendum, log, confirmWarnings,
 }: UseSignOutWorkflowParams) {
   // Real, per direct guidance (PS-105): "If the enterprise level is
   // disabled then the performing facility level is disabled and
@@ -299,7 +319,7 @@ export function useSignOutWorkflow({
   // instance call (it's a plain service, not a hook), so both call
   // sites here stay correct simply by displaying whatever it returns,
   // in any language, with no wrapping needed here.
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Batch 345: the case's accession as the signing screens pass it, so a
   // signature confirmed for one case can't be used on another.
@@ -417,7 +437,18 @@ export function useSignOutWorkflow({
     setShowSignOutModal(false);
     setPendingReconciliation(null);
     showToast(t('useSignOutWorkflow.toast.caseSignedOutSuccessfully'));
-  }, [caseData, sendSynopticReportToLis, generateReportPdfSnapshot, isOrchestrationMode, signingUser, setCaseSigned, setShowSignOutModal, showToast, setCaseData, knownVersionRef, setConcurrencyConflict, setPendingReconciliation, t]);
+
+    // Batch 454: the signer said a follow-up specimen (a resection or
+    // excision) is expected, so the lab is told if none arrives in the
+    // biopsy-to-resection window. Here, at the one place every sign-out
+    // ends (the gate and frozen-section reconciliation paths resume into
+    // this function too), and only once the sign-out has landed. A
+    // failure is said but never undoes the sign-out.
+    if (caseData?.id && followUpExpected && signingUser?.id) {
+      const marked = await markFollowUpExpectedLive(caseData.id, { id: signingUser.id, name: signingUser.name ?? signingUser.id });
+      if (marked.ok === false) showToast(t(`useSignOutWorkflow.toast.followUpNotMarked.${followUpMarkFailureKey(marked.reason)}`), 'warning');
+    }
+  }, [caseData, sendSynopticReportToLis, generateReportPdfSnapshot, isOrchestrationMode, signingUser, setCaseSigned, setShowSignOutModal, showToast, setCaseData, knownVersionRef, setConcurrencyConflict, setPendingReconciliation, followUpExpected, t]);
 
   // Real, per direct guidance ("Yes we should scope 'Return to
   // Trainee'/'Reject with Notes'. I think the delegation workflow
@@ -507,6 +538,42 @@ export function useSignOutWorkflow({
       showToast(t('useSignOutWorkflow.toast.alreadyPendingRelease'), 'warning');
       setShowSignOutModal(false);
       return;
+    }
+
+    // Batch 463b review: the Orchestration sign-out (and a resident's release
+    // for countersign) reaches here without the Assist finalize path, so the
+    // report-content gates run here too: no report map out of date with the
+    // answers (Batch 461), and every positive Mohs sector names the block it
+    // was cut in.
+    if ((await findStaleOrganMapFigures(caseData)).length > 0) {
+      showToast(t('organMap.panel.signOutStale'), 'warning');
+      setShowSignOutModal(false);
+      return;
+    }
+    if ((await findMohsBlockGaps(caseData)).length > 0) {
+      showToast(t('organMap.mohs.signOutBlocks'), 'warning');
+      setShowSignOutModal(false);
+      return;
+    }
+    // Batch 466b: the template's generic margin questions agree with the map.
+    if ((await findDerivedMarginConflicts(caseData)).length > 0) {
+      showToast(t('organMap.derived.signOutMismatch'), 'warning');
+      setShowSignOutModal(false); return;
+    }
+    {
+      const checks = await findSynopticEntryChecks(caseData);
+      if (checks.blocking.length) { showToast(t('synopticChecks.signOutBlocked', { problem: countBlockMessage(t, checks.blocking[0]) }), 'warning'); setShowSignOutModal(false); return; }
+      if (checks.warnings.length && confirmWarnings && !(await confirmWarnings(totalWarningsMessage(t, checks.warnings)))) { setShowSignOutModal(false); return; }
+    }
+    // Batch 466d (Pete): invasive carcinoma on the map with its margins not all reported asks first (a warning).
+    {
+      const gaps = await findInvasiveMarginGaps(caseData);
+      if (gaps.length && confirmWarnings && !(await confirmWarnings(invasiveMarginGapsMessage(t, i18n.language, gaps)))) { setShowSignOutModal(false); return; }
+    }
+    // Batch 467b (Pete's engine delta): an answer that still differs from its molecular result asks first (a warning).
+    {
+      const differences = await findMolecularResultDifferencesLive(caseData);
+      if (differences.length && confirmWarnings && !(await confirmWarnings(molecularDifferencesMessage(t, differences)))) { setShowSignOutModal(false); return; }
     }
 
     // Batch 345: nothing is signed without a checked signature. The
@@ -770,6 +837,24 @@ export function useSignOutWorkflow({
         setShowSignOutModal(false);
         return;
       }
+
+      // Batch 439 (PS-145, PS-144): a clinical-pathologic mismatch to
+      // decide, then the peer-review gate where it is switched on. See
+      // checkPeerReviewAndMismatch.ts.
+      const mismatch = await checkClinicalMismatch(caseData);
+      if (mismatch) {
+        setClinicalMismatch(mismatch);
+        setPendingActionIsSignOut(true);
+        setShowSignOutModal(false);
+        return;
+      }
+      const peerGate = await checkPeerReviewGate(caseData);
+      if (peerGate) {
+        setPeerReviewGate(peerGate);
+        setPendingActionIsSignOut(true);
+        setShowSignOutModal(false);
+        return;
+      }
     }
 
     // Real attending-side countersign completion — fires when a case
@@ -884,6 +969,7 @@ export function useSignOutWorkflow({
       );
     }
 
+
     // Real, per the RFP-APLIS-2026-GLOBAL Broader Cancer Registry
     // Exports gap — per FHIR_DISPATCH_ARCHITECTURE_PLAN.md's own
     // already-settled, critical finding, this is the ONLY real place
@@ -955,7 +1041,7 @@ export function useSignOutWorkflow({
         showToast(t('useSignOutWorkflow.toast.signedOutBufferFailed'), 'warning');
       }
     }
-  }, [caseData, finalizeSignOut, signingUser, showToast, countersignFeedback, setShowSignOutModal, knownVersionRef, setConcurrencyConflict, setCaseData, setPendingReconciliation, isOrchestrationMode, log, t]);
+  }, [caseData, finalizeSignOut, signingUser, showToast, countersignFeedback, setShowSignOutModal, knownVersionRef, setConcurrencyConflict, setCaseData, setPendingReconciliation, isOrchestrationMode, log, t, i18n.language, confirmWarnings]);
 
   // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
   const buildSynopticsForReview = useCallback(async (): Promise<SynopticForReview[]> => {
@@ -1139,7 +1225,7 @@ export function useSignOutWorkflow({
         const matchesPerInstance = await Promise.all(caseData.synopticReports.map(async report => {
           try {
             const detail = await getTemplate(report.templateId);
-            const resolved = resolveAnswers(report.answers ?? {}, detail?.template ?? null);
+            const resolved = resolveAnswers(report.answers ?? {}, detail?.template ?? null, partGridRowsOf(caseData.specimens));
             return evaluateAbnormalTriggerRules(report.specimenId, resolved, activeRules);
           } catch (e) {
             console.error(`[AbnormalDetection] Could not evaluate trigger rules for instance ${report.instanceId}:`, e);
@@ -1373,6 +1459,27 @@ export function useSignOutWorkflow({
       return false;
     }
 
+    // Batch 461: the report's map image must match the synoptic answers being signed.
+    if ((await findStaleOrganMapFigures(caseData)).length > 0) {
+      showToast(t('organMap.panel.signOutStale'), 'warning');
+      return false;
+    }
+    // Batch 463b: every positive Mohs sector names the block it was cut in.
+    if ((await findMohsBlockGaps(caseData)).length > 0) {
+      showToast(t('organMap.mohs.signOutBlocks'), 'warning');
+      return false;
+    }
+    // Batch 466b: the template's generic margin questions agree with the map.
+    if ((await findDerivedMarginConflicts(caseData)).length > 0) {
+      showToast(t('organMap.derived.signOutMismatch'), 'warning');
+      return false;
+    }
+    // Batch 465b: no grid count above its limit (checked again here; the warning was asked up front).
+    {
+      const checks = await findSynopticEntryChecks(caseData);
+      if (checks.blocking.length) { showToast(t('synopticChecks.signOutBlocked', { problem: countBlockMessage(t, checks.blocking[0]) }), 'warning'); return false; }
+    }
+
     // ── Pre-analytic date gate — hard block, per direct guidance's own
     // cross-jurisdiction compliance research (UKAS ISO 15189 Clause 7.2,
     // CAP/CLIA § 493.1241, RCPath, EU IVDR/ISO 15189, IANZ AS ISO
@@ -1419,6 +1526,22 @@ export function useSignOutWorkflow({
       setPendingFinalizeArgs(excludedInstanceIds);
       setPendingActionIsSignOut(false);
       return false; // abort — do not finalize until the gate is resolved
+    }
+
+    // Batch 439 (PS-145, PS-144): same two checks as the sibling call site.
+    const mismatchFinalize = await checkClinicalMismatch(caseData);
+    if (mismatchFinalize) {
+      setClinicalMismatch(mismatchFinalize);
+      setPendingFinalizeArgs(excludedInstanceIds);
+      setPendingActionIsSignOut(false);
+      return false;
+    }
+    const peerGateFinalize = await checkPeerReviewGate(caseData);
+    if (peerGateFinalize) {
+      setPeerReviewGate(peerGateFinalize);
+      setPendingFinalizeArgs(excludedInstanceIds);
+      setPendingActionIsSignOut(false);
+      return false;
     }
 
     const finalizedAt = new Date().toISOString();
@@ -1687,8 +1810,8 @@ export function useSignOutWorkflow({
             if (!isVisible((sec as any).visibleWhen, answers)) return false;
             return (sec.fields ?? []).some((f: any) => {
               if (!f.required || !isVisible(f.visibleWhen, answers)) return false;
-              const val = answers[f.id];
-              return !val || (Array.isArray(val) ? val.length === 0 : val.toString().trim() === '');
+              // Batch 461: a results grid counts when any cell is answered.
+              return !synopticFieldAnswered(f, answers);
             });
           });
           if (hasIncomplete) allRequiredSynopticFieldsComplete = false;
@@ -1740,6 +1863,37 @@ export function useSignOutWorkflow({
     if (activeCaseHold) {
       showToast(t('useSignOutWorkflow.toast.caseOnHold', { note: activeCaseHold.note }), 'warning');
       return;
+    }
+    // Batch 461: said up front too (finalizeCase checks again): a report map image out of date with the answers.
+    if ((await findStaleOrganMapFigures(caseData)).length > 0) {
+      showToast(t('organMap.panel.signOutStale'), 'warning');
+      return;
+    }
+    if ((await findMohsBlockGaps(caseData)).length > 0) {
+      showToast(t('organMap.mohs.signOutBlocks'), 'warning');
+      return;
+    }
+    // Batch 466b: the template's generic margin questions agree with the map.
+    if ((await findDerivedMarginConflicts(caseData)).length > 0) {
+      showToast(t('organMap.derived.signOutMismatch'), 'warning');
+      return;
+    }
+    // Batch 465b (Pete): a grid count above its limit stops sign-out; a hand-entered total that differs from its
+    // grid asks first.
+    {
+      const checks = await findSynopticEntryChecks(caseData);
+      if (checks.blocking.length) { showToast(t('synopticChecks.signOutBlocked', { problem: countBlockMessage(t, checks.blocking[0]) }), 'warning'); return; }
+      if (checks.warnings.length && confirmWarnings && !(await confirmWarnings(totalWarningsMessage(t, checks.warnings)))) return;
+    }
+    // Batch 466d (Pete): invasive carcinoma on the map with its margins not all reported asks first (a warning).
+    {
+      const gaps = await findInvasiveMarginGaps(caseData);
+      if (gaps.length && confirmWarnings && !(await confirmWarnings(invasiveMarginGapsMessage(t, i18n.language, gaps)))) return;
+    }
+    // Batch 467b (Pete's engine delta): an answer that still differs from its molecular result asks first (a warning).
+    {
+      const differences = await findMolecularResultDifferencesLive(caseData);
+      if (differences.length && confirmWarnings && !(await confirmWarnings(molecularDifferencesMessage(t, differences)))) return;
     }
     // Real fix, found via direct live verification before shipping this:
     // this check MUST run before the synopticPanelRef.current check
@@ -1822,7 +1976,7 @@ export function useSignOutWorkflow({
     previewBillingWarnings().catch(e => console.error('[PathScribe] Billing warning preview failed (non-blocking):', e));
     setPreFinalSynoptics(await buildSynopticsForReview());
     setShowPreFinalise(true);
-  }, [buildSynopticsForReview, caseData, synopticPanelRef, showToast, setAlertFieldId, isOrchestrationMode, safeSetLeftTab, getMicroscopicBlockingSpecimens, setActiveSpecimenId, setActiveReportType, previewBillingWarnings, acknowledgedCritical, fetchCriticalFindings, t]);
+  }, [buildSynopticsForReview, caseData, synopticPanelRef, showToast, setAlertFieldId, isOrchestrationMode, safeSetLeftTab, getMicroscopicBlockingSpecimens, setActiveSpecimenId, setActiveReportType, previewBillingWarnings, acknowledgedCritical, fetchCriticalFindings, t, i18n.language, confirmWarnings]);
 
   const handlePreFinalConfirm = useCallback((_ordered: string[], _excluded: string[], confirmation?: SignatureConfirmation) => {
     setShowPreFinalise(false);

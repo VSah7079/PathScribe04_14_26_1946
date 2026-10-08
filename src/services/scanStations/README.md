@@ -37,6 +37,15 @@ The seeded Panthers now live in the equipment register (`services/equipment/`), 
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 444
+
+- `scanStationList.ts` (new, tested):
+  - `filterScanStations` (search, status, facility);
+  - `activeScanStations`;
+  - `workflowStageKey` (the locale key for a suggested stage; an admin's own wording is shown as typed).
+- `validateScanStationDraft.ts` returns codes (`nameRequired`, `barcodeRequired`, `facilityRequired`, `printerProfileRequired`) that the screen translates, instead of English text.
+- These helpers are exported from `@/services`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

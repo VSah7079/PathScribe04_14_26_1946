@@ -95,6 +95,88 @@ The `Sidebar` has a "Parts covered" button (⧉) on each draft synoptic workup, 
 
 `HeaderBar.tsx`: resolving (and, when new, adding) the flag a LIS-reported code stands for is `services/flags/resolveLisFlagDefinition.ts` now, not the component. Adding to the flag catalog is a Configuration change; this one is the LIS sync's, so it isn't checked against the person.
 
+## Batch 437 (PS-329)
+
+`RightSynopticPanel.tsx` reports the template's Must Have fields (`onMustHaveFieldsUpdate`). `HeaderBar.tsx` takes `AiSynthesisStatus` from the service instead of a duplicate type.
+
+## Batch 439 (PS-144)
+
+`PeerReviewBanner.tsx`: recommended or required (first-time malignancy), waiting on the reviewer (who records their read here; the requester can withdraw), a disagreement (either pathologist records the outcome), overridden for urgent care, or complete. Any pathologist can ask for a review on a case not yet signed out.
+
+## Batch 445
+
+- `HeaderBar.tsx` and `LeftReportPanel.tsx` show the date of birth with `formatDate(…, i18n.language)`.
+- `MaterialTreePanel.tsx` shows location and exception dates in the user's language (it hard-coded `'en-US'`).
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+See `../README.md` (Batch 450): logic moved to services and new tests for PS-57, PS-141, PS-274, PS-275, PS-317, PS-318, PS-324.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+New `AiReportToolButtons.tsx`; tests for billing/material sync (PS-316), Assign Code (PS-310) and the synoptic empty state (PS-310).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+- `BillingReviewPanel`: rows come from the material tree with decants included. It listens to the case's material events, and takes `caseId` and `materialSelectionSeq`.
+- `MaterialTreePanel`: decant rows can split a cell block from a residual fluid decant, or be removed.
+- `OrchestratorSectionEditor` and `LeftReportPanel` take `criticalFindings` and highlight them.
+- New tests: `DecantBillingSync.test.tsx` (integration).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`MicroscopicEntryPanel.tsx` takes `highlightFindings` and passes it to the editor, so the microscopic findings are highlighted per specimen (PS-323). The saved text is unchanged. Test: `MicroscopicEntryPanel.highlight.test.tsx`.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`EditConflictDialog.tsx` (with its test): the report page's conflict dialog.
+
+## Batch 458 — PS-71 (review before saving over someone else's save)
+
+`MergeReviewDialog.tsx` (with its test): "Someone else changed this case while you were working". It shows what they changed and what you're saving, with Save mine with theirs or Not yet. The page uses it for draft and instant saves; the Edit Conflict dialog is shown only when the same field was changed both ways.
+
+## Batch 459
+
+`BottomActionBar.tsx` takes `followUpOffer` and `onMarkFollowUp`. When the offer is `offer`, it shows "Mark follow-up expected" (a `CapabilityButton` for `case:follow-up:expect`). When the offer is `marked`, it shows "Follow-up expected · due <date>", with who marked it in the tooltip. The bar decides nothing itself: the page loads the offer from `loadFollowUpMarkOffer`.
+
+## Batch 460
+
+`MaterialTreePanel.tsx` shows each slide's printed level (`material/slideLevels.ts`), not its position.
+
+## Batch 461
+
+`RightSynopticPanel.tsx`: renders the results grid question (`partGrid`: a row per part of the case, a dropdown or number per cell; each cell is an ordinary answer via `setAnswer`). Answered/unanswered checks now use `synopticFieldAnswered` (progress badge, section counts, "next unanswered", required-field validation, the sign-out statistics; `useSignOutWorkflow`'s required-field gate too), and a hidden question's answers are cleared with `clearSynopticFieldAnswers` (all of a grid's cells).
+
+## Batch 462
+
+`RightSynopticPanel.tsx`: a results grid uses the template's own rows when it has them (numbered foci, one row per margin), with the template's heading over them; number cells don't take negatives.
+
+## Batch 463
+
+`RightSynopticPanel.tsx`: a `spatialStageCanvas` question renders the Mohs stage question (`MohsStagesInput`) with the facility's map colours and the default histology from the tumour type; its patches go through `applyAnswerPatch` and the usual hidden-question clean-up.
+
+## Batch 463b
+
+`RightSynopticPanel.tsx`: progress, Next unanswered / Next required and the Cannot-finalise list use `synopticFieldComplete` / `synopticFieldMissing`, so a Mohs question with an unassigned block counts as incomplete and is listed, required or not.
+
+## Batch 467 — In-house molecular orders
+
+`RightSynopticPanel.tsx`: a question filled from a molecular result says so; when the answer differs from the result it shows the engine-delta tag "Result differs" with the result's answer and **Use result**.
+
+## Batch 476 — Autopsy: unified case timeline (PS-261 follow-up, Module 4)
+
+New `AutopsyCaseTimeline.tsx`: renders the real, merged timeline `services/autopsy/buildAutopsyCaseTimeline.ts` builds from the case's own autopsy record. Per-kind rendering, same pattern as `DispatchHistoryTimeline.tsx` — each of the 14 real event kinds gets its own translated label line, newest-first. No `data-phi` tagging: every name shown (staff, next-of-kin) is already displayed untagged elsewhere in this same autopsy section.
+
+## Batch 478 — Autopsy: two new timeline entry kinds (PS-261 follow-up, Module 6)
+
+`AutopsyCaseTimeline.tsx` gains two more per-kind render cases, now 16 in all: `organ_tag_recorded` (organ name via the existing `AUTOPSY_ORGAN_LABEL_KEY`, plus status) and `gate_overridden` (tier, who, reason). No new component, no new props shape — `buildAutopsyCaseTimeline.ts` already carries the fields these two cases need.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

@@ -87,5 +87,15 @@ A `configurable` registry is ready in the engine. Confirm its codes, identifier 
 - **Baseline stamps on save.** `saveScreeningRegistryConfig` stamps each code mapping, and the identifier hold, with the template version it was made against (`baselineVersion`, `identifierHoldBaselineVersion`). An unchanged mapping keeps its stamp. A release that changes those codes then flags them for review.
 - **Environment no longer read.** `ScreeningRegistryConfig.environment` is kept only so stored configurations still load.
 
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-201, PS-180, PS-192, PS-195, PS-196, PS-200)
+
+`demoFacilityScreeningSetup.seed.test.ts`: each demo screening facility resolves, through the same services and resolvers sign-out uses, to the registry, nomenclature and strategy its ticket set up (Lagan Valley → NICSP, BSCC/RCPath, primary HPV; Fenwick → CSMS; Dublin → CervicalCheck; Amsterdam → PALGA, CISOE-A; Sydney → NCSR; Ardgowan → BSCC/RCPath). Cork Women's Health Clinic has no registry override of its own; the test records that.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+The eligibility flag is written to the newest case, and not at all if it is already there.
+
 ---
 *Update this README when a registry is added or a definition's facts change.*

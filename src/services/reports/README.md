@@ -182,6 +182,46 @@ Before this, only cytology's ORU^R01 carried its PDF (`reportPdfBase64`). Surgic
   - A part can't be covered twice by the same protocol (`partCoveredBy`).
   - Used by the report sidebar's "Parts covered", by the AI's template proposals and by the structured result's `specimen_ids`.
 
+## Batch 438 (PS-146)
+
+`mockAmendmentService.ts`: releasing an amendment or correction whose reason is marked clinically significant recommends a CAPA (linked to a discordance already raised on the case). Addenda never do.
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-318)
+
+`fullPatientReportRows.ts`: the Full Patient Report panel's rows (`buildFullPatientReportRows`, `resolveIntraopDiagnosisText`), moved out of `LeftReportPanel.tsx`: Preliminary and Intraoperative Diagnosis rows in their order.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`mockInformalReviewService.ts` now has seed data: one pending informal review each way between Sarah Johnson and Pete Nimmo (S26-4601, S26-4602).
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Releasing a preliminary report merges the attestation into the newest diagnosis.
+
+## Batch 461: organ maps in the report version and the ORU
+
+- `mockReportVersionService.create()` keeps the synoptic's inserted organ-map images (`organMapFigures`, with `svgSha256` / `pngSha256`) and the PDF's SHA-256 (`pdfSha256`) on the version record, so what was signed can be checked later. It never blocks the sign-out. (The `ReportVersionRecord` header's note on where hashes are taken is partly superseded by this.)
+- `buildOruR01Payload.ts` passes the case's parts to `resolveAnswers`, so a results grid question goes out as readable text.
+- Test: `mockReportVersionService.test.ts` (Batch 461 block).
+
+## Batch 462
+
+`synopticResultPayload.ts`: a results grid's observations use the template's own rows when it has them (foci, margins).
+
+## Batch 463
+
+- `mockReportVersionService.create`: at sign-out the version keeps the maps that are always in the report (Mohs) as drawn from the answers then, with their hashes, in place of anything stored for that synoptic.
+- `reportTranslate.ts` (new): `reportTranslateFor(facilityId)`, a translation in the facility's report language, for report text and images built from answers (Mohs stage lines and maps). Light on purpose: the report text builder imports it.
+- `synopticResultPayload.ts`: a Mohs stage question sends an observation per stage (clear / residual tumour) and per positive sector (histology, perineural invasion; `block_id` its block).
+
+`surgicalReportLabels.ts` (Batch 463): label `figureNotDrawn`, the PDF's notice in place of a map that couldn't be drawn.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

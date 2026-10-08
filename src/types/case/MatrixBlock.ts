@@ -56,7 +56,7 @@ export interface MatrixBlock {
   id: string;
   /** e.g. "M1" — sequential, case-scoped, deliberately NOT tied to any
    *  one specimen's own letter, since this block doesn't belong to
-   *  just one. See utils/matrixBlockIdentifier.ts for the real, human-
+   *  just one. See matrixBlockIdentifier in types/labels/LabelData.ts for the real, human-
    *  facing identifier built from this. */
   label: string;
   status: BlockStatus;
@@ -64,7 +64,9 @@ export interface MatrixBlock {
    *  spatial configuration without splitting chain-of-custody
    *  tracking." Minimum 2 real participants — a matrix block with
    *  fewer isn't a real matrix block at all (see
-   *  utils/matrixBlocks.ts's own creation/dissolve logic). */
+   *  the creation/dissolve handlers in pages/SynopticReportPage/hooks/
+   *  useSpecimenBlockManagement.ts; Batch 460 corrected this comment,
+   *  which named a utils/matrixBlocks.ts that doesn't exist). */
   participants: MatrixBlockParticipant[];
   /** Real, architectural resolution, per direct follow-up: "Put the
    *  physical Slide entity (and its staining/processing lifecycle) on
@@ -163,4 +165,9 @@ export interface MatrixBlock {
    *  this deliberately uses plain-text MaterialComment, not rich-text
    *  CaseComment. */
   comments?: import('./MaterialComment').MaterialComment[];
+  /** Batch 460: the Microtomy alert badges, as on HistologyBlock (a shared
+   *  cassette can be fragile, tiny or need decalcification too). */
+  tinyTissue?: boolean;
+  fragile?: boolean;
+  requiresDecal?: boolean;
 }

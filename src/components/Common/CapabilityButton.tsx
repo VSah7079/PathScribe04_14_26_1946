@@ -27,15 +27,17 @@ interface Props {
   disabledTitle?: string;
   /** PS-356: what the action touches (a case, a facility, all facilities), for facility scope. */
   context?: CapabilityContext;
+  /** Batch 437: the tooltip when the action is allowed (a refusal shows why instead). */
+  title?: string;
 }
 
-export const CapabilityButton: React.FC<Props> = ({ capability, className, onClick, children, disabled, disabledTitle, context }) => {
+export const CapabilityButton: React.FC<Props> = ({ capability, className, onClick, children, disabled, disabledTitle, context, title: allowedTitle }) => {
   const { t } = useTranslation();
   const { decide, loading } = useCapabilities();
   const decision = decide(capability, context);
   const allowed = !!decision?.allowed;
   const label = (key: string) => { const d = capabilityDefinition(key); return d ? t(capabilityLabelKey(d)) : key; };
-  const title = allowed || loading || !decision ? undefined
+  const title = allowed || loading || !decision ? allowedTitle
     : decision.reason === 'outOfScope' || decision.reason === 'facilityUnknown'
       ? t('capabilities.outOfScope', { capability: label(capability) })
       : decision.reason === 'requirementNotGranted'

@@ -13,9 +13,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { resolveAutopsyBodyReleaseGate } from './resolveAutopsyBodyReleaseGate';
 import { buildAutopsyBodyReleaseLocationEvent, type AutopsyBodyReleaseDetails } from './buildAutopsyBodyReleaseLocationEvent';
+import { resolveCurrentAutopsyCustodian } from './recordAutopsyCustodyTransfer';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import type { AutopsyCustodyTransferEvent } from '@/types/autopsy/AutopsyCaseDetails';
 
 export interface ReleaseAutopsyBodyResult {
   ok: boolean;
@@ -44,12 +48,66 @@ export async function releaseAutopsyBody(
   if (!targetSpecimen) return { ok: false, error: 'Specimen not found on this case.' };
 
   const releaseEvent = buildAutopsyBodyReleaseLocationEvent(releaseDetails);
-  const updatedSpecimens = caseData.specimens.map(s =>
-    s.id === specimenId
-      ? { ...s, locationHistory: [...(s.locationHistory ?? []), releaseEvent] }
-      : s,
-  );
 
-  await caseRouter.updateCase(caseId, { specimens: updatedSpecimens });
-  return { ok: true };
+  // PS-71 (Batch 458): the release event is appended on the newest copy of
+  // the case and saved with its version (updateCaseWithRetry); on a conflict
+  // it is re-appended to the newer case, so another person's change (another
+  // specimen, a location event) is kept. The gate is re-checked on that
+  // newest copy too: a release never lands on a case whose gate closed.
+  //
+  // Batch 469: for a forensic case, the same write also appends a final
+  // custodyLog entry (unifying this release with the custody-transfer log
+  // Batch 468 added) — one updateCaseWithRetry call, never a second,
+  // separate write against the same case. Not done for a hospital-consented
+  // case: custodyLog is only ever real for caseAuthority ===
+  // 'statutory_judicial' (AutopsyCaseDetails.ts's own doc comment).
+  let blocked: string[] | undefined;
+  let custodyEvent: AutopsyCustodyTransferEvent | undefined;
+  const write = await updateCaseWithRetry(caseId, current => {
+    blocked = undefined;
+    custodyEvent = undefined;
+    if (!current.autopsy) return null;
+    const g = resolveAutopsyBodyReleaseGate(current.autopsy);
+    if (!g.allowed) { blocked = g.blockedReasons; return null; }
+    if (!current.specimens.some(s => s.id === specimenId)) return null;
+    const specimens = current.specimens.map(s =>
+      s.id === specimenId
+        ? { ...s, locationHistory: [...(s.locationHistory ?? []), releaseEvent] }
+        : s,
+    );
+    if (current.autopsy.caseAuthority !== 'statutory_judicial') {
+      return { specimens };
+    }
+    const from = resolveCurrentAutopsyCustodian(current.autopsy.custodyLog);
+    custodyEvent = {
+      id: `custody-${caseId}-${(current.autopsy.custodyLog?.length ?? 0) + 1}`,
+      occurredAt: releaseEvent.at,
+      itemDescription: 'Body',
+      fromCustodianType: from.type,
+      fromCustodianName: from.name,
+      toCustodianType: releaseDetails.toCustodianType ?? 'funeral_home',
+      toCustodianName: releaseDetails.releasedTo,
+      releasedByName: releaseDetails.releasedByName,
+    };
+    return {
+      specimens,
+      autopsy: { ...current.autopsy, custodyLog: [...(current.autopsy.custodyLog ?? []), custodyEvent] },
+    };
+  }, caseRouter);
+  if (write.ok === true) {
+    // Batch 469: the one real audit-log write this file was missing
+    // (same choke point recordAutopsyCustodyTransfer.ts already uses).
+    mockAuditService.logEvent({
+      type: 'system',
+      event: 'AUTOPSY_BODY_RELEASED',
+      detail: `Body released to ${releaseDetails.releasedTo}`,
+      user: releaseDetails.releasedByName,
+      caseId,
+      confidence: null,
+    }).catch(() => {});
+    return { ok: true };
+  }
+  if (blocked) return { ok: false, blockedReasons: blocked };
+  if (write.reason === 'conflict') return { ok: false, error: 'The case changed while the release was being saved; reopen it and try again.' };
+  return { ok: false, error: write.reason === 'notFound' ? 'Case not found.' : 'Specimen not found on this case.' };
 }

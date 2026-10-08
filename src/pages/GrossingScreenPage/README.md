@@ -43,6 +43,18 @@
 - Completion runs one attempt at a time, so a double click or a repeated command can't start a second attempt against the same case version.
 - `hooks/useGrossingScreen.ts`: `secondaryReviewSpecimens`, `pendingProtocolConfirmation`, `confirmCompleteWithoutProtocol`, `cancelCompleteWithoutProtocol`, `completionReview`; the decisions stay in `services/grossing/`.
 
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 481 — Structured Inking, Module 2: recording margins and ink applications (PS-359 follow-up)
+
+A new **Margins & Ink Applications** section per specimen, below its block/decant tables: lists every margin recorded so far, grouped by where it lives (on the specimen directly, or on one of its blocks — never both for the same margin, per `types/case/Margin.ts`), each with its full append-only ink-application history and examination status. "+ Add margin" opens an inline form (attach to the specimen or a specific block, name, optional orientation/laterality, ink colour name/code, "mark examined" checkbox); each existing margin has its own "+ Add ink application" to append a further colour without ever renaming the margin or touching its prior history. Both forms are gated by `CapabilityButton capability="grossing:margin-ink:record"`.
+
+`hooks/useGrossingScreen.ts` gains `handleRecordMarginInk`, which calls the real, capability-checked `services/grossing/recordMarginInkApplication.ts` (Batch 480) and, only on success, re-reads the case — that service doesn't hand back the updated case the way `recordAutopsyOrganTag.ts` does, so this follows the hook's own initial-load idiom instead of reconstructing the new margin locally.
+
+**Deliberately not wired in this batch:** the severity engine's (`resolveInkingValidationSeverity.ts`) WARN_ONLY/STRICT_ENFORCE advisory display. It needs a real site id to read the site's `inking_validation_mode` from, and `Case` has no real link to a `Site` yet — the Organisation/Site admin UI is still unbuilt (see `services/grossing/README.md`'s own Batch 480 entry). Wiring that in is a later batch's own scope, once that link exists.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

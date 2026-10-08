@@ -99,3 +99,13 @@ describe('mockLabelLayoutService — real, per direct follow-up (PS-245)', () =>
     if (res.ok && res.data) expect(res.data.fields).toHaveLength(1);
   });
 });
+
+describe('Batch 460 (PS-245): the label edge', () => {
+  it('a layout with a field past the label edge is refused; nothing is saved', async () => {
+    const { mockLabelLayoutService } = await import('./mockLabelLayoutService');
+    const res = await mockLabelLayoutService.save({ labelType: 'requisition', widthMm: 50, heightMm: 25, fields: [{ ...FIELD, xMm: 40 }] });
+    expect(res).toEqual({ ok: false, error: 'fieldsOutOfBounds' });
+    const after = await mockLabelLayoutService.getByLabelType('requisition');
+    expect(after.ok && after.data).toBeNull();
+  });
+});

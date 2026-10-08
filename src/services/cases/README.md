@@ -154,6 +154,155 @@ Before, anyone who could open Configuration could change this; now each change i
 
 `casePoolAssignmentService.ts`: saving the routing rules and settings needs `config:case-routing:manage`; "Run now" (`routeUnassignedCases`) needs `case:routing:run` and reports `refused` when it isn't held. FPPE assignments: `config:fppe:manage`.
 
+## Batch 436
+
+`mockCaseService.ts` (`MOCK_VERSION` '48', so the demo data reseeds):
+- The Manchester orders MFT26-8801/8803/8805 name their facility (Manchester Royal Infirmary).
+- S26-9101-CYT-001's status, 'complete', which is not a case status, becomes 'finalized'.
+
+## Batch 441
+
+- **The bug.** The built-in Cytotechnologist role listed no participation types, and a pool claim with none falls back to `primary`. So a cytotech claiming a pool case became its primary pathologist. Now:
+  - `resolveEligibleParticipationTypeIds` drops pathologist types for a cytotech;
+  - `resolveClaimParticipationType` falls back to `cytotechnologist` for one.
+- **`saveCaseTeam.ts`** (`saveCaseTeam.test.ts`) is the Case Team save, moved out of `CaseTeamModal.tsx`:
+  - checks the new `case:team:manage`;
+  - refuses a cytotech in a pathologist slot;
+  - moves `order.assignedTo` when the primary changes (`caseTeamUpdates`).
+  - `withAssigneeOnTeam`: when the modal opens and the assignee isn't on the team, it adds them as primary, or as cytotechnologist for a cytotech (before this, always primary).
+  - `caseTeamSaveDeps.ts` holds the real services.
+- **`caseAssignmentSync.syncPrimaryAssignee`** takes an optional `isCytotech`. A cytotech who was primary is demoted to `cytotechnologist`, not the `attending` (co-signer) fallback. Delegation and the cytology review take pass it.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-71, PS-189)
+
+`caseWriteConflictAudit.test.ts`: `CaseRouter.updateCase` writes a separate case-write-conflict audit entry. `casePoolAssignmentService.test.ts`: returning a case to the pool changes only pool, status, assignment and timestamp, never accession, patient or specimens. `mockCaseService.ts`: `updateCaseAnyMode` is exported for the test. **Open:** the two real callers of the mock case service's save still pass no expected version.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+- New `demoBaselineCases.ts`: 19 cases, appended to the seed (`MOCK_VERSION` 49). See its header and `docs/product/DEMO_GUIDE.md`.
+- `listCasesForUser` now also returns a `pending-countersign` case to its active attending participant. Before, the case stayed assigned to the resident and the attending's Countersign tile never saw it.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+- `demoBaselineCases.ts`: autopsy cases A26-4660..4662, and a pending HPV co-test on S26-4650/4651/4652.
+- `mockCaseService.ts` applies `withMaterialDemo` (decants and a matrix block) to the seed cases, and S26-9101's diagnosis names Fenwick's cytopathologist. `MOCK_VERSION` 50.
+
+## Batch 457 — Metro General cancer registry, Molecular Order Queue seed
+
+S26-4405 and S26-4490: ICD-O code, primary diagnosis and issue date, so the cancer registry submission can be rebuilt. `MOCK_VERSION` 51.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+- `caseWrite.ts`:
+  - `updateCaseWithRetry` / `updateCaseWithRetryOrThrow`, for system saves: read, build the change from that read, save with its version; on a conflict read again and rebuild (3 tries). Never saves without a version.
+  - `overwriteAfterConflict`, for "Save mine anyway": needs `case:edit-conflict:override`, saves against the newest version, and audits it.
+  - `caseConflictRows`, for View changes.
+  - `adoptSavedVersion`: a screen takes a saved version only when it was saved straight on top of its own.
+- `caseWriteDeps.ts` wires these to the real services.
+- `CaseRouter.updateCase` now requires the version.
+- `caseWriteVersion.guard.test.ts` fails on any `.updateCase(` with fewer than three arguments. There is no allowlist: every one of the 85 unversioned saves found (39 files) was converted.
+- `acceptPoolCase`: of two people accepting at once, only the first wins; the other is told "Another pathologist accepted this case first".
+- `delegateCase` builds its team change from the newest case.
+- `saveCaseTeam` refuses when the team itself changed since the modal opened (`teamChanged`).
+- Tests: `caseWrite.test.ts`, `mockCaseServicePoolClaim.test.ts`, `saveCaseTeam.test.ts`.
+
+## User guide: when someone else changes a case you're working on
+
+*Written for the User Guide (Batch 458, PS-71). It applies to Assist and Orchestration cases alike, and to every save on the report page: the draft (synoptic reports, report sections, grossing) and the instant saves (specimen and case comments, flags, codes, priority, specimen and block details).*
+
+**Your work is never lost.** PathScribe keeps a copy of what you've typed and not saved, updated every second. If your browser closes, the page reloads or you're signed out for inactivity, the next time you open the case it offers your changes back. When you restore them, they are fitted around anything saved since; they never replace someone else's newer work.
+
+**What happens when you save after someone else did.** Every case has a version. When you save, PathScribe checks whether anyone (a colleague, or a system process such as an inbound result or a scan) saved the case after you opened it.
+
+1. **Nobody did:** your save goes through, as always.
+2. **Someone did, in other parts of the case:** nothing is saved yet. A box titled **"Someone else changed this case while you were working"** lists what they changed and what you're saving. For example: they changed *Case team, Specimens*; you're saving *Synoptic reports*. PathScribe compares down to the individual field: a comment on a specimen and a new block on the same specimen are different fields, and so are two different questions in one synoptic report. You choose:
+   - **Save mine with theirs:** your change is saved and theirs stays. You can't undo another person's change from here.
+   - **Not yet: show me their changes:** nothing is saved. The page now shows their changes with yours applied on top, still unsaved, so you can look them over, adjust your own, and save again. You don't need to leave the case or retype anything.
+3. **Someone changed the very same field** (for example, you both edited the microscopic description): the **"Someone else changed this case"** box (Edit Conflict) opens:
+   - **Keep working, decide later:** closes the box. Your change stays on the page, unsaved. Each save brings the box back until you reload or save yours anyway.
+   - **View changes:** lists each part of the case that differs from the saved version, and whether saving yours would replace it ("Replaced by yours") or leave it as saved ("Kept as saved").
+   - **Reload their version:** shows the saved case. Your work is kept in the browser copy and offered back after the reload.
+   - **Save mine anyway:** saves your version of what you were saving over theirs: your draft (in Assist, all the synoptic reports; in Orchestration, the report sections, synoptic and grossing reports) and any instant change that stopped at this box. Everything else stays as saved. Only people allowed to override (Pathologist, Admin and Lab Director by default) can use it, and it is recorded in the audit log.
+4. **Finalize, sign-out and amendment release** never offer "Save mine anyway". Reload, look at their change, then sign.
+
+**Messages you may see:**
+- "Saved, together with the other person's changes."
+- "Their changes are shown with yours on top, not saved yet. Save again when you're ready."
+- "The case changed again while you were deciding. Nothing was saved; save again to see the latest."
+- "Another pathologist accepted this case first." This appears when two people accept the same pool case at once; only the first is assigned.
+
+**Coming in Batch 459:** a banner naming who else has the case open (with their extension and email), the first person to open a case for editing holding it (others read-only), and a live notice with a Refresh button when someone saves the case you have open.
+
+## Admin guide: concurrent editing (case versions)
+
+*For the Admin Guide (Batch 458, PS-71).*
+
+- **What it protects:** a save made from an old copy of a case can never silently overwrite a newer save, whether it's from a person or from a system process (interfaces, scans, batches, registry, sign-out side effects). Every save carries the version it was built from. This is the same version checking HL7 FHIR uses (ETag / If-Match), and it meets the "no silent overwrite, every change attributable" expectation of ISO 15189, CAP/CLIA, 21 CFR Part 11 and EU Annex 11.
+- **System processes** never ask anyone. On a version clash they re-read the case and re-apply their own change to the newer copy, up to three times. If they still can't save, they report a failure: an interface message stays unprocessed and is redelivered. They never save without a version.
+- **People** see the review box (other parts changed) or the Edit Conflict box (the same field changed), as described in the User guide above.
+- **Permission:** `case:edit-conflict:override` ("Save over someone else's newer version") enables **Save mine anyway**. By default it is granted to Pathologist, Admin and Lab Director (Pete's decision: pathologists are the final clinical authority, and an admin-only override would hold up urgent addenda). You can change this in the Role Dictionary. Without it, people can still keep working, view changes, reload, or save alongside non-overlapping changes.
+- **Audit log entries:**
+  - `case.write.conflict` on every refused save;
+  - "Concurrency conflict detected" when the Edit Conflict box opens;
+  - "Concurrency conflict overridden", naming the version and the parts overwritten (not their content);
+  - "Edit conflict overwrite refused" if an overwrite reaches the service without the permission (for example, the permission was removed while the box was open). For someone without it, the button is greyed out.
+- **Pool cases:** of two people accepting the same pool case at once, only the first is assigned. The other is told, and the case isn't assigned twice.
+- **Server requirement:** the API server must enforce the same versions (`docs/architecture/CASE_API.md`). The browser's checks protect the demo, but only the server can enforce them for everyone.
+
+## Batch 458 — PS-71 (review before saving over someone else's save)
+
+In `caseWrite.ts`:
+- `mergeDraftParts` is field by field and record by record (by `instanceId` or `id`).
+- `saveDraftParts(…, { review })` returns a `MergeReview` instead of saving a merge.
+- `commitMergeReview`, `takeUpSavedCase`, `savePageChange` and `MergeReviewPendingError` are new.
+
+The mock case stores take up saves made in another tab (`storage` event), tested in `mockCaseServiceCrossTab.test.ts`. The User guide and Admin guide sections above explain the behaviour for the guides.
+
+## Batch 461: map answers on the prostate demo cases (`MOCK_VERSION` 52)
+
+- **S26-4404** (needle biopsy): the Core results grid is filled from the microscopic description (cores A–C right apex/mid/base, carcinoma Gleason 3+4=7, Grade Group 2, 40/70/30 %; D–F left, benign).
+- **MFT26-8804** (radical prostatectomy): the Anatomical map questions (Grade Group 3 in the right base, mid and apex peripheral zone; extraprostatic extension and a positive margin right posterolateral mid; no seminal vesicle invasion). Its other answers stay empty, so the AI suggestions demo is unchanged.
+
+## Batch 462: breast map answers (`MOCK_VERSION` 53)
+
+- **S26-4401-BX-001** (left mastectomy): side left; focus 1 invasive carcinoma at 2 o'clock, 3 cm, 23 mm; focus 2 DCIS at 2 o'clock, 3.5 cm, 4 mm; margins (invasive / DCIS mm): superior 15/18, inferior 40, medial 60, lateral 25, anterior 8/10, posterior 2.0/4.
+- **S26-4405** (right lumpectomy, signed out): side right; DCIS 18 mm and calcifications at 10 o'clock, 4 cm; DCIS margins: superior 3, inferior 8, medial 12, lateral 5, anterior 4, posterior 6.
+
+## Batch 463
+
+Demo case **S26-4463** (`MOCK_VERSION` 54): Mohs, left nasal ala, parts A and B = stages 1 and 2 on one synoptic. Stage 1 (09:15, 3 blocks) residual tumour at 12 and 1 o'clock (block A, nodular BCC) and deep (block C, infiltrative BCC, perineural invasion); stage 2 (10:30, 1 block) clear; forehead flap.
+
+## Batch 464
+
+Demo cases (`MOCK_VERSION` 55): **S26-4464**, low anterior resection (tumour anterior and left, below the reflection, CRM 1.5 mm anteriorly, distal 25 mm, mesorectal plane); **S26-4465**, pedunculated malignant sigmoid polyp (Paris 0-Ip, Haggitt 2, stalk margin 0.8 mm).
+
+## Batch 465
+
+Demo case (`MOCK_VERSION` 56): **S26-4466**, a composite resection on one case — part A partial glossectomy (Oral Cavity Resection: right tongue and floor of mouth, deep margin 0.6 mm, peripheral 3 mm with high-grade dysplasia, depth of invasion 7 mm) and part B right selective neck dissection (Neck Dissection: IIa 2/6 with ENEma, III 1/5 with ENEmi, Ia, Ib, IIb and IV negative; 3 of 27).
+
+## Batch 466
+
+Demo case (`MOCK_VERSION` 57): **S26-4467**, a right radical nephrectomy.
+- Upper pole, lateral, anterior.
+- Extends into perinephric fat and the renal vein (pT3a).
+- Renal vein margin involved, ureteral margin clear, soft tissue margin on ink.
+
+## Batch 466d
+
+`MOCK_VERSION` 58. The seeds follow the rebuilt Colorectal Local Excision margins:
+- **S26-4465:** the carcinoma's margins are stored as calculated (deep, involved).
+- **MFT26-8803:** map answers added, and the removed placeholder answers dropped.
+
+## Batch 467 — In-house molecular orders
+
+S26-4493 (lung) specimen A has block A1 with an EGFR mutation PCR add-on routed to the Molecular In-House Queue; its EGFR answers are left empty for the result to fill. MOCK_VERSION 59.
+
+## Batch 469 — Autopsy: toxicology order seed, new GB_EW disposal-demo case (MOCK_VERSION 61)
+
+New **A26-4664** (`demoBaselineCases.ts`): a `GB_EW` hospital-consented autopsy case with `organRetentionTier: 'tier_2_full_organ_retention'` and no disposal recorded, so the new organ-retention disposal panel has an HTA-governed case to demo against — every other seeded autopsy case is `US`, where `resolveHtaApplicability()` is false. A26-4663 (existing forensic case) gained a `toxicologyOrders` entry with `status: 'ordered'`, left with `ancillaryHold.active: false` so as not to disturb that case's own Batch 468 SLA demo narrative — disclosed, not an oversight. (MOCK_VERSION 60 → 61.)
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

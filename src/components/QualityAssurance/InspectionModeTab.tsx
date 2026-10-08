@@ -15,20 +15,20 @@
 // CytologyHistologyCorrelationPrintView.tsx, built as its own file for one
 // specific report), not fabricated here for a first pass.
 //
-// i18n note: the CSV export in handleExportAll (column headers and cell
-// values like "Concordant"/"Yes"/"No jurisdiction configured") is exported
-// data and stays literal English, unchanged from the on-screen translated
+// i18n note: the CSV export (qaEvidenceBinderCsvRows in
+// services/quality/resolveQaEvidenceBinder.ts since Batch 451; column headers
+// and cell values like "Concordant"/"Yes"/"No jurisdiction configured") is
+// exported data and stays literal English, unchanged from the on-screen translated
 // text. "CAPA" (Corrective And Preventive Action) is kept literal within
 // translated sentences, matching this codebase's existing CAPA Engine
 // strings elsewhere.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import { auditService } from '@/services';
-import { resolveQaEvidenceBinder, type QaEvidenceBinderReport } from '@/services/quality/resolveQaEvidenceBinder';
-import { JURISDICTION_LABELS } from '@/types/systemConfig';
+import { resolveQaEvidenceBinder, qaEvidenceBinderCsvRows, qaEvidenceBinderExportFilename, type QaEvidenceBinderReport } from '@/services/quality/resolveQaEvidenceBinder';
 import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { qaActivityRecordService, qaActivityTypeService } from '@/services';
@@ -42,7 +42,7 @@ const WINDOW_OPTIONS = [12, 24, 36] as const;
 
 export const InspectionModeTab: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [windowMonths, setWindowMonths] = useState<typeof WINDOW_OPTIONS[number]>(24);
   const [report, setReport] = useState<QaEvidenceBinderReport>(EMPTY_REPORT);
   const [loading, setLoading] = useState(true);
@@ -72,18 +72,7 @@ export const InspectionModeTab: React.FC = () => {
   }, [windowMonths]);
 
   const handleExportAll = () => {
-    const rows = report.entries.flatMap(entry => entry.records.map(r => ({
-      'Activity Type': entry.activityTypeName,
-      'Regulatory Basis': entry.regulatoryBasis.map(b => `${JURISDICTION_LABELS[b.jurisdiction]}: ${b.clause}`).join(' | ') || 'No jurisdiction configured',
-      Case: r.caseId,
-      Specimen: r.specimenId ?? 'Case-level',
-      Outcome: r.outcome === 'concordant' ? 'Concordant' : 'Discordant',
-      Severity: r.severity ?? '—',
-      'Meets CAPA Threshold': r.meetsCapaThreshold ? 'Yes' : 'No',
-      Recorded: r.recordedAt,
-      Reviewer: r.recordedByName,
-    })));
-    void exportQaReportRows('qa:inspection-evidence:export', rows, `qa-inspection-evidence-binder-${windowMonths}mo-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:inspection-evidence:export', qaEvidenceBinderCsvRows(report), qaEvidenceBinderExportFilename(windowMonths), qaScopeContext());
   };
 
   if (loading) return <div className="ps-conf-page">{t('inspectionModeTab.loading')}</div>;
@@ -140,7 +129,7 @@ export const InspectionModeTab: React.FC = () => {
                     <span className="ps-inspectmode-no-jurisdiction">{t('inspectionModeTab.noJurisdictionConfigured')}</span>
                   ) : entry.regulatoryBasis.map(b => (
                     <span key={b.jurisdiction} title={b.clause} className="ps-inspectmode-jurisdiction-badge">
-                      {JURISDICTION_LABELS[b.jurisdiction]}
+                      {t(`jurisdictionNames.${b.jurisdiction}`)}
                     </span>
                   ))}
                 </div>
@@ -171,7 +160,7 @@ export const InspectionModeTab: React.FC = () => {
                       {entry.records.map(r => (
                         <tr key={r.recordId} className="ps-conf-tr">
                           <td className="ps-conf-td">
-                            <button className="ps-conf-btn-row" data-phi="accession" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>{r.caseId}</button>
+                            <button className="ps-conf-btn-row" data-phi="accession" onClick={() => void openCasePage(r.caseId, 'synoptic')}>{r.caseId}</button>
                           </td>
                           <td className="ps-conf-td">{r.specimenId ?? <em className="ps-defic-caselevel">{t('qualityAssurance.operations.caseLevel')}</em>}</td>
                           <td className="ps-conf-td">

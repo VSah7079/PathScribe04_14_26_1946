@@ -59,6 +59,17 @@ export async function processInboundMolecularRunResults(payload: MolecularRunRes
   }
 
   processedBatchUuids.add(batchUuid);
+  // Batch 467: each in-house order on the plate takes its well's result, and a reportable call fills the case's
+  // bound synoptic question (services/molecularOrders/molecularOrderEngine.ts).
+  // If an order's result couldn't be applied, the run isn't marked processed, so redelivering it finishes the job
+  // (orders already resulted are skipped).
+  const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');
+  try {
+    await molecularOrderEngine.onRunResults(batchUuid);
+  } catch (e) {
+    processedBatchUuids.delete(batchUuid);
+    throw e;
+  }
   return { outcome: 'applied', batchUuid, reviewStatus };
 }
 

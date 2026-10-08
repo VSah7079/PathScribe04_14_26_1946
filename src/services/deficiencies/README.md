@@ -44,6 +44,16 @@ New seed type `def-registry-revised-post-acceptance` ("Registry Revised After Ac
 
 Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
 
+## Batch 438
+
+- `IDeficiencyService.ts`: a deficiency can carry `assignedTo`, `assignedToName` (the CAPA owner) and `capaRecommendationId` (the recommendation that opened it).
+- `mockDeficiencyTypeService.ts`: three new types for the recommendation sources: `def-clinically-significant-revision`, `def-clinical-pathologic-mismatch`, `def-unresolved-peer-disagreement`.
+
+## Batch 439
+
+- New type `def-outside-consult-discordance` (Outside Consult Major Discordance), opened when a QA lead confirms the recommendation.
+- **Correction:** the note above that `def-confirmed-high-risk-finding` "is auto-raised … whenever a pathologist confirms a Critical/Malignant finding" is stale twice over: the confirmation's activity type carries no CAPA rule (corrected before Batch 438), and since Batch 438 nothing raises a CAPA type automatically; every trigger recommends.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

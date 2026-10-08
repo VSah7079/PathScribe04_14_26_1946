@@ -26,7 +26,7 @@ export function buildAutopsyCaseDetailsFromIntakeForm(form: AutopsyIntakeFormSta
     ancillaryHold: { active: false },
   };
 
-  if (form.caseAuthority === 'medicolegal_forensic') {
+  if (form.caseAuthority === 'statutory_judicial') {
     details.forensicAuthorization = {
       authorityType: form.authorityType.trim(),
       authorityName: form.authorityName.trim() || undefined,
@@ -42,7 +42,13 @@ export function buildAutopsyCaseDetailsFromIntakeForm(form: AutopsyIntakeFormSta
       consentingRelativeName: form.consentingRelativeName.trim(),
       consentingRelativeRelationship: form.consentingRelativeRelationship.trim(),
       consentGivenAt: '',
+      // Batch 468: status/excludedOrgans/retentionPermitted default
+      // open at intake — the written authorization-completion form is
+      // where these are actually set (applyAutopsyAuthorizationCompletion.ts).
+      status: 'active',
       consentScope: [],
+      excludedOrgans: [],
+      retentionPermitted: true,
     };
   }
 

@@ -22,6 +22,10 @@ Renders Orchestration mode's `orchSections` as a formatted clinical report previ
 
 Draft sections come from the case only (no browser copy, which could be older than a save made at another workstation). The window position is a display preference.
 
+## Batch 437
+
+Printing from the preview is audited (`DOCUMENT_PREVIEW_PRINTED`, PS-282).
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*

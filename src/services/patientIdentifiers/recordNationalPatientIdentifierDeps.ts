@@ -11,7 +11,8 @@ import { mockOutboundPatientAdtQueueService } from '../patients/mockOutboundPati
 export const recordNationalPatientIdentifierDeps: RecordNationalIdentifierDeps = {
   enforce: (capability, context) => authorizationService.enforce(capability as any, context as any),
   getCase: caseId => caseRouter.getCase(caseId) as any,
-  updateCase: (caseId, patch) => caseRouter.updateCase(caseId, patch as any),
+  // PS-71 (Batch 458): forwards the version the service built the save from.
+  updateCase: (caseId, patch, expectedVersion) => caseRouter.updateCase(caseId, patch as any, expectedVersion),
   recordInMpi: (patientId, identifier) => mockPatientIndexService.recordNationalIdentifier(patientId, identifier),
   removeFromMpi: (patientId, system) => mockPatientIndexService.removeNationalIdentifier(patientId, system),
   // Batch 425: the existing A08, so the engine hears of a change made after accessioning.

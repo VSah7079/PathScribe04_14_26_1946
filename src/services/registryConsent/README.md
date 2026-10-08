@@ -14,5 +14,11 @@ Batch 418 (Registry Engine SRS v2.1, FR-008.1). What a patient's registry opt-ou
 
 **Not yet.** A Configuration switch for `honoursPatientOptOut` (the cancer registry settings screen is on the deployment baseline and needs its own clean-up first; the setting is honoured by the service today). Editing an opt-out after accession. An HL7 source for consent (PID-… / a CON segment).
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Versioned per case; a `conflict` outcome is new.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

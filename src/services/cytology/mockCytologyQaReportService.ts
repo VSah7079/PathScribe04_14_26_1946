@@ -50,6 +50,7 @@ import {
   resolveCytologyDirectedHighRiskRescreeningReport,
   resolveCytologyCtVsPathologistCorrelationReport,
   resolveCytologyPostSignOutPeerReviewCorrelationReport,
+  resolveCytologyPrimaryVsFinalDiagnosisReport,
 } from './resolveCytologyQaReports';
 import type { CytologySpecimenFinalDiagnosisRef } from './resolveCytologyPeerReviewComparisonPairs';
 import { resolveCytologyCtStatisticalComparisonReport } from './resolveCytologyCtStatisticalComparisonReport';
@@ -80,6 +81,19 @@ async function fetchScopedReviewsAndCategories(scope: QaScope) {
   return { scopedReviews, categories, caseById };
 }
 
+/** Each in-scope specimen's chosen Final Diagnosis review (peer review and Batch 459's PS-152 report). */
+function finalDiagnosisRefs(caseById: Record<string, any>, scope: QaScope): CytologySpecimenFinalDiagnosisRef[] {
+  const refs: CytologySpecimenFinalDiagnosisRef[] = [];
+  for (const c of Object.values(caseById) as any[]) {
+    if (!caseMatchesScope(c, scope)) continue;
+    for (const sp of c?.specimens ?? []) {
+      const reviewRecordId = sp?.cytologyScreening?.finalDiagnosis?.reviewRecordId;
+      if (reviewRecordId) refs.push({ specimenId: sp.id, caseId: c.id, finalDiagnosisReviewRecordId: reviewRecordId });
+    }
+  }
+  return refs;
+}
+
 export const mockCytologyQaReportService: ICytologyQaReportService = {
   async get10PercentRandomRescreeningReport(scope) {
     const { scopedReviews, categories } = await fetchScopedReviewsAndCategories(scope);
@@ -98,15 +112,12 @@ export const mockCytologyQaReportService: ICytologyQaReportService = {
 
   async getPostSignOutPeerReviewCorrelationReport(scope) {
     const { scopedReviews, categories, caseById } = await fetchScopedReviewsAndCategories(scope);
-    const specimenFinalDiagnoses: CytologySpecimenFinalDiagnosisRef[] = [];
-    for (const c of Object.values(caseById) as any[]) {
-      if (!caseMatchesScope(c, scope)) continue;
-      for (const sp of c?.specimens ?? []) {
-        const reviewRecordId = sp?.cytologyScreening?.finalDiagnosis?.reviewRecordId;
-        if (reviewRecordId) specimenFinalDiagnoses.push({ specimenId: sp.id, caseId: c.id, finalDiagnosisReviewRecordId: reviewRecordId });
-      }
-    }
-    return ok(resolveCytologyPostSignOutPeerReviewCorrelationReport(scopedReviews, specimenFinalDiagnoses, categories));
+    return ok(resolveCytologyPostSignOutPeerReviewCorrelationReport(scopedReviews, finalDiagnosisRefs(caseById, scope), categories));
+  },
+
+  async getPrimaryVsFinalDiagnosisReport(scope) {
+    const { scopedReviews, categories, caseById } = await fetchScopedReviewsAndCategories(scope);
+    return ok(resolveCytologyPrimaryVsFinalDiagnosisReport(scopedReviews, finalDiagnosisRefs(caseById, scope), categories));
   },
 
   async getGynCytologySecondaryScreeningAuditReport(scope) {

@@ -21,6 +21,10 @@ describe('resolveCytologyQcCaseReview (Batch 396)', () => {
     const mine = a({ id: 'mine', state: 'QC_IN_REVIEW', assignedReviewerId: 'ME' });
     expect(resolveCytologyQcCaseReview([a({ id: 'other' }), mine], 'ME').assignment?.id).toBe('mine');
   });
+  it('Batch 434: without cytology:qc-review:record, nothing to assign or record', () => {
+    expect(resolveCytologyQcCaseReview([a()], 'ME', false)).toMatchObject({ canAssignToMe: false, isOwnCase: false });
+    expect(resolveCytologyQcCaseReview([a({ state: 'QC_IN_REVIEW', assignedReviewerId: 'ME' })], 'ME', false)).toMatchObject({ canRecordVerdict: false });
+  });
   it('maps service errors to message keys', () => {
     expect(cytologyQcErrorKey(QC_REVIEW_NOT_PERMITTED)).toBe('notPermitted');
     expect(cytologyQcErrorKey('Self-review is not permitted: x')).toBe('selfReview');

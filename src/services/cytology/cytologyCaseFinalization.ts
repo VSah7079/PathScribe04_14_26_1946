@@ -15,6 +15,7 @@
 
 import type { Case } from '@/types/case/Case';
 import type { CytologyWorkspaceDeps } from './cytologyWorkspacePorts';
+import { saveCaseChangeFrom } from './cytologyCaseWriteDeps';
 
 /** Which of the case's cytology specimens are still to be signed out, and whether none are. */
 export function resolveCytologyCaseFinalization(cytologySpecimenIds: string[], signedOutSpecimenIds: Iterable<string>) {
@@ -34,7 +35,7 @@ export interface CytologyEarlyFinalization {
 
 export async function finalizeCytologyCaseEarly(
   input: { caseData: Case; cytologySpecimenIds: string[]; signedOutSpecimenIds: string[]; reason: string; user: { id: string; name: string } },
-  deps: Pick<CytologyWorkspaceDeps, 'enforce' | 'updateCase' | 'logAudit' | 'now'>,
+  deps: Pick<CytologyWorkspaceDeps, 'enforce' | 'getCase' | 'updateCase' | 'logAudit' | 'now'>,
 ): Promise<'notPermitted' | 'reasonRequired' | 'nothingSignedOut' | 'alreadyComplete' | 'finalized'> {
   const decision = await deps.enforce('cytology:case:finalize', { caseId: input.caseData.id });
   if (!decision.allowed) return 'notPermitted';
@@ -48,7 +49,10 @@ export async function finalizeCytologyCaseEarly(
   const early: CytologyEarlyFinalization = {
     finalizedBy: input.user.id, finalizedByName: input.user.name, finalizedAt: deps.now().toISOString(), reason, unsignedSpecimenIds: remaining,
   };
-  await deps.updateCase(input.caseData.id, { status: 'finalized', cytologyEarlyFinalization: early });
+  // PS-71 (Batch 458): saved with the version the screen loaded; if someone
+  // saved since, re-applied to the newer case (a lasting conflict throws).
+  await saveCaseChangeFrom(input.caseData, () => ({ status: 'finalized', cytologyEarlyFinalization: early } as Partial<Case>),
+    { getCase: id => deps.getCase(id, 'current'), updateCase: deps.updateCase });
   deps.logAudit({
     type: 'user', event: 'Cytology case finalized before all specimens signed out',
     detail: `Unsigned specimens: ${remaining.join(', ')}. Reason: ${reason}`,

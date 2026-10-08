@@ -114,6 +114,12 @@ function findRealStorageKeysInSource(): Set<string> {
 
     // const STORAGE_KEY = '...' / const KEY = '...'
     for (const m of cleaned.matchAll(/const (?:STORAGE_KEY|KEY)\s*=\s*'([^']+)'/g)) keys.add(m[1]);
+    // Batch 442: any other constant ending in KEY that is written straight to
+    // localStorage. (One used only through storageGet/storageSet is stored
+    // under pathscribe_mock_ and cleared by the prefix sweep.)
+    for (const m of cleaned.matchAll(/const ([A-Z0-9_]*KEY)\s*=\s*'([^']+)'/g)) {
+      if (new RegExp(`localStorage\\.(?:getItem|setItem|removeItem)\\(\\s*${m[1]}\\b`).test(cleaned)) keys.add(m[2]);
+    }
     // storageGet<T>('...' or storageSet('...' — direct literal keys
     for (const m of cleaned.matchAll(/storage(?:Get|Set)(?:<[^>]*>)?\('([^']+)'/g)) keys.add(m[1]);
     // localStorage.getItem('...') / .setItem('...') — a few real

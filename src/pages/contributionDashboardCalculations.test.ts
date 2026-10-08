@@ -1,6 +1,6 @@
 // src/pages/contributionDashboardCalculations.test.ts
 import { describe, it, expect } from 'vitest';
-import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, type CaseForDashboardCalc, type DeficiencyForQualityFlags, type DiscordanceRecordForQualityFlags, type CaseForQualityFlagsScoping } from './contributionDashboardCalculations';
+import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, qualityFlagText, catalogueFlagSeverity, type CatalogueFlagForQualityFlags, type CaseForDashboardCalc, type DeficiencyForQualityFlags, type DiscordanceRecordForQualityFlags, type CaseForQualityFlagsScoping } from './contributionDashboardCalculations';
 import type { RvuTableVersion } from '../services/billing/RvuTableVersion';
 
 function makeCase(over: Partial<CaseForDashboardCalc> = {}): CaseForDashboardCalc {
@@ -402,16 +402,21 @@ describe('computeTopQualityFlags', () => {
     expect(result[0].severity).toBe('high');
   });
 
-  it('the deficiency value text resolves the real type name and specimen label, or falls back to "case-level"', () => {
+  // Batch 452: the row text is translated (qualityFlagText); the candidate
+  // carries the data. A stand-in t() shows which key and values are used.
+  const fakeT = (key: string, p?: Record<string, unknown>) => `${key.split('.').pop()}|${p?.name ?? ''}|${p?.specimen ?? ''}`;
+
+  it('the deficiency text resolves the real type name and specimen label, or is case level', () => {
     const withSpecimen = computeTopQualityFlags(
       [makeDeficiency({ specimenLabel: 'A' })], TYPE_NAMES, [], 'frozen-final', MY_CASES, 'PATH-001', 3, NOW,
     );
-    expect(withSpecimen[0].value).toBe('Missing Requisition — Specimen A');
+    expect(withSpecimen[0]).toMatchObject({ name: 'Missing Requisition', specimenLabel: 'A' });
+    expect(qualityFlagText(withSpecimen[0], fakeT)).toBe('deficiencySpecimen|Missing Requisition|A');
 
     const caseLevel = computeTopQualityFlags(
       [makeDeficiency({ specimenLabel: undefined })], TYPE_NAMES, [], 'frozen-final', MY_CASES, 'PATH-001', 3, NOW,
     );
-    expect(caseLevel[0].value).toBe('Missing Requisition — case-level');
+    expect(qualityFlagText(caseLevel[0], fakeT)).toBe('deficiencyCase|Missing Requisition|');
   });
 
   it('a discordance only counts for the pathologist who actually recorded it', () => {
@@ -447,7 +452,8 @@ describe('computeTopQualityFlags', () => {
       [], TYPE_NAMES, [makeDiscordance({ caseType: 'GI Biopsy' })], 'frozen-final', MY_CASES, 'PATH-001', 3, NOW,
     );
     expect(result).toHaveLength(1);
-    expect(result[0].value).toBe('Frozen/Final discordance — GI Biopsy');
+    expect(result[0].name).toBe('GI Biopsy');
+    expect(qualityFlagText(result[0], fakeT)).toBe('discordance|GI Biopsy|');
     expect(result[0].kind).toBe('discordance');
   });
 
@@ -477,7 +483,7 @@ describe('computeTopQualityFlags', () => {
     const result = computeTopQualityFlags(
       [makeDeficiency({ deficiencyTypeId: 'unknown-type' })], {}, [], 'frozen-final', MY_CASES, 'PATH-001', 3, NOW,
     );
-    expect(result[0].value).toBe('unknown-type — case-level');
+    expect(result[0]).toMatchObject({ name: 'unknown-type', specimenLabel: undefined });
   });
 
   it('combines deficiencies and discordances from the same pathologist in one ranked list', () => {
@@ -488,5 +494,76 @@ describe('computeTopQualityFlags', () => {
       'frozen-final', MY_CASES, 'PATH-001', 3, NOW,
     );
     expect(result.map(f => f.kind).sort()).toEqual(['deficiency', 'discordance']);
+  });
+
+  // ── Batch 452 (PS-57): flags applied to the pathologist's cases ─────────
+  const CATALOGUE: CatalogueFlagForQualityFlags[] = [
+    { id: 'flag-frozen', name: 'Frozen section discrepancy', severity: 5 },
+    { id: 'flag-recut', name: 'Recut requested', severity: 3 },
+    { id: 'flag-info', name: 'Teaching case', severity: 1 },
+  ];
+  const inst = (id: string, flagDefinitionId: string, over: { appliedAt?: string; deletedAt?: string | null } = {}) =>
+    ({ id, flagDefinitionId, appliedAt: over.appliedAt ?? '2026-03-25T00:00:00.000Z', deletedAt: over.deletedAt ?? null });
+  const flaggedCases = (over: Partial<CaseForQualityFlagsScoping> = {}): CaseForQualityFlagsScoping[] => [{
+    id: 'S26-1', order: { assignedTo: 'PATH-001' },
+    caseFlags: [inst('ci-1', 'flag-recut')],
+    specimens: [{ label: 'A', specimenFlags: [inst('si-1', 'flag-frozen')] }],
+    ...over,
+  }];
+
+  it('lists case and specimen flags named from the catalogue by flagDefinitionId, graded by the catalogue severity', () => {
+    const result = computeTopQualityFlags([], TYPE_NAMES, [], 'frozen-final', flaggedCases(), 'PATH-001', 3, NOW, CATALOGUE);
+    expect(result).toEqual([
+      { id: 'si-1', kind: 'caseFlag', caseId: 'S26-1', name: 'Frozen section discrepancy', specimenLabel: 'A', severity: 'high' },
+      { id: 'ci-1', kind: 'caseFlag', caseId: 'S26-1', name: 'Recut requested', specimenLabel: undefined, severity: 'medium' },
+    ]);
+    expect(qualityFlagText(result[0], fakeT)).toBe('flagSpecimen|Frozen section discrepancy|A');
+    expect(qualityFlagText(result[1], fakeT)).toBe('flagCase|Recut requested|');
+  });
+
+  it('a renamed catalogue flag shows its new name: the name is looked up, not copied onto the case', () => {
+    const renamed = CATALOGUE.map(f => f.id === 'flag-recut' ? { ...f, name: 'Recut / deeper levels' } : f);
+    const result = computeTopQualityFlags([], TYPE_NAMES, [], 'frozen-final', flaggedCases(), 'PATH-001', 3, NOW, renamed);
+    expect(result.find(f => f.id === 'ci-1')?.name).toBe('Recut / deeper levels');
+  });
+
+  it('removed flags (deletedAt set) are left out', () => {
+    const cases = flaggedCases({ caseFlags: [inst('ci-1', 'flag-recut', { deletedAt: '2026-03-26T00:00:00.000Z' })], specimens: [] });
+    expect(computeTopQualityFlags([], TYPE_NAMES, [], 'frozen-final', cases, 'PATH-001', 3, NOW, CATALOGUE)).toEqual([]);
+  });
+
+  it("flags on someone else's cases are left out", () => {
+    const cases = flaggedCases({ order: { assignedTo: 'PATH-OTHER' } });
+    expect(computeTopQualityFlags([], TYPE_NAMES, [], 'frozen-final', cases, 'PATH-001', 3, NOW, CATALOGUE)).toEqual([]);
+  });
+
+  it('a flag whose definition is no longer in the catalogue shows its id at low severity rather than vanishing', () => {
+    const cases = flaggedCases({ caseFlags: [inst('ci-9', 'flag-gone')], specimens: [] });
+    expect(computeTopQualityFlags([], TYPE_NAMES, [], 'frozen-final', cases, 'PATH-001', 3, NOW, CATALOGUE))
+      .toEqual([{ id: 'ci-9', kind: 'caseFlag', caseId: 'S26-1', name: 'flag-gone', specimenLabel: undefined, severity: 'low' }]);
+  });
+
+  it('case flags rank with deficiencies and discordances; with no catalogue loaded they still show, by id, at low severity', () => {
+    const mixed = computeTopQualityFlags(
+      [makeDeficiency({ id: 'def-1', status: 'open' })], TYPE_NAMES, [], 'frozen-final',
+      flaggedCases({ caseFlags: [inst('ci-low', 'flag-info')] }), 'PATH-001', 3, NOW, CATALOGUE,
+    );
+    expect(mixed.map(f => f.id)).toEqual(['si-1', 'def-1', 'ci-low']);
+    expect(computeTopQualityFlags([], TYPE_NAMES, [], 'frozen-final', flaggedCases(), 'PATH-001', 3, NOW)
+      .map(f => [f.name, f.severity]).sort()).toEqual([['flag-frozen', 'low'], ['flag-recut', 'low']]);
+  });
+
+  it('catalogueFlagSeverity: 4-5 high, 3 medium, 1-2 or missing low', () => {
+    expect([5, 4, 3, 2, 1, undefined].map(catalogueFlagSeverity)).toEqual(['high', 'high', 'medium', 'low', 'low', 'low']);
+  });
+
+  it('every row text key exists in English with the placeholders it is given', async () => {
+    const en = (await import('../i18n/locales/en.json')).default as any;
+    const q = en.contributionDashboard.qualityFlags;
+    expect(q.flagSpecimen).toContain('{{specimen}}');
+    expect(q.flagCase).toContain('{{name}}');
+    expect(q.deficiencySpecimen).toContain('{{specimen}}');
+    expect(q.deficiencyCase).toContain('{{name}}');
+    expect(q.discordance).toContain('{{name}}');
   });
 });

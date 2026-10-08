@@ -1,0 +1,536 @@
+{
+  "id": "oral_cavity_resection",
+  "name": "PathScribe — Oral Cavity Resection",
+  "source": "PathScribe",
+  "version": "1.0.0",
+  "category": "HEAD_NECK",
+  "sections": [
+    {
+      "id": "oc_specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "oc_procedure",
+          "label": "Procedure",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_proc_partialGlossectomy",
+              "label": "Partial glossectomy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_hemiglossectomy",
+              "label": "Hemiglossectomy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_floorExcision",
+              "label": "Floor of mouth excision",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_mandibulectomyMarginal",
+              "label": "Marginal mandibulectomy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_mandibulectomySegmental",
+              "label": "Segmental mandibulectomy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_maxillectomy",
+              "label": "Maxillectomy",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_wideLocal",
+              "label": "Wide local excision",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_proc_other",
+              "label": "Other",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "oc_procedure_other",
+          "label": "Procedure, other",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "visibleWhen": {
+            "fieldId": "oc_procedure",
+            "answerId": "oc_proc_other"
+          }
+        },
+        {
+          "id": "oc_laterality",
+          "label": "Laterality",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_lat_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_lat_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_lat_midline",
+              "label": "Midline",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_lat_bilateral",
+              "label": "Bilateral",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "psmap_oral_cavity",
+      "title": "Tumour and anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_oc_subsites",
+          "label": "Tumour subsites (for the map)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_oc_subsites_lipUpper",
+              "label": "Upper lip mucosa",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_lipLower",
+              "label": "Lower lip mucosa",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_upperAlveolusR",
+              "label": "Upper alveolar ridge, right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_upperAlveolusL",
+              "label": "Upper alveolar ridge, left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_hardPalate",
+              "label": "Hard palate",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_buccalR",
+              "label": "Buccal mucosa, right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_buccalL",
+              "label": "Buccal mucosa, left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_retromolarR",
+              "label": "Retromolar trigone, right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_retromolarL",
+              "label": "Retromolar trigone, left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_tongueR",
+              "label": "Oral tongue, right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_tongueL",
+              "label": "Oral tongue, left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_floorR",
+              "label": "Floor of mouth, right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_floorL",
+              "label": "Floor of mouth, left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_lowerAlveolusR",
+              "label": "Lower alveolar ridge, right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_subsites_lowerAlveolusL",
+              "label": "Lower alveolar ridge, left",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "Every subsite the tumour involves."
+        },
+        {
+          "id": "oc_tumour_size",
+          "label": "Greatest tumour dimension",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm"
+        },
+        {
+          "id": "oc_histologic_type",
+          "label": "Histologic type",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_ht_scc",
+              "label": "Squamous cell carcinoma, conventional",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_ht_verrucous",
+              "label": "Verrucous carcinoma",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_ht_basaloid",
+              "label": "Basaloid squamous cell carcinoma",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_ht_spindle",
+              "label": "Spindle cell (sarcomatoid) carcinoma",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_ht_other",
+              "label": "Other",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "oc_grade",
+          "label": "Grade",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_gr_g1",
+              "label": "Well differentiated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_gr_g2",
+              "label": "Moderately differentiated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_gr_g3",
+              "label": "Poorly differentiated",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_oc_doiMm",
+          "label": "Depth of invasion (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm",
+          "hint": "Measured from the level of the adjacent normal mucosal basement membrane (AJCC 8th)."
+        },
+        {
+          "id": "oc_pni",
+          "label": "Perineural invasion",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_pni_present",
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_pni_absent",
+              "label": "Not identified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "oc_lvi",
+          "label": "Lymphovascular invasion",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_lvi_present",
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_lvi_absent",
+              "label": "Not identified",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "oc_pattern",
+          "label": "Worst pattern of invasion",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_poi_cohesive",
+              "label": "Cohesive (pattern 1–3)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_poi_noncohesive",
+              "label": "Non-cohesive (pattern 4)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_poi_satellites",
+              "label": "Tumour satellites ≥ 1 mm apart (pattern 5)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oc_margins",
+      "title": "Margins",
+      "fields": [
+        {
+          "id": "psmap_oc_peripheralMarginMm",
+          "label": "Peripheral (mucosal) margin: distance of carcinoma (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm",
+          "hint": "0 = carcinoma at the inked margin. Judged by the site’s rules (involved < 1 mm, close < 5 mm unless the site sets others)."
+        },
+        {
+          "id": "psmap_oc_deepMarginMm",
+          "label": "Deep margin: distance of carcinoma (mm)",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "mm",
+          "hint": "0 = carcinoma at the inked margin."
+        },
+        {
+          "id": "psmap_oc_mucosalDysplasia",
+          "label": "Dysplasia at the mucosal margin",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_oc_mucosalDysplasia_absent",
+              "label": "Not identified",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_mucosalDysplasia_lowGrade",
+              "label": "Low-grade dysplasia",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_oc_mucosalDysplasia_highGrade",
+              "label": "High-grade dysplasia / carcinoma in situ",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "oc_bone_margin",
+          "label": "Bone margin",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "oc_bone_na",
+              "label": "Not applicable",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_bone_clear",
+              "label": "Clear",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "oc_bone_involved",
+              "label": "Involved",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oc_stage",
+      "title": "Stage",
+      "fields": [
+        {
+          "id": "oc_pt",
+          "label": "pT category",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "oc_comments",
+          "label": "Comment(s)",
+          "type": "longtext",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": []
+        }
+      ]
+    }
+  ]
+}

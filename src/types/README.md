@@ -198,3 +198,71 @@ Registry queue entries carry `contentHash`.
 ## Batch 430: personal settings per person; view-only fields
 
 Test only: `voiceMacros.test.ts` adds its macro as the signed-in person's own (shared macros need `config:macros:manage`).
+
+## Batch 433
+
+`billing/BillingDeficiencyRecord.ts`: types `MISSING_CHARGE` and `POST_SIGNOUT_CORRECTION`, trigger `MANUAL_BILLING_CORRECTION`, and `missingCharge` (a deficiency names its charge or says one is missing).
+
+## Batch 434
+
+`case/Specimen.ts`: a slide's link to its WSI scan batch, the `Scanned` status and the `unloaded_from_scanner` event.
+
+## Batch 438
+
+`quality/CapaRecommendation.ts` (new); `quality/QaActivityRecord.ts` `consensus`; `reasons/ReasonDictionaryEntry.ts` `clinicallySignificant`.
+
+## Batch 439
+
+`quality/PeerReview.ts` (new); `quality/QaActivityRecord.ts` `reviewedPathologist`, `postSignOut`; `quality/QaActivityType.ts` `postSignOutOnly`.
+
+## Batch 442
+
+`quality/QaTrend.ts`: site-configurable discordance-pattern policy and recommendations (PS-147).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`case/`: `Decant.parentDecantId` and `Decant.coding`, plus the stored correlation window.
+
+## Batch 460
+
+`case/MatrixBlock.ts`: alert-badge fields; comments corrected.
+
+## Batch 461
+
+`case/Case.ts`: `organMapFigures`. `reports/ReportVersionRecord.ts`: `organMapFigures`, `pdfSha256`.
+
+## Batch 467 — In-house molecular orders
+
+`case/`: synoptic `resultSources`; the Molecular In-House Queue.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+`events/`: order ids on molecular worklists and results; referral manifests and results name molecular orders.
+
+## Batch 468 — Autopsy: consent-scope enforcement, forensic chain-of-custody
+
+`autopsy/`: `HospitalConsentRecord` redesigned (`status`, `excludedOrgans`, `retentionPermitted` replace the old conflated `revokedOrNarrowedAt`); new `AutopsyCustodianType`/`AutopsyCustodyTransferEvent`; `AutopsyCaseDetails.custodyLog`.
+
+## Batch 469 — Autopsy: toxicology, organ-retention disposal, consent narrowing/revocation (PS-261 follow-up)
+
+`autopsy/`: new `AutopsyToxicologyOrder`/`AutopsyToxicologyResult` on `AutopsyCaseDetails.toxicologyOrders` (with a disclosed, not-yet-written `cancelledAt`/`cancelReason` pair — now written by Batch 471, see below); `AutopsyCaseDetails.organRetentionDisposal` (method, timestamp, certificate reference, who recorded it — not a recipient; final disposal only). No new types for consent narrowing — reuses the existing `HospitalConsentRecord` shape from Batch 468.
+
+## Batch 471 — Autopsy: toxicology cancellation, organ-retention detail, consent reinstatement (PS-261 follow-up)
+
+`autopsy/`: `cancelledAt`/`cancelReason` on `AutopsyToxicologyOrder` are now written (`services/autopsy/cancelAutopsyToxicologyOrder.ts`), closing the gap Batch 469 disclosed. New `OrganRetentionRecord` type on `AutopsyCaseDetails.organRetentionDetail` — who holds retained organs/tissue and where, while retention is ongoing; a single current record, distinct from the final-disposal record above. Consent reinstatement adds no new type — a second write site (`services/autopsy/applyAutopsyConsentReinstatement.ts`) is allowed to widen the same `HospitalConsentRecord` fields Batch 469 made narrow-only, gated by its own separate capability. See `autopsy/README.md` for the full account.
+
+## Batch 472 — Autopsy: retention-tier reason (PS-261 follow-up)
+
+`autopsy/`: new optional `AutopsyCaseDetails.organRetentionTierReason` — a free-text reason for the `organRetentionTier` selection itself, distinct from `OrganRetentionRecord.reason`. No new write site; set alongside the tier by the same existing handler. See `autopsy/README.md`.
+
+## Batch 473 — Autopsy case-type key migration (PS-261 follow-up)
+
+`autopsy/`: `AutopsyCaseAuthority`'s forensic-path value renamed, `'medicolegal_forensic'` → `'statutory_judicial'` — same shape, no new type. See `autopsy/README.md`.
+
+## Batch 475 — Autopsy Module 3: toxicology specimen barcode & chain-of-custody link (PS-261 follow-up)
+
+`autopsy/`: `AutopsyToxicologyOrder.specimenBarcode` (new, required) and `AutopsyCustodyTransferEvent.toxicologyOrderId` (new, optional) — no new type. See `autopsy/README.md`.
+
+## Batch 478 — Autopsy Module 6: gross-exam gate override, per-organ tagging (PS-261 follow-up)
+
+`autopsy/`: two new types on `AutopsyCaseDetails` — `AutopsyGateOverrideEvent` (`gateOverrides`, append-only: every time the gross-exam authorization gate was overridden, with its tier, the gate's own blocked reasons, a required reason, who and when) and `AutopsyOrganTag` (`organTags`, append-only: a per-organ gross-exam finding — organ code, normal/abnormal/not-examined status, optional free-text finding, who and when). See `autopsy/README.md`.

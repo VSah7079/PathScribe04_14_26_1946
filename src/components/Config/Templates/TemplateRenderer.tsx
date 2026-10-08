@@ -422,6 +422,7 @@ export const TemplateRenderer: React.FC = () => {
       case 'ALREADY_APPROVED':       return t('templateRenderer.governance.alreadyApproved');
       case 'NOT_ENOUGH_APPROVALS':   return t('templateRenderer.governance.notEnoughApprovals', { count: err.approvalCount ?? 0, required });
       case 'SNOMED_BELOW_THRESHOLD': return t('templateRenderer.governance.snomedBelowThreshold', { coverage: err.coverage ?? 0, threshold: SNOMED_PUBLISH_THRESHOLD });
+      case 'MOHS_HISTOLOGY_SOURCE':  return t('synopticEditor.errors.mohsHistologySource');
       default:                       return t('templateRenderer.governance.failed', { message: err?.message ?? String(err) });
     }
   };

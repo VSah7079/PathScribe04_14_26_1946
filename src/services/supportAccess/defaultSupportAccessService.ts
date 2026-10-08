@@ -2,7 +2,7 @@
 // Batch 372: the app's support access service, wired to this build's
 // services. Exported from `@/services` as `supportAccessService`.
 
-import { DEMO_SUPPORT_ACCESS_SETTINGS } from './demoSupportAccessSeed';
+import { DEMO_SUPPORT_ACCESS_SETTINGS, demoSupportAccessRequests } from './demoSupportAccessSeed';
 import i18n from '@/i18n/config';
 import { storageGet, storageSet } from '../mockStorage';
 import { readSessionProfile } from '../auth/sessionProfile';
@@ -38,4 +38,6 @@ export const supportAccessService = createSupportAccessService({
   },
   store: { get: storageGet, set: storageSet },
   seedSettings: DEMO_SUPPORT_ACCESS_SETTINGS,
+  // Batch 456: a request awaiting Desert Valley's approval (demo seed).
+  seedRequests: () => demoSupportAccessRequests(),
 });

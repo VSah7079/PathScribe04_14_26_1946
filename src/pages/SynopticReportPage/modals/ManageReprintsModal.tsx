@@ -23,6 +23,7 @@
 // for anything that isn't a genuinely dynamic, per-render value.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Case } from '@/types/case/Case';
@@ -236,7 +237,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
   const specimens = caseData.specimens ?? [];
   const allBlockRows = specimens.flatMap(sp => (sp.blocks ?? []).map(b => ({ specimen: sp, block: b })));
   const allSlideRows = allBlockRows.flatMap(({ specimen, block }) =>
-    (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: `L${idx + 1}` }))
+    (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: slideLevelOf(stain, idx) }))
   );
 
   // Real cascade: Column 3 shows only blocks under a currently-checked
@@ -303,7 +304,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
       ).toUpperCase();
       return {
         key, label, specimen, block,
-        rows: (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: `L${idx + 1}` })),
+        rows: (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: slideLevelOf(stain, idx) })),
       };
     });
 

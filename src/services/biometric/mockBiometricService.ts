@@ -16,6 +16,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { readLabSetting, saveLabSetting } from '../labSettings/labSettingsStore';
+
 export type BiometricCadence =
   | 'never'          // enrol once, biometric prompt valid indefinitely
   | 'per_session'    // re-verify each login session
@@ -48,15 +50,33 @@ const SESSION_KEY     = 'ps_biometric_session';
 
 // ─── Policy ──────────────────────────────────────────────────────────────────
 
-export function getBiometricPolicy(): BiometricPolicy {
-  try {
-    const raw = localStorage.getItem(POLICY_KEY);
-    return raw ? { ...BIOMETRIC_POLICY_DEFAULTS, ...JSON.parse(raw) } : { ...BIOMETRIC_POLICY_DEFAULTS };
-  } catch { return { ...BIOMETRIC_POLICY_DEFAULTS }; }
+// Batch 433: the policy is a lab-wide setting (services/labSettings/, the API
+// server under PS-345), changed in Configuration → System → Session Security.
+
+const CADENCES: readonly BiometricCadence[] = ['never', 'per_session', 'per_days', 'per_sign_off'];
+
+/** A usable policy from whatever was saved (pure; tested). */
+export function normaliseBiometricPolicy(raw: Partial<BiometricPolicy> | null | undefined): BiometricPolicy {
+  const days = Math.round(Number(raw?.cadenceDays));
+  return {
+    enabled: raw?.enabled === true,
+    cadence: CADENCES.includes(raw?.cadence as BiometricCadence) ? raw!.cadence as BiometricCadence : BIOMETRIC_POLICY_DEFAULTS.cadence,
+    cadenceDays: Number.isFinite(days) && days >= 1 && days <= 365 ? days : BIOMETRIC_POLICY_DEFAULTS.cadenceDays,
+  };
 }
 
-export function saveBiometricPolicy(policy: BiometricPolicy): void {
-  localStorage.setItem(POLICY_KEY, JSON.stringify(policy));
+export function getBiometricPolicy(): BiometricPolicy {
+  return normaliseBiometricPolicy(readLabSetting<Partial<BiometricPolicy> | null>(POLICY_KEY, null));
+}
+
+/** Batch 433: saving needs config:session-security:manage (checked here).
+ *  False when refused (nothing saved). */
+export async function saveBiometricPolicy(policy: BiometricPolicy): Promise<boolean> {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  const { permitConfigChange } = await import('../authorization/guardConfigWrites');
+  if (!(await permitConfigChange(authorizationService.enforce('config:session-security:manage'), 'config:session-security:manage'))) return false;
+  saveLabSetting(POLICY_KEY, normaliseBiometricPolicy(policy));
+  return true;
 }
 
 // ─── Credentials ─────────────────────────────────────────────────────────────
@@ -74,6 +94,16 @@ function saveCredentials(creds: BiometricCredential[]): void {
 
 export function getCredentialForUser(userId: string): BiometricCredential | null {
   return loadCredentials().find(c => c.userId === userId) ?? null;
+}
+
+/** Batch 433: removes the signed-in person's own enrolment (profile menu →
+ *  Biometric signing). Someone else's can't be removed here. */
+export async function removeBiometricCredential(userId: string): Promise<{ ok: boolean; error?: string }> {
+  const { getSessionUser } = await import('../auth/caseAccessControl');
+  if (getSessionUser()?.id !== userId) return { ok: false, error: 'NOT_PERMITTED' };
+  saveCredentials(loadCredentials().filter(c => c.userId !== userId));
+  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* fine */ }
+  return { ok: true };
 }
 
 // ─── Device capability ───────────────────────────────────────────────────────
@@ -99,6 +129,9 @@ export function getDeviceName(): string {
 // ─── Enrolment ───────────────────────────────────────────────────────────────
 
 export async function enrollBiometric(userId: string): Promise<{ ok: boolean; error?: string }> {
+  // Batch 433: you enrol yourself only.
+  const { getSessionUser } = await import('../auth/caseAccessControl');
+  if (getSessionUser()?.id !== userId) return { ok: false, error: 'NOT_PERMITTED' };
   // Production: navigator.credentials.create() with server-generated challenge
   // Demo: simulate 1.5s biometric prompt
   await new Promise(r => setTimeout(r, 1500));

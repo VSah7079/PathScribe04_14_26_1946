@@ -21,11 +21,17 @@ export interface CytologyWorkspaceDeps {
   random: () => number;
   /** A unique suffix for new decant and ROSE ids. */
   newId: () => string;
+  /** Batch 453: decant changes through the same atomic, versioned save as the
+   *  report page (services/material/caseMaterialService.ts), announced as
+   *  material events. Optional: without it, decants are saved as before. */
+  saveDecantChange?: (caseId: string, change: import('../material/materialTree').DecantChange, expectedVersion: number) => Promise<import('../material/caseMaterialService').DecantSaveResult>;
+  publishMaterialEvent?: (event: import('../material/materialEvents').MaterialEvent) => void;
 
   // Cases
   getCase: (caseId: string, userId: string) => Promise<Case | undefined>;
   getAllCases: (filter?: { patientId?: string }) => Promise<PortResult<Case[]>>;
-  updateCase: (caseId: string, patch: Record<string, unknown>) => Promise<unknown>;
+  /** PS-71 (Batch 458): every save carries the version the change was built from. */
+  updateCase: (caseId: string, patch: Record<string, unknown>, expectedVersion: number) => Promise<unknown>;
   listCasesForUser: (userId: string) => Promise<Case[]>;
   /** Put a case back in the cytology pool, unassigned (workload reassignment). */
   returnToCytologyPool: (caseData: Case) => Promise<unknown>;

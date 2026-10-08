@@ -34,5 +34,17 @@ Search and filter fields here are marked `data-config-nav`, so they keep working
 
 The section list moved to `cytologySections.ts` (shared with the Configuration search).
 
+## Batch 437
+
+Every settings section reports unsaved changes (an enterprise value not yet saved, or an override being added), and the section list asks before leaving them (PS-128).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`CytologyHistologyCorrelationSection.tsx` (PS-156): the Correlation window section. It sets an enterprise default, rules per jurisdiction and facility overrides. Its decisions are in `services/cytology/correlationSettingsEditing.ts`, and it reaches its services through `@/services`.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`CytologyHistologyCorrelationSection.tsx` now exports `CorrelationWindowSettings({ settingsService, overrideService, titleKey, subtitleKey })`, the same screen with its services and headings passed in. The surgical window in `Config/System/` uses it.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

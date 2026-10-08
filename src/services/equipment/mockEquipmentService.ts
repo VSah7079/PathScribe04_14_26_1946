@@ -36,9 +36,16 @@ export const SEED_EQUIPMENT: readonly Equipment[] = [
   { id: 'inst-panther-01', code: 'PANTHER_01', name: 'Panther 1', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', scanStationId: 'station-molecular-1', status: 'Active', deckSlots: PANTHER_DECK },
   { id: 'inst-panther-02', code: 'PANTHER_02', name: 'Panther 2', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', scanStationId: 'station-molecular-1', status: 'Active', deckSlots: PANTHER_DECK },
   { id: 'inst-panther-03', code: 'PANTHER_03', name: 'Panther 3', kind: 'analyser', make: 'Hologic', model: 'Panther', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-fenwick-general', status: 'Active', deckSlots: SINGLE_SLOT_DECK },
+  // Batch 467: the in-house real-time PCR analyser at Desert Valley (runs EGFR mutation PCR, services/molecularOrders/).
+  { id: 'inst-pcr-01', code: 'PCR_01', name: 'Real-time PCR 1', kind: 'analyser', make: 'Thermo Fisher', model: 'QuantStudio 5', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-ent-dvmc', status: 'Active' },
   // Batch 359: the physical printer behind the seeded Zebra printer profile
   // (printer-zt411-example), shared by Grossing Station 1 and Microtomy Bench 1.
   { id: 'eq-zebra-zt411-01', code: 'ZEBRA_ZT411_01', name: 'Zebra ZT411 label printer', kind: 'label_printer', make: 'Zebra', model: 'ZT411', facilityId: 'c-fenwick-general', status: 'Active' },
+  // Batch 434: the slide scanners WSI scan batches are loaded on (their code is
+  // WsiScanBatch.scannerInstrumentId and StainOrder.scannerAssignment.scannerInstrumentId).
+  { id: 'eq-aperio-gt450-01', code: 'APERIO_GT450_01', name: 'Leica Aperio GT450 #1', kind: 'slide_scanner', make: 'Leica', model: 'Aperio GT450', facilityId: 'c-ent-dvmc', status: 'Active' },
+  { id: 'eq-aperio-gt450-02', code: 'APERIO_GT450_02', name: 'Leica Aperio GT450 #2', kind: 'slide_scanner', make: 'Leica', model: 'Aperio GT450', facilityId: 'c-ent-dvmc', status: 'Active' },
+  { id: 'eq-genius-01', code: 'GENIUS_01', name: 'Hologic Genius Digital Diagnostics System', kind: 'slide_scanner', make: 'Hologic', model: 'Genius', facilityId: 'c-ent-dvmc', status: 'Active' },
 ];
 
 export const EQUIPMENT_STORAGE_KEY = 'equipment';

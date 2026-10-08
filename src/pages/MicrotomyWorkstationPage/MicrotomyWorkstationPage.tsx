@@ -15,11 +15,12 @@
 // pathscribe.css's own ps-microtomy-* block, styled to match
 // ps-grossing-* directly.
 //
-// Real, deliberate scope cut, stated plainly (also documented in this
-// folder's own README): no shared-cassette/MatrixBlock support yet,
-// and the "1:1 visual canvas" label preview is a real,
-// proportionally-scaled schematic, not a pixel-exact DataMatrix
-// render.
+// Scope: the "1:1 visual canvas" label preview is a proportionally
+// scaled schematic, not a pixel-exact DataMatrix render. Superseded
+// (Batch 460): this header used to say shared cassettes (MatrixBlock)
+// weren't supported; a scanned matrix block is now worked here like any
+// block, with its participating specimens and cores shown on the left.
+// Batch 460 also adds billing at the bench (MicrotomyBillingPanel).
 //
 // **Real fix, per direct follow-up ("these foot pedals are ubiquitous
 // and we must support them"):** the physical foot-pedal integration
@@ -52,6 +53,8 @@ import { printerProfileService } from '@/services';
 import type { StainOrder } from '@/types/case/Specimen';
 import { useFootPedal } from '@/hooks/useFootPedal';
 import { useMicrotomyWorkstation } from './hooks/useMicrotomyWorkstation';
+import { useMicrotomyBilling } from './hooks/useMicrotomyBilling';
+import MicrotomyBillingPanel from './components/MicrotomyBillingPanel';
 import SlideGridPanel from './components/SlideGridPanel';
 import HardwarePrintPanel from './components/HardwarePrintPanel';
 import CytologyPanel from './components/CytologyPanel';
@@ -68,6 +71,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('microtomyWorkstation.pageTitle'), '/workstations/microtomy'); }, [pushCrumb, t]);
 
   const w = useMicrotomyWorkstation();
+  const billing = useMicrotomyBilling(w.workItem, w.stainTypes, w.adoptSavedCase);
 
   // Batch 388: this page has its own voice/keyboard context ("add comment", "add stain").
   useEffect(() => {
@@ -187,6 +191,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
             </button>
           </div>
 
+          {w.saveError && <div className="ps-microtomy-save-error" role="alert">{w.saveError}</div>}
           <div className="ps-microtomy-layout">
             {/* Left: Work Item Context */}
             <div>
@@ -207,6 +212,20 @@ const MicrotomyWorkstationPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    {w.workItem.matrixBlock && (
+                      <>
+                        <div className="ps-microtomy-context-field">{t('microtomyWorkstation.context.matrixCores')}</div>
+                        <ul className="ps-microtomy-matrix-list">
+                          {[...w.workItem.matrixBlock.participants].sort((a, b) => a.positionInBlock - b.positionInBlock).map(p => (
+                            <li key={p.specimenId}>
+                              <strong>{t('microtomyWorkstation.context.matrixPosition', { n: p.positionInBlock })}</strong>
+                              {t('microtomyWorkstation.context.matrixSpecimen', { label: (w.workItem!.caseData.specimens ?? []).find(sp => sp.id === p.specimenId)?.label ?? '—' })}
+                              {p.tissueType ? ` · ${p.tissueType}` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
                     <div className="ps-microtomy-context-field">{t('microtomyWorkstation.context.status')}<strong>{block.status}</strong></div>
                     <div className="ps-microtomy-context-field">{t('microtomyWorkstation.context.pieceCount')}<strong>{block.pieceCount ?? '—'}</strong></div>
                     {block.tissueDescription && (
@@ -227,6 +246,14 @@ const MicrotomyWorkstationPage: React.FC = () => {
                   {stains.every(s => !s.printedAt) && <li>{t('microtomyWorkstation.context.noHistory')}</li>}
                 </ul>
               </div>
+              <MicrotomyBillingPanel
+                caseData={w.workItem.caseData}
+                preview={billing.preview}
+                fullReview={billing.fullReview}
+                onSetFullReview={billing.setFullReview}
+                review={billing.review}
+                selectedMaterialId={w.workItem.kind === 'block' ? (w.workItem.matrixBlock ? undefined : w.workItem.block.id) : w.workItem.decant.id}
+              />
             </div>
 
             {/* Center: Interactive Slide Grid (+ Cytology panel for a decant) */}

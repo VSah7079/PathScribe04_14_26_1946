@@ -7,6 +7,7 @@ vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
 import { mockQaActivityRecordService } from './mockQaActivityRecordService';
 import { mockQaActivityTypeService } from './mockQaActivityTypeService';
 import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
+import { mockCapaRecommendationService } from './mockCapaRecommendationService';
 
 // Real, minimal localStorage mock - same established pattern every
 // other storage-backed service test in this app uses.
@@ -119,20 +120,12 @@ describe('mockQaActivityRecordService', () => {
     expect(after.data[0].id).toBe(res.data.id);
   });
 
-  describe('real, per direct guidance (PS-134) — generic capaTriggerRule consumption, never actually built anywhere before this', () => {
-    // Real, per direct correction ("when would a CAPA be needed?"):
-    // the real activity this mechanism was originally built for
-    // (Abnormal/Critical Finding Confirmation) turned out to be the
-    // wrong real-world fit for an automatic CAPA trigger — a primary
-    // pathologist confirming their own finding is not a
-    // nonconformity — so it no longer carries a capaTriggerRule at
-    // all (see mockQaActivityTypeService.ts's own, fuller account).
-    // The generic trigger-consumption logic itself is still real and
-    // correct; this creates a genuinely new, dedicated test-only
-    // activity type via the real, public add() API to exercise it in
-    // isolation, rather than either resurrecting the removed rule or
-    // unilaterally deciding a different, real seed activity should
-    // carry one.
+  // Batch 438 (PS-144–148, Pete Oct 2): the PS-134 capaTriggerRule
+  // consumption RECOMMENDS a CAPA now; it never opens one. These replace the
+  // auto-raise tests and are the regression Pete asked for: a qualifying
+  // record leaves the deficiency list untouched and puts one pending
+  // recommendation in the QA lead's queue.
+  describe('capaTriggerRule recommends a CAPA, never opens one (Batch 438)', () => {
     let testActivityTypeId: string;
     beforeEach(async () => {
       const res = await mockQaActivityTypeService.add({
@@ -148,222 +141,63 @@ describe('mockQaActivityRecordService', () => {
       testActivityTypeId = res.data.id;
     });
 
-    it('a discordant, high-severity record for an activity with a matching capaTriggerRule auto-raises a real CAPA deficiency', async () => {
+    const create = (over: Record<string, unknown> = {}) => mockQaActivityRecordService.create({
+      activityTypeId: testActivityTypeId, caseId: 'CASE-CAPA-TEST', caseType: 'Breast Core Bx',
+      fieldValues: { note: 'x' }, outcome: 'discordant', severity: 'high',
+      recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' }, ...over,
+    } as Parameters<typeof mockQaActivityRecordService.create>[0]);
+    const recsFor = async (caseId: string) => {
+      const r = await mockCapaRecommendationService.getAll();
+      return r.ok ? r.data.filter(x => x.caseId === caseId) : [];
+    };
+
+    it('a discordant, high-severity record recommends a CAPA and opens no deficiency', async () => {
+      const raise = vi.spyOn(mockSpecimenDeficiencyService, 'raise');
       const before = await mockSpecimenDeficiencyService.getAll();
-      if (!before.ok) return;
-
-      const res = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-TEST',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant',
-        severity: 'high',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      expect(res.ok).toBe(true);
-
+      await create();
       const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      expect(after.data.length).toBe(before.data.length + 1);
-      const raised = after.data.find(d => d.caseId === 'CASE-CAPA-TEST');
-      expect(raised).toBeDefined();
-      expect(raised?.deficiencyTypeId).toBe('def-confirmed-high-risk-finding');
-      expect(raised?.raisedBy).toBe('PATH-001');
+      expect(raise).not.toHaveBeenCalled();
+      expect(after.ok && before.ok && after.data.length).toBe(before.ok ? before.data.length : -1);
+      const recs = await recsFor('CASE-CAPA-TEST');
+      expect(recs).toHaveLength(1);
+      expect(recs[0]).toMatchObject({ status: 'pending', source: 'qa-discordance', deficiencyTypeId: 'def-confirmed-high-risk-finding', createdBy: 'PATH-001' });
+      raise.mockRestore();
     });
 
-    it('PS-119: the review\'s own rootCause is wired through structurally onto the raised deficiency, not just buried in the comment', async () => {
-      await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-ROOTCAUSE',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant',
-        severity: 'high',
-        rootCause: 'sampling_error',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      const raised = after.data.find(d => d.caseId === 'CASE-CAPA-ROOTCAUSE');
-      expect(raised?.rootCause).toBe('Sampling error');
+    it('PS-119: the review\'s root cause rides on the recommendation (and so onto the CAPA when confirmed)', async () => {
+      await create({ caseId: 'CASE-CAPA-RC', rootCause: 'sampling_error' });
+      const [rec] = await recsFor('CASE-CAPA-RC');
+      expect(rec.rootCause).toBeTruthy();
     });
 
-    it('PS-119: when rootCause is "other", the review\'s own rootCauseNote is used as the deficiency\'s rootCause verbatim', async () => {
-      await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-ROOTCAUSE-OTHER',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant',
-        severity: 'high',
-        rootCause: 'other',
-        rootCauseNote: 'Freezer malfunction overnight.',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      const raised = after.data.find(d => d.caseId === 'CASE-CAPA-ROOTCAUSE-OTHER');
-      expect(raised?.rootCause).toBe('Freezer malfunction overnight.');
+    it('the same problem again is linked to the pending recommendation, not a second one', async () => {
+      await create({ caseId: 'CASE-CAPA-DUP' });
+      await create({ caseId: 'CASE-CAPA-DUP' });
+      const recs = await recsFor('CASE-CAPA-DUP');
+      expect(recs).toHaveLength(1);
+      expect(recs[0].linkedEvents).toHaveLength(1);
     });
 
-    it('PS-119: a discordant record with no rootCause recorded leaves the deficiency\'s rootCause genuinely absent, never a placeholder', async () => {
-      await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-NO-ROOTCAUSE',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant',
-        severity: 'high',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      const raised = after.data.find(d => d.caseId === 'CASE-CAPA-NO-ROOTCAUSE');
-      expect(raised?.rootCause).toBeUndefined();
+    it('a different specimen is a different problem', async () => {
+      await create({ caseId: 'CASE-CAPA-SP', specimenId: 'SP-1' });
+      await create({ caseId: 'CASE-CAPA-SP', specimenId: 'SP-2' });
+      expect(await recsFor('CASE-CAPA-SP')).toHaveLength(2);
     });
 
-    it('a concordant record never checks the trigger rule at all — nothing to grade', async () => {
-      const before = await mockSpecimenDeficiencyService.getAll();
-      if (!before.ok) return;
-
-      await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-CONCORDANT', caseType: 'Skin Shave',
-        fieldValues: { note: 'x' },
-        outcome: 'concordant',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      expect(after.data.length).toBe(before.data.length);
+    it('concordant, a non-matching severity, or a disagreement resolved by consensus: nothing', async () => {
+      await create({ caseId: 'CASE-CAPA-NONE', outcome: 'concordant', severity: undefined });
+      await create({ caseId: 'CASE-CAPA-NONE', severity: 'low' });
+      await create({ caseId: 'CASE-CAPA-NONE', consensus: 'consensus-reached' });
+      expect(await recsFor('CASE-CAPA-NONE')).toHaveLength(0);
     });
 
-    it('never raises a duplicate CAPA when an open deficiency of the same type already exists for this case', async () => {
-      const first = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-DEDUPE',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'first occurrence' },
-        outcome: 'discordant', severity: 'high',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      expect(first.ok).toBe(true);
-
-      const afterFirst = await mockSpecimenDeficiencyService.getAll();
-      if (!afterFirst.ok) return;
-      const countAfterFirst = afterFirst.data.filter(d => d.caseId === 'CASE-CAPA-DEDUPE').length;
-      expect(countAfterFirst).toBe(1);
-
-      // Real, per direct guidance: a second discordant, high-severity
-      // record lands on the SAME case while the first deficiency is
-      // still open — this must never raise a second, duplicate CAPA
-      // record for the same real, unresolved issue.
-      const second = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-DEDUPE',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'second, still-unresolved occurrence' },
-        outcome: 'discordant', severity: 'high',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      expect(second.ok).toBe(true);
-
-      const afterSecond = await mockSpecimenDeficiencyService.getAll();
-      if (!afterSecond.ok) return;
-      expect(afterSecond.data.filter(d => d.caseId === 'CASE-CAPA-DEDUPE').length).toBe(1);
+    it('a disagreement with no consensus always recommends (PS-144)', async () => {
+      await create({ caseId: 'CASE-CAPA-UNRES', severity: 'low', consensus: 'unresolved' });
+      const [rec] = await recsFor('CASE-CAPA-UNRES');
+      expect(rec.source).toBe('unresolved-disagreement');
     });
 
-    it('raises a genuinely new CAPA once the earlier one for the same case/type has actually been closed', async () => {
-      const first = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-REOPEN',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'first occurrence' },
-        outcome: 'discordant', severity: 'high',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      if (!first.ok) return;
-
-      const afterFirst = await mockSpecimenDeficiencyService.getAll();
-      if (!afterFirst.ok) return;
-      const raised = afterFirst.data.find(d => d.caseId === 'CASE-CAPA-REOPEN');
-      expect(raised).toBeDefined();
-
-      // Real, full close-out: resolve then verify effective.
-      const resolved = await mockSpecimenDeficiencyService.resolve(raised!.id, {
-        resolutionTypeId: 'res-1', correctiveAction: 'fixed', rootCause: 'x', resolvedBy: 'PATH-001',
-      });
-      expect(resolved.ok).toBe(true);
-      const verified = await mockSpecimenDeficiencyService.verifyEffectiveness(raised!.id, {
-        outcome: 'effective', verifiedBy: 'PATH-001',
-      });
-      expect(verified.ok).toBe(true);
-
-      const second = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-REOPEN',
-        caseType: 'Breast Core Bx',
-        fieldValues: { note: 'genuinely new occurrence, after the first was closed' },
-        outcome: 'discordant', severity: 'high',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      expect(second.ok).toBe(true);
-
-      const afterSecond = await mockSpecimenDeficiencyService.getAll();
-      if (!afterSecond.ok) return;
-      expect(afterSecond.data.filter(d => d.caseId === 'CASE-CAPA-REOPEN').length).toBe(2);
-    });
-
-    it('does not treat an open deficiency on the same case but a DIFFERENT specimen as a duplicate', async () => {
-      const first = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-MULTISPEC', caseType: 'Breast Core Bx',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant', severity: 'high', specimenId: 'SPEC-A',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      expect(first.ok).toBe(true);
-
-      const second = await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-MULTISPEC', caseType: 'Breast Core Bx',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant', severity: 'high', specimenId: 'SPEC-B',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-      expect(second.ok).toBe(true);
-
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      expect(after.data.filter(d => d.caseId === 'CASE-CAPA-MULTISPEC').length).toBe(2);
-    });
-
-    it('a discordant record with a non-matching severity never raises a deficiency', async () => {
-      const before = await mockSpecimenDeficiencyService.getAll();
-      if (!before.ok) return;
-
-      await mockQaActivityRecordService.create({
-        activityTypeId: testActivityTypeId,
-        caseId: 'CASE-CAPA-LOW', caseType: 'Skin Shave',
-        fieldValues: { note: 'x' },
-        outcome: 'discordant', severity: 'low',
-        recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
-      });
-
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      expect(after.data.length).toBe(before.data.length);
-    });
-
-    it('a discordant, high-severity record for an activity type with NO configured capaTriggerRule (e.g. real Frozen/Final, or the real Abnormal/Critical Finding Confirmation activity) never raises anything', async () => {
-      const before = await mockSpecimenDeficiencyService.getAll();
-      if (!before.ok) return;
-
+    it('an activity type with no capaTriggerRule never recommends', async () => {
       await mockQaActivityRecordService.create({
         activityTypeId: 'qa-activity-frozen-final',
         caseId: 'CASE-CAPA-NORULE', caseType: 'Skin Shave',
@@ -371,10 +205,18 @@ describe('mockQaActivityRecordService', () => {
         outcome: 'discordant', severity: 'high',
         recordedBy: { userId: 'PATH-001', userName: 'Dr. Test' },
       });
+      expect(await recsFor('CASE-CAPA-NORULE')).toHaveLength(0);
+    });
 
-      const after = await mockSpecimenDeficiencyService.getAll();
-      if (!after.ok) return;
-      expect(after.data.length).toBe(before.data.length);
+    it('the surgical post-sign-out peer review is PS-148\'s moment', async () => {
+      await mockQaActivityRecordService.create({
+        activityTypeId: 'qa-activity-surgical-peer-review',
+        caseId: 'CASE-CAPA-POST', caseType: 'Colon', fieldValues: {},
+        outcome: 'discordant', severity: 'high',
+        recordedBy: { userId: 'PATH-002', userName: 'Dr. Second' },
+      });
+      const [rec] = await recsFor('CASE-CAPA-POST');
+      expect(rec).toMatchObject({ source: 'post-signout-discordance', deficiencyTypeId: 'def-peer-review-discordance' });
     });
   });
 });

@@ -51,7 +51,10 @@ describe('correctServiceCharge - the real, shared orchestration extracted from U
 
   it('carries the real postSignoutContext through to both the credit and the corrected charge when given', async () => {
     const context = { reasonId: 'psbc-clerical-error', comment: 'Wrong code applied at sign-out.' };
-    const res = await correctServiceCharge('CASE-ORCH', 'chg-orch-1', '88305', 'user-1', context);
+    // Batch 433: a charge can be corrected once (a second correction of the
+    // same charge is refused as already reversed), so this test uses its own.
+    await mockServiceChargeService.saveCharge({ ...original, id: 'chg-orch-3' });
+    const res = await correctServiceCharge('CASE-ORCH', 'chg-orch-3', '88305', 'user-1', context);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.data.credit.postSignoutChangeReasonId).toBe('psbc-clerical-error');

@@ -171,6 +171,10 @@ export interface StainType {
    *  and the pathologist picks one (the lab is required at submission). */
   referenceLabFacilityIds?: string[];
   defaultReferenceLabFacilityId?: string;
+  /** Batch 467 (Pete: per test and facility, run in-house or send out): the performing labs (Facility ids) that run
+   *  this molecular test themselves. An add-on order for one of them offers "in-house" and starts with it; send-out
+   *  is always offered (services/molecularOrders/molecularRouting.ts). */
+  inHouseFacilityIds?: string[];
   /** Rough turnaround estimate — informational only, not a hard TAT rule
    *  (that's TATConfigSection's job, a separate, already-built system;
    *  this is just a per-stain default hint shown at order time). */

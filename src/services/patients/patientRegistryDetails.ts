@@ -33,6 +33,7 @@ import type { NationalPatientIdentifier } from '@/types/patient/NationalPatientI
 import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
 import { normalizeNationalIdentifier, verifyNationalIdentifier } from '../patientIdentifiers/checkDigits';
 import { withNationalIdentifier } from '../patientIdentifiers/recordNationalPatientIdentifier';
+import { updateCaseWithRetry } from '../cases/caseWrite';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface PatientRegistryDetailsDeps {
@@ -42,7 +43,10 @@ export interface PatientRegistryDetailsDeps {
   recordInMpi: (patientId: string, identifier: NationalPatientIdentifier) => Promise<unknown>;
   setConsentInMpi: (patientId: string, consent: PatientRegistryConsent) => Promise<unknown>;
   casesForPatient: (patientId: string) => Promise<{ id: string; patient: Patient }[]>;
-  updateCase: (caseId: string, patch: { patient: Patient }) => Promise<unknown>;
+  /** PS-71 (Batch 458): reads one case (system to system, not limited to what the signed-in user sees). */
+  getCase: (caseId: string) => Promise<{ id: string; patient: Patient; version?: number } | null | undefined>;
+  /** PS-71 (Batch 458): saves against the version of the case the change was built from. */
+  updateCase: (caseId: string, patch: { patient: Patient }, expectedVersion: number) => Promise<unknown>;
   logAudit: (event: any) => unknown;
 }
 
@@ -50,6 +54,8 @@ export interface PatientRegistryIntakeOutcome {
   outcome: 'unparseable' | 'unknownPatient' | 'stale' | 'applied';
   patientId?: string;
   casesUpdated?: number;
+  /** PS-71: cases whose save kept conflicting after the retries; not updated (a redelivery applies them). */
+  casesConflicted?: string[];
   /** Identifiers: the systems recorded, and those skipped as older than what was there. */
   recorded?: string[];
   skipped?: string[];
@@ -72,6 +78,23 @@ async function findPatient(body: any, deps: PatientRegistryDetailsDeps): Promise
   return (await deps.resolvePatient(authority, value)) ?? (await deps.resolvePatient(authority, normalizeNationalIdentifier(value)));
 }
 
+/**
+ * PS-71 (Batch 458): one case's patient, changed on the newest copy of that
+ * case and saved with its version (updateCaseWithRetry). Each case of the
+ * patient is saved on its own, so a conflict on one never holds up the
+ * others. `change` returns null when the newest copy already has something
+ * as new (nothing to do).
+ */
+function saveCasePatient(caseId: string, change: (patient: Patient) => Patient | null, deps: PatientRegistryDetailsDeps) {
+  return updateCaseWithRetry(caseId, current => {
+    const patient = change((current as any).patient ?? {});
+    return patient ? { patient } : null;
+  }, {
+    getCase: id => deps.getCase(id) as Promise<any>,
+    updateCase: async (id, updates, expectedVersion) => { await deps.updateCase(id, updates as { patient: Patient }, expectedVersion); },
+  });
+}
+
 const sysAudit = (event: string, detail: string, caseId: string | null = null) => ({ type: 'system', event, detail, user: 'system', caseId, confidence: null });
 
 export async function ingestRegistryConsentEvent(raw: string, deps: PatientRegistryDetailsDeps): Promise<PatientRegistryIntakeOutcome> {
@@ -91,17 +114,21 @@ export async function ingestRegistryConsentEvent(raw: string, deps: PatientRegis
   const mpiNewer = newer(updatedAt, mpi?.registryConsent?.recordedAt);
   if (mpiNewer) await deps.setConsentInMpi(patientId, consent);
   let casesUpdated = 0;
+  const casesConflicted: string[] = [];
   for (const c of await deps.casesForPatient(patientId)) {
     if (!newer(updatedAt, c.patient.registryConsent?.recordedAt)) continue;
-    await deps.updateCase(c.id, { patient: { ...c.patient, registryConsent: consent } });
-    casesUpdated++;
+    // PS-71 (Batch 458): each case saved on its own, against its version; the "newer" check re-runs on the newest copy.
+    const w = await saveCasePatient(c.id, p => (newer(updatedAt, p.registryConsent?.recordedAt) ? { ...p, registryConsent: consent } : null), deps);
+    if (w.ok === true) casesUpdated++;
+    else if (w.reason === 'conflict') casesConflicted.push(c.id);
   }
-  if (!mpiNewer && !casesUpdated) {
+  if (casesConflicted.length) deps.logAudit(sysAudit('Registry consent not applied to a case (edit conflict)', `Patient ${patientId}: case(s) ${casesConflicted.join(', ')} kept changing during the update and were not updated.`));
+  if (!mpiNewer && !casesUpdated && !casesConflicted.length) {
     deps.logAudit(sysAudit('Registry consent message older than the record', `Patient ${patientId}: a consent dated ${updatedAt} was not applied; a newer one is recorded.`));
     return { outcome: 'stale', patientId, casesUpdated: 0 };
   }
   deps.logAudit(sysAudit('Registry opt-out received', `Patient ${patientId}: screening opt-out ${consent.screeningOptOut ? 'yes' : 'no'}, cancer registry opt-out ${consent.cancerRegistryOptOut ? 'yes' : 'no'} (as of ${updatedAt}); ${casesUpdated} case(s) updated.`));
-  return { outcome: 'applied', patientId, casesUpdated };
+  return { outcome: 'applied', patientId, casesUpdated, ...(casesConflicted.length ? { casesConflicted } : {}) };
 }
 
 export async function ingestNationalIdentifierEvent(raw: string, deps: PatientRegistryDetailsDeps): Promise<PatientRegistryIntakeOutcome> {
@@ -130,24 +157,32 @@ export async function ingestNationalIdentifierEvent(raw: string, deps: PatientRe
     await deps.recordInMpi(patientId, identifier);
     recorded.push(system);
   }
-  let casesUpdated = 0;
-  for (const c of await deps.casesForPatient(patientId)) {
-    let ids = c.patient.nationalIdentifiers;
+  // The identifiers this message makes newer on one copy of a patient.
+  const applyIncoming = (p: Patient): Patient | null => {
+    let ids = p.nationalIdentifiers;
     for (const identifier of incoming) {
       if (newer(updatedAt, ids?.find(e => e.system === identifier.system)?.verifiedAt)) ids = withNationalIdentifier(ids, identifier.system, identifier);
     }
-    if (ids === c.patient.nationalIdentifiers) continue;
-    await deps.updateCase(c.id, { patient: { ...c.patient, nationalIdentifiers: ids } });
-    casesUpdated++;
+    return ids === p.nationalIdentifiers ? null : { ...p, nationalIdentifiers: ids };
+  };
+  let casesUpdated = 0;
+  const casesConflicted: string[] = [];
+  for (const c of await deps.casesForPatient(patientId)) {
+    if (!applyIncoming(c.patient)) continue;
+    // PS-71 (Batch 458): each case saved on its own, against its version; recomputed from the newest copy on a conflict.
+    const w = await saveCasePatient(c.id, applyIncoming, deps);
+    if (w.ok === true) casesUpdated++;
+    else if (w.reason === 'conflict') casesConflicted.push(c.id);
   }
-  if (!recorded.length && !casesUpdated) {
+  if (casesConflicted.length) deps.logAudit(sysAudit('National identifier not applied to a case (edit conflict)', `Patient ${patientId}: case(s) ${casesConflicted.join(', ')} kept changing during the update and were not updated.`));
+  if (!recorded.length && !casesUpdated && !casesConflicted.length) {
     deps.logAudit(sysAudit('National identifier message older than the record', `Patient ${patientId}: ${skipped.join(', ')} dated ${updatedAt} not applied; newer ones are recorded.`));
     return { outcome: 'stale', patientId, recorded, skipped, casesUpdated: 0 };
   }
   // The values are patient PHI and stay out of the audit text; the systems and check results are the record.
   const checks = incoming.filter(i => recorded.includes(i.system)).map(i => `${i.system} ${i.verificationStatus === 'verified' ? 'verified' : i.verificationStatus === 'failedChecksum' ? 'failed its check digit' : 'unchecked'}`);
   deps.logAudit(sysAudit('National identifier received', `Patient ${patientId}: ${checks.join(', ') || 'no MPI change'}${skipped.length ? `; older than the record: ${skipped.join(', ')}` : ''}; ${casesUpdated} case(s) updated.`));
-  return { outcome: 'applied', patientId, recorded, skipped, casesUpdated };
+  return { outcome: 'applied', patientId, recorded, skipped, casesUpdated, ...(casesConflicted.length ? { casesConflicted } : {}) };
 }
 
 /** What the Accession page fills in for a patient picked from the MPI. */
@@ -211,20 +246,23 @@ export interface SaveCaseRegistryDetailsDeps {
 export async function saveCaseRegistryDetails(
   input: { caseId: string; before: CaseRegistryDetails; after: CaseRegistryDetails },
   deps: SaveCaseRegistryDetailsDeps,
-): Promise<{ outcome: 'unchanged' | 'saved' | 'partlyRefused' | 'refused'; identifiersSaved: number; consentSaved: boolean }> {
+): Promise<{ outcome: 'unchanged' | 'saved' | 'partlyRefused' | 'refused' | 'conflict'; identifiersSaved: number; consentSaved: boolean }> {
   const changes = registryDetailsChanges(input.before, input.after);
   if (!changes.identifiers.length && !changes.consentChanged) return { outcome: 'unchanged', identifiersSaved: 0, consentSaved: false };
   let identifiersSaved = 0;
   let refused = 0;
+  // PS-71 (Batch 458): a save that kept conflicting is reported as such, not as a permission refusal.
+  let conflicted = 0;
   for (const c of changes.identifiers) {
     const r = await deps.recordIdentifier({ caseId: input.caseId, system: c.system, value: c.value, announce: true });
-    if (r.outcome === 'saved' || r.outcome === 'removed') identifiersSaved++; else refused++;
+    if (r.outcome === 'saved' || r.outcome === 'removed') identifiersSaved++; else if (r.outcome === 'conflict') conflicted++; else refused++;
   }
   let consentSaved = false;
   if (changes.consentChanged) {
     const r = await deps.recordConsent({ caseId: input.caseId, ...input.after.consent });
-    if (r.outcome === 'saved' || r.outcome === 'cleared') consentSaved = true; else refused++;
+    if (r.outcome === 'saved' || r.outcome === 'cleared') consentSaved = true; else if (r.outcome === 'conflict') conflicted++; else refused++;
   }
   const saved = identifiersSaved + (consentSaved ? 1 : 0);
+  if (conflicted) return { outcome: 'conflict', identifiersSaved, consentSaved };
   return { outcome: !refused ? 'saved' : saved ? 'partlyRefused' : 'refused', identifiersSaved, consentSaved };
 }

@@ -23,5 +23,11 @@ Batch 417 (Registry Engine SRS v2.1, §5 and FR-004). A patient's **national hea
 
 `recordNationalPatientIdentifier` takes `announce: true` for a change made after accessioning (the Registry Exceptions page's **Patient details**). The patient then gets the existing A08 demographic update, with `sourceOperation: 'recordNationalIdentifier'`; its snapshot already includes the national identifiers. Accessioning itself sends none. A blank value now also removes the identifier from the MPI (`removeFromMpi`); before, it was removed only from the case.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Versioned per case. A `conflict` outcome is new; nothing goes to the MPI or the audit unless the save landed.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*

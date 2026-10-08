@@ -17,10 +17,13 @@
 // (cytologyCaseFinalization.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { caseAddresses } from '@/services';
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { useRouteCaseId } from '@/hooks/useRouteCaseId';
 import { RegistryOptOutBadge } from '@/components/Common/RegistryOptOutBadge';
 import { actionRegistryService, molecularTargetService, stainTypeService } from '@/services';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { safeInternalPath } from '@/utils/safeInternalPath';
 import { toast } from 'react-toastify';
 import '../../pathscribe.css';
@@ -61,8 +64,8 @@ import { formatList } from '@/utils/formatList';
 import { formatIdentificationName, fromLegacyName, resolvePatientFullDisplayName } from '@/utils/personName';
 import type { ProviderCredential } from '@/types/staff/ProviderCredential';
 import type { Jurisdiction } from '@/types/systemConfig';
-import { caseRouter } from '@/services/cases/CaseRouter';
 import { resolveCytologyReviewerRole } from '@/services/cytology/resolveCytologyReviewerRole';
+import { qcByPrimaryScreener } from '@/services/cytology/cytologyQueues';
 import { cloneCytologyReviewAsDraft } from '@/services/cytology/cloneCytologyReviewAsDraft';
 import { latestCytologySignOut } from '@/services/cytology/resolveCytologyRevisionInputs';
 import { resolveCytologyStructuredWorkflowAccess } from '@/services/cytology/resolveCytologyStructuredWorkflowAccess';
@@ -94,14 +97,19 @@ import { saveCytologyReview, type SaveCytologyReviewOutcome } from '@/services/c
 import { reviseCytologyReviewForSignOut } from '@/services/cytology/reviseCytologyReviewForSignOut';
 import { acknowledgeCytologyReviewNote, addCytologyReviewNote, hasPendingAuthorRevision, notesForReview } from '@/services/cytology/cytologyReviewNotes';
 import { CytologyReviewNotes } from './components/CytologyReviewNotes';
+import { CytologyReviewEligibilityBadge } from './components/CytologyReviewEligibilityBadge';
 import { cytologyWorkspaceDeps } from '@/services/cytology/cytologyWorkspaceDeps';
+import { saveCytologyUnitCoding, saveCytologySpecimenBilling } from '@/services';
+import { useCaseBillingReview } from '@/hooks/useCaseBillingReview';
+import { CaseBillingReview } from '@/components/Billing/CaseBillingReview';
 import {
-  addCytologyDecant, applyCytologyCodeChanges, buildCytologyPrintDocument, completeCytologyRetrospectiveReview,
+  addCytologyDecant, CytologyDecantNotSaved, applyCytologyCodeChanges, buildCytologyPrintDocument, completeCytologyRetrospectiveReview,
   dismissHistologyCorrelationCandidate, flagCytologyForQc, patchCytologyScreening, recordCytologyHistologyCorrelation,
-  recordCytologyRoseEvaluation, removeCytologyQcFlag, resolveHistologyCorrelations, saveCytologyLastMenstrualPeriod,
+  recordCytologyRoseEvaluation, removeCytologyQcFlag, resolveHistologyCorrelations, saveCytologyLastMenstrualPeriod, saveCytologySpellingLocaleOverride,
   selectCytologyFinalDiagnosis, updateCytologyDecantStains,
   type CytologyRetrospectiveOutcome, type HistologyCorrelationEntry, type HistologyCorrelationResolution,
 } from '@/services/cytology/cytologyCaseActions';
+import { decantRefusalKey } from '@/services/material/materialTree';
 import {
   aiScreeningSummary, cytologyCategoryLabel, cytologyCategoryOptions, cytologyCodeSpecimens, cytologyExistingCodes,
   cytologyCaseProgress, cytologyHpvCard, cytologyReviewActions, cytologyReviewEligibility, cytologySelectionEntries, cytologySignOutPanel, cytologySynopticTranslationCheck,
@@ -114,8 +122,10 @@ const fieldLabel = (text: string, hint?: string) => <CytologyFieldLabel text={te
 const deps = cytologyWorkspaceDeps;
 
 export default function CytologyScreeningPage() {
-  const { caseId } = useParams<{ caseId: string }>();
+  // Batch 446: the address carries the case's reference, not its accession.
+  const caseId = useRouteCaseId('cytology');
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   // Batch 396: a screen that opens this page for review (the Cytology QC Peer
   // Review Queue) passes where Back should return to; only a same-site path.
   const location = useLocation();
@@ -136,6 +146,8 @@ export default function CytologyScreeningPage() {
   // General case flags, alongside this screen's own high-risk QC flag (a different thing).
   const { flagCaseData, flagDefinitions, showFlagManager, setShowFlagManager, openFlagManager, onApplyFlags, onRemoveFlag } = useSynopticFlags('');
   const [showCodesModal, setShowCodesModal] = useState(false);
+  // Batch 460 (Pete): full billing review in a wide drawer, next to # Codes.
+  const [showBillingDrawer, setShowBillingDrawer] = useState(false);
   const [showMaterialDrawer, setShowMaterialDrawer] = useState(false);
   const [showRoseDrawer, setShowRoseDrawer] = useState(false);
   const [showSynopticDrawer, setShowSynopticDrawer] = useState(false);
@@ -202,8 +214,10 @@ export default function CytologyScreeningPage() {
 
   const { openCompanion } = useCompanionWindow({ windowName: 'PathScribeEMRSidecar', preferredWidth: 1200, preferredHeight: 800 });
   const handleLaunchEMR = async () => {
-    const mrn = caseData?.patient?.mrn ?? '100004';
-    const targetUrl = `${window.location.origin}/mock-emr?patientId=${mrn}`;
+    // Batch 446: addressed by the case reference, never the MRN.
+    const address = caseData?.id ? await caseAddresses.addressOf(caseData.id, 'emr') : null;
+    if (!address) { setEmrOpen(true); return; }
+    const targetUrl = `${window.location.origin}${address}`;
     // Dev-testing shortcut kept for parity with Surgical Pathology's action bar.
     if (new URLSearchParams(window.location.search).get('forceEmrFallback') === '1') { setEmrOpen(true); return; }
     const result = await openCompanion(targetUrl);
@@ -379,6 +393,7 @@ export default function CytologyScreeningPage() {
     if (result.validation) { setCisoeAErrors(result.validation.errors); setCisoeAWarnings(result.validation.warnings); }
     if (result.capacity !== undefined) setWorkloadStatus(result.capacity);
     if (result.outcome === 'notPermitted') { toast.error(t('cytologyScreening.errors.reviewNotPermitted')); return false; }
+    if (result.outcome === 'qcByPrimaryScreener') { toast.error(t('cytologyScreening.errors.qcByPrimaryScreener')); return false; }
     if (result.outcome === 'failed') { toast.error(t('cytologyScreening.errors.saveFailed')); return false; }
     if (result.outcome === 'workloadBlocked') {
       setWorkloadBlockedReason(t('cytologyScreening.workload.blockedReason'));
@@ -607,10 +622,20 @@ export default function CytologyScreeningPage() {
   };
 
   // ── Material, ROSE, codes, LMP, print, spelling ────────────────────────────
+  // Batch 453: a decant change the atomic save refused (conflict, refusal) is said, not lost silently.
+  const reportDecantNotSaved = (e: unknown) => {
+    const reason = e instanceof CytologyDecantNotSaved ? e.reason : 'saveFailed';
+    toast.error(reason === 'conflict' ? t('cytologyScreening.materialDrawer.decantConflict') : t(`useSpecimenBlockManagement.toast.decantNotSaved.${decantRefusalKey(reason)}`));
+    // A conflict means another session changed the material: reload so the
+    // next change is made against the current tree and version.
+    if (reason === 'conflict') void load();
+  };
   const handleAddDecant = async (decantType: DecantType) => {
     if (!caseData || !currentSpecimen || !user) return;
-    const specimens = await addCytologyDecant({ caseData, specimen: currentSpecimen, decantType, user: { id: user.id, name: user.name } }, deps);
-    setCaseData(prev => (prev ? ({ ...prev, specimens } as typeof prev) : prev));
+    try {
+      const specimens = await addCytologyDecant({ caseData, specimen: currentSpecimen, decantType, user: { id: user.id, name: user.name } }, deps);
+      setCaseData(prev => (prev ? ({ ...prev, specimens, version: ((prev as any).version ?? 0) + 1 } as typeof prev) : prev));
+    } catch (e) { reportDecantNotSaved(e); }
   };
   useEffect(() => {
     const addResidualFluid = () => { handleAddDecant('residual_fluid'); };
@@ -625,8 +650,10 @@ export default function CytologyScreeningPage() {
   }, [caseData, currentSpecimen, user]);
   const handleUpdateStains = async (decantId: string, stains: unknown[]) => {
     if (!caseData || !currentSpecimen) return;
-    const specimens = await updateCytologyDecantStains({ caseData, specimen: currentSpecimen, decantId, stains }, deps);
-    setCaseData(prev => (prev ? ({ ...prev, specimens } as typeof prev) : prev));
+    try {
+      const specimens = await updateCytologyDecantStains({ caseData, specimen: currentSpecimen, decantId, stains }, deps);
+      setCaseData(prev => (prev ? ({ ...prev, specimens, version: ((prev as any).version ?? 0) + 1 } as typeof prev) : prev));
+    } catch (e) { reportDecantNotSaved(e); }
   };
   const handleRecordRose = async (roseLocation: any, passes: any[]) => {
     if (!caseData || !currentSpecimen || !user) return;
@@ -638,6 +665,27 @@ export default function CytologyScreeningPage() {
     const { coding, specimens } = await applyCytologyCodeChanges({ caseData, codes, user: { id: user?.id, name: user?.name } }, deps);
     setCaseData(prev => (prev ? ({ ...prev, coding, specimens } as typeof prev) : prev));
   };
+  const adoptBillingSave = (r: { specimens: any[]; version?: number }) => {
+    if (r.version !== undefined) setCaseData(prev => (prev ? ({ ...prev, version: r.version } as typeof prev) : prev));
+    return r.specimens;
+  };
+  // Batch 460: the billing panel's changes, saved through the Workspace's
+  // versioned saves (a decant's codes through the material save).
+  const billingReview = useCaseBillingReview({
+    caseData, user,
+    writer: {
+      saveUnitCoding: async (specimenId, unitId, change) => {
+        if (!caseData) return [];
+        return adoptBillingSave(await saveCytologyUnitCoding({ caseData, specimenId, unitId, change }, deps));
+      },
+      saveSpecimens: async change => (caseData ? adoptBillingSave(await saveCytologySpecimenBilling({ caseData, change }, deps)) : []),
+    },
+    onSpecimens: specimens => setCaseData(prev => (prev ? ({ ...prev, specimens } as typeof prev) : prev)),
+    // As on the report page: only an orchestration case is billed here (the LIS bills Assist and older cases).
+    chargesEnabled: caseData?.reportingMode === 'orchestrator',
+    onWarning: key => toast.warning(t(key)),
+    onSaveFailed: e => (e instanceof CytologyDecantNotSaved ? reportDecantNotSaved(e) : toast.error(t('cytologyScreening.billingDrawer.saveFailed'))),
+  });
   const handleLmpSave = async () => {
     if (!caseData) return;
     await saveCytologyLastMenstrualPeriod({ caseData, lmp: lmpDraft }, deps);
@@ -656,7 +704,8 @@ export default function CytologyScreeningPage() {
   // Spell check (PS-342, Batch 338): the case's spelling language.
   const saveSpellingLocaleOverride = useCallback(async (locale: SpellingLocale | null) => {
     if (!caseData) return;
-    await caseRouter.updateCase(caseData.id, { spellingLocaleOverride: locale });
+    // PS-71 (Batch 458): versioned (the version this screen loaded), via the service.
+    await saveCytologySpellingLocaleOverride({ caseData, locale }, deps);
     setCaseData(prev => (prev ? { ...prev, spellingLocaleOverride: locale } : prev));
   }, [caseData]);
   const spellCheck = useCaseSpellCheck({
@@ -742,6 +791,12 @@ export default function CytologyScreeningPage() {
                 onClick={() => setShowCodesModal(true)}
                 className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal">
                 # {t('cytologyScreening.codesBtn')}
+              </button>
+              <button
+                onClick={() => setShowBillingDrawer(true)}
+                title={t('cytologyScreening.billingDrawer.tooltip')}
+                className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal">
+                $ {t('cytologyScreening.billingBtn')}
               </button>
               <button
                 onClick={() => openFlagManager(caseData)}
@@ -908,6 +963,9 @@ export default function CytologyScreeningPage() {
                     ? t('cytologyScreening.role.editing')
                     : t('cytologyScreening.role.auto')}
                 </div>
+                {!!user?.id && qcByPrimaryScreener(resolvedRole, reviews, user.id) && (
+                  <div className="ps-cytoscreen-role-warning" role="note">{t('cytologyScreening.role.qcByPrimaryScreener')}</div>
+                )}
               </div>
 
               {/* Real, per direct guidance's own CLIA 42 CFR § 493.1274
@@ -1009,7 +1067,7 @@ export default function CytologyScreeningPage() {
                             <span className="ps-cytoscreen-history-date">{formatDate(b.date, i18n.language)}</span>
                             {' — '}<span data-phi="accession">{b.accessionNumber}</span>{b.specimenDescription ? ` · ${b.specimenDescription}` : ''}
                           </span>
-                          <a href={`/case/${b.caseId}/synoptic`} className="ps-cytoscreen-history-link">{t('cytologyScreening.patientHistory.viewCase')}</a>
+                          <button type="button" onClick={() => { void openCasePage(b.caseId); }} className="ps-cytoscreen-history-link ps-cytoscreen-link-button">{t('cytologyScreening.patientHistory.viewCase')}</button>
                         </div>
                       ))}
                     </div>
@@ -1027,9 +1085,9 @@ export default function CytologyScreeningPage() {
                         {' — '}<span data-phi="accession">{item.accessionNumber}</span>
                         {item.resultLabel ? <strong className="ps-cytoscreen-text-light"> · {item.resultLabel}</strong> : null}
                       </span>
-                      <a href={`/case/${item.caseId}/synoptic`} className="ps-cytoscreen-lookback-link">
+                      <button type="button" onClick={() => { void openCasePage(item.caseId); }} className="ps-cytoscreen-lookback-link ps-cytoscreen-link-button">
                         {t('cytologyScreening.fiveYearLookback.viewSlide')}
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1049,9 +1107,7 @@ export default function CytologyScreeningPage() {
                         {isInitial ? t('cytologyScreening.history.initial').toUpperCase() : roleLabel(r.role).toUpperCase()}
                       </span>
                       {isFinal && <span className="ps-cytoscreen-review-final-tag">{t('cytologyScreening.history.finalTag').toUpperCase()}</span>}
-                      <span title={blockReasonsText(gate.blockedReasons)} className={`ps-cytoscreen-review-eligibility ${gate.allowed ? 'ps-cytoscreen-review-eligibility--allowed' : 'ps-cytoscreen-review-eligibility--blocked'}`}>
-                        {(gate.allowed ? t('cytologyScreening.history.ctEligible') : t('cytologyScreening.history.pathRequired')).toUpperCase()}
-                      </span>
+                      <CytologyReviewEligibilityBadge gate={gate} reasonsText={blockReasonsText(gate.blockedReasons)} />
                       <span className="ps-cytoscreen-review-meta">{r.recordedBy.userName} · {formatDate(r.recordedAt, i18n.language)}</span>
                     </div>
 
@@ -1182,6 +1238,9 @@ export default function CytologyScreeningPage() {
             onSave={(templateId, answers, acknowledgment) => { setDraft({ ...draft, synopticData: { templateId, answers, translationValidationAcknowledgment: acknowledgment } }); setShowSynopticDrawer(false); }}
             onInsertNarrative={(narrativeText) => setDraft(prev => ({ ...prev, notes: notesWithNarrative(prev.notes, narrativeText) }))}
           />
+        </CytologySlideOverDrawer>
+        <CytologySlideOverDrawer wide isOpen={showBillingDrawer && !!caseData} title={t('cytologyScreening.billingDrawer.title')} onClose={() => setShowBillingDrawer(false)}>
+          {caseData && <CaseBillingReview caseData={caseData} review={billingReview} selectedMaterialId={currentSpecimen?.decants?.[0]?.id} />}
         </CytologySlideOverDrawer>
         <CytologySlideOverDrawer isOpen={showMaterialDrawer} title={t('cytologyScreening.materialBtn')} onClose={() => setShowMaterialDrawer(false)}>
           <CytologyMaterialView

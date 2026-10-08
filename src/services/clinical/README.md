@@ -16,7 +16,8 @@ standard interface/mock triplet).
   spaCy/MedSpaCy pipeline this app has no real infrastructure for — same
   established pattern as `evaluateSynopticAssignment` (`services/cases/mockCaseService.ts`).
   Negation-aware by prompt design (flags "high-grade dysplasia," never "no
-  evidence of high-grade dysplasia"). Deliberately scoped to narrative text
+  evidence of high-grade dysplasia"), and since Batch 452 also checked in code
+  (`negatedFindingCheck.ts`). Deliberately scoped to narrative text
   only (gross/microscopic/ancillary) at the function's own signature level —
   never patient name, MRN, or DOB, a real enforced boundary, not an implicit one.
   Real, per direct guidance ("the case is considered abnormal or not, however
@@ -151,6 +152,40 @@ standard interface/mock triplet).
 ## Batch 399
 
 A `CriticalResultNotification` migrated from an intraoperative verbal report now records who actually received it (`clinicianName`), their `recipientRole`, the `readBackConfirmed`, the pathologist's `criticalResult` decision and any `surgeonUnavailable` reason.
+
+## Batch 439 (PS-145): clinical-pathologic mismatch
+
+- `detectClinicalPathologicMismatch.ts`: compares the order's clinical indication and history with the microscopic findings and diagnosis, and whether the pathologist confirmed a malignancy. A suggestion with a confidence (kind: unexpected malignancy, expected malignancy not found, site or organ, other). The AI evaluation first; when it can't be reached, one narrow rule-based check (confirmed malignancy, routine or benign-leaning clinical text that never mentions malignancy, not even to rule it out), labelled as such at 50%. Only narrative and clinical text is sent, never patient identifiers.
+- `clinicalMismatchDecision.ts`: the pathologist's decision (not a mismatch / resolved / unresolved, a note for a real one), written as a "Clinical-Pathologic Correlation" QA record; an unresolved mismatch recommends a CAPA. Checks `case:clinical-mismatch:record`; audited (`CLINICAL_MISMATCH_DECIDED`).
+- `clinicalMismatchService.ts`: the browser's wiring. `clinicalHistoryText.ts`: the structured clinical history as text.
+- Verified in the browser against the configured AI: a routine polyp confirmed malignant is flagged (82%); a BI-RADS 5 mass confirmed malignant is not (malignancy was expected).
+- Tests: `clinicalMismatch.test.ts`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-105, PS-131)
+
+`detectCriticalFindings.test.ts` extended: an empty model reply gives no flag; the prompt's negation instruction.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+- **`negatedFindingCheck.ts`** (PS-131, PS-105): a code-side negation check behind the AI. Ignoring "no evidence of carcinoma" used to rely on the prompt alone. Now every narrative flag is re-read against its own source field, and the flag is dropped when the term is negated everywhere it appears. The check works like NegEx:
+  - cues before the term: "no", "no evidence of", "negative for", "free of", "without", "absence of", "ruled out"…
+  - cues straight after the term: "not identified", "is absent", "has been ruled out"…
+  - the scope stays within the sentence and stops at "but", "however", "and" or a comma;
+  - pseudo-negations are ignored: "cannot be ruled out", "cannot be excluded", "no change in", "gram-negative".
+
+  A flag the code can't locate in the text (because the model paraphrased it) is kept, and so is every synoptic-rule flag: a missed critical finding is worse than an extra prompt. `detectCriticalFindings` now returns `{ flags, negated }` and also drops a reply entry with no term or with an unknown source field.
+- **`narrativePlainText.ts`**: narrative HTML converted to plain text, with block tags becoming line breaks.
+- **`findingHighlight.ts`** (PS-323, the follow-up to PS-133): where a detected finding sits in the narrative, for the inline highlight. It tries, in order:
+  1. the model's quote exactly;
+  2. the quote ignoring case and spacing;
+  3. the term itself, skipping negated mentions;
+  4. nothing.
+
+  It also maps report sections and Full Patient Report rows to the narrative field they feed, and splits text into marked and unmarked pieces.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`criticalAlertDemoSeed.ts`: one outstanding critical-finding alert, `cad-demo-4621`, on S26-4621 (tumour at the deep margin), sent by secure email to Dr. Jennifer Davis with the no-patient-data template, and its reference link `/critical-alert/cat_demo4621margin` (7 days, not opened). Audit Log → Critical Alerts. There is no configurable critical-finding wording to seed: the wording comes from the Abnormal Trigger Rules dictionary (already seeded) and the fixed templates. No call-back is seeded; calls are logged during sign-out.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

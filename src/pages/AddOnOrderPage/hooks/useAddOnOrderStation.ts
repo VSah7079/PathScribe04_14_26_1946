@@ -46,7 +46,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import {
-  userService, facilityService, stainTypeService, scanStationService, authorizationService, activeReferenceLabs,
+  userService, facilityService, stainTypeService, scanStationService, authorizationService, activeReferenceLabs, molecularOrderEngine,
 } from '@/services';
 import { sendEmail } from '@/services/communications/notificationService';
 import { resolveCasePerformingLab } from '@/services/cases/casePoolAssignmentService';
@@ -136,6 +136,8 @@ export function useAddOnOrderStation() {
   const deps: AddOnOrderActionDeps = {
     enforce: (capability, context) => authorizationService.enforce(capability, context),
     saveSpecimens,
+    // Batch 467: molecular lines become orders the molecular order engine routes and queues.
+    ingestMolecularOrders: requests => molecularOrderEngine.ingest(requests),
   };
 
   /** Places the order on every chosen block (services/addOnOrders). */
