@@ -697,6 +697,7 @@ def build_report_text(payload: dict) -> str:
         # If you add a staging URL or change Vite's dev port, add it here too.
         cors_origins=[
             "https://pathscribe-ai-ui.vercel.app",
+            "https://pathscribe-ai.vercel.app",
             "http://localhost:5173",   # Vite dev server default
             "http://127.0.0.1:5173",
         ],
@@ -814,6 +815,7 @@ def validate_envelope(body: dict) -> str | None:
         # its own comment for the real reasoning.
         cors_origins=[
             "https://pathscribe-ai-ui.vercel.app",
+            "https://pathscribe-ai.vercel.app",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
         ],
